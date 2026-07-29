@@ -1,8 +1,16 @@
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
 import { getPackageModules, supportsTurbopackRuleCondition } from '../util';
+
+// The ESM build has no `__dirname`; derive it from `import.meta.url` in that case,
+// following the `@sentry/bundler-plugins` pattern (Rollup transpiles `import.meta`
+// for the CJS build, and the `typeof __dirname` branch keeps CJS working regardless).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore Rollup transpiles import.meta for the CJS build
+const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -62,7 +70,7 @@ export function generateValueInjectionRules({
         ...(hasConditionSupport ? { condition: { not: 'foreign' } } : {}),
         loaders: [
           {
-            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
+            loader: path.resolve(_dirname, '..', 'loaders', 'valueInjectionLoader.js'),
             options: {
               values: clientValues,
             },
@@ -82,7 +90,7 @@ export function generateValueInjectionRules({
         ...(hasConditionSupport ? { condition: { not: 'foreign' } } : {}),
         loaders: [
           {
-            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
+            loader: path.resolve(_dirname, '..', 'loaders', 'valueInjectionLoader.js'),
             options: {
               values: serverValues,
             },

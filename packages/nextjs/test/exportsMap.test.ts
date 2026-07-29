@@ -76,4 +76,42 @@ describe('ESM server build is loadable by plain Node.js', () => {
     expect(visited.size).toBeGreaterThan(1);
     expect(extensionlessNextImports).toEqual([]);
   });
+  it('has no unguarded __dirname in the ESM config build graph', () => {
+    // `__dirname` does not exist in ESM. The config code derives a module dirname
+    // from `import.meta.url` and may only reference `__dirname` behind a
+    // `typeof __dirname` guard (the CJS fast path).
+    const packageRoot = resolve(__dirname, '..');
+    const entry = resolve(packageRoot, 'build', 'esm', 'config', 'index.js');
+    expect(existsSync(entry)).toBe(true);
+
+    const importSpecifierRegex = /(?:from|import)\s*['"]([^'"]+)['"]/g;
+    const visited = new Set<string>();
+    const queue = [entry];
+    const unguardedDirnameUses: string[] = [];
+
+    while (queue.length > 0) {
+      const file = queue.pop() as string;
+      if (visited.has(file) || !existsSync(file)) {
+        continue;
+      }
+      visited.add(file);
+
+      const source = readFileSync(file, 'utf8');
+      for (const line of source.split('\n')) {
+        if (line.includes('__dirname') && !line.includes('typeof __dirname')) {
+          unguardedDirnameUses.push(`${line.trim().slice(0, 80)} (in ${file.replace(packageRoot, '')})`);
+        }
+      }
+      for (const match of source.matchAll(importSpecifierRegex)) {
+        const specifier = match[1] as string;
+        if (specifier.startsWith('.')) {
+          const resolved = resolve(dirname(file), specifier);
+          queue.push(resolved.endsWith('.js') ? resolved : `${resolved}.js`);
+        }
+      }
+    }
+
+    expect(visited.size).toBeGreaterThan(1);
+    expect(unguardedDirnameUses).toEqual([]);
+  });
 });

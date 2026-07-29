@@ -1,5 +1,6 @@
 import { debug } from '@sentry/core';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
@@ -16,6 +17,13 @@ import type {
 } from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
+
+// The ESM build has no `__dirname`; derive it from `import.meta.url` in that case,
+// following the `@sentry/bundler-plugins` pattern (Rollup transpiles `import.meta`
+// for the CJS build, and the `typeof __dirname` branch keeps CJS working regardless).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore Rollup transpiles import.meta for the CJS build
+const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Construct a Turbopack config object from a Next.js config object and a Turbopack options object.
@@ -86,7 +94,7 @@ export function constructTurbopackConfig({
         condition: { not: { path: /next\/dist\/build\/polyfills/ } },
         loaders: [
           {
-            loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
+            loader: path.resolve(_dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
             options: {
               applicationKey,
             },
@@ -107,7 +115,7 @@ export function constructTurbopackConfig({
         condition: { not: 'foreign' },
         loaders: [
           {
-            loader: path.resolve(__dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
+            loader: path.resolve(_dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
             options: {
               ignoredComponents: turbopackReactComponentAnnotation.ignoredComponents ?? [],
             },

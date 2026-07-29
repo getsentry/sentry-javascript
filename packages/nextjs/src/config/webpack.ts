@@ -5,6 +5,7 @@ import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/co
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import type { VercelCronsConfig } from '../common/types';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
@@ -26,6 +27,13 @@ import type {
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+
+// The ESM build has no `__dirname`; derive it from `import.meta.url` in that case,
+// following the `@sentry/bundler-plugins` pattern (Rollup transpiles `import.meta`
+// for the CJS build, and the `typeof __dirname` branch keeps CJS working regardless).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore Rollup transpiles import.meta for the CJS build
+const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -238,7 +246,7 @@ export function constructWebpackConfigFunction({
         test: isPageResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: path.resolve(_dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'page',
@@ -252,7 +260,7 @@ export function constructWebpackConfigFunction({
         test: isApiRouteResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: path.resolve(_dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
               vercelCronsConfig: vercelCronsConfigForWrapper,
@@ -269,7 +277,7 @@ export function constructWebpackConfigFunction({
           test: isMiddlewareResource,
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+              loader: path.resolve(_dirname, 'loaders', 'wrappingLoader.js'),
               options: {
                 ...staticWrappingLoaderOptions,
                 wrappingTargetKind: 'middleware',
@@ -286,7 +294,7 @@ export function constructWebpackConfigFunction({
         test: isServerComponentResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: path.resolve(_dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
@@ -300,7 +308,7 @@ export function constructWebpackConfigFunction({
         test: isRouteHandlerResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: path.resolve(_dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'route-handler',
@@ -764,7 +772,7 @@ function addValueInjectionLoader({
       test: /(src[\\/])?instrumentation.(js|ts)/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          loader: path.resolve(_dirname, 'loaders/valueInjectionLoader.js'),
           options: {
             values: serverValues,
           },
@@ -776,7 +784,7 @@ function addValueInjectionLoader({
       test: /(?:sentry\.client\.config\.(jsx?|tsx?)|(?:src[\\/])?instrumentation-client\.(js|ts))$/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          loader: path.resolve(_dirname, 'loaders/valueInjectionLoader.js'),
           options: {
             values: clientValues,
           },
