@@ -7,6 +7,12 @@ describe('targetsCloudflareInternalKey', () => {
     expect(targetsCloudflareInternalKey('cf_mcp_servers')).toBe(true);
   });
 
+  it('matches cf:-prefixed keys (agents chat-recovery namespace)', () => {
+    expect(targetsCloudflareInternalKey('cf:chat-recovery:incident:abc')).toBe(true);
+    expect(targetsCloudflareInternalKey('cf:chat-recovery:progress')).toBe(true);
+    expect(targetsCloudflareInternalKey('cf:chat:recovering')).toBe(true);
+  });
+
   it('matches __ps_-prefixed keys', () => {
     expect(targetsCloudflareInternalKey('__ps_name')).toBe(true);
   });
