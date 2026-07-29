@@ -12,5 +12,4 @@ Sentry.init({
     bufferSize: 1000,
   },
   integrations: [Sentry.vercelAIIntegration()],
-  streamGenAiSpans: true,
 });
