@@ -326,7 +326,7 @@ Sentry.init({
 });
 ```
 
-- The `_experiments.enableLogs` option was removed, use the top-level `enableLogs` option instead.
+- The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
 
 ```js
 // before
@@ -336,9 +336,12 @@ Sentry.init({
   },
 });
 
-// after
+// after: logs are enabled by default, no option needed
+Sentry.init({});
+
+// or, to opt out
 Sentry.init({
-  enableLogs: true,
+  enableLogs: false,
 });
 ```
 
