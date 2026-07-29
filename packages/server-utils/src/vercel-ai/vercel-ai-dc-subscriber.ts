@@ -14,9 +14,9 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -507,7 +507,7 @@ export function enrichSpanOnEnd(
 
   if (type === 'executeTool') {
     if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_OUTPUT, stringify(result.output ?? result));
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
     }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the

@@ -1,4 +1,3 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import {
   captureException,
@@ -12,9 +11,9 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
 } from '@sentry/conventions/attributes';
 import { resolveAIRecordingOptions, shouldEnableTruncation } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
@@ -331,7 +330,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           const content =
             outputObj && typeof outputObj === 'object' && 'content' in outputObj ? outputObj.content : output;
           span.setAttributes({
-            [GEN_AI_TOOL_OUTPUT]: typeof content === 'string' ? content : JSON.stringify(content),
+            [GEN_AI_TOOL_CALL_RESULT]: typeof content === 'string' ? content : JSON.stringify(content),
           });
         }
         exitSpan(runId);

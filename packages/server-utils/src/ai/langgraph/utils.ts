@@ -15,9 +15,9 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -133,7 +133,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
                   const content =
                     resultObj && typeof resultObj === 'object' && 'content' in resultObj ? resultObj.content : result;
                   span.setAttribute(
-                    GEN_AI_TOOL_OUTPUT,
+                    GEN_AI_TOOL_CALL_RESULT,
                     typeof content === 'string' ? content : JSON.stringify(content),
                   );
                 } catch {
