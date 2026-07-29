@@ -35,8 +35,6 @@ export default [
       // packages with bundles have a different build directory structure
       hasBundles: true,
       packageSpecificConfig: {
-        // Used for our custom eventContextExtractor
-        external: ['@opentelemetry/api'],
         output: {
           preserveModulesRoot: 'src',
         },
