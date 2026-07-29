@@ -34,7 +34,9 @@ const provider = new NodeTracerProvider({
 // Initialize the provider
 provider.register({
   propagator: new SentryPropagator(),
-  contextManager: new Sentry.SentryContextManager(),
+  // We make sure to use the context manager that was previously set up in init
+  // TODO: This is not ideal but it is just an intermediate state until all of this otel linking stuff is gone
+  contextManager: null,
 });
 
 registerInstrumentations({

@@ -19,21 +19,17 @@ import {
   suppressTracing,
   withScope,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanManual } from '../src/trace';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { isSpan } from './helpers/isSpan';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
     mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   describe('startSpan', () => {
@@ -1437,10 +1433,6 @@ describe('trace (tracing disabled)', () => {
     mockSdkInit({ tracesSampleRate: 0 });
   });
 
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('startSpan calls callback without span', () => {
     const val = startSpan({ name: 'outer' }, outerSpan => {
       expect(outerSpan).toBeDefined();
@@ -1464,10 +1456,6 @@ describe('trace (spans disabled)', () => {
   beforeEach(() => {
     // Initialize SDK without any tracing configuration (no tracesSampleRate or tracesSampler)
     mockSdkInit({ tracesSampleRate: undefined, tracesSampler: undefined });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('startSpan creates non-recording spans when hasSpansEnabled() === false', () => {
@@ -1510,11 +1498,6 @@ describe('trace (spans disabled)', () => {
 });
 
 describe('trace (sampling)', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-    vi.clearAllMocks();
-  });
-
   it('samples with a tracesSampleRate, when Math.random() > tracesSampleRate', () => {
     vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
@@ -1841,10 +1824,6 @@ describe('continueTrace', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('works without trace & baggage data', () => {
     const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
       const span = getActiveSpan()!;
@@ -1946,10 +1925,6 @@ describe('suppressTracing', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('works for a root span', () => {
     const span = suppressTracing(() => {
       return startInactiveSpan({ name: 'span' });
@@ -2030,10 +2005,6 @@ describe('isTracingSuppressed', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('returns false when tracing is not suppressed', () => {
     expect(isTracingSuppressed()).toBe(false);
   });
@@ -2064,10 +2035,6 @@ describe('isTracingSuppressed', () => {
 describe('span.end() timestamp conversion', () => {
   beforeEach(() => {
     mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('converts seconds to milliseconds for startInactiveSpan', () => {
@@ -2156,10 +2123,6 @@ describe('span.end() timestamp conversion', () => {
 describe('startNewTrace', () => {
   beforeEach(() => {
     mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('sequential startInactiveSpan calls share the same traceId', () => {
