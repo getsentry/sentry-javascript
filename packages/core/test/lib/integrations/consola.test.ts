@@ -32,10 +32,8 @@ describe('createConsolaReporter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Create a test client with enableLogs: true
     mockClient = new TestClient({
       ...getDefaultTestClientOptions({ dsn: 'https://username@domain/123' }),
-      enableLogs: true,
       normalizeDepth: 3,
       normalizeMaxBreadth: 1000,
     });

@@ -25,7 +25,7 @@ sentryTest(
     expect(restrictedMeasure).toBeDefined();
     expect(restrictedMeasure?.data).toMatchObject({
       'sentry.op': 'measure',
-      'sentry.origin': 'auto.resource.browser.metrics',
+      'sentry.origin': 'auto.browser.user_timing.measure',
     });
 
     // Verify no detail attributes were added due to the permission error
@@ -39,7 +39,7 @@ sentryTest(
     expect(normalMeasure?.data).toMatchObject({
       'sentry.browser.measure.detail': 'this-should-work',
       'sentry.op': 'measure',
-      'sentry.origin': 'auto.resource.browser.metrics',
+      'sentry.origin': 'auto.browser.user_timing.measure',
     });
 
     // Test 3: Verify the complex detail object is captured correctly
@@ -47,7 +47,7 @@ sentryTest(
     expect(complexMeasure).toBeDefined();
     expect(complexMeasure?.data).toMatchObject({
       'sentry.op': 'measure',
-      'sentry.origin': 'auto.resource.browser.metrics',
+      'sentry.origin': 'auto.browser.user_timing.measure',
       // The entire nested object is stringified as a single value
       'sentry.browser.measure.detail.nested': JSON.stringify({
         array: [1, 2, 3],

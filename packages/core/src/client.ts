@@ -265,9 +265,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     // Backfill enableLogs option from _experiments.enableLogs
-    // TODO(v11): Remove or change default value
+    // todo(v11): Remove the experimental flag
     // eslint-disable-next-line typescript/no-deprecated
-    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs ?? true;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
@@ -662,6 +662,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  /** Register a callback before an idle span ends and its end timestamp is finalized. */
+  public on(hook: 'beforeIdleSpanEnd', callback: (idleSpan: Span) => void): () => void;
+
   /**
    * Register a callback for after a span is ended and the `spanEnd` hook has run.
    * NOTE: The span cannot be mutated anymore in this callback.
@@ -974,6 +977,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
+
+  /** Fire a hook before an idle span ends and its end timestamp is finalized. */
+  public emit(hook: 'beforeIdleSpanEnd', idleSpan: Span): void;
 
   /**
    * Fire a hook event after a span ends and the `spanEnd` hook has run.

@@ -44,7 +44,6 @@ import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initializeEsmLoader } from './esmLoader';
 import { initOpenTelemetry } from './initOtel';
 
 /**
@@ -175,10 +174,6 @@ function _init(
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
-
-  if (clientOptions.registerEsmLoaderHooks !== false) {
-    initializeEsmLoader();
-  }
 
   setOpenTelemetryContextAsyncContextStrategy(clientOptions);
 

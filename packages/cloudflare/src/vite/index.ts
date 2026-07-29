@@ -11,6 +11,17 @@ import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
  */
 export interface SentryCloudflareVitePluginOptions {
   /**
+   * Path to the wrangler config, relative to the Vite root (or absolute).
+   * Set this when your config doesn't use a default name — e.g. when you
+   * pass `configPath: './wrangler.agent.jsonc'` to `@cloudflare/vite-plugin`,
+   * which the Sentry plugin cannot see. When set, only this file is read
+   * (no default-name probing), and a warning is emitted if it is missing or
+   * unparseable.
+   *
+   * @default undefined (probes `wrangler.json`, `wrangler.jsonc`, `wrangler.toml` at the Vite root)
+   */
+  wranglerConfigPath?: string;
+  /**
    * Experimental options that may change or be removed without notice.
    */
   _experimental?: {
@@ -80,6 +91,8 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
     ...(options._experimental?.useDiagnosticsChannelInjection
       ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })]
       : []),
-    ...(options._experimental?.autoInstrumentation ? [sentryCloudflareAutoInstrumentPlugin()] : []),
+    ...(options._experimental?.autoInstrumentation
+      ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
+      : []),
   ];
 }

@@ -345,13 +345,37 @@ Sentry.init({
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
 - INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
 
+- `browserTracingIntegration` no longer captures spans created by `performance.mark()` and `performance.measure()` by default. Add `userTimingIntegration()` to continue capturing them. The `ignorePerformanceApiSpans` option moved to the new integration as `ignore`.
+
+```js
+// before
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['third-party-mark'],
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.userTimingIntegration({
+      ignore: ['third-party-mark'],
+    }),
+  ],
+});
+```
+
 ### `@sentry/node` / Server-side SDKs
 
 - `SentryContextManager` is no longer exported. It is no longer needed now that Sentry does not set up OpenTelemetry by default.
 - The deprecated `honoIntegration` was removed. Use the [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) SDK to instrument Hono.
 - The `connect` instrumentation was removed.
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
-- The deprecated `SentryHttpInstrumentation` export was removed. Use `instrumentHttpOutgoingRequests()` instead.
+- The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
+- The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.

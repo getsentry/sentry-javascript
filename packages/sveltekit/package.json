@@ -60,6 +60,7 @@
     "@sentry/core": "10.67.0",
     "@sentry/conventions": "^0.16.0",
     "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
     "@sentry/svelte": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
     "@sveltejs/acorn-typescript": "^1.0.9",
@@ -68,7 +69,7 @@
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/kit": "^2.69.1",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
     "vite": "^6.4.3"
