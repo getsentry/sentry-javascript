@@ -3,13 +3,12 @@ import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
 import { copyReflectMetadata, httpOrigin, isWrapped, markWrapped } from './helpers';
-import { AttributeNames, NestType } from './vendored/enums';
+import { AttributeNames, NestType } from './enums';
 
 /**
  * Shared span-emitting logic for the NestJS route/controller spans
- * (app-creation / request-context / request-handler). Used by both the OTel
- * `NestFactory.create` / `RouterExecutionContext.create` wraps (`./vendored`)
- * and the orchestrion channel subscriber.
+ * (app-creation / request-context / request-handler). Used by the orchestrion
+ * channel subscriber.
  */
 
 const NESTJS_COMPONENT = '@nestjs/core';

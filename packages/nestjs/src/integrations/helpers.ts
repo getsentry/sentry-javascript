@@ -5,7 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   withActiveSpan,
 } from '@sentry/core';
-import { isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
@@ -71,7 +70,7 @@ export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' 
 
 /** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
 function middlewareOrigin(componentType?: string): string {
-  const base = isOrchestrionInjected() ? 'auto.middleware.orchestrion.nestjs' : 'auto.middleware.nestjs';
+  const base = 'auto.middleware.orchestrion.nestjs';
   return componentType ? `${base}.${componentType}` : base;
 }
 
@@ -79,17 +78,17 @@ function middlewareOrigin(componentType?: string): string {
  * Origin for the app-creation / request-context / request-handler HTTP spans.
  */
 export function httpOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.http.orchestrion.nestjs' : 'auto.http.otel.nestjs';
+  return 'auto.http.orchestrion.nestjs';
 }
 
 /** Origin for `@OnEvent` spans. */
 function eventOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.event.orchestrion.nestjs' : 'auto.event.nestjs';
+  return 'auto.event.orchestrion.nestjs';
 }
 
 /** Origin for BullMQ `@Processor` `process` spans. */
 function bullmqOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.queue.orchestrion.nestjs.bullmq' : 'auto.queue.nestjs.bullmq';
+  return 'auto.queue.orchestrion.nestjs.bullmq';
 }
 
 /**
