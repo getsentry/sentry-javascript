@@ -340,6 +340,23 @@ Sentry.init({
 });
 ```
 
+- The `beforeSpanEnd` option of `startIdleSpan` was removed. Listen for the `beforeIdleSpanEnd` client hook instead.
+
+```js
+// before
+startIdleSpan(options, {
+  beforeSpanEnd: span => {
+    span.setAttribute('foo', 'bar');
+  },
+});
+
+// after
+client.on('beforeIdleSpanEnd', span => {
+  span.setAttribute('foo', 'bar');
+});
+startIdleSpan(options);
+```
+
 ### `@sentry/browser`
 
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.

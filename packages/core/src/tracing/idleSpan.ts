@@ -75,9 +75,6 @@ interface IdleSpanOptions {
    */
   disableAutoFinish?: boolean;
 
-  /** Allows to configure a hook that is called when the idle span is ended, before it is processed. */
-  beforeSpanEnd?: (span: Span) => void;
-
   /**
    * If set to `true`, the idle span will be trimmed to the latest span end timestamp of its children.
    *
@@ -114,7 +111,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     idleTimeout = TRACING_DEFAULTS.idleTimeout,
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
     childSpanTimeout = TRACING_DEFAULTS.childSpanTimeout,
-    beforeSpanEnd,
     trimIdleSpanEndTimestamp = true,
   } = options;
 
@@ -141,10 +137,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   span.end = new Proxy(span.end, {
     apply(target, thisArg, args: Parameters<Span['end']>) {
       client.emit('beforeIdleSpanEnd', span);
-
-      if (beforeSpanEnd) {
-        beforeSpanEnd(span);
-      }
 
       // If the span is non-recording, nothing more to do here...
       // This is the case if tracing is enabled but this specific span was not sampled

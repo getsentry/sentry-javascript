@@ -424,31 +424,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       childSpanTimeout,
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
-      beforeSpanEnd: span => {
-        addPerformanceEntries(span, {
-          ignoreResourceSpans,
-          spanStreamingEnabled: hasSpanStreamingEnabled(client),
-        });
-        setActiveIdleSpan(client, undefined);
-
-        // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
-        // Only when another navigation happens, we want to create a new trace.
-        // This way, e.g. errors that occur after the pageload span ended are still associated to the pageload trace.
-        const scope = getCurrentScope();
-        const oldPropagationContext = scope.getPropagationContext();
-
-        scope.setPropagationContext({
-          ...oldPropagationContext,
-          traceId: idleSpan.spanContext().traceId,
-          sampled: spanIsSampled(idleSpan),
-          dsc: getDynamicSamplingContextFromSpan(span),
-        });
-
-        if (isPageloadSpan) {
-          // clean up the stored pageload span on the intergration.
-          _pageloadSpan = undefined;
-        }
-      },
       trimIdleSpanEndTimestamp: !enableReportPageLoaded,
     });
 
@@ -518,6 +493,39 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           activeSpan.end();
         }
       }
+
+      client.on('beforeIdleSpanEnd', span => {
+        const op = spanToJSON(span).op;
+        // Interaction idle spans also flow through this hook, but the route bookkeeping below only
+        // applies to pageload/navigation spans.
+        if (op !== 'pageload' && op !== 'navigation') {
+          return;
+        }
+
+        addPerformanceEntries(span, {
+          ignoreResourceSpans,
+          spanStreamingEnabled: hasSpanStreamingEnabled(client),
+        });
+        setActiveIdleSpan(client, undefined);
+
+        // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
+        // Only when another navigation happens, we want to create a new trace.
+        // This way, e.g. errors that occur after the pageload span ended are still associated to the pageload trace.
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        scope.setPropagationContext({
+          ...oldPropagationContext,
+          traceId: span.spanContext().traceId,
+          sampled: spanIsSampled(span),
+          dsc: getDynamicSamplingContextFromSpan(span),
+        });
+
+        if (op === 'pageload') {
+          // clean up the stored pageload span on the integration.
+          _pageloadSpan = undefined;
+        }
+      });
 
       client.on('startNavigationSpan', (startSpanOptions, navigationOptions) => {
         if (getClient() !== client) {
