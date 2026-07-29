@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   DATABASE_CACHE_GET_SPAN_OP,
   DATABASE_CACHE_PUT_SPAN_OP,
@@ -10,7 +11,6 @@ import {
   flushIfServerless,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -238,7 +238,7 @@ function createSpanStartOptions(
   const keys = getCacheKeys(args?.[0], mountBase);
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS],
+    [SENTRY_OP]: METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS],
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
