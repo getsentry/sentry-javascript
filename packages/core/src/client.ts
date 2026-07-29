@@ -264,7 +264,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    this._options.enableLogs = this._options.enableLogs ?? true;
+    this._options.enableLogs ??= true;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
