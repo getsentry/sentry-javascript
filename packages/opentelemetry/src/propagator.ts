@@ -21,7 +21,7 @@ import {
   shouldPropagateTraceForUrl,
   spanToJSON,
 } from '@sentry/core';
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
@@ -150,7 +150,15 @@ export function getInjectionData(
   if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
     const sampled = getSamplingDecision(spanContext);
-    const dynamicSamplingContext = reconcileDscSampled(getDynamicSamplingContextFromSpan(span), sampled);
+    const dsc = getDynamicSamplingContextFromSpan(span);
+
+    // When the incoming trace froze its DSC on the trace state, `getDynamicSamplingContextFromSpan`
+    // returns that DSC verbatim; per the propagation spec it is immutable, so we must not rewrite
+    // `sampled` or strip `transaction` on it. We only reconcile the DSC that core freshly derives
+    // from the (binary) span trace flags, which is the sole case that can misrepresent a deferred
+    // decision as unsampled.
+    const hasIncomingFrozenDsc = !!spanContext.traceState?.get(SENTRY_TRACE_STATE_DSC);
+    const dynamicSamplingContext = hasIncomingFrozenDsc ? dsc : reconcileDscSampled(dsc, sampled);
 
     return {
       dynamicSamplingContext,
@@ -189,14 +197,15 @@ export function getInjectionData(
 }
 
 /**
- * Reconcile a span-derived DSC's `sampled` flag with the OTel sampling decision.
+ * Reconcile a freshly-derived DSC's `sampled` flag with the OTel sampling decision.
  *
- * Core derives `sampled` from the root span's trace flags, which cannot tell a *deferred* decision
- * (Tracing without Performance, or an incoming remote span whose decision lives in the trace state)
- * apart from a definitive *unsampled* one — both read as `traceFlags: NONE`. `getSamplingDecision`
- * resolves this via the OTel trace state, so we let it win here: drop `sampled` when the decision is
- * deferred (`undefined`), and — matching the OTel SDK, whose unsampled spans are nameless
- * non-recording spans — drop the transaction name when the trace is definitively unsampled.
+ * Only applies to a DSC that core generated from the span's (binary) trace flags — never to a frozen
+ * incoming DSC from the trace state, which the caller leaves untouched per the propagation spec.
+ * Trace flags cannot tell a *deferred* decision (an incoming remote span whose decision lives in the
+ * trace state) apart from a definitive *unsampled* one — both read as `traceFlags: NONE`.
+ * `getSamplingDecision` resolves this via the OTel trace state, so we let it win here: drop `sampled`
+ * when the decision is deferred (`undefined`), and — matching the OTel SDK, whose unsampled spans are
+ * nameless non-recording spans — drop the transaction name when the trace is definitively unsampled.
  */
 function reconcileDscSampled(
   dsc: Partial<DynamicSamplingContext>,
