@@ -152,7 +152,7 @@ export function addPrivateRequestAttributes(
   if (operationName === 'embeddings') {
     const contents = params.contents;
     if (contents != null) {
-      span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof contents === 'string' ? contents : JSON.stringify(contents));
+      span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(contents, String));
     }
     return;
   }

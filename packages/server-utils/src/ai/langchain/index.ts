@@ -5,6 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpanManual,
+  stringify,
 } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -330,7 +331,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           const content =
             outputObj && typeof outputObj === 'object' && 'content' in outputObj ? outputObj.content : output;
           span.setAttributes({
-            [GEN_AI_TOOL_CALL_RESULT]: typeof content === 'string' ? content : JSON.stringify(content),
+            [GEN_AI_TOOL_CALL_RESULT]: stringify(content, String),
           });
         }
         exitSpan(runId);

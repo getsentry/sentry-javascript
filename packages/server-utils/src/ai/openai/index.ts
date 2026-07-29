@@ -108,8 +108,7 @@ export function addRequestAttributes(
       return;
     }
 
-    // Store strings as-is, arrays/objects as JSON
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof input === 'string' ? input : JSON.stringify(input));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(input, String));
     return;
   }
 

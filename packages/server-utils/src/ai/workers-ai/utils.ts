@@ -107,7 +107,7 @@ export function addRequestAttributes(
       return;
     }
 
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof text === 'string' ? text : JSON.stringify(text));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(text, String));
     return;
   }
 
@@ -168,7 +168,7 @@ export function setOutputMessagesAttribute(
         type: 'tool_call',
         id: call.id,
         name,
-        arguments: typeof args === 'string' ? args : JSON.stringify(args ?? {}),
+        arguments: stringify(args ?? {}, String),
       });
     }
   }
