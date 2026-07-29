@@ -354,6 +354,66 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
   });
 });
 
+describe('wranglerConfigPath option', () => {
+  it('reads a custom-named wrangler config (e.g. wrangler.agent.jsonc)', async () => {
+    const dir = writeTempDir({ 'wrangler.agent.jsonc': '{ "main": "src/agent.ts" }' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: './wrangler.agent.jsonc' });
+    plugin.configResolved({ root: dir });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'src/agent.ts'));
+
+    expect(result).toBeDefined();
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('prefers the explicit path over default-name configs', async () => {
+    const dir = writeTempDir({
+      'wrangler.toml': 'main = "src/default.ts"',
+      'wrangler.agent.jsonc': '{ "main": "src/agent.ts" }',
+    });
+    const plugin = sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: 'wrangler.agent.jsonc' });
+    plugin.configResolved({ root: dir });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const tx = (id: string) => plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, id);
+
+    // The probed default config's entry must not be treated as the worker entry…
+    expect(await tx(join(dir, 'src/default.ts'))).toBeUndefined();
+    // …while the explicit config's entry is.
+    expect(await tx(join(dir, 'src/agent.ts'))).toBeDefined();
+  });
+
+  it('warns with only the basename when the explicit path cannot be read', () => {
+    const dir = writeTempDir({});
+    const warnings: string[] = [];
+    const plugin = sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: 'nested/dir/wrangler.agent.jsonc' });
+    plugin.configResolved({ root: dir, logger: { warn: msg => warnings.push(msg) } });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('wrangler.agent.jsonc');
+    // The full path may leak a location the user doesn't want in build logs.
+    expect(warnings[0]).not.toContain('nested/dir');
+  });
+
+  it('hints at the option when no default-named config is found', () => {
+    const dir = writeTempDir({});
+    const warnings: string[] = [];
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, logger: { warn: msg => warnings.push(msg) } });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('`wranglerConfigPath`');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // instrument.server.* auto-detection (config from a conventional module)
 // ---------------------------------------------------------------------------
