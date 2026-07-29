@@ -19,7 +19,7 @@ function bullmqOrigin(): unknown {
   return getBullMQProcessSpanOptions('q').attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
 }
 
-describe('NestJS span origin selection', () => {
+describe('NestJS span origins', () => {
   it('emits origins', () => {
     expect(httpOrigin()).toBe('auto.http.orchestrion.nestjs');
     expect(middlewareOrigin()).toBe('auto.middleware.orchestrion.nestjs');
