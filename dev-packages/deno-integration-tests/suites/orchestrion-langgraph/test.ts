@@ -25,20 +25,10 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wrap
 
   const channel = tracingChannel('orchestrion:@langchain/langgraph:stateGraphCompile');
 
-  // The subscriber replaces `invoke` on the compiled graph, so it needs to be a settable property.
-  let invoke = () => Promise.resolve('result');
-  const compiledGraph = {
-    get invoke() {
-      return invoke;
-    },
-    set invoke(fn) {
-      invoke = fn;
-    },
-  };
+  const originalInvoke = () => Promise.resolve('result');
+  const compiledGraph = { invoke: originalInvoke };
   // `arguments[0]` is the compile options.
   const ctx: Record<string, unknown> = { arguments: [{ name: 'my-agent' }] };
-
-  const originalInvoke = compiledGraph.invoke;
 
   startSpan({ name: 'parent', op: 'test' }, () => {
     channel.start.runStores(ctx, () => undefined);
