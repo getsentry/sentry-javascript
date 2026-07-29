@@ -58,7 +58,7 @@ type DriverMethod = keyof Driver;
 /**
  * Methods that should have an attribute to indicate a cache hit.
  */
-const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw']);
+const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
 
 /**
  * Maps each unstorage method to a convention cache op. Reads (including existence and key
@@ -181,8 +181,7 @@ function createMethodWrapper(
           span.setStatus({ code: SPAN_STATUS_OK });
 
           if (CACHE_HIT_METHODS.has(methodName)) {
-            const hit = methodName === 'hasItem' ? Boolean(result) : isCacheHit(args[0], result);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(methodName, args[0], result));
           }
 
           return result;
@@ -282,6 +281,23 @@ function normalizeKey(key: unknown, prefix: string): string {
 }
 
 const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
+
+/**
+ * Resolves the `cache.hit` value for a read method. `hasItem` returns a boolean directly,
+ * `getItems` returns a `{ key, value }[]` where a hit means at least one entry has a value,
+ * and single-key reads fall back to the value-based `isCacheHit` check.
+ */
+function resolveCacheHit(methodName: DriverMethod, key: unknown, result: unknown): boolean {
+  if (methodName === 'hasItem') {
+    return Boolean(result);
+  }
+
+  if (methodName === 'getItems') {
+    return Array.isArray(result) && result.some(item => isObjectLike(item) && item.value != null);
+  }
+
+  return isCacheHit(key, result);
+}
 
 /**
  * Since Nitro's cache may not utilize the driver's TTL, it is possible that the value is present in the cache but won't be used by Nitro.

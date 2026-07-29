@@ -8,6 +8,7 @@ import {
 import {
   flushIfServerless,
   GLOBAL_OBJ,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -37,7 +38,7 @@ const TRACED_OPERATIONS = [
 
 type TracedOperation = (typeof TRACED_OPERATIONS)[number];
 
-const CACHE_HIT_OPERATIONS = new Set<TracedOperation>(['hasItem', 'getItem', 'getItemRaw']);
+const CACHE_HIT_OPERATIONS = new Set<TracedOperation>(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
 
 /**
  * Maps each unstorage operation to a convention cache op. Reads (including existence and key
@@ -107,8 +108,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
         if (!('error' in data)) {
           const result = (data as { result?: unknown }).result;
           if (CACHE_HIT_OPERATIONS.has(operation)) {
-            const hit = operation === 'hasItem' ? Boolean(result) : isCacheHit(data.keys?.[0], result);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(operation, data.keys?.[0], result));
           }
         }
 
@@ -116,6 +116,23 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
       },
     },
   );
+}
+
+/**
+ * Resolves the `cache.hit` value for a read operation. `hasItem` returns a boolean directly,
+ * `getItems` returns a `{ key, value }[]` where a hit means at least one entry has a value,
+ * and single-key reads fall back to the value-based `isCacheHit` check.
+ */
+function resolveCacheHit(operation: TracedOperation, key: unknown, result: unknown): boolean {
+  if (operation === 'hasItem') {
+    return Boolean(result);
+  }
+
+  if (operation === 'getItems') {
+    return Array.isArray(result) && result.some(item => isObjectLike(item) && item.value != null);
+  }
+
+  return isCacheHit(key, result);
 }
 
 interface CacheEntry<T = unknown> {
