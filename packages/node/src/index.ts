@@ -176,8 +176,12 @@ export type {
   CaptureContext,
 } from '@sentry/core';
 
-// oxlint-disable-next-line typescript/no-deprecated
-export { metrics, withStaticSpan, withStreamedSpan } from '@sentry/core';
+export {
+  metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
+  withStreamedSpan,
+} from '@sentry/core';
 export * as logger from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';

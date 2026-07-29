@@ -90,7 +90,6 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from './tracing/spans/beforeSendSpan';
-export { isStaticBeforeSendSpanCallback, isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
