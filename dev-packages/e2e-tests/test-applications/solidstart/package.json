@@ -12,7 +12,9 @@
   },
   "type": "module",
   "dependencies": {
-    "@sentry/solidstart": "file:../../packed/sentry-solidstart-packed.tgz"
+    "@sentry/solidstart": "file:../../packed/sentry-solidstart-packed.tgz",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
