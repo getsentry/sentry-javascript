@@ -1,3 +1,4 @@
+import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
 import { resolveWranglerConfig, type WranglerConfig } from './wranglerConfig';
@@ -47,11 +48,11 @@ export function sentryCloudflareAutoInstrumentPlugin() {
       }
     },
 
-    transform(
-      this: { parse(code: string): ProgramBody; warn?(msg: string): void; environment?: { name?: string } },
+    async transform(
+      this: ModuleResolver & { warn?(msg: string): void; environment?: { name?: string } },
       code: string,
       id: string,
-    ): { code: string; map: unknown } | undefined {
+    ): Promise<{ code: string; map: unknown } | undefined> {
       if (!wranglerConfig || !entryFilePath) return undefined;
 
       // The worker entry never belongs to the client (browser) environment.
@@ -89,12 +90,32 @@ export function sentryCloudflareAutoInstrumentPlugin() {
         classWrappers.set(className, 'workerEntrypoint');
       }
 
+      // An `agents` Agent is a Durable Object, so wrangler lists it among the DO bindings and only
+      // its base-class chain tells the two apart. Detection walks the module graph (base classes
+      // usually live in their own file), so it is limited to the configured DO classes.
+      //
+      // Only `resolve` is handed over — never `load`: awaiting `load()` from inside a transform
+      // hook deadlocks the build, since the module can't finish loading while this transform is
+      // still pending. `agentClass` reads sibling modules off disk instead.
+      const agentCandidates = collectAgentCandidates(
+        ast,
+        [...classWrappers].filter(([, kind]) => kind === 'durableObject').map(([name]) => name),
+      );
+      const agentClasses =
+        agentCandidates.size > 0
+          ? await detectAgentClasses(ast, normalizedId, agentCandidates, {
+              parse: code => this.parse(code),
+              resolve: this.resolve ? (source, importer) => this.resolve!(source, importer) : undefined,
+            })
+          : undefined;
+
       // No registration import is injected here: the orchestrion plugin's
       // subscribe-injection makes each bundled package self-register its channel
       // subscriber on the global marker, so wrapping the entry with `withSentry`
       // is all this plugin needs to do.
       const result = applyAutoInstrumentTransforms(code, ast, {
         classWrappers,
+        agentClasses,
         optionsFn,
         optionsImport,
       });
