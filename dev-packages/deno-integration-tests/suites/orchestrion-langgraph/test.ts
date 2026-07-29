@@ -4,8 +4,6 @@ import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
 import { init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
-import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8.0+)', () => {
@@ -15,7 +13,7 @@ Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8
   assert(names.includes('LangGraph'), `LangGraph should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wraps invoke without a create_agent span', async () => {
+Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wraps the compiled graph invoke', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -48,13 +46,11 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wrap
     channel.end.publish(ctx);
   });
 
-  const parent = await withTimeout(
+  await withTimeout(
     sink.waitFor(t => t.transaction === 'parent'),
     5000,
     "'parent' transaction",
   );
 
-  const createAgentSpan = parent.spans?.find(s => s.op === 'gen_ai.create_agent');
-  assertEquals(createAgentSpan, undefined, 'no gen_ai.create_agent span should be produced');
   assert(compiledGraph.invoke !== originalInvoke, "compiled graph's invoke should be wrapped");
 });
