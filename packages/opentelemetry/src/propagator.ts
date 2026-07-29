@@ -21,11 +21,17 @@ import {
   shouldPropagateTraceForUrl,
   spanToJSON,
 } from '@sentry/core';
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
+import {
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_TRACE_HEADER,
+  SENTRY_TRACE_STATE_DSC,
+  SENTRY_TRACE_STATE_URL,
+} from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
+import { reconcileDscSampled } from './utils/reconcileDscSampled';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -149,13 +155,22 @@ export function getInjectionData(
   // Instead, we use a virtual (generated) spanId for propagation
   if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
-    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
+    const sampled = getSamplingDecision(spanContext);
+    const dsc = getDynamicSamplingContextFromSpan(span);
+
+    // When the incoming trace froze its DSC on the trace state, `getDynamicSamplingContextFromSpan`
+    // returns that DSC verbatim; per the propagation spec it is immutable, so we must not rewrite
+    // `sampled` or strip `transaction` on it. We only reconcile the DSC that core freshly derives
+    // from the (binary) span trace flags, which is the sole case that can misrepresent a deferred
+    // decision as unsampled.
+    const hasIncomingFrozenDsc = !!spanContext.traceState?.get(SENTRY_TRACE_STATE_DSC);
+    const dynamicSamplingContext = hasIncomingFrozenDsc ? dsc : reconcileDscSampled(dsc, sampled);
 
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: undefined,
-      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
+      sampled,
     };
   }
 

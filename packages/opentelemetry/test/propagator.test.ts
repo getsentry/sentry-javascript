@@ -381,6 +381,48 @@ describe('SentryPropagator', () => {
         );
       });
 
+      it('preserves a frozen incoming DSC on a directly-injected unsampled remote span', () => {
+        const carrier: Record<string, string> = {};
+        context.with(
+          trace.setSpanContext(ROOT_CONTEXT, {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            // A definitively-unsampled incoming trace that froze its own DSC, including a transaction name.
+            traceState: makeTraceState({
+              sampled: false,
+              dsc: {
+                transaction: 'incoming-transaction',
+                sampled: 'false',
+                trace_id: 'd4cda95b652f4a1592b449d5929fda1b',
+                public_key: 'incoming_public_key',
+                environment: 'incoming_environment',
+                release: 'incoming_release',
+                sample_rate: '0.5',
+              },
+            }),
+          }),
+          () => {
+            propagator.inject(context.active(), carrier, defaultTextMapSetter);
+
+            // The frozen incoming DSC is immutable, so its `transaction` must survive even though the
+            // trace is unsampled — we must not strip it the way we do for a freshly-derived DSC.
+            expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+              [
+                'sentry-environment=incoming_environment',
+                'sentry-release=incoming_release',
+                'sentry-public_key=incoming_public_key',
+                'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+                'sentry-transaction=incoming-transaction',
+                'sentry-sampled=false',
+                'sentry-sample_rate=0.5',
+              ].sort(),
+            );
+          },
+        );
+      });
+
       it('uses remote span over propagation context', () => {
         const carrier: Record<string, string> = {};
         context.with(

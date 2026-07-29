@@ -17,7 +17,6 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
-  enhanceDscWithOpenTelemetryRootSpanName,
   getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
@@ -104,7 +103,6 @@ export function init(options: VercelEdgeOptions = {}): Client {
     setupOtel(client);
   }
 
-  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 
   return client;
