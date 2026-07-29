@@ -68,7 +68,12 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         }
 
         try {
-          return await wrappingTarget.apply(thisArg, args);
+          const result = await wrappingTarget.apply(thisArg, args);
+
+          // Flush non-blockingly so serverless runtimes (Vercel, Cloudflare) don't freeze before the event is sent
+          waitUntil(flushSafelyWithTimeout());
+
+          return result;
         } catch (e) {
           // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
           // store a seen flag on it. (Because of the one-way-on-Vercel-one-way-off-of-Vercel approach we've been forced
@@ -95,9 +100,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
           // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
           // the error as already having been captured.)
           throw objectifiedErr;
-        } finally {
-          // On the success path we flush non-blockingly so serverless runtimes (Vercel, Cloudflare) don't freeze
-          waitUntil(flushSafelyWithTimeout());
         }
       });
     },
