@@ -23,3 +23,21 @@ test('Sends exactly one transaction for a pages-router API route', async ({ requ
 
   expect(apiRouteTransactions).toHaveLength(1);
 });
+
+test('Sends a well-formed transaction for a node-runtime pages-router API route', async ({ request }) => {
+  const transactionPromise = waitForTransaction('nextjs-pages-dir', transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'GET /api/endpoint' && transactionEvent.contexts?.runtime?.name === 'node'
+    );
+  });
+
+  const response = await request.get('/api/endpoint');
+  expect(await response.json()).toStrictEqual({ name: 'John Doe' });
+
+  const transaction = await transactionPromise;
+
+  expect(transaction.contexts?.trace?.op).toBe('http.server');
+  expect(transaction.contexts?.trace?.status).toBe('ok');
+  expect(transaction.transaction_info?.source).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['http.route']).toBe('/api/endpoint');
+});

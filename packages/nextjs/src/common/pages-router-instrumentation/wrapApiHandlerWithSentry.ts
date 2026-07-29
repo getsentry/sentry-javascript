@@ -11,7 +11,7 @@ import {
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
-import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
   __withSentry_applied__?: boolean;
@@ -95,6 +95,9 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
           // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
           // the error as already having been captured.)
           throw objectifiedErr;
+        } finally {
+          // On the success path we flush non-blockingly so serverless runtimes (Vercel, Cloudflare) don't freeze
+          waitUntil(flushSafelyWithTimeout());
         }
       });
     },
