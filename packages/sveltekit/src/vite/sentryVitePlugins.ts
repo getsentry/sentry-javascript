@@ -1,4 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
@@ -52,6 +53,11 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
         onlyInstrumentClient: kitTracingEnabled,
       }),
     );
+  }
+
+  // TODO: Cloudflare needs different wiring
+  if (mergedOptions.adapter !== 'cloudflare') {
+    sentryPlugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation }));
   }
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
