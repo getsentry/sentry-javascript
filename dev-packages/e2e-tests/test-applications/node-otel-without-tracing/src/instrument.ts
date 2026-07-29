@@ -35,7 +35,8 @@ const provider = new NodeTracerProvider({
 // Initialize the provider
 provider.register({
   propagator: new SentryPropagator(),
-  contextManager: new Sentry.SentryContextManager(),
+  // TODO: The sentry context manager is set up in init (through the async context strategy)
+  // Eventually we may need to revisit this test overall
 });
 
 registerInstrumentations({
