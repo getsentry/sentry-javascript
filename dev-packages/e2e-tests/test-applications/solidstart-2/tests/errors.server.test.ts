@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test.describe('server-side errors', () => {
   test('captures server action error', async ({ page }) => {
-    const errorEventPromise = waitForError('solidstart', errorEvent => {
+    const errorEventPromise = waitForError('solidstart-2', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Solid Start E2E test app server route';
     });
 

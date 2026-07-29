@@ -7,7 +7,7 @@ import {
 } from '@sentry/solidstart';
 
 test('sends a server action transaction on pageload', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart', transactionEvent => {
+  const transactionPromise = waitForTransaction('solidstart-2', transactionEvent => {
     return transactionEvent?.transaction === 'GET /users/6';
   });
 
@@ -30,7 +30,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
 });
 
 test('sends a server action transaction on client navigation', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart', transactionEvent => {
+  const transactionPromise = waitForTransaction('solidstart-2', transactionEvent => {
     return transactionEvent?.transaction === 'POST getPrefecture';
   });
 
