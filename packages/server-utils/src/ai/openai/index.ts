@@ -15,9 +15,9 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -71,7 +71,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
     const availableTools = extractAvailableTools(params);
     if (availableTools) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = availableTools;
+      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
     }
 
     Object.assign(attributes, extractRequestParameters(params));

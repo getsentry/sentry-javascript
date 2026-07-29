@@ -3,7 +3,6 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -14,6 +13,7 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -453,7 +453,7 @@ describe('Anthropic integration', () => {
             expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS].value).toBe(EXPECTED_TOOLS_JSON);
+            expect(firstSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toBe(EXPECTED_TOOL_CALLS_JSON);
           },
         })
@@ -483,7 +483,7 @@ describe('Anthropic integration', () => {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(span.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
               expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["tool_use"]');
-              expect(span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS].value).toBe(EXPECTED_TOOLS_JSON);
+              expect(span.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
               expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toBe(EXPECTED_TOOL_CALLS_JSON);
             }
 

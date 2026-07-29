@@ -7,13 +7,13 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
@@ -80,7 +80,7 @@ const operationIdByCallId = new Map<string, { operationId: string; isStream: boo
 // onto the tool span here — without relying on the OTel `vercelAiEventProcessor`
 // (which isn't registered in channel/orchestrion mode). Cleared with the
 // operation. Only populated when inputs are recorded, matching the OTel path
-// (which sources descriptions from the recorded `available_tools`).
+// (which sources descriptions from the recorded `tool.definitions`).
 const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 
 // A streamed `streamText` operation's own channel result is always `undefined` (the SDK exposes the
@@ -370,7 +370,7 @@ export function createSpanFromMessage(
   const maxRetries = asNumber(event.maxRetries);
 
   // Harvest tool descriptions from the operation/model-call `tools` so tool spans can backfill them.
-  // Gated on `recordInputs` to match the OTel path, which only records `available_tools` then.
+  // Gated on `recordInputs` to match the OTel path, which only records `tool.definitions` then.
   if (recordInputs) {
     recordToolDescriptions(callId, event.tools);
   }
@@ -465,7 +465,7 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event, enableTruncation) : {}),
-    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
+    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_TOOL_DEFINITIONS]: stringify(event.tools) } : {}),
   });
 }
 

@@ -4,7 +4,6 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -16,6 +15,7 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -182,7 +182,7 @@ describe('Google GenAI integration', () => {
             expect(container.items).toHaveLength(3);
             const nonStreamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING] === undefined,
             );
             expect(nonStreamingToolsSpan).toBeDefined();
@@ -198,7 +198,7 @@ describe('Google GenAI integration', () => {
 
             const streamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
             );
             expect(streamingToolsSpan).toBeDefined();
@@ -214,9 +214,7 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(10);
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(22);
 
-            const noToolsSpan = container.items.find(
-              span => span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] === undefined,
-            );
+            const noToolsSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_DEFINITIONS] === undefined);
             expect(noToolsSpan).toBeDefined();
             expect(noToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(noToolsSpan!.status).toBe('ok');

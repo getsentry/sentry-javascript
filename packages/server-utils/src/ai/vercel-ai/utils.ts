@@ -1,10 +1,9 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 import { stringify } from '@sentry/core';
 import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -69,14 +68,14 @@ export function applyAccumulatedTokens(
 }
 
 /**
- * Builds a map of tool name -> description from all spans with available_tools.
+ * Builds a map of tool name -> description from all spans with tool definitions.
  * This avoids O(n²) iteration and repeated JSON parsing.
  */
 function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
   const toolDescriptions = new Map<string, string>();
 
   for (const span of spans) {
-    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS];
+    const availableTools = span.data[GEN_AI_TOOL_DEFINITIONS];
     if (typeof availableTools !== 'string') {
       continue;
     }
@@ -99,7 +98,7 @@ function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
  * Applies tool descriptions and accumulated tokens to spans in a single pass.
  *
  * - For `gen_ai.execute_tool` spans: looks up tool description from
- *   `gen_ai.request.available_tools` on sibling spans
+ *   `gen_ai.tool.definitions` on sibling spans
  * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
  */
 export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {

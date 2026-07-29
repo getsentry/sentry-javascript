@@ -4,9 +4,9 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
@@ -209,12 +209,12 @@ describe('Vercel AI integration (streaming v4)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
-      // Fifth span - tool call generate_content with available_tools
+      // Fifth span - tool call generate_content with tool definitions
       expect.objectContaining({
         name: 'generate_content mock-model-id',
         status: 'ok',
         attributes: expect.objectContaining({
-          [GEN_AI_REQUEST_AVAILABLE_TOOLS]: expect.objectContaining({
+          [GEN_AI_TOOL_DEFINITIONS]: expect.objectContaining({
             value: expect.stringContaining('getWeather'),
           }),
           [GEN_AI_REQUEST_MODEL]: attr('mock-model-id'),
