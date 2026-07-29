@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from '../src/constants';
-import { setNodeOpenTelemetryContextAsyncContextStrategy } from '../src/nodeAsyncContextStrategy';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
 import { TraceState } from '../src/utils/TraceState';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
@@ -77,7 +77,7 @@ describe('asyncContextStrategy', () => {
   });
 
   test('tracing channel binding keeps the parent active for an ignored child span', () => {
-    setNodeOpenTelemetryContextAsyncContextStrategy();
+    setOpenTelemetryContextAsyncContextStrategy();
 
     const parentSpan = trace.getTracer('test').startSpan('parent');
     const ignoredSpan = trace.wrapSpanContext({
@@ -99,7 +99,7 @@ describe('asyncContextStrategy', () => {
   });
 
   test('tracing channel binding keeps the parent active for a native ignored child span', () => {
-    setNodeOpenTelemetryContextAsyncContextStrategy();
+    setOpenTelemetryContextAsyncContextStrategy();
 
     const parentSpan = trace.getTracer('test').startSpan('parent');
     const ignoredSpan = new SentryNonRecordingSpan({
@@ -120,7 +120,7 @@ describe('asyncContextStrategy', () => {
   });
 
   test('tracing channel binding activates a native ignored root span with a remote parent', () => {
-    setNodeOpenTelemetryContextAsyncContextStrategy();
+    setOpenTelemetryContextAsyncContextStrategy();
 
     const traceId = '12345678901234567890123456789012';
     const remoteParent = trace.wrapSpanContext({

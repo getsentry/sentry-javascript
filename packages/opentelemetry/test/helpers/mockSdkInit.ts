@@ -1,6 +1,6 @@
 import type { ClientOptions, Options } from '@sentry/core';
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-import { setNodeOpenTelemetryContextAsyncContextStrategy } from '../../src/nodeAsyncContextStrategy';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { initOtel } from './initOtel';
 import type { TestClient } from './TestClient';
 import { init as initTestClient } from './TestClient';
@@ -11,7 +11,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * Initialize Sentry for Node.
  */
 function init(options: Partial<Options> | undefined = {}): TestClient {
-  setNodeOpenTelemetryContextAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy();
   const client = initTestClient(options);
   initOtel();
   return client;

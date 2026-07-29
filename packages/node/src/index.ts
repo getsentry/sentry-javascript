@@ -54,10 +54,7 @@ export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
 export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
-export {
-  // This needs exporting so the NodeClient can be used without calling init
-  setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
-} from '@sentry/opentelemetry';
+export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,

@@ -19,22 +19,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.d.ts",
-      "node": {
-        "import": "./build/esm/index.js",
-        "require": "./build/cjs/index.js"
-      },
-      "worker": {
-        "import": "./build/esm/index.js",
-        "require": "./build/cjs/index.js"
-      },
-      "browser": {
-        "import": "./build/esm/index.browser.js",
-        "require": "./build/cjs/index.browser.js"
-      },
-      "default": {
-        "import": "./build/esm/index.js",
-        "require": "./build/cjs/index.js"
-      }
+      "import": "./build/esm/index.js",
+      "require": "./build/cjs/index.js"
     }
   },
   "publishConfig": {
