@@ -21,7 +21,12 @@ import {
   shouldPropagateTraceForUrl,
   spanToJSON,
 } from '@sentry/core';
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_URL } from './constants';
+import {
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_TRACE_HEADER,
+  SENTRY_TRACE_STATE_DSC,
+  SENTRY_TRACE_STATE_URL,
+} from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
