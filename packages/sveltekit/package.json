@@ -69,7 +69,7 @@
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/kit": "^2.69.1",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
     "vite": "^6.4.3"
