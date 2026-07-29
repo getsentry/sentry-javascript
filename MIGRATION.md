@@ -194,13 +194,16 @@ The same applies to the no-code entry points, e.g. `node --import=@sentry/node/i
 
 Affected SDKs: All SDKs.
 
-Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
+Spans are now sent to Sentry in small batches instead of being buffered until the root span completes.
+This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
 
-The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
+The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration.
+The `beforeSendTransaction` and `ignoreTransactions` options will **no-op**.
+If you cannot migrate to span streaming yet, you can opt into the previous transaction-based static model.
 
 #### `beforeSendSpan` receives the streamed span format
 
-Your `beforeSendSpan` callback now receives a `StreamedSpanJSON` payload and is invoked as each span finishes, rather than for all spans of a transaction right before that transaction is sent. As in v10, it is invoked for the root span as well as for child spans.
+Your `beforeSendSpan` callback now receives a `StreamedSpanJSON` object and is invoked as each span finishes, rather than for all spans of a transaction right before that transaction is sent. As in v10, it is invoked for the root span as well as for child spans.
 
 The payload fields were renamed:
 
@@ -211,7 +214,6 @@ The payload fields were renamed:
 | `op`                | `attributes['sentry.op']`      |
 | `timestamp`         | `end_timestamp`                |
 | `status` (`string`) | `status` (`'ok'` or `'error'`) |
-| `is_segment?`       | `is_segment` (always set)      |
 
 ```js
 // Before
@@ -253,7 +255,7 @@ Sentry.init({
 
 A `beforeSendSpan` callback that does not match the configured `traceLifecycle` is **never invoked** — an unwrapped callback is ignored in `'static'` mode, and a `withStaticSpan`-wrapped callback is ignored in `'stream'` mode. Enable debug logging to surface a warning about the mismatch. Previously, an incompatible callback silently downgraded the SDK to the static lifecycle instead.
 
-The `withStreamedSpan()` helper is now a no-op, since streamed payloads are the default. It is deprecated and will be removed in v12 — remove the wrapper:
+The `withStreamedSpan()` helper is now a no-op, since streamed payloads are the default. It is deprecated and will be removed in v12. You can remove the wrapper:
 
 ```js
 // Before
@@ -263,7 +265,7 @@ beforeSendSpan: Sentry.withStreamedSpan(span => span);
 beforeSendSpan: span => span;
 ```
 
-The `isStreamedBeforeSendSpanCallback()` helper is no longer exported.
+The internal `isStreamedBeforeSendSpanCallback()` function from `@sentry/core` is no longer exported.
 
 #### Replacing `beforeSendTransaction`
 
@@ -289,9 +291,9 @@ Sentry.init({
 });
 ```
 
-Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead — scope attributes are applied to the segment span and are readable and writable via `span.attributes` in `beforeSendSpan`.
+Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
 
-For **dropping** a transaction, use `ignoreSpans` (see below) — `beforeSendSpan` cannot drop spans.
+For **dropping** a transaction, use `ignoreSpans` (see below). The `beforeSendSpan` callback cannot drop spans.
 
 #### Replacing `ignoreTransactions` with `ignoreSpans`
 
@@ -309,11 +311,11 @@ Sentry.init({
 });
 ```
 
-`ignoreSpans` matches on the span `name` (formerly `description`), not on the transaction name. Because it applies to every span rather than just to root spans, consider narrowing the filter with the object form so that child spans sharing a name are not dropped as collateral:
+`ignoreSpans` matches on the span `name` (formerly `description`). Because it applies to every span rather than just to root spans, consider narrowing the filter with the object form so that child spans sharing a name are not dropped as collateral:
 
 ```js
 Sentry.init({
-  ignoreSpans: [{ name: 'GET /health', op: 'http.server' }],
+  ignoreSpans: [{ name: 'GET /health', attributes: { 'sentry.op': 'http.server' } }],
 });
 ```
 
@@ -326,6 +328,12 @@ To keep the previous transaction-based model, set `traceLifecycle: 'static'`:
 ```js
 Sentry.init({
   traceLifecycle: 'static',
+
+  // `beforeSendSpan` MUST be wrapped with Sentry.withStaticSpan:
+  beforeSendSpan: Sentry.withStaticSpan(span => {
+    span.description = scrub(span.description);
+    return span;
+  }),
 });
 ```
 
