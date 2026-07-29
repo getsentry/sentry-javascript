@@ -52,7 +52,6 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
-import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -1449,15 +1448,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error');
-      return rejectedSyncPromise(
-        _makeDoNotSendEventError(
-          `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-        ),
-      );
-    }
-
     const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
@@ -1490,6 +1480,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+          this.recordDroppedEvent('sample_rate', 'error');
+          throw _makeDoNotSendEventError(
+            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+          );
         }
 
         if (isTransaction) {
