@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Contexts, StreamedSpanJSON } from '../../../../src';
+import type { Contexts, SerializedStreamedSpan, SpanJSON, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
@@ -20,6 +20,7 @@ import {
 } from '../../../../src';
 import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
+import type { TestClientOptions } from '../../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 import {
   SENTRY_SEGMENT_ID,
@@ -471,7 +472,7 @@ describe('captureSpan', () => {
   });
 
   describe('beforeSendSpan', () => {
-    it('applies an unwrapped beforeSendSpan callback', () => {
+    it('applies a default beforeSendSpan callback', () => {
       const beforeSendSpan = vi.fn(span => span);
 
       const client = new TestClient(
@@ -480,6 +481,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -492,7 +494,7 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
     });
 
-    it("doesn't apply beforeSendSpan if it is marked as static", () => {
+    it("doesn't apply beforeSendSpan if it is marked as static by default", () => {
       const beforeSendSpan = withStaticSpan(vi.fn(span => span));
 
       const client = new TestClient(
@@ -501,6 +503,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -523,6 +526,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -537,6 +541,106 @@ describe('captureSpan', () => {
       );
 
       consoleWarnSpy.mockRestore();
+    });
+
+    // Standalone spans (INP web vital spans) are streamed even with the static trace lifecycle,
+    // so a `withStaticSpan` callback has to see them in the v1 format it expects.
+    describe('with the static trace lifecycle', () => {
+      // Captures a child span so that ending it doesn't also send a transaction (which would apply the
+      // static callback a second time, via the transaction pipeline).
+      function captureStaticChildSpan(
+        beforeSendSpan: TestClientOptions['beforeSendSpan'],
+        attributes: Record<string, string> = { 'sentry.op': 'http.client' },
+      ): SerializedStreamedSpan {
+        const client = new TestClient(
+          getDefaultTestClientOptions({
+            dsn: 'https://dsn@ingest.f00.f00/1',
+            tracesSampleRate: 1,
+            traceLifecycle: 'static',
+            beforeSendSpan,
+          }),
+        );
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          const rootSpan = startInactiveSpan({ name: 'root' });
+          const span = startInactiveSpan({ name: 'my-span', attributes, parentSpan: rootSpan });
+          span.end();
+          return span;
+        });
+
+        return captureSpan(span, client);
+      }
+
+      it('applies a static beforeSendSpan callback and hands it the v1 span format', () => {
+        const beforeSendSpan = vi.fn((span: SpanJSON) => span);
+
+        captureStaticChildSpan(withStaticSpan(beforeSendSpan));
+
+        expect(beforeSendSpan).toHaveBeenCalledTimes(1);
+        expect(beforeSendSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: 'my-span',
+            op: 'http.client',
+            data: expect.objectContaining({ 'sentry.op': 'http.client' }),
+            timestamp: expect.any(Number),
+          }),
+        );
+      });
+
+      it('carries modifications from a static beforeSendSpan callback into the serialized span', () => {
+        const serialized = captureStaticChildSpan(
+          withStaticSpan((span: SpanJSON) => {
+            span.description = 'redacted';
+            span.data['http.url'] = '[Filtered]';
+            span.op = 'http.other';
+            return span;
+          }),
+          { 'sentry.op': 'http.client', 'http.url': 'https://example.com/secret' },
+        );
+
+        expect(serialized.name).toBe('redacted');
+        expect(serialized.attributes['http.url']).toEqual({ type: 'string', value: '[Filtered]' });
+        expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.other' });
+      });
+
+      it('preserves span fields the callback leaves untouched', () => {
+        const serialized = captureStaticChildSpan(withStaticSpan((span: SpanJSON) => span));
+
+        expect(serialized).toEqual(
+          expect.objectContaining({
+            name: 'my-span',
+            is_segment: false,
+            status: 'ok',
+            start_timestamp: expect.any(Number),
+            end_timestamp: expect.any(Number),
+            span_id: expect.stringMatching(/^[\da-f]{16}$/),
+            trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+          }),
+        );
+        expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+      });
+
+      it("doesn't a default beforeSendSpan callback without the withStaticSpan wrapper", () => {
+        const beforeSendSpan = vi.fn(span => span);
+
+        const serialized = captureStaticChildSpan(beforeSendSpan);
+
+        expect(beforeSendSpan).not.toHaveBeenCalled();
+        expect(serialized.name).toBe('my-span');
+      });
+
+      it('keeps the span if a static beforeSendSpan callback returns null', () => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const serialized = captureStaticChildSpan(withStaticSpan(vi.fn(() => null as unknown as SpanJSON)));
+
+        // The drop warning itself is only logged once per process, so it is asserted in the streamed test above.
+        expect(serialized.name).toBe('my-span');
+        expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+
+        consoleWarnSpy.mockRestore();
+      });
     });
   });
 });

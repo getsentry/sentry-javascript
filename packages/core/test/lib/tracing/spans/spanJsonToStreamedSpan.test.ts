@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { SpanJSON } from '../../../../src/types/span';
-import { spanJsonToSerializedStreamedSpan } from '../../../../src/tracing/spans/spanJsonToStreamedSpan';
+import type { SpanJSON, StreamedSpanJSON } from '../../../../src/types/span';
+import {
+  spanJsonToSerializedStreamedSpan,
+  spanJsonToStreamedSpanJson,
+  streamedSpanJsonToSpanJson,
+} from '../../../../src/tracing/spans/spanJsonToStreamedSpan';
 
 function makeSpanJSON(overrides: Partial<SpanJSON> = {}): SpanJSON {
   return {
@@ -89,5 +93,100 @@ describe('spanJsonToSerializedStreamedSpan', () => {
     expect(result.links).toEqual([
       { trace_id: 'aabb', span_id: 'ccdd', sampled: true, attributes: { foo: { type: 'string', value: 'bar' } } },
     ]);
+  });
+
+  it('preserves is_segment', () => {
+    expect(spanJsonToStreamedSpanJson(makeSpanJSON({ is_segment: true })).is_segment).toBe(true);
+    expect(spanJsonToStreamedSpanJson(makeSpanJSON({ is_segment: undefined })).is_segment).toBe(false);
+  });
+
+  it('copies op and origin into attributes so edits to the v1 fields are kept', () => {
+    const result = spanJsonToStreamedSpanJson(
+      makeSpanJSON({ op: 'http.other', origin: 'manual.http', data: { 'sentry.op': 'http.client' } }),
+    );
+
+    expect(result.attributes?.['sentry.op']).toBe('http.other');
+    expect(result.attributes?.['sentry.origin']).toBe('manual.http');
+  });
+});
+
+describe('streamedSpanJsonToSpanJson', () => {
+  function makeStreamedSpanJSON(overrides: Partial<StreamedSpanJSON> = {}): StreamedSpanJSON {
+    return {
+      span_id: 'abc123def456789a',
+      trace_id: '00112233445566778899aabbccddeeff',
+      name: 'GET /users',
+      start_timestamp: 1000,
+      end_timestamp: 1005,
+      status: 'ok',
+      is_segment: false,
+      attributes: { 'sentry.op': 'http.client', 'sentry.origin': 'auto.http', 'http.url': 'https://example.com' },
+      ...overrides,
+    };
+  }
+
+  it('maps StreamedSpanJSON fields to the v1 SpanJSON fields', () => {
+    const result = streamedSpanJsonToSpanJson(makeStreamedSpanJSON({ parent_span_id: 'parent00deadbeef' }));
+
+    expect(result).toEqual({
+      span_id: 'abc123def456789a',
+      trace_id: '00112233445566778899aabbccddeeff',
+      parent_span_id: 'parent00deadbeef',
+      description: 'GET /users',
+      start_timestamp: 1000,
+      timestamp: 1005,
+      status: 'ok',
+      is_segment: false,
+      op: 'http.client',
+      origin: 'auto.http',
+      links: undefined,
+      data: { 'sentry.op': 'http.client', 'sentry.origin': 'auto.http', 'http.url': 'https://example.com' },
+    });
+  });
+
+  it('copies attributes rather than aliasing them', () => {
+    const streamedSpan = makeStreamedSpanJSON();
+    const result = streamedSpanJsonToSpanJson(streamedSpan);
+
+    result.data['http.url'] = '[Filtered]';
+
+    expect(streamedSpan.attributes?.['http.url']).toBe('https://example.com');
+  });
+
+  it('handles a span without attributes', () => {
+    const result = streamedSpanJsonToSpanJson(makeStreamedSpanJSON({ attributes: undefined }));
+
+    expect(result.data).toEqual({});
+    expect(result.op).toBeUndefined();
+    expect(result.origin).toBeUndefined();
+  });
+
+  it.each([
+    ['a segment span', true],
+    ['a child span', false],
+  ])('round-trips %s unchanged', (_, is_segment) => {
+    const streamedSpan = makeStreamedSpanJSON({
+      is_segment,
+      status: 'error',
+      parent_span_id: 'parent00deadbeef',
+      links: [{ trace_id: 'aabb', span_id: 'ccdd', sampled: true, attributes: { foo: 'bar' } }],
+    });
+
+    expect(spanJsonToStreamedSpanJson(streamedSpanJsonToSpanJson(streamedSpan))).toEqual(streamedSpan);
+  });
+
+  it('round-trips modifications made in the v1 format back into the streamed format', () => {
+    const streamedSpan = makeStreamedSpanJSON();
+
+    const spanJson = streamedSpanJsonToSpanJson(streamedSpan);
+    spanJson.description = 'redacted';
+    spanJson.data['http.url'] = '[Filtered]';
+    spanJson.op = 'http.other';
+
+    const result = spanJsonToStreamedSpanJson(spanJson);
+
+    expect(result.name).toBe('redacted');
+    expect(result.attributes?.['http.url']).toBe('[Filtered]');
+    expect(result.attributes?.['sentry.op']).toBe('http.other');
   });
 });
