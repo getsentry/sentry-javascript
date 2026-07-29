@@ -52,19 +52,9 @@ export const GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cach
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
 
 /**
- * The span operation name for generating content
- */
-export const GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE = 'gen_ai.generate_content';
-
-/**
  * The span operation for embeddings
  */
 export const GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE = 'gen_ai.embeddings';
-
-/**
- * The span operation name for reranking
- */
-export const GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE = 'gen_ai.rerank';
 
 /**
  * The span operation name for executing a tool
