@@ -16,9 +16,10 @@ import {
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_TYPE,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -793,8 +794,8 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               // Cache/reasoning token breakdown and conversation id are derived from the model's
               // `providerMetadata` — by the OTel processor on v6 and by the channel subscriber on v7,
               // both via the shared `getProviderMetadataAttributes` helper, so the shape is identical.
-              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED]?.value).toBe(5);
-              expect(generateContent.attributes['gen_ai.usage.output_tokens.reasoning']?.value).toBe(7);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
+              expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
               expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe('resp_abc123');
 
               const invokeAgent = container.items.find(

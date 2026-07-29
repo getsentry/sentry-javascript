@@ -38,7 +38,7 @@ describe('vercel-ai cached tokens', () => {
     });
 
     expect(span.data?.['gen_ai.usage.input_tokens']).toBe(150);
-    expect(span.data?.['gen_ai.usage.input_tokens.cached']).toBe(50);
+    expect(span.data?.['gen_ai.usage.cache_read.input_tokens']).toBe(50);
     expect(span.data?.['gen_ai.usage.total_tokens']).toBe(150);
   });
 
@@ -57,7 +57,7 @@ describe('vercel-ai cached tokens', () => {
     });
 
     expect(span.data?.['gen_ai.usage.input_tokens']).toBe(9500);
-    expect(span.data?.['gen_ai.usage.input_tokens.cached']).toBe(8000);
+    expect(span.data?.['gen_ai.usage.cache_read.input_tokens']).toBe(8000);
     expect(span.data?.['gen_ai.usage.output_tokens']).toBe(300);
     expect(span.data?.['gen_ai.usage.total_tokens']).toBe(9800);
   });
