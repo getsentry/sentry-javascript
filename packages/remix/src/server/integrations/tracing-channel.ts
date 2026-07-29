@@ -26,8 +26,8 @@ const ORIGIN = 'auto.http.orchestrion.remix';
 
 const NOOP = (): void => {};
 
-// `match.route.id` / `match.params.*` mirror `RemixSemanticAttributes` from the vendored
-// `RemixInstrumentation` this integration replaces.
+// `match.route.id` / `match.params.*` mirror `RemixSemanticAttributes` from the OpenTelemetry
+// `RemixInstrumentation` this integration replaced.
 const MATCH_ROUTE_ID = 'match.route.id';
 const MATCH_PARAMS = 'match.params';
 
@@ -103,8 +103,8 @@ function setResponseStatus(span: Span, result: unknown): void {
 
 /**
  * `matchServerRoutes` opens no span of its own; it enriches the enclosing request span with the
- * matched route (used to derive the `http.server` transaction name), mirroring the vendored
- * instrumentation's patch.
+ * matched route (used to derive the `http.server` transaction name), mirroring the OpenTelemetry
+ * instrumentation's patch it replaced.
  */
 function enrichActiveSpanWithRoute(result: unknown): void {
   const span = getActiveSpan();
