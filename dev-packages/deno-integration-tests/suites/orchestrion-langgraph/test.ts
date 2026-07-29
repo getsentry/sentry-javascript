@@ -15,7 +15,7 @@ Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8
   assert(names.includes('LangGraph'), `LangGraph should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel produces a nested create_agent span', async () => {
+Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wraps invoke without a create_agent span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -27,12 +27,24 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel prod
 
   const channel = tracingChannel('orchestrion:@langchain/langgraph:stateGraphCompile');
 
-  // `arguments[0]` is the compile options; `name` names the agent span.
+  // The subscriber replaces `invoke` on the compiled graph, so it needs to be a settable property.
+  let invoke = () => Promise.resolve('result');
+  const compiledGraph = {
+    get invoke() {
+      return invoke;
+    },
+    set invoke(fn) {
+      invoke = fn;
+    },
+  };
+  // `arguments[0]` is the compile options.
   const ctx: Record<string, unknown> = { arguments: [{ name: 'my-agent' }] };
+
+  const originalInvoke = compiledGraph.invoke;
 
   startSpan({ name: 'parent', op: 'test' }, () => {
     channel.start.runStores(ctx, () => undefined);
-    ctx.result = {};
+    ctx.result = compiledGraph;
     channel.end.publish(ctx);
   });
 
@@ -42,13 +54,7 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel prod
     "'parent' transaction",
   );
 
-  const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.create_agent');
-  assertExists(
-    aiSpan,
-    `expected a gen_ai.create_agent child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
-  );
-  assertEquals(aiSpan!.description, 'create_agent my-agent');
-  assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'create_agent');
-  assertEquals(aiSpan!.data?.['gen_ai.agent.name'], 'my-agent');
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.langgraph');
+  const createAgentSpan = parent.spans?.find(s => s.op === 'gen_ai.create_agent');
+  assertEquals(createAgentSpan, undefined, 'no gen_ai.create_agent span should be produced');
+  assert(compiledGraph.invoke !== originalInvoke, "compiled graph's invoke should be wrapped");
 });
