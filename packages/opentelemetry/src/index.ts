@@ -1,7 +1,5 @@
 export { getScopesFromContext } from './utils/contextData';
 
-export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
-
 export { getTraceContextForScope } from './trace';
 
 export { setupEventContextTrace } from './setupEventContextTrace';
