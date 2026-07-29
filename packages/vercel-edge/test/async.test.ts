@@ -12,9 +12,8 @@ beforeAll(() => {
     transport: makeEdgeTransport,
   });
 
-  setupOtel(client);
-
   setOpenTelemetryContextAsyncContextStrategy();
+  setupOtel(client);
 });
 
 beforeEach(() => {
