@@ -26,11 +26,13 @@ import {
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
+import { SENTRY_TRACE_STATE_DSC } from './constants';
 import { continueTraceAsRemoteSpan } from './propagator';
 import type { OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
+import { reconcileDscSampled } from './utils/reconcileDscSampled';
 
 /**
  * Internal helper for starting spans and manual spans. See {@link startSpan} and {@link startSpanManual} for the public APIs.
@@ -257,7 +259,15 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
   // In this case, when we are forcing a transaction, we want to treat this like continuing an incoming trace
   // so we set the traceState according to the root span
   const rootSpan = getRootSpan(parentSpan);
-  const dsc = getDynamicSamplingContextFromSpan(rootSpan);
+  const rawDsc = getDynamicSamplingContextFromSpan(rootSpan);
+
+  // When the root carried a frozen incoming DSC on its trace state, `getDynamicSamplingContextFromSpan`
+  // returns it verbatim and it is immutable per the propagation spec. Otherwise core freshly derived the
+  // DSC from the root's (binary) trace flags, which cannot tell a deferred decision apart from a
+  // definitive unsampled one — reconcile `sampled` against the authoritative OTel decision so a deferred
+  // parent (e.g. a `startNewTrace` remote parent with `traceFlags: NONE`) does not bake in `sampled=false`.
+  const hasIncomingFrozenDsc = !!rootSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC);
+  const dsc = hasIncomingFrozenDsc ? rawDsc : reconcileDscSampled(rawDsc, sampled);
 
   const traceState = makeTraceState({
     dsc,

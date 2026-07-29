@@ -2191,6 +2191,19 @@ describe('startNewTrace', () => {
     });
   });
 
+  it('samples a forced transaction based on tracesSampleRate', () => {
+    // `startNewTrace` injects a remote parent with `traceFlags: NONE` and no trace state, i.e. a
+    // *deferred* decision. A forced transaction under it runs through `getContext`'s simulated-root
+    // branch, which derives a DSC from that parent. Core naively reads `sampled=false` off the binary
+    // trace flags; without reconciliation that gets baked into the trace state and the transaction
+    // wrongly inherits a negative decision despite `tracesSampleRate: 1`.
+    startNewTrace(() => {
+      const span = startInactiveSpan({ name: 'forced-transaction', forceTransaction: true });
+      expect(spanIsSampled(span)).toBe(true);
+      span.end();
+    });
+  });
+
   it('does not leak the new traceId to the outer scope', () => {
     const outerScope = getCurrentScope();
     const outerTraceId = outerScope.getPropagationContext().traceId;
