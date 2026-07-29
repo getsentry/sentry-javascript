@@ -23,6 +23,13 @@ export interface AgentInternals {
   _ParentClass?: { name?: string };
   /** The Agent instance name, which in the Agents model identifies the conversation/thread. */
   name?: string;
+  /**
+   * Internal: the active conversation id, rotated when the chat is cleared (the `message:clear`
+   * observability event) so a reset chat groups as a fresh conversation while the instance (and its
+   * MCP/OAuth state) stays put. Set by `instrumentChatAgentConversation`; falls back to `name`
+   * before the first clear.
+   */
+  __sentryConversationId?: string;
 }
 
 /** Reads best-effort agent identity attributes from the instance, tolerating missing internals. */
@@ -46,7 +53,9 @@ export function getAgentAttributes(instance: AgentInternals): Record<string, str
  * Sets the agent instance's conversation id on the current scope for the duration of the
  * surrounding unit of work (chat turn, callable RPC call). In the Agents model one instance is one
  * conversation, so the instance `name` is the natural conversation id — for chat and plain agents
- * alike, since plain agents run LLM calls too (e.g. inside `@callable()` methods).
+ * alike, since plain agents run LLM calls too (e.g. inside `@callable()` methods). Once the chat
+ * has been cleared, the rotated `__sentryConversationId` takes precedence so LLM calls from any
+ * unit of work group under the fresh conversation.
  *
  * `conversationIdIntegration` reads the id off the scope at `spanStart` and stamps
  * `gen_ai.conversation.id` onto AI spans created within the unit of work, correlating its model
@@ -54,7 +63,7 @@ export function getAgentAttributes(instance: AgentInternals): Record<string, str
  * does not leak into unrelated events.
  */
 export function setAgentConversationId(instance: AgentInternals): void {
-  const conversationId = instance.name;
+  const conversationId = instance.__sentryConversationId ?? instance.name;
 
   if (typeof conversationId === 'string' && conversationId) {
     getCurrentScope().setConversationId(conversationId);
