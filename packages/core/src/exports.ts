@@ -174,7 +174,7 @@ export function setConversationId(conversationId: string | null | undefined): vo
  * isolation scope. If you call this function after handling a certain error and another error
  * is captured in between, the last one is returned instead of the one you might expect.
  * Also, ids of events that were never sent to Sentry (for example because
- * they were dropped in `beforeSend`) could be returned.
+ * they were dropped by sampling or `beforeSend`) could be returned.
  *
  * @returns The last event id of the isolation scope.
  */
