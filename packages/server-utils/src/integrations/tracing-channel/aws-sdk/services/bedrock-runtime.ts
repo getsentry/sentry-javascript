@@ -2,13 +2,13 @@ import type { Span } from '@sentry/core';
 import { debug } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_STOP_SEQUENCES as ATTR_GEN_AI_REQUEST_STOP_SEQUENCES,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_FINISH_REASONS,
-  GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
@@ -82,8 +82,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
   private _requestPreSpanHookConverse(request: NormalizedRequest, isStream: boolean): RequestMetadata {
     let spanName = GEN_AI_OPERATION_NAME_VALUE_CHAT;
     const spanAttributes: Record<string, unknown> = {
-      // oxlint-disable-next-line typescript/no-deprecated
-      [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      [GEN_AI_PROVIDER_NAME]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
       [GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_CHAT,
     };
 
@@ -121,8 +120,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
   private _requestPreSpanHookInvokeModel(request: NormalizedRequest, isStream: boolean): RequestMetadata {
     const spanAttributes: Record<string, unknown> = {
-      // oxlint-disable-next-line typescript/no-deprecated
-      [GEN_AI_SYSTEM]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
+      [GEN_AI_PROVIDER_NAME]: GEN_AI_SYSTEM_VALUE_AWS_BEDROCK,
     };
 
     const modelId = request.commandInput?.modelId;

@@ -5,11 +5,11 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_INPUT,
@@ -213,7 +213,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstGenerateContentSpan.attributes['vercel.ai.operationId']?.value).toBe(
                 'ai.generateText.doGenerate',
               );
-              expect(firstGenerateContentSpan.attributes[GEN_AI_SYSTEM]?.value).toBe('mock-provider');
+              expect(firstGenerateContentSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('mock-provider');
               expect(firstGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
               expect(firstGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 

@@ -17,6 +17,7 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_TOOL_DESCRIPTION,
@@ -323,6 +324,7 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL);
+  renameAttributeKey(attributes, 'gen_ai.system', GEN_AI_PROVIDER_NAME);
 
   // Map embedding input: ai.values → gen_ai.embeddings.input
   // Vercel AI SDK JSON-stringifies each value individually, so we parse each element back.

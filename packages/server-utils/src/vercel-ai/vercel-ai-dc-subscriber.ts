@@ -1,8 +1,4 @@
 /* eslint-disable max-lines */
-// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_TOOL_*`,
-// `GEN_AI_REQUEST_AVAILABLE_TOOLS`) as deprecated in favour of newer semconv names. We intentionally
-// keep emitting the current names so these spans match the OTel-based (v6) integration and what the
-// Sentry product consumes today; migrating to the new names is a separate, coordinated change.
 /* eslint-disable typescript-eslint/no-deprecated */
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -10,13 +6,13 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
@@ -381,7 +377,7 @@ export function createSpanFromMessage(
 
   const baseAttributes: Record<string, string | number | boolean> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    ...(provider ? { [GEN_AI_SYSTEM]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
+    ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
   };

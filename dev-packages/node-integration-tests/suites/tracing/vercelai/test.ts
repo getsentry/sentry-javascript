@@ -5,10 +5,10 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_INPUT,
@@ -71,7 +71,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
               'ai.generateText.doGenerate',
             );
-            expect(firstGenerateContentSpan!.attributes[GEN_AI_SYSTEM].value).toBe('mock-provider');
+            expect(firstGenerateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('mock-provider');
             expect(firstGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
             expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 
@@ -711,7 +711,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject.doGenerate');
             expect(generateContentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
             expect(generateContentSpan!.attributes['gen_ai.operation.name'].value).toBe('generate_content');
-            expect(generateContentSpan!.attributes['gen_ai.system'].value).toBe('mock-provider');
+            expect(generateContentSpan!.attributes['gen_ai.provider.name'].value).toBe('mock-provider');
             expect(generateContentSpan!.attributes['gen_ai.request.model'].value).toBe('mock-model-id');
             expect(generateContentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
             expect(generateContentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);

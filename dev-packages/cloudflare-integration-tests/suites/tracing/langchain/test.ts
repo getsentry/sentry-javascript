@@ -1,13 +1,13 @@
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -42,7 +42,7 @@ it('traces a LangChain chat model invocation', async ({ signal }) => {
         attributes: {
           'sentry.origin': { value: 'auto.ai.langchain', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'openai', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'openai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },

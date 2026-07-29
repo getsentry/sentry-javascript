@@ -6,6 +6,7 @@ import {
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -17,7 +18,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
@@ -257,7 +257,7 @@ function baseRequestAttributes(
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
   return {
-    [GEN_AI_SYSTEM]: stringify(system ?? 'langchain', String),
+    [GEN_AI_PROVIDER_NAME]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME]: 'chat',
     [GEN_AI_REQUEST_MODEL]: stringify(modelName, String),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
