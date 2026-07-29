@@ -13,7 +13,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // This test runs the `@anthropic-ai/sdk` on the Workers runtime (with a
@@ -53,7 +52,6 @@ it('traces a basic message creation request with the anthropic SDK', async ({ si
             value: '[{"role":"user","content":"What is the capital of France?"}]',
             type: 'string',
           },
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: { value: 1, type: 'integer' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Anthropic!', type: 'string' },
           [GEN_AI_RESPONSE_ID]: { value: 'msg_mock123', type: 'string' },
           [GEN_AI_RESPONSE_MODEL]: { value: 'claude-3-haiku-20240307', type: 'string' },

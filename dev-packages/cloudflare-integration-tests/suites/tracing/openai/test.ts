@@ -13,7 +13,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // This test runs the `openai` SDK on the Workers runtime (with a canned
@@ -56,7 +55,6 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
             value: '[{"role":"user","content":"What is the capital of France?"}]',
             type: 'string',
           },
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: { value: 1, type: 'integer' },
           [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
           [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 10, type: 'integer' },

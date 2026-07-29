@@ -14,7 +14,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // This test runs the `@google/genai` SDK on the Workers runtime (with a
@@ -51,7 +50,6 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-pro', type: 'string' },
           // collect LLM input and outputs (default true)
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: { value: 1, type: 'integer' },
           [GEN_AI_INPUT_MESSAGES]: { value: '[{"role":"user","content":"Tell me a joke"}]', type: 'string' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },
@@ -78,7 +76,6 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
           [GEN_AI_REQUEST_TOP_P]: { value: 0.9, type: 'double' },
           [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: { value: 1, type: 'integer' },
           [GEN_AI_INPUT_MESSAGES]: {
             value: '[{"role":"user","parts":[{"text":"What is the capital of France?"}]}]',
             type: 'string',

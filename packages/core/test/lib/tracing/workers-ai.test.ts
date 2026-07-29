@@ -20,7 +20,6 @@ import {
   setCurrentClient,
   startSpan,
 } from '../../../src';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
 import { addVercelAiProcessors } from '../../../src/tracing/vercel-ai';
 import { AI_OPERATION_ID_ATTRIBUTE } from '../../../src/tracing/vercel-ai/vercel-ai-attributes';
 import { instrumentWorkersAiClient } from '../../../src/tracing/workers-ai';
@@ -90,7 +89,6 @@ describe('instrumentWorkersAiClient', () => {
     const PROMPT_ATTRIBUTES = {
       [GEN_AI_SYSTEM_INSTRUCTIONS]: '[{"type":"text","content":"Answer in one word."}]',
       [GEN_AI_INPUT_MESSAGES]: '[{"role":"user","content":"Capital of France?"}]',
-      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
     };
 
     /** Everything gated behind `recordOutputs`. */
