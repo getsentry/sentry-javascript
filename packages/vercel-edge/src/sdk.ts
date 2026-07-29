@@ -1,4 +1,4 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
+import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -19,7 +19,6 @@ import {
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
   getSentryResource,
-  SentryAsyncLocalStorageContextManager,
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
@@ -122,7 +121,6 @@ export function setupOtel(client: VercelEdgeClient): void {
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
 
   client.traceProvider = provider;
 }

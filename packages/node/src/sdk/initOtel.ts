@@ -1,12 +1,10 @@
 import type { TracerProvider } from '@opentelemetry/api';
-import { context, propagation, trace } from '@opentelemetry/api';
+import { propagation, trace } from '@opentelemetry/api';
 import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
-import { SentryContextManager } from '../otel/contextManager';
 import { setupOpenTelemetryLogger } from '../otel/logger';
 import type { NodeClient } from './client';
 import {
   applyOtelSpanData,
-  type AsyncLocalStorageLookup,
   backfillStreamedSpanDataFromOtel,
   getSentryResource,
   SentryPropagator,
@@ -78,9 +76,8 @@ export function initOpenTelemetry(client: NodeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const [provider, asyncLocalStorageLookup] = setupOtel(client);
+  const provider = setupOtel(client);
   client.traceProvider = provider;
-  client.asyncLocalStorageLookup = asyncLocalStorageLookup;
 }
 
 interface NodePreloadOptions {
@@ -125,7 +122,7 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient): [SentryTracerProvider | undefined, AsyncLocalStorageLookup | undefined] {
+export function setupOtel(client: NodeClient): SentryTracerProvider | undefined {
   const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
   if (!registerGlobalTracerProvider(provider)) {
@@ -133,13 +130,10 @@ export function setupOtel(client: NodeClient): [SentryTracerProvider | undefined
       coreDebug.warn(
         'Could not register SentryTracerProvider because another OpenTelemetry tracer provider is already registered.',
       );
-    return [undefined, undefined];
+    return undefined;
   }
 
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  const ctxManager = new SentryContextManager();
-  context.setGlobalContextManager(ctxManager);
 
   client.on('spanEnd', span => {
     applyOtelSpanData(span, { finalizeStatus: true });
@@ -163,5 +157,5 @@ export function setupOtel(client: NodeClient): [SentryTracerProvider | undefined
     };
   });
 
-  return [provider, ctxManager.getAsyncLocalStorageLookup()];
+  return provider;
 }

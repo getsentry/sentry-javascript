@@ -1,17 +1,12 @@
 import { trace } from '@opentelemetry/api';
 import { getRootSpan } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('getActiveSpan', () => {
   beforeEach(() => {
-    setupOtel();
-  });
-
-  afterEach(() => {
-    return cleanupOtel();
+    mockSdkInit();
   });
 
   it('returns undefined if no span is active', () => {
@@ -80,11 +75,7 @@ describe('getActiveSpan', () => {
 
 describe('getRootSpan', () => {
   beforeEach(() => {
-    setupOtel();
-  });
-
-  afterEach(() => {
-    return cleanupOtel();
+    mockSdkInit();
   });
 
   it('returns currently active root span', () => {

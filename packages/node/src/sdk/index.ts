@@ -175,7 +175,7 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  setOpenTelemetryContextAsyncContextStrategy();
+  const asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
@@ -193,6 +193,7 @@ function _init(
   getCurrentScope().setClient(client);
 
   client.init();
+  client.asyncLocalStorageLookup = asyncLocalStorageLookup;
 
   /*! rollup-include-cjs-only */
   debug.log(`SDK initialized from CommonJS`);

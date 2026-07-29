@@ -12,26 +12,15 @@ import {
   type Span,
   withIsolationScope,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { applyOtelSpanData } from '../src/applyOtelSpanData';
-import { SentryTracerProvider } from '../src/tracerProvider';
-import { cleanupOtel } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 import { init as initTestClient } from './helpers/TestClient';
 import { URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SentryTracerProvider', () => {
   beforeEach(() => {
-    (global as { __SENTRY__?: unknown }).__SENTRY__ = {};
-    setOpenTelemetryContextAsyncContextStrategy();
-    initTestClient({ tracesSampleRate: 1 });
-    context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
-    trace.setGlobalTracerProvider(new SentryTracerProvider());
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   it('creates Sentry spans from the global OpenTelemetry tracer', () => {

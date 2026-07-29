@@ -12,25 +12,18 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { afterAll, afterEach, beforeEach, describe, expect, it, test } from 'vitest';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
+import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from '../src/constants';
 import { setNodeOpenTelemetryContextAsyncContextStrategy } from '../src/nodeAsyncContextStrategy';
 import { TraceState } from '../src/utils/TraceState';
-import { setupOtel } from './helpers/initOtel';
-import { cleanupOtel } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
 
-    setupOtel();
-    setOpenTelemetryContextAsyncContextStrategy();
-  });
-
-  afterEach(() => {
-    cleanupOtel();
+    mockSdkInit();
   });
 
   afterAll(() => {

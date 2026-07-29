@@ -3,8 +3,13 @@ import { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrat
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { getRootSpan, spanIsIgnored, type TracingChannelBinding } from '@sentry/core';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from './constants';
+import { type AsyncLocalStorageLookup, SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
 
-export function setNodeOpenTelemetryContextAsyncContextStrategy(): void {
+/**
+ * This sets up both the async context strategy based on OTEL, as well as the context manager needed to back this.
+ * It ensures that both use the same instance of AsyncLocalStorage.
+ */
+export function setNodeOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorageLookup {
   const asyncLocalStorage = new AsyncLocalStorage<api.Context>();
 
   setOpenTelemetryContextAsyncContextStrategy({
@@ -15,6 +20,11 @@ export function setNodeOpenTelemetryContextAsyncContextStrategy(): void {
       } satisfies TracingChannelBinding;
     },
   });
+
+  const ctxManager = new SentryAsyncLocalStorageContextManager(asyncLocalStorage);
+  api.context.setGlobalContextManager(ctxManager);
+
+  return ctxManager.getAsyncLocalStorageLookup();
 }
 
 function getStoreWithActiveSpan(span: Parameters<TracingChannelBinding['getStoreWithActiveSpan']>[0]): api.Context {

@@ -2,11 +2,12 @@ import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 describe('SentryAsyncLocalStorageContextManager', () => {
   describe('disable', () => {
     it('disables the underlying async local storage', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const disable = vi.spyOn(contextManager['_asyncLocalStorage'], 'disable');
 
       expect(contextManager.disable()).toBe(contextManager);
@@ -15,7 +16,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
 
     // Cloudflare Workers' `nodejs_compat` AsyncLocalStorage does not implement `disable()`
     it('does not throw when the async local storage has no disable method', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       // @ts-expect-error -- simulating a runtime that omits `disable`
       contextManager['_asyncLocalStorage'].disable = undefined;
 
@@ -25,7 +26,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
 
   describe('bind', () => {
     it('binds functions', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const context = ROOT_CONTEXT.setValue(Symbol.for('test'), 'value');
 
       const fn = vi.fn((a: number, b: number) => a + b);
@@ -37,7 +38,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('patches event emitters and runs listeners in the bound context', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const key = Symbol.for('test');
       const context = ROOT_CONTEXT.setValue(key, 'value');
 
@@ -54,7 +55,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('removes patched listeners via removeListener', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const ee = contextManager.bind(ROOT_CONTEXT, new EventEmitter());
 
       const listener = vi.fn();
@@ -78,7 +79,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
       ['emit but no on', { emit: () => {} }],
       ['plain object', {}],
     ])('returns non-emitter target untouched: %s', (_name, target) => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const snapshot = { ...target };
 
       const result = contextManager.bind(ROOT_CONTEXT, target);
@@ -97,13 +98,13 @@ describe('SentryAsyncLocalStorageContextManager', () => {
       ['boolean', true],
       ['array', [1, 2, 3]],
     ])('returns primitive target untouched: %s', (_name, target) => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
 
       expect(contextManager.bind(ROOT_CONTEXT, target)).toBe(target);
     });
 
     it('does not call a non-function `on` when the object also has a callable emit', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       // `on` is not callable – patching and later invoking it would throw
       const target = { on: 'not-a-function', emit: () => {} };
 
@@ -113,7 +114,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('does not throw for frozen event emitters', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const ee = Object.freeze(new EventEmitter());
 
       expect(() => contextManager.bind(ROOT_CONTEXT, ee)).not.toThrow();
@@ -121,7 +122,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('does not throw for frozen emitter-like objects and leaves them functional', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const listeners: Array<(...args: unknown[]) => unknown> = [];
       const originalOn = (_event: string, listener: (...args: unknown[]) => unknown): void => {
         listeners.push(listener);
@@ -141,7 +142,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('does not throw for sealed event emitters', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const ee = Object.seal(new EventEmitter());
 
       expect(() => contextManager.bind(ROOT_CONTEXT, ee)).not.toThrow();
@@ -153,7 +154,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('does not throw for emitters with getter-only methods', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const ee = new EventEmitter();
       const originalOn = ee.on.bind(ee);
       Object.defineProperty(ee, 'on', {
@@ -170,7 +171,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('patches emitter-like objects that are not EventEmitter instances', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const key = Symbol.for('test');
       const context = ROOT_CONTEXT.setValue(key, 'value');
 
@@ -198,7 +199,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('leaves absent listener methods absent', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const target = { on: () => {}, emit: () => {} };
 
       contextManager.bind(ROOT_CONTEXT, target);
@@ -209,7 +210,7 @@ describe('SentryAsyncLocalStorageContextManager', () => {
     });
 
     it('does not patch the same emitter twice', () => {
-      const contextManager = new SentryAsyncLocalStorageContextManager();
+      const contextManager = new SentryAsyncLocalStorageContextManager(new AsyncLocalStorage());
       const ee = new EventEmitter();
 
       contextManager.bind(ROOT_CONTEXT, ee);

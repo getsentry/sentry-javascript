@@ -1,7 +1,6 @@
-import { context, propagation, trace } from '@opentelemetry/api';
 import type { ClientOptions, Options } from '@sentry/core';
-import { flush, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { setNodeOpenTelemetryContextAsyncContextStrategy } from '../../src/nodeAsyncContextStrategy';
 import { initOtel } from './initOtel';
 import type { TestClient } from './TestClient';
 import { init as initTestClient } from './TestClient';
@@ -12,7 +11,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * Initialize Sentry for Node.
  */
 function init(options: Partial<Options> | undefined = {}): TestClient {
-  setOpenTelemetryContextAsyncContextStrategy();
+  setNodeOpenTelemetryContextAsyncContextStrategy();
   const client = initTestClient(options);
   initOtel();
   return client;
@@ -30,13 +29,4 @@ export function mockSdkInit(options?: Partial<ClientOptions>): TestClient {
   resetGlobals();
 
   return init({ dsn: PUBLIC_DSN, ...options })!;
-}
-
-export async function cleanupOtel(): Promise<void> {
-  // Disable all globally registered APIs
-  trace.disable();
-  context.disable();
-  propagation.disable();
-
-  await flush();
 }

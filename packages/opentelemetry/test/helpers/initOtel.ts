@@ -1,6 +1,5 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
+import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { debug, getClient } from '@sentry/core';
-import { SentryAsyncLocalStorageContextManager } from '../../src/asyncLocalStorageContextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { getSentryResource } from '../../src/resource';
@@ -41,15 +40,8 @@ export function initOtel(): void {
   setupEventContextTrace(client);
   enhanceDscWithOpenTelemetryRootSpanName(client);
 
-  setupOtel();
-}
-
-export function setupOtel(): void {
   const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  const ctxManager = new SentryAsyncLocalStorageContextManager();
-  context.setGlobalContextManager(ctxManager);
 }
