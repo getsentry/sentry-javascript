@@ -326,6 +326,25 @@ Sentry.init({
 });
 ```
 
+- The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+  },
+});
+
+// after: logs are enabled by default, no option needed
+Sentry.init({});
+
+// or, to opt out
+Sentry.init({
+  enableLogs: false,
+});
+```
+
 - The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
 
 ```js
