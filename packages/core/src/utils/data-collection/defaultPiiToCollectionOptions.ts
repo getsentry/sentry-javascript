@@ -31,7 +31,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         // The GraphQL document has literal values redacted at collection time, so it was historically
         // always attached regardless of `sendDefaultPii`; keep it on to preserve that behavior.
         graphQL: { document: true, variables: true },
-        genAI: { inputs: false, outputs: false },
+        genAI: { inputs: true, outputs: true },
         // Database query values were only sent with `sendDefaultPii: true` (e.g. Supabase gated on it),
         // so map the legacy "off" state to `false`.
         databaseQueryData: false,

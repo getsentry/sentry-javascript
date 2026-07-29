@@ -1,10 +1,12 @@
 import {
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -44,6 +46,15 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
             [GEN_AI_USAGE_INPUT_TOKENS]: { value: 12, type: 'integer' },
             [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 7, type: 'integer' },
             [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 19, type: 'integer' },
+            // collect only output messages
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+            },
+            [GEN_AI_RESPONSE_TEXT]: {
+              type: 'string',
+              value: 'The capital of France is Paris.',
+            },
           },
         }),
       );
@@ -80,6 +91,15 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
             [GEN_AI_USAGE_INPUT_TOKENS]: { value: 12, type: 'integer' },
             [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 7, type: 'integer' },
             [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 19, type: 'integer' },
+            // collect only output
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+            },
+            [GEN_AI_RESPONSE_TEXT]: {
+              type: 'string',
+              value: 'The capital of France is Paris.',
+            },
           },
         }),
       );

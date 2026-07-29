@@ -9,6 +9,7 @@ export default Sentry.withSentry(
     environment: 'qa',
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1.0,
+    dataCollection: { genAI: { inputs: false, outputs: false } },
     integrations: [Sentry.vercelAIIntegration()],
   }),
   {
