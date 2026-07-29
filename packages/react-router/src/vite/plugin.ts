@@ -1,3 +1,4 @@
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { ConfigEnv, Plugin } from 'vite';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
@@ -20,6 +21,9 @@ export async function sentryReactRouter(
 
   plugins.push(makeConfigInjectorPlugin(options));
   plugins.push(makeServerBuildCapturePlugin());
+
+  // Injects `diagnostics_channel` publishers into instrumented server-side deps (mysql, ioredis, …)
+  plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(makeEnableSourceMapsPlugin(options));
