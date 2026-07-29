@@ -20,9 +20,9 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
@@ -320,7 +320,7 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, GEN_AI_TOOL_DEFINITIONS);
 
-  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT);
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_CALL_ARGUMENTS);
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT);
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');

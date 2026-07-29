@@ -13,8 +13,8 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
@@ -484,7 +484,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),
-    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: stringify(toolInput) } : {}),
+    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
   });
 }
 
