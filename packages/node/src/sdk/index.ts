@@ -15,10 +15,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  setOpenTelemetryContextAsyncContextStrategy,
-  setupEventContextTrace,
-} from '@sentry/opentelemetry';
+import { setOpenTelemetryContextAsyncContextStrategy, setupEventContextTrace } from '@sentry/opentelemetry';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
