@@ -19,10 +19,8 @@ function bullmqOrigin(): unknown {
   return getBullMQProcessSpanOptions('q').attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
 }
 
-// NestJS instrumentation is channel-based, so spans always use the orchestrion
-// origins.
 describe('NestJS span origin selection', () => {
-  it('emits orchestrion origins', () => {
+  it('emits origins', () => {
     expect(httpOrigin()).toBe('auto.http.orchestrion.nestjs');
     expect(middlewareOrigin()).toBe('auto.middleware.orchestrion.nestjs');
     expect(middlewareOrigin('guard')).toBe('auto.middleware.orchestrion.nestjs.guard');
