@@ -17,11 +17,21 @@ vi.mock('../../src/vite/makeEnableSourceMapsPlugin');
 vi.mock('../../src/vite/makeConfigInjectorPlugin');
 vi.mock('../../src/vite/makeServerBuildCapturePlugin');
 
+// Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
+vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
+}));
+
 describe('sentryReactRouter', () => {
   const mockPlugins = [{ name: 'test-plugin' }];
   const mockSourceMapsPlugin = { name: 'source-maps-plugin' };
   const mockConfigInjectorPlugin = { name: 'sentry-config-injector' };
   const mockServerBuildCapturePlugin = { name: 'sentry-react-router-server-build-capture' };
+  const mockOrchestrionPlugin = { name: 'sentry-orchestrion-vite' };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,7 +51,7 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
 
@@ -51,7 +61,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin when not in build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -59,7 +69,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin in development build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'build', mode: 'development' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -73,6 +83,7 @@ describe('sentryReactRouter', () => {
     expect(result).toEqual([
       mockConfigInjectorPlugin,
       mockServerBuildCapturePlugin,
+      mockOrchestrionPlugin,
       mockSourceMapsPlugin,
       ...mockPlugins,
     ]);
@@ -101,5 +112,22 @@ describe('sentryReactRouter', () => {
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith(options);
 
     process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('adds the orchestrion plugin by default', async () => {
+    const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+    expect(result.map(plugin => plugin?.name)).toContain('sentry-orchestrion-vite');
+  });
+
+  it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', async () => {
+    const result = await sentryReactRouter(
+      { buildTimeInstrumentation: false },
+      { command: 'serve', mode: 'production' },
+    );
+    const pluginNames = result.map(plugin => plugin?.name);
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
+    expect(pluginNames).toContain('sentry-orchestrion-disabled');
+    expect(pluginNames).not.toContain('sentry-orchestrion-vite');
   });
 });
