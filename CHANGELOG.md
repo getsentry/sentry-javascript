@@ -4,6 +4,37 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.69.0
+
+### Important Changes
+
+- **feat(v10/cloudflare): Add `instrumentAgentWithSentry` for Cloudflare Agents ([#22786](https://github.com/getsentry/sentry-javascript/pull/22786))**
+
+The Cloudflare SDK adds a new `instrumentAgentWithSentry` API for [Cloudflare Agents](https://agents.cloudflare.com/). It works like `instrumentDurableObjectWithSentry` for `Agent` classes from the `agents` SDK and additionally creates spans for `@callable` RPC methods and automatically sets the `conversationId` based on the agent's name. When building with the Sentry Vite plugin, Agents are instrumented automatically ([#22788](https://github.com/getsentry/sentry-javascript/pull/22788)).
+
+### Other Changes
+
+- feat(v10/cloudflare): Add Spotlight integration for local dev event forwarding ([#22796](https://github.com/getsentry/sentry-javascript/pull/22796))
+- feat(v10/cloudflare): Add wranglerConfigPath to Vite options ([#22803](https://github.com/getsentry/sentry-javascript/pull/22803))
+- feat(v10/cloudflare): Filter framework-internal Durable Object storage spans ([#22770](https://github.com/getsentry/sentry-javascript/pull/22770))
+- feat(v10/cloudflare): Instrument Agents automatically ([#22788](https://github.com/getsentry/sentry-javascript/pull/22788))
+- feat(v10/cloudflare): Rotate agent conversation id on chat clear ([#22787](https://github.com/getsentry/sentry-javascript/pull/22787))
+- fix(v10/cloudflare): Also skip cf: prefixed DOs ([#22802](https://github.com/getsentry/sentry-javascript/pull/22802))
+- fix(v10/cloudflare): Filter `CREATE INDEX` spans on `cf_`-prefixed tables ([#22767](https://github.com/getsentry/sentry-javascript/pull/22767))
+- fix(v10/cloudflare): Prevent AI provider skips ([#22771](https://github.com/getsentry/sentry-javascript/pull/22771))
+- fix(v10/core): Summarize SQLite upserts so Durable Object `cf_` spans stay filtered ([#22766](https://github.com/getsentry/sentry-javascript/pull/22766))
+- fix(v10/effect): Set `sentry.origin` on logs from `SentryEffectLogger` ([#22806](https://github.com/getsentry/sentry-javascript/pull/22806))
+- fix(v10/gatsby): Add React 19 to peer dependency range ([#22675](https://github.com/getsentry/sentry-javascript/pull/22675))
+- fix(v10/node): Unpin `@apm-js-collab/code-transformer-bundler-plugins` ([#22678](https://github.com/getsentry/sentry-javascript/pull/22678))
+- fix(v10/server-utils): Do not inject dc into client bundle ([#22765](https://github.com/getsentry/sentry-javascript/pull/22765))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/cloudflare): Pin mcp as agent depends on it ([#22769](https://github.com/getsentry/sentry-javascript/pull/22769))
+
+</details>
+
 ## 10.68.0
 
 - feat(cloudflare): Add @sentry/cloudflare/vite orchestrion plugin ([#21967](https://github.com/getsentry/sentry-javascript/pull/21967))
