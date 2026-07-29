@@ -240,10 +240,6 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'Test Transaction',
         },
-        'sentry.source': {
-          type: 'string',
-          value: 'task',
-        },
         [SENTRY_TRACE_LIFECYCLE]: {
           type: 'string',
           value: 'stream',

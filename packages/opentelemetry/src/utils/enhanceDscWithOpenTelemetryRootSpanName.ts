@@ -1,7 +1,6 @@
 import type { Client } from '@sentry/core';
 import { hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import { getSampledForPropagation } from './getSamplingDecision';
-import { parseSpanDescription } from './parseSpanDescription';
 
 /**
  * Setup a DSC handler on the passed client,
@@ -16,6 +15,7 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     const jsonSpan = spanToJSON(rootSpan);
     const attributes = jsonSpan.data;
     const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const description = jsonSpan.description;
 
     const sampled = getSampledForPropagation(rootSpan, client);
 
@@ -27,9 +27,8 @@ export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
     // drop it here for native (SentryTracerProvider) spans that do have a name.
     if (sampled === false) {
       delete dsc.transaction;
-    } else if (jsonSpan.description) {
-      const { description } = parseSpanDescription(rootSpan);
-      if (source !== 'url' && description) {
+    } else if (description) {
+      if (source !== 'url') {
         dsc.transaction = description;
       }
     }

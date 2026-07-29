@@ -53,7 +53,7 @@ Deno.test('tedious instrumentation: orchestrion:tedious:execSql channel produces
 
   const tediousSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(tediousSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(tediousSpan!.description, 'execSql mydb');
+  assertEquals(tediousSpan!.description, 'SELECT 1');
   assertEquals(tediousSpan!.data?.['db.system'], 'mssql');
   assertEquals(tediousSpan!.data?.['db.name'], 'mydb');
   assertEquals(tediousSpan!.data?.['db.user'], 'sa');

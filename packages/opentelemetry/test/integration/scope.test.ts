@@ -107,8 +107,8 @@ describe('Integration | Scope', () => {
               trace: {
                 data: {
                   'sentry.origin': 'manual',
-                  'sentry.source': 'custom',
                   'sentry.sample_rate': 1,
+                  'sentry.source': 'custom',
                 },
                 span_id: spanId,
                 status: 'ok',
@@ -125,7 +125,6 @@ describe('Integration | Scope', () => {
               tag4: 'val4',
             },
             timestamp: expect.any(Number),
-            transaction_info: { source: 'custom' },
             type: 'transaction',
           }),
           {

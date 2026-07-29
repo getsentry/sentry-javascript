@@ -150,7 +150,10 @@ export function instrumentHydratedRouter(): void {
             (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [URL_TEMPLATE]: parameterizedRoute,
+          });
         }
       });
       return true;

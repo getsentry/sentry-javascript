@@ -460,9 +460,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -485,8 +485,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -788,9 +788,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -813,8 +813,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1173,9 +1173,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1198,8 +1198,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

@@ -285,9 +285,6 @@ function buildServerSpanWrap(
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
-            // Set http.route to the URL path as a best-effort route name.
-            // Framework integrations (Express, etc.) update this via onSpanEnd.
-            'http.route': httpTargetWithoutQueryFragment,
             // Network attributes
             'net.host.ip': localAddress,
             'net.host.port': localPort,

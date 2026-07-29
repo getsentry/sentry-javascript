@@ -1,4 +1,4 @@
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import {
   getClient,
   hasSpanStreamingEnabled,
@@ -41,30 +41,10 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
       ? { ...attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: undefined }
       : attributes;
 
-  const inferred = inferSpanData(spanJSON.description || '<unknown>', attributesForInference);
-  const kind = attributes[SENTRY_KIND];
+  const inferred = inferSpanData(attributesForInference);
 
   if (inferred.op && attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === undefined) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, inferred.op);
-  }
-
-  // Don't apply 'url' source at creation time, only at span end (finalizeStatus).
-  // At creation, http.route may not be set yet, so inference falls back to 'url'.
-  // Keeping the default 'custom' source from _startRootSpan allows
-  // enhanceDscWithOpenTelemetryRootSpanName to include the transaction name in
-  // the DSC. At span end, http.route is typically available and inference returns
-  // 'route' instead. If it's still 'url', it's applied then.
-  // We also only set `source` on segment roots (spans that become transactions):
-  // those with no parent, plus SERVER spans, which are the segment root even when
-  // continuing a distributed trace (where they carry a remote `parent_span_id`).
-  const shouldApplyInferredSource =
-    inferred.source !== undefined &&
-    inferred.source !== 'custom' &&
-    (options.finalizeStatus || inferred.source !== 'url') &&
-    (spanJSON.parent_span_id === undefined || kind === 'server');
-
-  if (shouldApplyInferredSource && (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined || canInferSource)) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, inferred.source);
   }
 
   if (inferred.data) {
@@ -79,19 +59,6 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     applyOtelCompatibilityAttributes(span, attributes);
     const client = getClient();
     applyOtelSpanStatus(span, attributes, spanJSON.status, !!client && hasSpanStreamingEnabled(client));
-  }
-
-  // Only re-infer the name for spans branded for OTel source inference (those the provider created
-  // without an explicit Sentry source). A span created with an explicit source — e.g. a Sentry
-  // instrumentation calling `startSpan({ name, attributes: { 'sentry.source': 'url' } })` like the Bun
-  // server integration — already has a deliberate name and must be left alone. Renaming it would also
-  // stamp `source: 'custom'` (via `updateName`), which then leaks the URL into the DSC transaction name.
-  if (
-    mayInferSource &&
-    inferred.description !== spanJSON.description &&
-    (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom' || canInferSource)
-  ) {
-    span.updateName(inferred.description);
   }
 }
 

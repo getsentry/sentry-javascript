@@ -1,4 +1,4 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
@@ -8,9 +8,9 @@ import {
   getRootSpan,
   GLOBAL_OBJ,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   startNewTrace,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
@@ -184,6 +184,7 @@ export function maybeEnhanceServerComponentSpanName(
   activeSpan.setAttributes({
     'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
     'sentry.nextjs.ssr.function.route': route,
+    [SENTRY_OP]: 'function.nextjs',
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   });
-  activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.nextjs');
 }

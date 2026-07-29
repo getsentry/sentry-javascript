@@ -7,14 +7,7 @@
  * guard is replaced with `getActiveSpan()`.
  */
 
-import {
-  getActiveSpan,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-  startSpan,
-} from '@sentry/core';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type {
   LifecycleMethod,
   PatchableExtMethod,
@@ -29,34 +22,13 @@ import type {
 // eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
 import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
+import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 type SpanAttributes = Record<string, string | undefined>;
 
 interface SpanMetadata {
   attributes: SpanAttributes;
   name: string;
-}
-
-/**
- * Set the `http.route` attribute on the root HTTP server span for the current trace.
- *
- * No-op when there is no active span, no root span, or the root span is not an
- * `http.server` span — so framework instrumentations can call this unconditionally
- * without risking attribute pollution on non-HTTP root spans.
- */
-function setHttpServerSpanRouteAttribute(route: string): void {
-  const activeSpan = getActiveSpan();
-  if (!activeSpan) {
-    return;
-  }
-  const rootSpan = getRootSpan(activeSpan);
-  if (!rootSpan) {
-    return;
-  }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
-    return;
-  }
-  rootSpan.setAttribute(HTTP_ROUTE, route);
 }
 
 const isLifecycleExtType = (variableToCheck: unknown): variableToCheck is ServerRequestExtType => {
@@ -91,17 +63,14 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
     [HTTP_METHOD]: route.method,
   };
 
-  let name;
   if (pluginName) {
     attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.PLUGIN;
     attributes[AttributeNames.PLUGIN_NAME] = pluginName;
-    name = `${pluginName}: route - ${route.path}`;
   } else {
     attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.ROUTER;
-    name = `route - ${route.path}`;
   }
 
-  return { attributes, name };
+  return { attributes, name: `${route.method.toUpperCase()} ${route.path}` };
 };
 
 /** Build the span name and attributes for a Hapi server extension. */
