@@ -149,13 +149,14 @@ export function getInjectionData(
   // Instead, we use a virtual (generated) spanId for propagation
   if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
-    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
+    const sampled = getSamplingDecision(spanContext);
+    const dynamicSamplingContext = reconcileDscSampled(getDynamicSamplingContextFromSpan(span), sampled);
 
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: undefined,
-      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
+      sampled,
     };
   }
 
@@ -185,6 +186,34 @@ export function getInjectionData(
     spanId: propagationContext.propagationSpanId,
     sampled: propagationContext.sampled,
   };
+}
+
+/**
+ * Reconcile a span-derived DSC's `sampled` flag with the OTel sampling decision.
+ *
+ * Core derives `sampled` from the root span's trace flags, which cannot tell a *deferred* decision
+ * (Tracing without Performance, or an incoming remote span whose decision lives in the trace state)
+ * apart from a definitive *unsampled* one — both read as `traceFlags: NONE`. `getSamplingDecision`
+ * resolves this via the OTel trace state, so we let it win here: drop `sampled` when the decision is
+ * deferred (`undefined`), and — matching the OTel SDK, whose unsampled spans are nameless
+ * non-recording spans — drop the transaction name when the trace is definitively unsampled.
+ */
+function reconcileDscSampled(
+  dsc: Partial<DynamicSamplingContext>,
+  sampled: boolean | undefined,
+): Partial<DynamicSamplingContext> {
+  const reconciled = { ...dsc };
+
+  if (sampled === undefined) {
+    delete reconciled.sampled;
+  } else {
+    reconciled.sampled = String(sampled);
+    if (sampled === false) {
+      delete reconciled.transaction;
+    }
+  }
+
+  return reconciled;
 }
 
 function getContextWithRemoteActiveSpan(
