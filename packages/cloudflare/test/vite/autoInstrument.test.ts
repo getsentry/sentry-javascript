@@ -391,14 +391,16 @@ describe('wranglerConfigPath option', () => {
     expect(await tx(join(dir, 'src/agent.ts'))).toBeDefined();
   });
 
-  it('warns with the explicit path when it cannot be read', () => {
+  it('warns with only the basename when the explicit path cannot be read', () => {
     const dir = writeTempDir({});
     const warnings: string[] = [];
-    const plugin = sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: './wrangler.agent.jsonc' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: 'nested/dir/wrangler.agent.jsonc' });
     plugin.configResolved({ root: dir, logger: { warn: msg => warnings.push(msg) } });
 
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('./wrangler.agent.jsonc');
+    expect(warnings[0]).toContain('wrangler.agent.jsonc');
+    // The full path may leak a location the user doesn't want in build logs.
+    expect(warnings[0]).not.toContain('nested/dir');
   });
 
   it('hints at the option when no default-named config is found', () => {

@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
@@ -32,7 +33,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         // `configPath` handed to @cloudflare/vite-plugin) are discoverable.
         config.logger?.warn(
           options.wranglerConfigPath
-            ? `[sentry] Could not find or parse the wrangler config at "${options.wranglerConfigPath}" ` +
+            ? `[sentry] Could not find or parse the wrangler config "${basename(options.wranglerConfigPath)}" ` +
                 '(resolved against the Vite root) — auto-instrumentation disabled.'
             : '[sentry] No parseable wrangler config found — auto-instrumentation disabled. ' +
                 'Set `wranglerConfigPath` if your config uses a custom name.',
