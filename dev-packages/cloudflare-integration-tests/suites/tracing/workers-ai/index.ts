@@ -18,9 +18,6 @@ export default Sentry.withSentry(
     // Responses only. Asserting that prompts are *absent* is what makes this suite fail if the
     // binding is ever wrapped before the SDK is initialized again, since the fallback collects both.
     dataCollection: { genAI: { inputs: false, outputs: true } },
-    // Keep gen_ai spans embedded in the transaction (instead of streamed as a
-    // separate envelope container) so they can be asserted on `transaction.spans`.
-    streamGenAiSpans: false,
   }),
   {
     async fetch(request) {
