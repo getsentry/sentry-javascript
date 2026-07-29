@@ -321,6 +321,29 @@ describe('Client', () => {
       expect(eventId).toEqual(lastEventId());
     });
 
+    test('sets lastEventId when an error is sampled out', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+      const client = new TestClient(options);
+
+      const eventId = client.captureException(new Error('sampled-out exception'));
+
+      expect(eventId).toEqual(lastEventId());
+      expect(TestClient.instance!.event).toBeUndefined();
+    });
+
+    test('(known limitation) replaces lastEventId with a sampled-out error ID', () => {
+      // After a successfully sent error, a subsequent sampled-out error replaces lastEventId() even though that new ID has no corresponding event in Sentry.
+      // The `setLastEventId` call in `_prepareEvent` now executes before the `sampleRate` check
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+
+      client.captureException(new Error('sent exception'), { event_id: 'sent-event-id' });
+      client.getOptions().sampleRate = 0;
+      client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
+
+      expect(TestClient.instance!.event?.event_id).toBe('sent-event-id');
+      expect(lastEventId()).toBe('sampled-out-event-id');
+    });
+
     test('allows for providing explicit scope', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
