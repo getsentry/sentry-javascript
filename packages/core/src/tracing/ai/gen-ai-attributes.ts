@@ -31,22 +31,6 @@ export const GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE = 'gen_ai.request.dimensions';
 export const GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE = 'gen_ai.response.stop_reason';
 
 /**
- * The number of cache creation input tokens used
- *
- * Kept local: `@sentry/conventions` emits `gen_ai.usage.cache_creation.input_tokens` (dotted), which
- * differs from the key we emit here.
- */
-export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
-
-/**
- * The number of cache read input tokens used
- *
- * Kept local: `@sentry/conventions` emits `gen_ai.usage.cache_read.input_tokens` (dotted), which
- * differs from the key we emit here.
- */
-export const GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read_input_tokens';
-
-/**
  * The span operation name for invoking an agent
  */
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
