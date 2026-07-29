@@ -8,6 +8,7 @@ import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } fro
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
+import { httpServerIntegration } from '../src/integrations/httpServer';
 import { wrapRequestHandler } from '../src/request';
 
 const MOCK_OPTIONS: CloudflareOptions = {
@@ -206,10 +207,7 @@ describe('withSentry', () => {
       expect(sentryEvent.contexts?.culture).toEqual({ timezone: 'UTC' });
     });
 
-    // TODO(v11): Body capture should be gated on `dataCollection.httpBodies` (only capture when
-    // `'incomingRequest'` is listed). Until then we keep the historical behavior of capturing
-    // incoming request bodies by default at `'medium'`, consistent with the Node SDK.
-    test('captures request body with default integration (medium size)', async () => {
+    test('captures request body by default (all body types included by default)', async () => {
       let sentryEvent: Event = {};
       const context = createMockExecutionContext();
 
@@ -217,7 +215,6 @@ describe('withSentry', () => {
         {
           options: {
             ...MOCK_OPTIONS,
-            // Default integrations include httpServerIntegration with 'medium' default
             beforeSend(event) {
               sentryEvent = event;
               return null;
@@ -239,6 +236,69 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(
         JSON.stringify({ username: 'test', data: 'value' }),
       );
+    });
+
+    test('does not capture request body when dataCollection.httpBodies excludes incomingRequest', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            dataCollection: { httpBodies: [] },
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ username: 'test', data: 'value' }),
+          }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('request body');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('explicit maxRequestBodySize overrides dataCollection.httpBodies', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            integrations: [
+              // httpBodies not set → would default to 'none', but explicit override wins
+              httpServerIntegration({ maxRequestBodySize: 'medium' }),
+            ],
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: 'value' }),
+          }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('request body');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ key: 'value' }));
     });
 
     // TODO(v11): Cookies should be attached (subject to denylist filtering) by default. Until then we keep the

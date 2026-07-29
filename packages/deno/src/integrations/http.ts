@@ -99,7 +99,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
         spans: options.spans,
         ignoreStaticAssets: options.ignoreStaticAssets,
         ignoreIncomingRequests: options.ignoreIncomingRequests,
-        maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
+        maxRequestBodySize: options.maxRequestBodySize,
         ignoreRequestBody: options.ignoreRequestBody,
         onSpanCreated: options.onIncomingSpanCreated,
         onSpanEnd: options.onIncomingSpanEnd,
