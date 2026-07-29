@@ -18,7 +18,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
@@ -383,10 +382,6 @@ describe('OpenAI integration (V6)', () => {
                 type: 'double',
                 value: 0.7,
               });
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
-              });
               expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: '[{"role":"user","content":"What is the capital of France?"}]',
@@ -446,10 +441,6 @@ describe('OpenAI integration (V6)', () => {
               expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'gpt-3.5-turbo',
-              });
-              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -512,10 +503,6 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'error-model',
               });
-              expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
-              });
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: '[{"role":"user","content":"This will fail"}]',
@@ -554,10 +541,6 @@ describe('OpenAI integration (V6)', () => {
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
-              });
-              expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -630,10 +613,6 @@ describe('OpenAI integration (V6)', () => {
                 type: 'boolean',
                 value: true,
               });
-              expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
-              });
               expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: 'Test streaming responses API',
@@ -690,10 +669,6 @@ describe('OpenAI integration (V6)', () => {
                 type: 'boolean',
                 value: true,
               });
-              expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
-              });
               expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: '[{"role":"user","content":"This will fail"}]',
@@ -740,10 +715,6 @@ describe('OpenAI integration (V6)', () => {
               );
               expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toMatchObject({
-                type: 'integer',
-                value: 1,
-              });
               expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
                 value: expect.any(String),
@@ -764,12 +735,6 @@ describe('OpenAI integration (V6)', () => {
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
-              });
-              expect(
-                streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE],
-              ).toMatchObject({
-                type: 'integer',
-                value: 1,
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',

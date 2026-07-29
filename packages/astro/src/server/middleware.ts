@@ -28,6 +28,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
@@ -142,11 +143,7 @@ async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, root
     });
 
     if (parametrizedRoute) {
-      rootSpan.setAttributes({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        'http.route': parametrizedRoute,
-      });
-
+      setHttpServerSpanRouteAttribute(parametrizedRoute);
       isolationScope.setTransactionName(`${method} ${parametrizedRoute}`);
     }
 
@@ -228,12 +225,14 @@ async function instrumentRequestStartHttpServerSpan(
           attributes[URL_QUERY] = getUrlQuery(ctx.url.search);
           attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
-          isolationScope.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
+          const name = `${method} ${parametrizedRoute || ctx.url.pathname}`;
+
+          isolationScope.setTransactionName(name);
 
           const res = await startSpan(
             {
               attributes,
-              name: `${method} ${parametrizedRoute || ctx.url.pathname}`,
+              name,
               op: 'http.server',
             },
             async span => {

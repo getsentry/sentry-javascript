@@ -18,10 +18,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -629,7 +626,6 @@ describe('Anthropic integration', () => {
               expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(truncatedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const smallMessageSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === smallMsgValue,
@@ -642,7 +638,6 @@ describe('Anthropic integration', () => {
               expect(smallMessageSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
               expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -693,7 +688,6 @@ describe('Anthropic integration', () => {
               expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
             },
           })
           .start()
@@ -760,13 +754,11 @@ describe('Anthropic integration', () => {
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedAllMessages,
               );
               expect(conversationSpan).toBeDefined();
-              expect(conversationSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const longStringSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedLongString,
               );
               expect(longStringSpan).toBeDefined();
-              expect(longStringSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(1);
             },
           })
           .start()

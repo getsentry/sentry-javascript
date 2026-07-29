@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
 import { sendChatMessage } from './agent-socket';
 
 // In the Agents model one agent instance is one conversation, so the instance name is the
@@ -7,12 +7,11 @@ import { sendChatMessage } from './agent-socket';
 const CONVERSATION_ID = 'chat-conv-instance';
 
 test('stamps the conversation id on gen_ai spans created inside a chat turn', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('cloudflare-agent', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'webSocketMessage' &&
-      (transactionEvent.spans ?? []).some(span => span.op === 'gen_ai.chat')
-    );
-  });
+  const spanPromise = waitForStreamedSpan('cloudflare-agent', span => getSpanOp(span) === 'gen_ai.chat');
+  const transactionPromise = waitForTransaction(
+    'cloudflare-agent',
+    transactionEvent => transactionEvent.transaction === 'webSocketMessage',
+  );
 
   await sendChatMessage(baseURL!, {
     binding: 'my-chat-agent',
@@ -20,13 +19,7 @@ test('stamps the conversation id on gen_ai spans created inside a chat turn', as
     prompt: 'What is the capital of France?',
   });
 
-  const transaction = await transactionPromise;
-
-  const genAiSpan = (transaction.spans ?? []).find(span => span.op === 'gen_ai.chat');
-  expect(genAiSpan).toBeDefined();
-  expect(genAiSpan?.data).toEqual(
-    expect.objectContaining({
-      'gen_ai.conversation.id': CONVERSATION_ID,
-    }),
-  );
+  const [genAiSpan, transaction] = await Promise.all([spanPromise, transactionPromise]);
+  expect(genAiSpan.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+  expect(genAiSpan.attributes['gen_ai.conversation.id']?.value).toBe(CONVERSATION_ID);
 });

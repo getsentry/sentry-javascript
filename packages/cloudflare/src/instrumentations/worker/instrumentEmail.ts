@@ -1,5 +1,7 @@
 import type { EmailMessage, ExportedHandler } from '@cloudflare/workers-types';
 import type { env as cloudflareEnv } from 'cloudflare:workers';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -35,9 +37,9 @@ function wrapEmailHandler(
 
     return startSpan(
       {
-        op: 'faas.email',
         name: `Handle Email ${emailMessage.to}`,
         attributes: {
+          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
           'faas.trigger': 'email',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',

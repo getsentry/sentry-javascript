@@ -20,7 +20,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 
@@ -366,7 +365,6 @@ describe('Google GenAI integration', () => {
               expect(truncatedSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(truncatedSpan!.status).toBe('ok');
               expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-              expect(truncatedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const smallMessageSpan = container.items.find(
                 span =>
@@ -382,7 +380,6 @@ describe('Google GenAI integration', () => {
               expect(smallMessageSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(smallMessageSpan!.status).toBe('ok');
               expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -530,7 +527,6 @@ describe('Google GenAI integration', () => {
                   { role: 'user', parts: [{ text: 'Follow-up question' }] },
                 ]),
               );
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()

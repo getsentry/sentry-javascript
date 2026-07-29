@@ -100,7 +100,6 @@ describe('getHttpServerSubscriptions', () => {
         origin: 'auto.http.server',
         data: expect.objectContaining({
           'http.method': 'GET',
-          'http.route': '/users/42',
           'http.response.status_code': 200,
           'http.status_code': 200,
           'http.target': '/users/42?foo=bar',

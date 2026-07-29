@@ -117,6 +117,7 @@ describe('updateNavigationSpanUrlFromLocation', () => {
 
     expect(span.updateName).toHaveBeenCalledWith('/foo');
     expect(span.setAttributes).toHaveBeenCalledWith({
+      'sentry.source': 'url',
       'url.path': '/foo',
       'url.full': 'https://example.com/foo?bar=1#section',
     });
@@ -172,6 +173,7 @@ describe('finalizeNavigationSpanFromRouterState', () => {
     expect(span.updateName).toHaveBeenCalledWith('/performance/');
     expect(span.updateName).toHaveBeenCalledTimes(1);
     expect(span.setAttributes).toHaveBeenCalledWith({
+      'sentry.source': 'url',
       'url.path': '/performance/',
       'url.full': 'https://example.com/performance/',
     });

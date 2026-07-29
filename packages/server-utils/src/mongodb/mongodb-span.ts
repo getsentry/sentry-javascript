@@ -1,19 +1,23 @@
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+// The `@sentry/conventions` db/net attribute keys are deprecated (superseded by newer semconv), but we
+// emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-mongodb` produced.
+/* oxlint-disable typescript/no-deprecated */
+
+import {
+  DB_NAME,
+  DB_OPERATION,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
-// OTel "OLD" db/net semantic-conventions, reproduced from the vendored
-// `@opentelemetry/instrumentation-mongodb` span shape so the orchestrion
-// spans match the OTel ones byte-for-byte. Inlined as literals to avoid
-// importing the deprecated convention constants.
-const ATTR_DB_SYSTEM = 'db.system';
-const ATTR_DB_NAME = 'db.name';
-const ATTR_DB_OPERATION = 'db.operation';
-const ATTR_DB_STATEMENT = 'db.statement';
+// OTel db/net keys/values not exported by `@sentry/conventions`, inlined to match
+// what `@opentelemetry/instrumentation-mongodb` emitted.
 const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 const DB_SYSTEM_VALUE_MONGODB = 'mongodb';
 
 /**
@@ -120,24 +124,24 @@ export function getSpanAttributes(
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
-    [ATTR_DB_NAME]: dbName,
+    [DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
+    [DB_NAME]: dbName,
     [ATTR_DB_MONGODB_COLLECTION]: dbCollection,
-    [ATTR_DB_OPERATION]: operation,
+    [DB_OPERATION]: operation,
     [ATTR_DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
   };
 
   if (host && port) {
-    attributes[ATTR_NET_PEER_NAME] = host;
+    attributes[NET_PEER_NAME] = host;
     const portNumber = parseInt(port, 10);
     if (!isNaN(portNumber)) {
-      attributes[ATTR_NET_PEER_PORT] = portNumber;
+      attributes[NET_PEER_PORT] = portNumber;
     }
   }
 
   if (commandObj) {
     try {
-      attributes[ATTR_DB_STATEMENT] = serializeDbStatement(commandObj);
+      attributes[DB_STATEMENT] = serializeDbStatement(commandObj);
     } catch {
       // ignore serialization errors — the statement is best-effort metadata
     }
@@ -222,7 +226,7 @@ export function getV3SpanAttributes(
  */
 export function startMongoSpan(attributes: SpanAttributes): Span {
   return startInactiveSpan({
-    name: `mongodb.${attributes[ATTR_DB_OPERATION] || 'command'}`,
+    name: (attributes[DB_STATEMENT] as string) || `mongodb.${attributes[DB_OPERATION] || 'command'}`,
     op: 'db',
     attributes: {
       [SENTRY_KIND]: 'client',

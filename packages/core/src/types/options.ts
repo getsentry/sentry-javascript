@@ -449,14 +449,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @deprecated Use the top level`beforeSendMetric` option instead.
      */
     beforeSendMetric?: (metric: Metric) => Metric | null;
-
-    /**
-     * Determines if logs support should be enabled.
-     *
-     * @default false
-     * @deprecated Use the top level `enableLogs` option instead.
-     */
-    enableLogs?: boolean;
   };
 
   /**
@@ -554,20 +546,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * you can provide the ID with this option. The organization ID is used for trace propagation and for features like `strictTraceContinuation`.
    */
   orgId?: `${number}` | number;
-
-  /**
-   * Unless set to `false`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
-   *
-   * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
-   *
-   * Because the v2 span format is not subject to the transaction payload-size limits that gen_ai message
-   * truncation exists to work around, this also disables gen_ai input truncation by default. Set
-   * `enableTruncation: true` on the respective AI integration to opt back into truncation, or set this
-   * option to `false` to send gen_ai spans as part of the transaction (which re-enables truncation by default).
-   *
-   * @default true
-   */
-  streamGenAiSpans?: boolean;
 
   /**
    * If logs support should be enabled.

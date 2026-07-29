@@ -9,5 +9,4 @@ Sentry.init({
   dataCollection: { genAI: { inputs: true, outputs: true } },
   transport: loggingTransport,
   integrations: [Sentry.vercelAIIntegration({ enableTruncation: true })],
-  streamGenAiSpans: true,
 });

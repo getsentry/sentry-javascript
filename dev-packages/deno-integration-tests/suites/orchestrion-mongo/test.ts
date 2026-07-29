@@ -54,8 +54,9 @@ Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces
 
   const mongoSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mongoSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mongoSpan!.description, 'mongodb.find');
+  assertEquals(mongoSpan!.description, '{"find":"?","filter":{"name":"?"}}');
   assertEquals(mongoSpan!.data?.['db.system'], 'mongodb');
+  assertEquals(mongoSpan!.data?.['db.statement'], '{"find":"?","filter":{"name":"?"}}');
   assertEquals(mongoSpan!.data?.['db.name'], 'mydb');
   assertEquals(mongoSpan!.data?.['db.mongodb.collection'], 'users');
   assertEquals(mongoSpan!.data?.['db.operation'], 'find');

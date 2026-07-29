@@ -144,13 +144,14 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 }
 
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
+  const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
   return startInactiveSpan({
-    name: `redis-${commandName}`,
+    name: dbStatement || `redis-${commandName}`,
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
       [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
-      [DB_STATEMENT]: defaultDbStatementSerializer(commandName, commandArgs),
+      [DB_STATEMENT]: dbStatement,
     },
   });
 }

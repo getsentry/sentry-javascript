@@ -65,13 +65,14 @@ export function teardownTestAsyncContextStrategy(): void {
   vi.restoreAllMocks();
 }
 
-export function makeSpan(): Span {
+export function makeSpan(data: Record<string, unknown> = {}): Span {
   return {
     end: vi.fn(),
     setStatus: vi.fn(),
     setAttributes: vi.fn(),
     setAttribute: vi.fn(),
     updateName: vi.fn(),
+    getSpanJSON: () => ({ data }),
   } as unknown as Span;
 }
 

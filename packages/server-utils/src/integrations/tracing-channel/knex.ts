@@ -166,6 +166,7 @@ function subscribeQuery(): void {
       const name =
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
 
+      const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
@@ -178,11 +179,11 @@ function subscribeQuery(): void {
         [NET_PEER_NAME]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [NET_PEER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NET_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_STATEMENT]: query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
+        [DB_STATEMENT]: dbStatement,
       };
 
       return startInactiveSpan({
-        name: getName(name, operation, table) ?? 'knex.query',
+        name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
         op: 'db',
         parentSpan,
         attributes,

@@ -104,6 +104,7 @@ export function updateNavigationSpanUrlFromLocation(span: Span): void {
 
   span.updateName(pathname);
   span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     [URL_PATH]: pathname,
     [URL_FULL]: destinationUrl,
   });
@@ -145,7 +146,10 @@ export function finalizeNavigationSpanFromRouterState(span: Span, routerState: R
   ) {
     const parameterizedRoute = getParameterizedRoute(routerState);
     span.updateName(parameterizedRoute);
-    span.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_TEMPLATE]: parameterizedRoute,
+    });
   }
 }
 

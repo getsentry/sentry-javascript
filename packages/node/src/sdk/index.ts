@@ -15,11 +15,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  enhanceDscWithOpenTelemetryRootSpanName,
-  setOpenTelemetryContextAsyncContextStrategy,
-  setupEventContextTrace,
-} from '@sentry/opentelemetry';
+import { setOpenTelemetryContextAsyncContextStrategy, setupEventContextTrace } from '@sentry/opentelemetry';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
@@ -206,7 +202,6 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 
   // Ensure we flush events when vercel functions are ended

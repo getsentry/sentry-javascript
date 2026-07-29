@@ -7,6 +7,7 @@ import {
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
@@ -515,6 +516,7 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
     op: 'message',
     attributes: {
       [SENTRY_KIND]: 'consumer',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,

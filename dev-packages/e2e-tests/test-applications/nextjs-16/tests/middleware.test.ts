@@ -115,37 +115,34 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
 
   if (hasHttpClientSpan) {
     // Check if fetch is traced as a child span of the middleware transaction
-    expect(middlewareTransaction.spans).toEqual(
-      expect.arrayContaining([
-        {
-          data: {
-            'http.request.method': 'GET',
-            'http.request.method_original': 'GET',
-            'http.response.status_code': 200,
-            'network.peer.address': '::1',
-            'network.peer.port': 3030,
-            'sentry.kind': 'client',
-            'sentry.op': 'http.client',
-            'sentry.origin': 'auto.http.otel.node_fetch',
-            'server.address': 'localhost',
-            'server.port': 3030,
-            'url.full': 'http://localhost:3030/',
-            'url.path': '/',
-            'url.scheme': 'http',
-            'user_agent.original': 'node',
-          },
-          description: 'GET http://localhost:3030/',
-          op: 'http.client',
-          origin: 'auto.http.otel.node_fetch',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        },
-      ]),
-    );
+    expect(middlewareTransaction.spans).toContainEqual({
+      data: {
+        'http.request.method': 'GET',
+        'http.request.method_original': 'GET',
+        'http.response.status_code': 200,
+        'network.peer.address': '::1',
+        'network.peer.port': 3030,
+        'sentry.kind': 'client',
+        'sentry.op': 'http.client',
+        'sentry.source': 'url',
+        'sentry.origin': 'auto.http.otel.node_fetch',
+        'server.address': 'localhost',
+        'server.port': 3030,
+        'url.full': 'http://localhost:3030/',
+        'url.path': '/',
+        'url.scheme': 'http',
+        'user_agent.original': 'node',
+      },
+      description: 'GET http://localhost:3030/',
+      op: 'http.client',
+      origin: 'auto.http.otel.node_fetch',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
   } else {
     // Alternatively, fetch is traced as a separate transaction, similar to Dev builds
     const fetchTransaction = await fetchTransactionPromise;

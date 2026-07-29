@@ -460,9 +460,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -485,8 +485,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -788,9 +788,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -813,8 +813,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1173,9 +1173,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1198,8 +1198,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -2186,6 +2186,19 @@ describe('startNewTrace', () => {
       // tracesSampleRate is 1 in mockSdkInit, so spans should be sampled
       // This verifies that TraceFlags.NONE on the remote span context does not
       // cause the sampler to inherit a "not sampled" decision from the parent
+      expect(spanIsSampled(span)).toBe(true);
+      span.end();
+    });
+  });
+
+  it('samples a forced transaction based on tracesSampleRate', () => {
+    // `startNewTrace` injects a remote parent with `traceFlags: NONE` and no trace state, i.e. a
+    // *deferred* decision. A forced transaction under it runs through `getContext`'s simulated-root
+    // branch, which derives a DSC from that parent. Core naively reads `sampled=false` off the binary
+    // trace flags; without reconciliation that gets baked into the trace state and the transaction
+    // wrongly inherits a negative decision despite `tracesSampleRate: 1`.
+    startNewTrace(() => {
+      const span = startInactiveSpan({ name: 'forced-transaction', forceTransaction: true });
       expect(spanIsSampled(span)).toBe(true);
       span.end();
     });

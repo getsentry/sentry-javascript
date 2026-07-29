@@ -6,7 +6,7 @@ describe('getRouteMetadata', () => {
 
   it('describes a directly-registered route as a router layer', () => {
     expect(getRouteMetadata(route)).toEqual({
-      name: 'route - /users/{id}',
+      name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
         'http.method': 'get',
@@ -17,7 +17,7 @@ describe('getRouteMetadata', () => {
 
   it('describes a plugin-registered route as a plugin layer', () => {
     expect(getRouteMetadata(route, 'my-plugin')).toEqual({
-      name: 'my-plugin: route - /users/{id}',
+      name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
         'http.method': 'get',

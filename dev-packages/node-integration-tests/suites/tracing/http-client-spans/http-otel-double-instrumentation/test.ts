@@ -96,7 +96,7 @@ describe('http OTel double instrumentation', () => {
             // http.client span.
             expect(httpClientSpans).toHaveLength(1);
             expect(httpClientSpans[0]).toMatchObject({
-              description: expect.stringMatching(/GET .*\/api\/v0/),
+              description: 'GET',
               status: 'ok',
             });
           },

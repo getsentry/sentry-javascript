@@ -68,10 +68,6 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'Test Span',
   },
-  'sentry.source': {
-    type: 'string',
-    value: 'task',
-  },
   [SENTRY_TRACE_LIFECYCLE]: {
     type: 'string',
     value: 'stream',
