@@ -20,11 +20,14 @@ export function targetsCloudflareInternalKey(key: string | undefined, allowlist?
 
   // Framework-managed KV namespaces:
   // - `cf_`   — agents / ai-chat internal state (mirrors the internal SQL table convention)
+  // - `cf:`   — agents chat-recovery entries (`cf:chat-recovery:*`, `cf:chat:*`); the same reserved
+  //   `cf` namespace, but colon-separated instead of underscore-separated
   // - `__ps_` — partyserver internals (e.g. `__ps_name`)
   // - `/`     — MCP OAuth client state (`/<clientName>/<serverId>/{token,client_info,state,...}`),
   //   read on every MCP tool call. User keys on an Agent rarely use a leading slash; if one does,
   //   the allowlist opts it back in.
-  const isFrameworkKey = key.startsWith('cf_') || key.startsWith('__ps_') || key.startsWith('/');
+  const isFrameworkKey =
+    key.startsWith('cf_') || key.startsWith('cf:') || key.startsWith('__ps_') || key.startsWith('/');
   if (!isFrameworkKey) {
     return false;
   }
