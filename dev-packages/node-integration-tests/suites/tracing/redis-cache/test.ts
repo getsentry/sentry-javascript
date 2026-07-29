@@ -7,7 +7,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     cleanupChildProcesses();
   });
 
-  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {

@@ -46,7 +46,7 @@ function instrumentGenericPool(): void {
       startInactiveSpan({
         name: 'generic-pool.acquire',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.generic_pool',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.generic_pool',
         },
       }),
   );

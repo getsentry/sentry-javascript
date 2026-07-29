@@ -17,7 +17,7 @@ test('Instruments mysql2 automatically via orchestrion', async ({ baseURL }) => 
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql2',
+      origin: 'auto.db.mysql2',
       description: 'SELECT 1 + 1 AS solution',
       status: 'ok',
       data: expect.objectContaining({
@@ -33,7 +33,7 @@ test('Instruments mysql2 automatically via orchestrion', async ({ baseURL }) => 
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql2',
+      origin: 'auto.db.mysql2',
       description: 'SELECT 42 AS answer',
       status: 'ok',
       data: expect.objectContaining({

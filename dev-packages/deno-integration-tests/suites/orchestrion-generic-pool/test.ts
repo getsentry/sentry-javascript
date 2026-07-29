@@ -51,5 +51,5 @@ Deno.test('generic-pool instrumentation: orchestrion:generic-pool:acquire channe
     poolSpan,
     `expected a generic-pool.acquire span, got descriptions: ${parent.spans?.map(s => s.description).join(', ')}`,
   );
-  assertEquals(poolSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.generic_pool');
+  assertEquals(poolSpan!.data?.['sentry.origin'], 'auto.db.generic_pool');
 });

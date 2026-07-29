@@ -19,7 +19,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.postgres',
+      origin: 'auto.db.postgres',
       description: 'SELECT 40 + 2 AS answer',
       status: 'ok',
       data: expect.objectContaining({
@@ -31,7 +31,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'set page-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
@@ -43,7 +43,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'get page-key',
       status: 'ok',
     }),

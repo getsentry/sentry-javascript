@@ -12,10 +12,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 const INTEGRATION_NAME = 'Mongoose' as const;
 
-// Origin distinguishes the orchestrion path from the OTel/IITM path
-// (`auto.db.otel.mongoose`) and the native diagnostics_channel path
-// (`auto.db.mongoose.diagnostic_channel`).
-const ORIGIN = 'auto.db.orchestrion.mongoose';
+const ORIGIN = 'auto.db.mongoose';
 
 interface MongooseQuery {
   mongooseCollection?: MongooseLegacyCollection;

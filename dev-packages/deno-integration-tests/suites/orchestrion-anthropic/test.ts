@@ -56,5 +56,5 @@ Deno.test('anthropic instrumentation: orchestrion @anthropic-ai/sdk:chat channel
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'claude-3-5-sonnet-latest');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'claude-3-5-sonnet-20241022');
   assertEquals(aiSpan!.data?.['gen_ai.usage.total_tokens'], 15);
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.orchestrion.anthropic');
+  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.anthropic');
 });

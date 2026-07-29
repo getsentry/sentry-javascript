@@ -17,7 +17,7 @@ test('Instruments mongoose automatically via orchestrion', async ({ baseURL }) =
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mongoose',
+      origin: 'auto.db.mongoose',
       description: 'mongoose.BlogPost.save',
       status: 'ok',
       data: expect.objectContaining({
@@ -31,7 +31,7 @@ test('Instruments mongoose automatically via orchestrion', async ({ baseURL }) =
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mongoose',
+      origin: 'auto.db.mongoose',
       description: 'mongoose.BlogPost.findOne',
       status: 'ok',
       data: expect.objectContaining({

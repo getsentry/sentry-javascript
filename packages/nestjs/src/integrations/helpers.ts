@@ -68,27 +68,13 @@ export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' 
   return false;
 }
 
+/** Origin for the app-creation / request-context / request-handler HTTP spans. */
+export const HTTP_ORIGIN = 'auto.http.nestjs';
+
 /** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
 function middlewareOrigin(componentType?: string): string {
-  const base = 'auto.middleware.orchestrion.nestjs';
+  const base = 'auto.middleware.nestjs';
   return componentType ? `${base}.${componentType}` : base;
-}
-
-/**
- * Origin for the app-creation / request-context / request-handler HTTP spans.
- */
-export function httpOrigin(): string {
-  return 'auto.http.orchestrion.nestjs';
-}
-
-/** Origin for `@OnEvent` spans. */
-function eventOrigin(): string {
-  return 'auto.event.orchestrion.nestjs';
-}
-
-/** Origin for BullMQ `@Processor` `process` spans. */
-function bullmqOrigin(): string {
-  return 'auto.queue.orchestrion.nestjs.bullmq';
 }
 
 /**
@@ -121,7 +107,7 @@ export function getEventSpanOptions(event: string): {
     name: `event ${event}`,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: eventOrigin(),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
     },
     forceTransaction: true,
   };
@@ -139,7 +125,7 @@ export function getBullMQProcessSpanOptions(queueName: string): {
     name: `${queueName} process`,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: bullmqOrigin(),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
       'messaging.system': 'bullmq',
       'messaging.destination.name': queueName,
     },

@@ -63,5 +63,5 @@ Deno.test('mongoose instrumentation: orchestrion:mongoose:model_save channel pro
   assertEquals(mongooseSpan!.data?.['db.user'], 'root');
   assertEquals(mongooseSpan!.data?.['net.peer.name'], '127.0.0.1');
   assertEquals(mongooseSpan!.data?.['net.peer.port'], 27017);
-  assertEquals(mongooseSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.mongoose');
+  assertEquals(mongooseSpan!.data?.['sentry.origin'], 'auto.db.mongoose');
 });

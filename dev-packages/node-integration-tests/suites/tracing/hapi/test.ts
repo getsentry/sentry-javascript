@@ -11,7 +11,7 @@ describe('hapi auto-instrumentation', () => {
   // orchestrion path keeps span ops/attributes identical to the OTel path; only
   // the origin differs to signal the injection mechanism, so we branch on
   // `isOrchestrionEnabled()`.
-  const origin = isOrchestrionEnabled() ? 'auto.http.orchestrion.hapi' : 'auto.http.otel.hapi';
+  const origin = isOrchestrionEnabled() ? 'auto.http.hapi' : 'auto.http.otel.hapi';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'GET /',
