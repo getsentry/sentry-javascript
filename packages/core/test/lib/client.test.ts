@@ -2954,22 +2954,6 @@ describe('Client', () => {
       const client = new TestClient(options);
       expect(client.getOptions().enableLogs).toBe(false);
     });
-
-    it('can be disabled via the experimental option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: false } });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(false);
-    });
-
-    test('top-level option takes precedence over experimental option', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: false,
-        _experiments: { enableLogs: true },
-      });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(false);
-    });
   });
 
   describe('log weight-based flushing', () => {

@@ -326,6 +326,22 @@ Sentry.init({
 });
 ```
 
+- The `_experiments.enableLogs` option was removed, use the top-level `enableLogs` option instead.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+  },
+});
+
+// after
+Sentry.init({
+  enableLogs: true,
+});
+```
+
 - The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
 
 ```js

@@ -264,10 +264,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    // Backfill enableLogs option from _experiments.enableLogs
-    // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line typescript/no-deprecated
-    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs ?? true;
+    this._options.enableLogs = this._options.enableLogs ?? true;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
