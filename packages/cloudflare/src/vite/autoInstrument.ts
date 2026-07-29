@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type ProgramBody } from './transform';
@@ -14,7 +15,7 @@ function normalizePath(path: string): string {
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
 const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
-export function sentryCloudflareAutoInstrumentPlugin() {
+export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPath?: string } = {}) {
   let wranglerConfig: WranglerConfig | undefined;
   let entryFilePath: string | undefined;
 
@@ -25,9 +26,18 @@ export function sentryCloudflareAutoInstrumentPlugin() {
     name: 'sentry-cloudflare-auto-instrument',
 
     configResolved(config: { root: string; logger?: { warn(msg: string): void } }): void {
-      const result = resolveWranglerConfig(config.root);
+      const result = resolveWranglerConfig(config.root, options.wranglerConfigPath);
       if (!result) {
-        config.logger?.warn('[sentry] No parseable wrangler config found — auto-instrumentation disabled.');
+        // An explicit path that fails is a misconfiguration worth naming;
+        // without one, hint at the option so custom-named configs (e.g. a
+        // `configPath` handed to @cloudflare/vite-plugin) are discoverable.
+        config.logger?.warn(
+          options.wranglerConfigPath
+            ? `[sentry] Could not find or parse the wrangler config "${basename(options.wranglerConfigPath)}" ` +
+                '(resolved against the Vite root) — auto-instrumentation disabled.'
+            : '[sentry] No parseable wrangler config found — auto-instrumentation disabled. ' +
+                'Set `wranglerConfigPath` if your config uses a custom name.',
+        );
         return;
       }
 
