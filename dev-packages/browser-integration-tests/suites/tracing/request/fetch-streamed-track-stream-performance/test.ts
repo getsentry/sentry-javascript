@@ -39,15 +39,15 @@ sentryTest(
 
       // Wait for each span type separately since they may arrive in different envelopes.
       // Both spans share the `http.client` op, so the streaming attribute is what tells them apart.
-      const isStreamSpan = (span: SerializedStreamedSpan): boolean =>
+      const isHttpStreamSpan = (span: SerializedStreamedSpan): boolean =>
         span.attributes['http.response.body.streaming']?.value === true;
       const httpSpanPromise = waitForStreamedSpan(
         page,
-        span => getSpanOp(span) === 'http.client' && !isStreamSpan(span),
+        span => getSpanOp(span) === 'http.client' && !isHttpStreamSpan(span),
       );
       const streamSpanPromise = waitForStreamedSpan(
         page,
-        span => getSpanOp(span) === 'http.client' && isStreamSpan(span),
+        span => getSpanOp(span) === 'http.client' && isHttpStreamSpan(span),
       );
 
       await page.goto(url);
