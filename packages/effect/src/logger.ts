@@ -1,6 +1,10 @@
-import { isObjectLike, logger as sentryLogger } from '@sentry/core';
+import { isObjectLike, logger as sentryLogger, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as Logger from 'effect/Logger';
 import type * as LogLevel from 'effect/LogLevel';
+
+const LOG_ATTRIBUTES = {
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.effect',
+};
 
 function getLogLevelTag(logLevel: LogLevel.LogLevel): LogLevel.LogLevel | 'Warning' {
   // Effect v4: logLevel is a string literal directly
@@ -34,23 +38,23 @@ export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
 
   switch (tag) {
     case 'Fatal':
-      sentryLogger.fatal(msg);
+      sentryLogger.fatal(msg, LOG_ATTRIBUTES);
       break;
     case 'Error':
-      sentryLogger.error(msg);
+      sentryLogger.error(msg, LOG_ATTRIBUTES);
       break;
     case 'Warning': // Effect v3
     case 'Warn': // Effect v4
-      sentryLogger.warn(msg);
+      sentryLogger.warn(msg, LOG_ATTRIBUTES);
       break;
     case 'Info':
-      sentryLogger.info(msg);
+      sentryLogger.info(msg, LOG_ATTRIBUTES);
       break;
     case 'Debug':
-      sentryLogger.debug(msg);
+      sentryLogger.debug(msg, LOG_ATTRIBUTES);
       break;
     case 'Trace':
-      sentryLogger.trace(msg);
+      sentryLogger.trace(msg, LOG_ATTRIBUTES);
       break;
     case 'All':
     case 'None':
