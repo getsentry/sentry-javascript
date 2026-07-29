@@ -58,9 +58,7 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
   // - false or explicit string from options: use as-is
   // - true: enable, but prefer a custom URL from the env var if set
   // - undefined: defer entirely to the env var (bool or URL)
-  /*! rollup-include-development-only */
   const spotlight = getSpotlightFromEnv(userOptions.spotlight, getEnvVar(env, 'SENTRY_SPOTLIGHT'));
-  /*! rollup-include-development-only-end */
 
   return {
     release,
@@ -70,9 +68,7 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
     debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
-    /*! rollup-include-development-only */
     spotlight,
-    /*! rollup-include-development-only-end */
   };
 }
 

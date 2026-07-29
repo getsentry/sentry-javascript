@@ -455,7 +455,7 @@ module.exports = [
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
   {
     name: '@sentry/cloudflare (withSentry) - minified',
-    path: 'packages/cloudflare/build/esm/prod/index.js',
+    path: 'packages/cloudflare/build/esm/index.js',
     import: createImport('withSentry', 'instrumentDurableObjectWithSentry', 'instrumentWorkflowWithSentry'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
@@ -475,12 +475,12 @@ module.exports = [
   // Cloudflare SDK (ESM) - uncompressed, unminified to match `wrangler deploy --dry-run` output
   {
     name: '@sentry/cloudflare (withSentry)',
-    path: 'packages/cloudflare/build/esm/prod/index.js',
+    path: 'packages/cloudflare/build/esm/index.js',
     import: createImport('withSentry', 'instrumentDurableObjectWithSentry', 'instrumentWorkflowWithSentry'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    limit: '480 KiB',
+    limit: '490 KiB',
     disablePlugins: ['@size-limit/webpack'],
     webpack: false,
     modifyEsbuildConfig: function (config) {
