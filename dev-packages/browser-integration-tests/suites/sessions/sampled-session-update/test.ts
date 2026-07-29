@@ -23,7 +23,7 @@ sentryTest(
     // But the session update is still sent, reflecting the crash
     expect(updatedSession.sid).toBe(pageloadSession.sid);
     expect(updatedSession.errors).toBe(1);
-    expect(updatedSession.status).toBe('unhandled');
+    expect(updatedSession.status).toBe('crashed');
   },
 );
 
