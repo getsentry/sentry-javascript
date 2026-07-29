@@ -181,7 +181,8 @@ function createMethodWrapper(
           span.setStatus({ code: SPAN_STATUS_OK });
 
           if (CACHE_HIT_METHODS.has(methodName)) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, isCacheHit(args[0], result));
+            const hit = methodName === 'hasItem' ? Boolean(result) : isCacheHit(args[0], result);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
           }
 
           return result;
