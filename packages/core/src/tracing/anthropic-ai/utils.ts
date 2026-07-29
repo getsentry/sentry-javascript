@@ -3,14 +3,12 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
 import type { SpanStatusType } from '../../types/spanStatus';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import type { AnthropicAiResponse } from './types';
 
 /**
- * Set the messages and messages original length attributes.
- * Extracts system instructions before truncation.
+ * Set the input messages attribute, extracting system instructions before truncation.
  */
 export function setMessagesAttribute(span: Span, messages: unknown, enableTruncation: boolean): void {
   if (Array.isArray(messages) && messages.length === 0) {
@@ -25,10 +23,8 @@ export function setMessagesAttribute(span: Span, messages: unknown, enableTrunca
     });
   }
 
-  const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 1;
   span.setAttributes({
     [GEN_AI_INPUT_MESSAGES]: enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
   });
 }
 

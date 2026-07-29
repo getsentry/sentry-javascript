@@ -31,11 +31,6 @@ export const GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE = 'gen_ai.request.dimensions';
 export const GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE = 'gen_ai.response.stop_reason';
 
 /**
- * Original length of messages array, used to indicate truncations had occured
- */
-export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.gen_ai.input.messages.original_length';
-
-/**
  * The number of cache creation input tokens used
  *
  * Kept local: `@sentry/conventions` emits `gen_ai.usage.cache_creation.input_tokens` (dotted), which

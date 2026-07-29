@@ -15,7 +15,6 @@ import {
   GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
@@ -131,12 +130,6 @@ export function addRequestAttributes(
     GEN_AI_INPUT_MESSAGES,
     enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
   );
-
-  if (Array.isArray(filteredMessages)) {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
-  } else {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
-  }
 }
 
 /**

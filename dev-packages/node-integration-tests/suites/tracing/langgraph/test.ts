@@ -16,7 +16,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -298,7 +297,6 @@ describe('LangGraph integration', () => {
 
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan!.name).toBe('invoke_agent weather_assistant');
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
