@@ -30,6 +30,11 @@ function matchesEsbuildExternal(entry: string, moduleName: string): boolean {
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Inert plugin — no code transform, so no instrumentation lands in the bundle.
+    return { name: 'sentry-orchestrion-disabled', setup: () => undefined };
+  }
+
   const plugin = codeTransformer(orchestrionTransformOptions(options));
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   const setup = plugin.setup;

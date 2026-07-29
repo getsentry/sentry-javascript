@@ -162,7 +162,7 @@ function runResponseHook(hook: IORedisResponseHook, span: Span, command: RedisCo
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven ioredis integration. Subscribes to
+ * Orchestrion-driven ioredis integration. Subscribes to
  * `orchestrion:ioredis:command` / `:connect` (injected into ioredis' `<5.11.0`
  * `sendCommand`/`connect`) and creates db spans matching
  * `@opentelemetry/instrumentation-ioredis`. Requires the orchestrion runtime hook

@@ -60,20 +60,7 @@ SENTRY_AUTH_TOKEN="your-token"
 ### Server Instrumentation
 
 For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add
-middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
-
-If you're using Astro <3.5.2, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
-
-```javascript
-// src/middleware.js
-import { sequence } from 'astro:middleware';
-import * as Sentry from '@sentry/astro';
-
-export const onRequest = sequence(
-  Sentry.handleRequest(),
-  // Add your other handlers after Sentry.handleRequest()
-);
-```
+middleware to your server to instrument incoming requests.
 
 The Sentry middleware enhances the data collected by Sentry on the server side by:
 
@@ -99,6 +86,19 @@ export default defineConfig({
     }),
   ],
 });
+```
+
+If you opt out but still want the middleware, add it manually to your `src/middleware.js` file:
+
+```javascript
+// src/middleware.js
+import { sequence } from 'astro:middleware';
+import * as Sentry from '@sentry/astro';
+
+export const onRequest = sequence(
+  Sentry.handleRequest(),
+  // Add your other handlers after Sentry.handleRequest()
+);
 ```
 
 ## Configuration

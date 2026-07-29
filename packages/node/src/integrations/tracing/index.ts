@@ -1,43 +1,44 @@
 import type { Integration } from '@sentry/core';
 import { prismaIntegration } from '@sentry/server-utils';
+import {
+  amqplibIntegration,
+  anthropicIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration,
+  hapiIntegration,
+  kafkajsIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration,
+} from '@sentry/server-utils/orchestrion';
 import { instrumentSentryHttp } from '../http';
-import { amqplibIntegration, instrumentAmqplib } from './amqplib';
-import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
-import { expressIntegration, instrumentExpress } from './express';
-import { fastifyIntegration, instrumentFastifyV3 } from './fastify';
-import { firebaseIntegration, instrumentFirebase } from './firebase';
-import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
-import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
-import { graphqlIntegration, instrumentGraphql } from './graphql';
-import { hapiIntegration, instrumentHapi } from './hapi';
-import { instrumentKafka, kafkaIntegration } from './kafka';
-import { instrumentKoa, koaIntegration } from './koa';
-import { instrumentLangChain, langChainIntegration } from './langchain';
-import { instrumentLangGraph, langGraphIntegration } from './langgraph';
-import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
-import { instrumentMongo, mongoIntegration } from './mongo';
-import { instrumentMongoose, mongooseIntegration } from './mongoose';
-import { instrumentMysql, mysqlIntegration } from './mysql';
-import { instrumentMysql2, mysql2Integration } from './mysql2';
-import { instrumentOpenAi, openAIIntegration } from './openai';
-import { instrumentPostgres, postgresIntegration } from './postgres';
-import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
-import { instrumentRedis, redisIntegration } from './redis';
-import { instrumentTedious, tediousIntegration } from './tedious';
-import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
+import { fastifyIntegration } from './fastify';
+import { redisIntegration } from './redis';
 
-/**
- * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
- */
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
     expressIntegration(),
     fastifyIntegration(),
-    graphqlIntegration(),
-    mongoIntegration(),
+    graphqlDiagnosticsIntegration(),
+    mongodbIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),
+    // Redis keeps the node wrapper: it wires the cache `responseHook` into the channel subscribers
+    // and covers all redis client versions (native diagnostics_channel + orchestrion fallbacks).
     redisIntegration(),
     postgresIntegration(),
     prismaIntegration(),
@@ -45,16 +46,16 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     koaIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
-    kafkaIntegration(),
+    kafkajsIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
     // AI providers
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
     langGraphIntegration(),
-    vercelAIIntegration(),
-    openAIIntegration(),
-    anthropicAIIntegration(),
+    vercelAiIntegration(),
+    openaiIntegration(),
+    anthropicIntegration(),
     googleGenAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
@@ -66,32 +67,5 @@ export function getAutoPerformanceIntegrations(): Integration[] {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
-  return [
-    instrumentSentryHttp,
-    instrumentExpress,
-    instrumentFastifyV3,
-    instrumentHapi,
-    instrumentKafka,
-    instrumentKoa,
-    instrumentLruMemoizer,
-    instrumentMongo,
-    instrumentMongoose,
-    instrumentMysql,
-    instrumentMysql2,
-    instrumentPostgres,
-    instrumentHapi,
-    instrumentGraphql,
-    instrumentRedis,
-    instrumentTedious,
-    instrumentGenericPool,
-    instrumentAmqplib,
-    instrumentLangChain,
-    instrumentVercelAi,
-    instrumentOpenAi,
-    instrumentPostgresJs,
-    instrumentFirebase,
-    instrumentAnthropicAi,
-    instrumentGoogleGenAI,
-    instrumentLangGraph,
-  ];
+  return [instrumentSentryHttp];
 }

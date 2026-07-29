@@ -43,7 +43,7 @@ export function baggageHeaderToDynamicSamplingContext(
   // Only return a dynamic sampling context object if there are keys in it.
   // A keyless object means there were no sentry values on the header, which means that there is no DSC.
   if (Object.keys(dynamicSamplingContext).length > 0) {
-    return dynamicSamplingContext as Partial<DynamicSamplingContext>;
+    return dynamicSamplingContext;
   } else {
     return undefined;
   }

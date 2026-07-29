@@ -8,8 +8,8 @@ Deno.test('init() should return client', () => {
   assertNotEquals(init({}), undefined);
 });
 
-Deno.test('adds spanStreamingIntegration when traceLifecycle is "stream"', () => {
-  const client = init({ traceLifecycle: 'stream' });
+Deno.test('adds spanStreamingIntegration by default', () => {
+  const client = init({});
   const integrations = client.getOptions().integrations;
   assertArrayIncludes(
     integrations.map(i => i.name),
@@ -17,8 +17,8 @@ Deno.test('adds spanStreamingIntegration when traceLifecycle is "stream"', () =>
   );
 });
 
-Deno.test('doesn\'t add spanStreamingIntegration when traceLifecycle is not "stream"', () => {
-  const client = init({});
+Deno.test('doesn\'t add spanStreamingIntegration when traceLifecycle is "static"', () => {
+  const client = init({ traceLifecycle: 'static' });
   const integrations = client.getOptions().integrations;
   assert(!integrations.some(i => i.name === 'SpanStreaming'));
 });

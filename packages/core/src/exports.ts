@@ -144,7 +144,7 @@ export function setAttributes<T extends Record<string, unknown>>(attributes: Raw
  */
 export function setAttribute<
   // oxlint-disable-next-line typescript-eslint/no-explicit-any
-  T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown,
+  T extends (RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown),
 >(key: string, value: RawAttribute<T>): void {
   getIsolationScope().setAttribute(key, value);
 }

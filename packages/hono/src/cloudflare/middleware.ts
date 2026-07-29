@@ -19,7 +19,7 @@ export function sentry<E extends Env>(
 ): MiddlewareHandler {
   withSentry(
     env => {
-      const honoOptions = typeof options === 'function' ? options(env as E['Bindings']) : options;
+      const honoOptions = typeof options === 'function' ? options(env) : options;
 
       applySdkMetadata(honoOptions, 'hono', ['hono', 'cloudflare']);
 

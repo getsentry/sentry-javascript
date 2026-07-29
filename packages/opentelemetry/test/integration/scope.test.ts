@@ -7,15 +7,11 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   describe.each([
     ['with tracing', true],
     ['without tracing', false],
@@ -49,7 +45,10 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span).scope).toBe(tracingEnabled ? scope2 : undefined);
+            // A recording root span starts a new trace, which forks the active scope, so the captured
+            // scope is a fork of `scope2`; a non-recording span captures the active scope directly.
+            // Either way it carries `scope2`'s data.
+            expect(getCapturedScopesOnSpan(span).scope?.getScopeData().tags).toEqual(scope2.getScopeData().tags);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

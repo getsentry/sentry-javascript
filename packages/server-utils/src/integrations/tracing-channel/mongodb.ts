@@ -46,7 +46,7 @@ interface V3CallInfo {
 // emits no killCursors span, and neither should we.
 const V3_DEDICATED_COMMANDS = new Set(['insert', 'update', 'delete', 'find', 'getMore', 'killCursors']);
 
-const _mongodbChannelIntegration = (() => {
+const _mongodbIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -173,11 +173,11 @@ function bindV3(channelName: string, extract: (args: unknown[]) => V3CallInfo | 
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven mongodb integration.
+ * Orchestrion-driven mongodb integration.
  *
  * Reproduces the vendored `@opentelemetry/instrumentation-mongodb` span shape
  * (legacy db/net semantic conventions, `mongodb.<op>` names, scrubbed
  * `db.statement`) via the `orchestrion:mongodb:*` diagnostics_channels
  * injected by the orchestrion code transform.
  */
-export const mongodbChannelIntegration = defineIntegration(_mongodbChannelIntegration);
+export const mongodbIntegration = defineIntegration(_mongodbIntegration);

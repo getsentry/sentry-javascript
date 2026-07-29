@@ -6,16 +6,13 @@ interface Env {
   SENTRY_DSN: string;
 }
 
-const ai = instrumentWorkersAiClient(new MockAi());
+const ai = instrumentWorkersAiClient(new MockAi(), { recordInputs: false, recordOutputs: false });
 
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    // Keep gen_ai spans embedded in the transaction (instead of streamed as a
-    // separate envelope container) so they can be asserted on `transaction.spans`.
-    streamGenAiSpans: false,
   }),
   {
     async fetch(request) {

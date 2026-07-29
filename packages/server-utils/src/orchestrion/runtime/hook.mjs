@@ -1,4 +1,4 @@
-// EXPERIMENTAL — the async module hooks handed to `Module.register()` by
+// The async module hooks handed to `Module.register()` by
 // `registerDiagnosticsChannelInjection()` (Node 18.19–24.12, where the stable sync
 // `Module.registerHooks` API isn't available).
 //

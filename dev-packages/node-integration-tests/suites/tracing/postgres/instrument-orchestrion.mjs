@@ -1,12 +1,8 @@
-// Opting in via `experimentalUseDiagnosticsChannelInjection()` before `init()`
-// is all that's needed. Because this file is loaded
-// (via `--import`) before the scenario imports `pg`,
-// `Sentry.init()` synchronously installs the channel-injection hooks, so the
-// OTel `Postgres` instrumentation is swapped for the diagnostics-channel one.
+// Channel-based (orchestrion diagnostics-channel) instrumentation is the default. Because this file
+// is loaded (via `--import`) before the scenario imports `pg`, `Sentry.init()` synchronously
+// installs the channel-injection hooks.
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
-
-Sentry.experimentalUseDiagnosticsChannelInjection();
 
 Sentry.init({
   traceLifecycle: 'static',

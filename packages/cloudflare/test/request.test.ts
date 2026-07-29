@@ -12,6 +12,7 @@ import { wrapRequestHandler } from '../src/request';
 
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  traceLifecycle: 'static',
 };
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);

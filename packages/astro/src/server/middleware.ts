@@ -1,15 +1,16 @@
 /* eslint-disable max-lines */
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   flushIfServerless,
   getIsolationScope,
   getRootSpan,
+  getUrlFragment,
+  getUrlQuery,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
-  stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import {
@@ -27,7 +28,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
-import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
+import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -63,7 +64,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
   __sentry_wrapped__?: boolean;
 };
 
-export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
+export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
   const handlerOptions = {
     trackClientIp: false,
     ...options,
@@ -102,10 +103,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
   };
 };
 
-async function handleStaticRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
-): Promise<Response> {
+async function handleStaticRoute(ctx: APIContext, next: MiddlewareNext): Promise<Response> {
   const parametrizedRoute = getParametrizedRoute(ctx);
   try {
     const originalResponse = await next();
@@ -120,11 +118,7 @@ async function handleStaticRoute(
   }
 }
 
-async function enhanceHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
-  rootSpan: Span,
-): Promise<Response> {
+async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, rootSpan: Span): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
   const locals = ctx.locals as AstroLocalsWithSentry | undefined;
   if (locals?.__sentry_wrapped__) {
@@ -170,8 +164,8 @@ async function enhanceHttpServerSpan(
 }
 
 async function instrumentRequestStartHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: APIContext,
+  next: MiddlewareNext,
   options: MiddlewareOptions,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
@@ -221,7 +215,6 @@ async function instrumentRequestStartHttpServerSpan(
             method,
             [URL_FULL]: ctx.url.href,
             [URL_PATH]: ctx.url.pathname,
-            url: stripUrlQueryAndFragment(ctx.url.href),
             ...httpHeadersToSpanAttributes(
               winterCGHeadersToDict(request.headers),
               getClient()?.getDataCollectionOptions() ?? false,
@@ -229,16 +222,11 @@ async function instrumentRequestStartHttpServerSpan(
           };
 
           if (parametrizedRoute) {
-            attributes['http.route'] = parametrizedRoute;
+            attributes[HTTP_ROUTE] = parametrizedRoute;
           }
 
-          if (ctx.url.search) {
-            attributes['http.query'] = ctx.url.search;
-          }
-
-          if (ctx.url.hash) {
-            attributes['http.fragment'] = ctx.url.hash;
-          }
+          attributes[URL_QUERY] = getUrlQuery(ctx.url.search);
+          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
           isolationScope.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
 
@@ -398,7 +386,7 @@ function tryDecodeUrl(url: string): string | undefined {
  * We can check this by looking at the middleware's `clientAddress` context property because accessing
  * this prop in a static route will throw an error which we can conveniently catch.
  */
-function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+function checkIsDynamicPageRequest(context: APIContext): boolean {
   try {
     return context.clientAddress != null;
   } catch {
@@ -421,9 +409,7 @@ function joinRouteSegments(segments: RoutePart[][]): string {
   return `/${parthArray.join('/')}`;
 }
 
-function getParametrizedRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string },
-): string | undefined {
+function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): string | undefined {
   try {
     // `routePattern` is available after Astro 5
     const contextWithRoutePattern = ctx;

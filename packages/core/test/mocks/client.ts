@@ -14,6 +14,7 @@ export function getDefaultTestClientOptions(options: Partial<TestClientOptions> 
   return {
     integrations: [],
     sendClientReports: true,
+    traceLifecycle: 'static',
     transport: () =>
       createTransport(
         {

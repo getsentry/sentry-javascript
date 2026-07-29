@@ -21,7 +21,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, HTTP_URL } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION, HTTP_METHOD, HTTP_ROUTE, HTTP_STATUS_CODE, URL_FULL } from '@sentry/conventions/attributes';
 import type { Params } from '@remix-run/router';
 import type * as remixRunServerRuntime from '@remix-run/server-runtime';
 import type * as remixRunServerRuntimeData from '@remix-run/server-runtime/dist/data';
@@ -334,7 +334,7 @@ export class RemixInstrumentation extends InstrumentationBase {
 const addRequestAttributesToSpan = (span: Span, request: Request): void => {
   span.setAttributes({
     [HTTP_METHOD]: request.method,
-    [HTTP_URL]: request.url,
+    [URL_FULL]: request.url,
   });
 };
 

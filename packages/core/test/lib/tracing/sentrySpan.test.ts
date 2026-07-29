@@ -8,11 +8,13 @@ import {
 } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
+import { startInactiveSpan, startSpan } from '../../../src/tracing/trace';
 import {
   markSpanAsTracerProviderSpan,
   markSpanForOtelSourceInference,
   spanSourceWasExplicitlySet,
 } from '../../../src/tracing/utils';
+import type { Envelope } from '../../../src/types/envelope';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
@@ -293,9 +295,9 @@ describe('SentrySpan', () => {
       expect(mockSend).toHaveBeenCalled();
     });
 
-    test('does not drop the span if `beforeSendSpan` returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
+    test('ignores a non-streamed `beforeSendSpan` for standalone spans', () => {
+      // Standalone spans are sent as v2 streamed spans, which only honor a `beforeSendSpan` wrapped
+      // with `withStreamedSpan`. A plain callback is ignored, so the span is sent unmodified.
       const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -318,13 +320,46 @@ describe('SentrySpan', () => {
       });
       span.end();
 
+      expect(beforeSendSpan).not.toHaveBeenCalled();
       expect(mockSend).toHaveBeenCalled();
       expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+    });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
+    test('sends a standalone span on its own and excludes it from the parent transaction', async () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          tracesSampleRate: 1,
+        }),
       );
-      consoleWarnSpy.mockRestore();
+      setCurrentClient(client);
+
+      const envelopes: Envelope[] = [];
+      client.on('beforeEnvelope', envelope => {
+        envelopes.push(envelope);
+      });
+
+      startSpan({ name: 'root' }, () => {
+        const standaloneChild = startInactiveSpan({ name: 'inp', experimental: { standalone: true } });
+        standaloneChild.end();
+      });
+
+      await client.flush();
+
+      const items = envelopes.flatMap(
+        envelope => envelope[1] as Array<[{ type?: string; content_type?: string }, any]>,
+      );
+
+      // The standalone child is sent on its own as a v2 streamed span...
+      const streamedItem = items.find(item => item[0]?.content_type === 'application/vnd.sentry.items.span.v2+json');
+      expect(streamedItem?.[1]?.items?.[0]?.name).toBe('inp');
+
+      // ...and is NOT folded into the root transaction (no double-send).
+      const transactionItem = items.find(item => item[0]?.type === 'transaction');
+      expect(transactionItem?.[1]?.spans?.map((span: { description?: string }) => span.description)).not.toContain(
+        'inp',
+      );
     });
 
     test('build TransactionEvent for basic root span', () => {

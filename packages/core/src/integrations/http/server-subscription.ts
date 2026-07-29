@@ -40,7 +40,7 @@ import {
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
-import { HTTP_URL, URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -297,8 +297,6 @@ function buildServerSpanWrap(
             // Old Semantic Conventions attributes for compatibility
             [URL_FULL]: fullUrl,
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-            // oxlint-disable-next-line typescript-eslint(no-deprecated)
-            [HTTP_URL]: fullUrl,
             'http.method': method,
             'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
             'http.host': host,

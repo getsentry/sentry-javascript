@@ -130,10 +130,6 @@ type InstrumentationOptions = {
      * - enable distributed tracing between server and client
      * - annotate server errors with more information
      *
-     * This middleware will only be added automatically in Astro 3.5.0 and newer.
-     * For older versions, add the `Sentry.handleRequest` middleware manually
-     * in your `src/middleware.js` file.
-     *
      * @default true in SSR/hybrid mode, false in SSG/static mode
      */
     requestHandler?: boolean;

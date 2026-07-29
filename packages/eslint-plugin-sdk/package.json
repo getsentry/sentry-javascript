@@ -23,8 +23,8 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-eslint-plugin-sdk-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",

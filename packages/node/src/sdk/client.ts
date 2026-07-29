@@ -1,7 +1,6 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
@@ -15,7 +14,7 @@ import {
 import {
   type AsyncLocalStorageLookup,
   getTraceContextForScope,
-  type OpenTelemetryTracerProvider,
+  type SentryTracerProvider,
 } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -25,7 +24,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: OpenTelemetryTracerProvider | undefined;
+  public traceProvider: SentryTracerProvider | undefined;
   public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
 
   private _tracer: Tracer | undefined;
@@ -46,12 +45,6 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       runtime: options.runtime || { name: 'node', version: global.process.version },
       serverName,
     };
-
-    if (options.openTelemetryInstrumentations) {
-      registerInstrumentations({
-        instrumentations: options.openTelemetryInstrumentations,
-      });
-    }
 
     applySdkMetadata(clientOptions, 'node');
 

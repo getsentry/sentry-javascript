@@ -110,7 +110,7 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   expect(pageloadTransaction).toBeDefined();
   expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
 
-  const middlewareTransactions = allTransactions.filter(tx => tx.contexts?.trace?.op === 'http.server.middleware');
+  const middlewareTransactions = allTransactions.filter(tx => tx.contexts?.trace?.op === 'middleware');
 
   // We WILL have a middleware transaction for GET / (the pageload)
   // But we should NOT have middleware transactions for POST requests (tunnel route)

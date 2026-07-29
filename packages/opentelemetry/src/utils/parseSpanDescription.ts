@@ -8,16 +8,19 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   HTTP_TARGET,
-  HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   SENTRY_GRAPHQL_OPERATION,
   SENTRY_KIND,
+  URL_FRAGMENT,
   URL_FULL,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
 import {
   getSanitizedUrlString,
+  getUrlFragment,
+  getUrlQuery,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -26,8 +29,6 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import type { AbstractSpan } from '../types';
-import { spanHasAttributes, spanHasName } from './spanTypes';
 
 interface SpanDescription {
   op: string | undefined;
@@ -103,21 +104,10 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes): Spa
  *
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  let attributes: Attributes;
-  let name: string;
-
-  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
-  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
-  // and keep only the `spanToJSON()` path below.
-  if (spanHasAttributes(span)) {
-    attributes = span.attributes;
-    name = spanHasName(span) ? span.name : '<unknown>';
-  } else {
-    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
-    attributes = json?.data || {};
-    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
-  }
+export function parseSpanDescription(span: Span): SpanDescription {
+  const json = spanToJSON(span);
+  const attributes = json.data;
+  const name = json.description || '<unknown>';
 
   return inferSpanData(name, attributes);
 }
@@ -192,17 +182,15 @@ export function descriptionForHttpMethod(
   const data: Record<string, string> = {};
 
   if (url) {
-    data.url = url;
+    data[URL_FULL] = url;
   }
-  if (query) {
-    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
-    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
-    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
-    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
-    data['http.query'] = query.slice(1);
+  const urlQuery = getUrlQuery(query);
+  if (urlQuery) {
+    data[URL_QUERY] = urlQuery;
   }
-  if (fragment) {
-    data['http.fragment'] = fragment.slice(1);
+  const urlFragment = getUrlFragment(fragment);
+  if (urlFragment) {
+    data[URL_FRAGMENT] = urlFragment;
   }
 
   // If the span kind is neither client nor server, we use the original name
@@ -265,8 +253,7 @@ export function getSanitizedUrl(attributes: Attributes): {
   // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = attributes[HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  // eslint-disable-next-line typescript/no-deprecated
-  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
+  const httpUrl = attributes[URL_FULL];
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[HTTP_ROUTE];
 

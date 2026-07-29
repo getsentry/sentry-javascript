@@ -9,6 +9,14 @@ export type PluginOptions = {
    */
   instrumentations?: InstrumentationConfig[];
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to make the plugin inert, so no instrumentation code is injected.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+  /**
    * Custom transforms that can be applied using the `transform` option in each `InstrumentationConfig`.
    */
   customTransforms?: Record<string, CustomTransform>;
@@ -32,8 +40,8 @@ export type PluginOptions = {
    * in workerd where requires can't be monkey-patched) record channel spans,
    * but it is bundler-agnostic: any orchestrion bundler plugin can enable it.
    * Leave it off for SDKs that wire the integrations up through a static import
-   * instead (e.g. `@sentry/node`'s `experimentalUseDiagnosticsChannelInjection()`),
-   * so the subscribers aren't registered twice.
+   * instead (e.g. `@sentry/node`, which registers them at init time), so the
+   * subscribers aren't registered twice.
    *
    * Defaults to `false`.
    */
@@ -69,7 +77,7 @@ export function externalizedModulesWarning(externalizedModules: string[]): strin
  * orchestrion bundler plugin.
  *
  * `injectDiagnostics` sets `globalThis.__SENTRY_ORCHESTRION__.bundler = ["mysql"]` at
- * app boot so the `_experimentalSetupOrchestrion()` detector can confirm the
+ * app boot so the `detectOrchestrionSetup()` detector can confirm the
  * bundler path ran (rather than relying on a build-time flag that wouldn't be
  * visible to the runtime).
  */

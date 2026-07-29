@@ -18,8 +18,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'LangGraph' integration is
-// dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'LangGraph' integration is
+// deduplicated out of the default set.
 const INTEGRATION_NAME = LANGGRAPH_INTEGRATION_NAME;
 
 interface CompileChannelContext {
@@ -38,7 +38,7 @@ let subscribed = false;
 // nested compile so a react agent gets a single `invoke_agent` span, matching the OTel path.
 let insideCreateReactAgent = false;
 
-const _langGraphChannelIntegration = ((options: LangGraphOptions = {}) => {
+const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -156,8 +156,8 @@ function wrapCompiledGraphInvoke(
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven LangGraph integration. Subscribes to the diagnostics_channels
+ * Orchestrion-driven LangGraph integration. Subscribes to the diagnostics_channels
  * injected into `@langchain/langgraph`'s `StateGraph.compile` and `createReactAgent`, so it requires
  * the orchestrion runtime hook or bundler plugin.
  */
-export const langGraphChannelIntegration = defineIntegration(_langGraphChannelIntegration);
+export const langGraphIntegration = defineIntegration(_langGraphIntegration);

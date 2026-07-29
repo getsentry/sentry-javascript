@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateSerializedSpanSizeInBytes } from '../../../../src/tracing/spans/estimateSize';
 import type { SerializedStreamedSpan } from '../../../../src/types/span';
+import { HTTP_METHOD, URL_FULL } from '@sentry/conventions/attributes';
 
 // Produces a realistic trace_id (32 hex chars) and span_id (16 hex chars)
 const TRACE_ID = 'a1b2c3d4e5f607189a0b1c2d3e4f5060';
@@ -62,8 +63,8 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       status: 'ok',
       is_segment: false,
       attributes: {
-        'http.method': { type: 'string', value: 'GET' },
-        'http.url': { type: 'string', value: 'https://example.com/api/users?page=1&limit=100' },
+        [HTTP_METHOD]: { type: 'string', value: 'GET' },
+        [URL_FULL]: { type: 'string', value: 'https://example.com/api/users?page=1&limit=100' },
         'http.status_code': { type: 'integer', value: 200 },
         'db.statement': { type: 'string', value: 'SELECT * FROM users WHERE id = $1' },
         'sentry.origin': { type: 'string', value: 'auto.http.fetch' },

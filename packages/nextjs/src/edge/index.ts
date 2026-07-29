@@ -28,6 +28,7 @@ import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetada
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -101,7 +102,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   // Next.js's OTel instrumentation samples root spans before the Sentry middleware wrapper can set
   // `normalizedRequest` on the isolation scope. Seed it from span attributes so `tracesSampler` has access.
-  client?.on('beforeSampling', ({ spanAttributes }) => {
+  client.on('beforeSampling', ({ spanAttributes }) => {
     const spanType = spanAttributes[ATTR_NEXT_SPAN_TYPE];
     if (spanType !== 'Middleware.execute' && spanType !== 'BaseServer.handleRequest') {
       return;
@@ -119,7 +120,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     }
   });
 
-  client?.on('spanStart', span => {
+  client.on('spanStart', span => {
     const spanAttributes = spanToJSON(span).data;
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
@@ -134,7 +135,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP);
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     }
 
@@ -154,7 +155,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
   // `enhanceMiddlewareRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
   // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
-  client?.on('preprocessEvent', event => {
+  client.on('preprocessEvent', event => {
     if (event.type === 'transaction' && event.contexts?.trace?.data) {
       enhanceMiddlewareRootSpan({
         attributes: event.contexts.trace.data,
@@ -173,7 +174,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
   // transaction events, so the same enhancement has to be applied here directly on the span JSON.
-  client?.on('processSegmentSpan', span => {
+  client.on('processSegmentSpan', span => {
     const attributes = (span.attributes ??= {});
     enhanceMiddlewareRootSpan({
       attributes,
@@ -187,7 +188,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     });
   });
 
-  client?.on('spanEnd', span => {
+  client.on('spanEnd', span => {
     if (span === getRootSpan(span)) {
       waitUntil(flushSafelyWithTimeout());
     }

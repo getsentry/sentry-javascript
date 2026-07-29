@@ -4,7 +4,7 @@ import { toSubscribeInjections } from './subscribe-injection';
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
   // its routing `Layer`, so instrumenting that one method covers the whole
-  // request pipeline. The `expressChannelIntegration` opens one span per layer
+  // request pipeline. The `expressIntegration` opens one span per layer
   // invocation. Both are `Layer.prototype.<method> = function <fn>(req, res, next)`
   // prototype assignments (not `class` methods), so `expressionName` (matching
   // the assignment's `left.property.name`) is used. `Callback`: the handler's

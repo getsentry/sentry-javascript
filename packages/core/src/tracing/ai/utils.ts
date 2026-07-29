@@ -4,7 +4,6 @@
  */
 import { captureException } from '../../exports';
 import { getClient } from '../../currentScopes';
-import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import type { Span } from '../../types/span';
 import { isThenable } from '../../utils/is';
 import {
@@ -61,22 +60,17 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
 /**
  * Resolves whether truncation should be enabled.
  * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled whenever gen_ai spans are sent through the span streaming / v2
- * span path, i.e. full span streaming (`traceLifecycle: 'stream'`) or `streamGenAiSpans`. That path
- * is not subject to the transaction payload-size limits that truncation works around, so the full
- * message data can be retained. `streamGenAiSpans` is opt-out (on unless explicitly set to `false`).
+ * Otherwise, truncation is disabled because gen_ai spans are always sent through the v2 span path
+ * (full span streaming via `traceLifecycle: 'stream'`, or extraction into a v2 span envelope for
+ * static transactions). That path is not subject to the transaction payload-size limits that
+ * truncation works around, so the full message data can be retained.
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
   if (enableTruncation !== undefined) {
     return enableTruncation;
   }
 
-  const client = getClient();
-  if (!client) {
-    return true;
-  }
-
-  return !hasSpanStreamingEnabled(client) && client.getOptions().streamGenAiSpans === false;
+  return !getClient();
 }
 
 /**

@@ -18,7 +18,7 @@ describe('express tracing', () => {
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
-                  url: expect.stringMatching(/\/test\/express$/),
+                  'url.full': expect.stringMatching(/\/test\/express$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -65,7 +65,7 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 data: {
-                  url: expect.stringMatching(/\/test\/regex$/),
+                  'url.full': expect.stringMatching(/\/test\/regex$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -142,9 +142,8 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   'http.response.status_code': 200,
-                  url: expect.stringMatching(/\/$/),
                   'http.method': 'GET',
-                  'http.url': expect.stringMatching(/\/$/),
+                  'url.full': expect.stringMatching(/\/$/),
                   'http.route': '/',
                   'http.target': '/',
                 },
@@ -188,7 +187,7 @@ describe('express tracing', () => {
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   data: {
-                    url: expect.stringMatching(`/test/${segment}$`),
+                    'url.full': expect.stringMatching(`/test/${segment}$`),
                     'http.response.status_code': 200,
                   },
                   op: 'http.server',
@@ -225,7 +224,7 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 data: {
-                  url: expect.stringMatching(`/test/${segment}$`),
+                  'url.full': expect.stringMatching(`/test/${segment}$`),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -403,9 +402,8 @@ describe('express tracing', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': status_code,
-                        url: expect.stringMatching(url),
                         'http.method': 'GET',
-                        'http.url': expect.stringMatching(url),
+                        'url.full': expect.stringMatching(url),
                         'http.target': url,
                       },
                       op: 'http.server',

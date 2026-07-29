@@ -43,7 +43,7 @@ test('Should record a transaction for route with parameters', async ({ request }
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.target': '/test-transaction/1',
-      'http.url': 'http://localhost:3030/test-transaction/1',
+      'url.full': 'http://localhost:3030/test-transaction/1',
       'http.user_agent': expect.any(String),
       'net.host.ip': expect.any(String),
       'net.host.name': 'localhost',
@@ -56,7 +56,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-      url: 'http://localhost:3030/test-transaction/1',
     }),
   );
 

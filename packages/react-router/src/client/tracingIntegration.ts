@@ -57,6 +57,7 @@ export function reactRouterTracingIntegration(
       browserTracingIntegrationInstance.afterAllSetup(client);
       instrumentHydratedRouter();
     },
+    // oxlint-disable-next-line typescript/no-deprecated -- exposes the deprecated getter for back-compat until it is removed
     get clientInstrumentation(): ClientInstrumentation {
       return clientInstrumentationInstance;
     },

@@ -15,7 +15,7 @@ function astQueryInstrumentation(config: {
   astQuery: string;
   functionQuery: { kind: 'Sync' | 'Async' | 'Callback' | 'Auto' };
 }): InstrumentationConfig {
-  return config as unknown as InstrumentationConfig;
+  return config;
 }
 
 /**

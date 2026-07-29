@@ -14,7 +14,6 @@ import {
   HTTP_SCHEME,
   HTTP_STATUS_CODE,
   HTTP_TARGET,
-  HTTP_URL,
   HTTP_USER_AGENT,
   NET_HOST_IP,
   NET_HOST_NAME,
@@ -23,8 +22,10 @@ import {
   NET_PEER_PORT,
   NET_TRANSPORT,
   SENTRY_HTTP_PREFETCH,
+  URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
+  URL_QUERY,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type {
@@ -52,6 +53,8 @@ import {
   bindScopeToEmitter,
   startInactiveSpan,
   withActiveSpan,
+  getUrlFragment,
+  getUrlQuery,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -166,6 +169,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
+          const query = getUrlQuery(urlObj?.search);
+          const fragment = getUrlFragment(urlObj?.hash);
+
           const span = startInactiveSpan({
             name: bestEffortTransactionName,
             attributes: {
@@ -176,9 +182,10 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: fullUrl,
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+              [URL_QUERY]: query,
+              [URL_FRAGMENT]: fragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
-              [HTTP_URL]: fullUrl,
               [HTTP_METHOD]: normalizedRequest.method,
               [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
               [HTTP_HOST]: host,

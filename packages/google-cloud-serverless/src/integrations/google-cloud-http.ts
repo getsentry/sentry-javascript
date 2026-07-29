@@ -1,9 +1,13 @@
 import type * as common from '@google-cloud/common';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_FULL } from '@sentry/conventions/attributes';
+import { WEB_SERVER_HTTP_CLIENT_SPAN_OP } from '@sentry/conventions/op';
 import type { Client, IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
   fill,
   getClient,
+  isURLObjectRelative,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
 } from '@sentry/core';
@@ -54,9 +58,12 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
       ? startInactiveSpan({
           name: `${httpMethod} ${reqOpts.uri}`,
           onlyIfParent: true,
-          op: `http.client.${identifyService(this.apiEndpoint)}`,
           attributes: {
+            [SENTRY_OP]: WEB_SERVER_HTTP_CLIENT_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+            [HTTP_REQUEST_METHOD]: httpMethod,
+            [SERVER_ADDRESS]: getServerAddress(this.apiEndpoint),
+            [URL_FULL]: reqOpts.uri,
           },
         })
       : new SentryNonRecordingSpan();
@@ -67,8 +74,8 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   };
 }
 
-/** Identifies service by its base url */
-function identifyService(apiEndpoint: string): string {
-  const match = apiEndpoint.match(/^https:\/\/(\w+)\.googleapis.com$/);
-  return match?.[1] || apiEndpoint.replace(/^(http|https)?:\/\//, '');
+/** Extracts the host of the API endpoint the request is sent to */
+function getServerAddress(apiEndpoint: string): string {
+  const url = parseStringToURLObject(apiEndpoint);
+  return url && !isURLObjectRelative(url) ? url.host : apiEndpoint;
 }

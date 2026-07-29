@@ -24,7 +24,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
@@ -291,7 +290,6 @@ export function extractLLMRequestAttributes(
   const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
     const messages = prompts.map(p => ({ role: 'user', content: p }));
     setIfDefined(
       attrs,
@@ -333,9 +331,6 @@ export function extractChatModelRequestAttributes(
     if (systemInstructions) {
       setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
-
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredLength);
 
     setIfDefined(
       attrs,
@@ -391,9 +386,7 @@ function addTokenUsageAttributes(
 ): void {
   if (!llmOutput) return;
 
-  const tokenUsage = llmOutput.tokenUsage as
-    | { promptTokens?: number; completionTokens?: number; totalTokens?: number }
-    | undefined;
+  const tokenUsage = llmOutput.tokenUsage;
   const anthropicUsage = llmOutput.usage as
     | {
         input_tokens?: number;

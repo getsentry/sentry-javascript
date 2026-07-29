@@ -27,11 +27,7 @@ const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
-const globalObject = WINDOW as typeof WINDOW & {
-  __BUILD_MANIFEST?: {
-    sortedPages?: string[];
-  };
-};
+const globalObject = WINDOW;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.

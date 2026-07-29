@@ -46,7 +46,6 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    streamGenAiSpans: true,
   }),
   {
     async fetch(_request, _env, _ctx) {

@@ -85,17 +85,6 @@ export interface ServerRuntimeOptions {
   clientReportFlushInterval?: number;
 
   /**
-   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
-   * The SDK will automatically clean up spans that have no finished parent after this duration.
-   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
-   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
-   * In this case, you can increase this duration to a value that fits your expected data.
-   *
-   * Defaults to 300 seconds (5 minutes).
-   */
-  maxSpanWaitDuration?: number;
-
-  /**
    * Callback that is executed when a fatal global error occurs.
    */
   onFatalError?(this: void, error: Error): void;
@@ -554,7 +543,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete,
    * or streamed in batches, following interval- and action-based triggers.
    *
-   * @default 'static'
+   * @default 'stream'
    */
   traceLifecycle?: 'static' | 'stream';
 
@@ -567,23 +556,9 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   orgId?: `${number}` | number;
 
   /**
-   * Unless set to `false`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
-   *
-   * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
-   *
-   * Because the v2 span format is not subject to the transaction payload-size limits that gen_ai message
-   * truncation exists to work around, this also disables gen_ai input truncation by default. Set
-   * `enableTruncation: true` on the respective AI integration to opt back into truncation, or set this
-   * option to `false` to send gen_ai spans as part of the transaction (which re-enables truncation by default).
-   *
-   * @default true
-   */
-  streamGenAiSpans?: boolean;
-
-  /**
    * If logs support should be enabled.
    *
-   * @default false
+   * @default true
    */
   enableLogs?: boolean;
 

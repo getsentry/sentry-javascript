@@ -49,9 +49,7 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
     data: {
       type: 'xhr',
       'http.method': 'POST',
-      'http.url': 'http://sentry-test.io/foo',
       'url.full': 'http://sentry-test.io/foo',
-      url: 'http://sentry-test.io/foo',
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',

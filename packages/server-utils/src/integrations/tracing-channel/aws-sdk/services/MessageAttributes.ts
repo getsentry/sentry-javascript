@@ -37,7 +37,7 @@ export function injectPropagationContext(
       if (value) {
         // Index-assigning into the SQS/SNS map union needs one concrete map type; the written value
         // shape is valid for both.
-        (attributes as SQS.MessageBodyAttributeMap)[key] = { DataType: 'String', StringValue: value };
+        attributes[key] = { DataType: 'String', StringValue: value };
       }
     }
   } else {

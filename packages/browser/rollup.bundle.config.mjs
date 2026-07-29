@@ -2,7 +2,13 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal
 
 const builds = [];
 
-const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver', 'browserprofiling'];
+const browserPluggableIntegrationFiles = [
+  'contextlines',
+  'httpclient',
+  'reportingobserver',
+  'browserprofiling',
+  'usertiming',
+];
 
 const reexportedPluggableIntegrationFiles = [
   'captureconsole',

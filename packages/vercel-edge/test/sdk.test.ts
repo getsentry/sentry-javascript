@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { init, spanStreamingIntegration } from '../src';
-import type { Integration } from '@sentry/core';
+import { type Integration } from '@sentry/core';
 
 describe('init', () => {
-  it('adds spanStreamingIntegration when traceLifecycle is "stream"', () => {
-    const client = init({ traceLifecycle: 'stream' });
+  it('adds spanStreamingIntegration by default', () => {
+    const client = init({});
     const integrations = client?.getOptions().integrations;
 
     expect(integrations?.map(i => i.name)).toContain('SpanStreaming');
   });
 
-  it('doesn\'t add spanStreamingIntegration when traceLifecycle is not "stream"', () => {
-    const client = init({});
+  it('doesn\'t add spanStreamingIntegration when traceLifecycle is "static"', () => {
+    const client = init({ traceLifecycle: 'static' });
     const integrations = client?.getOptions().integrations;
 
     expect(integrations?.map(i => i.name)).not.toContain('SpanStreaming');
   });
 
   it('adds spanStreaming integration even with custom defaultIntegrations', () => {
-    const client = init({ traceLifecycle: 'stream', defaultIntegrations: [] });
+    const client = init({ defaultIntegrations: [] });
     const integrations = client?.getOptions().integrations;
 
     expect(integrations?.map(i => i.name)).toContain('SpanStreaming');

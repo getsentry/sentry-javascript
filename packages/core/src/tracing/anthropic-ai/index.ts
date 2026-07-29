@@ -349,7 +349,7 @@ function instrumentMethod<T extends unknown[], R>(
 
       return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
     },
-  }) as (...args: T) => R | Promise<R>;
+  });
 }
 
 /**

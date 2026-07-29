@@ -131,9 +131,9 @@ describe('requestData-streamed', () => {
 
             expect(serverSpan).toBeDefined();
 
-            // url.query and user.ip_address are only set by applyScopeToSegmentSpan
-            // (not by OTel instrumentation), so they should be absent when the integration is removed
-            expect(serverSpan?.attributes['url.query']).toBeUndefined();
+            // user.ip_address is only set by applyScopeToSegmentSpan (not by OTel instrumentation),
+            // so it should be absent when the integration is removed. `url.query` is set by
+            // `httpServerSpansIntegration` itself, so it stays present either way.
             expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();
           },
         })

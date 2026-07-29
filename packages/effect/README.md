@@ -27,7 +27,6 @@ const SentryLive = Layer.mergeAll(
   Sentry.effectLayer({
     dsn: '__DSN__',
     tracesSampleRate: 1.0,
-    enableLogs: true,
   }),
   Layer.setTracer(Sentry.SentryEffectTracer),
   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
@@ -59,7 +58,6 @@ const SentryLive = Layer.mergeAll(
   Sentry.effectLayer({
     dsn: '__DSN__',
     tracesSampleRate: 1.0,
-    enableLogs: true,
   }),
   Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),
   Logger.layer([Sentry.SentryEffectLogger]),

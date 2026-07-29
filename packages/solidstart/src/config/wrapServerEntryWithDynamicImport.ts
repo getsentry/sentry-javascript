@@ -13,7 +13,6 @@ export type WrapServerEntryPluginOptions = {
   serverConfigFileName: string;
   resolvedServerConfigPath: string;
   entrypointWrappedFunctions: string[];
-  additionalImports?: string[];
   debug?: boolean;
 };
 
@@ -27,7 +26,6 @@ export type WrapServerEntryPluginOptions = {
  * @param config.serverEntrypointFileName The server entrypoint (with file extension). Usually, this is defined by the Nitro preset and is something like 'node-server.mjs'
  * @param config.resolvedServerConfigPath Resolved path of the Sentry server config (based on `src` directory)
  * @param config.entryPointWrappedFunctions Exported bindings of the server entry file, which are wrapped as async function. E.g. ['default', 'handler', 'server']
- * @param config.additionalImports Adds additional imports to the entry file. Can be e.g. 'import-in-the-middle/hook.mjs'
  * @param config.debug Whether debug logs are enabled in the build time environment
  */
 export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOptions): InputPluginOption {
@@ -36,7 +34,6 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
     serverEntrypointFileName,
     resolvedServerConfigPath,
     entrypointWrappedFunctions,
-    additionalImports,
     debug,
   } = config;
 
@@ -51,14 +48,6 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
     async resolveId(source, importer, options) {
       if (source.includes(`/${serverConfigFileName}`)) {
         return { id: source, moduleSideEffects: true };
-      }
-
-      if (additionalImports?.includes(source)) {
-        // When importing additional imports like "import-in-the-middle/hook.mjs" in the returned code of the `load()` function below:
-        // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
-        // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
-        // Prevents the error "Failed to register ESM hook Error: Cannot find module 'import-in-the-middle/hook.mjs'"
-        return { id: source, moduleSideEffects: true, external: true };
       }
 
       if (
@@ -105,8 +94,6 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${JSON.stringify(entryId)});\n` +
-          // By importing additional imports like "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
-          `${additionalImports ? additionalImports.map(importPath => `import "${importPath}";\n`) : ''}` +
           `${reExportedFunctions}\n`
         );
       }

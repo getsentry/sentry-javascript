@@ -1,5 +1,5 @@
 import type { Context, Span as OpenTelemetrySpan, SpanOptions, Tracer } from '@opentelemetry/api';
-import { context, trace } from '@opentelemetry/api';
+import { context, isSpanContextValid, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import {
   _INTERNAL_safeMathRandom,
@@ -20,7 +20,7 @@ import {
   startNewTrace,
   withScope,
 } from '@sentry/core';
-import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import { applyOtelSpanData } from './applyOtelSpanData';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -30,7 +30,11 @@ export class SentryTracer implements Tracer {
   /** @inheritdoc */
   public startSpan(name: string, options: SpanOptions = {}, ctx?: Context): OpenTelemetrySpan {
     const parentContext = ctx || context.active();
-    const parentSpan = options.root ? undefined : trace.getSpan(parentContext);
+    const parentSpanCandidate = options.root ? undefined : trace.getSpan(parentContext);
+    // Ignore an invalid parent (e.g. a malformed incoming trace/span id) and start a fresh trace,
+    // matching the OTel SDK sampler's `getValidSpan` behaviour.
+    const parentSpan =
+      parentSpanCandidate && isSpanContextValid(parentSpanCandidate.spanContext()) ? parentSpanCandidate : undefined;
 
     if (isTracingSuppressed(parentContext)) {
       return this._createNonRecordingSpan(parentSpan);
@@ -47,7 +51,7 @@ export class SentryTracer implements Tracer {
       markSpanForOtelSourceInference(span);
     }
     applyOtelSpanData(span);
-    return span as OpenTelemetrySpan;
+    return span;
   }
 
   /** @inheritdoc */
@@ -81,7 +85,7 @@ export class SentryTracer implements Tracer {
     // used or set during the span (tags, breadcrumbs, captured errors) belongs to that span and stays
     // isolated from other concurrent work. Without this it can land on a different isolation scope. This
     // holds for ignored spans too, which run the callback without ever becoming the active span.
-    const capturedIsolationScope = getCapturedScopesOnSpan(span as unknown as Span).isolationScope;
+    const capturedIsolationScope = getCapturedScopesOnSpan(span).isolationScope;
     const withCapturedIsolationScope = (contextToFork: Context): Context =>
       capturedIsolationScope
         ? contextToFork.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, capturedIsolationScope)
@@ -92,12 +96,12 @@ export class SentryTracer implements Tracer {
     // along with it (cascading the drop down the whole subtree). Leaving the parent active lets the
     // children attach to it and get re-parented instead. An ignored root span has no parent and still
     // becomes active, so its subtree is dropped as intended.
-    if (spanIsIgnored(span as unknown as Span) && trace.getSpan(ctx)) {
+    if (spanIsIgnored(span) && trace.getSpan(ctx)) {
       return context.with(withCapturedIsolationScope(ctx), () => callback(span)) as ReturnType<F>;
     }
 
     return context.with(withCapturedIsolationScope(trace.setSpan(ctx, span)), () => {
-      _INTERNAL_setSpanForScope(getCurrentScope(), span as unknown as Span);
+      _INTERNAL_setSpanForScope(getCurrentScope(), span);
       return callback(span) as ReturnType<F>;
     });
   }
@@ -111,7 +115,7 @@ export class SentryTracer implements Tracer {
     const sentryOptions = {
       name,
       attributes: (options.attributes as SpanAttributes) || {},
-      links: options.links as SpanLink[] | undefined,
+      links: options.links,
       startTime: options.startTime,
     };
 
@@ -129,7 +133,7 @@ export class SentryTracer implements Tracer {
     }
 
     if (parentSpan) {
-      return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan as unknown as Span });
+      return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
     }
 
     // No parent span and no remote parent: this is a fresh root span. Start a new trace instead of
@@ -148,7 +152,7 @@ export class SentryTracer implements Tracer {
     parentSpan: OpenTelemetrySpan,
   ): Span {
     const { spanId, traceId, traceState } = parentSpan.spanContext();
-    const dsc = getDynamicSamplingContextFromSpan(parentSpan as unknown as Span);
+    const dsc = getDynamicSamplingContextFromSpan(parentSpan);
     const sampleRand = typeof dsc.sample_rand === 'string' ? Number(dsc.sample_rand) : undefined;
 
     // Only freeze the DSC when the remote parent actually carried one (i.e. there was incoming
@@ -176,11 +180,11 @@ export class SentryTracer implements Tracer {
     // Link to the parent (like core's `createChildOrRootSpan`) so `getRootSpan` and DSC
     // resolution reach the parent. Non-recording spans no longer carry a `parentSpanId`.
     if (parentSpan) {
-      addChildSpanToSpan(parentSpan as unknown as Span, span);
+      addChildSpanToSpan(parentSpan, span);
     }
     // Capture the scopes (mirroring `createChildOrRootSpan`) so `startActiveSpan` can
     // fork the isolation scope onto the OTel context for work inside a suppressed span.
     setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
-    return span as OpenTelemetrySpan;
+    return span;
   }
 }

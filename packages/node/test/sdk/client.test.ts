@@ -1,8 +1,7 @@
 import { ProxyTracer } from '@opentelemetry/api';
-import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Event, EventHint, Log } from '@sentry/core';
 import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
+import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
@@ -33,6 +32,7 @@ describe('NodeClient', () => {
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      traceLifecycle: 'static',
       transportOptions: {
         headers: {
           'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
@@ -55,6 +55,7 @@ describe('NodeClient', () => {
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
       tracesSampleRate: 1,
+      enableLogs: true,
     });
   });
 
@@ -299,24 +300,9 @@ describe('NodeClient', () => {
     });
   });
 
-  it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = vi
-      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
-      .mockImplementationOnce(() => () => undefined);
-    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
-
-    new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
-
-    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instrumentations: instrumentationsArray,
-      }),
-    );
-  });
-
   describe('log capture', () => {
     it('adds server name to log attributes', () => {
-      const options = getDefaultNodeClientOptions({ enableLogs: true });
+      const options = getDefaultNodeClientOptions();
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: {} };
@@ -329,7 +315,7 @@ describe('NodeClient', () => {
 
     it('preserves existing log attributes', () => {
       const serverName = 'test-server';
-      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
+      const options = getDefaultNodeClientOptions({ serverName });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };
@@ -356,7 +342,7 @@ describe('NodeClient', () => {
       client.traceProvider = {
         shutdown: shutdownSpy,
         forceFlush: forceFlushSpy,
-      } as unknown as BasicTracerProvider;
+      } as unknown as SentryTracerProvider;
 
       const result = await client.close();
 
@@ -390,7 +376,7 @@ describe('NodeClient', () => {
     it('stops log capture if it was started', async () => {
       const processOffSpy = vi.spyOn(process, 'off');
 
-      const client = new NodeClient(getDefaultNodeClientOptions({ enableLogs: true }));
+      const client = new NodeClient(getDefaultNodeClientOptions());
 
       const result = await client.close();
 

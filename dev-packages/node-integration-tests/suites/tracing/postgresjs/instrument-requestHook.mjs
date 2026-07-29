@@ -14,20 +14,13 @@ const requestHook = (span, sanitizedSqlQuery, connectionContext) => {
   });
 };
 
-// Under orchestrion (INJECT_ORCHESTRION), `experimentalUseDiagnosticsChannelInjection()` has already run
-// and the default `PostgresJs` OTel integration is swapped for the channel one. Passing the OTel
-// `postgresJsIntegration()` explicitly here would override that swap and silently re-test the old path,
-// so use the channel integration instead — configured with the same requestHook.
-const postgresJsIntegration =
-  process.env.INJECT_ORCHESTRION === 'true'
-    ? Sentry.diagnosticsChannelInjectionIntegrations().postgresJsIntegration({ requestHook })
-    : Sentry.postgresJsIntegration({ requestHook });
-
+// `postgresJsIntegration()` is the diagnostics-channel implementation by default; it forwards the
+// `requestHook` to the channel subscriber.
 Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [postgresJsIntegration],
+  integrations: [Sentry.postgresJsIntegration({ requestHook })],
 });

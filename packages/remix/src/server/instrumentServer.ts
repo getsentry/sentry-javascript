@@ -133,7 +133,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             onlyIfParent: true,
             attributes: {
               method: request.method,
-              url: request.url,
+              [URL_FULL]: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
             },
@@ -510,7 +510,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
 
 /**
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
- * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
+ * which Remix Adapters (https://remix.run/docs/en/main/other-api/adapter) use underneath.
  */
 export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{

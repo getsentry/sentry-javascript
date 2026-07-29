@@ -381,16 +381,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '129 KB',
-    disablePlugins: ['@size-limit/esbuild'],
-  },
-  {
-    name: '@sentry/node (incl. diagnostics channel injection)',
-    path: 'packages/node/build/esm/index.js',
-    import: createImport('init', 'experimentalUseDiagnosticsChannelInjection'),
-    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
-    gzip: true,
-    limit: '173 KB',
+    limit: '159 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -406,7 +397,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '79 KB',
+    limit: '98 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
@@ -430,7 +421,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '88 KB',
+    limit: '106 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output

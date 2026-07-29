@@ -22,7 +22,7 @@ export function getSentryConfig(): EmberSentryConfig {
 
 export function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
   if (_backburner) {
-    return _backburner as unknown as Pick<ExtendedBackburner, 'on' | 'off'>;
+    return _backburner;
   }
 
   if ((run as unknown as { backburner?: Pick<ExtendedBackburner, 'on' | 'off'> }).backburner) {

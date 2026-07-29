@@ -1,11 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// The same suite runs against both the OTel integration and (with `E2E_ORCHESTRION=true`) the
-// orchestrion diagnostics-channel one. The spans are identical apart from the origin — and the
-// orchestrion spans are Sentry-native, so they carry no OTel-only `otel.kind` attribute.
-const orchestrion = process.env.E2E_ORCHESTRION === 'true';
-const origin = orchestrion ? 'auto.firebase.orchestrion.firestore' : 'auto.firebase.otel.firestore';
+// The orchestrion spans are Sentry-native, so they carry no span-kind attribute (`sentry.kind`).
+const origin = 'auto.firebase.orchestrion.firestore';
 
 function firestoreSpan(operation: string): unknown {
   const data: Record<string, unknown> = {
@@ -20,9 +17,6 @@ function firestoreSpan(operation: string): unknown {
     'sentry.origin': origin,
     'sentry.op': 'db.query',
   };
-  if (!orchestrion) {
-    data['sentry.kind'] = 'client';
-  }
 
   return expect.objectContaining({
     description: `${operation} cities`,

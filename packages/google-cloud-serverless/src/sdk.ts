@@ -14,6 +14,7 @@ function getCjsOnlyIntegrations(): Integration[] {
   ];
   /*! rollup-include-cjs-only-end */
   /*! rollup-include-esm-only */
+  // oxlint-disable-next-line no-unreachable -- reachable only in the ESM build; rollup strips the CJS return above
   return [];
   /*! rollup-include-esm-only-end */
 }

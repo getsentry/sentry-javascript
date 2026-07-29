@@ -34,7 +34,7 @@ function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): Grap
   };
 }
 
-const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
+const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
@@ -53,13 +53,13 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
           data => safeChannelCallback(() => startValidateSpan(data.arguments[1])),
-          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
+          { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
         );
 
         bindTracingChannelToSpan(
           diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
           data => safeChannelCallback(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
-          { beforeSpanEnd: (span, data) => void safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
+          { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
         );
       });
     },
@@ -67,17 +67,15 @@ const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions =
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
+ * Orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
  * `diagnostics_channel` events handled by `@sentry/server-utils`'s graphql integration instead).
  *
  * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code
  * transform injects into `graphql`'s `language/parser.js`, `validation/validate.js` and
  * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
- * runtime hook or bundler plugin — wire it up via `experimentalUseDiagnosticsChannelInjection()`.
- *
- * @experimental
+ * runtime hook or bundler plugin.
  */
-export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
+export const graphqlIntegration = defineIntegration(_graphqlIntegration);
 
 /**
  * The complete graphql diagnostics-channel integration: the native subscriber (graphql v17) composed
@@ -85,8 +83,8 @@ export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegr
  * version via diagnostics channels without the OTel patcher. Reuses the OTel `Graphql` name so
  * enabling injection swaps this in for it.
  */
-export const graphqlDiagnosticsChannelIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
-  const orchestrion = graphqlChannelIntegration(options);
+export const graphqlDiagnosticsIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
+  const orchestrion = graphqlIntegration(options);
   return extendIntegration(graphqlNativeIntegration(options), {
     name: INTEGRATION_NAME,
     setupOnce: () => orchestrion.setupOnce?.(),

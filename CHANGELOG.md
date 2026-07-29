@@ -3266,6 +3266,7 @@ await compiled.invoke({
   <summary> <strong>Internal Changes</strong> </summary>
 
 - chore(build): Fix incorrect versions after merge ([#18154](https://github.com/getsentry/sentry-javascript/pull/18154))
+
 </details>
 
 ## 10.24.0
@@ -3294,6 +3295,7 @@ await compiled.invoke({
 - chore(eslint): Add eslint-plugin-regexp rule (dev-packages) ([#18063](https://github.com/getsentry/sentry-javascript/pull/18063))
 - test(next): fix flakey tests ([#18100](https://github.com/getsentry/sentry-javascript/pull/18100))
 - test(node-core): Proof that withMonitor doesn't create a new trace ([#18057](https://github.com/getsentry/sentry-javascript/pull/18057))
+
 </details>
 
 ## 10.23.0

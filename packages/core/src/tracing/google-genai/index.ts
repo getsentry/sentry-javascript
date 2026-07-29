@@ -27,7 +27,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
@@ -40,7 +39,7 @@ import {
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
-import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
+import type { ContentListUnion, Message, PartListUnion } from './utils';
 import { contentUnionToMessages } from './utils';
 
 /**
@@ -165,7 +164,7 @@ export function addPrivateRequestAttributes(
     'systemInstruction' in params.config &&
     params.config.systemInstruction
   ) {
-    messages.push(...contentUnionToMessages(params.config.systemInstruction as ContentUnion, 'system'));
+    messages.push(...contentUnionToMessages(params.config.systemInstruction, 'system'));
   }
 
   // For chats.create: history contains the conversation history
@@ -190,9 +189,7 @@ export function addPrivateRequestAttributes(
       span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       [GEN_AI_INPUT_MESSAGES]: enableTruncation
         ? getTruncatedJsonString(filteredMessages)
         : stringify(filteredMessages),
@@ -350,7 +347,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
       );
     },
-  }) as (...args: T) => R | Promise<R>;
+  });
 }
 
 /**

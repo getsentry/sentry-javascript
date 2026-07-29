@@ -116,7 +116,7 @@ export function makeOfflineTransport<TO>(
             });
           }
         }, delay),
-      ) as Timer;
+      );
     }
 
     function flushWithBackOff(): void {
@@ -171,7 +171,7 @@ export function makeOfflineTransport<TO>(
             await store.push(envelope);
           }
           flushWithBackOff();
-          log('Error sending. Event queued.', e as Error);
+          log('Error sending. Event queued.', e);
           return {};
         } else {
           throw e;

@@ -1,7 +1,4 @@
-import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions, Span } from '@sentry/core';
+import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions } from '@sentry/core';
 import type { NodeTransportOptions } from './transports';
 
 /**
@@ -13,42 +10,10 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
   /**
    * If this is set to true, the SDK will not set up OpenTelemetry automatically.
    * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentrySpanProcessor`
    * * The `SentryPropagator`
    * * The `SentryContextManager`
-   * * The `SentrySampler`
    */
   skipOpenTelemetrySetup?: boolean;
-
-  /**
-   * Provide an array of OpenTelemetry Instrumentations that should be registered.
-   *
-   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
-   */
-  openTelemetryInstrumentations?: Instrumentation[];
-
-  /**
-   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
-   *
-   * Note: providing this forces the full OpenTelemetry SDK `BasicTracerProvider` instead of Sentry's
-   * minimal tracer provider, since custom span processors require the SDK span pipeline. See
-   * {@link OpenTelemetryServerRuntimeOptions.openTelemetryBasicTracerProvider}.
-   */
-  openTelemetrySpanProcessors?: SpanProcessor[];
-
-  /**
-   * By default, the SDK uses Sentry's minimal OpenTelemetry tracer provider, which creates native
-   * Sentry spans directly instead of going through the full OpenTelemetry SDK span pipeline.
-   *
-   * Set this to `true` to use the full OpenTelemetry SDK `BasicTracerProvider` instead, e.g. if you
-   * rely on OpenTelemetry SDK features that the minimal provider does not support.
-   *
-   * Note: providing `openTelemetrySpanProcessors` also forces the full OpenTelemetry SDK provider,
-   * since custom span processors require the SDK span pipeline.
-   *
-   * @default false
-   */
-  openTelemetryBasicTracerProvider?: boolean;
 }
 
 /**
@@ -110,16 +75,6 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
-
-  /**
-   * Whether to register ESM loader hooks to automatically instrument libraries.
-   * This is necessary to auto instrument libraries that are loaded via ESM imports, but it can cause issues
-   * with certain libraries. If you run into problems running your app with this enabled,
-   * please raise an issue in https://github.com/getsentry/sentry-javascript.
-   *
-   * Defaults to `true`.
-   */
-  registerEsmLoaderHooks?: boolean;
 }
 
 /**
@@ -138,14 +93,3 @@ export interface CurrentScopes {
   scope: Scope;
   isolationScope: Scope;
 }
-
-/**
- * The base `Span` type is basically a `WriteableSpan`.
- * There are places where we basically want to allow passing _any_ span,
- * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check relevant fields before accessing them.
- *
- * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
- * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
- */
-export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

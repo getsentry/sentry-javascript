@@ -1,14 +1,10 @@
 import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
   const beforeSendTransaction = vi.fn(() => null);
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
 
   describe('without tracing', () => {
     it('correctly adds & retrieves breadcrumbs', async () => {

@@ -234,11 +234,12 @@ export interface SentrySpanArguments {
   links?: SpanLink[];
 
   /**
-   * Set to `true` if this span should be sent as a standalone segment span
-   * as opposed to a transaction.
+   * If true, the span is sent on its own as a v2 streamed span instead of being folded into a
+   * transaction.
    *
-   * @experimental this option is currently experimental and should only be
-   * used within SDK code. It might be removed or changed in the future.
+   * @internal this option is currently experimental and should only be used within SDK code.
+   *
+   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
    */
   isStandalone?: boolean | undefined;
 }

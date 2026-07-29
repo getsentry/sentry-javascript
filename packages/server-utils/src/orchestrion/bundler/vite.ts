@@ -19,8 +19,21 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Return an inert plugin so SDKs that unconditionally push it into their
+    // plugin array can still opt out without any code transform, `noExternal`
+    // force-bundling, or injected diagnostics landing in the build.
+    return { name: 'sentry-orchestrion-disabled' };
+  }
+
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
+    applyToEnvironment(environment) {
+      // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
+      // exist server-side. Only apply to server-consumed environments so injected `tracingChannel`
+      // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
+      return environment.config.consumer === 'server';
+    },
     config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by

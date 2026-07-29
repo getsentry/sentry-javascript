@@ -53,6 +53,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
+- **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
 <!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
 
@@ -266,11 +267,11 @@ Affected SDKs: `@sentry/browser` and `@sentry/deno` (and their dependents).
 
 The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIntegration` from `@sentry/core` to capture console breadcrumbs instead.
 
-### Next.js: tracing removed from generated templates
+### `@sentry/nextjs`
 
-Affected SDKs: `@sentry/nextjs`.
+**Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
-Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
+**Middleware span op changed to `middleware`:** Next.js middleware spans now use the `middleware` span op instead of `http.server.middleware`. If you filter or alert on the previous op (e.g. in dashboards or dynamic sampling rules), update it to `middleware`.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
@@ -301,6 +302,7 @@ Affected SDKs: `@sentry/cloudflare`.
 ### `@sentry/core` / All SDKs
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
+- The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
 - The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
 
@@ -341,6 +343,30 @@ Sentry.init({
 ### `@sentry/browser`
 
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
+- INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
+
+- `browserTracingIntegration` no longer captures spans created by `performance.mark()` and `performance.measure()` by default. Add `userTimingIntegration()` to continue capturing them. The `ignorePerformanceApiSpans` option moved to the new integration as `ignore`.
+
+```js
+// before
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['third-party-mark'],
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.userTimingIntegration({
+      ignore: ['third-party-mark'],
+    }),
+  ],
+});
+```
 
 ### `@sentry/node` / Server-side SDKs
 
@@ -348,7 +374,8 @@ Sentry.init({
 - The deprecated `honoIntegration` was removed. Use the [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) SDK to instrument Hono.
 - The `connect` instrumentation was removed.
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
-- The deprecated `SentryHttpInstrumentation` export was removed. Use `instrumentHttpOutgoingRequests()` instead.
+- The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
+- The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
@@ -420,6 +447,7 @@ Sentry.init({
 ### AI integrations
 
 - The `enableTruncation` and `streamGenAiSpans` flags were removed. The new default is no truncation and to always stream gen AI spans.
+- The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute was removed.
 - (Vercel AI) The internal JSON-stringify workaround for array span attributes was removed.
 - AI integrations are no longer available in the browser SDK. They remain available in the server-side SDKs.
 

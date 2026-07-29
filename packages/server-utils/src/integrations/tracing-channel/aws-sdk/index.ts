@@ -69,7 +69,7 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   }
 }
 
-const _awsChannelIntegration = (() => {
+const _awsIntegration = (() => {
   const servicesExtensions = new ServicesExtensions();
 
   return {
@@ -249,14 +249,11 @@ const _awsChannelIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven aws-sdk (v3) integration.
+ * Orchestrion-driven aws-sdk (v3) integration.
  *
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
  * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration (with a distinct
- * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin —
- * wire it up via `experimentalUseDiagnosticsChannelInjection()`.
- *
- * @experimental
+ * `auto.aws.orchestrion.aws_sdk` origin). Requires the orchestrion runtime hook or bundler plugin.
  */
-export const awsChannelIntegration = defineIntegration(_awsChannelIntegration);
+export const awsIntegration = defineIntegration(_awsIntegration);

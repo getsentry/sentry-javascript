@@ -22,6 +22,7 @@ const LAZY_LOADABLE_NAMES = [
   'reportingObserverIntegration',
   'rewriteFramesIntegration',
   'browserProfilingIntegration',
+  'userTimingIntegration',
   'moduleMetadataIntegration',
 ] as const;
 

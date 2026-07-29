@@ -1,5 +1,7 @@
 import type { DurableObjectStorage, SyncKvStorage, SqlStorage } from '@cloudflare/workers-types';
-import { isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { getClient, isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import type { CloudflareClientOptions } from '../client';
+import { getStorageKeys, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
 import { storeSpanContext } from '../utils/traceLinks';
 import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
 import { instrumentSqlStorage } from './instrumentSqlStorage';
@@ -55,6 +57,16 @@ export function instrumentDurableObjectStorage(
       }
 
       return function (this: unknown, ...args: unknown[]) {
+        // KV entries managed by the DO framework itself (agents/partyserver state) are bookkeeping
+        // rather than user work — skip the span, mirroring how `cf_` SQL tables are treated.
+        // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches the Cloudflare-only `durableObjectStorageSpanAllowlist`; tsc errors without it
+        const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
+          ?.durableObjectStorageSpanAllowlist;
+        const keys = getStorageKeys(methodName, args);
+        if (keys && keys.length > 0 && keys.every(key => targetsCloudflareInternalKey(key, allowlist))) {
+          return (original as (...a: unknown[]) => unknown).apply(target, args);
+        }
+
         return startSpan(
           {
             // Use underscore naming to match Cloudflare's native instrumentation (e.g., "durable_object_storage_get")

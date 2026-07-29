@@ -1,4 +1,4 @@
-// EXPERIMENTAL — orchestrion code-transform loader + webpack plugin. The loader is exposed
+// Orchestrion code-transform loader + webpack plugin. The loader is exposed
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
 import { createRequire } from 'node:module';
@@ -112,6 +112,11 @@ function fixupLoaderPath(compiler: Compiler): void {
  * transform, so a compilation warning is emitted for them.
  */
 export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { apply(compiler: Compiler): void } {
+  if (options.buildTimeInstrumentation === false) {
+    // Inert plugin — no code transform, so no instrumentation lands in the bundle.
+    return { apply: () => undefined };
+  }
+
   const plugin = codeTransformerWebpack(orchestrionTransformOptions(options));
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   // The upstream plugin is a class instance, so `apply` is overridden in place

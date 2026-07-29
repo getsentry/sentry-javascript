@@ -58,7 +58,7 @@ const STORED_PARENT_SPAN = new WeakMap<object, Span>();
 
 let orchestrionSubscribed = false;
 
-const _mongooseChannelIntegration = (() => {
+const _mongooseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -162,9 +162,7 @@ function startSpan(
 // `start`-only (or `end`-only) subscriber for the context-capture channels
 // is accepted.
 function channel(channelName: string): SentryTracingChannel<MongooseChannelContext> {
-  return diagnosticsChannel.tracingChannel<MongooseChannelContext>(
-    channelName,
-  ) as unknown as SentryTracingChannel<MongooseChannelContext>;
+  return diagnosticsChannel.tracingChannel<MongooseChannelContext>(channelName);
 }
 
 function bindExecSpan(channelName: string, getSpan: (self: object) => Span): void {
@@ -188,7 +186,7 @@ function stashParentSpan(self: object | undefined): void {
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven mongoose integration.
+ * Orchestrion-driven mongoose integration.
  *
  * Reproduces the vendored `@opentelemetry/instrumentation-mongoose` span
  * shape (legacy db/net semantic conventions, `mongoose.<Model>.<op>` names,
@@ -198,4 +196,4 @@ function stashParentSpan(self: object | undefined): void {
  * diagnostics_channel subscription, so this single integration covers every
  * supported version once it replaces the OTel one.
  */
-export const mongooseChannelIntegration = defineIntegration(_mongooseChannelIntegration);
+export const mongooseIntegration = defineIntegration(_mongooseIntegration);

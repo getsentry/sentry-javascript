@@ -11,7 +11,7 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('tedious instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Tedious'), `Tedious should be in defaults, got ${names.join(', ')}`);
 });
@@ -20,6 +20,7 @@ Deno.test('tedious instrumentation: orchestrion:tedious:execSql channel produces
   resetGlobals();
   const sink = transactionSink();
   init({
+    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     beforeSendTransaction: sink.beforeSendTransaction,

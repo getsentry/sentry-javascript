@@ -74,14 +74,14 @@ function eventFromPlainObject(
     };
   }
 
+  const exceptionValue: Exception = {
+    type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
+    value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
+  };
+
   const event = {
     exception: {
-      values: [
-        {
-          type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
-          value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
-        } as Exception,
-      ],
+      values: [exceptionValue],
     },
     extra,
   } satisfies Event;
@@ -269,7 +269,7 @@ export function eventFromUnknownInput(
 ): Event {
   let event: Event;
 
-  if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
+  if (isErrorEvent(exception) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
     return eventFromError(stackParser, errorEvent.error as Error);
@@ -282,7 +282,7 @@ export function eventFromUnknownInput(
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
   // https://webidl.spec.whatwg.org/#es-DOMException-specialness
-  if (isDOMError(exception) || isDOMException(exception as DOMException)) {
+  if (isDOMError(exception) || isDOMException(exception)) {
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {

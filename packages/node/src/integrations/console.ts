@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ConsoleLevel, HandlerDataConsole, WrappedFunction } from '@sentry/core';
+import type { ConsoleLevel, WrappedFunction } from '@sentry/core';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -87,13 +87,13 @@ function patchWithDefineProperty(consoleObj: Console, level: ConsoleLevel): void
     }
     isExecuting = true;
     try {
-      triggerHandlers('console', { args, level } as HandlerDataConsole);
+      triggerHandlers('console', { args, level });
       delegate.apply(consoleObj, args);
     } finally {
       isExecuting = false;
     }
   };
-  markFunctionWrapped(wrapper as unknown as WrappedFunction, nativeMethod as unknown as WrappedFunction);
+  markFunctionWrapped(wrapper, nativeMethod);
 
   // consoleSandbox reads originalConsoleMethods[level] to temporarily bypass instrumentation. We replace it with a distinct reference (.bind creates a
   // new function identity) so the setter can tell apart "consoleSandbox bypass" from "external code restoring a native method captured before Sentry init."
@@ -135,7 +135,7 @@ function patchWithDefineProperty(consoleObj: Console, level: ConsoleLevel): void
       originalConsoleMethods[level] = originalConsoleMethod;
 
       return function (this: Console, ...args: any[]): void {
-        triggerHandlers('console', { args, level } as HandlerDataConsole);
+        triggerHandlers('console', { args, level });
         originalConsoleMethods[level]?.apply(this, args);
       };
     });

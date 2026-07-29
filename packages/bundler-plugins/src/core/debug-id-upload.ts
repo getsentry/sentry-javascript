@@ -48,28 +48,40 @@ export async function prepareBundleForDebugIdUpload(
   const uniqueUploadName = `${debugId}-${chunkIndex}`;
 
   bundleContent = addDebugIdToBundleSource(bundleContent, debugId);
+
+  const sourceMapPath = await determineSourceMapPathFromBundle(
+    bundleFilePath,
+    bundleContent,
+    logger,
+    resolveSourceMapHook,
+  );
+
+  // A chunk with a debug ID but no resolvable source map
+  // (e.g. framework-generated stub chunks that never emit one) can't be
+  // symbolicated, so uploading its minified source alone accomplishes
+  // nothing and only makes the uploader warn about a missing source map ref.
+  // Skip it, unless the source map is inlined into the bundle, in which case
+  // the source file carries the map itself and must still be uploaded.
+  if (!sourceMapPath && !bundleHasInlineSourceMap(bundleContent)) {
+    logger.debug(`Not uploading bundle without a source map: ${bundleFilePath}`);
+    return;
+  }
+
   const writeSourceFilePromise = fs.promises.writeFile(
     path.join(uploadFolder, `${uniqueUploadName}.js`),
     bundleContent,
     'utf-8',
   );
 
-  const writeSourceMapFilePromise = determineSourceMapPathFromBundle(
-    bundleFilePath,
-    bundleContent,
-    logger,
-    resolveSourceMapHook,
-  ).then(async sourceMapPath => {
-    if (sourceMapPath) {
-      await prepareSourceMapForDebugIdUpload(
+  const writeSourceMapFilePromise = sourceMapPath
+    ? prepareSourceMapForDebugIdUpload(
         sourceMapPath,
         path.join(uploadFolder, `${uniqueUploadName}.js.map`),
         debugId,
         rewriteSourcesHook,
         logger,
-      );
-    }
-  });
+      )
+    : Promise.resolve();
 
   await writeSourceFilePromise;
   await writeSourceMapFilePromise;
@@ -105,6 +117,16 @@ function addDebugIdToBundleSource(bundleSource: string, debugId: string): string
   } else {
     return `${bundleSource}\n//# debugId=${debugId}`;
   }
+}
+
+/**
+ * Whether the bundle carries its source map inlined as `sourceMappingURL=data:`
+ * URI, rather than referencing a separate `.map` file. Such bundles must still
+ * be uploaded even when no `.map` file is found, because the source file itself
+ * contains the map.
+ */
+function bundleHasInlineSourceMap(bundleSource: string): boolean {
+  return /^\s*\/\/# sourceMappingURL=data:/m.test(bundleSource);
 }
 
 /**

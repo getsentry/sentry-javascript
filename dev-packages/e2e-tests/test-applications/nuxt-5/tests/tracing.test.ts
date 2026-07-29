@@ -110,7 +110,7 @@ test.describe('distributed tracing', () => {
         description: `GET /api/user/${PARAM}`, // fixme: parametrize
         parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
         data: expect.objectContaining({
-          url: `/api/user/${PARAM}`,
+          'url.full': expect.stringContaining(`/api/user/${PARAM}`),
           type: 'fetch',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
