@@ -15,7 +15,6 @@ const SentryLive = Layer.mergeAll(
     debug: !!process.env.DEBUG,
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
-    enableLogs: true,
   }),
   Layer.setTracer(Sentry.SentryEffectTracer),
   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
