@@ -251,6 +251,7 @@ Affected SDKs: All SDKs.
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
+- The LangChain gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
