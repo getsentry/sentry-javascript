@@ -938,4 +938,103 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
       expect(spanToJSON(spanInside!).description).toBe('reports process');
     });
   });
+
+  it('schedule @Timeout: captures sync errors with the timeout mechanism', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    subscribeToNestChannels();
+    const captureSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_SCHEDULE_TIMEOUT, [1000], (_t, _k, d) => d);
+    const descriptor: PropertyDescriptor = {
+      value: function doTimeout(): void {
+        throw new Error('timeout boom');
+      },
+      configurable: true,
+    };
+    wrappedDecorator({}, 'doTimeout', descriptor);
+
+    expect(() => (descriptor.value as AnyFn)()).toThrow('timeout boom');
+    expect(captureSpy).toHaveBeenCalledWith(expect.any(Error), {
+      mechanism: { handled: false, type: 'auto.function.nestjs.timeout' },
+    });
+  });
+
+  it('schedule @Cron: skips wrapping handlers flagged __SENTRY_INTERNAL__', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    subscribeToNestChannels();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_SCHEDULE_CRON, ['*/5 * * * *'], (_t, _k, d) => d);
+    const handler = function doCron(): void {};
+    const descriptor: PropertyDescriptor = { value: handler, configurable: true };
+    wrappedDecorator({ __SENTRY_INTERNAL__: true }, 'doCron', descriptor);
+
+    expect(descriptor.value).toBe(handler);
+  });
+
+  it.each([
+    { label: 'symbol', event: Symbol('user.created'), expected: 'event Symbol(user.created)' },
+    { label: 'string array', event: ['user.created', 'user.updated'], expected: 'event user.created,user.updated' },
+    {
+      label: 'mixed array',
+      event: [Symbol('user.created'), 'user.updated'],
+      expected: 'event Symbol(user.created),user.updated',
+    },
+  ])('event @OnEvent: names the transaction from a $label event', async ({ event, expected }) => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    subscribeToNestChannels();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_ONEVENT, [event], (_t, _k, d) => d);
+
+    let spanInside: Span | undefined;
+    const descriptor: PropertyDescriptor = {
+      value: async function onEvent(): Promise<string> {
+        spanInside = getActiveSpan();
+        return 'ok';
+      },
+      configurable: true,
+    };
+    wrappedDecorator({}, 'onEvent', descriptor);
+
+    await (descriptor.value as AnyFn)();
+
+    expect(spanToJSON(spanInside!).description).toBe(expected);
+  });
+
+  it('bullmq @Processor: skips wrapping when the class is flagged __SENTRY_INTERNAL__', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    subscribeToNestChannels();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => undefined);
+
+    class InternalProcessor {
+      public async process(): Promise<void> {}
+    }
+    (InternalProcessor as { __SENTRY_INTERNAL__?: boolean }).__SENTRY_INTERNAL__ = true;
+    const originalProcess = InternalProcessor.prototype.process;
+    wrappedDecorator(InternalProcessor);
+
+    expect(InternalProcessor.prototype.process).toBe(originalProcess);
+  });
+
+  it('bullmq @Processor: does not double-wrap the process method', () => {
+    installTestAsyncContextStrategy();
+    initTestClient();
+    subscribeToNestChannels();
+
+    class EmailProcessor {
+      public async process(): Promise<void> {}
+    }
+    const originalProcess = EmailProcessor.prototype.process;
+
+    driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => undefined)(EmailProcessor);
+    const wrappedProcess = EmailProcessor.prototype.process;
+    expect(wrappedProcess).not.toBe(originalProcess);
+
+    driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => undefined)(EmailProcessor);
+    expect(EmailProcessor.prototype.process).toBe(wrappedProcess);
+  });
 });
