@@ -26,8 +26,6 @@ const mockFetch: typeof fetch = async () =>
     { status: 200, headers: { 'content-type': 'application/json' } },
   );
 
-const client = Sentry.instrumentOpenAiClient(new OpenAI({ apiKey: 'mock-api-key', fetch: mockFetch }));
-
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
@@ -38,6 +36,10 @@ export default Sentry.withSentry(
   }),
   {
     async fetch(_request, _env, _ctx) {
+      // Wrapped in-request so the SDK is initialized when recording options are resolved, which is
+      // also the only place a real Worker can read its API key from `env`.
+      const client = Sentry.instrumentOpenAiClient(new OpenAI({ apiKey: 'mock-api-key', fetch: mockFetch }));
+
       const response = await client.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [

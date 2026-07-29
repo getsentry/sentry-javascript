@@ -39,8 +39,6 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   );
 }) as typeof fetch;
 
-const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
-
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
@@ -51,6 +49,10 @@ export default Sentry.withSentry(
   }),
   {
     async fetch(_request, _env, _ctx) {
+      // Wrapped in-request so the SDK is initialized when recording options are resolved, which is
+      // also the only place a real Worker can read its API key from `env`.
+      const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
+
       // Test 1: chats.create and sendMessage flow
       const chat = client.chats.create({
         model: 'gemini-1.5-pro',
