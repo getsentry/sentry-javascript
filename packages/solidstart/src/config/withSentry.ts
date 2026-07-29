@@ -53,8 +53,12 @@ export function withSentry(
   // Use a module so we don't override preset hooks.
   const sentryNitroModule = (nitro: Nitro) => {
     nitro.hooks.hook('rollup:before', async (nitro, rollupConfig) => {
+      // Nitro types the `rollup:before` hook's `rollupConfig.plugins` as `string[]` (plugin paths),
+      // but at runtime it holds resolved plugin objects we can push onto, so narrow to our own shape.
+      const sentryRollupConfig = rollupConfig as unknown as RollupConfig;
+
       if (addBuildTimeInstrumentation) {
-        (rollupConfig as unknown as RollupConfig).plugins.push(
+        sentryRollupConfig.plugins.push(
           sentryOrchestrionPlugin({ buildTimeInstrumentation: sentryPluginOptions.buildTimeInstrumentation }),
         );
       }
@@ -62,7 +66,7 @@ export function withSentry(
       if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'experimental_dynamic-import') {
         await addDynamicImportEntryFileWrapper({
           nitro,
-          rollupConfig: rollupConfig as unknown as RollupConfig,
+          rollupConfig: sentryRollupConfig,
           sentryPluginOptions,
         });
 
