@@ -15,12 +15,19 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
-// Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
-// the externals handler under test uses it.
-vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
-}));
+// The orchestrion bundler plugin is loaded lazily via `loadOrchestrionBundlerPlugin` (a runtime
+// `require` Vitest's module runner can't resolve), so the seam is mocked here rather than the
+// subpath. Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real
+// because the externals handler under test uses it.
+vi.mock('../../../src/config/loadOrchestrionBundlerPlugin', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@sentry/server-utils/orchestrion/webpack');
+  return {
+    loadOrchestrionBundlerPlugin: () => ({
+      ...actual,
+      sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
+    }),
+  };
+});
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {

@@ -7,6 +7,14 @@ import {
 } from '../../../src/config/turbopack/constructTurbopackConfig';
 import type { NextConfigObject } from '../../../src/config/types';
 
+// The orchestrion bundler plugin is loaded lazily via `loadOrchestrionBundlerPlugin` (a runtime
+// `require` Vitest's module runner can't resolve), so the seam is pointed at the real module
+// through `importActual` (which Vitest does resolve).
+vi.mock('../../../src/config/loadOrchestrionBundlerPlugin', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@sentry/server-utils/orchestrion/webpack');
+  return { loadOrchestrionBundlerPlugin: () => actual };
+});
+
 // Mock path.resolve to return a predictable loader path
 vi.mock('path', async () => {
   const actual = await vi.importActual('path');

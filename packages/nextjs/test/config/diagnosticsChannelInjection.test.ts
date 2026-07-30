@@ -1,11 +1,19 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   externalizeOrchestrionRuntimePackages,
   filterInstrumentedExternals,
 } from '../../src/config/diagnosticsChannelInjection';
+
+// `externalizeOrchestrionRuntimePackages` loads the orchestrion bundler plugin lazily via a runtime
+// `require` that Vitest's module runner can't resolve, so the seam is pointed at the real module
+// through `importActual` (which Vitest does resolve).
+vi.mock('../../src/config/loadOrchestrionBundlerPlugin', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@sentry/server-utils/orchestrion/webpack');
+  return { loadOrchestrionBundlerPlugin: () => actual };
+});
 import { setUpBuildTimeVariables } from '../../src/config/withSentryConfig/buildTime';
 import { getServerExternalPackagesPatch } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
 import type { NextConfigObject } from '../../src/config/types';
