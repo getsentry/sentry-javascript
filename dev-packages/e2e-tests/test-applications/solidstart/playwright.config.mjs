@@ -5,4 +5,8 @@ const config = getPlaywrightConfig({
   port: 3030,
 });
 
-export default config;
+export default {
+  ...config,
+  globalSetup: './global-setup.mjs',
+  globalTeardown: './global-teardown.mjs',
+};

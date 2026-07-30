@@ -9,7 +9,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 
-const FUNCTIONS_ORIGIN = 'auto.firebase.orchestrion.functions';
+const FUNCTIONS_ORIGIN = 'auto.firebase.functions';
 
 // Set on a wrapped handler so re-entrant `start` events don't double-wrap it.
 const WRAPPED = '__sentryFirebaseWrapped';

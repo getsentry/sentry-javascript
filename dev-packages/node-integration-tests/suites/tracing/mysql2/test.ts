@@ -9,7 +9,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
 
   // With orchestrion injection enabled (`INJECT_ORCHESTRION`), the diagnostics-channel integration
   // records the spans instead of the OTel patcher, so they carry a different `sentry.origin`.
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql2' : 'auto.db.otel.mysql2';
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.mysql2' : 'auto.db.otel.mysql2';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',

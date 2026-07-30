@@ -13,7 +13,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 const INTEGRATION_NAME = 'Mongo' as const;
 
-const ORIGIN = 'auto.db.orchestrion.mongo';
+const ORIGIN = 'auto.db.mongo';
 
 /**
  * what orchestrion's transform attaches to a channel context:

@@ -138,7 +138,7 @@ export function createRunner(...paths: string[]) {
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let unordered = false;
-  let withEnv: Record<string, string> = {};
+  let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
@@ -200,7 +200,7 @@ export function createRunner(...paths: string[]) {
       ignored.delete('metric');
       return this;
     },
-    withEnv: function (env: Record<string, string>) {
+    withEnv: function (env: Record<string, string | undefined>) {
       withEnv = {
         ...withEnv,
         ...env,

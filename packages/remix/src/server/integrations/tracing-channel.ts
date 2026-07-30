@@ -24,7 +24,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 
-const ORIGIN = 'auto.http.orchestrion.remix';
+const ORIGIN = 'auto.http.remix';
 
 const NOOP = (): void => {};
 

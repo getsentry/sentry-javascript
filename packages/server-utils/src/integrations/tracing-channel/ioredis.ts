@@ -22,7 +22,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // only its ioredis monkey-patch is gated off in the node SDK when this is active.
 const INTEGRATION_NAME = 'IORedis' as const;
 
-const ORIGIN = 'auto.db.orchestrion.redis';
+const ORIGIN = 'auto.db.redis';
 
 // todo(v11): Let's drop this as this is already covered with host and port
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';

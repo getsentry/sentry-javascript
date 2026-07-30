@@ -95,5 +95,5 @@ Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db
   assertEquals(pgSpan!.data?.['net.peer.name'], '127.0.0.1');
   assertEquals(pgSpan!.data?.['net.peer.port'], 5432);
   assertEquals(pgSpan!.data?.['db.user'], 'root');
-  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.postgres');
+  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.postgres');
 });

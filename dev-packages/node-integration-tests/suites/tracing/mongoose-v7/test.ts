@@ -5,7 +5,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 
 // Pins mongoose 7 so the `contextCaptureFunctions7` version branch is exercised against a real mongoose.
 describe('Mongoose v7 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

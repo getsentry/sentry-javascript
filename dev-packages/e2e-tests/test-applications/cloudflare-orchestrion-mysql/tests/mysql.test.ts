@@ -24,7 +24,7 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
 
   const firstQuery = dbSpans.find(span => span.description === 'SELECT 1 + 1 AS solution');
   expect(firstQuery).toBeDefined();
-  expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.orchestrion.mysql');
+  expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
   expect(firstQuery!.data?.['db.system']).toBe('mysql');
   expect(firstQuery!.data?.['db.statement']).toBe('SELECT 1 + 1 AS solution');
   expect(firstQuery!.data?.['net.peer.name']).toBe('127.0.0.1');
