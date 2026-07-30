@@ -10,6 +10,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
+import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
@@ -65,6 +66,11 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
         if (rootSpan) {
           setCapturedScopesOnSpan(rootSpan, getCurrentScope(), isolationScope);
+
+          // The `BaseServer.handleRequest` root span for a pages-router API route carries no `http.route`, so it would
+          // otherwise be named from the raw URL with a `url` source. Backfill the parameterized route so the transaction
+          // gets a `route` source and a parameterized `http.route`.
+          rootSpan.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, parameterizedRoute);
         }
 
         try {
