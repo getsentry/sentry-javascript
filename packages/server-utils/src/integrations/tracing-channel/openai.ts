@@ -22,9 +22,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'OpenAI' as const;
 
-// Distinct from the proxy's `auto.ai.openai` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.openai';
+const ORIGIN = 'auto.ai.openai';
 
 // Each instrumented `create` method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [

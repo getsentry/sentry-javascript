@@ -21,9 +21,9 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+import { getStringAttributeValue } from '../../../utils';
 
-const EXPECTED_ORIGIN = isOrchestrionEnabled() ? 'auto.ai.orchestrion.google_genai' : 'auto.ai.google_genai';
+const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
 describe('Google GenAI integration', () => {
   afterAll(() => {

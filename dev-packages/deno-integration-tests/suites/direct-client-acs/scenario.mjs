@@ -21,7 +21,7 @@ const client = new DenoClient({
   stackParser: createStackParser(nodeStackLineParser()),
   beforeSendTransaction(event) {
     const spans = event.spans ?? [];
-    if (spans.some(s => s.op === 'db' && s.data?.['sentry.origin'] === 'auto.db.orchestrion.mysql')) {
+    if (spans.some(s => s.op === 'db' && s.data?.['sentry.origin'] === 'auto.db.mysql')) {
       nested = true;
     }
     return null;

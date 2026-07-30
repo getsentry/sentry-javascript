@@ -17,7 +17,7 @@ test('Instruments dataloader automatically via orchestrion', async ({ baseURL })
   const loadSpan = spans.find(span => span.description === 'dataloader.load usersLoader');
   expect(loadSpan).toBeDefined();
   expect(loadSpan?.op).toBe('cache.get');
-  expect(loadSpan?.origin).toBe('auto.db.orchestrion.dataloader');
+  expect(loadSpan?.origin).toBe('auto.db.dataloader');
   expect(loadSpan?.status).toBe('ok');
   expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
 
@@ -25,6 +25,6 @@ test('Instruments dataloader automatically via orchestrion', async ({ baseURL })
   const batchSpan = spans.find(span => span.description === 'dataloader.batch usersLoader');
   expect(batchSpan).toBeDefined();
   expect(batchSpan?.op).toBe('cache.get');
-  expect(batchSpan?.origin).toBe('auto.db.orchestrion.dataloader');
+  expect(batchSpan?.origin).toBe('auto.db.dataloader');
   expect(batchSpan?.status).toBe('ok');
 });

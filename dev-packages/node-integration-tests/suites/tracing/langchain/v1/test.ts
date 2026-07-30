@@ -17,7 +17,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { conditionalTest, getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
+import { conditionalTest, getStringAttributeValue } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
@@ -286,9 +286,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
             span: container => {
               expect(container.items).toHaveLength(2);
               const anthropicSpan = container.items.find(
-                span =>
-                  span.attributes['sentry.origin'].value ===
-                  (isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic'),
+                span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
               );
               expect(anthropicSpan).toBeDefined();
               expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');

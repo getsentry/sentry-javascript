@@ -54,5 +54,5 @@ Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces
   assertEquals(publishSpan!.description, 'publish my-exchange');
   assertEquals(publishSpan!.data?.['messaging.destination.name'], 'my-exchange');
   assertEquals(publishSpan!.data?.['messaging.system'], 'rabbitmq');
-  assertEquals(publishSpan!.data?.['sentry.origin'], 'auto.amqplib.orchestrion.publisher');
+  assertEquals(publishSpan!.data?.['sentry.origin'], 'auto.amqplib.publisher');
 });

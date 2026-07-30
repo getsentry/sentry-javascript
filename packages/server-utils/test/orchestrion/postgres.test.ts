@@ -124,7 +124,7 @@ describe('postgresIntegration', () => {
           'net.peer.port': 5432,
           'db.connection_string': 'postgresql://localhost:5432/tests',
           'db.statement': 'SELECT * FROM "User"',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );
@@ -147,7 +147,7 @@ describe('postgresIntegration', () => {
         attributes: expect.objectContaining({
           'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
           'db.postgresql.plan': 'select-user-by-email',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );

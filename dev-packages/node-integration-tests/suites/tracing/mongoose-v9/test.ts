@@ -8,7 +8,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
 // mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
 conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

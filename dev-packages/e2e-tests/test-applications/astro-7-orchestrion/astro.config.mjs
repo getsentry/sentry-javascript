@@ -1,6 +1,5 @@
 import node from '@astrojs/node';
 import sentry from '@sentry/astro';
-import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 // @ts-check
 import { defineConfig } from 'astro/config';
 
@@ -18,9 +17,4 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone',
   }),
-  vite: {
-    // Run the orchestrion code transform on the Vite SSR bundle so instrumented
-    // DB drivers get `diagnostics_channel` publishers injected at build time.
-    plugins: [sentryOrchestrionPlugin()],
-  },
 });

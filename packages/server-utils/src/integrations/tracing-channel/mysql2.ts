@@ -23,7 +23,7 @@ import {
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
-const ORIGIN = 'auto.db.orchestrion.mysql2';
+const ORIGIN = 'auto.db.mysql2';
 const DB_SYSTEM_VALUE_MYSQL = 'mysql';
 
 /**

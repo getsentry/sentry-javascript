@@ -14,8 +14,7 @@ import type { FirebaseApp, FirebaseOptions, FirestoreReference, FirestoreSetting
 
 /**
  * Opens the inactive `db.query` span for a Firestore operation. `bindTracingChannelToSpan` makes it the
- * active span for the traced call and ends it when the call settles. Mirrors the OTel integration's span,
- * with a distinct `auto.firebase.orchestrion.firestore` origin.
+ * active span for the traced call and ends it when the call settles. Mirrors the OTel integration's span.
  */
 export function startFirestoreSpan(spanName: string, reference: FirestoreReference): Span {
   return startInactiveSpan({
@@ -23,7 +22,7 @@ export function startFirestoreSpan(spanName: string, reference: FirestoreReferen
     op: 'db.query',
     attributes: {
       [SENTRY_KIND]: 'client',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.orchestrion.firestore',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.firebase.firestore',
       [DB_OPERATION_NAME]: spanName,
       ...buildAttributes(reference),
     },

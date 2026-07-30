@@ -9,7 +9,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 // integrations get the diagnostics-channel origin when the generic orchestrion run is enabled (via
 // INJECT_ORCHESTRION), since the OTel `Postgres` integration is then swapped for the channel one. Blocks
 // that pass an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin.
-const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
+const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.postgres' : 'auto.db.otel.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
   'db.connection_string': {
@@ -78,7 +78,7 @@ const COMMON_DB_ATTRIBUTES = {
  * Builds the expected strict shape of a streamed postgres db span.
  *
  * Query spans carry a `db.statement` and the query origin (`auto.db.otel.postgres`, or
- * `auto.db.orchestrion.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
+ * `auto.db.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
  * `pg.connect` span has no `db.statement`, and since the pg instrumentation sets no origin on it, it
  * carries the default `manual` origin (written as an attribute on the streamed-span path; the
  * non-streamed/SDK path omits the `manual` default).
@@ -199,7 +199,7 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
               // `postgresIntegration()` is the diagnostics-channel implementation by default, so query
               // spans carry the orchestrion origin even when passing explicit options like
               // `ignoreConnectSpans`.
-              const origin = 'auto.db.orchestrion.postgres';
+              const origin = 'auto.db.postgres';
               expect(dbSpans).toEqual([
                 expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({

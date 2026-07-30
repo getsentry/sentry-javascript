@@ -88,7 +88,7 @@ const _mysqlIntegration = (() => {
               attributes: {
                 [SENTRY_KIND]: 'client',
                 [ATTR_DB_SYSTEM]: 'mysql',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.mysql',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
                 [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
                 ...(database ? { [ATTR_DB_NAME]: database } : {}),
                 ...(user ? { [ATTR_DB_USER]: user } : {}),

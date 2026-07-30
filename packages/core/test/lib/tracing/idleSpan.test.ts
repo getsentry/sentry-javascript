@@ -214,21 +214,23 @@ describe('startIdleSpan', () => {
     });
   });
 
-  it('calls beforeSpanEnd callback before finishing', () => {
-    const beforeSpanEnd = vi.fn();
-    const idleSpan = startIdleSpan({ name: 'foo' }, { beforeSpanEnd });
+  it('emits beforeIdleSpanEnd hook before finishing', () => {
+    const beforeIdleSpanEnd = vi.fn();
+    getClient()!.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
 
-    expect(beforeSpanEnd).not.toHaveBeenCalled();
+    expect(beforeIdleSpanEnd).not.toHaveBeenCalled();
 
     startSpan({ name: 'inner' }, () => {});
 
     vi.runOnlyPendingTimers();
-    expect(beforeSpanEnd).toHaveBeenCalledTimes(1);
-    expect(beforeSpanEnd).toHaveBeenLastCalledWith(idleSpan);
+    expect(beforeIdleSpanEnd).toHaveBeenCalledTimes(1);
+    expect(beforeIdleSpanEnd).toHaveBeenLastCalledWith(idleSpan);
   });
 
-  it('allows to mutate idle span in beforeSpanEnd before it is sent', () => {
+  it('allows to mutate idle span in beforeIdleSpanEnd before it is sent', () => {
     const transactions: Event[] = [];
     const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
@@ -246,16 +248,18 @@ describe('startIdleSpan', () => {
     // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
-    const beforeSpanEnd = vi.fn((span: Span) => {
+    const beforeIdleSpanEnd = vi.fn((span: Span) => {
       span.setAttribute('foo', 'bar');
       // Try adding a child here - we do this in browser tracing...
-      const inner = startInactiveSpan({ name: 'from beforeSpanEnd', startTime: baseTimeInSeconds });
+      const inner = startInactiveSpan({ name: 'from beforeIdleSpanEnd', startTime: baseTimeInSeconds });
       inner.end(baseTimeInSeconds + 1);
     });
-    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { beforeSpanEnd });
+    client.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
     expect(idleSpan).toBeDefined();
 
-    expect(beforeSpanEnd).not.toHaveBeenCalled();
+    expect(beforeIdleSpanEnd).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
     vi.runOnlyPendingTimers();
@@ -270,7 +274,7 @@ describe('startIdleSpan', () => {
     const transaction = transactions[0]!;
 
     expect(transaction.start_timestamp).toBe(baseTimeInSeconds);
-    // It considers the end time of the span we added in beforeSpanEnd
+    // It considers the end time of the span we added in beforeIdleSpanEnd
     expect(transaction.timestamp).toBe(baseTimeInSeconds + 1);
 
     expect(transaction.contexts?.trace?.data).toEqual(
@@ -279,7 +283,7 @@ describe('startIdleSpan', () => {
       }),
     );
     expect(transaction.spans).toHaveLength(1);
-    expect(transaction.spans).toEqual([expect.objectContaining({ description: 'from beforeSpanEnd' })]);
+    expect(transaction.spans).toEqual([expect.objectContaining({ description: 'from beforeIdleSpanEnd' })]);
   });
 
   it('runs beforeIdleSpanEnd before trimming the idle span', () => {

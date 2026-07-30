@@ -18,7 +18,7 @@ import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRo
 // Same name as the OTel integration. When enabled, the OTel 'Koa' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Koa' as const;
 
-const ORIGIN = 'auto.http.orchestrion.koa';
+const ORIGIN = 'auto.http.koa';
 
 const LAYER_TYPE = {
   ROUTER: 'router',

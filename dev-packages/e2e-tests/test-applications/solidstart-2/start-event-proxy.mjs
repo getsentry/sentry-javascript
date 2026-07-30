@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'node-otel-without-tracing',
+  proxyServerName: 'solidstart-2',
 });
