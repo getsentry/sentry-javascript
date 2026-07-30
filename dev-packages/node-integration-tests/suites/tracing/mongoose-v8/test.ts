@@ -6,7 +6,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // Pins mongoose 8 (>= 8.21) so the document `updateOne`/`deleteOne` lazy-Query path is exercised
 // against a real mongoose, guarding the thenable trap that mongoose 6 (the workspace version) can't hit.
 describe('Mongoose v8 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

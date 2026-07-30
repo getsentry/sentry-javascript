@@ -24,9 +24,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
 
-// Distinct from the proxy's `auto.ai.anthropic` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.anthropic';
+const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [

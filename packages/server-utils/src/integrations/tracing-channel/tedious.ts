@@ -28,7 +28,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
 const INTEGRATION_NAME = 'Tedious' as const;
-const ORIGIN = 'auto.db.orchestrion.tedious';
+const ORIGIN = 'auto.db.tedious';
 
 // OTel db/net semantic-convention values/keys not exported by `@sentry/conventions`, inlined to match
 // what `@opentelemetry/instrumentation-tedious` emitted.
@@ -142,7 +142,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     };
 
     const span = startInactiveSpan({
-      name: getSpanName(operation, databaseName, sql, request.table),
+      name: sql || getSpanName(operation, databaseName, sql, request.table),
       op: 'db',
       attributes,
     });

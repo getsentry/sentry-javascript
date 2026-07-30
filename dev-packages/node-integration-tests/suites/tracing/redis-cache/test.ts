@@ -7,7 +7,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     cleanupChildProcesses();
   });
 
-  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -168,7 +168,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       ? [
           expect.objectContaining({
             description: 'MULTI',
-            op: 'db.redis',
+            op: 'db.query',
             origin: redisOrigin,
             data: expect.objectContaining({
               'sentry.origin': redisOrigin,
@@ -286,7 +286,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({
@@ -321,7 +321,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       ? [
           expect.objectContaining({
             description: 'MULTI',
-            op: 'db.redis',
+            op: 'db.query',
             origin: redisOrigin,
             data: expect.objectContaining({
               'sentry.origin': redisOrigin,
@@ -439,7 +439,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-5-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({

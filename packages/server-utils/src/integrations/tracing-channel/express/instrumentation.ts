@@ -6,10 +6,8 @@ import {
   getActiveSpan,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
 } from '@sentry/core';
@@ -34,6 +32,7 @@ import type {
   HandleChannelContext,
   RegistrationChannelContext,
 } from './types';
+import { setHttpServerSpanRouteAttribute } from '../../../utils/setHttpServerSpanRouteAttribute';
 
 const ORIGIN = 'auto.http.express';
 
@@ -192,7 +191,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // check, so the transaction is still named even when the layer's own span is
   // ignored — matches the OTel Express integration's `onRouteResolved` timing.
   if (matchedRoute) {
-    setHttpServerSpanRoute(matchedRoute);
+    setHttpServerSpanRouteAttribute(matchedRoute);
   }
 
   if (type === 'request_handler' && constructedRoute) {
@@ -255,24 +254,6 @@ function getLayerType(layer: ExpressLayer): ExpressLayerType {
     return 'request_handler';
   }
   return 'middleware';
-}
-
-/**
- * Propagate the resolved route to the root `http.server` span so the
- * transaction gets a parameterized `http.route`. Mirrors `@sentry/node`'s
- * `setHttpServerSpanRouteAttribute`; inlined to keep this package free of
- * `@sentry/node` deps. No-op unless the root span is an `http.server` span.
- */
-function setHttpServerSpanRoute(route: string): void {
-  const activeSpan = getActiveSpan();
-  const rootSpan = activeSpan && getRootSpan(activeSpan);
-  if (!rootSpan) {
-    return;
-  }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
-    return;
-  }
-  rootSpan.setAttribute(HTTP_ROUTE, route);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { init, spanStreamingIntegration } from '../src';
-import type { Integration } from '@sentry/core';
+import { type Integration } from '@sentry/core';
 
 describe('init', () => {
   it('adds spanStreamingIntegration by default', () => {

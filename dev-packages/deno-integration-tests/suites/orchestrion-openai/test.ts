@@ -56,5 +56,5 @@ Deno.test('openai instrumentation: orchestrion:openai:chat channel produces a ne
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gpt-4o');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'gpt-4o-2024-08-06');
   assertEquals(aiSpan!.data?.['gen_ai.usage.total_tokens'], 15);
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.orchestrion.openai');
+  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.openai');
 });

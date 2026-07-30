@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -7,6 +8,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -44,6 +46,15 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
+          // collect only LLM input
+          [GEN_AI_SYSTEM_INSTRUCTIONS]: {
+            value: '[{"type":"text","content":"You are a helpful assistant."}]',
+            type: 'string',
+          },
+          [GEN_AI_INPUT_MESSAGES]: {
+            value: '[{"role":"user","content":"What is the capital of France?"}]',
+            type: 'string',
+          },
           [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
           [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 10, type: 'integer' },

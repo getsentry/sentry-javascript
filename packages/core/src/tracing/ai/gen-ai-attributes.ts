@@ -31,45 +31,14 @@ export const GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE = 'gen_ai.request.dimensions';
 export const GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE = 'gen_ai.response.stop_reason';
 
 /**
- * Original length of messages array, used to indicate truncations had occured
- */
-export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.gen_ai.input.messages.original_length';
-
-/**
- * The number of cache creation input tokens used
- *
- * Kept local: `@sentry/conventions` emits `gen_ai.usage.cache_creation.input_tokens` (dotted), which
- * differs from the key we emit here.
- */
-export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
-
-/**
- * The number of cache read input tokens used
- *
- * Kept local: `@sentry/conventions` emits `gen_ai.usage.cache_read.input_tokens` (dotted), which
- * differs from the key we emit here.
- */
-export const GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read_input_tokens';
-
-/**
  * The span operation name for invoking an agent
  */
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
 
 /**
- * The span operation name for generating content
- */
-export const GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE = 'gen_ai.generate_content';
-
-/**
  * The span operation for embeddings
  */
 export const GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE = 'gen_ai.embeddings';
-
-/**
- * The span operation name for reranking
- */
-export const GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE = 'gen_ai.rerank';
 
 /**
  * The span operation name for executing a tool

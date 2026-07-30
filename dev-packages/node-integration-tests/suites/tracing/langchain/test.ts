@@ -19,11 +19,10 @@ import {
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
 } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
@@ -212,21 +211,22 @@ describe('LangChain integration', () => {
           .expect({
             span: container => {
               expect(container.items).toHaveLength(3);
+              // The string-input span has no system message (and therefore no system instructions),
+              // while the array-input span does — use that to distinguish the two truncated spans.
+              const truncatedContent = /^\[\{"role":"user","content":"C+"\}\]$/;
               const stringInputSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]?.value === 1,
+                span =>
+                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS] === undefined &&
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(truncatedContent),
               );
               expect(stringInputSpan).toBeDefined();
               expect(stringInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(stringInputSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(
-                /^\[\{"role":"user","content":"C+"\}\]$/,
-              );
+              expect(stringInputSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(truncatedContent);
 
               const arrayInputSpan = container.items.find(
                 span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]?.value === 2 &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(
-                    /^\[\{"role":"user","content":"C+"\}\]$/,
-                  ),
+                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS] !== undefined &&
+                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(truncatedContent),
               );
               expect(arrayInputSpan).toBeDefined();
               expect(arrayInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
@@ -239,7 +239,6 @@ describe('LangChain integration', () => {
               );
               expect(smallMessageSpan).toBeDefined();
               expect(smallMessageSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
               expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeDefined();
             },
           })
@@ -258,9 +257,7 @@ describe('LangChain integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
             const anthropicSpan = container.items.find(
-              span =>
-                span.attributes['sentry.origin'].value ===
-                (isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic'),
+              span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic',
             );
             expect(anthropicSpan).toBeDefined();
             expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
@@ -478,7 +475,6 @@ describe('LangChain integration', () => {
                   { role: 'user', content: 'Follow-up question' },
                 ]),
               );
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()

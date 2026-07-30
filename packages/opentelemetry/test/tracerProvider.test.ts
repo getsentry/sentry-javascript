@@ -12,26 +12,14 @@ import {
   type Span,
   withIsolationScope,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { applyOtelSpanData } from '../src/applyOtelSpanData';
-import { SentryTracerProvider } from '../src/tracerProvider';
-import { cleanupOtel } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 import { init as initTestClient } from './helpers/TestClient';
-import { URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SentryTracerProvider', () => {
   beforeEach(() => {
-    (global as { __SENTRY__?: unknown }).__SENTRY__ = {};
-    setOpenTelemetryContextAsyncContextStrategy();
-    initTestClient({ tracesSampleRate: 1 });
-    context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
-    trace.setGlobalTracerProvider(new SentryTracerProvider());
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
+    mockSdkInit({ tracesSampleRate: 1 });
   });
 
   it('creates Sentry spans from the global OpenTelemetry tracer', () => {
@@ -47,11 +35,11 @@ describe('SentryTracerProvider', () => {
         'sentry.origin': 'manual',
         'sentry.op': 'db',
         'sentry.sample_rate': 1,
-        'sentry.source': 'task',
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
+        'sentry.source': 'custom',
       },
-      description: 'SELECT * FROM users',
+      description: 'SELECT users',
       op: 'db',
       origin: 'manual',
       parent_span_id: undefined,
@@ -209,7 +197,7 @@ describe('SentryTracerProvider', () => {
     expect(streamed.attributes?.['sentry.status.message']).toBe('Cannot enqueue Query after fatal error.');
   });
 
-  it('infers route source, op, and name for HTTP server spans', () => {
+  it('infers op for HTTP server spans', () => {
     const span = trace.getTracer('test').startSpan('GET', {
       kind: SpanKind.SERVER,
       attributes: {
@@ -220,30 +208,5 @@ describe('SentryTracerProvider', () => {
 
     const json = spanToJSON(span as Span);
     expect(json.op).toBe('http.server');
-    expect(json.data?.['sentry.source']).toBe('route');
-    expect(json.description).toBe('GET /my-path/:id');
-  });
-
-  it('defers url source to span end, keeping custom for the DSC at creation', () => {
-    const span = trace.getTracer('test').startSpan('POST', {
-      kind: SpanKind.SERVER,
-      attributes: {
-        'http.method': 'POST',
-        [URL_FULL]: 'https://www.example.com/my-path',
-        'http.target': '/my-path',
-      },
-    });
-
-    // At creation op and name are inferred, but the `url` source is intentionally
-    // deferred so the default `custom` source survives for the DSC transaction name
-    // (http.route is often not available yet at this point).
-    const atCreation = spanToJSON(span as Span);
-    expect(atCreation.op).toBe('http.server');
-    expect(atCreation.description).toBe('POST /my-path');
-    expect(atCreation.data?.['sentry.source']).toBe('custom');
-
-    // At span end the inferred `url` source is applied.
-    applyOtelSpanData(span as Span, { finalizeStatus: true });
-    expect(spanToJSON(span as Span).data?.['sentry.source']).toBe('url');
   });
 });

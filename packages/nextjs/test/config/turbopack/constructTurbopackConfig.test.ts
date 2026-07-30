@@ -1337,6 +1337,19 @@ describe('orchestrion diagnostics-channel injection', () => {
     expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
   });
 
+  it('restricts the orchestrion rule to the node environment', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      nextJsVersion: '16.0.0',
+    });
+
+    // `condition: 'node'` is what keeps the transform off client code — orchestrion
+    // splices `node:diagnostics_channel` calls that throw `X is not a function` in the browser.
+    const rule = result.rules!['*.{js,mjs,cjs}'] as { condition?: unknown };
+    expect(rule.condition).toBe('node');
+  });
+
   it('does not add the orchestrion rule when injection is not opted in', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},

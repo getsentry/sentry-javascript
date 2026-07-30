@@ -1,8 +1,16 @@
-export * from './exports';
+export { getScopesFromContext } from './utils/contextData';
 
-// Node-specific exports
-export { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
-export type { AsyncLocalStorageLookup } from './contextManager';
+export { getTraceContextForScope } from './trace';
 
-// We export the node-specific variant here that uses async local storage
-export { setNodeOpenTelemetryContextAsyncContextStrategy as setOpenTelemetryContextAsyncContextStrategy } from './nodeAsyncContextStrategy';
+export { setupEventContextTrace } from './setupEventContextTrace';
+
+export { SentryPropagator } from './propagator';
+export { applyOtelSpanData } from './applyOtelSpanData';
+export { backfillStreamedSpanDataFromOtel } from './utils/backfillStreamedSpanData';
+export { SentryTracerProvider } from './tracerProvider';
+
+export { getSentryResource } from './resource';
+
+export { type AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
+
+export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';

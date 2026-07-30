@@ -1,13 +1,4 @@
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  GLOBAL_OBJ,
-  Scope,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
-import { AsyncLocalStorage } from 'async_hooks';
+import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, withIsolationScope, withScope } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 
@@ -17,7 +8,6 @@ describe('withScope()', () => {
     getCurrentScope().clear();
     getGlobalScope().clear();
 
-    (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
     setAsyncLocalStorageAsyncContextStrategy();
   });
 
@@ -95,7 +85,6 @@ describe('withIsolationScope()', () => {
     getIsolationScope().clear();
     getCurrentScope().clear();
     getGlobalScope().clear();
-    (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
 
     setAsyncLocalStorageAsyncContextStrategy();
   });

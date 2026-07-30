@@ -34,7 +34,7 @@ Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frame
 
 **Node.js:** The minimum supported Node.js version is now **20.19.0**. Node.js 18 is no longer supported.
 
-**Deno:** The minimum supported Deno version is now **2.8.2**.
+**Deno:** The minimum supported Deno version is now **2.8.3**.
 
 **Browsers:** Support for **Safari 14** was dropped. Sentry now requires Safari 15 or higher. For the rest of the browser support matrix, refer to the [Sentry docs](https://docs.sentry.io/platforms/javascript/#browser-support).
 
@@ -251,6 +251,7 @@ Affected SDKs: All SDKs.
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
+- The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
@@ -326,6 +327,25 @@ Sentry.init({
 });
 ```
 
+- The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+  },
+});
+
+// after: logs are enabled by default, no option needed
+Sentry.init({});
+
+// or, to opt out
+Sentry.init({
+  enableLogs: false,
+});
+```
+
 - The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
 
 ```js
@@ -344,6 +364,29 @@ Sentry.init({
 
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
 - INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
+
+- `browserTracingIntegration` no longer captures spans created by `performance.mark()` and `performance.measure()` by default. Add `userTimingIntegration()` to continue capturing them. The `ignorePerformanceApiSpans` option moved to the new integration as `ignore`.
+
+```js
+// before
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['third-party-mark'],
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.userTimingIntegration({
+      ignore: ['third-party-mark'],
+    }),
+  ],
+});
+```
 
 ### `@sentry/node` / Server-side SDKs
 
@@ -424,6 +467,7 @@ Sentry.init({
 ### AI integrations
 
 - The `enableTruncation` and `streamGenAiSpans` flags were removed. The new default is no truncation and to always stream gen AI spans.
+- The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute was removed.
 - (Vercel AI) The internal JSON-stringify workaround for array span attributes was removed.
 - AI integrations are no longer available in the browser SDK. They remain available in the server-side SDKs.
 

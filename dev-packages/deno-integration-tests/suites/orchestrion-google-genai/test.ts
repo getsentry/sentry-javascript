@@ -58,5 +58,5 @@ Deno.test('google-genai instrumentation: orchestrion @google/genai:generate-cont
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gemini-1.5-flash');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'gemini-1.5-flash-002');
   assertEquals(aiSpan!.data?.['gen_ai.usage.total_tokens'], 15);
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.orchestrion.google_genai');
+  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.google_genai');
 });

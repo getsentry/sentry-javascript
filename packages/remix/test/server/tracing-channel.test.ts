@@ -43,11 +43,12 @@ describe('remixIntegration (Orchestrion-based)', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'remix.request',
+        name: 'GET /users',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.origin': 'auto.http.remix',
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
+          'sentry.source': 'url',
           'code.function': 'requestHandler',
           'http.method': 'GET',
           'url.full': 'http://localhost/users',
@@ -59,6 +60,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
   });
 
   it('matchServerRoutes: enriches the active request span with the matched route', () => {
+    span = makeSpan({ 'http.method': 'GET' });
     getActiveSpanSpy.mockReturnValue(span);
     const ctx = {
       arguments: [[], '/users/123'],
@@ -69,7 +71,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
 
     expect(span.setAttribute).toHaveBeenCalledWith('http.route', 'users/:userId');
     expect(span.setAttribute).toHaveBeenCalledWith('match.route.id', 'routes/users.$userId');
-    expect(span.updateName).toHaveBeenCalledWith('remix.request users/:userId');
+    expect(span.updateName).toHaveBeenCalledWith('GET users/:userId');
+    expect(span.setAttribute).toHaveBeenCalledWith('sentry.source', 'route');
   });
 
   it('matchServerRoutes: does nothing when there is no active span', () => {
@@ -98,7 +101,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.origin': 'auto.http.remix',
           'sentry.op': 'loader.remix',
           'code.function': 'loader',
           'http.method': 'GET',

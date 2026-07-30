@@ -343,6 +343,17 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).not.toHaveBeenCalled();
     });
 
+    it('does not create a span for cf:-prefixed chat-recovery keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.put('cf:chat-recovery:progress', 1);
+      await instrumented.get('cf:chat-recovery:incident:abc');
+      await instrumented.list({ prefix: 'cf:chat-recovery:incident:' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
     it('does not create a span for a cf_-prefixed put with object entries', async () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const instrumented = instrumentDurableObjectStorage(createMockStorage());

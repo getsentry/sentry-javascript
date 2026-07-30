@@ -8,5 +8,4 @@ Sentry.init({
   tracesSampleRate: 1.0,
   dataCollection: { genAI: { inputs: true, outputs: true } },
   transport: loggingTransport,
-  streamGenAiSpans: true,
 });

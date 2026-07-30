@@ -34,21 +34,22 @@ describe('resolveAIRecordingOptions', () => {
     client.init();
   }
 
-  it('defaults to false when no client is set', () => {
-    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
+  it('defaults to true when no client is set', () => {
+    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
-  it('defaults to false when sendDefaultPii is false (bridge)', () => {
+  // todo: delete the following tests once we remove sendDefaultPii
+  it.skip('defaults to false when sendDefaultPii is false (bridge)', () => {
     setupWithSendDefaultPii(false);
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
   });
 
-  it('defaults to true when sendDefaultPii is true (bridge)', () => {
+  it.skip('defaults to true when sendDefaultPii is true (bridge)', () => {
     setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
   });
 
-  it('explicit options override sendDefaultPii bridge', () => {
+  it.skip('explicit options override sendDefaultPii bridge', () => {
     setupWithSendDefaultPii(true);
     expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
   });
@@ -111,18 +112,8 @@ describe('shouldEnableTruncation', () => {
     expect(shouldEnableTruncation(undefined)).toBe(true);
   });
 
-  it('defaults to false with a default client (streamGenAiSpans is opt-out)', () => {
+  it('defaults to false with a default client', () => {
     setupClient();
-    expect(shouldEnableTruncation(undefined)).toBe(false);
-  });
-
-  it('defaults to true when streamGenAiSpans is explicitly disabled', () => {
-    setupClient({ streamGenAiSpans: false });
-    expect(shouldEnableTruncation(undefined)).toBe(true);
-  });
-
-  it('defaults to false when streamGenAiSpans is enabled', () => {
-    setupClient({ streamGenAiSpans: true });
     expect(shouldEnableTruncation(undefined)).toBe(false);
   });
 
@@ -131,8 +122,8 @@ describe('shouldEnableTruncation', () => {
     expect(shouldEnableTruncation(undefined)).toBe(false);
   });
 
-  it('explicit enableTruncation: true overrides streamGenAiSpans', () => {
-    setupClient({ streamGenAiSpans: true });
+  it('explicit enableTruncation: true overrides the default', () => {
+    setupClient();
     expect(shouldEnableTruncation(true)).toBe(true);
   });
 

@@ -5,9 +5,7 @@ import { init } from '../../src/node/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
 vi.mock('@sentry/node', () => ({
-  init: vi.fn().mockReturnValue({
-    /* fake client returned by node init */
-  }),
+  init: vi.fn().mockReturnValue({/* fake client returned by node init */}),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports

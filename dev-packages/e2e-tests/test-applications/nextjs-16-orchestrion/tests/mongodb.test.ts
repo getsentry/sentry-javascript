@@ -17,7 +17,7 @@ test('Instruments mongodb automatically via orchestrion', async ({ baseURL }) =>
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mongo',
+      origin: 'auto.db.mongo',
       status: 'ok',
       data: expect.objectContaining({
         'db.system': 'mongodb',
@@ -30,7 +30,7 @@ test('Instruments mongodb automatically via orchestrion', async ({ baseURL }) =>
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mongo',
+      origin: 'auto.db.mongo',
       status: 'ok',
       data: expect.objectContaining({
         'db.system': 'mongodb',

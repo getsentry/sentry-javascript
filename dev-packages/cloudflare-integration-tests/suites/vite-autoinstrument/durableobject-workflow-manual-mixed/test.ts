@@ -28,12 +28,12 @@ function expectDurableObjectTransaction(transactionEvent: TransactionEvent): voi
   ]);
 }
 
-// A workflow step runs in its own invocation and reports a `function.step.do` /
+// A workflow step runs in its own invocation and reports a `function` /
 // `auto.faas.cloudflare.workflow` transaction named after the step — present
 // only because the transform auto-wrapped the Workflow class.
 function expectWorkflowStepTransaction(transactionEvent: TransactionEvent): void {
   expect(transactionEvent.transaction).toBe('step-one');
-  expect(transactionEvent.contexts?.trace?.op).toBe('function.step.do');
+  expect(transactionEvent.contexts?.trace?.op).toBe('function');
   expect(transactionEvent.contexts?.trace?.origin).toBe('auto.faas.cloudflare.workflow');
 }
 

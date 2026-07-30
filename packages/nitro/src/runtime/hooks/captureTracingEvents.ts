@@ -10,13 +10,15 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   type Span,
   startInactiveSpan,
-  updateSpanName,
 } from '@sentry/core';
-import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
+import {
+  bindTracingChannelToSpan,
+  setHttpServerSpanRouteAttribute,
+  type TracingChannelPayloadWithSpan,
+} from '@sentry/server-utils';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
@@ -127,17 +129,9 @@ function setupH3TracingChannels(): void {
         // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
         // Note: data.type is always 'middleware' here regardless of handler type, so we rely on
         // getParameterizedRoute() to filter out catch-all routes instead.
-        const rootSpan = getRootSpan(span);
-        if (rootSpan && rootSpan !== span) {
-          const routePattern = getParameterizedRoute(data.event);
-          if (routePattern) {
-            const method = data.event.req.method || 'GET';
-            updateSpanName(rootSpan, `${method} ${routePattern}`);
-            rootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              'http.route': routePattern,
-            });
-          }
+        const routePattern = getParameterizedRoute(data.event);
+        if (routePattern) {
+          setHttpServerSpanRouteAttribute(routePattern);
         }
       },
     },
@@ -234,20 +228,17 @@ function setupSrvxTracingChannels(): void {
  * Sets the parameterized route attributes on the span.
  */
 function setParameterizedRouteAttributes(span: Span, event: H3TracingRequestEvent['event']): void {
-  const rootSpan = getRootSpan(span);
-  if (!rootSpan) {
-    return;
-  }
-
   const matchedRoutePath = getParameterizedRoute(event);
   if (!matchedRoutePath) {
     return;
   }
 
-  rootSpan.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-    'http.route': matchedRoutePath,
-  });
+  setHttpServerSpanRouteAttribute(matchedRoutePath);
+
+  const rootSpan = getRootSpan(span);
+  if (!rootSpan) {
+    return;
+  }
 
   const params = event.context?.params;
 

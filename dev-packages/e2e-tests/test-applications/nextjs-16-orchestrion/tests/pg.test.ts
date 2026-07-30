@@ -15,7 +15,7 @@ test('Instruments pg automatically via orchestrion', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.postgres',
+      origin: 'auto.db.postgres',
       description: 'SELECT 1 + 1 AS solution',
       status: 'ok',
       data: expect.objectContaining({
@@ -32,7 +32,7 @@ test('Instruments pg automatically via orchestrion', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.postgres',
+      origin: 'auto.db.postgres',
       description: 'SELECT NOW()',
       status: 'ok',
       data: expect.objectContaining({

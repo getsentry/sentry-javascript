@@ -1,7 +1,13 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';
-import { defineIntegration, getRequestUrlFromClientRequest, hasSpansEnabled, stripDataUrlContent } from '@sentry/core';
+import {
+  defineIntegration,
+  getRequestUrlFromClientRequest,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  stripDataUrlContent,
+} from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
@@ -204,8 +210,11 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
             const sanitizedUrl = stripDataUrlContent(url);
-            span.setAttribute(URL_FULL, sanitizedUrl);
             span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+            span.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [URL_FULL]: sanitizedUrl,
+            });
           }
           options.instrumentation?.requestHook?.(span, request);
         },

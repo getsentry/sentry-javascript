@@ -17,7 +17,7 @@ describe('lru-memoizer', () => {
         await createTestRunner()
           .expect({
             transaction: {
-              transaction: '<unknown>',
+              transaction: 'test-name',
               contexts: {
                 trace: expect.objectContaining({
                   op: 'run',

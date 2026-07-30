@@ -18,10 +18,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -185,9 +182,7 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe(
-              isOrchestrionEnabled() ? 'auto.ai.orchestrion.anthropic' : 'auto.ai.anthropic',
-            );
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
 
             const errorSpan = container.items.find(
               span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === '[{"role":"user","content":"This will fail"}]',
@@ -626,10 +621,9 @@ describe('Anthropic integration', () => {
               expect(truncatedSpan!.status).toBe('ok');
               expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(truncatedSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
+              expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(truncatedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const smallMessageSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === smallMsgValue,
@@ -639,10 +633,9 @@ describe('Anthropic integration', () => {
               expect(smallMessageSpan!.status).toBe('ok');
               expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(smallMessageSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(smallMessageSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
+              expect(smallMessageSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
               expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -690,10 +683,9 @@ describe('Anthropic integration', () => {
               expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(expectedMediaMessages);
               expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.orchestrion.anthropic');
+              expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
               expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(2);
             },
           })
           .start()
@@ -760,13 +752,11 @@ describe('Anthropic integration', () => {
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedAllMessages,
               );
               expect(conversationSpan).toBeDefined();
-              expect(conversationSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
               const longStringSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedLongString,
               );
               expect(longStringSpan).toBeDefined();
-              expect(longStringSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(1);
             },
           })
           .start()

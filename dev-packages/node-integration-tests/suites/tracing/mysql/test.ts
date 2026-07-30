@@ -60,7 +60,7 @@ describe('mysql auto instrumentation', () => {
     };
   }
 
-  const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
+  const CHANNEL_ORIGIN = 'auto.db.mysql';
 
   // Channel-based (orchestrion diagnostics-channel) instrumentation is the default: `Sentry.init()`
   // injects and subscribes to the channels synchronously. We test it both with the channels installed
@@ -218,7 +218,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql' : 'auto.db.otel.mysql',
+          value: isOrchestrionEnabled() ? 'auto.db.mysql' : 'auto.db.otel.mysql',
         },
         'sentry.release': {
           type: 'string',
@@ -239,10 +239,6 @@ describe('mysql auto instrumentation', () => {
         'sentry.segment.name': {
           type: 'string',
           value: 'Test Transaction',
-        },
-        'sentry.source': {
-          type: 'string',
-          value: 'task',
         },
         [SENTRY_TRACE_LIFECYCLE]: {
           type: 'string',

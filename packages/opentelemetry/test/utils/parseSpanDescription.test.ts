@@ -14,25 +14,24 @@ import {
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, SentrySpan } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import {
-  descriptionForHttpMethod,
-  getSanitizedUrl,
-  getUserUpdatedNameAndSource,
-  inferSpanData,
-} from '../../src/utils/parseSpanDescription';
+import { descriptionForHttpMethod, getSanitizedUrl, parseSpanDescription } from '../../src/utils/parseSpanDescription';
 
 describe('inferSpanData', () => {
   it.each([
     [
+      'works without attributes & name',
+      undefined,
+      {
+        op: undefined,
+      },
+    ],
+    [
       'works with empty attributes',
       {},
-      'test name',
       {
-        description: 'test name',
         op: undefined,
-        source: 'custom',
       },
     ],
     [
@@ -41,11 +40,8 @@ describe('inferSpanData', () => {
         [HTTP_METHOD]: 'GET',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'http.client',
-        source: 'custom',
       },
     ],
     [
@@ -54,11 +50,8 @@ describe('inferSpanData', () => {
         'http.request.method': 'GET',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'http.client',
-        source: 'custom',
       },
     ],
     [
@@ -68,11 +61,8 @@ describe('inferSpanData', () => {
         [DB_STATEMENT]: 'SELECT * from users',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'SELECT * from users',
         op: 'db',
-        source: 'task',
       },
     ],
     [
@@ -83,11 +73,8 @@ describe('inferSpanData', () => {
         [DB_STATEMENT]: 'SELECT * from users',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'db',
-        source: 'custom',
       },
     ],
     [
@@ -99,11 +86,8 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'db',
-        source: 'custom',
       },
     ],
     [
@@ -115,11 +99,8 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'db',
-        source: 'component',
       },
     ],
     [
@@ -128,11 +109,8 @@ describe('inferSpanData', () => {
         [DB_SYSTEM]: 'mysql',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'db',
-        source: 'task',
       },
     ],
     [
@@ -142,11 +120,8 @@ describe('inferSpanData', () => {
         [DB_STATEMENT]: 'SELECT * from users',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'SELECT * from users',
         op: 'db',
-        source: 'task',
       },
     ],
     [
@@ -155,11 +130,8 @@ describe('inferSpanData', () => {
         [DB_SYSTEM_NAME]: 'postgresql',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'db',
-        source: 'task',
       },
     ],
     [
@@ -170,11 +142,8 @@ describe('inferSpanData', () => {
         [DB_STATEMENT]: 'SELECT * from users',
         [SENTRY_KIND]: 'client',
       },
-      'test name',
       {
-        description: 'SELECT * from users',
         op: 'db',
-        source: 'task',
       },
     ],
     [
@@ -182,11 +151,8 @@ describe('inferSpanData', () => {
       {
         [RPC_SERVICE]: 'rpc-test-service',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'rpc',
-        source: 'route',
       },
     ],
     [
@@ -195,11 +161,8 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [RPC_SERVICE]: 'rpc-test-service',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'rpc',
-        source: 'custom',
       },
     ],
     [
@@ -209,11 +172,8 @@ describe('inferSpanData', () => {
         [RPC_SERVICE]: 'rpc-test-service',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'rpc',
-        source: 'custom',
       },
     ],
     [
@@ -223,11 +183,8 @@ describe('inferSpanData', () => {
         [RPC_SERVICE]: 'rpc-test-service',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'rpc',
-        source: 'component',
       },
     ],
     [
@@ -235,11 +192,8 @@ describe('inferSpanData', () => {
       {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'message',
-        source: 'route',
       },
     ],
     [
@@ -248,11 +202,8 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'message',
-        source: 'custom',
       },
     ],
     [
@@ -262,11 +213,8 @@ describe('inferSpanData', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'message',
-        source: 'custom',
       },
     ],
     [
@@ -276,11 +224,8 @@ describe('inferSpanData', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'message',
-        source: 'component',
       },
     ],
     [
@@ -288,11 +233,8 @@ describe('inferSpanData', () => {
       {
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'test-faas-trigger',
-        source: 'route',
       },
     ],
     [
@@ -301,11 +243,8 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
-      'test name',
       {
-        description: 'test name',
         op: 'test-faas-trigger',
-        source: 'custom',
       },
     ],
     [
@@ -315,11 +254,8 @@ describe('inferSpanData', () => {
         [FAAS_TRIGGER]: 'test-faas-trigger',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'test-faas-trigger',
-        source: 'custom',
       },
     ],
     [
@@ -329,15 +265,12 @@ describe('inferSpanData', () => {
         [FAAS_TRIGGER]: 'test-faas-trigger',
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
-      'test name',
       {
-        description: 'custom name',
         op: 'test-faas-trigger',
-        source: 'component',
       },
     ],
-  ])('%s', (_, attributes, name, expected) => {
-    const actual = inferSpanData(name, attributes);
+  ] as const)('%s', (_, attributes, expected) => {
+    const actual = parseSpanDescription(new SentrySpan({ attributes }));
     expect(actual).toEqual(expected);
   });
 });
@@ -346,37 +279,28 @@ describe('descriptionForHttpMethod', () => {
   it.each([
     [
       'works without attributes',
-      'GET',
       {},
-      'test name',
       {
         op: 'http',
-        description: 'test name',
-        source: 'custom',
       },
     ],
     [
       'works with basic client GET',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'GET https://www.example.com/my-path',
         data: {
           'url.full': 'https://www.example.com/my-path',
         },
-        source: 'url',
       },
     ],
     [
       'works with prefetch request',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path',
@@ -384,38 +308,30 @@ describe('descriptionForHttpMethod', () => {
         'sentry.http.prefetch': true,
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client.prefetch',
-        description: 'GET https://www.example.com/my-path',
         data: {
           'url.full': 'https://www.example.com/my-path',
         },
-        source: 'url',
       },
     ],
     [
       'works with basic server POST',
-      'POST',
       {
         [HTTP_METHOD]: 'POST',
         [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
         [SENTRY_KIND]: 'server' as const,
       },
-      'test name',
       {
         op: 'http.server',
-        description: 'POST /my-path',
         data: {
           'url.full': 'https://www.example.com/my-path',
         },
-        source: 'url',
       },
     ],
     [
       'works with client GET with route',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path/123',
@@ -423,37 +339,29 @@ describe('descriptionForHttpMethod', () => {
         [HTTP_ROUTE]: '/my-path/:id',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'GET /my-path/:id',
         data: {
           'url.full': 'https://www.example.com/my-path/123',
         },
-        source: 'route',
       },
     ],
     [
       'works with basic client GET without span kind',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path',
         [HTTP_TARGET]: '/my-path',
       },
-      'test name',
       {
         op: 'http',
-        description: 'test name',
         data: {
           'url.full': 'https://www.example.com/my-path',
         },
-        source: 'custom',
       },
     ],
     [
       "doesn't overwrite span name with source custom",
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path/123',
@@ -462,19 +370,15 @@ describe('descriptionForHttpMethod', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'test name',
         data: {
           'url.full': 'https://www.example.com/my-path/123',
         },
-        source: 'custom',
       },
     ],
     [
       'takes user-passed span name (with source custom)',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path/123',
@@ -484,19 +388,15 @@ describe('descriptionForHttpMethod', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'custom name',
         data: {
           'url.full': 'https://www.example.com/my-path/123',
         },
-        source: 'custom',
       },
     ],
     [
       'takes user-passed span name (with source component)',
-      'GET',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path/123',
@@ -506,39 +406,32 @@ describe('descriptionForHttpMethod', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'custom name',
         data: {
           'url.full': 'https://www.example.com/my-path/123',
         },
-        source: 'component',
       },
     ],
     [
-      'strips the leading `?`/`#` for url.query and url.fragment',
-      'GET',
+      'strips the leading `?`/`#` from http.query and http.fragment',
       {
         [HTTP_METHOD]: 'GET',
         [URL_FULL]: 'https://www.example.com/my-path?id=1#section',
         [HTTP_TARGET]: '/my-path?id=1#section',
         [SENTRY_KIND]: 'client' as const,
       },
-      'test name',
       {
         op: 'http.client',
-        description: 'GET https://www.example.com/my-path',
         data: {
           'url.full': 'https://www.example.com/my-path',
           'url.query': 'id=1',
           'url.fragment': 'section',
         },
-        source: 'url',
       },
     ],
-  ])('%s', (_, httpMethod, attributes, name, expected) => {
-    const actual = descriptionForHttpMethod({ attributes, name }, httpMethod);
+  ])('%s', (_, attributes, expected) => {
+    const actual = descriptionForHttpMethod(attributes);
     expect(actual).toEqual(expected);
   });
 });
@@ -688,39 +581,4 @@ describe('getSanitizedUrl', () => {
 
     expect(actual).toEqual(expected);
   });
-});
-
-describe('getUserUpdatedNameAndSource', () => {
-  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
-    expect(getUserUpdatedNameAndSource('base name', {})).toEqual({ description: 'base name', source: 'custom' });
-  });
-
-  it('returns param name with custom fallback source if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
-    expect(getUserUpdatedNameAndSource('base name', {}, 'route')).toEqual({
-      description: 'base name',
-      source: 'route',
-    });
-  });
-
-  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not a string', () => {
-    expect(getUserUpdatedNameAndSource('base name', { [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 123 })).toEqual({
-      description: 'base name',
-      source: 'custom',
-    });
-  });
-
-  it.each(['custom', 'task', 'url', 'route'])(
-    'returns `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute if is a string and source is %s',
-    source => {
-      expect(
-        getUserUpdatedNameAndSource('base name', {
-          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        }),
-      ).toEqual({
-        description: 'custom name',
-        source,
-      });
-    },
-  );
 });

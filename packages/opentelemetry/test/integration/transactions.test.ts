@@ -13,13 +13,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(async () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
-    await cleanupOtel();
   });
 
   it('correctly creates transaction & spans', async () => {
@@ -271,9 +270,9 @@ describe('Integration | Transactions', () => {
             data: {
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
-              'sentry.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
+              'sentry.source': 'custom',
             },
             op: 'test op b',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -289,7 +288,6 @@ describe('Integration | Transactions', () => {
         },
         timestamp: expect.any(Number),
         transaction: 'test name b',
-        transaction_info: { source: 'custom' },
         type: 'transaction',
       }),
       {

@@ -3,7 +3,7 @@ import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.tedious' : 'auto.db.otel.tedious';
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.tedious' : 'auto.db.otel.tedious';
 
   afterAll(() => {
     cleanupChildProcesses();

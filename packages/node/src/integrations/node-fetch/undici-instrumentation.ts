@@ -23,12 +23,15 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
+  getSanitizedUrlString,
   getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
+  parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -255,9 +258,20 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // emitted as a standalone transaction. This rule also lives in `SentrySampler`, but that only runs
   // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
   // SDKs that don't use an OpenTelemetry tracer provider at all.
+  const isDataUrl = url.startsWith('data:');
+  if (!isDataUrl) {
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
+  }
+  const spanName =
+    requestMethod === '_OTHER'
+      ? 'HTTP'
+      : isDataUrl
+        ? `${request.method || 'GET'} ${stripDataUrlContent(url)}`
+        : `${requestMethod} ${getSanitizedUrlString(parseUrl(requestUrl.toString()))}`;
+
   const client = getClient();
   const span = startInactiveSpan({
-    name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
+    name: spanName,
     attributes,
     onlyIfParent: !client || !hasSpanStreamingEnabled(client),
   });

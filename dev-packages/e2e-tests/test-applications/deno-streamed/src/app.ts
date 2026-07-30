@@ -22,7 +22,6 @@ Sentry.init({
   traceLifecycle: 'stream',
   tracesSampleRate: 1,
   dataCollection: { userInfo: true },
-  enableLogs: true,
 });
 
 const port = 3030;

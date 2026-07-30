@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('GET command emits an http.server transaction containing a db.redis child span', async ({ baseURL }) => {
+test('GET command emits an http.server transaction containing a db.query child span', async ({ baseURL }) => {
   // Each incoming request gets a Sentry http.server transaction (via the
   // default denoServeIntegration); the redis command runs inside it, so the
   // child span attaches to that transaction.
@@ -9,7 +9,7 @@ test('GET command emits an http.server transaction containing a db.redis child s
     return (
       event?.contexts?.trace?.op === 'http.server' &&
       (event.request?.url ?? '').includes('/redis-get') &&
-      (event.spans?.some(span => span.op === 'db.redis') ?? false)
+      (event.spans?.some(span => span.op === 'db.query') ?? false)
     );
   });
 
@@ -18,7 +18,7 @@ test('GET command emits an http.server transaction containing a db.redis child s
   await res.json();
 
   const transaction = await transactionPromise;
-  const redisSpan = transaction.spans!.find(span => span.op === 'db.redis');
+  const redisSpan = transaction.spans!.find(span => span.op === 'db.query');
   expect(redisSpan).toBeDefined();
   expect(redisSpan!.description).toBe('redis-GET');
   expect(redisSpan!.data?.['db.system.name']).toBe('redis');
@@ -27,12 +27,12 @@ test('GET command emits an http.server transaction containing a db.redis child s
   expect(redisSpan!.data?.['server.port']).toBe(6379);
 });
 
-test('SET then GET emit two db.redis child spans on the same transaction', async ({ baseURL }) => {
+test('SET then GET emit two db.query child spans on the same transaction', async ({ baseURL }) => {
   const transactionPromise = waitForTransaction('deno-redis', event => {
     return (
       event?.contexts?.trace?.op === 'http.server' &&
       (event.request?.url ?? '').includes('/redis-set-get') &&
-      (event.spans?.filter(span => span.op === 'db.redis').length ?? 0) >= 2
+      (event.spans?.filter(span => span.op === 'db.query').length ?? 0) >= 2
     );
   });
 
@@ -41,7 +41,7 @@ test('SET then GET emit two db.redis child spans on the same transaction', async
   await res.json();
 
   const transaction = await transactionPromise;
-  const redisSpans = transaction.spans!.filter(span => span.op === 'db.redis');
+  const redisSpans = transaction.spans!.filter(span => span.op === 'db.query');
   expect(redisSpans.length).toBeGreaterThanOrEqual(2);
   const ops = redisSpans.map(s => s.description);
   expect(ops).toContain('redis-SET');
@@ -64,7 +64,7 @@ test('MULTI batch emits a PIPELINE/MULTI batch span', async ({ baseURL }) => {
   const transaction = await transactionPromise;
   const batchSpan = transaction.spans!.find(span => span.description === 'MULTI' || span.description === 'PIPELINE');
   expect(batchSpan).toBeDefined();
-  expect(batchSpan!.op).toBe('db.redis');
+  expect(batchSpan!.op).toBe('db.query');
   expect(batchSpan!.data?.['db.system.name']).toBe('redis');
 });
 
