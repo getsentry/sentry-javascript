@@ -460,13 +460,7 @@ describe('sentryAstro integration', () => {
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      ...baseConfigHookObject,
-      updateConfig,
-      injectScript,
-      config,
-      logger,
-    });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger });
 
     expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('buildTimeInstrumentation'));
   });
