@@ -80,9 +80,27 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   const mcpTrace = mcpEvent.contexts?.trace;
 
   expect(requestTrace?.op).toBe('http.server');
+  expect(requestTrace?.origin).toBe('auto.http.cloudflare');
+  expect(requestTrace?.status).toBe('ok');
+  expect(requestTrace?.data?.['sentry.origin']).toBe('auto.http.cloudflare');
+  expect(requestTrace?.data?.['sentry.op']).toBe('http.server');
+  expect(requestTrace?.data?.['sentry.source']).toBe('url');
+  expect(requestTrace?.data?.['http.request.method']).toBe('POST');
+  expect(requestTrace?.data?.['url.path']).toBe('/mcp');
+  expect(requestTrace?.data?.['url.full']).toBe(url);
+  expect(requestTrace?.data?.['url.port']).toBe('38787');
+  expect(requestTrace?.data?.['url.scheme']).toBe('http:');
+  expect(requestTrace?.data?.['server.address']).toBe('localhost');
+  expect(requestTrace?.data?.['http.request.body.size']).toBe(345);
+  expect(requestTrace?.data?.['user_agent.original']).toBe('node');
+  expect(requestTrace?.data?.['http.request.header.content_type']).toBe('application/json');
+  expect(requestTrace?.data?.['network.protocol.name']).toBe('HTTP/1.1');
+  expect(requestTrace?.data?.['http.response.status_code']).toBe(200);
   expect(requestTrace?.data?.['mcp.server.extra']).toBe(' /|\ ^._.^ /|\ ');
   expect(mcpTrace?.trace_id).toBe(requestTrace?.trace_id);
+  expect(mcpTrace?.trace_id).toBe((mcpData.envelope[0].trace as { trace_id: string }).trace_id);
   expect(mcpTrace?.parent_span_id).toBe(requestTrace?.span_id);
+  expect(requestData.envelope[0].event_id).not.toBe(mcpData.envelope[0].event_id);
   expect(mcpTrace?.op).toBe('mcp.server');
   expect(mcpTrace?.origin).toBe('auto.function.mcp_server');
   expect(mcpTrace?.status).toBe('ok');
