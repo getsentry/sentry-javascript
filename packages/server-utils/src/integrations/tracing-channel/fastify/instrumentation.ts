@@ -353,7 +353,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
         name,
         attributes: {
           ...spanAttributes,
-          ...(op ? { [SENTRY_OP]: op } : {}),
+          [SENTRY_OP]: op,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
         parentSpan,
