@@ -1,5 +1,6 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
+import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
