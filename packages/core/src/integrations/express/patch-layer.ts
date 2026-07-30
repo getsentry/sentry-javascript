@@ -28,7 +28,7 @@
  */
 
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual, withActiveSpan } from '../../tracing';
@@ -124,7 +124,12 @@ export function patchLayer(
     const type = metadata.attributes[ATTR_EXPRESS_TYPE];
     const attributes: SpanAttributes = Object.assign(metadata.attributes, {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.express',
-      [SENTRY_OP]: type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${type}.express`,
+      [SENTRY_OP]:
+        type === 'middleware'
+          ? WEB_SERVER_MIDDLEWARE_SPAN_OP
+          : type === 'request_handler'
+            ? WEB_SERVER_FUNCTION_SPAN_OP
+            : `${type}.express`,
     });
     if (actualMatchedRoute) {
       attributes[ATTR_HTTP_ROUTE] = actualMatchedRoute;

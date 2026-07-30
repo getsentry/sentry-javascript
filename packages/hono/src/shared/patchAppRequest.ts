@@ -1,3 +1,4 @@
+import { WEB_SERVER_HTTP_SERVER_SPAN_OP } from '@sentry/conventions/op';
 import {
   debug,
   getActiveSpan,
@@ -10,7 +11,7 @@ import {
 import type { Env, Hono } from 'hono';
 import { DEBUG_BUILD } from '../debug-build';
 
-const INTERNAL_REQUEST_OP = 'hono.request';
+const INTERNAL_REQUEST_OP = WEB_SERVER_HTTP_SERVER_SPAN_OP;
 const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 
 function extractPathname(input: string | Request | URL): string {
@@ -23,7 +24,7 @@ function extractPathname(input: string | Request | URL): string {
 
 /**
  * Patches `app.request()` on a Hono instance so that each internal dispatch
- * is traced as a `hono.request` span — child of whatever span is active at
+ * is traced as an `http.server` span — child of whatever span is active at
  * the call site.
  *
  * `.request()` is a class field (arrow function), so this must run per-instance.
@@ -53,7 +54,6 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
       return startSpan(
         {
           name: `${method} ${path}`,
-          op: INTERNAL_REQUEST_OP,
           onlyIfParent: true,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: INTERNAL_REQUEST_OP,

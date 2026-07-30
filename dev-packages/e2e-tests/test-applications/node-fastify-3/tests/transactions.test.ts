@@ -75,7 +75,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'request_handler.fastify',
+      'sentry.op': 'function',
       'fastify.root': '@sentry/instrumentation-fastify',
       'http.request.method': 'GET',
       'url.path': '/test-transaction',
@@ -83,7 +83,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'http.response.status_code': 200,
     },
     description: 'GET /test-transaction',
-    op: 'request_handler.fastify',
+    op: 'function',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -97,12 +97,12 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: expect.objectContaining({
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'request_handler.fastify',
+      'sentry.op': 'function',
       'fastify.type': expect.stringMatching(/request[-_]handler/),
       'http.route': '/test-transaction',
     }),
     description: expect.stringContaining('sentry-fastify-error-handler'),
-    op: 'request_handler.fastify',
+    op: 'function',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

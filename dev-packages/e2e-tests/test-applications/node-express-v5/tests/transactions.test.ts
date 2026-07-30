@@ -86,13 +86,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'request_handler.express',
+      'sentry.op': 'function',
       'http.route': '/test-transaction',
       'express.name': '/test-transaction',
       'express.type': 'request_handler',
     },
     description: '/test-transaction',
-    op: 'request_handler.express',
+    op: 'function',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
