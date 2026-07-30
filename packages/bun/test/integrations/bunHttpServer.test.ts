@@ -1,8 +1,7 @@
 import http from 'node:http';
-import { getCurrentScope } from '@sentry/core';
+import { getTraceData } from '@sentry/core';
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { init } from '../../src';
-import { instrumentBunHttpServer } from '../../src/integrations/bunHttpServer';
+import { bunHttpServerIntegration, init } from '../../src';
 
 async function startServer(handler: http.RequestListener): Promise<{ port: number; close: () => Promise<void> }> {
   const server = http.createServer(handler);
@@ -15,6 +14,11 @@ async function startServer(handler: http.RequestListener): Promise<{ port: numbe
   };
 }
 
+/** Read the trace id the SDK would propagate for the current request. Works in both OTel and non-OTel modes. */
+function currentTraceId(): string | undefined {
+  return getTraceData()['sentry-trace']?.split('-')[0];
+}
+
 describe('Bun HTTP Server Integration', () => {
   beforeAll(() => {
     init({
@@ -22,16 +26,15 @@ describe('Bun HTTP Server Integration', () => {
       tracesSampleRate: 0,
       // Avoid sending anything to Sentry
       transport: () => ({ send: async () => ({}), flush: async () => true }),
+      integrations: [bunHttpServerIntegration({ spans: false })],
     });
-    // Only performs isolation + trace reset, no span creation (Next.js emits its own spans).
-    instrumentBunHttpServer({ spans: false });
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {
-    const traceIds: string[] = [];
+    const traceIds: Array<string | undefined> = [];
 
     const { port, close } = await startServer((_req, res) => {
-      traceIds.push(getCurrentScope().getPropagationContext().traceId);
+      traceIds.push(currentTraceId());
       res.end('ok');
     });
 
@@ -51,7 +54,7 @@ describe('Bun HTTP Server Integration', () => {
     let observedTraceId: string | undefined;
 
     const { port, close } = await startServer((_req, res) => {
-      observedTraceId = getCurrentScope().getPropagationContext().traceId;
+      observedTraceId = currentTraceId();
       res.end('ok');
     });
 
