@@ -256,6 +256,12 @@ Affected SDKs: All SDKs.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
 
+### LangGraph no longer emits `create_agent` spans
+
+Affected SDKs: All server-side SDKs.
+
+The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
+
 ### `thirdPartyErrorFilterIntegration` filters internal frames by default
 
 Affected SDKs: All SDKs.

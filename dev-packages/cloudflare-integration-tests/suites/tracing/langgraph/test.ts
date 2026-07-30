@@ -29,27 +29,10 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       const container = envelope[1]?.[1]?.[1] as any;
       expect(container).toBeDefined();
 
-      expect(container.items).toHaveLength(2);
+      expect(container.items).toHaveLength(1);
       expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
-        'create_agent weather_assistant',
         'invoke_agent weather_assistant',
       ]);
-
-      const createAgentSpan = container.items.find(
-        (span: SerializedStreamedSpan) => span.name === 'create_agent weather_assistant',
-      );
-      expect(createAgentSpan).toBeDefined();
-      expect(createAgentSpan!.status).toBe('ok');
-      expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-        type: 'string',
-        value: 'create_agent',
-      });
-      expect(createAgentSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
-      expect(createAgentSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
-      expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME]).toEqual({
-        type: 'string',
-        value: 'weather_assistant',
-      });
 
       const invokeAgentSpan = container.items.find(
         (span: SerializedStreamedSpan) => span.name === 'invoke_agent weather_assistant',
