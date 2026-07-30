@@ -11,16 +11,18 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types/span';
+import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
   showSpanDropWarning,
+  spanToJSON,
   spanToStreamedSpanJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
+import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
 import {
@@ -126,17 +128,15 @@ function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client
   });
 }
 
-function applyCommonSpanAttributes(
-  spanJSON: StreamedSpanJSON,
+function commonSpanAttributes(
   serializedSegmentSpan: StreamedSpanJSON,
   client: Client,
   scopeData: ScopeData,
-): void {
+): RawAttributes<Record<string, unknown>> {
   const sdk = client.getSdkMetadata();
   const { release, environment } = client.getOptions();
 
-  // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
-  safeSetSpanJSONAttributes(spanJSON, {
+  return {
     [SENTRY_TRACE_LIFECYCLE]: 'stream',
     [SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
     [SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
@@ -149,7 +149,55 @@ function applyCommonSpanAttributes(
     [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
     [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
     ...scopeData.attributes,
+  };
+}
+
+function applyCommonSpanAttributes(
+  spanJSON: StreamedSpanJSON,
+  serializedSegmentSpan: StreamedSpanJSON,
+  client: Client,
+  scopeData: ScopeData,
+): void {
+  // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
+  safeSetSpanJSONAttributes(spanJSON, commonSpanAttributes(serializedSegmentSpan, client, scopeData));
+}
+
+/**
+ * Captures a standalone span whose `beforeSendSpan` callback expects the v1 {@link SpanJSON} format
+ * (i.e. the user opted out of span streaming). The span is serialized to v1, the common attributes
+ * are applied so the callback can scrub them, the callback runs in its native format, and the result
+ * is converted forward to a serialized v2 span. This mirrors how gen_ai spans reach the v2 span path
+ * from a static transaction, so there is never a reverse v2 -> v1 conversion.
+ *
+ * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+ */
+export function captureStandaloneSpanWithStaticCallback(
+  span: Span,
+  client: Client,
+  beforeSendSpan: (span: SpanJSON) => SpanJSON,
+): SerializedStreamedSpan {
+  const spanJSON = spanToJSON(span);
+
+  const segmentSpan = INTERNAL_getSegmentSpan(span);
+  const serializedSegmentSpan = spanToStreamedSpanJSON(segmentSpan);
+
+  const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
+  const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
+
+  const commonAttributes = commonSpanAttributes(serializedSegmentSpan, client, finalScopeData);
+  Object.entries(commonAttributes).forEach(([key, value]) => {
+    if (value != null && !(key in spanJSON.data)) {
+      spanJSON.data[key] = value as SpanAttributeValue;
+    }
   });
+
+  const processedSpan = beforeSendSpan(spanJSON);
+  if (!processedSpan) {
+    showSpanDropWarning();
+    return spanJsonToSerializedStreamedSpan(spanJSON);
+  }
+
+  return spanJsonToSerializedStreamedSpan(processedSpan);
 }
 
 /**
