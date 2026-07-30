@@ -178,6 +178,7 @@ export { metrics, withStreamedSpan } from '@sentry/core';
 export * as logger from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';
+export { workerIntegration } from './integrations/workerIntegration';
 export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';
