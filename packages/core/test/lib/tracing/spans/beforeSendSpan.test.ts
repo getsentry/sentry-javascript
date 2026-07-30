@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { withStaticSpan, withStreamedSpan } from '../../../../src';
-import {
-  isStaticBeforeSendSpanCallback,
-  isStreamedBeforeSendSpanCallback,
-} from '../../../../src/tracing/spans/beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from '../../../../src/tracing/spans/beforeSendSpan';
 
 describe('beforeSendSpan callback formats', () => {
   describe('withStaticSpan', () => {
@@ -35,19 +32,9 @@ describe('beforeSendSpan callback formats', () => {
     it('returns false for an unwrapped callback', () => {
       expect(isStaticBeforeSendSpanCallback(vi.fn())).toBe(false);
     });
-  });
 
-  describe('isStreamedBeforeSendSpanCallback', () => {
-    it('returns true for an unwrapped callback', () => {
-      expect(isStreamedBeforeSendSpanCallback(vi.fn())).toBe(true);
-    });
-
-    it('returns true if the callback is wrapped with withStreamedSpan', () => {
-      expect(isStreamedBeforeSendSpanCallback(withStreamedSpan(vi.fn()))).toBe(true);
-    });
-
-    it('returns false if the callback is wrapped with withStaticSpan', () => {
-      expect(isStreamedBeforeSendSpanCallback(withStaticSpan(vi.fn()))).toBe(false);
+    it('returns false if the callback is wrapped with withStreamedSpan', () => {
+      expect(isStaticBeforeSendSpanCallback(withStreamedSpan(vi.fn()))).toBe(false);
     });
   });
 });

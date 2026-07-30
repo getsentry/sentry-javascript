@@ -97,7 +97,7 @@ describe('Client', () => {
     });
 
     test('warns that a streamed beforeSendSpan is ignored with traceLifecycle "static"', () => {
-      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       new TestClient(
         getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'static', beforeSendSpan: span => span }),
@@ -110,7 +110,7 @@ describe('Client', () => {
     });
 
     test('warns that a static beforeSendSpan is ignored with traceLifecycle "stream"', () => {
-      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       new TestClient(
         getDefaultTestClientOptions({
@@ -127,7 +127,7 @@ describe('Client', () => {
     });
 
     test('reports the normalized traceLifecycle when warning about an unknown value', () => {
-      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       new TestClient(
         getDefaultTestClientOptions({
@@ -145,7 +145,7 @@ describe('Client', () => {
     });
 
     test('does not warn for a streamed beforeSendSpan with traceLifecycle "stream"', () => {
-      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       new TestClient(
         getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', beforeSendSpan: span => span }),
@@ -156,7 +156,7 @@ describe('Client', () => {
     });
 
     test('does not warn for a static beforeSendSpan with traceLifecycle "static"', () => {
-      const warnSpy = vi.spyOn(debugLoggerModule.debug, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       new TestClient(
         getDefaultTestClientOptions({
