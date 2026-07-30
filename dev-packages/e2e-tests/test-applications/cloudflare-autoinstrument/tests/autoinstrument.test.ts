@@ -74,8 +74,8 @@ for (const { title, binding, agentClass } of [
           // confirms the wrapper landed on the user's real class. Matched loosely
           // because the transform renames the class it wraps to
           // `__SENTRY_ORIGINAL_<name>__` and the bundler infers that name.
-          'cloudflare.agent.class': expect.stringContaining(agentClass),
-          'cloudflare.agent.name': instance,
+          'code.function.name': expect.stringContaining(agentClass),
+          'gen_ai.agent.name': instance,
         }),
       }),
     );

@@ -181,8 +181,8 @@ test('creates an rpc span named after the @callable() method', async ({ page, ba
       description: 'greet',
       origin: 'auto.faas.cloudflare.agents',
       data: expect.objectContaining({
-        'cloudflare.agent.class': 'MyBaseAgent',
-        'cloudflare.agent.name': 'user-123',
+        'code.function.name': 'MyBaseAgent',
+        'gen_ai.agent.name': 'user-123',
       }),
     }),
   );

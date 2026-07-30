@@ -1,8 +1,10 @@
 import { getCurrentScope } from '@sentry/core';
 
 export const AGENT_SPAN_ORIGIN = 'auto.faas.cloudflare.agents';
-export const AGENT_CLASS_ATTRIBUTE = 'cloudflare.agent.class';
-export const AGENT_NAME_ATTRIBUTE = 'cloudflare.agent.name';
+// Attribute keys follow the shared semantic conventions (`@sentry/conventions`): the agent's class
+// is reported as `code.function.name` and the user-configured instance name as `gen_ai.agent.name`.
+export const AGENT_CLASS_ATTRIBUTE = 'code.function.name';
+export const AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
 
 /**
  * The subset of the `agents` `Agent` instance internals that we instrument. These are runtime

@@ -86,8 +86,8 @@ describe('instrumentCloudflareAgent', () => {
           op: 'rpc',
           origin: 'auto.faas.cloudflare.agents',
           data: expect.objectContaining({
-            'cloudflare.agent.class': 'MyAgent',
-            'cloudflare.agent.name': 'instance-1',
+            'code.function.name': 'MyAgent',
+            'gen_ai.agent.name': 'instance-1',
           }),
         }),
       );
