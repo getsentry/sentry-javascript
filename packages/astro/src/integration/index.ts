@@ -170,6 +170,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
 
+        // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
+        // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
+        // build time, with no manual plugin setup. The plugin opts out internally when
+        // `buildTimeInstrumentation` is `false`.
         // TODO: Cloudflare/workerd needs different wiring — skipped for now.
         if (sdkEnabled.server && !isCloudflare) {
           updateConfig({
