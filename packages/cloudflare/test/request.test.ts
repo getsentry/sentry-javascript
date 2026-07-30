@@ -253,7 +253,7 @@ describe('withSentry', () => {
               return null;
             },
           },
-          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
+          request: new Request('https://example.com', { headers: { cookie: 'foo=bar; session=secret' } }),
           context: createMockExecutionContext(),
         },
         () => {
@@ -262,7 +262,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar', session: '[Filtered]' });
     });
 
     test('captures cookies when dataCollection.cookies is enabled', async () => {
