@@ -140,7 +140,7 @@ export async function makeCustomSentryVitePlugins(
         debug &&
           // eslint-disable-next-line no-console
           console.info(
-            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
               .map(file => `"${file}"`)
               .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
           );
