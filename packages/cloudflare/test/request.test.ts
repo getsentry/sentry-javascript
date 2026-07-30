@@ -276,10 +276,8 @@ describe('withSentry', () => {
         {
           options: {
             ...MOCK_OPTIONS,
-            integrations: [
-              // httpBodies not set → would default to 'none', but explicit override wins
-              httpServerIntegration({ maxRequestBodySize: 'medium' }),
-            ],
+            dataCollection: { httpBodies: [] },
+            integrations: [httpServerIntegration({ maxRequestBodySize: 'medium' })],
             beforeSend(event) {
               sentryEvent = event;
               return null;

@@ -26,7 +26,8 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         userInfo: false,
         cookies: { deny: PII_HEADER_SNIPPETS },
         httpHeaders: { request: { deny: PII_HEADER_SNIPPETS }, response: { deny: PII_HEADER_SNIPPETS } },
-        httpBodies: [],
+        // Request bodies were governed by maxRequestBodySize, not sendDefaultPii, so preserve that behavior.
+        httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
         urlQueryParams: { deny: PII_HEADER_SNIPPETS },
         // The GraphQL document has literal values redacted at collection time, so it was historically
         // always attached regardless of `sendDefaultPii`; keep it on to preserve that behavior.
