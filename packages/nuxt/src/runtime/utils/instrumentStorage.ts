@@ -1,3 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  DATABASE_CACHE_GET_SPAN_OP,
+  DATABASE_CACHE_PUT_SPAN_OP,
+  DATABASE_CACHE_REMOVE_SPAN_OP,
+} from '@sentry/conventions/op';
 import {
   isObjectLike,
   captureException,
@@ -5,7 +11,6 @@ import {
   flushIfServerless,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -53,7 +58,25 @@ type DriverMethod = keyof Driver;
 /**
  * Methods that should have an attribute to indicate a cache hit.
  */
-const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw']);
+const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
+
+/**
+ * Maps each unstorage method to a convention cache op. Reads (including existence and key
+ * listing) are `cache.get`, writes are `cache.put`, and deletions are `cache.remove`.
+ * The precise method stays available on `db.operation.name`.
+ */
+const METHOD_SPAN_OPS = {
+  hasItem: DATABASE_CACHE_GET_SPAN_OP,
+  getItem: DATABASE_CACHE_GET_SPAN_OP,
+  getItemRaw: DATABASE_CACHE_GET_SPAN_OP,
+  getItems: DATABASE_CACHE_GET_SPAN_OP,
+  getKeys: DATABASE_CACHE_GET_SPAN_OP,
+  setItem: DATABASE_CACHE_PUT_SPAN_OP,
+  setItemRaw: DATABASE_CACHE_PUT_SPAN_OP,
+  setItems: DATABASE_CACHE_PUT_SPAN_OP,
+  removeItem: DATABASE_CACHE_REMOVE_SPAN_OP,
+  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
+} as const satisfies Partial<Record<DriverMethod, string>>;
 
 /**
  * Creates the Nitro storage plugin setup by instrumenting all relevant storage drivers.
@@ -158,7 +181,7 @@ function createMethodWrapper(
           span.setStatus({ code: SPAN_STATUS_OK });
 
           if (CACHE_HIT_METHODS.has(methodName)) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, isCacheHit(args[0], result));
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(methodName, args[0], result));
           }
 
           return result;
@@ -204,13 +227,6 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
 }
 
 /**
- * Normalizes the method name to snake_case to be used in span names or op.
- */
-function normalizeMethodName(methodName: string): string {
-  return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
-/**
  * Creates the span start options for the storage method.
  */
 function createSpanStartOptions(
@@ -222,7 +238,7 @@ function createSpanStartOptions(
   const keys = getCacheKeys(args?.[0], mountBase);
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
+    [SENTRY_OP]: METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS],
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
@@ -265,6 +281,23 @@ function normalizeKey(key: unknown, prefix: string): string {
 }
 
 const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
+
+/**
+ * Resolves the `cache.hit` value for a read method. `hasItem` returns a boolean directly,
+ * `getItems` returns a `{ key, value }[]` where a hit means at least one entry has a value,
+ * and single-key reads fall back to the value-based `isCacheHit` check.
+ */
+function resolveCacheHit(methodName: DriverMethod, key: unknown, result: unknown): boolean {
+  if (methodName === 'hasItem') {
+    return Boolean(result);
+  }
+
+  if (methodName === 'getItems') {
+    return Array.isArray(result) && result.some(item => isObjectLike(item) && item.value != null);
+  }
+
+  return isCacheHit(key, result);
+}
 
 /**
  * Since Nitro's cache may not utilize the driver's TTL, it is possible that the value is present in the cache but won't be used by Nitro.
