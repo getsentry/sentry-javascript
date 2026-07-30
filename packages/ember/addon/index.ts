@@ -69,7 +69,6 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
           [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
           [CODE_FUNCTION_NAME]: hookName,
-          'ember.route.hook': hookName,
         },
         name,
         onlyIfParent: true,

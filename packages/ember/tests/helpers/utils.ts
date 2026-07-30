@@ -77,7 +77,7 @@ export function assertSentryTransactions(
     })
     .map(spanJson => {
       // Route hooks all share the `function` op, so the hook name is what distinguishes them
-      const hook = spanJson.data?.['ember.route.hook'];
+      const hook = spanJson.data?.['code.function.name'];
       return hook ? `${spanJson.op}:${hook} | ${spanJson.description}` : `${spanJson.op} | ${spanJson.description}`;
     });
 

@@ -169,11 +169,11 @@ test('captures correct spans for navigation', async ({ page }) => {
 
   const transitionSpans = spans.filter(span => span.op === 'ui.ember.transition');
   const beforeModelSpans = spans.filter(
-    span => span.op === 'function' && span.data?.['ember.route.hook'] === 'beforeModel',
+    span => span.op === 'function' && span.data?.['code.function.name'] === 'beforeModel',
   );
-  const modelSpans = spans.filter(span => span.op === 'function' && span.data?.['ember.route.hook'] === 'model');
+  const modelSpans = spans.filter(span => span.op === 'function' && span.data?.['code.function.name'] === 'model');
   const afterModelSpans = spans.filter(
-    span => span.op === 'function' && span.data?.['ember.route.hook'] === 'afterModel',
+    span => span.op === 'function' && span.data?.['code.function.name'] === 'afterModel',
   );
   const renderSpans = spans.filter(span => span.op === 'ui.task' && span.data?.['ember.runloop.queue'] === 'render');
 
@@ -207,7 +207,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'beforeModel',
-        'ember.route.hook': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
@@ -225,7 +224,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'beforeModel',
-        'ember.route.hook': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
@@ -246,7 +244,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'model',
-        'ember.route.hook': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
@@ -264,7 +261,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'model',
-        'ember.route.hook': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
@@ -285,7 +281,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'afterModel',
-        'ember.route.hook': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
@@ -303,7 +298,6 @@ test('captures correct spans for navigation', async ({ page }) => {
     {
       data: {
         'code.function.name': 'afterModel',
-        'ember.route.hook': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
