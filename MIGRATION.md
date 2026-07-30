@@ -1046,6 +1046,17 @@ import { instrumentLangGraph } from '@sentry/node';
 import { instrumentStateGraph } from '@sentry/node';
 ```
 
+### `childProcess` integration split into `childProcess` and `workerThreads`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The `childProcessIntegration` was split into a `childProcessIntegration` (for `child_process`) and a separate `workerThreadsIntegration` (for `worker_threads`).
+
+The deprecated `captureWorkerErrors` option was removed from both integrations. Worker thread errors are always captured now, and disabling `childProcessIntegration` no longer disables worker thread error capture, since that is handled by `workerThreadsIntegration`.
+
+> **TODO(v11):** Document how the two integrations are configured and what users who customized
+> `childProcessIntegration` need to change.
+
 ### Deno default integrations renamed to match the other SDKs
 
 Affected SDKs: `@sentry/deno`.
