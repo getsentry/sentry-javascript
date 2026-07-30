@@ -241,9 +241,7 @@ describe('withSentry', () => {
       );
     });
 
-    // TODO(v11): Cookies should be attached (subject to denylist filtering) by default. Until then we keep the
-    // historical Cloudflare behavior of not attaching cookies unless the user explicitly opts in.
-    test('does not capture cookies by default', async () => {
+    test('captures cookies with denylist filtering by default', async () => {
       let sentryEvent: Event = {};
 
       await wrapRequestHandler(
@@ -264,7 +262,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.request?.cookies).toBeUndefined();
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
     });
 
     test('captures cookies when dataCollection.cookies is enabled', async () => {
@@ -292,14 +290,14 @@ describe('withSentry', () => {
       expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
     });
 
-    test('captures cookies when sendDefaultPii is enabled', async () => {
+    test('does not capture cookies when dataCollection.cookies is disabled', async () => {
       let sentryEvent: Event = {};
 
       await wrapRequestHandler(
         {
           options: {
             ...MOCK_OPTIONS,
-            sendDefaultPii: true,
+            dataCollection: { cookies: false },
             beforeSend(event) {
               sentryEvent = event;
               return null;
@@ -314,7 +312,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
+      expect(sentryEvent.request?.cookies).toBeUndefined();
     });
 
     test('does not capture request body for GET requests', async () => {

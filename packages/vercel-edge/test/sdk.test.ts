@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { init, spanStreamingIntegration } from '../src';
+import { getDefaultIntegrations, init, spanStreamingIntegration } from '../src';
 import { type Integration } from '@sentry/core';
+
+describe('getDefaultIntegrations', () => {
+  it('includes request data collection by default', () => {
+    expect(getDefaultIntegrations().map(integration => integration.name)).toContain('RequestData');
+  });
+});
 
 describe('init', () => {
   it('adds spanStreamingIntegration by default', () => {
