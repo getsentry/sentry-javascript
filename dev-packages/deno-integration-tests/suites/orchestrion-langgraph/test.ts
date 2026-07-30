@@ -4,8 +4,8 @@ import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
 import { init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
-import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
+import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8.0+)', () => {
@@ -15,7 +15,7 @@ Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8
   assert(names.includes('LangGraph'), `LangGraph should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel produces a nested create_agent span', async () => {
+Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wraps the compiled graph invoke', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -27,13 +27,17 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel prod
 
   const channel = tracingChannel('orchestrion:@langchain/langgraph:stateGraphCompile');
 
-  // `arguments[0]` is the compile options; `name` names the agent span.
+  const originalInvoke = () => Promise.resolve('result');
+  const compiledGraph = { invoke: originalInvoke };
+  // `arguments[0]` is the compile options; `name` names the wrapped invoke_agent span.
   const ctx: Record<string, unknown> = { arguments: [{ name: 'my-agent' }] };
 
-  startSpan({ name: 'parent', op: 'test' }, () => {
+  await startSpan({ name: 'parent', op: 'test' }, async () => {
     channel.start.runStores(ctx, () => undefined);
-    ctx.result = {};
+    ctx.result = compiledGraph;
     channel.end.publish(ctx);
+    assert(compiledGraph.invoke !== originalInvoke, "compiled graph's invoke should be wrapped");
+    await compiledGraph.invoke();
   });
 
   const parent = await withTimeout(
@@ -42,13 +46,13 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel prod
     "'parent' transaction",
   );
 
-  const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.create_agent');
+  const invokeAgentSpan = parent.spans?.find(s => s.op === 'gen_ai.invoke_agent');
   assertExists(
-    aiSpan,
-    `expected a gen_ai.create_agent child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
+    invokeAgentSpan,
+    `expected a gen_ai.invoke_agent child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
   );
-  assertEquals(aiSpan!.description, 'create_agent my-agent');
-  assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'create_agent');
-  assertEquals(aiSpan!.data?.['gen_ai.agent.name'], 'my-agent');
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.langgraph');
+  assertEquals(invokeAgentSpan!.description, 'invoke_agent my-agent');
+  assertEquals(invokeAgentSpan!.data?.['gen_ai.operation.name'], 'invoke_agent');
+  assertEquals(invokeAgentSpan!.data?.['gen_ai.agent.name'], 'my-agent');
+  assertEquals(invokeAgentSpan!.data?.['sentry.origin'], 'auto.ai.langgraph');
 });

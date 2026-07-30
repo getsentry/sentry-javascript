@@ -98,7 +98,6 @@ export {
   instrumentCreateReactAgent,
   instrumentStateGraph,
   instrumentCompiledGraphInvoke,
-  _INTERNAL_getLangGraphCreateAgentSpanOptions,
 } from './tracing/langgraph';
 export { wrapToolsWithSpans, extractLLMFromParams, extractAgentNameFromParams } from './tracing/langgraph/utils';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
