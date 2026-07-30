@@ -32,7 +32,6 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
       const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
       const span = startInactiveSpan({
         name: handler.name || '<anonymous>',
-        op: WEB_SERVER_MIDDLEWARE_SPAN_OP,
         onlyIfParent: true,
         parentSpan: rootSpan,
         attributes: {

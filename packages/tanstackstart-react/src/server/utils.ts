@@ -8,7 +8,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/node';
  */
 export function getMiddlewareSpanOptions(name: string): StartSpanOptions {
   return {
-    op: WEB_SERVER_MIDDLEWARE_SPAN_OP,
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.tanstackstart',

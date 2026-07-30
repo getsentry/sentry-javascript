@@ -10,7 +10,7 @@ import {
   startSpan,
 } from '@sentry/core';
 // oxlint-disable-next-line typescript/no-deprecated
-import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -182,9 +182,9 @@ function patchLayer(
     return startSpan(
       {
         name,
-        op: layerType === LAYER_TYPE.MIDDLEWARE ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${layerType}.koa`,
         attributes: {
           ...metadata.attributes,
+          [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${layerType}.koa`,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
       },
