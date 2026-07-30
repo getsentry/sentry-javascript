@@ -766,13 +766,20 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     const stableLocationParam =
       typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
 
+    // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
+    // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
+    // same effect lifecycle keeps it correct under StrictMode's mount/unmount/remount.
+    useIsomorphicLayoutEffect(() => {
+      const added = addRoutesToAllRoutes(routes);
+
+      return () => removeRoutesFromAllRoutes(added);
+    });
+
     useIsomorphicLayoutEffect(() => {
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       if (isMountRenderPass.current) {
-        addRoutesToAllRoutes(routes);
-
         updatePageloadTransaction({
           activeRootSpan: getActiveRootSpan(),
           location: normalizedLocation,
@@ -1049,13 +1056,28 @@ export function handleNavigation(opts: {
 }
 
 /* Only exported for testing purposes */
-export function addRoutesToAllRoutes(routes: RouteObject[]): void {
+export function addRoutesToAllRoutes(routes: RouteObject[]): RouteObject[] {
+  const added: RouteObject[] = [];
   routes.forEach(route => {
     const extractedChildRoutes = getChildRoutesRecursively(route);
 
     extractedChildRoutes.forEach(r => {
       allRoutes.add(r);
+      added.push(r);
     });
+  });
+
+  return added;
+}
+
+/**
+ * Removes routes previously added via `addRoutesToAllRoutes` from the shared set. Called when a
+ * `<Routes>` unmounts so its routes don't linger and get matched against later, unrelated navigations
+ * (which produced hybrid names like `/bar/:fooId` across independent routers - see #22782).
+ */
+function removeRoutesFromAllRoutes(routes: RouteObject[]): void {
+  routes.forEach(route => {
+    allRoutes.delete(route);
   });
 }
 
@@ -1355,13 +1377,20 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
+    const routes = _createRoutesFromChildren(props.children) as RouteObject[];
+
+    // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
+    // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
+    // same effect lifecycle keeps it correct under StrictMode's mount/unmount/remount.
+    useIsomorphicLayoutEffect(() => {
+      const added = addRoutesToAllRoutes(routes);
+
+      return () => removeRoutesFromAllRoutes(added);
+    });
+
     useIsomorphicLayoutEffect(
       () => {
-        const routes = _createRoutesFromChildren(props.children) as RouteObject[];
-
         if (isMountRenderPass.current) {
-          addRoutesToAllRoutes(routes);
-
           updatePageloadTransaction({
             activeRootSpan: getActiveRootSpan(),
             location,
