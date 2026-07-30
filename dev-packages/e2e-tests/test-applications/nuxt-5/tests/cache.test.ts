@@ -19,8 +19,6 @@ test.describe('Cache Instrumentation', () => {
     const transaction = await transactionPromise;
 
     // Helper to find spans by operation
-    // Several unstorage methods share one convention op (e.g. hasItem/getItem/getKeys are all
-    // `cache.get`), so spans are located by `db.operation.name`, which stays unique per method.
     const findSpansByMethod = (method: string) => {
       return transaction.spans?.filter(span => span.data?.['db.operation.name'] === method) || [];
     };
