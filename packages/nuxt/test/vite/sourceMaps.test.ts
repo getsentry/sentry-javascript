@@ -79,16 +79,14 @@ describe('getPluginOptions', () => {
 
   it('merges custom moduleOptions with default options', () => {
     const customOptions: SentryNuxtModuleOptions = {
-      sourceMapsUploadOptions: {
-        org: 'custom-org',
-        project: 'custom-project',
-        authToken: 'custom-token',
-        telemetry: false,
-        sourcemaps: {
-          assets: ['custom-assets/**/*'],
-          ignore: ['ignore-this.js'],
-          filesToDeleteAfterUpload: ['delete-this.js'],
-        },
+      org: 'custom-org',
+      project: 'custom-project',
+      authToken: 'custom-token',
+      telemetry: false,
+      sourcemaps: {
+        assets: ['custom-assets/**/*'],
+        ignore: ['ignore-this.js'],
+        filesToDeleteAfterUpload: ['delete-this.js'],
       },
       debug: true,
     };
@@ -131,109 +129,6 @@ describe('getPluginOptions', () => {
       },
     } as SentryNuxtModuleOptions);
     expect(options.sourcemaps?.rewriteSources).toBe(customRewrite);
-  });
-
-  it('prioritizes new BuildTimeOptionsBase options over deprecated ones', () => {
-    const options: SentryNuxtModuleOptions = {
-      // New options
-      org: 'new-org',
-      project: 'new-project',
-      authToken: 'new-token',
-      sentryUrl: 'https://new.sentry.io',
-      telemetry: false,
-      silent: true,
-      debug: true,
-      sourcemaps: {
-        assets: ['new-assets/**/*'],
-        ignore: ['new-ignore.js'],
-        filesToDeleteAfterUpload: ['new-delete.js'],
-      },
-      release: {
-        name: 'test-release',
-        create: false,
-        finalize: true,
-        dist: 'build-123',
-        vcsRemote: 'upstream',
-        setCommits: { auto: true },
-        deploy: { env: 'production' },
-      },
-      bundleSizeOptimizations: { excludeTracing: true },
-
-      // Deprecated options (should be ignored)
-      sourceMapsUploadOptions: {
-        org: 'old-org',
-        project: 'old-project',
-        authToken: 'old-token',
-        url: 'https://old.sentry.io',
-        telemetry: true,
-        silent: false,
-        sourcemaps: {
-          assets: ['old-assets/**/*'],
-          ignore: ['old-ignore.js'],
-          filesToDeleteAfterUpload: ['old-delete.js'],
-        },
-        release: { name: 'old-release' },
-      },
-    };
-
-    const result = getPluginOptions(options);
-
-    expect(result).toMatchObject({
-      org: 'new-org',
-      project: 'new-project',
-      authToken: 'new-token',
-      url: 'https://new.sentry.io',
-      telemetry: false,
-      silent: true,
-      debug: true,
-      bundleSizeOptimizations: { excludeTracing: true },
-      release: {
-        name: 'test-release',
-        create: false,
-        finalize: true,
-        dist: 'build-123',
-        vcsRemote: 'upstream',
-        setCommits: { auto: true },
-        deploy: { env: 'production' },
-      },
-      sourcemaps: expect.objectContaining({
-        assets: ['new-assets/**/*'],
-        ignore: ['new-ignore.js'],
-        filesToDeleteAfterUpload: ['new-delete.js'],
-      }),
-    });
-  });
-
-  it('falls back to deprecated options when new ones are undefined', () => {
-    const options: SentryNuxtModuleOptions = {
-      debug: true,
-      sourceMapsUploadOptions: {
-        org: 'deprecated-org',
-        project: 'deprecated-project',
-        authToken: 'deprecated-token',
-        url: 'https://deprecated.sentry.io',
-        telemetry: false,
-        sourcemaps: {
-          assets: ['deprecated/**/*'],
-        },
-        release: { name: 'deprecated-release' },
-      },
-    };
-
-    const result = getPluginOptions(options);
-
-    expect(result).toMatchObject({
-      org: 'deprecated-org',
-      project: 'deprecated-project',
-      authToken: 'deprecated-token',
-      url: 'https://deprecated.sentry.io',
-      telemetry: false,
-      debug: true,
-      release: { name: 'deprecated-release' },
-      sourcemaps: expect.objectContaining({
-        assets: ['deprecated/**/*'],
-      }),
-    });
   });
 
   it('passes applicationKey to plugin options', () => {
@@ -320,18 +215,7 @@ describe('getPluginOptions', () => {
       expected: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
-      name: 'no fallback, but custom filesToDeleteAfterUpload is provided (deprecated)',
-      clientFallback: false,
-      serverFallback: false,
-      customOptions: {
-        sourceMapsUploadOptions: {
-          sourcemaps: { filesToDeleteAfterUpload: ['deprecated/path/**/*.map'] },
-        },
-      },
-      expected: ['deprecated/path/**/*.map'],
-    },
-    {
-      name: 'no fallback, but custom filesToDeleteAfterUpload is provided (new)',
+      name: 'no fallback, but custom filesToDeleteAfterUpload is provided',
       clientFallback: false,
       serverFallback: false,
       customOptions: {
