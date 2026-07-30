@@ -51,7 +51,7 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
 
@@ -61,7 +61,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin when not in build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -69,7 +69,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin in development build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'build', mode: 'development' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockOrchestrionPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -114,20 +114,38 @@ describe('sentryReactRouter', () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it('adds the orchestrion plugin by default', async () => {
-    const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
+  it('adds the orchestrion plugin to the server build by default', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
     expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
     expect(result.map(plugin => plugin?.name)).toContain('sentry-orchestrion-vite');
+
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
     const result = await sentryReactRouter(
       { buildTimeInstrumentation: false },
-      { command: 'serve', mode: 'production' },
+      { command: 'build', mode: 'production' },
     );
     const pluginNames = result.map(plugin => plugin?.name);
     expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
     expect(pluginNames).toContain('sentry-orchestrion-disabled');
     expect(pluginNames).not.toContain('sentry-orchestrion-vite');
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('does not add the orchestrion plugin to the dev server (serve command)', async () => {
+    const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
+    expect(orchestrionVite).not.toHaveBeenCalled();
+    const pluginNames = result.map(plugin => plugin?.name);
+    expect(pluginNames).not.toContain('sentry-orchestrion-vite');
+    expect(pluginNames).not.toContain('sentry-orchestrion-disabled');
   });
 });
