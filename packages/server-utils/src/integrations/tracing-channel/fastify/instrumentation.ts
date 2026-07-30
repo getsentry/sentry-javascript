@@ -16,6 +16,7 @@
 
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
@@ -35,7 +36,7 @@ const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
 const ORIGIN = 'auto.http.otel.fastify';
-const HOOK_OP = 'hook.fastify';
+const HOOK_OP = WEB_SERVER_MIDDLEWARE_SPAN_OP;
 const REQUEST_HANDLER_OP = 'request_handler.fastify';
 
 const FASTIFY_HOOKS = [
