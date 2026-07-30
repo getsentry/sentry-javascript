@@ -1,10 +1,12 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 8 (>= 8.21) so the document `updateOne`/`deleteOne` lazy-Query path is exercised
 // against a real mongoose, guarding the thenable trap that mongoose 6 (the workspace version) can't hit.
 describe('Mongoose v8 Test', () => {
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -30,7 +32,7 @@ describe('Mongoose v8 Test', () => {
         }),
         description: 'mongoose.BlogPost.save',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -40,7 +42,7 @@ describe('Mongoose v8 Test', () => {
         }),
         description: 'mongoose.BlogPost.updateOne',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
       expect.objectContaining({
         data: expect.objectContaining({
@@ -50,7 +52,7 @@ describe('Mongoose v8 Test', () => {
         }),
         description: 'mongoose.BlogPost.deleteOne',
         op: 'db',
-        origin: 'auto.db.otel.mongoose',
+        origin,
       }),
     ]),
   };

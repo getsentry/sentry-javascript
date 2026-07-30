@@ -212,7 +212,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // Server page request transaction - parametrized transaction name with actual URL in data
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /user-page/myUsername123',
+      transaction: 'GET /user-page/[userId]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -241,13 +241,13 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       data: {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.fetch',
-        url: expect.stringContaining('/api/user/myUsername123.json'),
+        'url.full': 'http://localhost:3030/api/user/myUsername123.json',
       },
     });
 
     // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/myUsername123.json',
+      transaction: 'GET /api/user/[userId].json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -299,7 +299,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /catchAll/hell0/whatever-do',
+      transaction: 'GET /catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {

@@ -129,7 +129,7 @@ function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.
         scope.setTag('timeout', humanReadableTimeout);
         captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
       });
-    }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
+    }, timeoutWarningDelay);
   }
 
   return undefined;
@@ -139,7 +139,7 @@ export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.h
 export const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
 export const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 
-function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
+export function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
   return (
     (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
   );
@@ -184,6 +184,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
+    // oxlint-disable-next-line typescript/no-deprecated -- set only to satisfy the type; see the TODO below
     startTrace: true, // TODO(v11): Remove this option. Set to true here to satisfy the type, but has no effect.
     ...wrapOptions,
   };

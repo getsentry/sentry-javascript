@@ -1,7 +1,11 @@
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-const ORIGIN = 'auto.db.otel.dataloader';
+// The span origin depends on which instrumentation is active. When the generic orchestrion run is
+// enabled (via INJECT_ORCHESTRION) the OTel `Dataloader` integration is swapped for the
+// diagnostics-channel one, which stamps a different origin.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.db.dataloader' : 'auto.db.otel.dataloader';
 const CACHE_GET_OP = 'cache.get';
 
 describe('dataloader auto-instrumentation', () => {
@@ -25,12 +29,17 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.status).toBe('ok');
             expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
+            // A direct operation is a client call; the deferred `batch` below gets no kind
+            expect(loadSpan?.data?.['sentry.kind']).toBe('client');
 
             const batchSpan = spans.find(span => span.description === 'dataloader.batch');
             expect(batchSpan).toBeDefined();
             expect(batchSpan?.op).toBe(CACHE_GET_OP);
             expect(batchSpan?.origin).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
+            expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
+            expect(batchSpan?.data?.['sentry.kind']).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
             expect(batchSpan?.links).toEqual([
@@ -39,6 +48,11 @@ describe('dataloader auto-instrumentation', () => {
                 span_id: loadSpan?.span_id,
               }),
             ]);
+
+            // Locks down the async behavior: `load` encloses the deferred `batch` span
+            expect(batchSpan?.parent_span_id).toBe(loadSpan?.span_id);
+            expect(loadSpan?.start_timestamp).toBeLessThanOrEqual(batchSpan?.start_timestamp ?? 0);
+            expect(loadSpan?.timestamp).toBeGreaterThanOrEqual(batchSpan?.timestamp ?? 0);
           },
         })
         .expect({
@@ -52,6 +66,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadManySpan?.status).toBe('ok');
             expect(loadManySpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadManySpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.data?.['cache.key']).toEqual(['user-1', 'user-2']);
           },
         })
         .expect({

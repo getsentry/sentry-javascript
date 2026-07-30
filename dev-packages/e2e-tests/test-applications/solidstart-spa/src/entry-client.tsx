@@ -4,6 +4,7 @@ import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidro
 import { StartClient, mount } from '@solidjs/start/client';
 
 Sentry.init({
+  traceLifecycle: 'static',
   // We can't use env variables here, seems like they are stripped
   // out in production builds.
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

@@ -1,13 +1,14 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
-import type { TransactionEvent } from '@sentry/core';
-import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { ErrorEvent, TransactionEvent } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
-import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     cleanupOtel();
   });
 
@@ -550,135 +551,64 @@ describe('Integration | Transactions', () => {
     ]);
   });
 
-  it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = vi.fn(() => null);
-
-    const now = Date.now();
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
-
-    // This test inspects the `SentrySpanProcessor`/exporter buffering, which only exists on the
-    // OpenTelemetry SDK provider, so opt out of the default `SentryTracerProvider`.
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, openTelemetryBasicTracerProvider: true });
-
-    const spanProcessor = getSpanProcessor();
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
-    void Sentry.startSpan({ name: 'test name' }, async () => {
-      Sentry.startInactiveSpan({ name: 'inner span 1' }).end();
-      Sentry.startInactiveSpan({ name: 'inner span 2' }).end();
-
-      // Pretend this is pending for 10 minutes
-      await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
+  it('withMonitor should use the same traces for each monitor', async () => {
+    const sendEvents: ErrorEvent[] = [];
+    const transactionEvents: TransactionEvent[] = [];
+    const beforeSendTransaction = vi.fn((event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
     });
-
-    vi.advanceTimersByTime(1);
-
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
-    const finishedSpans1 = [];
-    exporter['_finishedSpanBuckets'].forEach((bucket: any) => {
-      if (bucket) {
-        finishedSpans1.push(...bucket.spans);
-      }
-    });
-    expect(finishedSpans1.length).toBe(2);
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
-
-    // Now wait for 5 mins
-    vi.advanceTimersByTime(5 * 60 * 1_000 + 1);
-
-    // Adding another span will trigger the cleanup
-    Sentry.startSpan({ name: 'other span' }, () => {});
-
-    vi.advanceTimersByTime(1);
-
-    // Old spans have been cleared away
-    const finishedSpans2 = [];
-    exporter['_finishedSpanBuckets'].forEach((bucket: any) => {
-      if (bucket) {
-        finishedSpans2.push(...bucket.spans);
-      }
-    });
-    expect(finishedSpans2.length).toBe(0);
-
-    // Called once for the 'other span'
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-
-    expect(logs).toEqual(
-      expect.arrayContaining([
-        'SpanExporter dropped 2 spans because they were pending for more than 300 seconds.',
-        'SpanExporter exported 1 spans, 0 spans are waiting for their parent spans to finish',
-      ]),
-    );
-  });
-
-  it('allows to configure `maxSpanWaitDuration` to capture long running spans', async () => {
-    const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = vi.fn(event => {
-      transactions.push(event);
+    const beforeSend = vi.fn((event: ErrorEvent) => {
+      sendEvents.push(event);
       return null;
     });
 
-    const now = Date.now();
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
-
-    // `maxSpanWaitDuration` configures the `SentrySpanProcessor` timeout, which only exists on the
-    // OpenTelemetry SDK provider, so opt out of the default `SentryTracerProvider`.
     mockSdkInit({
       tracesSampleRate: 1,
       beforeSendTransaction,
-      maxSpanWaitDuration: 100 * 60,
-      openTelemetryBasicTracerProvider: true,
+      beforeSend,
+      debug: true,
     });
 
-    Sentry.startSpanManual({ name: 'test name' }, rootSpan => {
-      const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
+    const client = Sentry.getClient();
+    const errorMessage = 'Error outside withMonitor';
 
-      Sentry.startSpanManual({ name: 'inner span 2' }, innerSpan => {
-        // Child span ends after 10 min
-        setTimeout(
-          () => {
-            innerSpan.end();
-          },
-          10 * 60 * 1_000,
-        );
+    Sentry.startSpan({ name: 'span outside error' }, () => {
+      Sentry.withMonitor('cron-job-1', () => Sentry.startSpan({ name: 'inner span 1' }, () => undefined));
+
+      try {
+        throw new Error(errorMessage);
+      } catch (e) {
+        Sentry.startSpan({ name: 'span inside error' }, () => undefined);
+        Sentry.captureException(e);
+      }
+
+      Sentry.withMonitor('cron-job-2', () => {
+        Sentry.startSpan({ name: 'inner span 2' }, () => undefined);
       });
-
-      // root span ends after 99 min
-      setTimeout(
-        () => {
-          rootSpan.end();
-        },
-        99 * 10 * 1_000,
-      );
     });
 
-    // Now wait for 100 mins
-    vi.advanceTimersByTime(100 * 60 * 1_000);
+    await client?.flush();
+
+    const transactionTraceId = transactionEvents[0]?.contexts?.trace?.trace_id;
+    const errorTraceId = sendEvents[0]?.contexts?.trace?.trace_id;
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0]!;
+    expect(beforeSend).toHaveBeenCalledTimes(1);
+    expect(transactionEvents).toHaveLength(1);
+    expect(transactionTraceId).toBe(errorTraceId);
+    const spans = transactionEvents[0]?.spans || [];
 
-    expect(transaction.transaction).toEqual('test name');
-    const spans = transaction.spans || [];
-
-    expect(spans).toHaveLength(2);
-
+    expect(spans).toHaveLength(3);
     expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'span inside error' }));
     expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
+    expect(sendEvents).toMatchObject([
+      {
+        exception: {
+          values: [{ value: errorMessage }],
+        },
+      },
+    ]);
   });
 });

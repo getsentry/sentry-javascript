@@ -520,7 +520,7 @@ export async function getMultipleSentryEnvelopeRequests<T>(
     timeout?: number;
     envelopeType?: EnvelopeItemType | EnvelopeItemType[];
   },
-  requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
+  requestParser: (req: Request) => T = envelopeRequestParser,
 ): Promise<T[]> {
   return getMultipleRequests<T>(page, count, envelopeUrlRegex, requestParser, options);
 }
@@ -536,7 +536,7 @@ export async function getMultipleSentryEnvelopeRequests<T>(
 export async function getFirstSentryEnvelopeRequest<T>(
   page: Page,
   url?: string,
-  requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
+  requestParser: (req: Request) => T = envelopeRequestParser,
 ): Promise<T> {
   const reqs = await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser);
 

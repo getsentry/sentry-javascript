@@ -32,7 +32,7 @@ import type { ParameterizedString } from './types/parameterize';
 import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
 import type { RequestEventData } from './types/request';
 import type { SdkMetadata } from './types/sdkmetadata';
-import type { Session, SessionAggregates } from './types/session';
+import type { Session, SessionAggregates, SessionStatus } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
@@ -43,7 +43,7 @@ import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
-import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
+import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -52,7 +52,6 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
-import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -91,11 +90,11 @@ function _makeDoNotSendEventError(message: string): DoNotSendEventError {
 }
 
 function _isInternalError(error: unknown): error is InternalError {
-  return !!error && typeof error === 'object' && INTERNAL_ERROR_SYMBOL in error;
+  return isObjectLike(error) && INTERNAL_ERROR_SYMBOL in error;
 }
 
 function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
-  return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
+  return isObjectLike(error) && DO_NOT_SEND_EVENT_SYMBOL in error;
 }
 
 /**
@@ -221,12 +220,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected readonly _dataCollection: ResolvedDataCollection;
 
   /**
+   * The session status to set when an unhandled error terminates a session.
+   *
+   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
+   * don't actually crash the browser.
+   */
+  protected _unhandledSessionStatus: SessionStatus;
+
+  /**
    * Initializes this client instance.
    *
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = options;
+    this._options = { attachStacktrace: true, traceLifecycle: 'stream', ...options };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -234,6 +241,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
+    this._unhandledSessionStatus = 'crashed';
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -255,10 +263,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    // Backfill enableLogs option from _experiments.enableLogs
-    // TODO(v11): Remove or change default value
-    // eslint-disable-next-line typescript/no-deprecated
-    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+    this._options.enableLogs ??= true;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
@@ -467,7 +472,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
-    _INTERNAL_flushLogsBuffer(this);
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
@@ -654,6 +658,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  /** Register a callback before an idle span ends and its end timestamp is finalized. */
+  public on(hook: 'beforeIdleSpanEnd', callback: (idleSpan: Span) => void): () => void;
+
   /**
    * Register a callback for after a span is ended and the `spanEnd` hook has run.
    * NOTE: The span cannot be mutated anymore in this callback.
@@ -669,12 +676,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback to preprocess a span JSON _before_ it is passed to the `processSpan` and
    * `processSegmentSpan` hooks. Use this to backfill data that subsequent hooks rely on.
-   * The optional `hint` exposes additional context about the originating span (e.g. the OTel `spanKind`).
    */
-  public on(
-    hook: 'preprocessSpan',
-    callback: (streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }) => void,
-  ): () => void;
+  public on(hook: 'preprocessSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
@@ -815,7 +818,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'beforeStartNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -824,7 +827,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'startNavigationSpan',
-    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean; url?: string }) => void,
   ): () => void;
 
   /**
@@ -971,6 +974,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
 
+  /** Fire a hook before an idle span ends and its end timestamp is finalized. */
+  public emit(hook: 'beforeIdleSpanEnd', idleSpan: Span): void;
+
   /**
    * Fire a hook event after a span ends and the `spanEnd` hook has run.
    */
@@ -984,7 +990,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Fire a hook event to preprocess a span JSON before the `processSpan` and `processSegmentSpan` hooks run.
    */
-  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void;
+  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON): void;
 
   /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
@@ -1100,7 +1106,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'beforeStartNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**
@@ -1109,7 +1115,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(
     hook: 'startNavigationSpan',
     options: StartSpanOptions,
-    navigationOptions?: { isRedirect?: boolean },
+    navigationOptions?: { isRedirect?: boolean; url?: string },
   ): void;
 
   /**
@@ -1255,19 +1261,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
-    let crashed = event.level === 'fatal';
+    // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
+    let unhandled = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
-      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
-      crashed = false;
+      // reset `unhandled` to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      unhandled = false;
 
       for (const ex of exceptions) {
         if (ex.mechanism?.handled === false) {
-          crashed = true;
+          unhandled = true;
           break;
         }
       }
@@ -1275,14 +1281,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
-    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
+    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status unhandled and send update
     const sessionNonTerminal = session.status === 'ok';
-    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
+    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && unhandled);
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: 'crashed' }),
-        errors: session.errors || Number(errored || crashed),
+        ...(unhandled && { status: this._unhandledSessionStatus }),
+        errors: session.errors || Number(errored || unhandled),
       });
       this.captureSession(session);
     }
@@ -1439,15 +1445,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error');
-      return rejectedSyncPromise(
-        _makeDoNotSendEventError(
-          `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-        ),
-      );
-    }
-
     const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
@@ -1480,6 +1477,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+          this.recordDroppedEvent('sample_rate', 'error');
+          throw _makeDoNotSendEventError(
+            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+          );
         }
 
         if (isTransaction) {

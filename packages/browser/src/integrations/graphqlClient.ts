@@ -1,15 +1,16 @@
 import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   defineIntegration,
+  isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
+import { GRAPHQL_DOCUMENT, URL_FULL } from '@sentry/conventions/attributes';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
@@ -67,9 +68,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       return;
     }
 
-    // Fall back to `url` because fetch instrumentation only sets `http.url` for absolute URLs;
-    // relative URLs end up only in `url` (see `getFetchSpanAttributes` in packages/core/src/fetch.ts).
-    const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'] || spanAttributes['url'];
+    const httpUrl = spanAttributes[URL_FULL];
     const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
 
     if (!isString(httpUrl) || !isString(httpMethod)) {
@@ -87,9 +86,9 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
         const operationInfo = _getGraphQLOperation(graphqlBody);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
 
-        // Handle standard requests - always capture the query document
-        if (isStandardRequest(graphqlBody)) {
-          span.setAttribute('graphql.document', graphqlBody.query);
+        // Handle standard requests - capture the query document when enabled via dataCollection (default true)
+        if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
+          span.setAttribute(GRAPHQL_DOCUMENT, graphqlBody.query);
         }
 
         // Handle persisted operations - capture hash for debugging
@@ -125,8 +124,8 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 
           data['graphql.operation'] = operationInfo;
 
-          if (isStandardRequest(graphqlBody)) {
-            data['graphql.document'] = graphqlBody.query;
+          if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
+            data[GRAPHQL_DOCUMENT] = graphqlBody.query;
           }
 
           if (isPersistedRequest(graphqlBody)) {
@@ -215,15 +214,12 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
 /**
  * Helper to safely check if a value is a non-null object
  */
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 /**
  * Type guard to check if a request is a standard GraphQL request
  */
 function isStandardRequest(payload: unknown): payload is GraphQLStandardRequest {
-  return isObject(payload) && typeof payload.query === 'string';
+  return isObjectLike(payload) && typeof payload.query === 'string';
 }
 
 /**
@@ -231,10 +227,10 @@ function isStandardRequest(payload: unknown): payload is GraphQLStandardRequest 
  */
 function isPersistedRequest(payload: unknown): payload is GraphQLPersistedRequest {
   return (
-    isObject(payload) &&
+    isObjectLike(payload) &&
     typeof payload.operationName === 'string' &&
-    isObject(payload.extensions) &&
-    isObject(payload.extensions.persistedQuery) &&
+    isObjectLike(payload.extensions) &&
+    isObjectLike(payload.extensions.persistedQuery) &&
     typeof payload.extensions.persistedQuery.sha256Hash === 'string' &&
     typeof payload.extensions.persistedQuery.version === 'number'
   );

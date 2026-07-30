@@ -1,17 +1,17 @@
 {
   "name": "@sentry-internal/clear-cache-gh-action",
   "description": "An internal Github Action to clear GitHub caches.",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "private": true,
   "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware"
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware"
   },
   "dependencies": {
     "@actions/core": "1.10.1",

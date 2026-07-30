@@ -1,8 +1,12 @@
 import type { TransactionEvent } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('kafkajs', () => {
+const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.producer' : 'auto.kafkajs.otel.producer';
+const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.consumer' : 'auto.kafkajs.otel.consumer';
+
+describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -14,9 +18,6 @@ describe('kafkajs', () => {
       const receivedTransactions: TransactionEvent[] = [];
 
       await createRunner()
-        .withDockerCompose({
-          workingDirectory: [__dirname],
-        })
         .expect({
           transaction: (transaction: TransactionEvent) => {
             receivedTransactions.push(transaction);
@@ -27,10 +28,10 @@ describe('kafkajs', () => {
             receivedTransactions.push(transaction);
 
             const producer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.producer',
+              t => t.contexts?.trace?.data?.['sentry.origin'] === producerOrigin,
             );
             const consumer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.consumer',
+              t => t.contexts?.trace?.data?.['sentry.origin'] === consumerOrigin,
             );
 
             expect(producer).toBeDefined();
@@ -57,9 +58,9 @@ describe('kafkajs', () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                  'sentry.origin': producerOrigin,
                 }),
               }),
             );
@@ -71,9 +72,9 @@ describe('kafkajs', () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'CONSUMER',
+                  'sentry.kind': 'consumer',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.consumer',
+                  'sentry.origin': consumerOrigin,
                 }),
               }),
             );
@@ -87,9 +88,6 @@ describe('kafkajs', () => {
   createEsmAndCjsTests(__dirname, 'scenario-error.mjs', 'instrument.mjs', (createRunner, test) => {
     test('marks the producer span as errored when a send fails', { timeout: 90_000 }, async () => {
       await createRunner()
-        .withDockerCompose({
-          workingDirectory: [__dirname],
-        })
         .expect({
           transaction: (transaction: TransactionEvent) => {
             expect(transaction.transaction).toBe('send invalid topic name');
@@ -100,9 +98,9 @@ describe('kafkajs', () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
-                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                  'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),
               }),

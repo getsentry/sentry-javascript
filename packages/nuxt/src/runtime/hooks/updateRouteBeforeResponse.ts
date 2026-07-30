@@ -1,4 +1,5 @@
-import { debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { isObjectLike, debug, getActiveSpan, getRootSpan } from '@sentry/core';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { H3Event } from 'h3';
 
 type MatchedRoute = { path?: string; route?: string };
@@ -29,6 +30,8 @@ export function updateRouteBeforeResponse(event: EventWithMatchedRoute): void {
       return; // Skip if the matched route is a catch-all route (handled in `route-detector.server.ts`)
     }
 
+    setHttpServerSpanRouteAttribute(matchedRoutePath);
+
     const activeSpan = getActiveSpan(); // In development mode, getActiveSpan() is always undefined
     if (!activeSpan) {
       return;
@@ -39,14 +42,9 @@ export function updateRouteBeforeResponse(event: EventWithMatchedRoute): void {
       return;
     }
 
-    rootSpan.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      'http.route': matchedRoutePath,
-    });
-
     const params = event.context?.params;
 
-    if (params && typeof params === 'object') {
+    if (isObjectLike(params)) {
       Object.entries(params).forEach(([key, value]) => {
         // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
         rootSpan.setAttributes({

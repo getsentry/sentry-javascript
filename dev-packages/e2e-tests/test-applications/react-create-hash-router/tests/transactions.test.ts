@@ -26,6 +26,9 @@ test('Captures a pageload transaction', async ({ page }) => {
       'performance.activationStart': expect.any(Number),
       'lcp.renderTime': expect.any(Number),
       'lcp.loadTime': expect.any(Number),
+      'url.template': '/',
+      'url.full': 'http://localhost:3030/',
+      'url.path': '/',
     },
     op: 'pageload',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -57,6 +60,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -71,6 +75,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -85,6 +90,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
   expect(transactionEvent.spans).toContainEqual({
     data: {
@@ -99,6 +105,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
+    status: 'ok',
   });
 });
 
@@ -122,6 +129,9 @@ test('Captures a navigation transaction', async ({ page }) => {
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'url.template': '/user/:id',
+      'url.path': '/',
+      'url.full': expect.stringMatching(/^http:\/\/localhost:3030\/#\/user\/5$/),
     }),
     links: [
       {
@@ -164,15 +174,22 @@ test('Captures a parameterized path pageload transaction', async ({ page }) => {
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for nested route', async ({ page }) => {
@@ -184,15 +201,22 @@ test('Captures a parameterized path pageload transaction for nested route', asyn
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post/featured',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post/featured',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/featured',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/featured',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for deeply nested route', async ({ page }) => {
@@ -204,15 +228,22 @@ test('Captures a parameterized path pageload transaction for deeply nested route
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v1/post/:post/edit',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v1/post/:post/edit',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v1/post/:post/edit',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v1/post/1/edit',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for nested route with absolute path', async ({ page }) => {
@@ -224,15 +255,22 @@ test('Captures a parameterized path pageload transaction for nested route with a
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post/related',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post/related',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/related',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/related',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction', async ({ page }) => {
@@ -246,15 +284,22 @@ test('Captures a parameterized path navigation transaction', async ({ page }) =>
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for nested route', async ({ page }) => {
@@ -268,15 +313,22 @@ test('Captures a parameterized path navigation transaction for nested route', as
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post/featured',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post/featured',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/featured',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/featured',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for deeply nested route', async ({ page }) => {
@@ -290,15 +342,22 @@ test('Captures a parameterized path navigation transaction for deeply nested rou
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v1/post/:post/edit',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v1/post/:post/edit',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v1/post/:post/edit',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v1/post/1/edit',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for nested route with absolute path', async ({ page }) => {
@@ -312,15 +371,22 @@ test('Captures a parameterized path navigation transaction for nested route with
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/v2/post/:post/related',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/v2/post/:post/related',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/v2/post/:post/related',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/v2/post/1/related',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for group route', async ({ page }) => {
@@ -332,15 +398,22 @@ test('Captures a parameterized path pageload transaction for group route', async
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/group/:group/:user?',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/group/:group/:user?',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/group/:group/:user?',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/group/1',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for group route', async ({ page }) => {
@@ -354,15 +427,22 @@ test('Captures a parameterized path navigation transaction for group route', asy
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/group/:group/:user?',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/group/:group/:user?',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/group/:group/:user?',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/group/1',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path pageload transaction for nested group route', async ({ page }) => {
@@ -374,15 +454,22 @@ test('Captures a parameterized path pageload transaction for nested group route'
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/group/:group/:user?',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/group/:group/:user?',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/group/:group/:user?',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/group/1/5',
+        },
       },
-    }),
-  );
+    },
+  });
 });
 
 test('Captures a parameterized path navigation transaction for nested group route', async ({ page }) => {
@@ -396,13 +483,20 @@ test('Captures a parameterized path navigation transaction for nested group rout
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/group/:group/:user?',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
+  expect(transactionEvent).toMatchObject({
+    transaction: '/group/:group/:user?',
+    type: 'transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          'url.template': '/group/:group/:user?',
+          'url.path': '/',
+          'url.full': 'http://localhost:3030/#/group/1/5',
+        },
       },
-    }),
-  );
+    },
+  });
 });

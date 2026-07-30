@@ -1,7 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { init as initNode } from '@sentry/node';
-import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { init as initVue } from '@sentry/vue';
 
 // Omitting Vue 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
@@ -183,6 +183,23 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    */
   enabled?: boolean;
 
+  // todo(v11): Update this JSDoc (and remove from experimental)
+  /**
+   * Experimental build-time options that may change or be removed without notice.
+   */
+  _experimental?: {
+    /**
+     * Enables build-time diagnostics-channel instrumentation for supported dependencies bundled into the Nitro server.
+     *
+     * 1. Remove `--import ./.output/server/sentry.server.config.mjs` from your `start` script
+     * 2. Add `sentry.autoInjectServerSentry: 'top-level-import'` in `nuxt.config.ts` so Sentry's server configuration is automatically imported
+     *
+     * @default false
+     * @experimental May change or be removed in any release.
+     */
+    useDiagnosticsChannelInjection?: boolean;
+  };
+
   /**
    * Options for the Sentry Vite plugin to customize the source maps upload process.
    *
@@ -254,7 +271,7 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
   experimental_entrypointWrappedFunctions?: string[];
 
   /**
-   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.
+   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/bundler-plugins/rollup`) and Sentry Vite Plugin (`@sentry/bundler-plugins/vite`) that ship with the Sentry Nuxt SDK.
    * You can use this option to override any options the SDK passes to the Vite (for Nuxt) and Rollup (for Nitro) plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.

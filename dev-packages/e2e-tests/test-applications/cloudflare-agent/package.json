@@ -14,26 +14,32 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.7.1",
-    "@sentry/cloudflare": "^10.53.1",
-    "agents": "^0.13.1",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "@cloudflare/ai-chat": "^0.10.0",
+    "@sentry/cloudflare": "^10.68.0",
+    "@sentry/core": "^10.68.0",
+    "agents": "^0.20.0",
+    "ai": "^6.0.235",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "workers-ai-provider": "^3.3.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@cloudflare/vite-plugin": "^1.37.2",
-    "@cloudflare/workers-types": "^4.20260520.1",
+    "@cloudflare/vite-plugin": "^1.47.0",
+    "@cloudflare/workers-types": "^5.20260727.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@types/node": "^24.12.4",
-    "@types/react": "^19.2.15",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "globals": "^17.6.0",
+    "@types/ws": "^8.18.1",
+    "@babel/core": "^8.0.1",
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@vitejs/plugin-react": "^6.0.4",
+    "globals": "^17.8.0",
     "typescript": "~6.0.3",
-    "vite": "^8.0.14",
-    "wrangler": "^4.93.0",
-    "ws": "^8.20.1"
+    "vite": "^8.1.5",
+    "wrangler": "^4.114.0",
+    "ws": "^8.21.1"
   },
   "volta": {
     "node": "24.15.0",

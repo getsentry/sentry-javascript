@@ -558,7 +558,7 @@ var adler = function () {
       var n = a,
         m = b;
       var l = d.length | 0;
-      for (var i = 0; i != l; ) {
+      for (var i = 0; i != l;) {
         var e = Math.min(i + 2655, l);
         for (; i < e; ++i) m += n += d[i];
         ((n = (n & 65535) + 15 * (n >> 16)), (m = (m & 65535) + 15 * (m >> 16)));

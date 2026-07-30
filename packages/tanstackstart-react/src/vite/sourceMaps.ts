@@ -1,11 +1,11 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
- * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
+ * A Sentry plugin for adding the @sentry/bundler-plugins/vite to automatically upload source maps to Sentry.
  */
 export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
   const {

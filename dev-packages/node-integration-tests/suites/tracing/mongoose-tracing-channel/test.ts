@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // mongoose >= 9.7.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
@@ -9,6 +9,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // query text, span relationships, and that the legacy IITM patcher does NOT also fire (no double
 // instrumentation). mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
 conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
+  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -104,9 +105,50 @@ conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
               // the underlying mongodb driver span must parent to the mongoose channel span,
               // proving the channel span is the active async context for the traced operation
               const driverChild = spans.find(
-                span => span.parent_span_id === mongooseSave?.span_id && span.origin === 'auto.db.otel.mongo',
+                span => span.parent_span_id === mongooseSave?.span_id && span.origin === driverOrigin,
               );
               expect(driverChild).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+
+      test('omits db.query.text for the empty-filter cursor and does not treat the cursor batchSize as a batch', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              // the `.find().cursor()` iteration runs with no filter, so there is no query text to emit
+              const cursorFind = spans.find(span => span.description === 'mongoose.blogposts.find');
+              expect(cursorFind).toBeDefined();
+              expect(cursorFind?.data?.['db.query.text']).toBeUndefined();
+              // a cursor's `batchSize` is a fetch-tuning option, not a batch-operation size
+              expect(cursorFind?.data?.['db.operation.batch.size']).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { mongoose: '^9.7' } },
+  );
+
+  // A failed operation must flag the mongoose channel span as errored. mongodb error statuses map to
+  // `internal_error` through the OTel pipeline (same as the postgres/redis suites).
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-error.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('flags the mongoose channel span as errored when the operation fails', async () => {
+        await createTestRunner()
+          .expect({
+            transaction: event => {
+              const spans = event.spans || [];
+              const aggregateSpan = spans.find(span => span.description === 'mongoose.blogposts.aggregate');
+              expect(aggregateSpan).toBeDefined();
+              expect(aggregateSpan?.status).toBe('internal_error');
             },
           })
           .start()

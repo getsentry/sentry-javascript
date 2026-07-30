@@ -16,6 +16,7 @@ import Index from './pages/Index';
 const replay = Sentry.replayIntegration();
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
@@ -74,11 +75,41 @@ const ProjectsRoutes = () => (
   </SentryRoutes>
 );
 
+// Descendant <Routes> whose matched route (`:id` via its index) sits above further non-wildcard nested
+// child routes (`:sub`). The nested subtree must not steal the transaction name from the `child/*`
+// parent - the pageload/navigation name should stay `/child/:id`, not `/:id/:sub` (see issue #22194).
+const ChildRoutes = () => (
+  <SentryRoutes>
+    <Route path=":id">
+      <Route index element={<div id="child">Child</div>} />
+      <Route path=":sub">
+        <Route index element={<div id="sub">Sub</div>} />
+      </Route>
+    </Route>
+  </SentryRoutes>
+);
+
+// Deep wildcard chain: three levels of `/*` nesting.
+// workspace/* → :teamId/* → :memberId
+const DeepMemberRoutes = () => (
+  <SentryRoutes>
+    <Route path=":memberId" element={<div id="deep-member">Deep Member</div>} />
+  </SentryRoutes>
+);
+
+const DeepTeamRoutes = () => (
+  <SentryRoutes>
+    <Route path=":teamId/*" element={<DeepMemberRoutes />} />
+  </SentryRoutes>
+);
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <BrowserRouter>
     <SentryRoutes>
       <Route path="/" element={<Index />} />
+      <Route path="child/*" element={<ChildRoutes />} />
+      <Route path="workspace/*" element={<DeepTeamRoutes />} />
       <Route path="/*" element={<ProjectsRoutes />} />
     </SentryRoutes>
   </BrowserRouter>,

@@ -8,7 +8,9 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/api/db-ioredis`);
+  const response = await fetch(`${baseURL}/api/db-ioredis`);
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe('test-value');
 
   const transactionEvent = await transactionEventPromise;
 
@@ -20,7 +22,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'set test-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
@@ -32,7 +34,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'get test-key',
       status: 'ok',
       data: expect.objectContaining({
@@ -50,7 +52,9 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/api/db-mysql`);
+  const response = await fetch(`${baseURL}/api/db-mysql`);
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ status: 'ok' });
 
   const transactionEvent = await transactionEventPromise;
 
@@ -59,7 +63,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT 1 + 1 AS solution',
       status: 'ok',
       data: expect.objectContaining({
@@ -75,7 +79,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT NOW()',
       status: 'ok',
       data: expect.objectContaining({

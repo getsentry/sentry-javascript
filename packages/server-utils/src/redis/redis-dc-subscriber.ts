@@ -1,14 +1,16 @@
 import type { TracingChannel } from 'node:diagnostics_channel';
 import {
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import { debug, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
@@ -106,10 +108,6 @@ export type RedisDiagnosticChannelResponseHook = (
  */
 export type RedisTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
-let subscribed = false;
-let currentResponseHook: RedisDiagnosticChannelResponseHook | undefined;
-let activeUnbinds: Array<() => void> = [];
-
 /**
  * Subscribe Sentry span handlers to node-redis and ioredis diagnostics-channel
  * events: `node-redis:command`/`:batch`/`:connect` (published by node-redis
@@ -118,46 +116,37 @@ let activeUnbinds: Array<() => void> = [];
  * On older client versions the channels are never published to, so subscribers
  * are inert — there is no double-instrumentation against any IITM-based
  * patcher gated to those older versions.
- *
- * Idempotent: subsequent calls update the response hook but do not
- * re-subscribe.
  */
 export function subscribeRedisDiagnosticChannels(
   tracingChannel: RedisTracingChannelFactory,
   responseHook?: RedisDiagnosticChannelResponseHook,
 ): void {
-  currentResponseHook = responseHook;
-  if (subscribed) return;
-  subscribed = true;
-
-  try {
-    // node-redis: command name appears as args[0] in the channel payload, so
-    // strip it before the statement and response hook see it.
-    activeUnbinds.push(
-      setupCommandChannel<RedisCommandData>(tracingChannel, REDIS_DC_CHANNEL_COMMAND, data => data.args.slice(1)),
-      setupBatchChannel(tracingChannel, REDIS_DC_CHANNEL_BATCH, data =>
-        data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI',
-      ),
-      setupConnectChannel(tracingChannel, REDIS_DC_CHANNEL_CONNECT),
-      // ioredis: args already exclude the command name; no slicing needed. And
-      // ioredis has no separate batch channel — pipeline/MULTI metadata rides
-      // on the per-command payload via `batchMode`/`batchSize`.
-      setupCommandChannel<IORedisCommandData>(tracingChannel, IOREDIS_DC_CHANNEL_COMMAND, data => data.args),
-      setupConnectChannel(tracingChannel, IOREDIS_DC_CHANNEL_CONNECT),
-    );
-  } catch {
-    // The factory may rely on `node:diagnostics_channel`, which isn't always
-    // available. Fail closed; the SDK simply won't emit redis spans here.
-    DEBUG_BUILD && debug.log('Redis node:diagnostics_channel subscription failed.');
-  }
+  // node-redis: command name appears as args[0] in the channel payload, so
+  // strip it before the statement and response hook see it.
+  setupCommandChannel<RedisCommandData>(
+    tracingChannel,
+    REDIS_DC_CHANNEL_COMMAND,
+    data => data.args.slice(1),
+    responseHook,
+  );
+  setupBatchChannel(tracingChannel, REDIS_DC_CHANNEL_BATCH, data =>
+    data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI',
+  );
+  setupConnectChannel(tracingChannel, REDIS_DC_CHANNEL_CONNECT);
+  // ioredis: args already exclude the command name; no slicing needed. And
+  // ioredis has no separate batch channel — pipeline/MULTI metadata rides
+  // on the per-command payload via `batchMode`/`batchSize`.
+  setupCommandChannel<IORedisCommandData>(tracingChannel, IOREDIS_DC_CHANNEL_COMMAND, data => data.args, responseHook);
+  setupConnectChannel(tracingChannel, IOREDIS_DC_CHANNEL_CONNECT);
 }
 
 function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
   tracingChannel: RedisTracingChannelFactory,
   channelName: string,
   getCommandArgs: (data: T) => string[],
-): () => void {
-  return bindTracingChannelToSpan(
+  responseHook?: RedisDiagnosticChannelResponseHook,
+): void {
+  bindTracingChannelToSpan(
     tracingChannel<T>(channelName),
     data => {
       // `args` is already sanitized by the publishing library (node-redis /
@@ -169,8 +158,9 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
         name: `redis-${data.command}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
+          [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          [DB_OPERATION_NAME]: data.command,
           [DB_QUERY_TEXT]: statement,
           ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
           ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
@@ -178,76 +168,62 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       });
     },
     {
-      // Command failures are surfaced to (and usually handled by) the caller; only annotate the
-      // span so we don't emit a duplicate error event for every failed command.
-      captureError: false,
       beforeSpanEnd(span, data) {
         if ('error' in data) return;
-        runResponseHook(span, data.command, getCommandArgs(data), data.result);
+        runResponseHook(responseHook, span, data.command, getCommandArgs(data), data.result);
       },
     },
-  ).unbind;
+  );
 }
 
 function setupBatchChannel(
   tracingChannel: RedisTracingChannelFactory,
   channelName: string,
   getOperationName: (data: RedisBatchData) => string,
-): () => void {
-  return bindTracingChannelToSpan(
-    tracingChannel<RedisBatchData>(channelName),
-    data => {
-      return startInactiveSpan({
-        name: getOperationName(data),
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-          // should only include batch size greater than 1,
-          // or else it isn't properly considered a "batch"
-          ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
-          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-        },
-      });
-    },
-    { captureError: false },
-  ).unbind;
+): void {
+  bindTracingChannelToSpan(tracingChannel<RedisBatchData>(channelName), data => {
+    return startInactiveSpan({
+      name: getOperationName(data),
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+        // should only include batch size greater than 1,
+        // or else it isn't properly considered a "batch"
+        ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
+        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+      },
+    });
+  });
 }
 
-function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): () => void {
-  return bindTracingChannelToSpan(
-    tracingChannel<RedisConnectData>(channelName),
-    data => {
-      return startInactiveSpan({
-        name: 'redis-connect',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis.connect',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-        },
-      });
-    },
-    { captureError: false },
-  ).unbind;
+function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): void {
+  bindTracingChannelToSpan(tracingChannel<RedisConnectData>(channelName), data => {
+    return startInactiveSpan({
+      name: 'redis-connect',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+      },
+    });
+  });
 }
 
-function runResponseHook(span: Span, command: string, args: string[], result: unknown): void {
-  const hook = currentResponseHook;
+function runResponseHook(
+  hook: RedisDiagnosticChannelResponseHook | undefined,
+  span: Span,
+  command: string,
+  args: string[],
+  result: unknown,
+): void {
   if (!hook) return;
   try {
     hook(span, command, args, result);
   } catch {
     // never let user hooks break instrumentation
   }
-}
-
-/** Test-only: detach all channel bindings and reset module-local subscribe state. */
-export function _resetRedisDiagnosticChannelsForTesting(): void {
-  activeUnbinds.forEach(unbind => unbind());
-  activeUnbinds = [];
-  subscribed = false;
-  currentResponseHook = undefined;
 }

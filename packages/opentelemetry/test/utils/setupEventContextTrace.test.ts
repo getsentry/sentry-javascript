@@ -1,40 +1,24 @@
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { captureException, setCurrentClient } from '@sentry/core';
+import { captureException } from '@sentry/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { mockSdkInit } from '../helpers/mockSdkInit';
+import type { TestClient } from '../helpers/TestClient';
+import { trace } from '@opentelemetry/api';
 
-const PUBLIC_DSN = 'https://username@domain/123';
+const tracer = trace.getTracer('test');
 
 describe('setupEventContextTrace', () => {
   const beforeSend = vi.fn(() => null);
-  let client: TestClientInterface;
-  let provider: BasicTracerProvider | undefined;
+  let client: TestClient;
 
   beforeEach(() => {
-    client = new TestClient(
-      getDefaultTestClientOptions({
-        sampleRate: 1,
-        tracesSampleRate: 1,
-        beforeSend,
-        debug: true,
-        dsn: PUBLIC_DSN,
-      }),
-    );
-
-    setCurrentClient(client);
-    client.init();
+    client = mockSdkInit({ debug: true, beforeSend, tracesSampleRate: 1 });
 
     setupEventContextTrace(client);
-    [provider] = setupOtel(client);
   });
 
   afterEach(() => {
     beforeSend.mockReset();
-    cleanupOtel(provider);
   });
 
   afterAll(() => {
@@ -71,11 +55,11 @@ describe('setupEventContextTrace', () => {
     let innerId: string | undefined;
     let traceId: string | undefined;
 
-    client.tracer.startActiveSpan('outer', outerSpan => {
+    tracer?.startActiveSpan('outer', outerSpan => {
       outerId = outerSpan.spanContext().spanId;
       traceId = outerSpan.spanContext().traceId;
 
-      client.tracer.startActiveSpan('inner', innerSpan => {
+      tracer?.startActiveSpan('inner', innerSpan => {
         innerId = innerSpan.spanContext().spanId;
         captureException(error);
       });

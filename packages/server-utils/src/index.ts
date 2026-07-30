@@ -4,23 +4,21 @@
  * @module
  */
 
-export { mongooseIntegration } from './mongoose';
+export { graphqlIntegration } from './graphql';
+export { mongooseIntegration, startMongooseLegacySpan } from './mongoose';
+export type { MongooseLegacyCollection, StartMongooseLegacySpanOptions } from './mongoose';
 export {
-  IOREDIS_DC_CHANNEL_COMMAND,
-  IOREDIS_DC_CHANNEL_CONNECT,
-  REDIS_DC_CHANNEL_BATCH,
-  REDIS_DC_CHANNEL_COMMAND,
-  REDIS_DC_CHANNEL_CONNECT,
-  subscribeRedisDiagnosticChannels,
-} from './redis/redis-dc-subscriber';
-export type {
-  IORedisCommandData,
-  RedisBatchData,
-  RedisCommandData,
-  RedisConnectData,
-  RedisDiagnosticChannelResponseHook,
-  RedisTracingChannelFactory,
-} from './redis/redis-dc-subscriber';
+  getV3CommandOperation,
+  getV3SpanAttributes,
+  getV4SpanAttributes,
+  startMongoSpan,
+} from './mongodb/mongodb-span';
+export type { MongodbNamespace, MongoV3Topology } from './mongodb/mongodb-span';
+export { mysql2Integration } from './mysql2';
+export { instrumentPrisma, prismaIntegration } from './prisma';
+export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
+export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';
+export type { RedisDiagnosticChannelResponseHook } from './redis/redis-dc-subscriber';
 export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
@@ -29,8 +27,8 @@ export type {
   TracingChannelBindingHandle,
   TracingChannelPayloadWithSpan,
 } from './tracing-channel';
-export { vercelAiIntegration } from './vercel-ai';
-
+export type { InstrumentationConfig } from './orchestrion';
+export { vercelAiIntegration, type VercelAiOptions } from './vercel-ai';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
@@ -38,3 +36,4 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentFastify,
 } from './integrations/tracing-channel/fastify';
+export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';

@@ -1,12 +1,7 @@
-// * import so that loading this module doesn't error on Deno versions
-// lacking `tracingChannel` (added in Deno 1.44.3).
-// On older runtimes the integration becomes a no-op.
-import * as dc from 'node:diagnostics_channel';
-import type { RedisDiagnosticChannelResponseHook, RedisTracingChannelFactory } from '@sentry/server-utils';
-import { subscribeRedisDiagnosticChannels } from '@sentry/server-utils';
+import type { RedisDiagnosticChannelResponseHook } from '@sentry/server-utils';
+import { redisIntegration as redisChannelIntegration } from '@sentry/server-utils';
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoRedis' as const;
 
@@ -19,18 +14,13 @@ export interface DenoRedisIntegrationOptions {
 }
 
 const _denoRedisIntegration = ((options: DenoRedisIntegrationOptions = {}) => {
-  return {
+  // The diagnostics_channel subscription lives in server-utils so it is shared
+  // across runtimes. The AsyncLocalStorage async-context strategy the channel
+  // binding depends on is installed once in `init()`, so this wrapper only
+  // renames the shared integration.
+  return extendIntegration(redisChannelIntegration({ responseHook: options.responseHook }), {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!dc.tracingChannel) {
-        return;
-      }
-      // The span is bound into Deno's AsyncLocalStorage context via the async-context
-      // strategy's `getTracingChannelBinding`, so the native channel can be passed directly.
-      setAsyncLocalStorageAsyncContextStrategy();
-      subscribeRedisDiagnosticChannels(dc.tracingChannel as RedisTracingChannelFactory, options.responseHook);
-    },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

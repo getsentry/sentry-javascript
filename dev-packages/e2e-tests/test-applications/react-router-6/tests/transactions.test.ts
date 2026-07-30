@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForEnvelopeItem, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-6', async transactionEvent => {
@@ -15,6 +15,12 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -46,6 +52,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/user/:id',
+          'url.path': '/user/5',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
+        },
       },
     },
     transaction: '/user/:id',
@@ -56,8 +68,8 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForEnvelopeItem('react-router-6', item => {
-    return item[0].type === 'span';
+  const inpSpanPromise = waitForStreamedSpan('react-router-6', span => {
+    return getSpanOp(span) === 'ui.interaction.click';
   });
 
   await page.goto(`/`);
@@ -73,28 +85,41 @@ test('sends an INP span', async ({ page }) => {
 
   const inpSpan = await inpSpanPromise;
 
-  expect(inpSpan[1]).toEqual({
-    data: {
-      'sentry.origin': 'auto.http.browser.inp',
-      'sentry.op': 'ui.interaction.click',
-      release: 'e2e-test',
-      environment: 'qa',
-      transaction: '/',
-      'sentry.exclusive_time': expect.any(Number),
-      replay_id: expect.any(String),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'client.address': '{{auto}}',
-    },
-    description: 'body > div#root > input#exception-button[type="button"]',
-    op: 'ui.interaction.click',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.browser.inp',
-    exclusive_time: expect.any(Number),
-    measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
-    segment_id: expect.any(String),
-  });
+  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+  expect(inpValue).toBeGreaterThan(0);
+
+  const pageloadSpanId = inpSpan.parent_span_id;
+
+  expect(inpSpan).toEqual(
+    expect.objectContaining({
+      name: 'body > div#root > input#exception-button[type="button"]',
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      status: 'ok',
+    }),
+  );
+  expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
+
+  // `client.address` and replay/user attributes are added by the server or vary by run, so we assert
+  // the stable subset rather than the exhaustive attribute set.
+  expect(inpSpan.attributes).toEqual(
+    expect.objectContaining({
+      'sentry.op': { value: 'ui.interaction.click', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+      'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+      'sentry.transaction': { value: '/', type: 'string' },
+      'sentry.segment.name': { value: '/', type: 'string' },
+      'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
+      'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
+      'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
+      'sentry.release': { value: 'e2e-test', type: 'string' },
+      'sentry.environment': { value: 'qa', type: 'string' },
+      'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+    }),
+  );
 });

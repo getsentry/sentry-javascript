@@ -1,4 +1,4 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getUpdatedSourceMapSettings,
@@ -13,8 +13,8 @@ const mockedSentryVitePlugin = {
 
 const sentryVitePluginSpy = vi.fn((_options: SentryVitePluginOptions) => [mockedSentryVitePlugin]);
 
-vi.mock('@sentry/vite-plugin', async () => {
-  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+vi.mock('@sentry/bundler-plugins/vite', async () => {
+  const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
   return {
     ...original,

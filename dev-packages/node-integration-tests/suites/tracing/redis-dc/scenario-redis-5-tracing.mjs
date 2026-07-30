@@ -1,10 +1,6 @@
 import * as Sentry from '@sentry/node';
 
 async function run() {
-  // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
-  // is registered before node-redis eagerly creates its native TracingChannels on require().
-  await Promise.resolve();
-
   const { createClient } = await import('redis-5-tracing');
   const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6381 } }).connect();
 

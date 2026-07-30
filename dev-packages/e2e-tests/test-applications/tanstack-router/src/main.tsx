@@ -63,6 +63,11 @@ const postIdRoute = createRoute({
   shouldReload() {
     return true;
   },
+  beforeLoad: ({ params }) => {
+    if (params.postId === '999') {
+      throw redirect({ to: '/posts/$postId', params: { postId: '2' }, replace: true });
+    }
+  },
   loader: ({ params }) => {
     return Sentry.startSpan({ name: `loading-post-${params.postId}` }, async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -89,6 +94,7 @@ const router = createRouter({ routeTree });
 declare const __APP_DSN__: string;
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: __APP_DSN__,
   integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],

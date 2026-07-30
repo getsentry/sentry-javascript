@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
 import { createRequire } from 'module';
@@ -235,11 +235,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
-        // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
-        // Users on older versions of astro will need to add the middleware manually.
-        const supportsAddMiddleware = typeof addMiddleware === 'function';
-
-        if (supportsAddMiddleware && isSSR && shouldAddMiddleware) {
+        if (isSSR && shouldAddMiddleware) {
           addMiddleware({
             order: 'pre',
             entrypoint: '@sentry/astro/middleware',

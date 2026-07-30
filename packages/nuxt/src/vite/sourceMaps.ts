@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
-import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
-import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
+import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
+import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -94,9 +94,7 @@ export function setupSourceMaps(
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
-      if (!nitroConfig.rollupConfig) {
-        nitroConfig.rollupConfig = {};
-      }
+      nitroConfig.rollupConfig ??= {};
 
       if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
         nitroConfig.rollupConfig.plugins = [];

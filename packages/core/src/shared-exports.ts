@@ -10,7 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -121,6 +121,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { uniq } from './utils/array';
 export { makeWeakRef, derefWeakRef } from './utils/weakRef';
 export type { MaybeWeakRef } from './utils/weakRef';
 export { shouldIgnoreSpan } from './utils/should-ignore-span';
@@ -137,8 +138,8 @@ export {
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
-export { SPAN_KIND, spanKindToName } from './spanKind';
-export type { SpanKindValue } from './spanKind';
+export { spanKindToName } from './spanKind';
+export type { SpanKind, SpanKindNumber } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line typescript/no-deprecated
@@ -177,61 +178,6 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
-export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
-export {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-} from './tracing/ai/gen-ai-attributes';
-export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
-export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export {
-  instrumentOpenAiClient,
-  extractRequestAttributes as extractOpenAiRequestAttributes,
-  addRequestAttributes as addOpenAiRequestAttributes,
-} from './tracing/openai';
-export {
-  addResponseAttributes as addOpenAiResponseAttributes,
-  extractRequestParameters as extractOpenAiRequestParameters,
-} from './tracing/openai/utils';
-export { instrumentStream as instrumentOpenAiStream } from './tracing/openai/streaming';
-export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
-export {
-  instrumentAnthropicAiClient,
-  extractRequestAttributes as extractAnthropicRequestAttributes,
-  addPrivateRequestAttributes as addAnthropicRequestAttributes,
-  addResponseAttributes as addAnthropicResponseAttributes,
-} from './tracing/anthropic-ai';
-export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
-export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
-export { instrumentGoogleGenAIClient } from './tracing/google-genai';
-export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
-export type { GoogleGenAIResponse } from './tracing/google-genai/types';
-export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
-export { _INTERNAL_mergeLangChainCallbackHandler } from './tracing/langchain/utils';
-export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
-export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
-export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
-export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
-export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
-// eslint-disable-next-line typescript/no-deprecated
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
-export type {
-  AnthropicAiClient,
-  AnthropicAiOptions,
-  // eslint-disable-next-line typescript/no-deprecated
-  AnthropicAiInstrumentedMethod,
-  AnthropicAiResponse,
-} from './tracing/anthropic-ai/types';
-export type {
-  GoogleGenAIClient,
-  GoogleGenAIChat,
-  GoogleGenAIOptions,
-  GoogleGenAIInstrumentedMethod,
-} from './tracing/google-genai/types';
-// eslint-disable-next-line typescript/no-deprecated
-export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
@@ -264,6 +210,7 @@ export {
   isErrorEvent,
   isEvent,
   isInstanceOf,
+  isObjectLike,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
@@ -314,7 +261,7 @@ export {
   stackParserFromStackParserOptions,
   stripSentryFramesAndReverse,
 } from './utils/stacktrace';
-export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
+export { isMatchingPattern, safeJoin, stringify, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
 export {
   isNativeFunction,
   supportsDOMException,
@@ -341,7 +288,6 @@ export {
   createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
-  createSpanEnvelopeItem,
   envelopeContainsItemType,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
@@ -377,6 +323,8 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
   stripDataUrlContent,
+  getUrlQuery,
+  getUrlFragment,
 } from './utils/url';
 export {
   eventFromMessage,
@@ -433,9 +381,7 @@ export type {
   ProfileItem,
   ProfileChunkEnvelope,
   ProfileChunkItem,
-  SpanEnvelope,
   StreamedSpanEnvelope,
-  SpanItem,
   LogEnvelope,
   MetricEnvelope,
 } from './types/envelope';

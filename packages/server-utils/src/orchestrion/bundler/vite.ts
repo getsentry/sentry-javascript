@@ -1,26 +1,8 @@
-// EXPERIMENTAL — Vite plugin that runs the orchestrion code transform at build
-// time, injecting `diagnostics_channel.tracingChannel` calls into the libraries
-// listed in `SENTRY_INSTRUMENTATIONS`.
-//
-// This file is published ESM-only via the `@sentry/server-utils/orchestrion/vite`
-// subpath export. `@apm-js-collab/code-transformer-bundler-plugins` is
-// `"type": "module"`, so consuming it from a CJS build is intentionally
-// unsupported — vite.config.ts is almost always ESM in practice. The CJS
-// rollup variant still emits this file, but `package.json` only exposes the
-// ESM entry, so attempts to `require('@sentry/server-utils/orchestrion/vite')` will
-// fail at resolution time rather than producing a half-broken plugin.
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UnknownPlugin = any;
-
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import MagicString from 'magic-string';
-import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
-
-// `vite` types live in the package's ESM-only subpath; under Node16 module
-// resolution with TS treating @sentry/server-utils as CJS, importing them produces a
-// false positive. We don't need the runtime value for typing — `UnknownPlugin`
-// is sufficient — so we omit the import entirely.
+import type { Plugin, ResolvedConfig } from 'vite';
+import { instrumentedModuleNames } from '../config';
+import type { PluginOptions } from './options';
+import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 /**
  * Vite plugin that runs the orchestrion code transform on the bundled output.
@@ -29,44 +11,29 @@ import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS } from '../config';
  * pipeline, SvelteKit). For unbundled Node processes use the runtime hook
  * instead (`node --import @sentry/node/orchestrion app.js`).
  *
- * Returns two plugins:
- *   1. `sentry-orchestrion-marker` — a `renderChunk` hook that prepends a
- *      single-line banner to entry chunks. The banner sets
- *      `globalThis.__SENTRY_ORCHESTRION__.bundler = true` at app boot, so the
- *      `_experimentalSetupOrchestrion()` detector can confirm the bundler path
- *      ran (rather than relying on a build-time flag that wouldn't be visible
- *      to the runtime).
- *      Also injects every instrumented package name into `ssr.noExternal` via
- *      the `config` hook, since externalized deps are `require()`d at runtime
- *      from `node_modules` and never pass through the transform.
- *   2. The upstream `@apm-js-collab/code-transformer-bundler-plugins/vite`
- *      plugin, fed our central `SENTRY_INSTRUMENTATIONS` config.
- *
  * @example
  * ```ts
  * // vite.config.ts
- * import { sentryOrchestrionPlugin } from '@sentry/node/orchestrion/vite';
+ * import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(): UnknownPlugin[] {
-  const codeTransformerPlugins = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS });
-  const codeTransformerArray: UnknownPlugin[] = Array.isArray(codeTransformerPlugins)
-    ? codeTransformerPlugins
-    : [codeTransformerPlugins];
-  return [bundlerMarkerPlugin(), ...codeTransformerArray];
-}
-
-function bundlerMarkerPlugin(): UnknownPlugin {
-  const banner = [
-    'globalThis.__SENTRY_ORCHESTRION__ = (globalThis.__SENTRY_ORCHESTRION__ || {});',
-    'globalThis.__SENTRY_ORCHESTRION__.bundler = true;',
-    '',
-  ].join('\n');
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Return an inert plugin so SDKs that unconditionally push it into their
+    // plugin array can still opt out without any code transform, `noExternal`
+    // force-bundling, or injected diagnostics landing in the build.
+    return { name: 'sentry-orchestrion-disabled' };
+  }
 
   return {
-    name: 'sentry-orchestrion-marker',
-    enforce: 'pre' as const,
+    ...codeTransformer(orchestrionTransformOptions(options)),
+    applyToEnvironment(environment) {
+      // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
+      // exist server-side. Only apply to server-consumed environments so injected `tracingChannel`
+      // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
+      return environment.config.consumer === 'server';
+    },
     config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by
@@ -75,16 +42,23 @@ function bundlerMarkerPlugin(): UnknownPlugin {
       // diagnostics_channel calls never get injected. Vite merges array
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
-      return { ssr: { noExternal: INSTRUMENTED_MODULE_NAMES } };
+      return { ssr: { noExternal: instrumentedModuleNames(options.instrumentations) } };
     },
-    renderChunk(code: string, chunk: { isEntry: boolean }): { code: string; map: unknown } | null {
-      if (!chunk.isEntry) return null;
-      // Prepend via magic-string so the entry chunk's sourcemap stays aligned —
-      // returning `map: null` here would shift every mapping by the banner's
-      // line count and misattribute server stack traces.
-      const ms = new MagicString(code);
-      ms.prepend(banner);
-      return { code: ms.toString(), map: ms.generateMap({ hires: true }) };
+    configResolved(config: ResolvedConfig): void {
+      // Explicit `ssr.external` string entries take priority over `noExternal`
+      // in Vite, so they defeat the force-bundling above. (`ssr.external: true`
+      // does not — `noExternal` entries still win there.)
+      const external = config.ssr?.external;
+      if (!Array.isArray(external)) {
+        return;
+      }
+      const moduleNames = instrumentedModuleNames(options.instrumentations);
+      const externalizedModules = moduleNames.filter(name =>
+        external.some(entry => externalEntryMatchesModule(entry, name)),
+      );
+      if (externalizedModules.length > 0) {
+        config.logger.warn(`[Sentry] ${externalizedModulesWarning(externalizedModules)}`);
+      }
     },
   };
 }

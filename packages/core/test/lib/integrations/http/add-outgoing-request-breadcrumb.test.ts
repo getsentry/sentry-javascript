@@ -76,12 +76,12 @@ describe('addOutgoingRequestBreadcrumb', () => {
     );
   });
 
-  it('includes http.query when the URL has a query string', () => {
+  it('includes url.query when the URL has a query string', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest({ path: '/api/test?foo=bar' }), makeMockResponse());
 
     expect(breadcrumbsModule.addBreadcrumb).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ 'http.query': '?foo=bar' }),
+        data: expect.objectContaining({ 'url.query': 'foo=bar' }),
       }),
       expect.anything(),
     );
@@ -90,18 +90,18 @@ describe('addOutgoingRequestBreadcrumb', () => {
     expect(callArg.data?.url).not.toContain('foo=bar');
   });
 
-  it('does not include http.query when the URL has no query string', () => {
+  it('does not include url.query when the URL has no query string', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest(), makeMockResponse());
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
-    expect(callArg.data).not.toHaveProperty('http.query');
+    expect(callArg.data?.['url.query']).toBeUndefined();
   });
 
-  it('does not include http.fragment by default', () => {
+  it('does not include url.fragment by default', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest(), makeMockResponse());
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
-    expect(callArg.data).not.toHaveProperty('http.fragment');
+    expect(callArg.data?.['url.fragment']).toBeUndefined();
   });
 
   it('sets level to "warning" for 4xx status codes', () => {

@@ -1,4 +1,4 @@
-import type { Envelope } from '@sentry/core';
+import type { Envelope, TransactionEvent } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -14,7 +14,7 @@ const flushMarkerMatcher = (envelope: Envelope): void => {
 it('instruments SQL exec operations on Durable Object storage', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
+      const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent | undefined;
       const spans = transactionEvent?.spans ?? [];
 
       expect(transactionEvent).toEqual(
@@ -24,9 +24,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
         }),
       );
 
-      const sqlSpans = (spans as Array<Record<string, unknown>>).filter(
-        s => s.origin === 'auto.db.cloudflare.durable_object.sql',
-      );
+      const sqlSpans = spans.filter(s => s.origin === 'auto.db.cloudflare.durable_object.sql');
 
       expect(sqlSpans).toHaveLength(3);
       expect(sqlSpans).toEqual(

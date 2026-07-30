@@ -101,6 +101,17 @@
       "rss": []
     },
     {
+      "name": "Express",
+      "sentryPackages": ["@sentry/node"],
+      "category": "server",
+      "github": {
+        "repo": "expressjs/express",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": ["https://expressjs.com/feed.xml"]
+    },
+    {
       "name": "Elysia",
       "sentryPackages": ["@sentry/elysia"],
       "category": "server",
@@ -190,7 +201,7 @@
     },
     {
       "name": "TanStack Start",
-      "sentryPackages": ["@sentry/tanstackstart", "@sentry/tanstackstart-react"],
+      "sentryPackages": ["@sentry/tanstackstart-react"],
       "category": "meta-framework",
       "github": {
         "repo": "TanStack/router",
@@ -271,6 +282,61 @@
       "category": "platform",
       "github": {
         "repo": "googleapis/google-cloud-node",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Pinia",
+      "sentryPackages": ["@sentry/vue", "@sentry/nuxt"],
+      "category": "library",
+      "github": {
+        "repo": "vuejs/pinia",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Pino",
+      "sentryPackages": ["@sentry/node"],
+      "category": "library",
+      "github": {
+        "repo": "pinojs/pino",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Winston",
+      "sentryPackages": ["@sentry/node"],
+      "category": "library",
+      "github": {
+        "repo": "winstonjs/winston",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Consola",
+      "sentryPackages": ["@sentry/core"],
+      "category": "library",
+      "github": {
+        "repo": "unjs/consola",
+        "discussions": false,
+        "rfcsRepo": null
+      },
+      "rss": []
+    },
+    {
+      "name": "Zod",
+      "sentryPackages": ["@sentry/core"],
+      "category": "library",
+      "github": {
+        "repo": "colinhacks/zod",
         "discussions": false,
         "rfcsRepo": null
       },

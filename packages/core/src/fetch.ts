@@ -1,6 +1,8 @@
+/* eslint-disable max-lines */
+import { HTTP_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 import type { FetchBreadcrumbHint } from './types/breadcrumb';
@@ -14,6 +16,8 @@ import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
 import {
   getSanitizedUrlStringFromUrlObject,
+  getUrlFragment,
+  getUrlQuery,
   isURLObjectRelative,
   parseStringToURLObject,
   stripDataUrlContent,
@@ -118,6 +122,7 @@ export function instrumentFetchRequest(
     shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
       : new SentryNonRecordingSpan();
+  const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
 
   if (shouldCreateSpanResult && !shouldEmitSpan) {
     client?.recordDroppedEvent('no_parent_span', 'span');
@@ -139,7 +144,7 @@ export function instrumentFetchRequest(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? spanForTraceHeaders : undefined,
       propagateTraceparent,
     );
     if (headers) {
@@ -221,7 +226,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
   const originalHeaders = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!originalHeaders) {
-    return { ...traceHeaders };
+    return {
+      'sentry-trace': sentryTrace,
+      ...(baggage && { baggage }),
+      ...(traceparent && { traceparent }),
+    };
   } else if (isHeaders(originalHeaders)) {
     const newHeaders = new Headers(originalHeaders);
 
@@ -291,11 +300,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
 
     const newHeaders: {
       'sentry-trace': string;
-      baggage: string | undefined;
+      baggage?: string;
       traceparent?: string;
     } = Object.assign({}, originalHeaders, {
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
-      baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
+      ...(newBaggageHeaders.length > 0 && { baggage: newBaggageHeaders.join(',') }),
     });
 
     if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
@@ -379,23 +388,20 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    url: stripDataUrlContent(url),
+    [URL_FULL]: stripDataUrlContent(url),
     type: 'fetch',
-    'http.method': method,
+    // oxlint-disable-next-line typescript/no-deprecated
+    [HTTP_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['http.url'] = stripDataUrlContent(parsedUrl.href);
-      attributes['server.address'] = parsedUrl.host;
+      attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
+      attributes[SERVER_ADDRESS] = parsedUrl.host;
     }
-    if (parsedUrl.search) {
-      attributes['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      attributes['http.fragment'] = parsedUrl.hash;
-    }
+    attributes[URL_QUERY] = getUrlQuery(parsedUrl.search);
+    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
   }
   return attributes;
 }

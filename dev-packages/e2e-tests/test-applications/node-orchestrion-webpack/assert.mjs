@@ -1,6 +1,7 @@
 /**
- * Asserts the orchestrion subtree is tree-shaken out of the bundle unless the
- * app opted in via `experimentalUseDiagnosticsChannelInjection()`.
+ * Asserts the orchestrion subtree is bundled by default. Channel-based (orchestrion
+ * diagnostics-channel) instrumentation is the v11 default, so `Sentry.init()` pulls in the
+ * orchestrion code path unconditionally — there is no longer an opt-in to tree-shake it away.
  *
  * @module
  */
@@ -29,20 +30,12 @@ function check(condition, message) {
   if (!condition) failed = true;
 }
 
-const noOrchestrion = bundleText('no-orchestrion');
-const withOrchestrion = bundleText('with-orchestrion');
+const app = bundleText('entry');
 
-check(
-  !noOrchestrion.includes(MARKER),
-  'orchestrion is EXCLUDED when experimentalUseDiagnosticsChannelInjection() is NOT called',
-);
-check(
-  withOrchestrion.includes(MARKER),
-  'orchestrion is INCLUDED when experimentalUseDiagnosticsChannelInjection() IS called',
-);
+check(app.includes(MARKER), 'orchestrion is bundled by default when Sentry.init() runs');
 
 if (failed) {
   process.exit(1);
 }
 // eslint-disable-next-line no-console
-console.log('All bundle tree-shaking assertions passed.');
+console.log('All bundle assertions passed.');

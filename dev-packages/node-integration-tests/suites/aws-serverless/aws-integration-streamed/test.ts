@@ -1,6 +1,11 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+// See the non-streamed `aws-integration` suite: only the origin differs between the OTel and
+// orchestrion diagnostics-channel runs.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -49,14 +54,14 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
     name: 'S3.PutObject',
     status: 'ok',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: 'auto.otel.aws', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
       'sentry.op': { value: 'rpc', type: 'string' },
       'rpc.system': { value: 'aws-api', type: 'string' },
       'rpc.method': { value: 'PutObject', type: 'string' },
       'rpc.service': { value: 'S3', type: 'string' },
       'cloud.region': { value: 'us-east-1', type: 'string' },
       'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
-      'otel.kind': { value: 'CLIENT', type: 'string' },
+      'sentry.kind': { value: 'client', type: 'string' },
     }),
   });
 
@@ -73,7 +78,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       }),
     },
     // Two spans share the name `S3.GetObject`; disambiguate by HTTP status code.
-    item => item.attributes?.['http.status_code']?.value === 200,
+    item => item.attributes['http.status_code']?.value === 200,
   );
 
   // S3 - GetObject (errored, missing key)
@@ -87,7 +92,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
         'rpc.service': { value: 'S3', type: 'string' },
       }),
     },
-    item => item.attributes?.['http.status_code']?.value === 404,
+    item => item.attributes['http.status_code']?.value === 404,
   );
 
   // DynamoDB - PutItem
@@ -124,7 +129,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.destination.name': { value: 'my-queue', type: 'string' },
       'url.full': { value: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue', type: 'string' },
       'messaging.message.id': { value: 'message-id-1', type: 'string' },
-      'otel.kind': { value: 'PRODUCER', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
     }),
   });
 
@@ -136,7 +141,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.system': { value: 'aws_sqs', type: 'string' },
       'messaging.operation.type': { value: 'receive', type: 'string' },
       'messaging.batch.message_count': { value: 1, type: 'integer' },
-      'otel.kind': { value: 'CONSUMER', type: 'string' },
+      'sentry.kind': { value: 'consumer', type: 'string' },
     }),
   });
 
@@ -149,7 +154,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'messaging.system': { value: 'aws.sns', type: 'string' },
       'messaging.destination': { value: 'my-topic', type: 'string' },
       'aws.sns.topic.arn': { value: 'arn:aws:sns:us-east-1:123456789012:my-topic', type: 'string' },
-      'otel.kind': { value: 'PRODUCER', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
     }),
   });
 

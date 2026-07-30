@@ -7,40 +7,90 @@ import {
 } from '@sentry/core';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
-const sentryPatched = 'sentryPatched';
+/** A function of unknown signature, matching the methods/handlers we wrap. */
+export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
 /**
- * Helper checking if a concrete target class is already patched.
- *
- * We already guard duplicate patching with isWrapped. However, isWrapped checks whether a file has been patched, whereas we use this check for concrete target classes.
- * This check might not be necessary, but better to play it safe.
+ * Marks a function as already wrapped so repeated subscriptions/decoration
+ * don't double-wrap it.
  */
-export function isPatched(target: InjectableTarget | CatchTarget): boolean {
-  if (target.sentryPatched) {
+const SENTRY_WRAPPED = Symbol.for('sentry.nestjs.wrapped');
+
+/** Whether `fn` has already been wrapped by this integration. */
+export function isWrapped(fn: AnyFn): boolean {
+  return !!(fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED];
+}
+
+/** Mark `fn` as wrapped (see {@link isWrapped}). */
+export function markWrapped(fn: AnyFn): void {
+  (fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED] = true;
+}
+
+/**
+ * The subset of `reflect-metadata`'s `Reflect` augmentation that NestJS
+ * relies on. Methods are optional because `reflect-metadata` may not be
+ * loaded; guard each before use.
+ */
+export interface ReflectWithMetadata {
+  getMetadataKeys?: (target: object) => unknown[];
+  getMetadata?: (key: unknown, target: object) => unknown;
+  defineMetadata?: (key: unknown, value: unknown, target: object) => void;
+}
+
+/**
+ * Copy NestJS reflect-metadata from one object onto another so decorators
+ * (param decorators, guards, `@EventPattern`, ...) that read it keep working
+ * No-op when `reflect-metadata` isn't loaded.
+ */
+export function copyReflectMetadata(from: object, to: object): void {
+  const R = Reflect as ReflectWithMetadata;
+  if (
+    typeof R.getMetadataKeys !== 'function' ||
+    typeof R.getMetadata !== 'function' ||
+    typeof R.defineMetadata !== 'function'
+  ) {
+    return;
+  }
+  for (const key of R.getMetadataKeys(from)) {
+    R.defineMetadata(key, R.getMetadata(key, from), to);
+  }
+}
+
+/**
+ * Mark a target class as patched (for the given pass) so it's instrumented
+ * only once, and to stay idempotent across repeated subscriptions/decoration.
+ */
+export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' | 'sentryPatchedCatch'): boolean {
+  if ((target as Record<string, unknown>)[flag]) {
     return true;
   }
-
-  addNonEnumerableProperty(target, sentryPatched, true);
+  addNonEnumerableProperty(target, flag, true);
   return false;
+}
+
+/** Origin for the app-creation / request-context / request-handler HTTP spans. */
+export const HTTP_ORIGIN = 'auto.http.nestjs';
+
+/** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
+function middlewareOrigin(componentType?: string): string {
+  const base = 'auto.middleware.nestjs';
+  return componentType ? `${base}.${componentType}` : base;
 }
 
 /**
  * Returns span options for nest middleware spans.
+ * name = provided name or class name.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function getMiddlewareSpanOptions(
-  target: InjectableTarget | CatchTarget,
+  target: InjectableTarget | CatchTarget | { name?: string },
   name: string | undefined = undefined,
   componentType: string | undefined = undefined,
-) {
-  const span_name = name ?? target.name; // fallback to class name if no name is provided
-  const origin = componentType ? `auto.middleware.nestjs.${componentType}` : 'auto.middleware.nestjs';
-
+): { name: string; attributes: Record<string, string> } {
   return {
-    name: span_name,
+    name: name ?? target.name ?? 'unknown',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: middlewareOrigin(componentType),
     },
   };
 }
@@ -84,7 +134,8 @@ export function getBullMQProcessSpanOptions(queueName: string): {
 }
 
 /**
- * Adds instrumentation to a js observable and attaches the span to an active parent span.
+ * Adds instrumentation to a js observable and attaches the span to an active
+ * parent span.
  */
 export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
   if (activeSpan) {
@@ -102,7 +153,7 @@ export function instrumentObservable(observable: Observable<unknown>, activeSpan
 }
 
 /**
- * Proxies the next() call in a nestjs middleware to end the span when it is called.
+ * Proxies the next() call in a nestjs middleware to end the span when called
  */
 export function getNextProxy(next: NextFunction, span: Span, prevSpan: undefined | Span): NextFunction {
   return new Proxy(next, {

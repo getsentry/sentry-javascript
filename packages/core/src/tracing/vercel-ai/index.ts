@@ -1,3 +1,4 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { getClient } from '../../currentScopes';
@@ -5,27 +6,29 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
+import { _INTERNAL_skipAiProviderWrapping } from '../../utils/ai/providerSkip';
 import { spanToJSON } from '../../utils/spanUtils';
+import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
-  GEN_AI_TOOL_INPUT_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
-  GEN_AI_TOOL_TYPE_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_INPUT,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_TOOL_OUTPUT,
+  GEN_AI_TOOL_TYPE,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
 import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
@@ -84,6 +87,12 @@ function onVercelAiSpanStart(span: Span): void {
   // V5+ Check if this is a Vercel AI span by name pattern.
   if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
+  }
+
+  // Registered lazily here (not at `setupOnce`) so a direct `env.AI.run` call made before any `ai`
+  // SDK call still gets its own span.
+  if (SPAN_TO_OPERATION_NAME.get(name) === 'generate_content') {
+    _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
   }
 
   const client = getClient();
@@ -225,7 +234,7 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
       finish_reason: normalizeFinishReason(finishReason),
     };
 
-    attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] = JSON.stringify([outputMessage]);
+    attributes[GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([outputMessage]);
 
     // Remove the text attribute since it's now captured in gen_ai.output.messages
     // Note: tool calls attribute is deleted above only if successfully parsed
@@ -243,16 +252,16 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
  * path (SpanJSON) and the streamed span path (StreamedSpanJSON).
  */
 export function processVercelAiSpanAttributes(attributes: Record<string, unknown>): void {
-  renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS);
+  renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS);
+  renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED);
 
   // Parent spans (ai.streamText, ai.streamObject, etc.) use inputTokens/outputTokens instead of promptTokens/completionTokens
-  renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
-  renameAttributeKey(attributes, 'ai.usage.outputTokens', GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS);
+  renameAttributeKey(attributes, 'ai.usage.outputTokens', GEN_AI_USAGE_OUTPUT_TOKENS);
 
   // Embedding spans use ai.usage.tokens instead of promptTokens/completionTokens
-  renameAttributeKey(attributes, AI_USAGE_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_USAGE_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS);
 
   // AI SDK uses avgOutputTokensPerSecond, map to our expected attribute name
   renameAttributeKey(attributes, 'ai.response.avgOutputTokensPerSecond', 'ai.response.avgCompletionTokensPerSecond');
@@ -264,20 +273,18 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   );
   if (
     !inputTokensAreCacheInclusive &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number' &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE] === 'number'
+    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS] === 'number' &&
+    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED] === 'number'
   ) {
-    attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] =
-      attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE];
+    attributes[GEN_AI_USAGE_INPUT_TOKENS] =
+      attributes[GEN_AI_USAGE_INPUT_TOKENS] + attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED];
   }
 
   // Compute total tokens from input + output (embeddings may only have input tokens)
-  if (typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number') {
+  if (typeof attributes[GEN_AI_USAGE_INPUT_TOKENS] === 'number') {
     const outputTokens =
-      typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number'
-        ? attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]
-        : 0;
-    attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = outputTokens + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+      typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS] === 'number' ? attributes[GEN_AI_USAGE_OUTPUT_TOKENS] : 0;
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS] = outputTokens + attributes[GEN_AI_USAGE_INPUT_TOKENS];
   }
 
   // Convert the available tools array to a JSON string
@@ -297,11 +304,11 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
       ? (attributes[AI_OPERATION_ID_ATTRIBUTE] as string)
       : (attributes[OPERATION_NAME_ATTRIBUTE] as string);
     const operationName = SPAN_TO_OPERATION_NAME.get(rawOperationName) ?? rawOperationName;
-    attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
+    attributes[GEN_AI_OPERATION_NAME] = operationName;
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete attributes[OPERATION_NAME_ATTRIBUTE];
   }
-  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES);
 
   // Build gen_ai.output.messages from response text and/or tool calls
   // Note: buildOutputMessages also removes the source attributes when output is successfully generated
@@ -310,11 +317,11 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 
-  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT);
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT);
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
-  renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL);
 
   // Map embedding input: ai.values → gen_ai.embeddings.input
   // Vercel AI SDK JSON-stringifies each value individually, so we parse each element back.
@@ -327,7 +334,7 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
         return v;
       }
     });
-    attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
+    attributes[GEN_AI_EMBEDDINGS_INPUT] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
   }
 
   addProviderMetadataToAttributes(attributes);
@@ -374,11 +381,11 @@ function processVercelAiStreamedSpan(span: StreamedSpanJSON): void {
     const descriptions = toolDescriptionMap.get(span.parent_span_id);
 
     if (descriptions) {
-      const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      const toolName = attributes[GEN_AI_TOOL_NAME];
       if (typeof toolName === 'string') {
         const desc = descriptions.get(toolName);
         if (desc) {
-          attributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = desc;
+          attributes[GEN_AI_TOOL_DESCRIPTION] = desc;
         }
       }
     }
@@ -403,8 +410,8 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-  span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
-  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
+  span.setAttribute(GEN_AI_OPERATION_NAME, 'execute_tool');
+  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
   // Store the span context in our global map using the tool call ID.
@@ -417,10 +424,10 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
-  if (!attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE]) {
-    span.setAttribute(GEN_AI_TOOL_TYPE_ATTRIBUTE, 'function');
+  if (!attributes[GEN_AI_TOOL_TYPE]) {
+    span.setAttribute(GEN_AI_TOOL_TYPE, 'function');
   }
-  const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
+  const toolName = attributes[GEN_AI_TOOL_NAME];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);
   }
@@ -440,8 +447,8 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 
   requestMessagesFromPrompt(span, attributes, enableTruncation);
 
-  if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
-    span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
+  if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL]) {
+    span.setAttribute(GEN_AI_RESPONSE_MODEL, attributes[AI_MODEL_ID_ATTRIBUTE]);
   }
   span.setAttribute('ai.streaming', name.includes('stream'));
 
@@ -536,7 +543,7 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
   // OpenAI (v5 uses 'openai', v6 Azure Responses API uses 'azure')
   const openaiMetadata: OpenAiProviderMetadata | undefined = metadata.openai ?? metadata.azure;
   if (openaiMetadata) {
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, openaiMetadata.cachedPromptTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, openaiMetadata.cachedPromptTokens);
     setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
     setAttributeIfDefined(
       attributes,
@@ -548,38 +555,30 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
       'gen_ai.usage.output_tokens.prediction_rejected',
       openaiMetadata.rejectedPredictionTokens,
     );
-    setAttributeIfDefined(attributes, GEN_AI_CONVERSATION_ID_ATTRIBUTE, openaiMetadata.responseId);
+    setAttributeIfDefined(attributes, GEN_AI_CONVERSATION_ID, openaiMetadata.responseId);
   }
 
   if (metadata.anthropic) {
     const cachedInputTokens =
       metadata.anthropic.usage?.cache_read_input_tokens ?? metadata.anthropic.cacheReadInputTokens;
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, cachedInputTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, cachedInputTokens);
 
     const cacheWriteInputTokens =
       metadata.anthropic.usage?.cache_creation_input_tokens ?? metadata.anthropic.cacheCreationInputTokens;
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE, cacheWriteInputTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE, cacheWriteInputTokens);
   }
 
   if (metadata.bedrock?.usage) {
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, metadata.bedrock.usage.cacheReadInputTokens);
     setAttributeIfDefined(
       attributes,
-      GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-      metadata.bedrock.usage.cacheReadInputTokens,
-    );
-    setAttributeIfDefined(
-      attributes,
-      GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+      GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE,
       metadata.bedrock.usage.cacheWriteInputTokens,
     );
   }
 
   if (metadata.deepseek) {
-    setAttributeIfDefined(
-      attributes,
-      GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-      metadata.deepseek.promptCacheHitTokens,
-    );
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, metadata.deepseek.promptCacheHitTokens);
     setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
   }
 
@@ -595,7 +594,7 @@ function addProviderMetadataToAttributes(attributes: Record<string, unknown>): v
     const derived = getProviderMetadataAttributes(JSON.parse(providerMetadata) as ProviderMetadata);
     for (const [key, value] of Object.entries(derived)) {
       // Preserve the original behaviour of not overwriting an already-set conversation id.
-      if (key === GEN_AI_CONVERSATION_ID_ATTRIBUTE && attributes[key]) {
+      if (key === GEN_AI_CONVERSATION_ID && attributes[key]) {
         continue;
       }
       attributes[key] = value;

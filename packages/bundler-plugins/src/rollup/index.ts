@@ -14,11 +14,36 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
 } from '../core';
+import type {
+  ComponentAnnotationTransformMeta,
+  ComponentAnnotationTransformResult,
+} from '../core/component-annotation-vite';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
-import type { TransformResult } from 'rollup';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+
+// The subset of Rollup's `TransformResult` that this plugin's `transform`
+// hook actually returns. Defined locally instead of imported from `rollup`
+// because `rollup` is an optional dependency.
+type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
+
+type ViteModule = {
+  parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
+};
+
+type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
+type ViteAnnotationHooks = {
+  transform(
+    code: string,
+    id: string,
+    meta?: ComponentAnnotationTransformMeta,
+  ): Promise<ComponentAnnotationTransformResult>;
+};
+
+let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
+
+const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
 
 function hasExistingDebugID(code: string): boolean {
   // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
@@ -44,6 +69,32 @@ function getRollupMajorVersion(): string | undefined {
   }
 
   return undefined;
+}
+
+function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
+  if (!viteParseAstAsyncPromise) {
+    viteParseAstAsyncPromise = Promise.resolve()
+      .then(async () => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Vite is an optional runtime peer for this package
+        const viteModule = createRequire(import.meta.url)('vite') as ViteModule;
+
+        if (typeof viteModule.parseAstAsync !== 'function') {
+          return null;
+        }
+
+        try {
+          await viteModule.parseAstAsync('const x = <div />;', { lang: 'tsx' });
+        } catch {
+          return null;
+        }
+
+        return viteModule.parseAstAsync;
+      })
+      .catch(() => null);
+  }
+
+  return viteParseAstAsyncPromise;
 }
 
 /**
@@ -109,6 +160,31 @@ export function _rollupPluginInternal(
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
       )
     : undefined;
+  const transformViteAnnotations =
+    options.reactComponentAnnotation?.enabled &&
+    buildTool === 'vite' &&
+    buildToolMajorVersion === '8' &&
+    !options.reactComponentAnnotation?._experimentalInjectIntoHtml
+      ? (() => {
+          let viteAnnotationHooksPromise: Promise<ViteAnnotationHooks> | undefined;
+
+          return {
+            transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
+              if (!viteAnnotationHooksPromise) {
+                viteAnnotationHooksPromise = import('../core/component-annotation-vite').then(
+                  ({ createViteComponentNameAnnotateHooks }) =>
+                    createViteComponentNameAnnotateHooks(
+                      options.reactComponentAnnotation?.ignoredComponents || [],
+                      getViteParseAstAsync,
+                    ),
+                );
+              }
+
+              return viteAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
+            },
+          };
+        })()
+      : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
@@ -119,11 +195,27 @@ export function _rollupPluginInternal(
     });
   }
 
-  async function transform(code: string, id: string): Promise<TransformResult> {
+  async function transform(
+    code: string,
+    id: string,
+    meta?: ComponentAnnotationTransformMeta,
+  ): Promise<TransformResult> {
     // Component annotations are only in user code and boolean flag replacements are
     // only in Sentry code. If we successfully add annotations, we can return early.
+    let shouldRunBabelAnnotations = true;
 
-    if (transformAnnotations?.transform) {
+    if (transformViteAnnotations?.transform) {
+      const result = await transformViteAnnotations.transform(code, id, meta);
+      if (result) {
+        return result;
+      }
+
+      if (result === null) {
+        shouldRunBabelAnnotations = false;
+      }
+    }
+
+    if (shouldRunBabelAnnotations && transformAnnotations?.transform) {
       const result = await transformAnnotations.transform(code, id);
       if (result) {
         return result;
@@ -228,10 +320,18 @@ export function _rollupPluginInternal(
   const name = `sentry-${buildTool}-plugin`;
 
   if (shouldTransform) {
+    const transformHook =
+      buildTool === 'vite'
+        ? {
+            filter: { id: JS_MODULE_ID_FILTER },
+            handler: transform,
+          }
+        : transform;
+
     return {
       name,
       buildStart,
-      transform,
+      transform: transformHook,
       renderChunk,
       writeBundle,
     };

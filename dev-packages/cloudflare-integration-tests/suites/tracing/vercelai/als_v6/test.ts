@@ -1,10 +1,10 @@
 import { expect, it } from 'vitest';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { createRunner } from '../../../../runner';
 
 it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercelAIIntegration', async ({ signal }) => {
@@ -32,10 +32,10 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             attributes: expect.objectContaining({
               'sentry.op': { type: 'string', value: 'gen_ai.invoke_agent' },
               'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { type: 'string', value: 'invoke_agent' },
-              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: { type: 'integer', value: 10 },
-              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: { type: 'integer', value: 20 },
-              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: { type: 'integer', value: 30 },
+              [GEN_AI_OPERATION_NAME]: { type: 'string', value: 'invoke_agent' },
+              [GEN_AI_USAGE_INPUT_TOKENS]: { type: 'integer', value: 10 },
+              [GEN_AI_USAGE_OUTPUT_TOKENS]: { type: 'integer', value: 20 },
+              [GEN_AI_USAGE_TOTAL_TOKENS]: { type: 'integer', value: 30 },
             }),
           },
           {
@@ -50,7 +50,7 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             attributes: expect.objectContaining({
               'sentry.op': { type: 'string', value: 'gen_ai.generate_content' },
               'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { type: 'string', value: 'generate_content' },
+              [GEN_AI_OPERATION_NAME]: { type: 'string', value: 'generate_content' },
             }),
           },
         ]),

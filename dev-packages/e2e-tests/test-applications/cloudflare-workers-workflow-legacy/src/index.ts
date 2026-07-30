@@ -38,6 +38,7 @@ class RetryTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams> {
 
 export const RetryTestWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: 'http://localhost:3031/',
   }),
@@ -46,6 +47,7 @@ export const RetryTestWorkflow = Sentry.instrumentWorkflowWithSentry(
 
 export default Sentry.withSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: 'http://localhost:3031/',
   }),

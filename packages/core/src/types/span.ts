@@ -1,4 +1,5 @@
 import type { Attributes, RawAttributes } from '../attributes';
+import type { SpanKind } from '../spanKind';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -29,6 +30,7 @@ export type SpanAttributes = Partial<{
   'sentry.op': string;
   'sentry.source': TransactionSource;
   'sentry.sample_rate': number;
+  'sentry.kind': SpanKind;
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
@@ -61,7 +63,7 @@ export interface StreamedSpanJSON {
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
 export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
-  attributes?: Attributes;
+  attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
 
@@ -85,7 +87,7 @@ export interface SpanJSON {
   parent_span_id?: string;
   span_id: string;
   start_timestamp: number;
-  status?: string;
+  status: string;
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
@@ -232,11 +234,12 @@ export interface SentrySpanArguments {
   links?: SpanLink[];
 
   /**
-   * Set to `true` if this span should be sent as a standalone segment span
-   * as opposed to a transaction.
+   * If true, the span is sent on its own as a v2 streamed span instead of being folded into a
+   * transaction.
    *
-   * @experimental this option is currently experimental and should only be
-   * used within SDK code. It might be removed or changed in the future.
+   * @internal this option is currently experimental and should only be used within SDK code.
+   *
+   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
    */
   isStandalone?: boolean | undefined;
 }

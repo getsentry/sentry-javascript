@@ -14,16 +14,6 @@ export const spanStreamingIntegration = defineIntegration(() => {
   return {
     name: 'SpanStreaming' as const,
 
-    beforeSetup(client) {
-      // If users only set spanStreamingIntegration, without traceLifecycle, we set it to "stream" for them.
-      // This avoids the classic double-opt-in problem we'd otherwise have in the browser SDK.
-      const clientOptions = client.getOptions();
-      if (!clientOptions.traceLifecycle) {
-        DEBUG_BUILD && debug.log('[SpanStreaming] setting `traceLifecycle` to "stream"');
-        clientOptions.traceLifecycle = 'stream';
-      }
-    },
-
     setup(client) {
       const initialMessage = 'SpanStreaming integration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';

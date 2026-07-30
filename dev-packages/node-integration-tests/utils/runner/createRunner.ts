@@ -14,9 +14,9 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { execSync, spawn, spawnSync } from 'child_process';
-import { createHash } from 'crypto';
+import { spawn } from 'child_process';
 import { existsSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
 import type { DeepPartial } from './../assertions';
@@ -34,21 +34,10 @@ import {
   assertSpanEnvelopeHeader,
 } from './../assertions';
 
-interface DockerOptions {
-  /**
-   * The working directory to run docker compose in
-   */
-  workingDirectory: string[];
-  /**
-   * The command to run after docker compose is up
-   */
-  setupCommand?: string;
-}
-
 type VoidFunction = () => void;
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
-type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
+type ExpectedTransaction = DeepPartial<TransactionEvent> | ((event: TransactionEvent) => void);
 type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) => void);
 type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
@@ -109,6 +98,22 @@ type StartResult = {
   ): Promise<T | undefined>;
 };
 
+// Node's on-disk V8 compile cache (Node 22+) cuts the repeated cost of parsing/compiling the
+// `@sentry/node` + OpenTelemetry module graph that every scenario child loads from scratch. We
+// point all child processes at one shared cache dir, so the first child populates it and the
+// rest reuse it. `NODE_COMPILE_CACHE` is silently ignored on Node < 22, so gating on the
+// parent's major version (the same `node` binary the children run) just avoids creating an
+// unused dir there. A user-set `NODE_COMPILE_CACHE` in the environment takes precedence.
+const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+const COMPILE_CACHE_ENV: Record<string, string> =
+  NODE_MAJOR >= 22 ? { NODE_COMPILE_CACHE: join(tmpdir(), 'sentry-node-it-compile-cache') } : {};
+
+/** Node flags that preload a module before the entry point. */
+const PRELOAD_FLAGS = ['--import', '--require', '-r'];
+
+/** tsx's CommonJS require hook, preloaded for `.ts` scenarios. */
+const TS_LOADER = 'tsx/cjs';
+
 export const CLEANUP_STEPS = new Set<VoidFunction>();
 
 export function cleanupChildProcesses(): void {
@@ -133,9 +138,8 @@ export function createRunner(...paths: string[]) {
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let unordered = false;
-  let withEnv: Record<string, string> = {};
+  let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
-  let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
@@ -144,7 +148,12 @@ export function createRunner(...paths: string[]) {
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
-    flags.push('-r', 'ts-node/register');
+    // Load .ts scenarios through tsx's CommonJS require hook (not `--import tsx`, the ESM loader).
+    // These scenarios are CJS; `--import` routes them through Node's ESM machinery, which on Node
+    // 22+ gives the scenario a different `@sentry/node` instance than the CJS instrument/auto-flush,
+    // so instrumentation and flushing target the wrong SDK object. The require hook keeps one CJS
+    // instance, matching how ts-node loaded them.
+    flags.push('-r', TS_LOADER);
   }
 
   // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
@@ -191,7 +200,7 @@ export function createRunner(...paths: string[]) {
       ignored.delete('metric');
       return this;
     },
-    withEnv: function (env: Record<string, string>) {
+    withEnv: function (env: Record<string, string | undefined>) {
       withEnv = {
         ...withEnv,
         ...env,
@@ -224,10 +233,6 @@ export function createRunner(...paths: string[]) {
       unordered = true;
       return this;
     },
-    withDockerCompose: function (options: DockerOptions) {
-      dockerOptions = options;
-      return this;
-    },
     ensureNoErrorOutput: function () {
       if (expectedEnvelopes.length > 0) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
@@ -254,6 +259,12 @@ export function createRunner(...paths: string[]) {
       let hasExited = false;
       let child: ReturnType<typeof spawn> | undefined;
 
+      // Resolved the moment `complete()` runs, so `completed()` can await the result directly
+      // instead of polling — see the comment on `waitForEvent`.
+      const completedDeferred = createDeferred();
+      // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
+      const portReady = createDeferred();
+
       function complete(error?: Error): void {
         if (isComplete) {
           return;
@@ -262,6 +273,7 @@ export function createRunner(...paths: string[]) {
         isComplete = true;
         completeError = error || undefined;
         child?.kill();
+        completedDeferred.resolve();
       }
 
       /**
@@ -380,36 +392,28 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      // We need to properly define & pass these types around for TS 3.8,
-      // which otherwise fails to infer these correctly :(
       type ServerStartup = [number | undefined, (() => void) | undefined];
-      type DockerStartup = VoidFunction | undefined;
 
       const serverStartup: Promise<ServerStartup> = withSentryServer
         ? createBasicSentryServer(newEnvelope)
         : Promise.resolve([undefined, undefined]);
 
-      const dockerStartup: Promise<DockerStartup> = dockerOptions
-        ? runDockerCompose(dockerOptions)
-        : Promise.resolve(undefined);
-
-      const startup = Promise.all([dockerStartup, serverStartup]);
-
-      startup
-        .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
+      serverStartup
+        .then(([mockServerPort, mockServerClose]) => {
           if (mockServerClose) {
             registerCleanupStep(() => {
               mockServerClose();
             });
           }
 
-          if (dockerChild) {
-            registerCleanupStep(dockerChild);
-          }
-
           const env = mockServerPort
-            ? { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
-            : { ...process.env, ...withEnv };
+            ? {
+                ...COMPILE_CACHE_ENV,
+                ...process.env,
+                ...withEnv,
+                SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337`,
+              }
+            : { ...COMPILE_CACHE_ENV, ...process.env, ...withEnv };
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
@@ -419,11 +423,9 @@ export function createRunner(...paths: string[]) {
           // flush keeps the event loop alive until queued envelopes reach the
           // transport, then the process exits naturally.
           //
-          // We inject the matching loader for the scenario's module system
-          // (detected by whether `flags` already contains `--import` for the
-          // instrument file). For ESM scenarios we use `--import auto-flush.mjs`
-          // so the `import * as Sentry` resolves to the same SDK instance the
-          // scenario uses; for CJS we use `--require auto-flush.cjs`.
+          // We inject the loader matching the scenario's module system, so that its
+          // `Sentry` reference resolves to the same SDK instance the scenario uses —
+          // see `buildAutoFlushFlags`.
           //
           // Skipped when no envelopes are expected — these tests (e.g. ANR
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
@@ -431,7 +433,7 @@ export function createRunner(...paths: string[]) {
           // requests to the fake DSN.
           const wantsAutoFlush =
             !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
-          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags), ...flags] : flags;
+          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath), ...flags] : flags;
 
           child = spawn('node', [...childFlags, testPath], { env });
 
@@ -457,11 +459,30 @@ export function createRunner(...paths: string[]) {
             }
           });
 
-          child.on('close', () => {
+          child.on('close', (code, signal) => {
             hasExited = true;
 
             if (ensureNoErrorOutput) {
               complete();
+              return;
+            }
+
+            // A scenario that still owes envelopes but has already exited will never deliver them.
+            // Without this, `completed()` blocks until the vitest test timeout and reports an opaque
+            // "Test timed out", hiding the real failure (e.g. the scenario threw before sending its
+            // transaction — an unhandled rejection exits the process with no envelope). Complete with
+            // the exit status and how far we got so the failure is fast and diagnosable; the captured
+            // child output is dumped by `completed()`. In the success path `complete()` has already
+            // run (so `isComplete` short-circuits this), server-style tests are killed by `complete()`
+            // first, and tests that expect no envelopes drive completion some other way.
+            if (!isComplete && expectedEnvelopeCount > 0) {
+              const how = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+              complete(
+                new Error(
+                  `Scenario exited (${how}) after ${envelopeCount}/${expectedEnvelopeCount} expected ` +
+                    'envelope(s), before the test completed.',
+                ),
+              );
             }
           });
 
@@ -479,6 +500,7 @@ export function createRunner(...paths: string[]) {
             if (cleanedLine.startsWith('{"port":')) {
               const { port } = JSON.parse(cleanedLine) as { port: number };
               scenarioServerPort = port;
+              portReady.resolve();
               return;
             }
 
@@ -516,7 +538,7 @@ export function createRunner(...paths: string[]) {
       return {
         completed: async function (): Promise<void> {
           try {
-            await waitFor(() => isComplete, 120_000, 'Timed out waiting for test to complete');
+            await waitForEvent(completedDeferred.promise, 120_000, 'Timed out waiting for test to complete');
           } catch (e) {
             // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
             // so CI failures are diagnosable without re-running locally with DEBUG enabled.
@@ -548,7 +570,7 @@ export function createRunner(...paths: string[]) {
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
-            await waitFor(() => scenarioServerPort !== undefined, 10_000, 'Timed out waiting for server port');
+            await waitForEvent(portReady.promise, 10_000, 'Timed out waiting for server port');
           } catch (e) {
             complete(e as Error);
             return;
@@ -596,87 +618,35 @@ export function createRunner(...paths: string[]) {
   };
 }
 
-/**
- * Runs `docker compose up -d --wait`, which blocks until every service's
- * healthcheck reports healthy. Each suite defines its healthcheck in its
- * own docker-compose.yml.
- *
- * Returns a function that can be called to docker compose down
- */
-async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
-  const cwd = join(...options.workingDirectory);
-
-  // Docker Compose derives the project name from the compose file's directory
-  // basename by default. Several suites live in directories that share a
-  // basename (e.g. `tracing/mysql2` and `tracing/knex/mysql2`), so they collide
-  // on the same project + network when running in parallel: one suite's
-  // teardown removes the shared `<name>_default` network while a sibling is
-  // still starting, producing "network <name>_default not found". Deriving a
-  // unique, stable project name from the full working directory isolates every
-  // suite from each other.
-  const projectName = `sentry-it-${createHash('sha1').update(cwd).digest('hex').slice(0, 12)}`;
-  const composeArgs = (...args: string[]): string[] => ['compose', '-p', projectName, ...args];
-
-  const close = (): void => {
-    spawnSync('docker', composeArgs('down', '--volumes'), {
-      cwd,
-      stdio: process.env.DEBUG ? 'inherit' : undefined,
-    });
-  };
-
-  // ensure we're starting fresh
-  close();
-
-  const composeUp = (): ReturnType<typeof spawnSync> =>
-    spawnSync('docker', composeArgs('up', '-d', '--wait'), {
-      cwd,
-      stdio: process.env.DEBUG ? 'inherit' : 'pipe',
-    });
-
-  // `docker compose up` occasionally fails on CI with transient daemon races
-  // (e.g. "failed to set up container networking: network <x>_default not
-  // found" right after the network was created). A clean teardown plus retry
-  // clears these, while genuine healthcheck failures stay red on every attempt.
-  const maxAttempts = 3;
-  let result = composeUp();
-  for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
-    close();
-    result = composeUp();
-  }
-
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
-    close();
-    throw new Error(
-      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
-    );
-  }
-
-  if (options.setupCommand) {
-    try {
-      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
-      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
-      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
-    } catch (e) {
-      log('Error running docker setup command', e);
-    }
-  }
-
-  return close;
+interface Deferred {
+  promise: Promise<void>;
+  resolve: () => void;
 }
 
-/** Promise only resolves when fn returns true */
-async function waitFor(fn: () => boolean, timeout = 10_000, message = 'Timed out waiting'): Promise<void> {
-  let remaining = timeout;
-  while (fn() === false) {
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-    remaining -= 100;
-    if (remaining < 0) {
-      throw new Error(message);
-    }
+/** A promise plus its resolver, so producers can signal completion without polling. */
+function createDeferred(): Deferred {
+  let resolve!: () => void;
+  const promise = new Promise<void>(res => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+/**
+ * Resolves as soon as `event` resolves, or rejects with `message` after `timeout` ms. This
+ * replaces the previous 100ms-granularity polling loop: `complete()` (and the server-port
+ * parser) resolve their deferred synchronously the instant they have a result, so tests no
+ * longer wait up to a full poll tick after the child is actually done.
+ */
+async function waitForEvent(event: Promise<void>, timeout: number, message: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeout);
+  });
+  try {
+    await Promise.race([event, timeoutPromise]);
+  } finally {
+    clearTimeout(timer!);
   }
 }
 
@@ -686,24 +656,58 @@ function log(...args: unknown[]): void {
 }
 
 /**
- * Returns Node flags that inject the auto-flush loader matching the scenario's
- * module system. ESM scenarios already have `--import` for the instrument
- * file — we mirror that with `--import auto-flush.mjs` so both resolve to the
- * same `@sentry/node` instance. Otherwise we fall back to `--require
- * auto-flush.cjs`.
- *
- * Node accepts both `--import foo` (two array elements, e.g. `withInstrument`
- * or `withFlags('--import', foo)`) and `--import=foo` (one element, e.g.
- * `withFlags('--import=@sentry/node/init')` in `suites/no-code/test.ts`); we
- * have to recognise both, otherwise the missed form silently gets
- * `auto-flush.cjs` and the flush targets the wrong SDK instance.
+ * Extracts the preloaded module paths from Node flags, accepting both the
+ * two-element form (`--import foo`, e.g. `withInstrument`) and the single-element
+ * form (`--import=foo`, e.g. `withFlags('--import=@sentry/node/init')` in
+ * `suites/no-code/test.ts`).
  */
-function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
-  const isEsm = existingFlags.some(flag => flag === '--import' || flag.startsWith('--import='));
-  if (isEsm) {
-    return ['--import', join(__dirname, 'auto-flush.mjs')];
+function getPreloadPaths(flags: readonly string[]): string[] {
+  const paths: string[] = [];
+
+  for (let i = 0; i < flags.length; i++) {
+    const flag = flags[i] as string;
+    const [name, ...rest] = flag.split('=');
+
+    if (!PRELOAD_FLAGS.includes(name as string)) {
+      continue;
+    }
+
+    const path = rest.length ? rest.join('=') : flags[++i];
+    if (path) {
+      paths.push(path);
+    }
   }
-  return ['--require', join(__dirname, 'auto-flush.cjs')];
+
+  return paths;
+}
+
+/**
+ * Returns Node flags that inject the auto-flush loader matching the scenario's
+ * module system.
+ *
+ * Which of the two SDK builds (CJS or ESM) holds the queued envelopes is decided by
+ * the file that calls `Sentry.init()` — the last preloaded instrument file if there is
+ * one, otherwise the scenario itself. Getting this wrong is silent: the flush targets
+ * the other build's client, which has nothing queued, and no envelope ever arrives.
+ *
+ * The flag name is no longer a usable signal, since CJS instrument files are preloaded
+ * with `--import` too (`--require` re-runs the preload on Node's module loader thread).
+ * The extension is: `.mjs` and extensionless package specifiers such as
+ * `@sentry/node/init` resolve as ESM, while `.cjs`, `.js` and `.ts` are all CommonJS
+ * here because the test package sets no `"type"`.
+ *
+ * The CJS loader stays on `--require`: any `--import` makes Node resolve the entry point
+ * through the ESM loader, which rejects the `.ts` scenarios that `tsx/cjs` handles. Unlike
+ * an instrument file it never calls `Sentry.init()`, so the loader thread is not a concern.
+ */
+function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string): string[] {
+  const initPath =
+    getPreloadPaths(existingFlags)
+      .filter(path => path !== TS_LOADER)
+      .at(-1) ?? testPath;
+  const isEsm = initPath.endsWith('.mjs') || !/\.[cm]?[jt]s$/.test(initPath);
+
+  return isEsm ? ['--import', join(__dirname, 'auto-flush.mjs')] : ['--require', join(__dirname, 'auto-flush.cjs')];
 }
 
 function expectErrorEvent(item: Event, expected: ExpectedEvent): void {

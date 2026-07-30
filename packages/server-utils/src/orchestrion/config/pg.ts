@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 export const pgConfig = [
   // `pg` (node-postgres).
@@ -46,3 +47,5 @@ export const pgChannels = {
   PG_CONNECT: 'orchestrion:pg:connect',
   PGPOOL_CONNECT: 'orchestrion:pg-pool:connect',
 } as const;
+
+export const pgSubscribeInjection = toSubscribeInjections(pgConfig);

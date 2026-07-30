@@ -18,20 +18,16 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'OpenAI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'OpenAI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'OpenAI' as const;
 
-// Distinct from the proxy's `auto.ai.openai` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.openai';
+const ORIGIN = 'auto.ai.openai';
 
 // Each instrumented `create` method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_CHAT, operation: 'chat' },
-  { channel: CHANNELS.OPENAI_RESPONSES, operation: 'chat' },
   { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },
-  { channel: CHANNELS.OPENAI_CONVERSATIONS, operation: 'chat' },
 ] as const;
 
 /**
@@ -46,7 +42,7 @@ interface OpenAiChatChannelContext {
 
 let subscribed = false;
 
-const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
+const _openaiIntegration = ((options: OpenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -83,7 +79,8 @@ const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
-  // langchain drives the openai SDK itself and instruments at its own layer; skip here to avoid double spans.
+  // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
+  // provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
     return undefined;
   }
@@ -141,8 +138,8 @@ function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: O
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven OpenAI integration. Subscribes to the `orchestrion:openai:*`
+ * Orchestrion-driven OpenAI integration. Subscribes to the `orchestrion:openai:*`
  * diagnostics_channels injected into `openai`'s `create` methods (chat completions, responses, embeddings,
  * conversations), so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const openaiChannelIntegration = defineIntegration(_openaiChannelIntegration);
+export const openaiIntegration = defineIntegration(_openaiIntegration);

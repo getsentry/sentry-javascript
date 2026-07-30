@@ -21,6 +21,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
@@ -158,7 +159,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /^\/404$/,
     // App router /404 and /_not-found segments (any HTTP method)
     /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
+    // Root transactions named "NextServer.getRequestHandler" containing useless tracing
     /^NextServer\.getRequestHandler$/,
     // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
@@ -249,16 +250,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
   client?.on('preprocessEvent', event => {
     if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      enhanceHandleRequestRootSpan({
+      const mutableRootSpan = {
         attributes: event.contexts.trace.data,
         getName: () => event.transaction,
-        setName: name => {
+        setName: (name: string) => {
           event.transaction = name;
         },
-        setOp: op => {
+        setOp: (op: string) => {
           event.contexts!.trace!.op = op;
         },
-      });
+      };
+      enhanceHandleRequestRootSpan(mutableRootSpan);
+      enhanceMiddlewareRootSpan(mutableRootSpan);
     }
 
     setUrlProcessingMetadata(event);
@@ -268,18 +271,20 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // transaction events, so the same enhancement has to be applied here directly on the span JSON.
   client?.on('processSegmentSpan', span => {
     const attributes = (span.attributes ??= {});
-    enhanceHandleRequestRootSpan({
+    const mutableRootSpan = {
       attributes,
       getName: () => span.name,
-      setName: name => {
+      setName: (name: string) => {
         span.name = name;
       },
       // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
       // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
-      setOp: op => {
+      setOp: (op: string) => {
         attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
       },
-    });
+    };
+    enhanceHandleRequestRootSpan(mutableRootSpan);
+    enhanceMiddlewareRootSpan(mutableRootSpan);
   });
 
   if (process.env.NODE_ENV === 'development') {

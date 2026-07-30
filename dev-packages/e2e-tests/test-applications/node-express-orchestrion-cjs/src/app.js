@@ -1,11 +1,7 @@
 const Sentry = require('@sentry/node');
 
-// The channels are injected by `node --import @sentry/node/import` (see the
-// `start` script); opting in via this method makes the SDK subscribe to
-// them instead of using the OTel instrumentation.
-Sentry.experimentalUseDiagnosticsChannelInjection();
-
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   debug: !!process.env.DEBUG,

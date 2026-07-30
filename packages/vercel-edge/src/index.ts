@@ -74,7 +74,7 @@ export {
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   instrumentOpenAiClient,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentGoogleGenAIClient,
   instrumentAnthropicAiClient,
   eventFiltersIntegration,

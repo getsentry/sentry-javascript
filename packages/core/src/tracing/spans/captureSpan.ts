@@ -5,10 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
@@ -27,7 +23,13 @@ import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
-import { SENTRY_SPAN_SOURCE, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -55,13 +57,9 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
-  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
-  // It is forwarded to `preprocessSpan` subscribers (e.g. the OpenTelemetry SDK backfills op/source/name from it).
-  const spanKind = (span as { kind?: number }).kind;
-
   // Preprocess the span JSON before any other hooks run, so that `processSpan`/`processSegmentSpan`
   // subscribers (incl. integrations) and `beforeSendSpan` see fully inferred span data.
-  client.emit('preprocessSpan', spanJSON, { spanKind });
+  client.emit('preprocessSpan', spanJSON);
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
@@ -81,12 +79,13 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
-  // Backfill sentry.span.source from sentry.source. Only `sentry.span.source` is respected by Sentry.
-  // TODO(v11): Remove this backfill once we renamed SEMANTIC_ATTRIBUTE_SENTRY_SOURCE to sentry.span.source
   const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  if (spanNameSource) {
+  if (spanJSON.is_segment && spanNameSource) {
+    // Backfill sentry.segment.name.source from sentry.source.
+    // TODO(v11): Remove this backfill once we removed setting SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in favour of
+    // SENTRY_SEGMENT_NAME_SOURCE from @sentry/conventions/attributes only on segment spans.
     safeSetSpanJSONAttributes(processedSpan, {
-      [SENTRY_SPAN_SOURCE]: spanNameSource,
+      ['sentry.segment.name.source']: spanNameSource,
     });
   }
 
@@ -139,12 +138,12 @@ function applyCommonSpanAttributes(
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
     [SENTRY_TRACE_LIFECYCLE]: 'stream',
+    [SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
+    [SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
+    [SENTRY_SDK_NAME]: sdk?.sdk?.name,
+    [SENTRY_SDK_VERSION]: sdk?.sdk?.version,
     [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
     [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
     [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
     [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
     [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,

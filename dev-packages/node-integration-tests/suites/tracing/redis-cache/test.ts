@@ -1,16 +1,13 @@
 import { afterAll, describe, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('redis cache auto instrumentation', () => {
+describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
-  // subscriber instead of the OTel monkey-patch, so ioredis span origins differ.
-  // node-redis (redis-4/redis-5) is not ported, so those keep `auto.db.otel.redis`.
-  const ioredisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -19,7 +16,7 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
           op: 'db',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -31,7 +28,7 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'get test-key',
           op: 'db',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -45,11 +42,7 @@ describe('redis cache auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
       test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -62,9 +55,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
           op: 'cache.put',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 2,
@@ -76,9 +69,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key-set-EX',
           op: 'cache.put',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['ioredis-cache:test-key-set-EX'],
             'cache.item_size': 2,
@@ -90,9 +83,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key-setex',
           op: 'cache.put',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['ioredis-cache:test-key-setex'],
             'cache.item_size': 2,
@@ -104,9 +97,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
           op: 'cache.get',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'get ioredis-cache:test-key',
             'cache.hit': true,
             'cache.key': ['ioredis-cache:test-key'],
@@ -119,9 +112,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'ioredis-cache:unavailable-data',
           op: 'cache.get',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['ioredis-cache:unavailable-data'],
@@ -133,12 +126,25 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
           op: 'cache.get',
-          origin: ioredisOrigin,
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': ioredisOrigin,
+            'sentry.origin': redisOrigin,
             'db.statement': 'mget [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6383,
+          }),
+        }),
+        // DEL
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'del ioredis-cache:test-key',
+            'cache.key': ['ioredis-cache:test-key'],
             'network.peer.address': 'localhost',
             'network.peer.port': 6383,
           }),
@@ -148,11 +154,7 @@ describe('redis cache auto instrumentation', () => {
 
     createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -162,6 +164,37 @@ describe('redis cache auto instrumentation', () => {
       transaction: 'redis-connect',
     };
 
+    const batchSpans = isOrchestrionEnabled()
+      ? [
+          expect.objectContaining({
+            description: 'MULTI',
+            op: 'db.query',
+            origin: redisOrigin,
+            data: expect.objectContaining({
+              'sentry.origin': redisOrigin,
+              'db.system.name': 'redis',
+              'db.operation.batch.size': 2,
+            }),
+          }),
+        ]
+      : [
+          expect.objectContaining({
+            description: 'SET redis-multi-key [1 other arguments]',
+            op: 'db',
+            origin: 'auto.db.otel.redis',
+            data: expect.objectContaining({
+              'db.system': 'redis',
+              'db.statement': 'SET redis-multi-key [1 other arguments]',
+            }),
+          }),
+          expect.objectContaining({
+            description: 'GET redis-multi-key',
+            op: 'db',
+            origin: 'auto.db.otel.redis',
+            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-multi-key' }),
+          }),
+        ];
+
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span Redis 4',
       spans: expect.arrayContaining([
@@ -169,9 +202,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-cache:test-key',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SET redis-cache:test-key [1 other arguments]',
             'cache.key': ['redis-cache:test-key'],
             'cache.item_size': 2,
@@ -181,9 +214,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-cache:test-key-set-EX',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SET redis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['redis-cache:test-key-set-EX'],
             'cache.item_size': 2,
@@ -193,9 +226,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-cache:test-key-setex',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SETEX redis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['redis-cache:test-key-setex'],
             'cache.item_size': 2,
@@ -205,9 +238,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-cache:test-key',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'GET redis-cache:test-key',
             'cache.hit': true,
             'cache.key': ['redis-cache:test-key'],
@@ -218,9 +251,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'GET redis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['redis-cache:unavailable-data'],
@@ -230,43 +263,34 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-test-key, redis-cache:test-key, redis-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
           }),
         }),
-        // MULTI/EXEC: one span per queued command
+        // DEL
         expect.objectContaining({
-          description: 'SET redis-multi-key [1 other arguments]',
-          op: 'db',
-          origin: 'auto.db.otel.redis',
+          description: 'redis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
-            'db.system': 'redis',
-            'db.statement': 'SET redis-multi-key [1 other arguments]',
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-cache:test-key',
+            'cache.key': ['redis-cache:test-key'],
           }),
         }),
-        expect.objectContaining({
-          description: 'GET redis-multi-key',
-          op: 'db',
-          origin: 'auto.db.otel.redis',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
-            'db.system': 'redis',
-            'db.statement': 'GET redis-multi-key',
-          }),
-        }),
+        ...batchSpans,
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.system': 'redis',
             'db.statement': 'INCR redis-test-key',
           }),
@@ -277,7 +301,6 @@ describe('redis cache auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (redis-4)', async () => {
         await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_REDIS_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()
@@ -294,6 +317,37 @@ describe('redis cache auto instrumentation', () => {
       transaction: 'redis-connect',
     };
 
+    const batchSpans = isOrchestrionEnabled()
+      ? [
+          expect.objectContaining({
+            description: 'MULTI',
+            op: 'db.query',
+            origin: redisOrigin,
+            data: expect.objectContaining({
+              'sentry.origin': redisOrigin,
+              'db.system.name': 'redis',
+              'db.operation.batch.size': 2,
+            }),
+          }),
+        ]
+      : [
+          expect.objectContaining({
+            description: 'SET redis-5-multi-key [1 other arguments]',
+            op: 'db',
+            origin: 'auto.db.otel.redis',
+            data: expect.objectContaining({
+              'db.system': 'redis',
+              'db.statement': 'SET redis-5-multi-key [1 other arguments]',
+            }),
+          }),
+          expect.objectContaining({
+            description: 'GET redis-5-multi-key',
+            op: 'db',
+            origin: 'auto.db.otel.redis',
+            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-5-multi-key' }),
+          }),
+        ];
+
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span Redis 5',
       spans: expect.arrayContaining([
@@ -301,9 +355,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-cache:test-key',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SET redis-5-cache:test-key [1 other arguments]',
             'cache.key': ['redis-5-cache:test-key'],
             'cache.item_size': 2,
@@ -313,9 +367,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-cache:test-key-set-EX',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['redis-5-cache:test-key-set-EX'],
             'cache.item_size': 2,
@@ -325,9 +379,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-cache:test-key-setex',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
             'cache.key': ['redis-5-cache:test-key-setex'],
             'cache.item_size': 2,
@@ -337,9 +391,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-cache:test-key',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'GET redis-5-cache:test-key',
             'cache.hit': true,
             'cache.key': ['redis-5-cache:test-key'],
@@ -350,9 +404,9 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'GET redis-5-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['redis-5-cache:unavailable-data'],
@@ -362,43 +416,34 @@ describe('redis cache auto instrumentation', () => {
         expect.objectContaining({
           description: 'redis-5-test-key, redis-5-cache:test-key, redis-5-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
           }),
         }),
-        // MULTI/EXEC: one span per queued command
+        // DEL
         expect.objectContaining({
-          description: 'SET redis-5-multi-key [1 other arguments]',
-          op: 'db',
-          origin: 'auto.db.otel.redis',
+          description: 'redis-5-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
-            'db.system': 'redis',
-            'db.statement': 'SET redis-5-multi-key [1 other arguments]',
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-5-cache:test-key',
+            'cache.key': ['redis-5-cache:test-key'],
           }),
         }),
-        expect.objectContaining({
-          description: 'GET redis-5-multi-key',
-          op: 'db',
-          origin: 'auto.db.otel.redis',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
-            'db.system': 'redis',
-            'db.statement': 'GET redis-5-multi-key',
-          }),
-        }),
+        ...batchSpans,
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-5-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
-          origin: 'auto.db.otel.redis',
+          origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': redisOrigin,
             'db.system': 'redis',
             'db.statement': 'INCR redis-5-test-key',
           }),
@@ -409,7 +454,6 @@ describe('redis cache auto instrumentation', () => {
     createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (redis-5)', async () => {
         await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_REDIS_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()

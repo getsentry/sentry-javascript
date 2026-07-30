@@ -1,7 +1,10 @@
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('tedious auto instrumentation', { timeout: 90_000 }, () => {
+describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.tedious' : 'auto.db.otel.tedious';
+
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -9,9 +12,9 @@ describe('tedious auto instrumentation', { timeout: 90_000 }, () => {
   const dbSpan = (overrides: Record<string, unknown>) =>
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.otel.tedious',
+      origin: ORIGIN,
       data: expect.objectContaining({
-        'sentry.origin': 'auto.db.otel.tedious',
+        'sentry.origin': ORIGIN,
         'sentry.op': 'db',
         'db.system': 'mssql',
         'db.name': 'master',
@@ -33,7 +36,7 @@ describe('tedious auto instrumentation', { timeout: 90_000 }, () => {
       expect.objectContaining({
         description: 'execBulkLoad test_bulk master',
         op: 'db',
-        origin: 'auto.db.otel.tedious',
+        origin: ORIGIN,
         status: 'ok',
         data: expect.objectContaining({ 'db.sql.table': 'test_bulk' }),
       }),
@@ -42,11 +45,7 @@ describe('tedious auto instrumentation', { timeout: 90_000 }, () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should auto-instrument `tedious` package', async () => {
-      await createTestRunner()
-        .withDockerCompose({ workingDirectory: [__dirname] })
-        .expect({ transaction: EXPECTED_TRANSACTION })
-        .start()
-        .completed();
+      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
 });

@@ -1,3 +1,4 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -6,20 +7,19 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types/span';
 import { debug } from '../../utils/debug-logger';
 import {
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_SYSTEM,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+} from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
@@ -58,8 +58,8 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
  */
 export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [GEN_AI_SYSTEM]: 'openai',
+    [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
@@ -68,12 +68,12 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
     const availableTools = extractAvailableTools(params);
     if (availableTools) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = availableTools;
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = availableTools;
     }
 
     Object.assign(attributes, extractRequestParameters(params));
   } else {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
+    attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
 
   return attributes;
@@ -106,7 +106,7 @@ export function addRequestAttributes(
     }
 
     // Store strings as-is, arrays/objects as JSON
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof input === 'string' ? input : JSON.stringify(input));
     return;
   }
 
@@ -123,19 +123,13 @@ export function addRequestAttributes(
   const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
 
   if (systemInstructions) {
-    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
   span.setAttribute(
-    GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+    GEN_AI_INPUT_MESSAGES,
+    enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
   );
-
-  if (Array.isArray(filteredMessages)) {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
-  } else {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
-  }
 }
 
 /**
@@ -153,7 +147,7 @@ function instrumentMethod<T extends unknown[], R>(
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
     const requestAttributes = extractRequestAttributes(args, operationName);
-    const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+    const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;

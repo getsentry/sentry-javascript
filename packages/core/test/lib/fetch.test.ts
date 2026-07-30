@@ -1,7 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { URL_FULL } from '@sentry/conventions/attributes';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
+import { SentryNonRecordingSpan } from '../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../src/types/span';
+import * as tracing from '../../src/tracing';
+import * as spanUtils from '../../src/utils/spanUtils';
+import * as traceData from '../../src/utils/traceData';
 
 const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE, hasSpansEnabled } = vi.hoisted(() => ({
   DEFAULT_SENTRY_TRACE: 'defaultTraceId-defaultSpanId-1',
@@ -61,6 +66,21 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
         ).toEqual({
           'sentry-trace': DEFAULT_SENTRY_TRACE,
           baggage: DEFAULT_BAGGAGE,
+          'custom-header': 'custom-value',
+        });
+      });
+
+      it('omits baggage from headers object when no baggage is available', () => {
+        vi.mocked(traceData.getTraceData).mockReturnValueOnce({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+        });
+
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
+          headers: { 'custom-header': 'custom-value' },
+        });
+
+        expect(returnedHeaders).toStrictEqual({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
           'custom-header': 'custom-value',
         });
       });
@@ -440,6 +460,82 @@ describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
 });
 
 describe('instrumentFetchRequest', () => {
+  describe('span attributes', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('sets url.full for absolute URLs', () => {
+      const url = 'https://api.example.com/users/42?include=profile#bio';
+      const activeSpan = new SentryNonRecordingSpan();
+      const fetchSpan = new SentryNonRecordingSpan();
+      hasSpansEnabled.mockReturnValue(true);
+      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(activeSpan);
+      const startInactiveSpanSpy = vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(fetchSpan);
+
+      instrumentFetchRequest(
+        {
+          fetchData: { url, method: 'GET' },
+          args: [url],
+          startTimestamp: Date.now(),
+        },
+        () => true,
+        () => false,
+        {},
+        { spanOrigin: 'auto.http.fetch' },
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'GET https://api.example.com/users/42',
+        attributes: {
+          type: 'fetch',
+          'http.method': 'GET',
+          'sentry.origin': 'auto.http.fetch',
+          'sentry.op': 'http.client',
+          [URL_FULL]: url,
+          'server.address': 'api.example.com',
+          'url.query': 'include=profile',
+          'url.fragment': 'bio',
+        },
+      });
+    });
+  });
+
+  describe('trace header span', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('uses the active propagation context for an ignored child span', () => {
+      const activeSpan = new SentryNonRecordingSpan();
+      hasSpansEnabled.mockReturnValue(true);
+      const ignoredSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(activeSpan);
+      vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(ignoredSpan);
+
+      instrumentFetchRequest(
+        {
+          fetchData: { url: '/api/test', method: 'GET' },
+          args: ['/api/test'],
+          startTimestamp: Date.now(),
+        },
+        () => true,
+        () => true,
+        {},
+        { spanOrigin: 'auto.http.fetch' },
+      );
+
+      expect(traceData.getTraceData).toHaveBeenCalledWith({
+        span: undefined,
+        propagateTraceparent: false,
+      });
+    });
+  });
+
   describe('span cleanup', () => {
     it.each([
       { name: 'non-recording', hasTracingEnabled: false },

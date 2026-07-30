@@ -81,9 +81,9 @@ export function makeBaseNPMConfig(options = {}) {
       // don't add `"use strict"` to the top of cjs files
       strict: false,
 
-      // do TS-3.8-style exports
+      // Use simple exports format:
       //     exports.dogs = are.great
-      // rather than TS-3.9-style exports
+      // rather than Object.defineProperty style exports:
       //     Object.defineProperty(exports, 'dogs', {
       //       enumerable: true,
       //       get: () => are.great,
@@ -94,6 +94,11 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
+      // Assume externals are ESM-shaped (`__esModule` + `.default`), which our own `@sentry/*`
+      // packages satisfy via `esModule: 'if-default-prop'`. This keeps `import * as x` a live
+      // reference to the real module rather than an `_interopNamespace` copy — instrumentation code
+      // relies on that to monkey-patch modules like `fs` in place. Packages that pull in bare-CJS
+      // third-party deps (no `.default`) override this per-module (see server-utils).
       interop: 'esModule',
     },
 
@@ -101,6 +106,12 @@ export function makeBaseNPMConfig(options = {}) {
       moduleSideEffects: (id, external) => {
         if (external === false && ignoreSideEffects.test(id)) {
           // Tell Rollup this module has no side effects, so it can be tree-shaken
+          return false;
+        }
+
+        // @sentry/conventions only exports constants (sideEffects: false),
+        // so Rollup shouldn't emit bare side-effect imports for it.
+        if (external && id.startsWith('@sentry/conventions')) {
           return false;
         }
 

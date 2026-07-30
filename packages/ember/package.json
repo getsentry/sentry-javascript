@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for Ember.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
@@ -21,9 +21,9 @@
     "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try instance-initializers index.d.ts runloop.d.ts types.d.ts",
     "lint": "run-p lint:js lint:hbs lint:ts",
     "lint:hbs": "ember-template-lint .",
-    "lint:js": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:js": "oxlint . --type-aware",
     "lint:ts": "tsc",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "start": "ember serve",
     "test": "ember b --prod && ember test",
     "prepack": "ember ts:precompile",
@@ -32,8 +32,9 @@
   "dependencies": {
     "@babel/core": "^7.29.6",
     "@embroider/macros": "^1.16.0",
-    "@sentry/browser": "10.63.0",
-    "@sentry/core": "10.63.0",
+    "@sentry/browser": "10.67.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
     "ember-auto-import": "^2.7.2",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-htmlbars": "^6.1.1",
@@ -77,10 +78,11 @@
     "qunit": "~2.22.0",
     "qunit-dom": "~3.5.0",
     "sinon": "21.0.1",
+    "typescript": "~5.8.0",
     "webpack": "~5.104.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "ember": {
     "edition": "octane"

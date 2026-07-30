@@ -1,35 +1,38 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
-export { graphqlIntegration } from './integrations/tracing/graphql';
-export { kafkaIntegration } from './integrations/tracing/kafka';
-export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
-export { mongoIntegration } from './integrations/tracing/mongo';
-export { mongooseIntegration } from './integrations/tracing/mongoose';
-export { mysqlIntegration } from './integrations/tracing/mysql';
-export { mysql2Integration } from './integrations/tracing/mysql2';
+export {
+  amqplibIntegration,
+  anthropicIntegration as anthropicAIIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration as graphqlIntegration,
+  hapiIntegration,
+  kafkajsIntegration as kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration as mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration as openAIIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration as vercelAIIntegration,
+} from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
-export { postgresIntegration } from './integrations/tracing/postgres';
-export { postgresJsIntegration } from './integrations/tracing/postgresjs';
-export { prismaIntegration } from './integrations/tracing/prisma';
-export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
-// eslint-disable-next-line typescript/no-deprecated
-export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
-export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
-export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
-export { knexIntegration } from './integrations/tracing/knex';
-export { tediousIntegration } from './integrations/tracing/tedious';
-export { genericPoolIntegration } from './integrations/tracing/genericPool';
-export { dataloaderIntegration } from './integrations/tracing/dataloader';
-export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { openAIIntegration } from './integrations/tracing/openai';
-export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
-export { googleGenAIIntegration } from './integrations/tracing/google-genai';
-export { langChainIntegration } from './integrations/tracing/langchain';
-export { langGraphIntegration } from './integrations/tracing/langgraph';
+export { prismaIntegration } from '@sentry/server-utils';
+export { setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -39,7 +42,6 @@ export {
   unleashIntegration,
   growthbookIntegration,
 } from './integrations/featureFlagShims';
-export { firebaseIntegration } from './integrations/tracing/firebase';
 
 export {
   init,
@@ -47,19 +49,12 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
 } from './sdk';
-export {
-  experimentalUseDiagnosticsChannelInjection,
-  diagnosticsChannelInjectionIntegrations,
-} from './sdk/experimentalUseDiagnosticsChannelInjection';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
-export type { NodeOptions } from './types';
+export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
-export {
-  // This needs exporting so the NodeClient can be used without calling init
-  setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
-} from '@sentry/opentelemetry';
+export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
@@ -150,7 +145,7 @@ export {
   spanStreamingIntegration,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';
 
@@ -179,40 +174,36 @@ export type {
   CaptureContext,
 } from '@sentry/core';
 
+export { metrics, withStreamedSpan } from '@sentry/core';
+export * as logger from './logs/exports';
+
+export { childProcessIntegration } from './integrations/childProcess';
+export { consoleIntegration } from './integrations/console';
+export { nodeContextIntegration } from './integrations/context';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { localVariablesIntegration } from './integrations/local-variables';
+export { modulesIntegration } from './integrations/modules';
 export {
-  logger,
-  metrics,
-  httpServerIntegration,
-  httpServerSpansIntegration,
-  nodeContextIntegration,
-  contextLinesIntegration,
-  localVariablesIntegration,
-  modulesIntegration,
-  onUncaughtExceptionIntegration,
-  onUnhandledRejectionIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  anrIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  disableAnrDetectionForCallback,
-  spotlightIntegration,
-  childProcessIntegration,
-  processSessionIntegration,
+  _INTERNAL_normalizeCollectionInterval,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
-  consoleIntegration,
-  pinoIntegration,
-  createSentryWinstonTransport,
-  SentryContextManager,
-  systemErrorIntegration,
-  generateInstrumentOnce,
-  getSentryRelease,
-  defaultStackParser,
-  createGetModuleFromFilename,
-  makeNodeTransport,
-  NodeClient,
-  cron,
-  NODE_VERSION,
-  validateOpenTelemetrySetup,
-  withStreamedSpan,
-  _INTERNAL_normalizeCollectionInterval,
-} from '@sentry/node-core';
+} from './integrations/nodeRuntimeMetrics';
+export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { pinoIntegration } from './integrations/pino';
+export { spotlightIntegration } from './integrations/spotlight';
+export { systemErrorIntegration } from './integrations/systemError';
+export { createSentryWinstonTransport } from './integrations/winston';
+export { cron } from './cron';
+export { NODE_VERSION } from './nodeVersion';
+export { defaultStackParser, getSentryRelease } from './sdk/api';
+export { makeNodeTransport } from './transports';
+export { createGetModuleFromFilename } from './utils/module';
+
+export { httpServerIntegration } from './integrations/http/httpServerIntegration';
+export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
+export { processSessionIntegration } from './integrations/processSession';
+export { generateInstrumentOnce } from './otel/instrument';
+export { NodeClient } from './sdk/client';
+// eslint-disable-next-line typescript/no-deprecated
+export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';

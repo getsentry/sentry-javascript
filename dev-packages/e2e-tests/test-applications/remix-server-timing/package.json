@@ -4,7 +4,7 @@
   "scripts": {
     "build": "remix vite:build && pnpm typecheck",
     "dev": "remix vite:dev",
-    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/server/index.js",
+    "start": "NODE_OPTIONS='--import=./instrument.server.cjs' remix-serve build/server/index.js",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",

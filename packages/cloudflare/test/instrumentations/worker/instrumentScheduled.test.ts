@@ -240,6 +240,7 @@ describe('instrumentScheduled', () => {
         env => ({
           dsn: env.SENTRY_DSN,
           tracesSampleRate: 1,
+          traceLifecycle: 'static',
           beforeSendTransaction(event) {
             sentryEvent = event;
             return null;
@@ -255,15 +256,16 @@ describe('instrumentScheduled', () => {
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'auto.faas.cloudflare.scheduled',
-          'sentry.op': 'faas.cron',
+          'sentry.op': 'function',
           'faas.cron': '0 0 0 * * *',
           'faas.time': expect.any(String),
           'faas.trigger': 'timer',
           'sentry.sample_rate': 1,
           'sentry.source': 'task',
         },
-        op: 'faas.cron',
+        op: 'function',
         origin: 'auto.faas.cloudflare.scheduled',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

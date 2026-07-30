@@ -10,7 +10,7 @@
  * @example
  * ```typescript
  * import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
- * import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+ * import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
  *
  * // Example of how a framework SDK would define its build-time options
  * type MyFrameworkBuildOptions =
@@ -127,6 +127,15 @@ export interface BuildTimeOptionsBase {
   bundleSizeOptimizations?: BundleSizeOptimizationsOptions;
 
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+
+  /**
    * A key that is used to identify the application in the Sentry bundler plugins.
    * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
    * originating from third-party scripts.
@@ -152,7 +161,7 @@ export interface BuildTimeOptionsBase {
  */
 export type UnstableVitePluginOptions<PluginOptionsType> = {
   /**
-   * Options to be passed directly to the Sentry Vite Plugin (`@sentry/vite-plugin`) that ships with the Sentry SDK.
+   * Options to be passed directly to the Sentry Vite Plugin (`@sentry/bundler-plugins/vite`) that ships with the Sentry SDK.
    * You can use this option to override any options the SDK passes to the Vite plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.
@@ -176,7 +185,7 @@ export type UnstableVitePluginOptions<PluginOptionsType> = {
  */
 export type UnstableWebpackPluginOptions<PluginOptionsType> = {
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry SDK.
+   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
    * You can use this option to override any options the SDK passes to the Webpack plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.
@@ -200,7 +209,7 @@ export type UnstableWebpackPluginOptions<PluginOptionsType> = {
  */
 export type UnstableRollupPluginOptions<PluginOptionsType> = {
   /**
-   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) that ships with the Sentry SDK.
+   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/bundler-plugins/rollup`) that ships with the Sentry SDK.
    * You can use this option to override any options the SDK passes to the Rollup plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.

@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_SYSTEM,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../../../src/tracing/ai/gen-ai-attributes';
 import { instrumentEmbeddingMethod, instrumentLangChainEmbeddings } from '../../../src/tracing/langchain/embeddings';
 
@@ -55,9 +57,9 @@ describe('instrumentEmbeddingMethod', () => {
     expect(capturedSpanConfig).toBeDefined();
     expect(capturedSpanConfig!.name).toBe('embeddings text-embedding-3-small');
     expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
-    expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('text-embedding-3-small');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('openai');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME]).toBe('embeddings');
+    expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL]).toBe('text-embedding-3-small');
+    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('openai');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBe(1536);
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toBe('float');
     expect(original).toHaveBeenCalledWith('Hello world');
@@ -69,10 +71,10 @@ describe('instrumentEmbeddingMethod', () => {
 
     const wrapped = instrumentEmbeddingMethod(original, { recordInputs: true });
     await wrapped.call(instance, 'Hello world');
-    expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBe('Hello world');
+    expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBe('Hello world');
 
     await wrapped.call(instance, ['doc1', 'doc2']);
-    expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBe('["doc1","doc2"]');
+    expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBe('["doc1","doc2"]');
   });
 
   it('captures exception on failure', async () => {
@@ -93,7 +95,7 @@ describe('instrumentEmbeddingMethod', () => {
     const wrapped = instrumentEmbeddingMethod(original);
 
     await wrapped.call({ constructor: { name: 'GoogleGenerativeAIEmbeddings' }, model: 'test' }, 'test');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('google_genai');
+    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('google_genai');
   });
 
   it('handles missing instance properties gracefully', async () => {
@@ -103,8 +105,8 @@ describe('instrumentEmbeddingMethod', () => {
     await wrapped.call({}, 'test');
 
     expect(capturedSpanConfig!.name).toBe('embeddings unknown');
-    expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('unknown');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('langchain');
+    expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL]).toBe('unknown');
+    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('langchain');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBeUndefined();
   });
 });
@@ -126,9 +128,9 @@ describe('instrumentLangChainEmbeddings', () => {
     expect(wrapped).toBe(instance);
 
     await wrapped.embedQuery('test');
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME]).toBe('embeddings');
 
     await wrapped.embedDocuments(['doc1']);
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME]).toBe('embeddings');
   });
 });

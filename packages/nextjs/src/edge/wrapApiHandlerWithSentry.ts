@@ -4,10 +4,13 @@ import {
   getCurrentScope,
   getRootSpan,
   handleCallbackErrors,
+  isURLObjectRelative,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  spanToJSON,
   startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
@@ -15,6 +18,7 @@ import {
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
+import { HTTP_ROUTE, SENTRY_KIND, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
@@ -48,6 +52,13 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
         // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
         // rely on that for parameterization.
+        const urlObject = req instanceof Request ? parseStringToURLObject(req.url) : undefined;
+
+        const urlAttributes = {
+          [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+          [URL_PATH]: urlObject?.pathname,
+        };
+
         const activeSpan = getActiveSpan();
         if (activeSpan) {
           spanName = `handler (${parameterizedRoute})`;
@@ -55,12 +66,16 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
           const rootSpan = getRootSpan(activeSpan);
           if (rootSpan) {
+            const rootSpanAttributes = spanToJSON(rootSpan).data;
             rootSpan.updateName(
               req instanceof Request ? `${req.method} ${parameterizedRoute}` : `handler ${parameterizedRoute}`,
             );
             rootSpan.setAttributes({
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              [URL_FULL]: rootSpanAttributes[URL_FULL] ?? urlAttributes[URL_FULL],
+              [URL_PATH]: rootSpanAttributes[URL_PATH] ?? urlAttributes[URL_PATH],
+              [HTTP_ROUTE]: parameterizedRoute,
               ...headerAttributes,
             });
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
@@ -76,8 +91,11 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             name: spanName,
             op: op,
             attributes: {
+              [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
+              [HTTP_ROUTE]: parameterizedRoute,
+              ...urlAttributes,
               ...headerAttributes,
             },
           },

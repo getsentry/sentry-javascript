@@ -1,34 +1,15 @@
 import { trace } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getRootSpan } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('getActiveSpan', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions());
-    [provider] = setupOtel(client);
-  });
-
-  afterEach(() => {
-    cleanupOtel(provider);
+    mockSdkInit();
   });
 
   it('returns undefined if no span is active', () => {
-    const span = getActiveSpan();
-    expect(span).toBeUndefined();
-  });
-
-  it('returns undefined if no provider is active', async () => {
-    await provider?.forceFlush();
-    await provider?.shutdown();
-    provider = undefined;
-
     const span = getActiveSpan();
     expect(span).toBeUndefined();
   });
@@ -93,16 +74,8 @@ describe('getActiveSpan', () => {
 });
 
 describe('getRootSpan', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    [provider] = setupOtel(client);
-  });
-
-  afterEach(async () => {
-    await provider?.forceFlush();
-    await provider?.shutdown();
+    mockSdkInit();
   });
 
   it('returns currently active root span', () => {

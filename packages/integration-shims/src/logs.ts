@@ -1,4 +1,4 @@
-import type { Integration, ParameterizedString } from '@sentry/core/browser';
+import type { ParameterizedString } from '@sentry/core/browser';
 import { consoleSandbox, defineIntegration } from '@sentry/core/browser';
 import { FAKE_FUNCTION } from './common';
 import { DEBUG_BUILD } from './debug-build';
@@ -27,7 +27,7 @@ function fmtShim(_strings: TemplateStringsArray, ..._values: unknown[]): Paramet
       // eslint-disable-next-line no-console
       console.warn('You are using Sentry.logger.fmt even though this bundle does not include logs.');
     });
-  return '' as ParameterizedString;
+  return '';
 }
 
 export const loggerShim = {
@@ -56,4 +56,4 @@ export const consoleLoggingIntegrationShim = defineIntegration((_options?: unkno
     name: 'ConsoleLogs',
     setup: FAKE_FUNCTION,
   };
-}) as () => Integration;
+});

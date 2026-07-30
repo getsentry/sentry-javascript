@@ -19,9 +19,47 @@ test('sends a pageload root span with a parameterized URL', async ({ page }) => 
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'params.param': '1234',
+          'url.template': '/test-param/:param()',
+          'url.path': '/test-param/1234',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/test-param\/1234$/),
         },
         op: 'pageload',
         origin: 'auto.pageload.vue',
+      },
+    },
+    transaction: '/test-param/:param()',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('sends a navigation root span with a parameterized URL', async ({ page }) => {
+  const transactionPromise = waitForTransaction('nuxt-4', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/test-param/:param()'
+    );
+  });
+
+  await page.goto(`/`);
+  await page.getByText('Fetch Param').click();
+
+  const rootSpan = await transactionPromise;
+
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.navigation.vue',
+          'sentry.op': 'navigation',
+          'params.param': '1234',
+          'url.template': '/test-param/:param()',
+          'url.path': '/test-param/1234',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/test-param\/1234$/),
+        },
+        op: 'navigation',
+        origin: 'auto.navigation.vue',
       },
     },
     transaction: '/test-param/:param()',

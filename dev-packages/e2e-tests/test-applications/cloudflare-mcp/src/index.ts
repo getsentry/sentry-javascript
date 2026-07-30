@@ -17,6 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export default Sentry.withSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server

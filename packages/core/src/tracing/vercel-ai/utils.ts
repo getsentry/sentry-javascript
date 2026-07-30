@@ -1,16 +1,17 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import type { TraceContext } from '../../types/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types/span';
 import {
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+} from '@sentry/conventions/attributes';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { stringify } from '../../utils/string';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -26,8 +27,8 @@ export function accumulateTokensForParent(span: SpanJSON, tokenAccumulator: Map<
     return;
   }
 
-  const inputTokens = span.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
-  const outputTokens = span.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE];
+  const inputTokens = span.data[GEN_AI_USAGE_INPUT_TOKENS];
+  const outputTokens = span.data[GEN_AI_USAGE_OUTPUT_TOKENS];
 
   if (typeof inputTokens === 'number' || typeof outputTokens === 'number') {
     const existing = tokenAccumulator.get(parentSpanId) || { inputTokens: 0, outputTokens: 0 };
@@ -58,10 +59,10 @@ export function applyAccumulatedTokens(
   }
 
   if (accumulated.inputTokens > 0) {
-    spanOrTrace.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = accumulated.inputTokens;
+    spanOrTrace.data[GEN_AI_USAGE_INPUT_TOKENS] = accumulated.inputTokens;
   }
   if (accumulated.outputTokens > 0) {
-    spanOrTrace.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = accumulated.outputTokens;
+    spanOrTrace.data[GEN_AI_USAGE_OUTPUT_TOKENS] = accumulated.outputTokens;
   }
   if (accumulated.inputTokens > 0 || accumulated.outputTokens > 0) {
     spanOrTrace.data['gen_ai.usage.total_tokens'] = accumulated.inputTokens + accumulated.outputTokens;
@@ -76,7 +77,7 @@ function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
   const toolDescriptions = new Map<string, string>();
 
   for (const span of spans) {
-    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS];
     if (typeof availableTools !== 'string') {
       continue;
     }
@@ -108,11 +109,11 @@ export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulat
 
   for (const span of spans) {
     if (span.op === 'gen_ai.execute_tool') {
-      const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      const toolName = span.data[GEN_AI_TOOL_NAME];
       if (typeof toolName === 'string') {
         const description = toolDescriptions.get(toolName);
         if (description) {
-          span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
+          span.data[GEN_AI_TOOL_DESCRIPTION] = description;
         }
       }
     }
@@ -224,7 +225,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
-    !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
+    !attributes[GEN_AI_INPUT_MESSAGES] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
     // No messages array is present, so we need to convert the prompt to the proper messages format
@@ -237,18 +238,14 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
       if (systemInstructions) {
-        span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+        span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
       }
 
-      const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-      const messagesJson = enableTruncation
-        ? getTruncatedJsonString(filteredMessages)
-        : getJsonString(filteredMessages);
+      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
-        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
-        [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+        [GEN_AI_INPUT_MESSAGES]: messagesJson,
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
@@ -261,10 +258,8 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
         if (systemInstructions) {
-          span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+          span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
         }
-
-        const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
 
         // `extractSystemInstructions` returns the original array reference unchanged when no
         // system message is extracted. When truncation is also disabled, re-serializing would
@@ -275,12 +270,11 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
             ? originalMessagesJson
             : enableTruncation
               ? getTruncatedJsonString(filteredMessages)
-              : getJsonString(filteredMessages);
+              : stringify(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+          [GEN_AI_INPUT_MESSAGES]: messagesJson,
         });
       }
       // eslint-disable-next-line no-empty

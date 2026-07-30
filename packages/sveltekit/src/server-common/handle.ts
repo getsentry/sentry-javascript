@@ -23,6 +23,7 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -168,7 +169,8 @@ async function instrumentHandle(
         const kitRootSpanAttributes = spanJson.data;
         const originalName = spanJson.description;
 
-        const routeName = kitRootSpanAttributes['http.route'];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE];
+        const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
@@ -178,6 +180,11 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
+          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? event.url.href,
+          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
+          ...(routeName && {
+            [HTTP_ROUTE]: routeName,
+          }),
           ...httpHeadersToSpanAttributes(
             winterCGHeadersToDict(event.request.headers),
             getClient()?.getDataCollectionOptions() ?? false,
@@ -207,6 +214,11 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
+              [URL_FULL]: event.url.href,
+              [URL_PATH]: event.url.pathname,
+              ...(routeId && {
+                [HTTP_ROUTE]: routeId,
+              }),
               ...httpHeadersToSpanAttributes(
                 winterCGHeadersToDict(event.request.headers),
                 getClient()?.getDataCollectionOptions() ?? false,

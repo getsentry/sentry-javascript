@@ -245,6 +245,7 @@ describe('instrumentEmail', () => {
         env => ({
           dsn: env.SENTRY_DSN,
           tracesSampleRate: 1,
+          traceLifecycle: 'static',
           beforeSendTransaction(event) {
             sentryEvent = event;
             return null;
@@ -261,13 +262,14 @@ describe('instrumentEmail', () => {
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'auto.faas.cloudflare.email',
-          'sentry.op': 'faas.email',
+          'sentry.op': 'function',
           'faas.trigger': 'email',
           'sentry.sample_rate': 1,
           'sentry.source': 'task',
         },
-        op: 'faas.email',
+        op: 'function',
         origin: 'auto.faas.cloudflare.email',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

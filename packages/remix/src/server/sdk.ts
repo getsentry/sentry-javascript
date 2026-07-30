@@ -6,7 +6,7 @@ import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
 import { instrumentServer } from './instrumentServer';
 import { httpIntegration } from './integrations/http';
-import { remixIntegration } from './integrations/opentelemetry';
+import { remixIntegration } from './integrations/RemixIntegration';
 
 /**
  * Returns the default Remix integrations.
@@ -31,9 +31,9 @@ export function init(options: RemixOptions): NodeClient | undefined {
     return;
   }
 
-  options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
+  options.defaultIntegrations = getRemixDefaultIntegrations(options);
 
-  const client = nodeInit(options as NodeOptions);
+  const client = nodeInit(options);
 
   instrumentServer();
 

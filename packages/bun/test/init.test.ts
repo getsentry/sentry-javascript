@@ -2,7 +2,13 @@ import { type Integration } from '@sentry/core';
 import * as sentryNode from '@sentry/node';
 import type { Mock } from 'bun:test';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
-import { getClient, init } from '../src';
+import {
+  getClient,
+  getDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
+  init,
+  initWithoutDefaultIntegrations,
+} from '../src';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -29,7 +35,7 @@ describe('init()', () => {
 
   describe('integrations', () => {
     it("doesn't install default integrations if told not to", () => {
-      init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
+      init({ dsn: PUBLIC_DSN, defaultIntegrations: false, traceLifecycle: 'static' });
 
       const client = getClient();
 
@@ -121,6 +127,53 @@ describe('init()', () => {
       expect(integrations?.map(({ name }) => name)).toContain('Performance integration');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.1');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.3');
+    });
+  });
+
+  describe('initWithoutDefaultIntegrations()', () => {
+    it('installs no default integrations', () => {
+      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
+
+      const client = getClient();
+
+      expect(client?.getOptions().integrations).toEqual([]);
+      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+    });
+
+    it('still installs user-provided integrations', () => {
+      const customIntegration = new MockIntegration('Custom integration');
+
+      initWithoutDefaultIntegrations({
+        dsn: PUBLIC_DSN,
+        integrations: [customIntegration],
+        traceLifecycle: 'static',
+      });
+
+      const client = getClient();
+
+      expect(client?.getOptions().integrations.map(({ name }) => name)).toEqual(['Custom integration']);
+      expect(customIntegration.setupOnce).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getDefaultIntegrationsWithoutPerformance()', () => {
+    it('matches the full default set when tracing is disabled (no performance integrations added)', () => {
+      const withoutPerformance = getDefaultIntegrationsWithoutPerformance().map(({ name }) => name);
+      const full = getDefaultIntegrations({}).map(({ name }) => name);
+
+      expect(withoutPerformance).toEqual(full);
+      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+    });
+
+    it('omits the performance integrations that the full set adds when tracing is enabled', () => {
+      const performanceIntegration = new MockIntegration('Performance integration');
+      mockAutoPerformanceIntegrations.mockImplementation(() => [performanceIntegration]);
+
+      const withoutPerformance = getDefaultIntegrationsWithoutPerformance().map(({ name }) => name);
+      const full = getDefaultIntegrations({ tracesSampleRate: 1 }).map(({ name }) => name);
+
+      expect(full).toContain('Performance integration');
+      expect(withoutPerformance).not.toContain('Performance integration');
     });
   });
 });

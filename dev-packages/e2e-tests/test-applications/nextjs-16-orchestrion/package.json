@@ -1,0 +1,63 @@
+{
+  "name": "nextjs-16-orchestrion",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "start": "next start",
+    "lint": "eslint",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-webpack": "pnpm install && pnpm build-webpack",
+    "test:assert": "pnpm test:prod"
+  },
+  "//": "Pin `ioredis` to 5.10.1 and `mysql2` to 3.19.1: both are the last versions before the driver publishes its own native diagnostics channels; orchestrion's configs cover `ioredis <5.11.0` and `mysql2 <3.20.0`.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.63.0",
+    "@google/genai": "^1.20.0",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "dataloader": "2.2.2",
+    "generic-pool": "^3.9.0",
+    "ioredis": "5.10.1",
+    "knex": "^2.5.1",
+    "lru-memoizer": "2.3.0",
+    "mongodb": "^6.4.0",
+    "mongoose": "^7.8.11",
+    "mysql": "^2.18.1",
+    "mysql2": "3.19.1",
+    "next": "16.2.10",
+    "openai": "5.18.1",
+    "pg": "^8.13.1",
+    "postgres": "^3.4.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/mysql": "^2.15.26",
+    "@types/node": "^20",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16",
+    "typescript": "^5"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.20.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16-orchestrion (webpack)"
+      }
+    ]
+  }
+}

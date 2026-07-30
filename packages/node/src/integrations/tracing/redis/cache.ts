@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   truncate,
 } from '@sentry/core';
@@ -14,6 +15,7 @@ import {
   getCacheKeySafely,
   getCacheOperation,
   isInCommands,
+  REMOVE_COMMANDS,
   shouldConsiderForCache,
 } from '../../../utils/redisCache';
 import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
@@ -79,7 +81,8 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
     span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
   }
 
-  const cacheItemSize = calculateCacheItemSize(response);
+  // A remove response is a delete-count, not a cached value, so its size is meaningless.
+  const cacheItemSize = isInCommands(REMOVE_COMMANDS, redisCommand) ? undefined : calculateCacheItemSize(response);
 
   if (cacheItemSize) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
@@ -100,4 +103,5 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   span.updateName(
     _redisOptions.maxCacheKeyLength ? truncate(spanDescription, _redisOptions.maxCacheKeyLength) : spanDescription,
   );
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, undefined);
 };

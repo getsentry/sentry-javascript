@@ -1,4 +1,4 @@
-import { addNonEnumerableProperty } from '@sentry/core';
+import { isObjectLike, addNonEnumerableProperty } from '@sentry/core';
 import type { Span } from '@sentry/node';
 import { getActiveSpan, startSpanManual, withActiveSpan } from '@sentry/node';
 import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common/types';
@@ -60,7 +60,7 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
           // The server function receives { next, context, request } as first argument
           // Users call next() inside their middleware to move down the middleware chain. We proxy next() to end the span when it is called.
           const middlewareArgs = argsServer[0] as { next?: (...args: unknown[]) => unknown } | undefined;
-          if (middlewareArgs && typeof middlewareArgs === 'object' && typeof middlewareArgs.next === 'function') {
+          if (isObjectLike(middlewareArgs) && typeof middlewareArgs.next === 'function') {
             middlewareArgs.next = getNextProxy(middlewareArgs.next, span, prevSpan, nextState);
           }
 
@@ -82,7 +82,7 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
     });
 
     // mark as instrumented
-    addNonEnumerableProperty(middleware as unknown as Record<string, unknown>, SENTRY_WRAPPED, true);
+    addNonEnumerableProperty(middleware, SENTRY_WRAPPED, true);
   }
 
   return middleware;

@@ -27,7 +27,7 @@ export function registerBackgroundTabDetection(): void {
 
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
-        if (!status) {
+        if (status === 'ok') {
           rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: cancelledStatus });
         }
 

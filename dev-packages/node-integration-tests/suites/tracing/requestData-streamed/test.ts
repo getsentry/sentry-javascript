@@ -15,27 +15,27 @@ describe('requestData-streamed', () => {
 
             expect(serverSpan).toBeDefined();
 
-            expect(serverSpan?.attributes?.['url.full']).toEqual({
+            expect(serverSpan?.attributes['url.full']).toEqual({
               type: 'string',
               value: expect.stringContaining('/test?foo=bar'),
             });
 
-            expect(serverSpan?.attributes?.['http.request.method']).toEqual({
+            expect(serverSpan?.attributes['http.request.method']).toEqual({
               type: 'string',
               value: 'GET',
             });
 
-            expect(serverSpan?.attributes?.['url.query']).toEqual({
+            expect(serverSpan?.attributes['url.query']).toEqual({
               type: 'string',
               value: 'foo=bar',
             });
 
-            expect(serverSpan?.attributes?.['http.request.header.host']).toEqual({
+            expect(serverSpan?.attributes['http.request.header.host']).toEqual({
               type: 'string',
               value: expect.any(String),
             });
 
-            expect(serverSpan?.attributes?.['user.ip_address']).toEqual({
+            expect(serverSpan?.attributes['user.ip_address']).toEqual({
               type: 'string',
               value: expect.any(String),
             });
@@ -58,27 +58,27 @@ describe('requestData-streamed', () => {
 
             expect(serverSpan).toBeDefined();
 
-            expect(serverSpan?.attributes?.['url.full']).toEqual({
+            expect(serverSpan?.attributes['url.full']).toEqual({
               type: 'string',
               value: expect.stringContaining('/test?foo=bar'),
             });
 
-            expect(serverSpan?.attributes?.['http.request.method']).toEqual({
+            expect(serverSpan?.attributes['http.request.method']).toEqual({
               type: 'string',
               value: 'GET',
             });
 
-            expect(serverSpan?.attributes?.['url.query']).toEqual({
+            expect(serverSpan?.attributes['url.query']).toEqual({
               type: 'string',
               value: 'foo=bar',
             });
 
-            expect(serverSpan?.attributes?.['http.request.header.host']).toEqual({
+            expect(serverSpan?.attributes['http.request.header.host']).toEqual({
               type: 'string',
               value: expect.any(String),
             });
 
-            expect(serverSpan?.attributes?.['user.ip_address']).toEqual({
+            expect(serverSpan?.attributes['user.ip_address']).toEqual({
               type: 'string',
               value: expect.any(String),
             });
@@ -105,12 +105,12 @@ describe('requestData-streamed', () => {
 
               expect(serverSpan).toBeDefined();
 
-              expect(serverSpan?.attributes?.['http.request.header.host']).toEqual({
+              expect(serverSpan?.attributes['http.request.header.host']).toEqual({
                 type: 'string',
                 value: expect.any(String),
               });
 
-              expect(serverSpan?.attributes?.['user.ip_address']).toBeUndefined();
+              expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();
             },
           })
           .start();
@@ -131,10 +131,10 @@ describe('requestData-streamed', () => {
 
             expect(serverSpan).toBeDefined();
 
-            // url.query and user.ip_address are only set by applyScopeToSegmentSpan
-            // (not by OTel instrumentation), so they should be absent when the integration is removed
-            expect(serverSpan?.attributes?.['url.query']).toBeUndefined();
-            expect(serverSpan?.attributes?.['user.ip_address']).toBeUndefined();
+            // user.ip_address is only set by applyScopeToSegmentSpan (not by OTel instrumentation),
+            // so it should be absent when the integration is removed. `url.query` is set by
+            // `httpServerSpansIntegration` itself, so it stays present either way.
+            expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();
           },
         })
         .start();

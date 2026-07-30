@@ -153,6 +153,45 @@ describe('Integration | stop', () => {
     });
   });
 
+  it('does not flush the pending segment when stopped with `{ flush: false }` in session mode', async function () {
+    // Default mock SDK records in `session` mode (replaysSessionSampleRate: 1.0)
+    expect(replay.recordingMode).toBe('session');
+
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
+    addEvent(replay, TEST_EVENT, true);
+    expect(replay.eventBuffer?.hasEvents).toBe(true);
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
+
+    // stop without force-flushing the pending segment (e.g. on consent withdrawal)
+    await integration.stop({ flush: false });
+
+    // the buffered segment must not have been flushed/sent
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
+    expect(replay).not.toHaveLastSentReplay();
+
+    // recording is still torn down as usual
+    expect(replay.eventBuffer).toBe(null);
+    expect(replay.session).toEqual(undefined);
+  });
+
+  it('flushes the pending segment when stopped with `{ flush: true }` in session mode', async function () {
+    expect(replay.recordingMode).toBe('session');
+
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
+    addEvent(replay, TEST_EVENT, true);
+    expect(replay.eventBuffer?.hasEvents).toBe(true);
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
+
+    // explicitly force-flush the pending segment
+    await integration.stop({ flush: true });
+
+    expect(mockRunFlush).toHaveBeenCalledTimes(1);
+    expect(replay.eventBuffer).toBe(null);
+    expect(replay).toHaveLastSentReplay({
+      recordingData: JSON.stringify([TEST_EVENT]),
+    });
+  });
+
   it('does not call core SDK `addClickKeypressInstrumentationHandler` after initial setup', async function () {
     // NOTE: We clear mockAddDomInstrumentationHandler after every test
     await integration.stop();

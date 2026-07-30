@@ -9,7 +9,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { postgresChannelIntegration } from '../../src/orchestrion';
+import { postgresIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
 interface TestStore {
@@ -77,7 +77,7 @@ interface ChannelContext {
   self?: unknown;
 }
 
-describe('postgresChannelIntegration', () => {
+describe('postgresIntegration', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
   let span: Span;
@@ -87,7 +87,7 @@ describe('postgresChannelIntegration', () => {
   // strategy must be installed first so `setupOnce`'s `waitForTracingChannelBinding` fires synchronously.
   beforeAll(() => {
     installTestAsyncContextStrategy();
-    postgresChannelIntegration().setupOnce?.();
+    postgresIntegration().setupOnce?.();
   });
 
   afterAll(() => {
@@ -124,7 +124,7 @@ describe('postgresChannelIntegration', () => {
           'net.peer.port': 5432,
           'db.connection_string': 'postgresql://localhost:5432/tests',
           'db.statement': 'SELECT * FROM "User"',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );
@@ -147,7 +147,7 @@ describe('postgresChannelIntegration', () => {
         attributes: expect.objectContaining({
           'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
           'db.postgresql.plan': 'select-user-by-email',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );

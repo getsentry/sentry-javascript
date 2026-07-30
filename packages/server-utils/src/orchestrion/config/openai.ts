@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 export const openaiConfig = [
   // OpenAI chat completions. `Completions.create` returns a thenable `APIPromise` with no callback arg,
@@ -11,7 +12,7 @@ export const openaiConfig = [
   })),
   // OpenAI responses API — same `create(body, options)` shape as chat completions.
   ...['resources/responses/responses.js', 'resources/responses/responses.mjs'].map(filePath => ({
-    channelName: 'responses',
+    channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Responses', methodName: 'create', kind: 'Auto' as const },
   })),
@@ -23,15 +24,17 @@ export const openaiConfig = [
   })),
   // OpenAI conversations API — same `create(body, options)` shape as chat completions.
   ...['resources/conversations/conversations.js', 'resources/conversations/conversations.mjs'].map(filePath => ({
-    channelName: 'conversations',
+    channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <7', filePath },
     functionQuery: { className: 'Conversations', methodName: 'create', kind: 'Auto' as const },
   })),
 ] satisfies InstrumentationConfig[];
 
 export const openaiChannels = {
+  // Chat completions, the responses API, and the conversations API all report a `chat` operation with
+  // identical span handling, so they share one channel.
   OPENAI_CHAT: 'orchestrion:openai:chat',
-  OPENAI_RESPONSES: 'orchestrion:openai:responses',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
-  OPENAI_CONVERSATIONS: 'orchestrion:openai:conversations',
 } as const;
+
+export const openaiSubscribeInjection = toSubscribeInjections(openaiConfig);

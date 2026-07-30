@@ -26,18 +26,16 @@ describe('outgoing fetch spans - strip query', () => {
             expect(txn.spans).toHaveLength(1);
             expect(txn.spans?.[0]).toMatchObject({
               data: {
-                url: `${SERVER_URL}/api/v0/users`,
                 'url.full': `${SERVER_URL}/api/v0/users?id=1`,
                 'url.path': '/api/v0/users',
-                'url.query': '?id=1',
+                'url.query': 'id=1',
                 'url.scheme': 'http',
-                'http.query': 'id=1',
                 'http.request.method': 'GET',
                 'http.request.method_original': 'GET',
                 'http.response.status_code': 200,
                 'network.peer.address': '::1',
                 'network.peer.port': expect.any(Number),
-                'otel.kind': 'CLIENT',
+                'sentry.kind': 'client',
                 'server.port': expect.any(Number),
                 'user_agent.original': 'node',
                 'sentry.op': 'http.client',

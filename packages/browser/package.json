@@ -1,13 +1,13 @@
 {
   "name": "@sentry/browser",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build/npm"
@@ -34,25 +34,19 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser-utils": "10.63.0",
-    "@sentry/feedback": "10.63.0",
-    "@sentry/replay": "10.63.0",
-    "@sentry/replay-canvas": "10.63.0",
-    "@sentry/core": "10.63.0"
+    "@sentry/browser-utils": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/feedback": "10.67.0",
+    "@sentry/replay": "10.67.0",
+    "@sentry/replay-canvas": "10.67.0",
+    "@sentry/core": "10.67.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "10.63.0",
+    "@sentry-internal/integration-shims": "10.67.0",
     "fake-indexeddb": "^6.2.4"
   },
   "scripts": {
@@ -60,9 +54,7 @@
     "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",
@@ -70,8 +62,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs/prod}/*.js && es-check es2020 ./build/npm/esm/prod/*.js --module",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",

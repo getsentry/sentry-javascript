@@ -4,6 +4,8 @@ import {
   continueTrace,
   defineIntegration,
   getClient,
+  getUrlFragment,
+  getUrlQuery,
   httpHeadersToSpanAttributes,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -15,6 +17,15 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
+import {
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_PORT,
+  URL_QUERY,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -272,25 +283,21 @@ function getSpanAttributesFromParsedUrl(
   };
 
   if (parsedUrl) {
-    if (parsedUrl.search) {
-      attributes['url.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      attributes['url.fragment'] = parsedUrl.hash;
-    }
+    attributes[URL_QUERY] = getUrlQuery(parsedUrl.search);
+    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
     if (parsedUrl.pathname) {
-      attributes['url.path'] = parsedUrl.pathname;
+      attributes[URL_PATH] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['url.full'] = parsedUrl.href;
+      attributes[URL_FULL] = parsedUrl.href;
       if (parsedUrl.port) {
-        attributes['url.port'] = parsedUrl.port;
+        attributes[URL_PORT] = parsedUrl.port;
       }
       if (parsedUrl.protocol) {
-        attributes['url.scheme'] = parsedUrl.protocol;
+        attributes[URL_SCHEME] = parsedUrl.protocol;
       }
       if (parsedUrl.hostname) {
-        attributes['url.domain'] = parsedUrl.hostname;
+        attributes[URL_DOMAIN] = parsedUrl.hostname;
       }
     }
   }

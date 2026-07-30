@@ -2,6 +2,7 @@ const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   tracesSampleRate: 0.00000001, // It's important that this is not 1, so that we also check logic for NonRecordingSpans, which is usually the edge-case

@@ -1,6 +1,6 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -11,9 +11,6 @@ const ADDITIONAL_DEPENDENCIES = {
   prisma: '5.22.0',
 };
 
-// Prisma v5 engine spans are minted by Sentry's v5 compatibility shim through Sentry's
-// provider-agnostic span APIs, so the same span tree must be produced under both the default
-// SentryTracerProvider and the opt-in OTel BasicTracerProvider (`openTelemetryBasicTracerProvider`).
 function expectPrismaV5Spans(transaction: TransactionEvent): void {
   expect(transaction.transaction).toBe('Test Transaction');
   const spans = transaction.spans || [];
@@ -76,7 +73,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('INSERT INTO'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
@@ -88,7 +85,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('SELECT'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
@@ -100,7 +97,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
         data: {
           'db.statement': expect.stringContaining('DELETE'),
           'db.system': 'postgresql',
-          'otel.kind': 'CLIENT',
+          'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.otel.prisma',
         },
@@ -112,52 +109,24 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
   );
 }
 
-describe('Prisma ORM v5 Tests', () => {
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createRunner, test, _mode, cwd) => {
-      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
-        await createRunner()
-          .withDockerCompose({
-            workingDirectory: [cwd],
-            setupCommand: 'yarn prisma generate && yarn prisma migrate dev -n sentry-test',
-          })
-          .expect({ transaction: expectPrismaV5Spans })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: ADDITIONAL_DEPENDENCIES,
-      copyPaths: ['prisma', 'docker-compose.yml'],
-    },
-  );
-});
+const AFTER_SETUP_COMMAND = 'prisma generate --schema prisma/schema.prisma';
 
-// The BasicTracerProvider path is opt-in via `openTelemetryBasicTracerProvider: true`; it must produce
-// the same Prisma v5 span tree as the default SentryTracerProvider.
-describe('Prisma ORM v5 Tests (BasicTracerProvider)', () => {
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-basic-tracer-provider.mjs',
-    (createRunner, test, _mode, cwd) => {
-      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
-        await createRunner()
-          .withDockerCompose({
-            workingDirectory: [cwd],
-            setupCommand: 'yarn prisma generate && yarn prisma migrate dev -n sentry-test',
-          })
-          .expect({ transaction: expectPrismaV5Spans })
-          .start()
-          .completed();
-      });
-    },
-    {
-      additionalDependencies: ADDITIONAL_DEPENDENCIES,
-      copyPaths: ['prisma', 'docker-compose.yml'],
-    },
-  );
+describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, () => {
+  describe('Prisma ORM v5 Tests', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createRunner, test) => {
+        test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+          await createRunner().expect({ transaction: expectPrismaV5Spans }).start().completed();
+        });
+      },
+      {
+        additionalDependencies: ADDITIONAL_DEPENDENCIES,
+        afterSetupCommand: AFTER_SETUP_COMMAND,
+        copyPaths: ['prisma'],
+      },
+    );
+  });
 });

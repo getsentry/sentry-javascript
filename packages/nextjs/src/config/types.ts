@@ -1,5 +1,5 @@
 import type { GLOBAL_OBJ } from '@sentry/core';
-import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+import type { SentryWebpackPluginOptions } from '@sentry/bundler-plugins/webpack';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -10,7 +10,7 @@ type NextRewrite = {
   destination: string;
 };
 
-interface WebpackPluginInstance {
+export interface WebpackPluginInstance {
   [index: string]: unknown;
   apply: (compiler: unknown) => void;
 }
@@ -147,7 +147,7 @@ export type SentryBuildWebpackOptions = {
   };
 
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry SDK.
+   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
    * You can use this option to override any options the SDK passes to the Webpack plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.
@@ -469,7 +469,7 @@ export type SentryBuildOptions = {
    * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
    * originating from third-party scripts.
    *
-   * For webpack builds, this is forwarded to the `@sentry/webpack-plugin`.
+   * For webpack builds, this is forwarded to the `@sentry/bundler-plugins/webpack`.
    * For Turbopack builds, this injects module metadata via a custom loader.
    *
    * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
@@ -542,7 +542,7 @@ export type SentryBuildOptions = {
   }; // TODO(v11): remove this option
 
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry Next.js SDK.
+   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry Next.js SDK.
    * You can use this option to override any options the SDK passes to the webpack plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.
@@ -747,7 +747,7 @@ export type SentryBuildOptions = {
      * first-party code from third-party code in Turbopack builds.
      *
      * When set, a Turbopack loader injects `_sentryModuleMetadata` into every
-     * first-party module, mirroring what `@sentry/webpack-plugin` does for
+     * first-party module, mirroring what `@sentry/bundler-plugins/webpack` does for
      * webpack builds via its `moduleMetadata` / `applicationKey` option.
      *
      * Requires Next.js 16+
@@ -765,6 +765,18 @@ export type SentryBuildOptions = {
       enabled?: boolean;
       ignoredComponents?: string[];
     };
+    /**
+     * EXPERIMENTAL: Wire up orchestrion diagnostics-channel instrumentation at build time.
+     *
+     * When enabled, `withSentryConfig` injects the orchestrion code-transform loader for bundled
+     * server packages and keeps the remaining instrumented packages external so the runtime module
+     * hook picks them up.
+     *
+     * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
+     *
+     * @experimental May change or be removed in any release.
+     */
+    useDiagnosticsChannelInjection?: boolean;
   }>;
 
   /**

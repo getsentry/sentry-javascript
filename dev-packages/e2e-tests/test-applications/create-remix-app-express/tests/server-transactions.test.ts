@@ -14,6 +14,7 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
 
   expect(transaction).toBeDefined();
   expect(transaction.transaction).toBe('GET user/:id');
+  expect(transaction.contexts?.trace?.data?.['http.route']).toBe('user/:id');
 });
 
 test('Sends form data with action span', async ({ page }) => {
@@ -270,7 +271,8 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
-  expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
+  expect(httpServerTransaction.transaction).toBe('GET /');
+  expect(httpServerTransaction.contexts?.trace?.data?.['http.route']).toBeUndefined();
   expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();

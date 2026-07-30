@@ -56,7 +56,49 @@ export function getPortAppIsRunningOn(app: Express): number | undefined {
   return app.port;
 }
 
-/** Returns true if orchestrion is enabled in env vars. */
+/**
+ * Whether channel-based (orchestrion diagnostics-channel) instrumentation is active.
+ *
+ * Channel-based instrumentation is the default in v11, so this is always `true`. Kept as a helper
+ * (rather than inlining `true`) so the suites' origin/shape selectors read intentionally; the OTel
+ * branches they still contain are dead and get removed alongside the vendored OTel code (JS-3074).
+ */
 export function isOrchestrionEnabled(): boolean {
-  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
+  return true;
+}
+
+/**
+ * Retries `probe` until it resolves, or throws once `timeout` ms elapse.
+ *
+ * DB scenarios that start a Docker container with `docker compose up --wait` still flake on CI: `--wait`
+ * only gates on the container's internal healthcheck, but databases keep finalizing for a short window
+ * afterwards. The host port-forward can lag (`ECONNREFUSED`/`ECONNRESET`), MySQL drops early handshakes
+ * ("server closed the connection"), and MSSQL is slow to start accepting connections. A scenario whose
+ * first connection lands in that window fails before it does any work, so no transaction is sent.
+ *
+ * Await this before the scenario opens its span, passing a probe that opens (and closes) a throwaway
+ * connection with the suite's own driver. A pure TCP check is not enough — the port accepts the socket
+ * while the handshake is still refused — so the probe must perform a real driver connection. Because it
+ * runs with no active span, the connect is not instrumented and emits no spans.
+ */
+export async function waitForConnection<T extends () => Promise<unknown>>(
+  probe: T,
+  { timeout = 60_000, interval = 500 }: { timeout?: number; interval?: number } = {},
+): Promise<ReturnType<T>> {
+  const deadline = Date.now() + timeout;
+  let lastError: unknown;
+  for (;;) {
+    try {
+      // probe() is already awaited here; the cast widens to ReturnType<T> (a Promise type), which
+      // makes return-await think an outer await is still needed, so suppress it.
+      // oxlint-disable-next-line typescript/return-await
+      return (await probe()) as ReturnType<T>;
+    } catch (error) {
+      lastError = error;
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out waiting for a database connection after ${timeout}ms: ${String(lastError)}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
 }

@@ -1,32 +1,41 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "private": true,
   "scripts": {
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint:types": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
     "ai": "^6.0.0",
+    "@anthropic-ai/sdk": "0.63.0",
+    "@google/genai": "^1.20.0",
+    "@langchain/core": "^0.3.80",
     "@langchain/langgraph": "^1.0.1",
+    "@langchain/openai": "^0.5.0",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
-    "@sentry/cloudflare": "10.63.0",
-    "@sentry/hono": "10.63.0",
-    "hono": "^4.12.25"
+    "@sentry/cloudflare": "10.67.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/hono": "10.67.0",
+    "hono": "^4.12.27",
+    "openai": "5.18.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.34.0",
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@sentry-internal/test-utils": "10.63.0",
-    "@sentry/conventions": "0.15.1",
+    "@sentry-internal/test-utils": "10.67.0",
+    "@sentry/conventions": "0.16.0",
     "eslint-plugin-regexp": "^3.1.0",
     "prisma": "6.15.0",
+    "vite": "7.3.5",
     "vitest": "^3.2.6",
     "wrangler": "4.86.0"
   },

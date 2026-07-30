@@ -24,10 +24,10 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
-      url: 'http://localhost:3030/test-transaction',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-transaction',
+      'url.full': 'http://localhost:3030/test-transaction',
+      'url.path': '/test-transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
@@ -98,7 +98,6 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     data: expect.objectContaining({
       'sentry.origin': 'auto.http.otel.fastify',
       'sentry.op': 'request_handler.fastify',
-      // format is slightly different in v3.20.0 and v3.21.0
       'fastify.type': expect.stringMatching(/request[-_]handler/),
       'http.route': '/test-transaction',
     }),

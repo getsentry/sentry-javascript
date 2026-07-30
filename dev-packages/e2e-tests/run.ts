@@ -183,6 +183,13 @@ async function run(): Promise<void> {
   const env = {
     ...process.env,
     ...envVarsToInject,
+    // Volta applies a project's node pin only to commands it manages, and it
+    // manages pnpm only when this is set. Without it, the `volta run pnpm`
+    // calls below build each app on whatever node is already on PATH rather
+    // than the version its package.json pins. CI reads that pin directly
+    // (see `node-version-file` in .github/workflows/build.yml), so leaving
+    // this unset makes local runs fail on apps CI passes.
+    VOLTA_FEATURE_PNPM: '1',
   };
 
   console.log('Syncing packed tarball symlinks...');

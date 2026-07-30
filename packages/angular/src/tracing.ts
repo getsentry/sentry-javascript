@@ -19,13 +19,16 @@ import {
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
+  getAbsoluteUrl,
 } from '@sentry/browser';
+import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
-import { debug, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
+import { ANGULAR_INIT_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
@@ -54,13 +57,25 @@ export function browserTracingIntegration(
 /**
  * This function is extracted to make unit testing easier.
  */
-export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Span): void {
-  const attributes = (span && spanToJSON(span).data) || {};
+export function _updateSpanAttributesForParametrizedUrl(route: string, url: string, span?: Span): void {
+  if (!span) {
+    return;
+  }
 
-  if (span && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+  const { data: attributes, op } = spanToJSON(span);
+
+  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
+
+    const absoluteUrl = getAbsoluteUrl(url);
+
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [URL_FULL]: absoluteUrl,
+      [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
+      [URL_TEMPLATE]: route,
+    });
   }
 }
 
@@ -91,13 +106,19 @@ export class TraceService implements OnDestroy {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
           runOutsideAngular(() => {
-            startBrowserTracingNavigationSpan(client, {
-              name: strippedUrl,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: strippedUrl,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                },
               },
-            });
+              {
+                url: getAbsoluteUrl(navigationEvent.url),
+              },
+            );
           });
         } else {
           // The first time we end up here, we set the pageload flag to false
@@ -114,7 +135,7 @@ export class TraceService implements OnDestroy {
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                url: strippedUrl,
+                [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,
                 }),
@@ -149,7 +170,7 @@ export class TraceService implements OnDestroy {
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      _updateSpanAttributesForParametrizedUrl(route, rootSpan);
+      _updateSpanAttributesForParametrizedUrl(route, event.urlAfterRedirects, rootSpan);
     }),
   );
 
@@ -273,8 +294,10 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           name: `<${this.componentName}>`,
-          op: ANGULAR_INIT_OP,
-          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive' },
+          attributes: {
+            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+          },
         }),
       );
     }
@@ -322,8 +345,8 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
         startInactiveSpan({
           onlyIfParent: true,
           name: `<${options?.name || 'unnamed'}>`,
-          op: ANGULAR_INIT_OP,
           attributes: {
+            [SENTRY_OP]: ANGULAR_INIT_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
           },
         }),
@@ -367,10 +390,11 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
         startInactiveSpan({
           onlyIfParent: true,
           name: `<${options?.name ? options.name : 'unnamed'}>`,
-          op: `${ANGULAR_OP}.${String(propertyKey)}`,
           startTime: now,
           attributes: {
+            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+            [CODE_FUNCTION_NAME]: String(propertyKey),
           },
         }).end(now);
       });

@@ -12,7 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types/context';
 import type { SpanLink, SpanLinkJSON } from '../types/link';
@@ -204,6 +204,7 @@ export function spanToJSON(span: Span): SpanJSON {
     span_id,
     trace_id,
     start_timestamp: 0,
+    status: 'ok',
     data: {},
   };
 }
@@ -317,16 +318,16 @@ export function spanIsSampled(span: Span): boolean {
 }
 
 /** Get the status message to use for a JSON representation of a span. */
-export function getStatusMessage(status: SpanStatus | undefined): string | undefined {
+export function getStatusMessage(status: SpanStatus | undefined): string {
   if (!status || status.code === SPAN_STATUS_UNSET) {
-    return undefined;
+    return 'ok';
   }
 
   if (status.code === SPAN_STATUS_OK) {
     return 'ok';
   }
 
-  return status.message || 'internal_error';
+  return status.message && isStatusErrorMessageValid(status.message) ? status.message : 'internal_error';
 }
 
 /**
@@ -373,7 +374,7 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   // We store the root span reference on the child span
   // We need this for `getRootSpan()` to work
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
-  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+  addNonEnumerableProperty(childSpan, ROOT_SPAN_FIELD, rootSpan);
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work

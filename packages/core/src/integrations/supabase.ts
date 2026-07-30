@@ -12,7 +12,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
-import { isPlainObject } from '../utils/is';
+import { isObjectLike, isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
@@ -252,7 +252,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
         span => {
           return Reflect.apply(target, thisArg, argumentsList)
             .then((res: unknown) => {
-              if (res && typeof res === 'object' && 'error' in res && res.error) {
+              if (isObjectLike(res) && 'error' in res && res.error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR });
 
                 captureException(res.error, {
@@ -385,7 +385,8 @@ function instrumentPostgRESTFilterBuilder(
         }
 
         const client = getClient();
-        const shouldSendData = _options.sendOperationData ?? client?.getDataCollectionOptions().userInfo === true;
+        const shouldSendData =
+          _options.sendOperationData ?? client?.getDataCollectionOptions().databaseQueryData === true;
         const bodyPayload = getMutationBodyPayloadForTelemetry(typedThis.body, body);
 
         // Adding operation to the beginning of the description if it's not a `select` operation
@@ -563,7 +564,7 @@ interface SupabaseIntegrationOptions {
    * Whether to attach PostgREST query filters and mutation body payloads
    * to Sentry telemetry.
    *
-   * Falls back to `dataCollection.userInfo` when not set.
+   * Falls back to `dataCollection.databaseQueryData` when not set.
    * @default undefined
    */
   sendOperationData?: boolean;

@@ -1,13 +1,13 @@
 {
   "name": "@sentry/nuxt",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for Nuxt",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18.19.1"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -33,8 +33,7 @@
     },
     "./module": {
       "types": "./build/module/types.d.ts",
-      "import": "./build/module/module.mjs",
-      "require": "./build/module/module.cjs"
+      "import": "./build/module/module.mjs"
     },
     "./module/plugins": {
       "types": "./build/module/runtime/plugins/index.d.ts",
@@ -55,18 +54,16 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "10.63.0",
-    "@sentry/cloudflare": "10.63.0",
-    "@sentry/core": "10.63.0",
-    "@sentry/node": "10.63.0",
-    "@sentry/node-core": "10.63.0",
-    "@sentry/rollup-plugin": "^5.3.0",
-    "@sentry/vite-plugin": "^5.3.0",
-    "@sentry/vue": "10.63.0",
+    "@sentry/browser": "10.67.0",
+    "@sentry/cloudflare": "10.67.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/bundler-plugins": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
+    "@sentry/vue": "10.67.0",
     "local-pkg": "^1.1.2"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^0.8.4",
     "@nuxt/nitro-server": "^3.21.6",
     "nitro": "^3.0.260311-beta",
     "nuxi": "^3.25.1",
@@ -76,7 +73,7 @@
   "scripts": {
     "build": "run-s build:types build:transpile",
     "build:dev": "yarn build",
-    "build:nuxt-module": "bash ./generate-build-stubs.bash && nuxt-module-build build --outDir build/module",
+    "build:nuxt-module": "rollup -c rollup.module.config.mjs && tsc -p tsconfig.module.json && node scripts/build-module-meta.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
@@ -85,9 +82,9 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

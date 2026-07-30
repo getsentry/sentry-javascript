@@ -2,8 +2,15 @@ import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import * as inpModule from '../../src/metrics/inp';
+import * as instrument from '../../src/metrics/instrument';
 import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
-import { _emitWebVitalSpan, _sendClsSpan, _sendInpSpan, _sendLcpSpan } from '../../src/metrics/webVitalSpans';
+import {
+  _emitWebVitalSpan,
+  _sendClsSpan,
+  _sendInpSpan,
+  _sendLcpSpan,
+  trackInpAsSpan,
+} from '../../src/metrics/webVitalSpans';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -28,6 +35,7 @@ vi.mock('../../src/htmlTreeAsString', () => ({
 vi.mock('../../src/types', () => ({
   WINDOW: {
     navigator: { userAgent: 'test-user-agent' },
+    addEventListener: vi.fn(),
     performance: {
       getEntriesByType: vi.fn().mockReturnValue([]),
     },
@@ -80,6 +88,7 @@ describe('_emitWebVitalSpan', () => {
         'sentry.exclusive_time': 0,
         'browser.web_vital.lcp.value': 100,
         'sentry.transaction': 'test-transaction',
+        'sentry.segment.name': 'test-transaction',
         'user_agent.original': 'test-user-agent',
       },
       startTime: 1.5,
@@ -91,6 +100,22 @@ describe('_emitWebVitalSpan', () => {
     );
 
     expect(mockSpan.end).toHaveBeenCalledWith(1.5);
+  });
+
+  it('marks the span as standalone when standalone is set', () => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.interaction.click',
+      origin: 'auto.http.browser.inp',
+      metricName: 'inp',
+      value: 100,
+      startTime: 1.5,
+      standalone: true,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ experimental: { standalone: true } }),
+    );
   });
 
   it('includes pageload span id when parentSpan is a pageload span', () => {
@@ -256,6 +281,7 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.size': 50000,
           'browser.web_vital.lcp.report_event': 'pagehide',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         startTime: 1, // timeOrigin: 1000 / 1000
         parentSpan: mockPageloadSpan,
@@ -348,6 +374,7 @@ describe('_sendClsSpan', () => {
           'browser.web_vital.cls.source.2': '<span>',
           'browser.web_vital.cls.report_event': 'navigation',
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
         parentSpan: mockPageloadSpan,
       }),
@@ -414,6 +441,7 @@ describe('_sendInpSpan', () => {
           'sentry.op': 'ui.interaction.click',
           'sentry.exclusive_time': 120,
           'sentry.transaction': 'test-route',
+          'sentry.segment.name': 'test-route',
         }),
       }),
     );
@@ -472,9 +500,80 @@ describe('_sendInpSpan', () => {
         name: 'body > CachedButton',
         attributes: expect.objectContaining({
           'sentry.transaction': 'cached-route',
+          'sentry.segment.name': 'cached-route',
         }),
         parentSpan: mockRootSpan,
       }),
     );
+  });
+});
+
+describe('trackInpAsSpan', () => {
+  // A streaming client keeps these emission-focused tests out of the standalone-buffer branch.
+  const streamingClient = { getOptions: () => ({ traceLifecycle: 'stream' }), on: vi.fn() } as any;
+
+  const mockScope = {
+    getScopeData: vi.fn().mockReturnValue({ transactionName: 'test-route' }),
+  };
+
+  const validMetric = {
+    value: 120,
+    entries: [{ name: 'pointerdown', startTime: 500, duration: 120, interactionId: 1, target: { tagName: 'button' } }],
+  };
+
+  let inpCallback: (arg: { metric: any }) => void;
+
+  beforeEach(() => {
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
+    vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
+    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
+    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+    vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {
+      inpCallback = cb;
+      return () => undefined;
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('emits INP as a streamed span when span streaming is enabled', () => {
+    trackInpAsSpan(streamingClient);
+    inpCallback({ metric: validMetric });
+
+    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    expect(call.experimental).toBeUndefined();
+    expect(call.attributes?.['sentry.op']).toBe('ui.interaction.click');
+  });
+
+  it('emits INP as a standalone span when span streaming is disabled', () => {
+    const staticClient = { getOptions: () => ({ traceLifecycle: 'static' }), on: vi.fn() } as any;
+    trackInpAsSpan(staticClient);
+    inpCallback({ metric: validMetric });
+
+    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    expect(call.experimental).toEqual({ standalone: true });
+  });
+
+  it('ignores INP metrics without a value', () => {
+    trackInpAsSpan(streamingClient);
+    inpCallback({ metric: { value: null, entries: [] } });
+    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+  });
+
+  it('ignores implausibly long INP durations', () => {
+    trackInpAsSpan(streamingClient);
+    inpCallback({ metric: { value: (inpModule.MAX_PLAUSIBLE_INP_DURATION + 1) * 1000, entries: validMetric.entries } });
+    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+  });
+
+  it('ignores INP metrics without a matching interaction entry', () => {
+    trackInpAsSpan(streamingClient);
+    inpCallback({ metric: { value: 120, entries: [{ name: 'scroll', duration: 120 }] } });
+    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
   });
 });

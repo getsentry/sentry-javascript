@@ -10,6 +10,7 @@ import { defaultPiiToCollectionOptions } from './data-collection/defaultPiiToCol
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
 import { filterKeyValueData } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
+import { getUrlQuery } from './url';
 
 /**
  * Maximum size of incoming HTTP request bodies attached to events.
@@ -375,8 +376,7 @@ export function extractQueryParamsFromUrl(url: string): string | undefined {
   try {
     // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
     // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
-    const queryParams = new URL(url, 'http://s.io').search.slice(1);
-    return queryParams.length ? queryParams : undefined;
+    return getUrlQuery(new URL(url, 'http://s.io').search);
   } catch {
     return undefined;
   }

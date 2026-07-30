@@ -1,3 +1,4 @@
+import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { AnthropicAiOptions, AnthropicAiResponse, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -7,7 +8,6 @@ import {
   debug,
   defineIntegration,
   extractAnthropicRequestAttributes,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   instrumentAsyncIterableStream,
   instrumentMessageStream,
   resolveAIRecordingOptions,
@@ -20,13 +20,11 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'Anthropic_AI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
 
-// Distinct from the proxy's `auto.ai.anthropic` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.anthropic';
+const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
@@ -49,7 +47,7 @@ interface AnthropicChannelContext {
 
 let subscribed = false;
 
-const _anthropicChannelIntegration = ((options: AnthropicAiOptions = {}) => {
+const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -116,7 +114,7 @@ function createGenAiSpan(
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
-  const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
   const span = startInactiveSpan({
@@ -176,8 +174,8 @@ function wrapStreamResult(
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
+ * Orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
  * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`), `models`, and
  * `messages.stream()` methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const anthropicChannelIntegration = defineIntegration(_anthropicChannelIntegration);
+export const anthropicIntegration = defineIntegration(_anthropicIntegration);

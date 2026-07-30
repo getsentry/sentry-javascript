@@ -1,0 +1,42 @@
+{
+  "name": "sveltekit-2-orchestrion",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "start": "node build",
+    "proxy": "node start-event-proxy.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "dependencies": {
+    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sveltejs/adapter-auto": "^7.0.1",
+    "@sveltejs/adapter-node": "^5.5.7",
+    "@sveltejs/kit": "^2.63.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "svelte": "^5.56.1",
+    "svelte-check": "^4.6.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.22.0"
+  }
+}

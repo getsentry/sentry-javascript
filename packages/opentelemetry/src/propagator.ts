@@ -1,7 +1,7 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
-import { HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
+import { URL_FULL } from '@sentry/conventions/attributes';
 import type { Client, continueTrace, DynamicSamplingContext, Scope } from '@sentry/core';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -21,12 +21,17 @@ import {
   shouldPropagateTraceForUrl,
   spanToJSON,
 } from '@sentry/core';
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
+import {
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_TRACE_HEADER,
+  SENTRY_TRACE_STATE_DSC,
+  SENTRY_TRACE_STATE_URL,
+} from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
-import { setIsSetup } from './utils/setupCheck';
+import { reconcileDscSampled } from './utils/reconcileDscSampled';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -37,7 +42,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
   public constructor() {
     super();
-    setIsSetup('SentryPropagator');
 
     // We're caching results so we don't have to recompute regexp every time we create a request.
     this._urlMatchesTargetsMap = new LRUMap<string, boolean>(100);
@@ -132,9 +136,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
   }
 }
 
-// Re-exported from @sentry/core for backwards compatibility
-export { shouldPropagateTraceForUrl } from '@sentry/core';
-
 /**
  * Get propagation injection data for the given context.
  * The additional options can be passed to override the scope and client that is otherwise derived from the context.
@@ -154,13 +155,22 @@ export function getInjectionData(
   // Instead, we use a virtual (generated) spanId for propagation
   if (span?.spanContext().isRemote) {
     const spanContext = span.spanContext();
-    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
+    const sampled = getSamplingDecision(spanContext);
+    const dsc = getDynamicSamplingContextFromSpan(span);
+
+    // When the incoming trace froze its DSC on the trace state, `getDynamicSamplingContextFromSpan`
+    // returns that DSC verbatim; per the propagation spec it is immutable, so we must not rewrite
+    // `sampled` or strip `transaction` on it. We only reconcile the DSC that core freshly derives
+    // from the (binary) span trace flags, which is the sole case that can misrepresent a deferred
+    // decision as unsampled.
+    const hasIncomingFrozenDsc = !!spanContext.traceState?.get(SENTRY_TRACE_STATE_DSC);
+    const dynamicSamplingContext = hasIncomingFrozenDsc ? dsc : reconcileDscSampled(dsc, sampled);
 
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
       spanId: undefined,
-      sampled: getSamplingDecision(spanContext), // TODO: Do we need to change something here?
+      sampled,
     };
   }
 
@@ -275,9 +285,7 @@ function getExistingSentryTrace(carrier: unknown): string | string[] | undefined
  */
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
-  // `URL_FULL` is the new attribute, but we still support the old one, `HTTP_URL`, for now.
-  // eslint-disable-next-line typescript/no-deprecated
-  const urlAttribute = spanData[HTTP_URL] || spanData[URL_FULL];
+  const urlAttribute = spanData[URL_FULL];
   if (typeof urlAttribute === 'string') {
     return urlAttribute;
   }

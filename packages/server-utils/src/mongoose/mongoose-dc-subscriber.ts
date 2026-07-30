@@ -9,7 +9,13 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { debug, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import {
+  isObjectLike,
+  debug,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
@@ -177,9 +183,9 @@ function redactValue(value: unknown, depth: number): unknown {
     return value.map(item => redactValue(item, depth + 1));
   }
 
-  if (value && typeof value === 'object') {
+  if (isObjectLike(value)) {
     const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>)) {
+    for (const key of Object.keys(value)) {
       out[key] = redactValue((value as Record<string, unknown>)[key], depth + 1);
     }
 

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedSession } from '@sentry/core/src';
+import type { SerializedSession } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -8,7 +8,7 @@ import {
   waitForSession,
 } from '../../../utils/helpers';
 
-sentryTest('starts a session on pageload with page lifecycle.', async ({ getLocalTestUrl, page }) => {
+sentryTest('starts a session on pageload with page lifecycle (default).', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const sessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
@@ -32,7 +32,7 @@ sentryTest('starts a session on pageload with page lifecycle.', async ({ getLoca
 });
 
 sentryTest(
-  "doesn't start a new session on pushState navigation with page lifecycle.",
+  "doesn't start a new session on pushState navigation with page lifecycle (default).",
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -99,7 +99,7 @@ sentryTest('Updates the session when an error is thrown', async ({ getLocalTestU
     ...initialSession,
     errors: 1,
     init: false,
-    status: 'crashed',
+    status: 'unhandled',
     timestamp: expect.any(String),
   });
 });

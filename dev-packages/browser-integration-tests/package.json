@@ -1,20 +1,20 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.63.0",
+  "version": "10.67.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "type-check": "tsc",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint:types": "tsc --noEmit",
     "postinstall": "yarn install-browsers",
-    "pretest": "yarn clean && yarn type-check",
+    "pretest": "yarn clean && yarn lint:types",
     "test": "yarn test:all --project='chromium'",
     "test:all": "npx playwright test -c playwright.browser.config.ts",
     "test:bundle": "PW_BUNDLE=bundle yarn test",
@@ -53,19 +53,19 @@
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:update-snapshots": "yarn test:all --update-snapshots",
-    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
+    "test:detect-flaky": "tsx scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/core": "^7.29.6",
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
     "@sentry/rrweb": "2.43.2",
-    "@sentry/browser": "10.63.0",
-    "@sentry/replay": "10.63.0",
-    "@sentry/opentelemetry": "10.63.0",
-    "@sentry/conventions": "0.15.1",
+    "@sentry/browser": "10.67.0",
+    "@sentry/replay": "10.67.0",
+    "@sentry/opentelemetry": "10.67.0",
+    "@sentry/conventions": "0.16.0",
     "@supabase/supabase-js": "2.49.3",
-    "axios": "1.16.0",
+    "axios": "1.18.0",
     "babel-loader": "^10.1.1",
     "fflate": "0.8.2",
     "html-webpack-plugin": "^5.5.0",

@@ -2,6 +2,21 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
+// TODO: Skipped until the Cloudflare Workers edge middleware setup emits middleware transactions reliably.
+test.skip('tracesSampler receives normalizedRequest for edge middleware', async ({ request }) => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET';
+  });
+
+  await request.get('/api/endpoint-behind-middleware');
+
+  const middlewareTransaction = await middlewareTransactionPromise;
+
+  expect(middlewareTransaction.contexts?.runtime?.name).toBe('cloudflare');
+  expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
+  expect(middlewareTransaction.request?.method).toBe('GET');
+});
+
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime
 test.skip('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
@@ -14,7 +29,7 @@ test.skip('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
   expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
@@ -42,7 +57,7 @@ test.skip('Faulty middlewares', async ({ request }) => {
   await test.step('should record transactions', async () => {
     const middlewareTransaction = await middlewareTransactionPromise;
     expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
     expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
     expect(middlewareTransaction.transaction_info?.source).toBe('route');
   });

@@ -1,13 +1,12 @@
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
-import type { RpcTarget } from 'cloudflare:workers';
 
 interface Env {
   SENTRY_DSN: string;
   MY_DURABLE_OBJECT: DurableObjectNamespace<MyDurableObjectBase>;
 }
 
-class MyDurableObjectBase extends DurableObject<Env> implements RpcTarget {
+class MyDurableObjectBase extends DurableObject<Env> {
   async computeAnswer(): Promise<number> {
     return 42;
   }
@@ -16,6 +15,7 @@ class MyDurableObjectBase extends DurableObject<Env> implements RpcTarget {
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
   }),
@@ -25,6 +25,7 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
   }),

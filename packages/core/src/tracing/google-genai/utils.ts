@@ -38,7 +38,7 @@ export function contentUnionToMessages(content: ContentListUnion, role = 'user')
     return [content as Message];
   }
   if ('parts' in content) {
-    return [{ ...content, role } as Message];
+    return [{ ...content, role }];
   }
   return [{ role, content }];
 }

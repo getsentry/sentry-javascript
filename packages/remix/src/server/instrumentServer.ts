@@ -40,6 +40,7 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -132,7 +133,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             onlyIfParent: true,
             attributes: {
               method: request.method,
-              url: request.url,
+              [URL_FULL]: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
             },
@@ -170,7 +171,7 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
 
     const routes = createRoutes(build.routes);
     const url = new URL(args.request.url);
-    const [transactionName] = getTransactionName(routes, url);
+    const [transactionName, source] = getTransactionName(routes, url);
 
     // Preserve the HTTP method prefix if the span already has one
     const method = args.request.method.toUpperCase();
@@ -178,6 +179,10 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
     rootSpan.updateName(newSpanName);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    if (source === 'route') {
+      rootSpan.setAttribute(HTTP_ROUTE, transactionName);
+    }
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to update span name with route', e);
   }
@@ -337,8 +342,8 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
       }
 
+      const url = new URL(request.url);
       if (options?.instrumentTracing && resolvedRoutes) {
-        const url = new URL(request.url);
         [name, source] = getTransactionName(resolvedRoutes, url);
 
         isolationScope.setTransactionName(name);
@@ -348,6 +353,12 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         if (parentSpan) {
           const rootSpan = getRootSpan(parentSpan);
           rootSpan?.updateName(name);
+          rootSpan?.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            ...(source === 'route' && {
+              [HTTP_ROUTE]: name,
+            }),
+          });
         }
       }
 
@@ -367,7 +378,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
             const parentSpan = getActiveSpan();
             const rootSpan = parentSpan && getRootSpan(parentSpan);
             rootSpan?.updateName(name);
-
+            rootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
             return startSpan(
               {
                 name,
@@ -375,7 +386,12 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [URL_FULL]: url.href,
+                  [URL_PATH]: url.pathname,
                   method: request.method,
+                  ...(source === 'route' && {
+                    [HTTP_ROUTE]: name,
+                  }),
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
                     getClient()?.getDataCollectionOptions(),
@@ -495,7 +511,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
 
 /**
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
- * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
+ * which Remix Adapters (https://remix.run/docs/en/main/other-api/adapter) use underneath.
  */
 export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{

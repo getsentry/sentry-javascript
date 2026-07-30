@@ -1,22 +1,22 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
-  GEN_AI_AGENT_NAME_ATTRIBUTE,
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('LangGraph integration', () => {
@@ -43,8 +43,8 @@ describe('LangGraph integration', () => {
             expect(createAgentSpan!.status).toBe('ok');
             expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
             expect(createAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('create_agent');
-            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+            expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('create_agent');
+            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
 
             const invokeAgentSpans = container.items.filter(span => span.name === 'invoke_agent weather_assistant');
             expect(invokeAgentSpans).toHaveLength(2);
@@ -52,9 +52,9 @@ describe('LangGraph integration', () => {
               expect(span.status).toBe('ok');
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
               expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-              expect(span.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('invoke_agent');
-              expect(span.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
-              expect(span.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+              expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
+              expect(span.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
+              expect(span.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_assistant');
             }
           },
         })
@@ -77,7 +77,9 @@ describe('LangGraph integration', () => {
             expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
 
             const weatherTodaySpan = container.items.find(span =>
-              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('What is the weather today?'),
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
+                'What is the weather today?',
+              ),
             );
             expect(weatherTodaySpan).toBeDefined();
             expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
@@ -86,7 +88,9 @@ describe('LangGraph integration', () => {
             expect(weatherTodaySpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
 
             const weatherDetailsSpan = container.items.find(span =>
-              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Tell me about the weather'),
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
+                'Tell me about the weather',
+              ),
             );
             expect(weatherDetailsSpan).toBeDefined();
             expect(weatherDetailsSpan!.name).toBe('invoke_agent weather_assistant');
@@ -118,45 +122,39 @@ describe('LangGraph integration', () => {
             expect(toolAgentSpan).toBeDefined();
             expect(toolAgentSpan!.status).toBe('ok');
             expect(toolAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(toolAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_agent');
+            expect(toolAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('tool_agent');
 
             const toolAgentInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_agent');
             expect(toolAgentInvokeSpan).toBeDefined();
             expect(toolAgentInvokeSpan!.status).toBe('ok');
             expect(toolAgentInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toContain(
-              'get_weather',
-            );
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
-              'What is the weather?',
-            );
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toContain(
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS].value).toContain('get_weather');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather?');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toContain(
               'Response without calling tools',
             );
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(25);
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(40);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(25);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
 
             const toolCallingAgentSpan = container.items.find(span => span.name === 'create_agent tool_calling_agent');
             expect(toolCallingAgentSpan).toBeDefined();
             expect(toolCallingAgentSpan!.status).toBe('ok');
             expect(toolCallingAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(toolCallingAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_calling_agent');
+            expect(toolCallingAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('tool_calling_agent');
 
             const toolCallingInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_calling_agent');
             expect(toolCallingInvokeSpan).toBeDefined();
             expect(toolCallingInvokeSpan!.status).toBe('ok');
             expect(toolCallingInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('San Francisco');
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toMatch(/"role":"tool"/);
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toContain(
-              'get_weather',
-            );
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(80);
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(40);
-            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(120);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('San Francisco');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toMatch(/"role":"tool"/);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toContain('get_weather');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(80);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(40);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(120);
           },
         })
         .start()
@@ -179,7 +177,7 @@ describe('LangGraph integration', () => {
             expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
 
             const firstThreadSpan = container.items.find(
-              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'thread_abc123_session_1',
+              span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'thread_abc123_session_1',
             );
             expect(firstThreadSpan).toBeDefined();
             expect(firstThreadSpan!.name).toBe('invoke_agent thread_test_agent');
@@ -187,7 +185,7 @@ describe('LangGraph integration', () => {
             expect(firstThreadSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
 
             const secondThreadSpan = container.items.find(
-              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'thread_xyz789_session_2',
+              span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'thread_xyz789_session_2',
             );
             expect(secondThreadSpan).toBeDefined();
             expect(secondThreadSpan!.name).toBe('invoke_agent thread_test_agent');
@@ -195,8 +193,7 @@ describe('LangGraph integration', () => {
 
             const noThreadSpan = container.items.find(
               span =>
-                span.name === 'invoke_agent thread_test_agent' &&
-                span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] === undefined,
+                span.name === 'invoke_agent thread_test_agent' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
             );
             expect(noThreadSpan).toBeDefined();
             expect(noThreadSpan!.status).toBe('ok');
@@ -222,7 +219,7 @@ describe('LangGraph integration', () => {
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent test-agent');
 
               expect(invokeAgentSpan).toBeDefined();
-              expect(invokeAgentSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
+              expect(invokeAgentSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               );
             },
@@ -255,18 +252,18 @@ describe('LangGraph integration', () => {
             expect(createAgentSpan).toBeDefined();
             expect(createAgentSpan!.status).toBe('ok');
             expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
+            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
 
             const invokeAgentSpan = container.items.find(
-              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'resume-thread-1',
+              span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resume-thread-1',
             );
             expect(invokeAgentSpan).toBeDefined();
             expect(invokeAgentSpan!.name).toBe('invoke_agent resume_agent');
             expect(invokeAgentSpan!.status).toBe('ok');
             expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
-            expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('resume_agent');
+            expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
+            expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('resume_agent');
           },
         })
         .start()
@@ -295,12 +292,11 @@ describe('LangGraph integration', () => {
 
               expect(container.items).toHaveLength(2);
               const invokeAgentSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value === expectedMessages,
+                span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedMessages,
               );
 
               expect(invokeAgentSpan).toBeDefined();
               expect(invokeAgentSpan!.name).toBe('invoke_agent weather_assistant');
-              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -319,7 +315,7 @@ describe('LangGraph integration', () => {
             const spans = container.items;
 
             const chatSpan = spans.find(s =>
-              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -342,12 +338,14 @@ describe('LangGraph integration', () => {
 
               // With explicit enableTruncation: true, content should be truncated despite streaming.
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
+                  '[{"role":"user","content":"AAAA',
+                ),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
-                streamingLongContent.length,
-              );
+              expect(
+                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
+              ).toBeLessThan(streamingLongContent.length);
             },
           })
           .start()
@@ -368,27 +366,31 @@ describe('LangGraph integration', () => {
           transaction: event => {
             const spans = event.spans ?? [];
             expect(event.transaction).toBe('main');
-            expect(spans).toHaveLength(3);
+            expect(spans).toContainEqual(expect.objectContaining({ op: 'http.client' }));
+          },
+        })
+        .expect({
+          span: container => {
+            const spans = container.items;
             expect(spans).toContainEqual(
               expect.objectContaining({
-                data: expect.objectContaining({
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-                  [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
-                  [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'helpful_assistant',
-                }),
-                description: 'invoke_agent helpful_assistant',
-                op: 'gen_ai.invoke_agent',
-                origin: 'auto.ai.langgraph',
+                name: 'invoke_agent helpful_assistant',
                 status: 'ok',
+                attributes: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
+                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+                  [GEN_AI_PIPELINE_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+                }),
               }),
             );
-            expect(spans).toContainEqual(expect.objectContaining({ op: 'http.client' }));
             expect(spans).toContainEqual(
               expect.objectContaining({
-                data: expect.objectContaining({ [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant' }),
-                op: 'gen_ai.chat',
+                attributes: expect.objectContaining({
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.chat' }),
+                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+                }),
               }),
             );
           },
@@ -407,43 +409,49 @@ describe('LangGraph integration', () => {
           transaction: event => {
             const spans = event.spans ?? [];
             expect(event.transaction).toBe('main');
-            expect(spans).toHaveLength(9);
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                data: expect.objectContaining({
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-                  [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'math_assistant',
-                }),
-                op: 'gen_ai.invoke_agent',
-                status: 'ok',
-              }),
-            );
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                data: expect.objectContaining({
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-                  [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
-                  'gen_ai.tool.type': 'function',
-                }),
-                description: 'execute_tool add',
-                op: 'gen_ai.execute_tool',
-                status: 'ok',
-              }),
-            );
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                data: expect.objectContaining({
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-                  [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
-                  'gen_ai.tool.type': 'function',
-                }),
-                description: 'execute_tool multiply',
-                op: 'gen_ai.execute_tool',
-                status: 'ok',
-              }),
-            );
             expect(spans.filter(span => span.op === 'http.client')).toHaveLength(3);
-            expect(spans.filter(span => span.op === 'gen_ai.chat')).toHaveLength(3);
+          },
+        })
+        .expect({
+          span: container => {
+            const spans = container.items;
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
+                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'math_assistant' }),
+                }),
+              }),
+            );
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                name: 'execute_tool add',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
+                  [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'add' }),
+                  'gen_ai.tool.type': expect.objectContaining({ value: 'function' }),
+                }),
+              }),
+            );
+            expect(spans).toContainEqual(
+              expect.objectContaining({
+                name: 'execute_tool multiply',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
+                  [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'multiply' }),
+                  'gen_ai.tool.type': expect.objectContaining({ value: 'function' }),
+                }),
+              }),
+            );
+            expect(
+              spans.filter(span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat'),
+            ).toHaveLength(3);
           },
         })
         .start()
@@ -457,12 +465,16 @@ describe('LangGraph integration', () => {
         .ignore('event')
         .expect({
           transaction: event => {
-            const spans = event.spans ?? [];
-            const chatSpans = spans.filter(s => s.op === 'gen_ai.chat');
+            expect(event.transaction).toBe('main');
+          },
+        })
+        .expect({
+          span: container => {
+            const chatSpans = container.items.filter(
+              s => s.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
+            );
             expect(chatSpans).toHaveLength(1);
-            expect(chatSpans[0]?.data).toMatchObject({
-              [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'plain_assistant',
-            });
+            expect(chatSpans[0]?.attributes[GEN_AI_AGENT_NAME]?.value).toBe('plain_assistant');
           },
         })
         .start()

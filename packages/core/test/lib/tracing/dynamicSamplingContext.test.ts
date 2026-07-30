@@ -6,7 +6,14 @@ import {
   setCurrentClient,
 } from '../../../src';
 import { DEFAULT_ENVIRONMENT } from '../../../src/constants';
-import { getDynamicSamplingContextFromSpan, SentrySpan, startInactiveSpan } from '../../../src/tracing';
+import { Scope } from '../../../src/scope';
+import {
+  getDynamicSamplingContextFromSpan,
+  SentryNonRecordingSpan,
+  SentrySpan,
+  setCapturedScopesOnSpan,
+  startInactiveSpan,
+} from '../../../src/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';
@@ -60,6 +67,36 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv2' });
+  });
+
+  test('preserves incoming DSC for ignored segment spans with a negative sampling decision', () => {
+    const traceId = '12345678901234567890123456789012';
+    const scope = new Scope();
+    scope.setPropagationContext({
+      traceId,
+      parentSpanId: '1234567890123456',
+      sampled: true,
+      dsc: {
+        trace_id: traceId,
+        sample_rate: '1',
+        sampled: 'true',
+        public_key: 'public',
+        sample_rand: '0.5',
+      },
+      sampleRand: 0.5,
+    });
+    const rootSpan = new SentryNonRecordingSpan({ dropReason: 'ignored', traceId });
+    setCapturedScopesOnSpan(rootSpan, scope, scope);
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toEqual({
+      trace_id: traceId,
+      sample_rate: '1',
+      sampled: 'false',
+      public_key: 'public',
+      sample_rand: '0.5',
+    });
   });
 
   test('returns a new DSC, if no DSC was provided during rootSpan creation (via attributes)', () => {

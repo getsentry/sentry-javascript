@@ -8,10 +8,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
@@ -25,7 +21,13 @@ import {
 import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
-import { SENTRY_SPAN_SOURCE, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
   it.each([true, false, undefined])(
@@ -83,15 +85,15 @@ describe('captureSpan', () => {
             type: 'integer',
             value: 1,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+          [SENTRY_SEGMENT_NAME]: {
             value: 'my-span',
             type: 'string',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+          [SENTRY_SEGMENT_ID]: {
             value: span.spanContext().spanId,
             type: 'string',
           },
-          [SENTRY_SPAN_SOURCE]: {
+          ['sentry.segment.name.source']: {
             value: 'custom',
             type: 'string',
           },
@@ -184,15 +186,15 @@ describe('captureSpan', () => {
           type: 'integer',
           value: 1,
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+        [SENTRY_SEGMENT_NAME]: {
           value: 'my-span',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+        [SENTRY_SEGMENT_ID]: {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SENTRY_SPAN_SOURCE]: {
+        ['sentry.segment.name.source']: {
           value: 'custom',
           type: 'string',
         },
@@ -212,11 +214,11 @@ describe('captureSpan', () => {
           value: 'stream',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: {
+        [SENTRY_SDK_NAME]: {
           value: 'sentry.javascript.node',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
+        [SENTRY_SDK_VERSION]: {
           value: '1.0.0',
           type: 'string',
         },
@@ -284,15 +286,15 @@ describe('captureSpan', () => {
           type: 'integer',
           value: 1,
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: {
+        [SENTRY_SEGMENT_NAME]: {
           value: 'my-span',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
+        [SENTRY_SEGMENT_ID]: {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SENTRY_SPAN_SOURCE]: {
+        ['sentry.segment.name.source']: {
           value: 'custom',
           type: 'string',
         },
@@ -360,14 +362,14 @@ describe('captureSpan', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
-        [SENTRY_SPAN_SOURCE]: { value: 'custom', type: 'string' },
+        [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
+        [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
+        ['sentry.segment.name.source']: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
+        [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
+        [SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
           value: ['InboundFilters', 'BrowserTracing'],
@@ -397,7 +399,7 @@ describe('captureSpan', () => {
     });
 
     expect(serializedChild.is_segment).toBe(false);
-    expect(serializedChild.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
+    expect(serializedChild.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {
@@ -422,10 +424,7 @@ describe('captureSpan', () => {
 
       captureSpan(span, client);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: span.spanContext().spanId }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSegmentSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: span.spanContext().spanId }),
@@ -469,10 +468,7 @@ describe('captureSpan', () => {
       expect(serializedChildSpan?.name).toBe('child');
       expect(serializedChildSpan?.is_segment).toBe(false);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: serializedChildSpan?.span_id }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSegmentSpanFn).not.toHaveBeenCalled();
     });

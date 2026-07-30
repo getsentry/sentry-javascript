@@ -9,8 +9,10 @@ import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
 import { httpHeadersToSpanAttributes } from '../utils/request';
+import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
+import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
 interface RequestDataIncludeOptions {
   cookies?: boolean;
@@ -56,7 +58,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         data: true,
         headers: dataCollection.httpHeaders.request !== false,
         ip: dataCollection.userInfo,
-        query_string: dataCollection.queryParams !== false,
+        query_string: dataCollection.urlQueryParams !== false,
         // No dataCollection equivalent — URL is always included
         url: true,
         ...options.include,
@@ -137,7 +139,7 @@ function addNormalizedRequestDataToSpan(
   const attributes: Record<string, unknown> = {};
 
   if (requestData.url) {
-    attributes['url.full'] = requestData.url;
+    attributes[URL_FULL] = requestData.url;
   }
 
   if (requestData.method) {
@@ -145,7 +147,7 @@ function addNormalizedRequestDataToSpan(
   }
 
   if (requestData.query_string) {
-    attributes['url.query'] = normalizeQueryString(requestData.query_string);
+    attributes[URL_QUERY] = normalizeQueryString(requestData.query_string);
   }
 
   safeSetSpanJSONAttributes(span, attributes);
@@ -229,7 +231,7 @@ function extractNormalizedRequestData(
 
 function normalizeQueryString(queryString: QueryParams): string | undefined {
   if (typeof queryString === 'string') {
-    return queryString || undefined;
+    return getUrlQuery(queryString);
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);

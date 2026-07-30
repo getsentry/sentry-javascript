@@ -43,7 +43,7 @@ test('Should record a transaction for route with parameters', async ({ request }
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.target': '/test-transaction/1',
-      'http.url': 'http://localhost:3030/test-transaction/1',
+      'url.full': 'http://localhost:3030/test-transaction/1',
       'http.user_agent': expect.any(String),
       'net.host.ip': expect.any(String),
       'net.host.name': 'localhost',
@@ -51,12 +51,11 @@ test('Should record a transaction for route with parameters', async ({ request }
       'net.peer.ip': expect.any(String),
       'net.peer.port': expect.any(Number),
       'net.transport': 'ip_tcp',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-      url: 'http://localhost:3030/test-transaction/1',
     }),
   );
 

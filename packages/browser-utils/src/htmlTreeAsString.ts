@@ -13,7 +13,7 @@ type SimpleNode = {
 type AccessorKey = 'parentNode' | 'tagName' | 'id' | 'className' | 'getAttribute' | 'dataset';
 const accessors: Partial<Record<AccessorKey, Function>> = {};
 
-// oxlint-disable typescript-eslint(unbound-method)
+// oxlint-disable typescript/unbound-method
 try {
   if (typeof Node !== 'undefined') {
     accessors.parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode')!.get!;
@@ -31,7 +31,7 @@ try {
   // Polyfilled or stubbed prototypes may not have the expected descriptors.
   // _safeRead falls back to direct property access.
 }
-// oxlint-enable typescript-eslint(unbound-method)
+// oxlint-enable typescript/unbound-method
 
 function _safeRead<T>(el: unknown, prop: AccessorKey, arg?: string): T {
   const fn = accessors[prop];

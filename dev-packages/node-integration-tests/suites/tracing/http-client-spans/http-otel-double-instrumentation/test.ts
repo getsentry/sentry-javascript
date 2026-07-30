@@ -31,10 +31,10 @@ describe('http OTel double instrumentation', () => {
             // - On Node >=22.12 Sentry's SentryHttpInstrumentation additionally
             //   subscribes to the http.client.request.created diagnostic channel.
             //   The channel fires inside OTel's already-patched http.request,
-            //   triggering Sentry to create a *second* http.client span as a
-            //   child of the first.
-            // - On Node <22.12 both instrumentations monkey-patch http.request,
-            //   so both wrappers fire and each creates its own span.
+            //   triggering Sentry to create a *second* http.client span.
+            // - On Node <22.12 Sentry instead patches
+            //   `ClientRequest.prototype._storeHeader`, which also fires per
+            //   request, so Sentry creates its own span there.
             //
             // MITIGATION: pass `spans: false` to httpIntegration() so Sentry
             // defers all outgoing span creation to OTel's HttpInstrumentation
@@ -43,17 +43,25 @@ describe('http OTel double instrumentation', () => {
             // See the 'mitigation' scenario alongside this test.
             expect(httpClientSpans).toHaveLength(2);
 
-            // The outer span comes from OTel HttpInstrumentation (no Sentry
-            // origin). The inner span is the one Sentry's own handler creates;
-            // it is a *child* of the outer span with origin 'auto.http.client'.
+            // One span comes from OTel HttpInstrumentation (no Sentry origin),
+            // the other is the one Sentry's own handler creates (origin
+            // 'auto.http.client').
             const sentrySpan = httpClientSpans.find(s => s.data?.['sentry.origin'] === 'auto.http.client');
             const otelSpan = httpClientSpans.find(s => s.data?.['sentry.origin'] !== 'auto.http.client');
 
             expect(sentrySpan).toBeDefined();
             expect(otelSpan).toBeDefined();
 
-            // the sentry-created span is nested inside the otel-created span.
-            expect(sentrySpan!.parent_span_id).toBe(otelSpan!.span_id);
+            // How the two spans nest depends on *when* Sentry creates its span
+            // relative to OTel's patched `http.request`:
+            // - On Node >=22.12 the `http.client.request.created` channel fires
+            //   inside OTel's patched `http.request`, so Sentry's span nests as
+            //   a child of the OTel span.
+            // - On Node <22.12 Sentry's `_storeHeader` patch fires at
+            //   `request.end()`, outside OTel's request context, so Sentry's
+            //   span is a sibling of the OTel span under the transaction.
+            const transactionSpanId = txn.contexts?.trace?.span_id;
+            expect([otelSpan!.span_id, transactionSpanId]).toContain(sentrySpan!.parent_span_id);
           },
         })
         .start();
@@ -88,7 +96,7 @@ describe('http OTel double instrumentation', () => {
             // http.client span.
             expect(httpClientSpans).toHaveLength(1);
             expect(httpClientSpans[0]).toMatchObject({
-              description: expect.stringMatching(/GET .*\/api\/v0/),
+              description: 'GET',
               status: 'ok',
             });
           },

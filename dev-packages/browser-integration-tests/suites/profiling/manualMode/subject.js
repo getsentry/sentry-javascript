@@ -4,6 +4,7 @@ import { browserProfilingIntegration } from '@sentry/browser';
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [browserProfilingIntegration()],
   tracesSampleRate: 1,
@@ -53,7 +54,8 @@ Sentry.uiProfiler.startProfiler();
 fibonacci(40);
 await new Promise(resolve => setTimeout(resolve, 25));
 
-largeSum();
+// Enough iterations that largeSum stays on-stack across several profiler ticks (10ms interval); otherwise sampling can miss it entirely.
+largeSum(2_500_000);
 await new Promise(resolve => setTimeout(resolve, 25));
 
 Sentry.uiProfiler.stopProfiler();

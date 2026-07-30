@@ -15,5 +15,5 @@ export async function resolve(specifier, context, nextResolve) {
 (async () => {
   const Sentry = await import('@sentry/node');
 
-  Sentry.init({});
+  Sentry.init({ traceLifecycle: 'static' });
 })();

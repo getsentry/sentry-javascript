@@ -31,6 +31,7 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     await sentry.releases.uploadSourceMaps(release, {
       urlPrefix: URL_PREFIX,
       include: [BUILD_PATH],
+      // oxlint-disable-next-line typescript/no-deprecated -- kept for older Sentry CLI versions that still honor it
       useArtifactBundle: !argv.disableDebugIds,
       live: 'rejectOnError',
     });

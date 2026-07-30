@@ -7,6 +7,7 @@
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { captureError } from './errorCapture';
 import type { MCPHandler, MCPServerInstance } from './types';
@@ -71,7 +72,7 @@ function createErrorCapturingHandler(
   try {
     const result = originalHandler.apply(this, handlerArgs);
 
-    if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
+    if (isObjectLike(result) && typeof (result as { then?: unknown }).then === 'function') {
       return Promise.resolve(result).catch(error => {
         captureHandlerError(error, methodName, handlerName);
         throw error;
@@ -121,7 +122,7 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
       extraData.prompt_name = handlerName;
       captureError(error, 'prompt_execution', extraData);
     }
-  } catch (_captureErr) {
+  } catch {
     // noop
   }
 }
@@ -193,7 +194,7 @@ export function wrapExistingHandlers(serverInstance: MCPServerInstance): void {
 
   // Tools: MCP SDK calls registeredTool.executor (generated from handler at registration time)
   const registeredTools = server['_registeredTools'];
-  if (registeredTools && typeof registeredTools === 'object') {
+  if (isObjectLike(registeredTools)) {
     for (const [name, tool] of Object.entries(registeredTools as Record<string, Record<string, unknown>>)) {
       if (typeof tool['executor'] === 'function') {
         tool['executor'] = createWrappedHandler(tool['executor'] as MCPHandler, 'registerTool', name);
@@ -203,7 +204,7 @@ export function wrapExistingHandlers(serverInstance: MCPServerInstance): void {
 
   // Resources: MCP SDK calls registeredResource.readCallback
   const registeredResources = server['_registeredResources'];
-  if (registeredResources && typeof registeredResources === 'object') {
+  if (isObjectLike(registeredResources)) {
     for (const [name, resource] of Object.entries(registeredResources as Record<string, Record<string, unknown>>)) {
       if (typeof resource['readCallback'] === 'function') {
         resource['readCallback'] = createWrappedHandler(
@@ -217,7 +218,7 @@ export function wrapExistingHandlers(serverInstance: MCPServerInstance): void {
 
   // Resource templates: MCP SDK calls registeredResourceTemplate.readCallback
   const registeredResourceTemplates = server['_registeredResourceTemplates'];
-  if (registeredResourceTemplates && typeof registeredResourceTemplates === 'object') {
+  if (isObjectLike(registeredResourceTemplates)) {
     for (const [name, template] of Object.entries(
       registeredResourceTemplates as Record<string, Record<string, unknown>>,
     )) {
@@ -233,7 +234,7 @@ export function wrapExistingHandlers(serverInstance: MCPServerInstance): void {
 
   // Prompts: MCP SDK calls registeredPrompt.handler
   const registeredPrompts = server['_registeredPrompts'];
-  if (registeredPrompts && typeof registeredPrompts === 'object') {
+  if (isObjectLike(registeredPrompts)) {
     for (const [name, prompt] of Object.entries(registeredPrompts as Record<string, Record<string, unknown>>)) {
       if (typeof prompt['handler'] === 'function') {
         prompt['handler'] = createWrappedHandler(prompt['handler'] as MCPHandler, 'registerPrompt', name);

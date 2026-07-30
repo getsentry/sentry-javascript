@@ -8,11 +8,17 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
+import {
+  getAbsoluteUrl,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  WINDOW,
+} from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // next/router v10 is CJS
 //
@@ -21,11 +27,7 @@ const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
-const globalObject = WINDOW as typeof WINDOW & {
-  __BUILD_MANIFEST?: {
-    sortedPages?: string[];
-  };
-};
+const globalObject = WINDOW;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -129,6 +131,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        ...(route && { [URL_TEMPLATE]: route }),
         ...(params && { ...params }),
       },
     },
@@ -160,14 +163,19 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
       spanSource = 'url';
     }
 
-    startBrowserTracingNavigationSpan(client, {
-      name: newLocation,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+    startBrowserTracingNavigationSpan(
+      client,
+      {
+        name: newLocation,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+          ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
+        },
       },
-    });
+      { url: getAbsoluteUrl(navigationTarget) },
+    );
   });
 }
 

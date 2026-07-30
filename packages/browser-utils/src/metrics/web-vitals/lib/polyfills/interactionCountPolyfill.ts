@@ -18,7 +18,7 @@ import { observe } from '../observe';
 
 declare global {
   interface Performance {
-    interactionCount: number;
+    readonly interactionCount: number;
   }
 }
 
@@ -57,5 +57,5 @@ export const initInteractionCountPolyfill = (): void => {
     type: 'event',
     buffered: true,
     durationThreshold: 0,
-  } as PerformanceObserverInit);
+  });
 };

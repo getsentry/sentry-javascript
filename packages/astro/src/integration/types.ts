@@ -1,5 +1,5 @@
 import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
@@ -101,7 +101,7 @@ type SourceMapsOptions = {
   filesToDeleteAfterUpload?: string | Array<string>;
 
   /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
    * Options specified in this object take precedence over all other options.
    *
    * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
@@ -129,10 +129,6 @@ type InstrumentationOptions = {
      * - capture server performance data and spans for incoming server requests
      * - enable distributed tracing between server and client
      * - annotate server errors with more information
-     *
-     * This middleware will only be added automatically in Astro 3.5.0 and newer.
-     * For older versions, add the `Sentry.handleRequest` middleware manually
-     * in your `src/middleware.js` file.
      *
      * @default true in SSR/hybrid mode, false in SSG/static mode
      */

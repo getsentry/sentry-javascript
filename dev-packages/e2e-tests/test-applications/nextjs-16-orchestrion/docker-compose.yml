@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    container_name: e2e-tests-nextjs-16-orchestrion-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_PASSWORD: docker
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    restart: always
+    container_name: e2e-tests-nextjs-16-orchestrion-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    container_name: e2e-tests-nextjs-16-orchestrion-mysql
+    # The `mysql` 2.x driver doesn't speak MySQL 8's default
+    # `caching_sha2_password` auth, so force the legacy plugin. `mysql2` supports
+    # both, so it connects to this same container unchanged.
+    command: ['--default-authentication-plugin=mysql_native_password']
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: docker
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -pdocker']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  mongo:
+    image: mongo:7
+    restart: always
+    container_name: e2e-tests-nextjs-16-orchestrion-mongo
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s

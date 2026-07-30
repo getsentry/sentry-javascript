@@ -33,6 +33,10 @@ describe('orchestrion pg instrumentation (Bun)', () => {
       const build = runBun(['run', join(dir, 'build.ts')]);
       expect(build.status, `build failed:\nstderr:\n${build.stderr}\nstdout:\n${build.stdout}`).toBe(0);
 
+      // A normal build (instrumented packages bundled) must NOT emit the
+      // blanket-externalization warning.
+      expect(build.stderr).not.toContain('[Sentry]');
+
       const outfile = build.stdout.match(/BUILD_OK outfile=(.+)/)?.[1]?.trim();
       expect(outfile, `no outfile in build output:\n${build.stdout}`).toBeTruthy();
 
@@ -61,5 +65,17 @@ describe('orchestrion pg instrumentation (Bun)', () => {
       // binding limit.
     },
     2 * SUBPROCESS_TIMEOUT_MS,
+  );
+
+  it(
+    'warns when a blanket externalization strategy leaves instrumented packages un-transformed',
+    () => {
+      const build = runBun(['run', join(dir, 'build-blanket-external.ts')]);
+      expect(build.status, `build failed:\nstderr:\n${build.stderr}\nstdout:\n${build.stdout}`).toBe(0);
+      expect(build.stderr).toContain('[Sentry]');
+      // names an affected instrumented package so the message is actionable
+      expect(build.stderr).toContain('pg');
+    },
+    SUBPROCESS_TIMEOUT_MS,
   );
 });

@@ -1,15 +1,18 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing/trace';
 import type { SpanAttributeValue } from '../../types/span';
 import {
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_SYSTEM,
+} from '@sentry/conventions/attributes';
+import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
@@ -40,11 +43,11 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
   const attributes: Record<string, unknown> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: embeddingsInstance.model ?? 'unknown',
+    [GEN_AI_OPERATION_NAME]: 'embeddings',
+    [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',
   };
 
-  attributes[GEN_AI_SYSTEM_ATTRIBUTE] = inferSystemFromInstance(embeddingsInstance);
+  attributes[GEN_AI_SYSTEM] = inferSystemFromInstance(embeddingsInstance);
   if ('dimensions' in embeddingsInstance) {
     attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
   }
@@ -56,6 +59,32 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
 }
 
 /**
+ * Builds the span options for a LangChain embedding call from the embeddings instance and input.
+ *
+ * @internal Exported so the diagnostics-channel (orchestrion) instrumentation can build the same
+ * span as the prototype-patching path below.
+ */
+export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
+  instance: unknown,
+  input: unknown,
+  options: LangChainOptions = {},
+): { name: string; op: string; attributes: Record<string, SpanAttributeValue> } {
+  const { recordInputs } = resolveAIRecordingOptions(options);
+  const attributes = extractEmbeddingAttributes(instance);
+  const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+
+  if (recordInputs && input != null) {
+    attributes[GEN_AI_EMBEDDINGS_INPUT] = typeof input === 'string' ? input : JSON.stringify(input);
+  }
+
+  return {
+    name: `embeddings ${modelName}`,
+    op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
+    attributes: attributes as Record<string, SpanAttributeValue>,
+  };
+}
+
+/**
  * Wraps a LangChain embedding method (embedQuery or embedDocuments) to create Sentry spans.
  *
  * Used internally by the Node.js auto-instrumentation to patch embedding class prototypes.
@@ -64,37 +93,18 @@ export function instrumentEmbeddingMethod(
   originalMethod: (...args: unknown[]) => Promise<unknown>,
   options: LangChainOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
-  const { recordInputs } = resolveAIRecordingOptions(options);
-
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const attributes = extractEmbeddingAttributes(thisArg);
-      const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
-
-      if (recordInputs) {
-        const input = args[0];
-        if (input != null) {
-          attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = typeof input === 'string' ? input : JSON.stringify(input);
-        }
-      }
-
-      return startSpan(
-        {
-          name: `embeddings ${modelName}`,
-          op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-          attributes: attributes as Record<string, SpanAttributeValue>,
-        },
-        () => {
-          return Reflect.apply(target, thisArg, args).then(undefined, error => {
-            captureException(error, {
-              mechanism: { handled: false, type: 'auto.ai.langchain' },
-            });
-            throw error;
+      return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, args[0], options), () => {
+        return Reflect.apply(target, thisArg, args).then(undefined, error => {
+          captureException(error, {
+            mechanism: { handled: false, type: 'auto.ai.langchain' },
           });
-        },
-      );
+          throw error;
+        });
+      });
     },
-  }) as (...args: unknown[]) => Promise<unknown>;
+  });
 }
 
 /**

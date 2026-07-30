@@ -1,9 +1,8 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
-import type { ClientRequest, RequestOptions } from 'node:http';
+import type { RequestOptions } from 'node:http';
 import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
@@ -11,12 +10,6 @@ import {
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
 } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-import {
-  DENO_VERSION,
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-} from '../denoVersion';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
 
@@ -101,56 +94,33 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const denoVersion = DENO_VERSION.major !== undefined ? `${Deno.version.deno}` : 'unknown';
+      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
+        // `spans` falls through to the client's tracing config when unset.
+        spans: options.spans,
+        ignoreStaticAssets: options.ignoreStaticAssets,
+        ignoreIncomingRequests: options.ignoreIncomingRequests,
+        maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
+        ignoreRequestBody: options.ignoreRequestBody,
+        onSpanCreated: options.onIncomingSpanCreated,
+        onSpanEnd: options.onIncomingSpanEnd,
+        errorMonitor,
+        sessions: false,
+      });
+      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
-      // Below 2.7.13 neither channel fires. Warn and bail without touching the ACS.
-      if (!HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED && !HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        debug.warn(
-          `denoHttpIntegration requires Deno 2.7.13+ (client) or 2.8.0+ (server) for node:http diagnostics channels; running on Deno ${denoVersion}. The integration is a no-op on this version.`,
-        );
-        return;
-      }
-
-      // Wire up Deno's AsyncLocalStorage-backed ACS so the server subscription's
-      // `withIsolationScope(clone, ...)` actually activates the cloned scope.
-      // Without this, request isolation and span creation degrade silently.
-      setAsyncLocalStorageAsyncContextStrategy();
-
-      if (HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
-          // `spans` falls through to the client's tracing config when unset.
-          spans: options.spans,
-          ignoreStaticAssets: options.ignoreStaticAssets,
-          ignoreIncomingRequests: options.ignoreIncomingRequests,
-          maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-          ignoreRequestBody: options.ignoreRequestBody,
-          onSpanCreated: options.onIncomingSpanCreated,
-          onSpanEnd: options.onIncomingSpanEnd,
-          errorMonitor,
-          sessions: false,
-        });
-        subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
-      } else {
-        debug.log(
-          `denoHttpIntegration: server-side instrumentation requires Deno 2.8.0+; running on Deno ${denoVersion}. Client-side instrumentation is still active.`,
-        );
-      }
-
-      if (HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-          spans: options.spans,
-          breadcrumbs,
-          propagateTrace: tracePropagation,
-          ignoreOutgoingRequests: options.ignoreOutgoingRequests
-            ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request as ClientRequest))
-            : undefined,
-          // Deno doesn't run OTel's http instrumentation, so there's no
-          // double-wrap to detect; skip the warning to avoid loading the module.
-          suppressOtelWarning: true,
-          errorMonitor,
-        });
-        subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
-      }
+      const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
+        spans: options.spans,
+        breadcrumbs,
+        propagateTrace: tracePropagation,
+        ignoreOutgoingRequests: options.ignoreOutgoingRequests
+          ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
+          : undefined,
+        // Deno doesn't run OTel's http instrumentation, so there's no
+        // double-wrap to detect; skip the warning to avoid loading the module.
+        suppressOtelWarning: true,
+        errorMonitor,
+      });
+      subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
     },
   };
 }) satisfies IntegrationFn;

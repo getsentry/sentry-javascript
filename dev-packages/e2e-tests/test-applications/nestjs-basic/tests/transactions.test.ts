@@ -15,14 +15,14 @@ test('Sends an app_creation transaction', async () => {
   };
 
   expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
-  expect(transaction.contexts.trace.origin).toBe('auto.http.otel.nestjs');
+  expect(transaction.contexts.trace.origin).toBe('auto.http.nestjs');
   expect(transaction.contexts.trace.data).toEqual(
     expect.objectContaining({
       component: '@nestjs/core',
       'nestjs.type': 'app_creation',
       'nestjs.module': 'AppModule',
       'sentry.op': 'app_creation.nestjs',
-      'sentry.origin': 'auto.http.otel.nestjs',
+      'sentry.origin': 'auto.http.nestjs',
     }),
   );
 });
@@ -45,10 +45,10 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
-      url: 'http://localhost:3030/test-transaction',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-transaction',
+      'url.full': 'http://localhost:3030/test-transaction',
+      'url.path': '/test-transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
@@ -130,7 +130,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
-            'sentry.origin': 'auto.http.otel.nestjs',
+            'sentry.origin': 'auto.http.nestjs',
             'sentry.op': 'handler.nestjs',
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
@@ -142,7 +142,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
-          origin: 'auto.http.otel.nestjs',
+          origin: 'auto.http.nestjs',
           op: 'handler.nestjs',
         },
       ]),

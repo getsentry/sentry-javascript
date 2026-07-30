@@ -1,4 +1,5 @@
 import * as otelApi from '@opentelemetry/api';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -67,9 +68,8 @@ describe('createSentryServerInstrumentation', () => {
 
     createSentryServerInstrumentation();
 
-    // Creating the instrumentation must not mark the API active. On React Router versions that
-    // don't support the instrumentations API, the registration callbacks are never invoked, so
-    // the legacy OTel data-loader path and wrapServerLoader/wrapServerAction must stay active.
+    // Creating the instrumentation must not mark the API active - the flag should only flip once
+    // React Router actually invokes the registration callbacks.
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
   });
 
@@ -116,6 +116,8 @@ describe('createSentryServerInstrumentation', () => {
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.react_router.instrumentation_api',
       'sentry.source': 'url',
+      [URL_FULL]: 'http://example.com/test-path',
+      [URL_PATH]: '/test-path',
     });
     expect(mockHandleRequest).toHaveBeenCalled();
     expect(core.flushIfServerless).toHaveBeenCalled();
@@ -180,7 +182,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -207,7 +209,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -542,7 +544,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.loader',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/test' },
+        data: { 'http.method': 'GET', 'url.full': '/test' },
       },
     });
 

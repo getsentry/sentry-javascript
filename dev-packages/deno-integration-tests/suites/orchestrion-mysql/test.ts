@@ -1,64 +1,18 @@
 // <reference lib="deno.ns" />
 
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { TransactionEvent } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '@sentry/deno';
+import { init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
+import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
-function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
-}
-
-/** See deno-redis.test.ts — same sink shape, deduped for clarity. */
-function transactionSink(): {
-  beforeSendTransaction: (event: TransactionEvent) => null;
-  waitFor: (predicate: (event: TransactionEvent) => boolean) => Promise<TransactionEvent>;
-} {
-  const transactions: TransactionEvent[] = [];
-  const waiters: { predicate: (e: TransactionEvent) => boolean; resolve: (e: TransactionEvent) => void }[] = [];
-  return {
-    beforeSendTransaction(event) {
-      transactions.push(event);
-      for (let i = waiters.length - 1; i >= 0; i--) {
-        const w = waiters[i]!;
-        if (w.predicate(event)) {
-          waiters.splice(i, 1);
-          w.resolve(event);
-        }
-      }
-      return null;
-    },
-    waitFor(predicate) {
-      const already = transactions.find(predicate);
-      if (already) return Promise.resolve(already);
-      return new Promise<TransactionEvent>(resolve => {
-        waiters.push({ predicate, resolve });
-      });
-    },
-  };
-}
-
-function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${what} after ${ms}ms`)), ms);
-  });
-  return Promise.race([p, timeout]).finally(() => {
-    if (timer !== undefined) clearTimeout(timer);
-  });
-}
-
-Deno.test('denoMysqlIntegration: included in default integrations (Deno 2.8.0+)', () => {
+Deno.test('mysql instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('DenoMysql'), `DenoMysql should be in defaults, got ${names.join(', ')}`);
+  assert(names.includes('Mysql'), `Mysql should be in defaults, got ${names.join(', ')}`);
 });
 
 // The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
@@ -92,19 +46,14 @@ Deno.test('@sentry/deno/import: transforms mysql so it publishes the orchestrion
   // ...with the real SQL forwarded through the channel context.
   assert(line.includes('statement=SELECT 1 AS solution'), `expected forwarded SQL, got: ${line}`);
   // The runtime hook set its detection marker at boot.
-  assert(line.includes('"runtime":true'), `expected runtime marker, got: ${line}`);
+  assert(line.includes('"runtime":["mysql"]'), `expected runtime marker, got: ${line}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` wires `denoMysqlIntegration`
-// (which installs the AsyncLocalStorage context strategy and subscribes to the
-// channel), and we drive the `orchestrion:mysql:query` channel manually — the
-// same events the orchestrion transform publishes around `connection.query()` —
-// so no live database is needed. Asserting a nested `db` span proves the
-// subscriber, the emitted attributes, AND the context-strategy wiring all work.
-Deno.test('denoMysqlIntegration: orchestrion:mysql:query channel produces a nested db span', async () => {
+Deno.test('mysql instrumentation: orchestrion:mysql:query channel produces a nested db span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
+    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     beforeSendTransaction: sink.beforeSendTransaction,
@@ -146,5 +95,5 @@ Deno.test('denoMysqlIntegration: orchestrion:mysql:query channel produces a nest
   assertEquals(mysqlSpan!.data?.['net.peer.name'], '127.0.0.1');
   assertEquals(mysqlSpan!.data?.['net.peer.port'], 3306);
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
-  assertEquals(mysqlSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.mysql');
+  assertEquals(mysqlSpan!.data?.['sentry.origin'], 'auto.db.mysql');
 });

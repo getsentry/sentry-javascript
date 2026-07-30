@@ -45,13 +45,32 @@ export interface DataCollection {
   httpBodies?: HttpBodyCollectionTarget[];
 
   /**
-   * Controls query parameter collection and sensitive value filtering.
+   * Controls URL query parameter collection and sensitive value filtering.
    * @default true
    */
-  queryParams?: CollectBehavior;
+  urlQueryParams?: CollectBehavior;
 
   /**
-   * Controls generative AI input/output recording.
+   * Allow collection of GraphQL operation data when using the SDK's GraphQL integrations
+   *
+   * These options do not add GraphQL instrumentation on their own. The corresponding integration must still be enabled
+   * for any data to be captured.
+   *
+   * - `document`: attach the GraphQL document (query/mutation source text).
+   * - `variables`: attach the variables passed to GraphQL operations.
+   * @default { document: true, variables: true }
+   */
+  graphQL?: {
+    document?: boolean;
+    variables?: boolean;
+  };
+
+  /**
+   * Allow generative AI input/output recording when using the SDK's AI integrations.
+   *
+   * These options do not add AI instrumentation on their own. The corresponding integration must still be enabled for
+   * any data to be captured. Integration-level options, when set, take precedence over these
+   * values.
    * @default { inputs: true, outputs: true }
    */
   genAI?: {
@@ -60,10 +79,25 @@ export interface DataCollection {
   };
 
   /**
-   * Capture local variable values in stack frames.
+   * Include data associated with database queries. This controls collection of query parameters, inline literal values within query text, mutation/request bodies, and returned result data.
+   *
+   * Sanitized or parameterized DB statements (`db.query.text`) are **not** controlled by this property. Structural metadata such as the database system, query summary, operation name, or the table being acted upon is also **always** collected.
    * @default true
    */
-  stackFrameVariables?: boolean;
+  databaseQueryData?: boolean;
+
+  /**
+   * Capture local variable values in stack frames.
+   *
+   * Accepts a Boolean (`true` collects all variables, `false` collects none) or a `CollectBehavior` to filter which
+   * variables are sent by name (`{ allow: [...] }` / `{ deny: [...] }`), matching against variable names.
+   *
+   * Note: filtering by name requires knowing the variable names **as they appear after bundling**. Minifiers and other
+   * build-time transforms frequently rename local variables (e.g. `password` becomes `a`), so allow/deny terms
+   * configured against source names may not match the names captured at runtime.
+   * @default true
+   */
+  stackFrameVariables?: boolean | CollectBehavior;
 
   /**
    * Number of source code context lines to capture around stack frames.
@@ -77,5 +111,6 @@ export interface DataCollection {
  */
 export type ResolvedDataCollection = Required<DataCollection> & {
   httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+  graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

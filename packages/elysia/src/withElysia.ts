@@ -1,3 +1,4 @@
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -59,18 +60,24 @@ const instrumentedApps = new WeakSet<Elysia>();
 function updateRouteTransactionName(request: Request, method: string, route: string): void {
   const transactionName = `${method} ${route}`;
 
+  function applyRouteToSpan(span: Span): void {
+    updateSpanName(span, transactionName);
+    span.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [HTTP_ROUTE]: route,
+    });
+  }
+
   // Try the stored root span first (reliable across async contexts),
   // then fall back to getActiveSpan() for cases where async context is preserved.
   const rootSpan = rootSpanForRequest.get(request);
   if (rootSpan) {
-    updateSpanName(rootSpan, transactionName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    applyRouteToSpan(rootSpan);
   } else {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const root = getRootSpan(activeSpan);
-      updateSpanName(root, transactionName);
-      root.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      applyRouteToSpan(root);
     }
   }
 
@@ -198,6 +205,8 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [URL_FULL]: request.url,
+                    [URL_PATH]: new URL(request.url).pathname,
                   },
                 },
                 rootSpan => {
@@ -246,7 +255,10 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
   // Use .trace() ONLY for span creation. The trace API is observational —
   // callbacks fire after phases complete, so they can't reliably mutate
   // response headers or capture errors. All SDK logic stays in real hooks.
-  const traceHandler: TraceHandler = lifecycle => {
+  // The app is typed as `AnyElysia`, whose `Singleton` is `any`; `.trace()` expects the handler's
+  // singleton to match, and `TraceHandler`'s generics are invariant, so the annotation has to use `any` too.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const traceHandler: TraceHandler<{}, any> = lifecycle => {
     const rootSpan = rootSpanForRequest.get(lifecycle.context.request);
 
     const phases: [string, TraceListener][] = [

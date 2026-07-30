@@ -1,6 +1,6 @@
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, timestampInSeconds } from '@sentry/core';
+import { debug, timestampInSeconds, uniq } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
@@ -59,10 +59,7 @@ export function findTrackComponent(trackComponents: string[], formattedName: str
 }
 
 export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixins => {
-  const hooks = (options.hooks || [])
-    .concat(DEFAULT_HOOKS)
-    // Removing potential duplicates
-    .filter((value, index, self) => self.indexOf(value) === index);
+  const hooks = uniq((options.hooks || []).concat(DEFAULT_HOOKS));
 
   const mixins: Mixins = {};
 

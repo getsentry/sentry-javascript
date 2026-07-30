@@ -1,6 +1,13 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient, spanIsSampled } from '@sentry/core';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  applySdkMetadata,
+  debug,
+  ServerRuntimeClient,
+  spanIsSampled,
+} from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
+import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 
@@ -139,6 +146,16 @@ export class CloudflareClient extends ServerRuntimeClient {
     (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
   }
 
+  /** @inheritDoc */
+  protected override _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations.
+    // The registry is module-global and Cloudflare calls `init()` per request, so without this a
+    // single `ai` SDK call would suppress direct `env.AI.run` spans for the rest of the isolate's
+    // life. Mirrors the same reset in the Node client.
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
+  }
+
   /**
    * Resets the span completion promise and resolve function.
    */
@@ -176,9 +193,9 @@ interface BaseCloudflareOptions {
    * When enabled, trace context (sentry-trace + baggage) is propagated across:
    * - `stub.fetch()` calls to Durable Objects (via HTTP headers)
    * - Service binding `fetch()` calls (via HTTP headers)
-   * - RPC method calls to Durable Objects (via trailing argument)
+   * - RPC method calls to Durable Objects and WorkerEntrypoints (via trailing argument)
    *
-   * When enabled on the **receiver side** (DurableObject), the SDK will also:
+   * When enabled on the **receiver side** (DurableObject or WorkerEntrypoint), the SDK will also:
    * - Extract and continue traces from incoming RPC calls
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
@@ -205,9 +222,64 @@ interface BaseCloudflareOptions {
    *   }),
    *   MyDOBase,
    * );
+   *
+   * // WorkerEntrypoint side (receiver)
+   * export const MyEntrypoint = Sentry.withSentry(
+   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
+   *   MyEntrypointBase,
+   * );
    * ```
    */
   enableRpcTracePropagation?: boolean;
+
+  /**
+   * Table names that should stay instrumented even though they match the reserved `cf_` prefix used
+   * by Durable Object frameworks (`agents`, `partyserver`, ...) for their internal SQLite tables.
+   *
+   * By default, `exec` queries against `cf_`-prefixed tables are treated as framework noise and no
+   * `db.query` span is created for them. If one of your own tables happens to use this prefix, add it
+   * here to opt it back into instrumentation. Entries are matched against each table name in the
+   * query summary — strings must match exactly, while regular expressions give you prefix/pattern
+   * matching.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     durableObjectSqlSpanAllowlist: ['cf_my_table', /^cf_reports_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  durableObjectSqlSpanAllowlist?: Array<string | RegExp>;
+
+  /**
+   * KV keys that should stay instrumented even though they match a reserved prefix used by Durable
+   * Object frameworks (`agents`, `partyserver`, ...) for their internal storage entries.
+   *
+   * By default, KV reads/writes (`get`, `put`, `delete`, `list`) of `cf_`- or `__ps_`-prefixed keys
+   * are treated as framework noise and no `durable_object_storage_*` span is created for them,
+   * mirroring how `cf_`-prefixed SQL tables are handled (see {@link durableObjectSqlSpanAllowlist}).
+   * If one of your own keys happens to use such a prefix, add it here to opt it back into
+   * instrumentation. Strings must match exactly, while regular expressions give you prefix/pattern
+   * matching.
+   *
+   * @default []
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     durableObjectStorageSpanAllowlist: ['cf_my_key', /^cf_reports_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
 
   /**
    * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
@@ -222,6 +294,18 @@ interface BaseCloudflareOptions {
    * @default false
    */
   instrumentPrototypeMethods?: boolean | string[];
+
+  /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
 }
 
 /**
@@ -230,7 +314,7 @@ interface BaseCloudflareOptions {
  * @see @sentry/core Options for more information.
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
-  ctx?: ExecutionContext;
+  ctx?: ExecutionContextCompat;
 }
 
 /**

@@ -6,12 +6,12 @@ interface Env {
   SUB_WORKER: Fetcher;
 }
 
-class MyWorkerEntrypointBase extends WorkerEntrypoint<Env> {
+class MyWorkerEntrypointBase extends WorkerEntrypoint {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/chain') {
-      const response = await this.env.SUB_WORKER.fetch(new Request('http://fake-host/call-do'));
+      const response = await (this.env as Env).SUB_WORKER.fetch(new Request('http://fake-host/call-do'));
       const text = await response.text();
       return new Response(text);
     }
@@ -23,6 +23,7 @@ class MyWorkerEntrypointBase extends WorkerEntrypoint<Env> {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
   }),

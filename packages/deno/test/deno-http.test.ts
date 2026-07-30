@@ -7,11 +7,6 @@ import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
 import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
-import {
-  DENO_VERSION,
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-} from '../build/esm/denoVersion.js';
 
 function resetGlobals(): void {
   getCurrentScope().clear();
@@ -66,40 +61,18 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-// Activation gate — split into two skip-mirrored tests so each run exercises
-// exactly one assertion. CI on a supported Deno verifies inclusion; CI on an
-// unsupported Deno verifies exclusion.
 Deno.test({
-  name: 'denoHttpIntegration: included in default integrations on Deno >= 2.7.13',
-  ignore: !HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  name: 'denoHttpIntegration: included in default integrations',
   fn() {
     resetGlobals();
     const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
     const names = client.getOptions().integrations.map(i => i.name);
-    assert(
-      names.includes('DenoHttp'),
-      `DenoHttp should be a default integration on Deno ${DENO_VERSION.major}.${DENO_VERSION.minor}.${DENO_VERSION.patch}, got ${names.join(', ')}`,
-    );
-  },
-});
-
-Deno.test({
-  name: 'denoHttpIntegration: NOT in default integrations on Deno < 2.7.13',
-  ignore: HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  fn() {
-    resetGlobals();
-    const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
-    const names = client.getOptions().integrations.map(i => i.name);
-    assert(
-      !names.includes('DenoHttp'),
-      `DenoHttp should NOT be in defaults on Deno ${DENO_VERSION.major}.${DENO_VERSION.minor}.${DENO_VERSION.patch} (< 2.7.13), got ${names.join(', ')}`,
-    );
+    assert(names.includes('DenoHttp'), `DenoHttp should be a default integration, got ${names.join(', ')}`);
   },
 });
 
 Deno.test({
   name: 'denoHttpIntegration: node:http incoming request creates an http.server transaction',
-  ignore: !HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
   async fn() {
     resetGlobals();
     const sink = transactionSink();
@@ -107,6 +80,7 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
     const server = http.createServer((_req, res) => {
@@ -140,7 +114,6 @@ Deno.test({
 
 Deno.test({
   name: 'denoHttpIntegration: node:http outgoing request creates a child http.client span',
-  ignore: !HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
   async fn() {
     resetGlobals();
     const sink = transactionSink();
@@ -148,10 +121,11 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
-    // Use Deno.serve for the target so the test does not depend on the
-    // node:http server side (which only works on Deno 2.8.0+).
+    // Use Deno.serve for the target so this client test does not depend on
+    // the node:http server-side instrumentation.
     const abortController = new AbortController();
     let onListen: ((_: unknown) => void) | undefined;
     const listening = new Promise(resolve => (onListen = resolve));

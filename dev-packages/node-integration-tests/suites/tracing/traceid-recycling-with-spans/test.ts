@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
@@ -9,7 +10,8 @@ test('errors and transactions get a unique traceId per request, when tracing is 
   const eventTraceIds: string[] = [];
   const transactionTraceIds: string[] = [];
 
-  const runner = createRunner(__dirname, 'server.ts')
+  const runner = createRunner(__dirname, 'server.js')
+    .withFlags('--import', join(__dirname, 'instrument.cjs'))
     .expect({
       event: event => {
         eventTraceIds.push(event.contexts?.trace?.trace_id || '');

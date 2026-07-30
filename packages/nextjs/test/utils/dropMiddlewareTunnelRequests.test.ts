@@ -15,10 +15,6 @@ vi.mock('@sentry/core', async requireActual => {
   };
 });
 
-vi.mock('@sentry/opentelemetry', () => ({
-  isSentryRequestSpan: () => false,
-}));
-
 function createMockSpan(): { setAttribute: ReturnType<typeof vi.fn>; attributes: Record<string, unknown> } {
   const attributes: Record<string, unknown> = {};
   return {

@@ -1,7 +1,5 @@
-import type { Attributes, AttributeValue } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
+import type { Attributes } from '@opentelemetry/api';
 import {
-  DB_STATEMENT,
   DB_SYSTEM,
   DB_SYSTEM_NAME,
   FAAS_TRIGGER,
@@ -9,43 +7,40 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   HTTP_TARGET,
-  HTTP_URL,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
+  SENTRY_KIND,
+  URL_FRAGMENT,
   URL_FULL,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
-import type { Span, SpanAttributes, TransactionSource } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getSanitizedUrlString,
+  getUrlFragment,
+  getUrlQuery,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
-import type { AbstractSpan } from '../types';
-import { getSpanKind } from './getSpanKind';
-import { spanHasAttributes, spanHasName } from './spanTypes';
 
 interface SpanDescription {
   op: string | undefined;
-  description: string;
-  source: TransactionSource;
   data?: Record<string, string | undefined>;
 }
 
 /**
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+export function inferSpanData(attributes: SpanAttributes): SpanDescription {
   // if http.method exists, this is an http request span
   // eslint-disable-next-line typescript/no-deprecated
   const httpMethod = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
   if (httpMethod) {
-    return descriptionForHttpMethod({ attributes, name: spanName, kind }, httpMethod);
+    return descriptionForHttpMethod(attributes);
   }
 
   // eslint-disable-next-line typescript/no-deprecated
@@ -57,17 +52,14 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   // If db.type exists then this is a database call span
   // If the Redis DB is used as a cache, the span description should not be changed
   if (dbSystem && !opIsCache) {
-    return descriptionForDbSystem({ attributes, name: spanName });
+    return descriptionForDbSystem(attributes);
   }
-
-  const customSourceOrRoute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' ? 'custom' : 'route';
 
   // If rpc.service exists then this is a rpc call span.
   // eslint-disable-next-line typescript/no-deprecated
   const rpcService = attributes[RPC_SERVICE];
   if (rpcService) {
     return {
-      ...getUserUpdatedNameAndSource(spanName, attributes, 'route'),
       op: 'rpc',
     };
   }
@@ -77,7 +69,6 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   const messagingSystem = attributes[MESSAGING_SYSTEM];
   if (messagingSystem) {
     return {
-      ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
       op: 'message',
     };
   }
@@ -87,12 +78,11 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   const faasTrigger = attributes[FAAS_TRIGGER];
   if (faasTrigger) {
     return {
-      ...getUserUpdatedNameAndSource(spanName, attributes, customSourceOrRoute),
       op: faasTrigger.toString(),
     };
   }
 
-  return { op: undefined, description: spanName, source: 'custom' };
+  return { op: undefined };
 }
 
 /**
@@ -104,63 +94,40 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
  *
  * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  let attributes: Attributes;
-  let name: string;
+export function parseSpanDescription(span: Span): SpanDescription {
+  const json = spanToJSON(span);
+  const attributes = json.data;
 
-  // TODO(v11): Once the OTel SDK provider is removed and SentryTracerProvider is the only path,
-  // every span is a native Sentry span — drop this `spanHasAttributes` (OTel ReadableSpan) branch
-  // and keep only the `spanToJSON()` path below.
-  if (spanHasAttributes(span)) {
-    attributes = span.attributes;
-    name = spanHasName(span) ? span.name : '<unknown>';
-  } else {
-    const json = typeof (span as Span).spanContext === 'function' ? spanToJSON(span as Span) : undefined;
-    attributes = json?.data || {};
-    name = spanHasName(span) ? span.name : json?.description || '<unknown>';
-  }
-
-  const kind = getSpanKind(span);
-  return inferSpanData(name, attributes, kind);
+  return inferSpanData(attributes);
 }
 
-function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
+function descriptionForDbSystem(attributes: Attributes): SpanDescription {
   // if we already have a custom name, we don't overwrite it but only set the op
   const userDefinedName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
   if (typeof userDefinedName === 'string') {
     return {
       op: 'db',
-      description: userDefinedName,
-      source: (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource) || 'custom',
     };
   }
 
   // if we already have the source set to custom, we don't overwrite the span description but only set the op
   if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
-    return { op: 'db', description: name, source: 'custom' };
+    return { op: 'db' };
   }
 
-  // Use DB statement (Ex "SELECT * FROM table") if possible as description.
-  // eslint-disable-next-line typescript/no-deprecated
-  const statement = attributes[DB_STATEMENT];
-
-  const description = statement ? statement.toString() : name;
-
-  return { op: 'db', description, source: 'task' };
+  return { op: 'db' };
 }
 
 /** Only exported for tests. */
-export function descriptionForHttpMethod(
-  { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
-  httpMethod: AttributeValue,
-): SpanDescription {
+export function descriptionForHttpMethod(attributes: Attributes): SpanDescription {
   const opParts = ['http'];
+  const kind = attributes[SENTRY_KIND];
 
   switch (kind) {
-    case SpanKind.CLIENT:
+    case 'client':
       opParts.push('client');
       break;
-    case SpanKind.SERVER:
+    case 'server':
       opParts.push('server');
       break;
   }
@@ -170,105 +137,47 @@ export function descriptionForHttpMethod(
     opParts.push('prefetch');
   }
 
-  const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
+  const { urlPath, url, query, fragment } = getSanitizedUrl(attributes);
 
   if (!urlPath) {
-    return { ...getUserUpdatedNameAndSource(name, attributes), op: opParts.join('.') };
+    return { op: opParts.join('.') };
   }
-
-  const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
-
-  // Ex. GET /api/users
-  const baseDescription = `${httpMethod} ${urlPath}`;
-
-  // When the http span has a graphql operation, append it to the description
-  // We add these in the graphqlIntegration
-  const inferredDescription = graphqlOperationsAttribute
-    ? `${baseDescription} (${getGraphqlOperationNamesFromAttribute(graphqlOperationsAttribute)})`
-    : baseDescription;
-
-  // If `httpPath` is a root path, then we can categorize the transaction source as route.
-  const inferredSource: TransactionSource = hasRoute || urlPath === '/' ? 'route' : 'url';
 
   const data: Record<string, string> = {};
 
   if (url) {
-    data.url = url;
+    data[URL_FULL] = url;
   }
-  if (query) {
-    // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
-    // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
-    // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
-    // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
-    data['http.query'] = query.slice(1);
+  const urlQuery = getUrlQuery(query);
+  if (urlQuery) {
+    data[URL_QUERY] = urlQuery;
   }
-  if (fragment) {
-    data['http.fragment'] = fragment.slice(1);
+  const urlFragment = getUrlFragment(fragment);
+  if (urlFragment) {
+    data[URL_FRAGMENT] = urlFragment;
   }
-
-  // If the span kind is neither client nor server, we use the original name
-  // this infers that somebody manually started this span, in which case we don't want to overwrite the name
-  const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
-
-  // If the span is an auto-span (=it comes from one of our instrumentations),
-  // we always want to infer the name
-  // this is necessary because some of the auto-instrumentation we use uses kind=INTERNAL
-  const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] || 'manual';
-  const isManualSpan = !`${origin}`.startsWith('auto');
-
-  // If users (or in very rare occasions we) set the source to custom, we don't overwrite the name
-  const alreadyHasCustomSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom';
-  const customSpanName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-
-  const useInferredDescription =
-    !alreadyHasCustomSource && customSpanName == null && (isClientOrServerKind || !isManualSpan);
-
-  const { description, source } = useInferredDescription
-    ? { description: inferredDescription, source: inferredSource }
-    : getUserUpdatedNameAndSource(name, attributes);
 
   return {
     op: opParts.join('.'),
-    description,
-    source,
     data,
   };
 }
 
-function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
-  if (Array.isArray(attr)) {
-    // oxlint-disable-next-line typescript/require-array-sort-compare
-    const sorted = attr.slice().sort();
-
-    // Up to 5 items, we just add all of them
-    if (sorted.length <= 5) {
-      return sorted.join(', ');
-    } else {
-      // Else, we add the first 5 and the diff of other operations
-      return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
-    }
-  }
-
-  return `${attr}`;
-}
-
 /** Exported for tests only */
-export function getSanitizedUrl(
-  attributes: Attributes,
-  kind: SpanKind,
-): {
+export function getSanitizedUrl(attributes: Attributes): {
   url: string | undefined;
   urlPath: string | undefined;
   query: string | undefined;
   fragment: string | undefined;
   hasRoute: boolean;
 } {
+  const kind = attributes[SENTRY_KIND];
+
   // This is the relative path of the URL, e.g. /sub
   // eslint-disable-next-line typescript/no-deprecated
   const httpTarget = attributes[HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  // eslint-disable-next-line typescript/no-deprecated
-  const httpUrl = attributes[HTTP_URL] || attributes[URL_FULL];
+  const httpUrl = attributes[URL_FULL];
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[HTTP_ROUTE];
 
@@ -281,7 +190,7 @@ export function getSanitizedUrl(
     return { urlPath: httpRoute, url, query, fragment, hasRoute: true };
   }
 
-  if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
+  if (kind === 'server' && typeof httpTarget === 'string') {
     return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment, hasRoute: false };
   }
 
@@ -295,37 +204,4 @@ export function getSanitizedUrl(
   }
 
   return { urlPath: undefined, url, query, fragment, hasRoute: false };
-}
-
-/**
- * Because Otel instrumentation sometimes mutates span names via `span.updateName`, the only way
- * to ensure that a user-set span name is preserved is to store it as a tmp attribute on the span.
- * We delete this attribute once we're done with it when preparing the event envelope.
- *
- * This temp attribute always takes precedence over the original name.
- *
- * We also need to take care of setting the correct source. Users can always update the source
- * after updating the name, so we need to respect that.
- *
- * @internal exported only for testing
- */
-export function getUserUpdatedNameAndSource(
-  originalName: string,
-  attributes: Attributes,
-  fallbackSource: TransactionSource = 'custom',
-): {
-  description: string;
-  source: TransactionSource;
-} {
-  const source = (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource) || fallbackSource;
-  const description = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-
-  if (description && typeof description === 'string') {
-    return {
-      description,
-      source,
-    };
-  }
-
-  return { description: originalName, source };
 }

@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@sentry/vue": "file:../../packed/sentry-vue-packed.tgz",
-    "pinia": "^3.0.0",
+    "pinia": "^4.0.0",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5"
   },

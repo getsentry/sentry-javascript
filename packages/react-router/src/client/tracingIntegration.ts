@@ -26,6 +26,10 @@ export interface ReactRouterTracingIntegrationOptions {
 export interface ReactRouterTracingIntegration extends Integration {
   /**
    * Client instrumentation to pass to `HydratedRouter`'s `instrumentations` prop.
+   *
+   * @deprecated Use the standalone `createSentryClientInstrumentation()` export instead and pass its
+   * result to `HydratedRouter`'s `instrumentations` prop. This mirrors the server-side
+   * `createSentryServerInstrumentation()` API. Will be removed in a future major.
    */
   readonly clientInstrumentation: ClientInstrumentation;
 }
@@ -53,6 +57,7 @@ export function reactRouterTracingIntegration(
       browserTracingIntegrationInstance.afterAllSetup(client);
       instrumentHydratedRouter();
     },
+    // oxlint-disable-next-line typescript/no-deprecated -- exposes the deprecated getter for back-compat until it is removed
     get clientInstrumentation(): ClientInstrumentation {
       return clientInstrumentationInstance;
     },

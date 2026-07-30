@@ -1,21 +1,17 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { debug, getClient } from '@sentry/core';
-import { SentryAsyncLocalStorageContextManager } from '../../src/asyncLocalStorageContextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { getSentryResource } from '../../src/resource';
-import { SentrySampler } from '../../src/sampler';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
-import { SentrySpanProcessor } from '../../src/spanProcessor';
-import { enhanceDscWithOpenTelemetryRootSpanName } from '../../src/utils/enhanceDscWithOpenTelemetryRootSpanName';
-import type { TestClientInterface } from './TestClient';
+import type { TestClient } from './TestClient';
+import { SentryTracerProvider } from '../../src/tracerProvider';
 
 /**
  * Initialize OpenTelemetry for Node.
  */
 export function initOtel(): void {
-  const client = getClient<TestClientInterface>();
+  const client = getClient<TestClient>();
 
   if (!client) {
     DEBUG_BUILD &&
@@ -41,27 +37,9 @@ export function initOtel(): void {
   }
 
   setupEventContextTrace(client);
-  enhanceDscWithOpenTelemetryRootSpanName(client);
 
-  const [provider, spanProcessor] = setupOtel(client);
-  client.traceProvider = provider;
-  client.spanProcessor = spanProcessor;
-}
-
-/** Just exported for tests. */
-export function setupOtel(client: TestClientInterface): [BasicTracerProvider, SentrySpanProcessor] {
-  const spanProcessor = new SentrySpanProcessor();
-  // Create and configure NodeTracerProvider
-  const provider = new BasicTracerProvider({
-    sampler: new SentrySampler(client),
-    resource: getSentryResource('opentelemetry-test'),
-    forceFlushTimeoutMillis: 500,
-    spanProcessors: [spanProcessor],
-  });
+  const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
-
-  return [provider, spanProcessor];
 }

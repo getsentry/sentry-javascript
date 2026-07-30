@@ -1,112 +1,115 @@
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { afterAll, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('redis v5 diagnostics_channel auto instrumentation', () => {
-  afterAll(() => {
-    cleanupChildProcesses();
-  });
-
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Span Redis 5 DC',
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        op: 'db.redis',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.op': 'db.redis',
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system.name': 'redis',
-          'db.query.text': 'SET dc-test-key ?',
-        }),
-      }),
-      // cache SET: span name updated to key by cacheResponseHook
-      expect.objectContaining({
-        description: 'dc-cache:test-key',
-        op: 'cache.put',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.query.text': 'SET dc-cache:test-key ?',
-          'cache.key': ['dc-cache:test-key'],
-          'cache.item_size': 2,
-        }),
-      }),
-      // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
-      expect.objectContaining({
-        description: 'dc-cache:test-key-ex',
-        op: 'cache.put',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
-          'cache.key': ['dc-cache:test-key-ex'],
-          'cache.item_size': 2,
-        }),
-      }),
-      expect.objectContaining({
-        op: 'db.redis',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.op': 'db.redis',
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system.name': 'redis',
-          'db.query.text': 'GET dc-test-key',
-        }),
-      }),
-      // cache GET (hit)
-      expect.objectContaining({
-        description: 'dc-cache:test-key',
-        op: 'cache.get',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.query.text': 'GET dc-cache:test-key',
-          'cache.hit': true,
-          'cache.key': ['dc-cache:test-key'],
-          'cache.item_size': 10,
-        }),
-      }),
-      // cache GET (miss)
-      expect.objectContaining({
-        description: 'dc-cache:unavailable-data',
-        op: 'cache.get',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.query.text': 'GET dc-cache:unavailable-data',
-          'cache.hit': false,
-          'cache.key': ['dc-cache:unavailable-data'],
-        }),
-      }),
-      // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
-      // so cache detection cannot match prefixes — remains a plain db.redis span.
-      expect.objectContaining({
-        op: 'db.redis',
-        origin: 'auto.db.redis.diagnostic_channel',
-        data: expect.objectContaining({
-          'sentry.op': 'db.redis',
-          'sentry.origin': 'auto.db.redis.diagnostic_channel',
-          'db.system.name': 'redis',
-          'db.query.text': 'MGET ? ? ?',
-        }),
-      }),
-    ]),
-  };
-
-  // node-redis emits a node-redis:connect DC event for the initial connection.
-  // That fires before startSpan so it arrives as the first envelope.
-  const EXPECTED_CONNECT = {
-    transaction: 'redis-connect',
-  };
-
-  createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
-      await createTestRunner()
-        .withDockerCompose({ workingDirectory: [__dirname] })
-        .expect({ transaction: EXPECTED_CONNECT })
-        .expect({ transaction: EXPECTED_TRANSACTION })
-        .start()
-        .completed();
+describeWithDockerCompose(
+  'redis v5 diagnostics_channel auto instrumentation',
+  { workingDirectory: [__dirname] },
+  () => {
+    afterAll(() => {
+      cleanupChildProcesses();
     });
-  });
-});
+
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Span Redis 5 DC',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          op: 'db.query',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.op': 'db.query',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.system.name': 'redis',
+            'db.query.text': 'SET dc-test-key ?',
+          }),
+        }),
+        // cache SET: span name updated to key by cacheResponseHook
+        expect.objectContaining({
+          description: 'dc-cache:test-key',
+          op: 'cache.put',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.query.text': 'SET dc-cache:test-key ?',
+            'cache.key': ['dc-cache:test-key'],
+            'cache.item_size': 2,
+          }),
+        }),
+        // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
+        expect.objectContaining({
+          description: 'dc-cache:test-key-ex',
+          op: 'cache.put',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
+            'cache.key': ['dc-cache:test-key-ex'],
+            'cache.item_size': 2,
+          }),
+        }),
+        expect.objectContaining({
+          op: 'db.query',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.op': 'db.query',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.system.name': 'redis',
+            'db.query.text': 'GET dc-test-key',
+          }),
+        }),
+        // cache GET (hit)
+        expect.objectContaining({
+          description: 'dc-cache:test-key',
+          op: 'cache.get',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.query.text': 'GET dc-cache:test-key',
+            'cache.hit': true,
+            'cache.key': ['dc-cache:test-key'],
+            'cache.item_size': 10,
+          }),
+        }),
+        // cache GET (miss)
+        expect.objectContaining({
+          description: 'dc-cache:unavailable-data',
+          op: 'cache.get',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.query.text': 'GET dc-cache:unavailable-data',
+            'cache.hit': false,
+            'cache.key': ['dc-cache:unavailable-data'],
+          }),
+        }),
+        // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
+        // so cache detection cannot match prefixes — remains a plain db.query span.
+        expect.objectContaining({
+          op: 'db.query',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'sentry.op': 'db.query',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
+            'db.system.name': 'redis',
+            'db.query.text': 'MGET ? ? ?',
+          }),
+        }),
+      ]),
+    };
+
+    // node-redis emits a node-redis:connect DC event for the initial connection.
+    // That fires before startSpan so it arrives as the first envelope.
+    const EXPECTED_CONNECT = {
+      transaction: 'redis-connect',
+    };
+
+    createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
+        await createTestRunner()
+          .expect({ transaction: EXPECTED_CONNECT })
+          .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+    });
+  },
+);

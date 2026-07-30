@@ -1,8 +1,8 @@
 import type { Envelope, EnvelopeItemType } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { spawn, spawnSync } from 'child_process';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
 import { expect } from 'vitest';
@@ -18,9 +18,65 @@ export function cleanupChildProcesses(): void {
 
 process.on('exit', cleanupChildProcesses);
 
+/**
+ * Resolve the wrangler config `wrangler dev` should serve for a worker.
+ *
+ * Most suites run straight from source (`wrangler dev --config <name>.jsonc`).
+ * A suite that opts into the Sentry Vite plugin instead ships a `vite.config.*`
+ * (and no top-level `main` in its wrangler config): for those we run `vite build`
+ * first — so the plugin's build-time auto-instrumentation transform runs — and
+ * point wrangler at the generated config under `dist/<worker>/wrangler.json`.
+ *
+ * `wranglerConfigName` selects which source config the Vite build corresponds to
+ * (`wrangler.jsonc` for the main worker, `wrangler-sub-worker.jsonc` for a sub),
+ * so a Vite suite's generated output is matched to the right worker.
+ */
+function resolveWorkerConfig(testPath: string, wranglerConfigName: string): string {
+  const sourceConfig = join(testPath, wranglerConfigName);
+  const viteConfig = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs']
+    .map(name => join(testPath, name))
+    .find(existsSync);
+
+  // No Vite config → serve the source wrangler config unchanged (existing path).
+  if (!viteConfig) {
+    return sourceConfig;
+  }
+
+  const result = spawnSync('vite', ['build'], { cwd: testPath, stdio: process.env.DEBUG ? 'inherit' : 'ignore' });
+  if (result.status !== 0) {
+    throw new Error(`vite build failed for ${testPath} (exit code ${result.status})`);
+  }
+
+  // `@cloudflare/vite-plugin` emits one directory per worker under `dist/`, each
+  // containing a resolved `wrangler.json`. Match the one whose original config is
+  // this worker's source config so multi-worker suites map correctly.
+  const distDir = join(testPath, 'dist');
+  const builtConfig = readdirSync(distDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => join(distDir, entry.name, 'wrangler.json'))
+    .find(configPath => existsSync(configPath) && builtFromSource(configPath, sourceConfig));
+
+  if (!builtConfig) {
+    throw new Error(`Could not locate a Vite-built wrangler config for ${sourceConfig} under ${distDir}`);
+  }
+  return builtConfig;
+}
+
+/** Whether a generated `wrangler.json` was built from the given source config. */
+function builtFromSource(builtConfigPath: string, sourceConfigPath: string): boolean {
+  try {
+    const built = JSON.parse(readFileSync(builtConfigPath, 'utf8')) as { userConfigPath?: string; configPath?: string };
+    return built.userConfigPath === sourceConfigPath || built.configPath === sourceConfigPath;
+  } catch {
+    return false;
+  }
+}
+
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 10, retryDelayMs = 200): Promise<Response> {
+// The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
+// several seconds on a loaded CI runner — hence a generous default.
+async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
@@ -297,7 +353,7 @@ export function createRunner(...paths: string[]) {
               [
                 'dev',
                 '--config',
-                join(testPath, 'wrangler-sub-worker.jsonc'),
+                resolveWorkerConfig(testPath, 'wrangler-sub-worker.jsonc'),
                 '--show-interactive-dev-session',
                 'false',
                 '--var',
@@ -323,7 +379,7 @@ export function createRunner(...paths: string[]) {
             [
               'dev',
               '--config',
-              join(testPath, 'wrangler.jsonc'),
+              resolveWorkerConfig(testPath, 'wrangler.jsonc'),
               '--show-interactive-dev-session',
               'false',
               '--var',
@@ -408,7 +464,10 @@ export function createRunner(...paths: string[]) {
           expected: Expected | Expected[],
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          const expectations = Array.isArray(expected) ? expected : [expected];
+          // `Expected` includes `Envelope`, which is itself an array, so `Array.isArray` can't
+          // distinguish a single `Envelope` from an `Expected[]`. Callers pass expectation
+          // callbacks (or an array of them), so the narrowed value is always `Expected[]`.
+          const expectations = (Array.isArray(expected) ? expected : [expected]) as Expected[];
           const envelopePromises = expectations.map(e => waitForEnvelope(e));
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);

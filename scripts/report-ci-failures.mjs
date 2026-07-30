@@ -19,31 +19,44 @@ import { readFileSync } from 'node:fs';
 
 /**
  * Collapse matrix variants of a job name so the same test failing across the matrix dedupes to a
- * single issue instead of one per node/TS version. We strip only version-like parenthetical groups
- * — a bare number (e.g. node version) or a `TS x.y` bracket — leaving other parentheticals (e.g.
- * `(nextjs-app, 20)`) intact:
+ * single issue instead of one per variant. We strip version-like parenthetical groups — a bare
+ * number (node version), a `TS x.y` bracket, a `Node xx` bracket, or a `n/m` shard — and fold the
+ * Playwright bundle/esm build configs and E2E `-node-xx` app suffixes into a single bucket, leaving
+ * other parentheticals (e.g. `(nextjs-app, 20)`) intact:
  *
- *   "Node (22) Integration Tests"          -> "Node Integration Tests"
- *   "Node (24) Integration Tests"          -> "Node Integration Tests"
- *   "Node (24) (TS 3.8) Integration Tests" -> "Node Integration Tests"
+ *   "Node (22) Integration Tests"              -> "Node Integration Tests"
+ *   "Node (24) (TS 5.0) Integration Tests"     -> "Node Integration Tests"
+ *   "aws-serverless-layer (Node 22) Test"      -> "aws-serverless-layer Test"
+ *   "Playwright bundle_tracing_replay Tests"   -> "Playwright Tests"
+ *   "Playwright esm (1/4) Tests"               -> "Playwright Tests"
+ *   "E2E some-app-node-20-18 Test"             -> "E2E some-app Test"
  */
 function normalizeJobName(name) {
   return name
-    .replace(/\(\s*(?:\d+|TS\s+[\d.]+)\s*\)/gi, ' ')
+    .replace(/\(\s*(?:\d+|TS\s+[\d.]+|Node\s+\d+|\d+\/\d+)\s*\)/gi, ' ')
+    .replace(/Playwright\s+(?:bundle\w*|esm|cjs)\s+Tests/gi, 'Playwright Tests')
+    .replace(/-node-\d+(?:-\d+)*/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Collapse esm/cjs variants of a test name so the same test failing in both module formats dedupes
- * to a single issue instead of one per variant:
+ * Collapse variants of a test name so the same test failing under different module formats, browser
+ * projects, or (for Playwright) at a different source line dedupes to a single issue. We strip:
  *
- *   "... > esm/cjs > esm > should send messages" -> "... > esm/cjs > should send messages"
- *   "... > esm/cjs > cjs > should send messages" -> "... > esm/cjs > should send messages"
+ *   - Playwright browser prefix:   "[chromium] › suites/... " -> "suites/... "
+ *   - Playwright file line/column: "test.ts:33:11 › ..."      -> "test.ts › ..." (drifts on edits)
+ *   - old esm/cjs describe block:  "... > esm/cjs > esm > x"  -> "... > x"
+ *   - bare esm/cjs describe block: "... > esm/cjs > x"        -> "... > x"
+ *   - trailing module suffix:      "... should send [esm]"    -> "... should send"
  */
 function normalizeTestName(name) {
   return name
+    .replace(/^\[(?:chromium|firefox|webkit)\]\s*›\s*/i, '')
+    .replace(/(\.[cm]?[jt]sx?):\d+:\d+/gi, '$1')
     .replace(/esm\/cjs\s*>\s*(?:esm|cjs)\b/gi, 'esm/cjs')
+    .replace(/\besm\/cjs\s*>\s*/gi, '')
+    .replace(/\s*\[(?:esm|cjs)\]/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

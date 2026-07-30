@@ -111,8 +111,50 @@ export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';
 export type { DenoRedisIntegrationOptions } from './integrations/redis';
+// The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
+// Most are in the default set; `dataloader` and `knex` are opt-in (add them to
+// `integrations` to enable), matching Node. Re-export every one that `sdk.ts`
+// adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
+export {
+  amqplibIntegration,
+  anthropicIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration,
+  hapiIntegration,
+  kafkajsIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration,
+} from '@sentry/server-utils/orchestrion';
+// Deprecated aliases kept for back-compat. Each forwards to the shared
+// integration above, so its name is the shared name (e.g. `Mysql`), not the old
+// `Deno*` name. See each alias's `@deprecated` note.
+/* eslint-disable typescript/no-deprecated */
 export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
+export { denoAmqplibIntegration } from './integrations/amqplib';
+export { denoKoaIntegration } from './integrations/koa';
+export { denoMongoIntegration } from './integrations/mongo';
+export { denoMongooseIntegration } from './integrations/mongoose';
+export { denoDataloaderIntegration } from './integrations/dataloader';
+export { denoKnexIntegration } from './integrations/knex';
+/* eslint-enable typescript/no-deprecated */
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

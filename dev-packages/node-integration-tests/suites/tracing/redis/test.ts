@@ -1,8 +1,8 @@
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('redis auto instrumentation', () => {
+describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -10,7 +10,7 @@ describe('redis auto instrumentation', () => {
   // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+  const origin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',
@@ -64,11 +64,7 @@ describe('redis auto instrumentation', () => {
       'should auto-instrument `ioredis` package when using redis.set() and redis.get()',
       { timeout: 75_000 },
       async () => {
-        await createTestRunner()
-          .withDockerCompose({ workingDirectory: [__dirname] })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       },
     );
   });

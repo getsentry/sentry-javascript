@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getInstrumented } from '../../src/instrument';
@@ -6,6 +7,7 @@ import {
   instrumentWorkerEntrypoint,
   type WorkerEntrypointConstructor,
 } from '../../src/instrumentations/instrumentWorkerEntrypoint';
+import { resetSdk } from '../testUtils';
 
 function createMockExecutionContext(): ExecutionContext {
   return {
@@ -20,6 +22,7 @@ class WorkerEntrypoint {}
 describe('instrumentWorkerEntrypoint', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   it('Generic functionality', () => {
@@ -235,50 +238,209 @@ describe('instrumentWorkerEntrypoint', () => {
     expect(testClientFlushCount).toBe(1);
   });
 
-  describe('instrumentPrototypeMethods option', () => {
-    it('does not instrument prototype methods when option is not set', () => {
-      const TestClass = class Hello extends WorkerEntrypoint {
-        prototypeMethod() {
-          return 'prototype-result';
-        }
-      };
-      const options = vi.fn().mockReturnValue({});
-      const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
-      const obj = Reflect.construct(instrumented, []);
+  describe('custom RPC methods', () => {
+    it('binds non-RPC methods and getters to the original instance', () => {
+      class TestClass extends WorkerEntrypoint {
+        #value = 'value';
 
-      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
+        ownMethod = function ownMethod(this: TestClass) {
+          return this.#value;
+        };
+
+        get value() {
+          return this.#value;
+        }
+      }
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
+        [createMockExecutionContext(), {}],
+      );
+
+      expect(obj.ownMethod).toBe(obj.ownMethod);
+      expect(obj.ownMethod()).toBe('value');
+      expect(obj.value).toBe('value');
+      expect(obj.toString()).toBe('[object Object]');
+      expect(obj.ownMethod.name).toBe('ownMethod');
+
+      const other = { value: true };
+      expect(obj.hasOwnProperty.call(other, 'value')).toBe(true);
     });
 
-    it('does not instrument prototype methods when option is false', () => {
-      const TestClass = class extends WorkerEntrypoint {
-        prototypeMethod() {
-          return 'prototype-result';
+    it('handles method replacement and frozen own methods', () => {
+      const frozenMethod = () => 'frozen';
+      class TestClass extends WorkerEntrypoint {
+        method() {
+          return 'first';
         }
-      };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
-      const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
-      const obj = Reflect.construct(instrumented, []);
+      }
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
+        [createMockExecutionContext(), {}],
+      );
+      Object.defineProperty(obj, 'frozenMethod', {
+        configurable: false,
+        value: frozenMethod,
+        writable: false,
+      });
 
-      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
+      expect(obj.method()).toBe('first');
+      TestClass.prototype.method = () => 'second';
+      expect(obj.method()).toBe('second');
+      expect(obj.frozenMethod).toBe(frozenMethod);
     });
 
-    it('does not instrument prototype methods when option is true (instrumentWorkerEntrypoint does not support instrumentPrototypeMethods)', () => {
-      const TestClass = class extends WorkerEntrypoint {
-        methodOne() {
-          return 'one';
+    it('preserves `this` for custom RPC methods when RPC trace propagation is enabled', () => {
+      class TestClass extends WorkerEntrypoint {
+        #value = 'secret';
+
+        readValue() {
+          return this.#value;
         }
-        methodTwo() {
-          return 'two';
+      }
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({ enableRpcTracePropagation: true }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [createMockExecutionContext(), {}],
+      );
+
+      // No propagated trace metadata takes the error-capture-only path.
+      expect(obj.readValue()).toBe('secret');
+
+      // Propagated trace metadata takes the traced (span-creating) path.
+      const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
+      expect(obj.readValue(rpcMeta)).toBe('secret');
+    });
+
+    it('strips RPC metadata even when trace propagation is disabled', () => {
+      const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
+      const TestClass = class extends WorkerEntrypoint {
+        inspect(...args: unknown[]) {
+          return args;
         }
       };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: true });
-      const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
-      const obj = Reflect.construct(instrumented, [createMockExecutionContext(), {}]);
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({ enableRpcTracePropagation: false }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [createMockExecutionContext(), {}],
+      );
 
-      expect(getInstrumented(obj.methodOne)).toBeFalsy();
-      expect(getInstrumented(obj.methodTwo)).toBeFalsy();
-      expect(obj.methodOne()).toBe('one');
-      expect(obj.methodTwo()).toBe('two');
+      expect(obj.inspect).toBe(obj.inspect);
+      expect(obj.inspect(rpcMeta)).toEqual([]);
+    });
+
+    it('flushes repeated calls on the same instance', async () => {
+      const events: Event[] = [];
+      const waits: Promise<unknown>[] = [];
+      const context = createMockExecutionContext();
+      context.waitUntil = vi.fn(promise => {
+        waits.push(promise);
+      });
+      const TestClass = class extends WorkerEntrypoint {
+        async get(value: string) {
+          SentryCore.captureMessage(value);
+          return value;
+        }
+      };
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+            beforeSend(event) {
+              events.push(event);
+              return null;
+            },
+          }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [context, {}],
+      );
+
+      await expect(obj.get('first call')).resolves.toBe('first call');
+      await Promise.all(waits.splice(0));
+      await expect(obj.get('second call')).resolves.toBe('second call');
+      await Promise.all(waits);
+
+      expect(events.map(event => event.message)).toEqual(['first call', 'second call']);
+    });
+
+    it('does not create a second invocation for direct calls from RPC or lifecycle methods', async () => {
+      const events: Event[] = [];
+      const waits: Promise<unknown>[] = [];
+      const context = createMockExecutionContext();
+      context.waitUntil = vi.fn(promise => {
+        waits.push(promise);
+      });
+      const TestClass = class extends WorkerEntrypoint {
+        async outer() {
+          return this.inner();
+        }
+
+        async fetch() {
+          return this.inner();
+        }
+
+        async inner(): Promise<never> {
+          throw new Error('inner failure');
+        }
+      };
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+            beforeSend(event) {
+              events.push(event);
+              return null;
+            },
+          }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [context, {}],
+      );
+
+      await expect(obj.outer()).rejects.toThrow('inner failure');
+      await Promise.all(waits.splice(0));
+      expect(events).toHaveLength(1);
+
+      await expect(obj.fetch(new Request('https://example.com'))).rejects.toThrow('inner failure');
+      await Promise.all(waits);
+      expect(events).toHaveLength(2);
+    });
+
+    it('only excludes WorkerEntrypoint lifecycle methods from RPC instrumentation', async () => {
+      const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
+      const TestClass = class extends WorkerEntrypoint {
+        alarm() {}
+
+        fetch() {
+          return new Response('ok');
+        }
+
+        tailStream() {}
+
+        test() {}
+
+        trace() {}
+
+        webSocketMessage() {}
+      };
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
+        [createMockExecutionContext(), {}],
+      );
+
+      const response = await obj.fetch(new Request('https://example.com'));
+      await response.text();
+      obj.tailStream();
+      obj.test();
+      obj.trace();
+      await obj.alarm();
+      await obj.webSocketMessage();
+
+      expect(initAndBind).toHaveBeenCalledTimes(3);
     });
   });
 

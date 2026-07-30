@@ -1,18 +1,49 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { isOrchestrionEnabled } from '../../../utils';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
+
+// The span origin depends on which instrumentation is active. These blocks drive the SDK's default
+// integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
+// `Amqplib` integration is swapped for the diagnostics-channel one, changing the origin.
+const PUBLISHER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.publisher' : 'auto.amqplib.otel.publisher';
+const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.consumer' : 'auto.amqplib.otel.consumer';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
+// The scenarios all publish via `sendToQueue`, which delegates to `publish('', queue, ...)` — i.e. the
+// default (empty) exchange with the queue name as the routing key.
 const expectedProducerSpan = (routingKey: string) =>
   expect.objectContaining({
     op: 'message',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
+      // Legacy messaging attributes emitted by both the OTel and orchestrion integrations.
+      'messaging.destination': '',
+      'messaging.destination_kind': 'topic',
       'messaging.rabbitmq.routing_key': routingKey,
-      'otel.kind': 'PRODUCER',
+      'messaging.url': 'amqp://sentry:***@localhost:5672/',
+      'messaging.protocol': 'AMQP',
+      'messaging.protocol_version': '0.9.1',
+      'net.peer.name': 'localhost',
+      'net.peer.port': 5672,
+      // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration; the
+      // vendored OTel instrumentation never set them.
+      ...(isOrchestrionEnabled()
+        ? {
+            'messaging.operation.type': 'send',
+            'messaging.destination.name': '',
+            'messaging.rabbitmq.destination.routing_key': routingKey,
+            'network.protocol.name': 'AMQP',
+            'network.protocol.version': '0.9.1',
+            'server.address': 'localhost',
+            'server.port': 5672,
+            'url.full': 'amqp://sentry:***@localhost:5672/',
+          }
+        : {}),
+      'sentry.kind': 'producer',
       'sentry.op': 'message',
-      'sentry.origin': 'auto.amqplib.otel.publisher',
+      'sentry.origin': PUBLISHER_ORIGIN,
     }),
     status: 'ok',
   });
@@ -21,15 +52,28 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'message',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
+    // Legacy messaging attributes emitted by both the OTel and orchestrion integrations. The consumer
+    // reads the default exchange ('') off the delivered message and the queue name as the routing key.
+    'messaging.destination': '',
+    'messaging.destination_kind': 'topic',
     'messaging.rabbitmq.routing_key': 'queue1',
-    'otel.kind': 'CONSUMER',
+    'messaging.operation': 'process',
+    // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration.
+    ...(isOrchestrionEnabled()
+      ? {
+          'messaging.destination.name': '',
+          'messaging.rabbitmq.destination.routing_key': 'queue1',
+          'messaging.operation.type': 'process',
+        }
+      : {}),
+    'sentry.kind': 'consumer',
     'sentry.op': 'message',
-    'sentry.origin': 'auto.amqplib.otel.consumer',
+    'sentry.origin': CONSUMER_ORIGIN,
   }),
   status: 'ok',
 });
 
-describe('amqplib auto-instrumentation', () => {
+describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
@@ -49,9 +93,6 @@ describe('amqplib auto-instrumentation', () => {
           const receivedTransactions: TransactionEvent[] = [];
 
           await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
             .expect({
               transaction: (transaction: TransactionEvent) => {
                 receivedTransactions.push(transaction);
@@ -65,10 +106,10 @@ describe('amqplib auto-instrumentation', () => {
                 // identify it by its origin rather than by transaction name. The consumer span is its
                 // own transaction, identified by the origin on its trace context.
                 const producer = receivedTransactions.find(t =>
-                  t.spans?.some(s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher'),
+                  t.spans?.some(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN),
                 );
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.otel.consumer',
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
                 );
 
                 expect(producer).toBeDefined();
@@ -77,9 +118,7 @@ describe('amqplib auto-instrumentation', () => {
                 expect(producer!.transaction).toBe('root span');
                 expect(consumer!.transaction).toBe('queue1 process');
 
-                const producerSpan = producer!.spans?.find(
-                  s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher',
-                );
+                const producerSpan = producer!.spans?.find(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
                 expect(producerSpan).toMatchObject(expectedProducerSpan('queue1'));
 
                 expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
@@ -103,9 +142,6 @@ describe('amqplib auto-instrumentation', () => {
           const receivedTransactions: TransactionEvent[] = [];
 
           await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
             .expect({
               transaction: (transaction: TransactionEvent) => {
                 receivedTransactions.push(transaction);
@@ -116,7 +152,7 @@ describe('amqplib auto-instrumentation', () => {
                 receivedTransactions.push(transaction);
 
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.otel.consumer',
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
                 );
 
                 expect(consumer).toBeDefined();
@@ -127,9 +163,9 @@ describe('amqplib auto-instrumentation', () => {
                     status: 'internal_error',
                     data: expect.objectContaining({
                       'messaging.system': 'rabbitmq',
-                      'otel.kind': 'CONSUMER',
+                      'sentry.kind': 'consumer',
                       'sentry.op': 'message',
-                      'sentry.origin': 'auto.amqplib.otel.consumer',
+                      'sentry.origin': CONSUMER_ORIGIN,
                     }),
                   }),
                 );
@@ -152,16 +188,11 @@ describe('amqplib auto-instrumentation', () => {
           { timeout: 60_000 },
           async () => {
             await createTestRunner()
-              .withDockerCompose({
-                workingDirectory: [__dirname],
-              })
               .expect({
                 transaction: (transaction: TransactionEvent) => {
                   expect(transaction.transaction).toBe('root span');
 
-                  const producerSpans = transaction.spans?.filter(
-                    s => s.data?.['sentry.origin'] === 'auto.amqplib.otel.publisher',
-                  );
+                  const producerSpans = transaction.spans?.filter(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
 
                   // The confirm channel internally calls the base publish; the instrumentation must not
                   // double-instrument, so we expect exactly one producer span.

@@ -39,7 +39,7 @@ test('propagates trace context from server-timing header to client pageload', as
   expect(pageloadTransaction).toBeDefined();
   expect(pageloadTransaction.transaction).toBe('/');
 
-  expect(httpServerTransaction.transaction).toMatch(/^GET http:\/\/localhost:\d+\/$/);
+  expect(httpServerTransaction.transaction).toBe('GET /');
 
   expect(pageloadTransaction.contexts?.trace?.trace_id).toEqual(headerTraceId);
   expect(pageloadTransaction.contexts?.trace?.parent_span_id).toEqual(headerSpanId);

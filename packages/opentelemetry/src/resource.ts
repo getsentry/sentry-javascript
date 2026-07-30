@@ -16,8 +16,7 @@ const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 type RawResourceAttribute = [string, AttributeValue | undefined];
 
 /**
- * Minimal Resource implementation that satisfies the OpenTelemetry Resource interface
- * used by BasicTracerProvider, without depending on `@opentelemetry/resources`.
+ * Minimal Resource implementation that satisfies the OpenTelemetry Resource interface.
  */
 class SentryResource {
   private _attributes: Attributes;

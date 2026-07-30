@@ -61,12 +61,13 @@ Deno.test('denoRedisIntegration: included in default integrations', () => {
   assert(names.includes('DenoRedis'), `DenoRedis should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('denoRedisIntegration: node-redis:command channel produces a db.redis child span', async () => {
+Deno.test('denoRedisIntegration: node-redis:command channel produces a db.query child span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
@@ -90,8 +91,8 @@ Deno.test('denoRedisIntegration: node-redis:command channel produces a db.redis 
     "'parent' transaction",
   );
 
-  const redisSpan = parent.spans?.find(s => s.op === 'db.redis');
-  assertExists(redisSpan, `expected a db.redis child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const redisSpan = parent.spans?.find(s => s.op === 'db.query');
+  assertExists(redisSpan, `expected a db.query child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(redisSpan!.description, 'redis-GET');
   assertEquals(redisSpan!.data?.['db.system.name'], 'redis');
   assertEquals(redisSpan!.data?.['db.query.text'], 'GET cache:key');
@@ -105,6 +106,7 @@ Deno.test('denoRedisIntegration: errors on the command channel set span status',
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
@@ -126,21 +128,22 @@ Deno.test('denoRedisIntegration: errors on the command channel set span status',
     5000,
     "'parent' transaction",
   );
-  const redisSpan = parent.spans?.find(s => s.op === 'db.redis');
-  assertExists(redisSpan, `expected a db.redis child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const redisSpan = parent.spans?.find(s => s.op === 'db.query');
+  assertExists(redisSpan, `expected a db.query child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   // Sentry serializes a span with `setStatus({ code: SPAN_STATUS_ERROR, message: 'X' })`
   // as `status: 'X'` (the message takes the slot). Both "not ok" and the
   // forwarded message confirm the error path fired.
   assert(redisSpan!.status && redisSpan!.status !== 'ok', `expected error-shaped status, got ${redisSpan!.status}`);
-  assertEquals(redisSpan!.status, 'ECONNREFUSED');
+  assertEquals(redisSpan!.status, 'internal_error');
 });
 
-Deno.test('denoRedisIntegration: ioredis:command channel produces a db.redis child span', async () => {
+Deno.test('denoRedisIntegration: ioredis:command channel produces a db.query child span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: sink.beforeSendTransaction,
   });
 
@@ -162,8 +165,8 @@ Deno.test('denoRedisIntegration: ioredis:command channel produces a db.redis chi
     "'parent' transaction",
   );
 
-  const redisSpan = parent.spans?.find(s => s.op === 'db.redis');
-  assertExists(redisSpan, `expected a db.redis child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const redisSpan = parent.spans?.find(s => s.op === 'db.query');
+  assertExists(redisSpan, `expected a db.query child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(redisSpan!.description, 'redis-get');
   assertEquals(redisSpan!.data?.['db.system.name'], 'redis');
   assertEquals(redisSpan!.data?.['db.query.text'], 'get cache:key');

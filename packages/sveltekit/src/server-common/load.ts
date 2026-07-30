@@ -32,7 +32,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       const routeId = getRouteId(event);
 
@@ -92,7 +92,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       // Accessing any member of `event.route` causes SvelteKit to invalidate the
       // server `load` function's data on every route change. We use `getRouteId` which uses

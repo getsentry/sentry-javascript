@@ -16,6 +16,12 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/views/:viewId/:detailId',
+          'url.path': '/projects/123/views/234/567',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/234\/567$/),
+        },
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -40,9 +46,47 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
+          'url.path': '/projects/234/old-views/234/567',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/234\/old-views\/234\/567$/),
+        },
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('keeps the parent path prefix for a descendant route with non-wildcard nested children - pageload', async ({
+  page,
+}) => {
+  const transactionPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/child/abc123`);
+
+  const rootSpan = await transactionPromise;
+
+  expect((await page.innerHTML('#root')).includes('Child')).toBe(true);
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/child/:id',
+          'url.path': '/child/abc123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/child\/abc123$/),
+        },
+      },
+    },
+    transaction: '/child/:id',
     transaction_info: {
       source: 'route',
     },
@@ -66,6 +110,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -84,6 +134,12 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/views/:viewId/:detailId',
+          'url.path': '/projects/123/views/456/789',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/456\/789$/),
+        },
       },
     },
     transaction: '/projects/:projectId/views/:viewId/:detailId',
@@ -110,6 +166,12 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
       },
     },
     transaction: '/',
@@ -128,9 +190,140 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
+          'url.path': '/projects/123/old-views/345/654',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/old-views\/345\/654$/),
+        },
       },
     },
     transaction: '/projects/:projectId/old-views/:viewId/:detailId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('keeps the parent path prefix for a descendant route with non-wildcard nested children - navigation', async ({
+  page,
+}) => {
+  const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const navigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto(`/`);
+  const pageloadTxn = await pageloadTxnPromise;
+
+  expect(pageloadTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/',
+          'url.path': '/',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
+        },
+      },
+    },
+    transaction: '/',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+
+  const linkElement = page.locator('id=child-navigation');
+
+  const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
+
+  expect((await page.innerHTML('#root')).includes('Child')).toBe(true);
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/child/:id',
+          'url.path': '/child/abc123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/child\/abc123$/),
+        },
+      },
+    },
+    transaction: '/child/:id',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('resolves deep wildcard chain with three levels of nesting - pageload', async ({ page }) => {
+  const transactionPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/workspace/team/u123`);
+
+  const rootSpan = await transactionPromise;
+
+  expect((await page.innerHTML('#root')).includes('Deep Member')).toBe(true);
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/workspace/:teamId/:memberId',
+          'url.path': '/workspace/team/u123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),
+        },
+      },
+    },
+    transaction: '/workspace/:teamId/:memberId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('resolves deep wildcard chain with three levels of nesting - navigation', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const navigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto(`/`);
+  await pageloadTxnPromise;
+
+  const linkElement = page.locator('id=deep-member-navigation');
+
+  const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
+
+  expect((await page.innerHTML('#root')).includes('Deep Member')).toBe(true);
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/workspace/:teamId/:memberId',
+          'url.path': '/workspace/team/u123',
+          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),
+        },
+      },
+    },
+    transaction: '/workspace/:teamId/:memberId',
     transaction_info: {
       source: 'route',
     },

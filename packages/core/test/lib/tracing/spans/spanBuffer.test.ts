@@ -3,6 +3,7 @@ import type { Client, StreamedSpanEnvelope } from '../../../../src';
 import { SentrySpan, setCurrentClient, SpanBuffer } from '../../../../src';
 import type { SerializedStreamedSpanWithSegmentSpan } from '../../../../src/tracing/spans/captureSpan';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+import { HTTP_METHOD, URL_FULL } from '@sentry/conventions/attributes';
 
 describe('SpanBuffer', () => {
   let client: TestClient;
@@ -48,6 +49,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -59,6 +61,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -82,6 +85,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     };
 
@@ -94,6 +98,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     };
 
@@ -124,6 +129,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -137,6 +143,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -150,6 +157,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -174,6 +182,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan,
     });
 
@@ -198,6 +207,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -209,6 +219,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -232,6 +243,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan1,
     });
 
@@ -243,6 +255,7 @@ describe('SpanBuffer', () => {
       end_timestamp: Date.now() / 1000,
       status: 'ok',
       is_segment: false,
+      attributes: {},
       _segmentSpan: segmentSpan2,
     });
 
@@ -275,6 +288,7 @@ describe('SpanBuffer', () => {
         end_timestamp: Date.now() / 1000,
         status: 'ok',
         is_segment: false,
+        attributes: {},
         _segmentSpan: segmentSpan,
         ...overrides,
       };
@@ -346,8 +360,8 @@ describe('SpanBuffer', () => {
       buffer.add(
         makeSpan('trace1', 'span1', segmentSpan, {
           attributes: {
-            'http.method': { type: 'string', value: 'GET' },
-            'http.url': { type: 'string', value: 'https://example.com/api/v1/users?page=1&limit=100' },
+            [HTTP_METHOD]: { type: 'string', value: 'GET' },
+            [URL_FULL]: { type: 'string', value: 'https://example.com/api/v1/users?page=1&limit=100' },
             'db.statement': { type: 'string', value: 'SELECT * FROM users WHERE id = 1' },
           },
         }),
