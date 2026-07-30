@@ -34,7 +34,7 @@ Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frame
 
 **Node.js:** The minimum supported Node.js version is now **20.19.0**. Node.js 18 is no longer supported.
 
-**Deno:** The minimum supported Deno version is now **2.8.3**.
+**Deno:** The minimum supported Deno version is now **2.8.2**.
 
 **Browsers:** Support for **Safari 14** was dropped. Sentry now requires Safari 15 or higher. For the rest of the browser support matrix, refer to the [Sentry docs](https://docs.sentry.io/platforms/javascript/#browser-support).
 
@@ -260,7 +260,6 @@ Affected SDKs: All SDKs.
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
-- The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
