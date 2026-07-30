@@ -157,5 +157,44 @@ describe('instrumentCloudflareAgent', () => {
       expect(agent.seenConversationId).toBe('instance-1');
       expect('onChatMessage' in agent).toBe(false);
     });
+
+    it('sets the conversation id during an HTTP request', () => {
+      const agent = createFakeAgent({
+        onRequest(this: any) {
+          // Capture what the scope sees while the request is being handled.
+          this.seenConversationId = getCurrentScope().getScopeData().conversationId;
+          return 'response';
+        },
+      });
+      instrumentCloudflareAgent(agent);
+
+      const result = agent.onRequest(new Request('https://example.com/agents/my-agent/instance-1'));
+
+      expect(result).toBe('response');
+      expect(agent.seenConversationId).toBe('instance-1');
+    });
+
+    it('prefers the rotated conversation id over the instance name on the HTTP path', () => {
+      const agent = createFakeAgent({
+        onRequest(this: any) {
+          this.seenConversationId = getCurrentScope().getScopeData().conversationId;
+          return 'response';
+        },
+      });
+      instrumentCloudflareAgent(agent);
+
+      agent._emit?.('message:clear');
+      agent.__sentryConversationId = 'rotated-id';
+      agent.onRequest(new Request('https://example.com/agents/my-agent/instance-1'));
+
+      expect(agent.seenConversationId).toBe('rotated-id');
+    });
+
+    it('does not throw when the agent has no onRequest handler', () => {
+      const agent = createFakeAgent();
+
+      expect(() => instrumentCloudflareAgent(agent)).not.toThrow();
+      expect('onRequest' in agent).toBe(false);
+    });
   });
 });
