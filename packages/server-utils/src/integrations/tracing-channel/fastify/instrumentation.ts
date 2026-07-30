@@ -15,7 +15,13 @@
 /* eslint-disable max-lines */
 
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
@@ -345,9 +351,9 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     return startSpan(
       {
         name,
-        op,
         attributes: {
           ...spanAttributes,
+          ...(op ? { [SENTRY_OP]: op } : {}),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
         parentSpan,
