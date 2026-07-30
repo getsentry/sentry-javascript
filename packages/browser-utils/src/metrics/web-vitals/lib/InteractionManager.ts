@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type { Metric } from '../types';
 import { getInteractionCount } from './polyfills/interactionCountPolyfill.js';
 
 export interface Interaction {
@@ -79,11 +80,20 @@ export class InteractionManager {
    * interaction candidates and the interaction count for the current page.
    */
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
-  _estimateP98LongestInteraction() {
+  _estimateP98LongestInteraction(navigationType?: Metric['navigationType']) {
+    const interactionCountForNavigation = getInteractionCountForNavigation();
     const candidateInteractionIndex = Math.min(
       this._longestInteractionList.length - 1,
-      Math.floor(getInteractionCountForNavigation() / 50),
+      Math.floor(interactionCountForNavigation / 50),
     );
+
+    if (interactionCountForNavigation && candidateInteractionIndex === -1 && navigationType === 'soft-navigation') {
+      return {
+        _latency: 8,
+        id: -1,
+        entries: [] as PerformanceEventTiming[],
+      };
+    }
 
     return this._longestInteractionList[candidateInteractionIndex];
   }

@@ -60,9 +60,10 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       trackCls: true,
       trackLcp: true,
+      reportSoftNavs: undefined,
       client,
     });
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, undefined);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
     expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
@@ -79,11 +80,12 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       trackCls: false,
       trackLcp: false,
+      reportSoftNavs: undefined,
       client,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, undefined);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, undefined);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, undefined);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
@@ -95,8 +97,8 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, undefined);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, undefined);
   });
 
   it('supports ignoring selected web vitals', () => {
@@ -109,10 +111,29 @@ describe('webVitalsIntegration', () => {
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
       trackCls: false,
       trackLcp: false,
+      reportSoftNavs: undefined,
       client,
     });
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
+  });
+
+  it('threads reportSoftNavs through to the tracking functions', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ reportSoftNavs: true });
+
+    integration.setup?.(client as never);
+    integration.afterAllSetup?.(client as never);
+
+    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
+      trackCls: false,
+      trackLcp: false,
+      reportSoftNavs: true,
+      client,
+    });
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
   });
 
   it('finalizes web vitals and writes them onto the pageload span when it ends', () => {

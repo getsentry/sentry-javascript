@@ -21,11 +21,22 @@ This vendored web-vitals library is meant to be used in conjunction with the `@s
 `browserTracingIntegration`. As such, logic around `BFCache` and multiple reports were removed from the library as our
 web-vitals only report once per pageload.
 
+Experimental soft navigation support (from upstream [#308](https://github.com/GoogleChrome/web-vitals/pull/308)) was
+ported on top of our BFCache-free v5.1.0 base. It is gated behind the `reportSoftNavs` report option and, when enabled,
+re-initializes each metric on a new `navigationId` so vitals are also reported for Chrome soft navigations. It requires
+the Soft Navigation API (origin trial or the `#soft-navigation-heuristics` flag).
+
 ## License
 
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
 
 ## CHANGELOG
+
+- Ported experimental soft navigation support from upstream [#308](https://github.com/GoogleChrome/web-vitals/pull/308)
+  - Upstream shipped it in v6.0.0, entangled with BFCache handling we intentionally removed, so it was adapted onto our
+    BFCache-free v5.1.0 base rather than taken verbatim
+  - Gated behind the `reportSoftNavs` report option; adds `navigationId` tracking, `soft-navigation` /
+    `interaction-contentful-paint` observers, and per-navigation metric re-initialization
 
 - Bumped from Web Vitals 5.0.2 to 5.1.0
   - Remove `visibilitychange` event listeners when no longer required [#627](https://github.com/GoogleChrome/web-vitals/pull/627)

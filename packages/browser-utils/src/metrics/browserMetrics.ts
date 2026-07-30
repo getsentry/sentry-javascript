@@ -5,10 +5,16 @@ import {
   debug,
   getActiveSpan,
   getComponentName,
+  getCurrentScope,
   parseUrl,
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
+  startInactiveSpan,
 } from '@sentry/core';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
@@ -74,9 +80,59 @@ let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
+/**
+ * Routes a web vital measurement to the correct destination.
+ * For hard navigations, stores in `_measurements` to be flushed onto the pageload span.
+ * For soft navigations, emits a web vital span. With span streaming (v2) enabled,
+ * the span is buffered by trace ID and sent alongside the navigation span.
+ */
+function _emitMeasurement(
+  metric: { navigationType: string; navigationId: string },
+  name: string,
+  value: number,
+  unit: string,
+): void {
+  if (metric.navigationType !== 'soft-navigation') {
+    _measurements[name] = { value, unit };
+    return;
+  }
+
+  _emitSoftNavWebVitalSpan(name, value, unit);
+}
+
+/**
+ * Creates a v2 web vital span for a soft navigation metric.
+ * This is a regular (non-standalone) span so it flows through the span streaming
+ * pipeline (afterSpanEnd -> captureSpan -> SpanBuffer) and gets grouped with
+ * the navigation span by trace ID.
+ */
+function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string): void {
+  const startTime = msToSec(browserPerformanceTimeOrigin() || 0);
+  const routeName = getCurrentScope().getScopeData().transactionName;
+
+  const span = startInactiveSpan({
+    name: routeName || '',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.softnavigation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.webvital.${name}`,
+      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
+    },
+    startTime,
+  });
+
+  if (span) {
+    span.addEvent(name, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: unit,
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: value,
+    });
+    span.end(startTime);
+  }
+}
+
 interface StartTrackingWebVitalsOptions {
   trackCls: boolean;
   trackLcp: boolean;
+  reportSoftNavs?: boolean;
   client: Client;
 }
 
@@ -86,19 +142,27 @@ interface StartTrackingWebVitalsOptions {
  *
  * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals({ trackCls, trackLcp }: StartTrackingWebVitalsOptions): () => void {
+export function startTrackingWebVitals({
+  trackCls,
+  trackLcp,
+  reportSoftNavs,
+}: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
-    const lcpCleanupCallback = trackLcp ? _trackLCP() : undefined;
-    const clsCleanupCallback = trackCls ? _trackCLS() : undefined;
-    const ttfbCleanupCallback = _trackTtfb();
+    const lcpCleanupCallback = trackLcp ? _trackLCP(reportSoftNavs) : undefined;
+    const clsCleanupCallback = trackCls ? _trackCLS(reportSoftNavs) : undefined;
+    const ttfbCleanupCallback = _trackTtfb(reportSoftNavs);
     const fpFcpCleanupCallback = _trackFpFcp();
 
     return (): void => {
       ttfbCleanupCallback();
       fpFcpCleanupCallback();
-      lcpCleanupCallback?.();
-      clsCleanupCallback?.();
+      // When soft navs are enabled, keep the LCP and CLS observers alive across the page
+      // lifetime so vitals for subsequent soft navigations are still captured.
+      if (!reportSoftNavs) {
+        lcpCleanupCallback?.();
+        clsCleanupCallback?.();
+      }
     };
   }
 
@@ -239,39 +303,46 @@ export { registerInpInteractionListener } from './inp';
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
  * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
  */
-function _trackCLS(): () => void {
-  return addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
-    if (!entry) {
-      return;
-    }
-    _measurements['cls'] = { value: metric.value, unit: '' };
-    _clsEntry = entry;
-  }, true);
+function _trackCLS(reportSoftNavs?: boolean): () => void {
+  return addClsInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      if (!entry) {
+        return;
+      }
+      _emitMeasurement(metric, 'cls', metric.value, '');
+      _clsEntry = entry;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): () => void {
-  return addLcpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1];
-    if (!entry || !isValidLcpMetric(metric.value)) {
-      return;
-    }
-
-    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-    _lcpEntry = entry as LargestContentfulPaint;
-  }, true);
+function _trackLCP(reportSoftNavs?: boolean): () => void {
+  return addLcpInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1];
+      if (!entry || !isValidLcpMetric(metric.value)) {
+        return;
+      }
+      _emitMeasurement(metric, 'lcp', metric.value, 'millisecond');
+      _lcpEntry = entry as LargestContentfulPaint;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
 }
 
-function _trackTtfb(): () => void {
+function _trackTtfb(reportSoftNavs?: boolean): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }
 
-    _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
-  });
+    _emitMeasurement(metric, 'ttfb', metric.value, 'millisecond');
+  }, reportSoftNavs);
 }
 
 /** Starts tracking First Paint and First Contentful Paint on the current page. */

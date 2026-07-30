@@ -18,6 +18,12 @@ export interface WebVitalsOptions {
    * Web vitals to skip.
    */
   ignore?: WebVitalName[];
+
+  /**
+   * Experimental: report web vitals for Chrome soft navigations in addition to the initial pageload.
+   * Requires the Soft Navigation API (origin trial or `#soft-navigation-heuristics` flag).
+   */
+  reportSoftNavs?: boolean;
 }
 
 /**
@@ -29,6 +35,7 @@ export interface WebVitalsOptions {
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
   const ignored = new Set(options.ignore ?? []);
+  const reportSoftNavs = options.reportSoftNavs;
 
   return {
     name: WEB_VITALS_INTEGRATION_NAME,
@@ -43,6 +50,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       const finalizeWebVitals = startTrackingWebVitals({
         trackCls: trackClsOnPageloadSpan,
         trackLcp: trackLcpOnPageloadSpan,
+        reportSoftNavs,
         client,
       });
 
@@ -67,17 +75,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
       if (spanStreamingEnabled) {
         if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client);
+          trackLcpAsSpan(client, reportSoftNavs);
         }
         if (!ignored.has('cls')) {
-          trackClsAsSpan(client);
+          trackClsAsSpan(client, reportSoftNavs);
         }
       }
 
       // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
       // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
       if (!ignored.has('inp')) {
-        trackInpAsSpan(client);
+        trackInpAsSpan(client, reportSoftNavs);
       }
     },
     afterAllSetup() {

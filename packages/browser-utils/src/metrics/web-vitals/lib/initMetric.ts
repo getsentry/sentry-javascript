@@ -19,24 +19,35 @@ import type { MetricType } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';
 import { getNavigationEntry } from './getNavigationEntry';
+import { getSoftNavigationEntry } from './softNavs';
 
-export const initMetric = <MetricName extends MetricType['name']>(name: MetricName, value: number = -1) => {
-  const navEntry = getNavigationEntry();
+export const initMetric = <MetricName extends MetricType['name']>(
+  name: MetricName,
+  value: number = -1,
+  navigation?: MetricType['navigationType'],
+  navigationId?: string,
+  interactionId?: number,
+) => {
+  const hardNavId = getNavigationEntry()?.navigationId || '1';
+  const hardNavEntry = getNavigationEntry();
   let navigationType: MetricType['navigationType'] = 'navigate';
 
-  if (navEntry) {
+  if (navigation) {
+    // If it was passed in, then use that
+    navigationType = navigation;
+  } else if (hardNavEntry) {
     if (WINDOW.document?.prerendering || getActivationStart() > 0) {
       navigationType = 'prerender';
     } else if (WINDOW.document?.wasDiscarded) {
       navigationType = 'restore';
-    } else if (navEntry.type) {
-      navigationType = navEntry.type.replace(/_/g, '-') as MetricType['navigationType'];
+    } else if (hardNavEntry.type) {
+      navigationType = hardNavEntry.type.replace(/_/g, '-') as MetricType['navigationType'];
     }
   }
 
   // Use `entries` type specific for the metric.
   const entries: Extract<MetricType, { name: MetricName }>['entries'] = [];
-
+  const softNavEntry = getSoftNavigationEntry(navigationId);
   return {
     name,
     value,
@@ -45,5 +56,9 @@ export const initMetric = <MetricName extends MetricType['name']>(name: MetricNa
     entries,
     id: generateUniqueID(),
     navigationType,
+    navigationId: navigationId || hardNavId,
+    interactionId: interactionId ?? softNavEntry?.interactionId,
+    navigationURL: softNavEntry?.name || getNavigationEntry()?.name,
+    navigationStartTime: softNavEntry?.startTime || 0,
   };
 };
