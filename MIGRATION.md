@@ -414,6 +414,7 @@ Sentry.init({
 - The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
 - The `generateInstrumentOnce` export was removed (from `@sentry/node` and the framework SDKs that re-exported it). It wrapped OpenTelemetry's `registerInstrumentations` and is no longer needed now that instrumentation is channel-based.
 - The `@sentry/node/loader` entry point was removed. Use `node --import @sentry/node/import` instead.
+- (Astro) The `@sentry/astro/loader` entry point was removed. Use `node --import @sentry/astro/import` instead.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
