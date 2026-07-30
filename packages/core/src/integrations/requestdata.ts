@@ -252,10 +252,7 @@ function resolveFilteringBehavior(isIncluded: boolean, behavior: CollectBehavior
   return isIncluded && behavior === false ? true : behavior;
 }
 
-function filterQueryString(
-  queryString: QueryParams,
-  behavior: CollectBehavior,
-): string | undefined {
+function filterQueryString(queryString: QueryParams, behavior: CollectBehavior): string | undefined {
   const normalized = normalizeQueryString(queryString);
   if (!normalized) {
     return undefined;
