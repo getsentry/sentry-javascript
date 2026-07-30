@@ -98,13 +98,14 @@ describe('requestDataIntegration', () => {
       });
     });
 
-    it('keeps IP headers when include.ip is true even if userInfo is false', () => {
+    it('includes user IP when include.ip is true and dataCollection.userInfo is false', () => {
       const integration = requestDataIntegration({ include: { ip: true } });
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient(false, { userInfo: false }));
 
       expect(event.request?.headers?.['X-Forwarded-For']).toBe('192.168.1.1');
+      expect(event.user?.ip_address).toBe('192.168.1.1');
     });
 
     it('strips IP headers when include.ip is false even if userInfo is true', () => {
@@ -276,6 +277,42 @@ describe('requestDataIntegration', () => {
       expect(event.request?.cookies).toEqual({ id: '42' });
     });
 
+    it('omits headers when include.headers is false and dataCollection enables headers', () => {
+      const integration = requestDataIntegration({ include: { headers: false } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { headers: { Accept: 'application/json' } },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { httpHeaders: { request: true, response: true } }));
+
+      expect(event.request?.headers).toBeUndefined();
+    });
+
+    it('applies the configured header allowlist when include.headers is true', () => {
+      const integration = requestDataIntegration({ include: { headers: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            headers: { Accept: 'application/json', 'X-Request-Id': 'req-123', Authorization: 'Bearer secret' },
+          },
+        },
+      };
+
+      integration.processEvent?.(
+        event,
+        {},
+        mockClient(false, { httpHeaders: { request: { allow: ['accept'] }, response: true } }),
+      );
+
+      expect(event.request?.headers).toEqual({
+        Accept: 'application/json',
+        'X-Request-Id': '[Filtered]',
+        Authorization: '[Filtered]',
+      });
+    });
+
     it('with include.headers false, still sets user.ip_address from original headers when userInfo is true', () => {
       const integration = requestDataIntegration({ include: { headers: false } });
       const event: Event = {
@@ -293,6 +330,21 @@ describe('requestDataIntegration', () => {
       expect(event.request?.headers).toBeUndefined();
       expect(event.user?.ip_address).toBe('192.0.2.1');
     });
+  });
+
+  it('filters sensitive request headers', () => {
+    const integration = requestDataIntegration();
+    const event: Event = {
+      sdkProcessingMetadata: {
+        normalizedRequest: {
+          headers: { Accept: 'application/json', Authorization: 'Bearer secret' },
+        },
+      },
+    };
+
+    integration.processEvent?.(event, {}, mockClient(false));
+
+    expect(event.request?.headers).toEqual({ Accept: 'application/json', Authorization: '[Filtered]' });
   });
 
   describe('include.cookies', () => {
@@ -342,6 +394,66 @@ describe('requestDataIntegration', () => {
       expect(event.request?.cookies).toBeUndefined();
     });
 
+    it('omits cookies when include.cookies is false and dataCollection enables cookies', () => {
+      const integration = requestDataIntegration({ include: { cookies: false } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { cookies: { theme: 'dark' } },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { cookies: true }));
+
+      expect(event.request?.cookies).toBeUndefined();
+    });
+
+    it('applies the default denylist when include.cookies overrides dataCollection.cookies=false', () => {
+      const integration = requestDataIntegration({ include: { cookies: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { cookies: { theme: 'dark', session: 'secret' } },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { cookies: false }));
+
+      expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
+    });
+
+    it('preserves the configured cookie denylist when include.cookies is true', () => {
+      const integration = requestDataIntegration({ include: { cookies: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { cookies: { theme: 'dark', experiment: 'variant-a', session: 'secret' } },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { cookies: { deny: ['experiment'] } }));
+
+      expect(event.request?.cookies).toEqual({
+        theme: 'dark',
+        experiment: '[Filtered]',
+        session: '[Filtered]',
+      });
+    });
+
+    it('preserves the configured cookie allowlist when include.cookies is true', () => {
+      const integration = requestDataIntegration({ include: { cookies: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { cookies: { theme: 'dark', locale: 'en', session: 'secret' } },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { cookies: { allow: ['theme'] } }));
+
+      expect(event.request?.cookies).toEqual({
+        theme: 'dark',
+        locale: '[Filtered]',
+        session: '[Filtered]',
+      });
+    });
+
     it('uses normalizedRequest.cookies when set', () => {
       const integration = requestDataIntegration();
       const event: Event = {
@@ -350,14 +462,14 @@ describe('requestDataIntegration', () => {
             method: 'GET',
             url: 'https://example.com/',
             headers: { Host: 'example.com' },
-            cookies: { session_id: 'abc' },
+            cookies: { preference: 'abc' },
           },
         },
       };
 
       integration.processEvent?.(event, {}, mockClient(false));
 
-      expect(event.request?.cookies).toEqual({ session_id: 'abc' });
+      expect(event.request?.cookies).toEqual({ preference: 'abc' });
     });
 
     it('prefers normalizedRequest.cookies over the Cookie header when both are present', () => {
@@ -395,6 +507,40 @@ describe('requestDataIntegration', () => {
       expect(event.request?.cookies).toEqual({ a: '1', b: 'two' });
     });
 
+    it('filters sensitive cookies with the default denylist', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            headers: { cookie: 'theme=dark; session=secret; connect.sid=secret' },
+          },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false));
+
+      expect(event.request?.cookies).toEqual({
+        theme: 'dark',
+        session: '[Filtered]',
+        'connect.sid': '[Filtered]',
+      });
+    });
+
+    it('applies a custom cookie denylist', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            cookies: { theme: 'dark', experiment: 'variant-a' },
+          },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { cookies: { deny: ['experiment'] } }));
+
+      expect(event.request?.cookies).toEqual({ theme: 'dark', experiment: '[Filtered]' });
+    });
+
     it('sets event.request.cookies to an empty object when include.cookies is true but no cookies are present', () => {
       const integration = requestDataIntegration();
       const event: Event = {
@@ -428,6 +574,45 @@ describe('requestDataIntegration', () => {
   });
 
   describe('include.query_string', () => {
+    it('omits query string when include.query_string is false and dataCollection enables query params', () => {
+      const integration = requestDataIntegration({ include: { query_string: false } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: true }));
+
+      expect(event.request?.query_string).toBeUndefined();
+    });
+
+    it('applies the default denylist when include.query_string overrides dataCollection.urlQueryParams=false', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: false }));
+
+      expect(event.request?.query_string).toBe('page=1&token=[Filtered]');
+    });
+
+    it('preserves the configured query allowlist when include.query_string is true', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1&sort=name&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: { allow: ['page'] } }));
+
+      expect(event.request?.query_string).toBe('page=1&sort=[Filtered]&token=[Filtered]');
+    });
+
     it('omits event.request.query_string when include.query_string is false', () => {
       const integration = requestDataIntegration({ include: { query_string: false } });
       const event: Event = {
@@ -470,11 +655,11 @@ describe('requestDataIntegration', () => {
         data: { body: 'payload' },
         headers: {
           Host: 'example.com',
-          cookie: 'session=from-header',
+          cookie: '[Filtered]',
           'X-Forwarded-For': '192.168.1.1',
           'X-Custom': 'keep',
         },
-        cookies: { session: 'from-header' },
+        cookies: { session: '[Filtered]' },
       });
       expect(event.user?.ip_address).toBe('192.168.1.1');
     });
@@ -489,10 +674,10 @@ describe('requestDataIntegration', () => {
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
-        cookie: 'session=from-header',
+        cookie: '[Filtered]',
         'X-Custom': 'keep',
       });
-      expect(event.request?.cookies).toEqual({ session: 'from-header' });
+      expect(event.request?.cookies).toEqual({ session: '[Filtered]' });
       expect(event.user?.ip_address).toBeUndefined();
     });
 
@@ -871,6 +1056,17 @@ describe('requestDataIntegration processSegmentSpan', () => {
       expect(span.attributes).not.toHaveProperty('url.query');
     });
 
+    it('include.ip overrides dataCollection.userInfo=false on spans', () => {
+      const integration = requestDataIntegration({ include: { ip: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({ headers: { 'x-forwarded-for': '203.0.113.50' } });
+
+      integration.processSegmentSpan!(span, mockClient(false, { userInfo: false }));
+
+      expect(span.attributes?.['user.ip_address']).toBe('203.0.113.50');
+    });
+
     it('include.headers overrides dataCollection.httpHeaders.request=false on spans', () => {
       const integration = requestDataIntegration({ include: { headers: true } });
       const span = makeSpan();
@@ -887,6 +1083,21 @@ describe('requestDataIntegration processSegmentSpan', () => {
       });
     });
 
+    it('preserves configured header filtering when include.headers is true on spans', () => {
+      const integration = requestDataIntegration({ include: { headers: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({ headers: { accept: 'application/json', 'x-request-id': 'req-123' } });
+
+      integration.processSegmentSpan!(
+        span,
+        mockClient(false, { httpHeaders: { request: { allow: ['accept'] }, response: true } }),
+      );
+
+      expect(span.attributes?.['http.request.header.accept']).toBe('application/json');
+      expect(span.attributes?.['http.request.header.x_request_id']).toBe('[Filtered]');
+    });
+
     it('include.cookies overrides dataCollection.cookies=false on spans', () => {
       const integration = requestDataIntegration({ include: { cookies: true } });
       const span = makeSpan();
@@ -901,6 +1112,30 @@ describe('requestDataIntegration processSegmentSpan', () => {
         'http.request.header.cookie.theme': 'dark',
         'http.request.header.cookie.locale': 'en',
       });
+    });
+
+    it('preserves configured cookie filtering when include.cookies is true on spans', () => {
+      const integration = requestDataIntegration({ include: { cookies: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({ cookies: { theme: 'dark', locale: 'en', session: 'secret' } });
+
+      integration.processSegmentSpan!(span, mockClient(false, { cookies: { allow: ['theme'] } }));
+
+      expect(span.attributes?.['http.request.header.cookie.theme']).toBe('dark');
+      expect(span.attributes?.['http.request.header.cookie.locale']).toBe('[Filtered]');
+      expect(span.attributes?.['http.request.header.cookie.session']).toBe('[Filtered]');
+    });
+
+    it('filters query params when include.query_string overrides dataCollection.urlQueryParams=false on spans', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({ query_string: 'page=1&token=secret' });
+
+      integration.processSegmentSpan!(span, mockClient(false, { urlQueryParams: false }));
+
+      expect(span.attributes?.['url.query']).toBe('page=1&token=[Filtered]');
     });
   });
 });
