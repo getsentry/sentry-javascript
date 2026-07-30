@@ -627,7 +627,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: BeforeSendStreamedSpanCallback | BeforeSendStaticSpanCallbackMarker;
+  beforeSendSpan?: BeforeSendStreamedSpanCallback;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
@@ -675,16 +675,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 export type BeforeSendStreamedSpanCallback = (span: StreamedSpanJSON) => StreamedSpanJSON;
 
 /**
- * The marker that {@link withStaticSpan} adds to a `beforeSendSpan` callback.
+ * A callback for processing spans sent as part of transaction events.
  *
- * Deliberately not callable: `beforeSendSpan` must have exactly one call signature for TypeScript to
- * contextually type an unwrapped callback's parameter as {@link StreamedSpanJSON}. A union of two
- * callable types would infer `any` instead.
+ * Pass this to {@link withStaticSpan} rather than to `beforeSendSpan` directly.
+ *
+ * @see {@link SpanJSON} for the static span format used with `traceLifecycle: 'static'`
  */
-type BeforeSendStaticSpanCallbackMarker = { _static: true };
-
-/** A callback for processing spans sent as part of transaction events. */
-export type BeforeSendStaticSpanCallback = ((span: SpanJSON) => SpanJSON) & BeforeSendStaticSpanCallbackMarker;
+export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<

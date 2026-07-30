@@ -39,7 +39,7 @@ import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
-import { debug } from './utils/debug-logger';
+import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
@@ -264,11 +264,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       beforeSendSpan &&
       isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
     ) {
-      debug.warn(
-        `Ignoring \`beforeSendSpan\`: ${
-          traceLifecycle === 'static' ? 'wrap it with' : 'remove'
-        } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
-      );
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          `Ignoring \`beforeSendSpan\`: ${
+            traceLifecycle === 'static' ? 'wrap it with' : 'remove'
+          } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
+        );
+      });
     }
 
     if (this._dsn) {

@@ -265,7 +265,7 @@ beforeSendSpan: Sentry.withStreamedSpan(span => span);
 beforeSendSpan: span => span;
 ```
 
-The internal `isStreamedBeforeSendSpanCallback()` function from `@sentry/core` is no longer exported.
+The internal `isStreamedBeforeSendSpanCallback()` function from `@sentry/core` was removed.
 
 #### Replacing `beforeSendTransaction`
 
