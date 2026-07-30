@@ -19,10 +19,7 @@ export interface AgentInternals {
    * does not, so its presence discriminates a chat agent.
    */
   onChatMessage?: (...args: unknown[]) => unknown;
-  /**
-   * HTTP request handler, called for any non-WebSocket request routed to the agent (REST
-   * endpoints, webhooks). Installed as an own property by the `Agent` constructor.
-   */
+  /** HTTP request handler; the router sends every non-WebSocket request here. */
   onRequest?: (...args: unknown[]) => unknown;
   /** The user's Agent class (used by the SDK for the observability event `agent` field). */
   _ParentClass?: { name?: string };

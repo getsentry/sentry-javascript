@@ -161,7 +161,6 @@ describe('instrumentCloudflareAgent', () => {
     it('sets the conversation id during an HTTP request', () => {
       const agent = createFakeAgent({
         onRequest(this: any) {
-          // Capture what the scope sees while the request is being handled.
           this.seenConversationId = getCurrentScope().getScopeData().conversationId;
           return 'response';
         },
