@@ -1,4 +1,3 @@
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 import { setupExpressErrorHandler as coreSetupExpressErrorHandler, type ExpressHandlerOptions } from '@sentry/core';
 export { expressErrorHandler } from '@sentry/core';
 
@@ -8,5 +7,4 @@ export function setupExpressErrorHandler(
   options?: ExpressHandlerOptions,
 ): void {
   coreSetupExpressErrorHandler(app, options);
-  ensureIsWrapped(app.use, 'express');
 }

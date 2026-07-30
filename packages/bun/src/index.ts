@@ -38,7 +38,6 @@ export {
   getClient,
   isInitialized,
   isEnabled,
-  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,

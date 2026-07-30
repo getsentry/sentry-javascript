@@ -66,12 +66,6 @@ export interface ServerRuntimeOptions {
   includeServerName?: boolean;
 
   /**
-   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
-   * If you want to disable these warnings, set this to `true`.
-   */
-  disableInstrumentationWarnings?: boolean;
-
-  /**
    * Controls how many milliseconds to wait before shutting down. The default is 2 seconds. Setting this too low can cause
    * problems for sending events from command line applications. Setting it too
    * high can cause the application to block for users with network connectivity
