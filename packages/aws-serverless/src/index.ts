@@ -120,6 +120,7 @@ export {
   processSessionIntegration,
   prismaIntegration,
   childProcessIntegration,
+  workerIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,

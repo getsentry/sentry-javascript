@@ -142,6 +142,7 @@ export {
   anthropicAIIntegration,
   googleGenAIIntegration,
   childProcessIntegration,
+  workerIntegration,
   createSentryWinstonTransport,
   vercelAIIntegration,
   logger,
