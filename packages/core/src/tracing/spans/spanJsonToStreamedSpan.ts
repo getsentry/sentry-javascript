@@ -1,12 +1,35 @@
 import type { RawAttributes } from '../../attributes';
+import {
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+} from '../../semanticAttributes';
 import type { SerializedStreamedSpan, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { streamedSpanJsonToSerializedSpan } from '../../utils/spanUtils';
+
+// v1 SpanJSON mirrors some attributes as top-level fields (see `SentrySpan.getSpanJSON`). A
+// `beforeSendSpan` callback edits the top-level field, so those edits have to be folded back into
+// attributes, letting the top-level value win over the (initially identical) attribute. This is the
+// inverse of `getSpanJSON` and mirrors how `convertSpanJsonToTransactionEvent` rebuilds `data`.
+const TOP_LEVEL_ATTRIBUTE_FIELDS = [
+  ['op', SEMANTIC_ATTRIBUTE_SENTRY_OP],
+  ['origin', SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
+  ['profile_id', SEMANTIC_ATTRIBUTE_PROFILE_ID],
+  ['exclusive_time', SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME],
+] as const;
 
 /**
  * Converts a v1 SpanJSON (from a legacy transaction) to the intermediate v2 {@link StreamedSpanJSON}
  * (raw attributes), before serialization. Use this when a hook needs to mutate the span JSON.
  */
 export function spanJsonToStreamedSpanJSON(span: SpanJSON): StreamedSpanJSON {
+  const attributes = { ...(span.data as RawAttributes<Record<string, unknown>>) };
+
+  for (const [field, attribute] of TOP_LEVEL_ATTRIBUTE_FIELDS) {
+    attributes[attribute] = span[field] ?? attributes[attribute];
+  }
+
   return {
     trace_id: span.trace_id,
     span_id: span.span_id,
@@ -16,7 +39,7 @@ export function spanJsonToStreamedSpanJSON(span: SpanJSON): StreamedSpanJSON {
     end_timestamp: span.timestamp || span.start_timestamp,
     status: !span.status || span.status === 'ok' || span.status === 'cancelled' ? 'ok' : 'error',
     is_segment: false,
-    attributes: { ...(span.data as RawAttributes<Record<string, unknown>>) },
+    attributes,
     links: span.links,
   };
 }
