@@ -186,6 +186,7 @@ export {
 export * as logger from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';
+export { workerThreadsIntegration } from './integrations/workerThreadsIntegration';
 export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
 export { contextLinesIntegration } from './integrations/contextlines';

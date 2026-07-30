@@ -20,6 +20,7 @@ import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
+import { workerThreadsIntegration } from '../integrations/workerThreadsIntegration';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
@@ -65,6 +66,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
+    workerThreadsIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
   ];
