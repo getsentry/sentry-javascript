@@ -334,6 +334,45 @@ describe('SentrySpan', () => {
       expect(spanItem[1].items[0]!.name).toBe('scrubbed');
     });
 
+    test('runs `processSpan` hooks for standalone spans with a non-streamed `beforeSendSpan`', () => {
+      // Integrations (e.g. Replay attaching `sentry.replay_id`) enrich spans via the `processSpan` hook.
+      // The static-callback standalone path must still run those hooks, so this asserts a subscriber runs
+      // and its mutation lands on the sent v2 span.
+      const beforeSendSpan = vi.fn((span: SpanJSON) => span);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+
+      client.on('processSpan', span => {
+        (span.attributes ?? (span.attributes = {}))['sentry.replay_id'] = 'abc';
+      });
+
+      const envelopes: Envelope[] = [];
+      client.on('beforeEnvelope', envelope => {
+        envelopes.push(envelope);
+      });
+
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+
+      const spanItem = envelopes[0]?.[1][0] as [
+        { type: string },
+        { items: Array<{ attributes: Record<string, { value: unknown }> }> },
+      ];
+      expect(spanItem[1].items[0]!.attributes['sentry.replay_id']!.value).toBe('abc');
+    });
+
     test('sends a standalone span on its own and excludes it from the parent transaction', async () => {
       const client = new TestClient(
         getDefaultTestClientOptions({

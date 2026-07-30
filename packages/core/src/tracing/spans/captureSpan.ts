@@ -22,7 +22,7 @@ import {
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
-import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
+import { spanJsonToStreamedSpanJSON } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
 import {
@@ -165,9 +165,11 @@ function applyCommonSpanAttributes(
 /**
  * Captures a standalone span whose `beforeSendSpan` callback expects the v1 {@link SpanJSON} format
  * (i.e. the user opted out of span streaming). The span is serialized to v1, the common attributes
- * are applied so the callback can scrub them, the callback runs in its native format, and the result
- * is converted forward to a serialized v2 span. This mirrors how gen_ai spans reach the v2 span path
- * from a static transaction, so there is never a reverse v2 -> v1 conversion.
+ * are applied so the callback can scrub them, and the callback runs in its native format. The result
+ * is then converted forward to the intermediate v2 span JSON, on which the `preprocessSpan`/`processSpan`
+ * hooks run (so integrations like Replay still enrich it, e.g. attaching `sentry.replay_id`), before it
+ * is serialized. This mirrors how gen_ai spans reach the v2 span path from a static transaction, so
+ * there is never a reverse v2 -> v1 conversion.
  *
  * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
  */
@@ -191,13 +193,17 @@ export function captureStandaloneSpanWithStaticCallback(
     }
   });
 
-  const processedSpan = beforeSendSpan(spanJSON);
-  if (!processedSpan) {
-    showSpanDropWarning();
-    return spanJsonToSerializedStreamedSpan(spanJSON);
-  }
+  const processedSpan = beforeSendSpan(spanJSON) || (showSpanDropWarning(), spanJSON);
 
-  return spanJsonToSerializedStreamedSpan(processedSpan);
+  const streamedSpanJSON = spanJsonToStreamedSpanJSON(processedSpan);
+
+  // A standalone span is never a segment span (see `spanJsonToStreamedSpanJSON`), so we only run the
+  // regular span hooks. These let integrations enrich the span the same way they do in the streaming
+  // pipeline, e.g. Replay attaching `sentry.replay_id`.
+  client.emit('preprocessSpan', streamedSpanJSON);
+  client.emit('processSpan', streamedSpanJSON);
+
+  return streamedSpanJsonToSerializedSpan(streamedSpanJSON);
 }
 
 /**

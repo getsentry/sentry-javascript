@@ -3,10 +3,11 @@ import type { SerializedStreamedSpan, SpanJSON, StreamedSpanJSON } from '../../t
 import { streamedSpanJsonToSerializedSpan } from '../../utils/spanUtils';
 
 /**
- * Converts a v1 SpanJSON (from a legacy transaction) to a serialized v2 StreamedSpan.
+ * Converts a v1 SpanJSON (from a legacy transaction) to the intermediate v2 {@link StreamedSpanJSON}
+ * (raw attributes), before serialization. Use this when a hook needs to mutate the span JSON.
  */
-export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStreamedSpan {
-  const streamedSpan: StreamedSpanJSON = {
+export function spanJsonToStreamedSpanJSON(span: SpanJSON): StreamedSpanJSON {
+  return {
     trace_id: span.trace_id,
     span_id: span.span_id,
     parent_span_id: span.parent_span_id,
@@ -18,6 +19,11 @@ export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStre
     attributes: { ...(span.data as RawAttributes<Record<string, unknown>>) },
     links: span.links,
   };
+}
 
-  return streamedSpanJsonToSerializedSpan(streamedSpan);
+/**
+ * Converts a v1 SpanJSON (from a legacy transaction) to a serialized v2 StreamedSpan.
+ */
+export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStreamedSpan {
+  return streamedSpanJsonToSerializedSpan(spanJsonToStreamedSpanJSON(span));
 }
