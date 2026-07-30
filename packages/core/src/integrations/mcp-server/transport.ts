@@ -14,22 +14,18 @@ import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForR
 import { captureError } from './errorCapture';
 import {
   buildClientAttributesFromInfo,
-  extractSessionDataFromInitializeRequest,
-  extractSessionDataFromInitializeResponse,
+  extractSessionDataFromRequest,
+  extractSessionDataFromResponse,
 } from './sessionExtraction';
-import {
-  cleanupSessionDataForTransport,
-  storeSessionDataForTransport,
-  updateSessionDataForTransport,
-} from './sessionManagement';
+import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidContentItem } from './validation';
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
- * For "initialize" requests, extracts and stores client info and protocol version
- * in the session data for the transport.
+ * Extracts and stores client info and protocol version from legacy initialize
+ * requests and modern request envelopes.
  * @param transport - MCP transport instance to wrap
  * @param options - Resolved MCP options
  */
@@ -38,16 +34,14 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
         if (isJsonRpcRequest(message)) {
-          const isInitialize = message.method === 'initialize';
-          let initSessionData: SessionData | undefined;
-
-          if (isInitialize) {
-            try {
-              initSessionData = extractSessionDataFromInitializeRequest(message);
-              storeSessionDataForTransport(transport, initSessionData);
-            } catch {
-              // noop
+          let requestSessionData: SessionData | undefined;
+          try {
+            requestSessionData = extractSessionDataFromRequest(message);
+            if (requestSessionData.protocolVersion || requestSessionData.clientInfo) {
+              updateSessionDataForTransport(transport, requestSessionData);
             }
+          } catch {
+            // noop
           }
 
           const isolationScope = getIsolationScope().clone();
@@ -56,12 +50,11 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
             const spanConfig = buildMcpServerSpanConfig(message, transport, extra as ExtraHandlerData, options);
             const span = startInactiveSpan(spanConfig);
 
-            // For initialize requests, add client info directly to span (works even for stateless transports)
-            if (isInitialize && initSessionData) {
+            if (message.method === 'initialize' && requestSessionData) {
               span.setAttributes({
-                ...buildClientAttributesFromInfo(initSessionData.clientInfo),
-                ...(initSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: initSessionData.protocolVersion,
+                ...buildClientAttributesFromInfo(requestSessionData.clientInfo),
+                ...(requestSessionData.protocolVersion && {
+                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: requestSessionData.protocolVersion,
                 }),
               });
             }
@@ -88,8 +81,8 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
 
 /**
  * Wraps transport.send to handle outgoing messages and response correlation.
- * For "initialize" responses, extracts and stores protocol version and server info
- * in the session data for the transport.
+ * Extracts and stores protocol version and server info from legacy initialize
+ * responses and modern result metadata.
  * @param transport - MCP transport instance to wrap
  * @param options - Resolved MCP options
  */
@@ -112,13 +105,13 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
             }
 
             if (isValidContentItem(message.result)) {
-              if (message.result.protocolVersion || message.result.serverInfo) {
-                try {
-                  const serverData = extractSessionDataFromInitializeResponse(message.result);
+              try {
+                const serverData = extractSessionDataFromResponse(message.result);
+                if (serverData.protocolVersion || serverData.serverInfo) {
                   updateSessionDataForTransport(transport, serverData);
-                } catch {
-                  // noop
                 }
+              } catch {
+                // noop
               }
             }
 

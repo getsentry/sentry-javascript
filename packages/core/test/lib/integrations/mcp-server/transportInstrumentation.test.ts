@@ -5,6 +5,8 @@ import {
   buildTransportAttributes,
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
+  extractSessionDataFromRequest,
+  extractSessionDataFromResponse,
   getTransportTypes,
 } from '../../../../src/integrations/mcp-server/sessionExtraction';
 import {
@@ -498,6 +500,60 @@ describe('MCP Server Transport Instrumentation', () => {
       });
     });
 
+    it('extracts session data from a modern request envelope', () => {
+      const request = {
+        jsonrpc: '2.0' as const,
+        method: 'tools/call',
+        id: 'modern-tool-call',
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientInfo': {
+              name: 'modern-client',
+              title: 'Modern Client',
+              version: '2.0.0',
+            },
+          },
+          name: 'weather',
+        },
+      };
+
+      const sessionData = extractSessionDataFromRequest(request);
+
+      expect(sessionData).toEqual({
+        protocolVersion: '2026-07-28',
+        clientInfo: {
+          name: 'modern-client',
+          title: 'Modern Client',
+          version: '2.0.0',
+        },
+      });
+    });
+
+    it('extracts server info from modern result metadata', () => {
+      const result = {
+        resultType: 'complete',
+        content: [],
+        _meta: {
+          'io.modelcontextprotocol/serverInfo': {
+            name: 'modern-server',
+            title: 'Modern Server',
+            version: '2.0.0',
+          },
+        },
+      };
+
+      const sessionData = extractSessionDataFromResponse(result);
+
+      expect(sessionData).toEqual({
+        serverInfo: {
+          name: 'modern-server',
+          title: 'Modern Server',
+          version: '2.0.0',
+        },
+      });
+    });
+
     it('should store and retrieve session data', () => {
       const sessionData = {
         protocolVersion: '2025-06-18',
@@ -652,7 +708,7 @@ describe('MCP Server Transport Instrumentation', () => {
     });
   });
 
-  describe('Initialize Span Attributes', () => {
+  describe('Protocol Metadata Span Attributes', () => {
     it('should add client info to initialize span on request', async () => {
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
@@ -720,6 +776,85 @@ describe('MCP Server Transport Instrumentation', () => {
         }),
       );
       expect(mockSpan.end).toHaveBeenCalled();
+    });
+
+    it('adds modern protocol and client info to request spans', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'modern-tool-call',
+          params: {
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientInfo': { name: 'modern-client', version: '2.0.0' },
+            },
+            name: 'weather',
+          },
+        },
+        { classification: { era: 'modern', revision: '2026-07-28' } },
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.client.name': 'modern-client',
+            'mcp.client.version': '2.0.0',
+            'mcp.protocol.version': '2026-07-28',
+          }),
+        }),
+      );
+    });
+
+    it('adds modern server info to completed request spans', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'modern-tool-call',
+          params: {
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientInfo': { name: 'modern-client', version: '2.0.0' },
+            },
+            name: 'weather',
+          },
+        },
+        { classification: { era: 'modern', revision: '2026-07-28' } },
+      );
+      await transport.send?.({
+        jsonrpc: '2.0',
+        id: 'modern-tool-call',
+        result: {
+          resultType: 'complete',
+          content: [{ type: 'text', text: 'Sunny' }],
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': { name: 'modern-server', version: '2.0.0' },
+          },
+        },
+      });
+
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith({
+        'mcp.server.name': 'modern-server',
+        'mcp.server.version': '2.0.0',
+      });
+      expect(mockSpan.end).toHaveBeenCalledOnce();
     });
   });
 

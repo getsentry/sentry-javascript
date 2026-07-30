@@ -14,7 +14,7 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
-import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';
+import { buildServerAttributesFromInfo, extractSessionDataFromResponse } from './sessionExtraction';
 import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
 
 /**
@@ -94,21 +94,19 @@ export function completeSpanWithResults(
   const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
+    const responseSessionData = extractSessionDataFromResponse(result);
+    const responseAttributes: Record<string, string | number> = {
+      ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
+    };
+    if (responseSessionData.protocolVersion) {
+      responseAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = responseSessionData.protocolVersion;
+    }
+    if (Object.keys(responseAttributes).length > 0) {
+      span.setAttributes(responseAttributes);
+    }
 
     if (hasError) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    } else if (method === 'initialize') {
-      const sessionData = extractSessionDataFromInitializeResponse(result);
-      const serverAttributes = buildServerAttributesFromInfo(sessionData.serverInfo);
-
-      const initAttributes: Record<string, string | number> = {
-        ...serverAttributes,
-      };
-      if (sessionData.protocolVersion) {
-        initAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = sessionData.protocolVersion;
-      }
-
-      span.setAttributes(initAttributes);
     } else if (method === 'tools/call') {
       const toolAttributes = extractToolResultAttributes(result, options.recordOutputs);
       span.setAttributes(toolAttributes);
