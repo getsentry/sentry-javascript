@@ -1,4 +1,4 @@
-import { resolveOrchestrionRuntimeRequest } from '@sentry/server-utils/orchestrion/webpack';
+import { loadOrchestrionBundlerPlugin } from './loadOrchestrionBundlerPlugin';
 
 /**
  * Instrumented packages verified (via e2e) to bundle correctly, removed from Sentry's own
@@ -58,6 +58,6 @@ export async function externalizeOrchestrionRuntimePackages({
     return undefined;
   }
 
-  const resolved = resolveOrchestrionRuntimeRequest(request);
+  const resolved = loadOrchestrionBundlerPlugin()?.resolveOrchestrionRuntimeRequest(request);
   return resolved ? `commonjs ${resolved}` : undefined;
 }
