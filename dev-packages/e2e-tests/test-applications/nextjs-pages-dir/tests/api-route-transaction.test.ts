@@ -26,9 +26,7 @@ test('Sends exactly one transaction for a pages-router API route', async ({ requ
 
 test('Sends a well-formed transaction for a node-runtime pages-router API route', async ({ request }) => {
   const transactionPromise = waitForTransaction('nextjs-pages-dir', transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET /api/endpoint' && transactionEvent.contexts?.runtime?.name === 'node'
-    );
+    return transactionEvent?.transaction === 'GET /api/endpoint' && transactionEvent.contexts?.runtime?.name === 'node';
   });
 
   const response = await request.get('/api/endpoint');
