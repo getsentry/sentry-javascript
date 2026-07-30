@@ -600,6 +600,19 @@ describe('requestDataIntegration', () => {
       expect(event.request?.query_string).toBe('page=1&token=[Filtered]');
     });
 
+    it('preserves encoded query parameter values while filtering sensitive parameters', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'q=hello%20world&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false));
+
+      expect(event.request?.query_string).toBe('q=hello%20world&token=[Filtered]');
+    });
+
     it('preserves the configured query allowlist when include.query_string is true', () => {
       const integration = requestDataIntegration({ include: { query_string: true } });
       const event: Event = {

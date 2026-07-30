@@ -8,7 +8,7 @@ import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
-import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
+import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { httpHeadersToSpanAttributes } from '../utils/request';
@@ -263,8 +263,14 @@ function filterQueryString(queryString: QueryParams, behavior: CollectBehavior):
     return filtered;
   }
 
-  const result = Object.entries(filtered)
-    .map(([key, value]) => `${key}=${value}`)
+  const result = normalized
+    .split('&')
+    .map(pair => {
+      const [key] = pair.split('=', 1);
+      const normalizedKey = new URLSearchParams(pair).keys().next().value;
+
+      return normalizedKey && filtered[normalizedKey] === FILTERED_VALUE ? `${key}=${FILTERED_VALUE}` : pair;
+    })
     .join('&');
   return result || undefined;
 }
