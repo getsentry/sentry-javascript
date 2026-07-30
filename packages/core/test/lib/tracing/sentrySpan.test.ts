@@ -334,11 +334,16 @@ describe('SentrySpan', () => {
       expect(spanItem[1].items[0]!.name).toBe('scrubbed');
     });
 
-    test('runs `processSpan` hooks for standalone spans with a non-streamed `beforeSendSpan`', () => {
+    test('runs `processSpan` hooks before a non-streamed `beforeSendSpan` for standalone spans', () => {
       // Integrations (e.g. Replay attaching `sentry.replay_id`) enrich spans via the `processSpan` hook.
-      // The static-callback standalone path must still run those hooks, so this asserts a subscriber runs
-      // and its mutation lands on the sent v2 span.
-      const beforeSendSpan = vi.fn((span: SpanJSON) => span);
+      // The static-callback standalone path must run those hooks, and (as in `captureSpan`) run them
+      // before `beforeSendSpan`, so the callback sees the enrichment and its mutation lands on the span.
+      let seenReplayId: unknown;
+      const beforeSendSpan = vi.fn((span: SpanJSON) => {
+        seenReplayId = span.data['sentry.replay_id'];
+        span.data['sentry.replay_id'] = 'scrubbed';
+        return span;
+      });
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -366,11 +371,15 @@ describe('SentrySpan', () => {
       });
       span.end();
 
+      // The callback saw the hook-added attribute (hooks ran first)...
+      expect(seenReplayId).toBe('abc');
+
+      // ...and its own change to that attribute is what gets sent.
       const spanItem = envelopes[0]?.[1][0] as [
         { type: string },
         { items: Array<{ attributes: Record<string, { value: unknown }> }> },
       ];
-      expect(spanItem[1].items[0]!.attributes['sentry.replay_id']!.value).toBe('abc');
+      expect(spanItem[1].items[0]!.attributes['sentry.replay_id']!.value).toBe('scrubbed');
     });
 
     test('sends a standalone span on its own and excludes it from the parent transaction', async () => {
