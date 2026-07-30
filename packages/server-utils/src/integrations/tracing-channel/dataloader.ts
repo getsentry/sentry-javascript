@@ -20,7 +20,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 const INTEGRATION_NAME = 'Dataloader' as const;
 
 const MODULE_NAME = 'dataloader';
-const ORIGIN = 'auto.db.orchestrion.dataloader';
+const ORIGIN = 'auto.db.dataloader';
 
 // `load`, `loadMany` and `batch` are cache reads; the rest are cache mutations that get no `op`.
 const CACHE_GET_OP = 'cache.get';

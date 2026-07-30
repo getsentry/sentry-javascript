@@ -21,7 +21,7 @@ const INTEGRATION_NAME = 'Postgres' as const;
 
 // Only the query span carries an origin (the connect/pool-connect spans don't,
 // so they default to 'manual').
-const ORIGIN = 'auto.db.orchestrion.postgres';
+const ORIGIN = 'auto.db.postgres';
 
 // OpenTelemetry "OLD" db/net semantic-conventions, inlined to keep this
 // integration free of `@opentelemetry/*` deps.

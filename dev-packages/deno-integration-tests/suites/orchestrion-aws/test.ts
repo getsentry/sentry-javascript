@@ -79,5 +79,5 @@ Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send chann
   assertEquals(awsSpan!.data?.['rpc.service'], 'CloudWatch');
   assertEquals(awsSpan!.data?.['rpc.method'], 'DescribeAlarms');
   assertEquals(awsSpan!.data?.['cloud.region'], 'us-east-1');
-  assertEquals(awsSpan!.data?.['sentry.origin'], 'auto.aws.orchestrion.aws_sdk');
+  assertEquals(awsSpan!.data?.['sentry.origin'], 'auto.aws.aws_sdk');
 });

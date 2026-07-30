@@ -1,14 +1,10 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '../src/utils/TraceState';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { SENTRY_TRACE_STATE_CHILD_IGNORED } from '../src/constants';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('SentryContextManager', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('removes ignored spans from context so children parent to grandparent', () => {
     mockSdkInit({ tracesSampleRate: 1 });
 

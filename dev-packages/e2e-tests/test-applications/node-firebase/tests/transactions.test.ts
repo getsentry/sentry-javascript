@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // The orchestrion spans are Sentry-native, so they carry no span-kind attribute (`sentry.kind`).
-const origin = 'auto.firebase.orchestrion.firestore';
+const origin = 'auto.firebase.firestore';
 
 function firestoreSpan(operation: string): unknown {
   const data: Record<string, unknown> = {

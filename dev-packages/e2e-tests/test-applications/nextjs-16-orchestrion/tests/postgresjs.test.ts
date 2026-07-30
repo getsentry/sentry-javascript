@@ -21,7 +21,7 @@ test('Instruments postgres.js automatically via orchestrion', async ({ baseURL }
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.postgresjs',
+      origin: 'auto.db.postgresjs',
       description: 'SELECT ? + ? AS solution',
       status: 'ok',
       data: expect.objectContaining({
@@ -37,7 +37,7 @@ test('Instruments postgres.js automatically via orchestrion', async ({ baseURL }
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.postgresjs',
+      origin: 'auto.db.postgresjs',
       description: 'SELECT * from generate_series(?, ?) as x',
       status: 'ok',
       data: expect.objectContaining({

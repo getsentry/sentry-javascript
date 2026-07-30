@@ -16,10 +16,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
@@ -143,7 +140,6 @@ describe('Vercel AI integration (streaming v4)', () => {
         name: 'invoke_agent',
         status: 'ok',
         attributes: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: attr(1),
           [GEN_AI_INPUT_MESSAGES]: attr('[{"role":"user","content":"Where is the first span?"}]'),
           [GEN_AI_OUTPUT_MESSAGES]: attr(
             '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',

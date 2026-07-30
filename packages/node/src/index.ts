@@ -54,10 +54,7 @@ export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
 export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
-export {
-  // This needs exporting so the NodeClient can be used without calling init
-  setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
-} from '@sentry/opentelemetry';
+export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
@@ -206,7 +203,6 @@ export { createGetModuleFromFilename } from './utils/module';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';
-export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
 export { NodeClient } from './sdk/client';
 // eslint-disable-next-line typescript/no-deprecated

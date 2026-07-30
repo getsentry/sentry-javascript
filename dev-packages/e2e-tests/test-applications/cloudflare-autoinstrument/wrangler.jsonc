@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-autoinstrument",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-20",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Every class below is registered the same way — as a Durable Object binding.
+  // An `agents` Agent *is* a Durable Object, so wrangler offers no way to say
+  // "this one is an Agent". Only the base-class chain distinguishes them, which
+  // is exactly what the plugin's detection has to work out at build time:
+  //
+  //   MyAgent       -> extends Agent         (entry-local)      => agent
+  //   MyChatAgent   -> extends AIChatAgent   (entry-local)      => agent
+  //   DerivedAgent  -> extends ./base#MyBase -> Agent           => agent
+  //   PlainDO       -> extends DurableObject                    => durableObject
+  "durable_objects": {
+    "bindings": [
+      { "name": "MyAgent", "class_name": "MyAgent" },
+      { "name": "MyChatAgent", "class_name": "MyChatAgent" },
+      { "name": "DerivedAgent", "class_name": "DerivedAgent" },
+      { "name": "PlainDO", "class_name": "PlainDO" },
+    ],
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MyAgent", "MyChatAgent", "DerivedAgent", "PlainDO"],
+    },
+  ],
+}

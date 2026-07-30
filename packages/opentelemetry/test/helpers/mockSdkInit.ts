@@ -1,6 +1,5 @@
-import { context, propagation, trace } from '@opentelemetry/api';
 import type { ClientOptions, Options } from '@sentry/core';
-import { flush, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { initOtel } from './initOtel';
 import type { TestClient } from './TestClient';
@@ -30,13 +29,4 @@ export function mockSdkInit(options?: Partial<ClientOptions>): TestClient {
   resetGlobals();
 
   return init({ dsn: PUBLIC_DSN, ...options })!;
-}
-
-export async function cleanupOtel(): Promise<void> {
-  // Disable all globally registered APIs
-  trace.disable();
-  context.disable();
-  propagation.disable();
-
-  await flush();
 }

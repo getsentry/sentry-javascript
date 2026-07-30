@@ -18,12 +18,10 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
-import { isOrchestrionEnabled } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('OpenAI integration (V6)', () => {
@@ -59,7 +57,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -114,7 +112,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
               expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
@@ -164,7 +162,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -191,7 +189,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -254,7 +252,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -326,7 +324,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
             },
           })
@@ -369,7 +367,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -382,10 +380,6 @@ describe('OpenAI integration (V6)', () => {
               expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({
                 type: 'double',
                 value: 0.7,
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -440,16 +434,12 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
               expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'gpt-3.5-turbo',
-              });
-              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -502,7 +492,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -511,10 +501,6 @@ describe('OpenAI integration (V6)', () => {
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
                 type: 'string',
                 value: 'error-model',
-              });
-              expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -537,7 +523,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -554,10 +540,6 @@ describe('OpenAI integration (V6)', () => {
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
-              });
-              expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -616,7 +598,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -629,10 +611,6 @@ describe('OpenAI integration (V6)', () => {
               expect(streamingResponsesSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
-              });
-              expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
               });
               expect(streamingResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
@@ -690,10 +668,6 @@ describe('OpenAI integration (V6)', () => {
                 type: 'boolean',
                 value: true,
               });
-              expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1,
-              });
               expect(streamingErrorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
                 type: 'string',
                 value: '[{"role":"user","content":"This will fail"}]',
@@ -708,7 +682,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
             },
           })
@@ -740,10 +714,6 @@ describe('OpenAI integration (V6)', () => {
               );
               expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toMatchObject({
-                type: 'integer',
-                value: 1,
-              });
               expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
                 value: expect.any(String),
@@ -764,12 +734,6 @@ describe('OpenAI integration (V6)', () => {
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
-              });
-              expect(
-                streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE],
-              ).toMatchObject({
-                type: 'integer',
-                value: 1,
               });
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
@@ -830,7 +794,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -875,7 +839,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -904,7 +868,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -971,7 +935,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -1022,7 +986,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -1055,7 +1019,7 @@ describe('OpenAI integration (V6)', () => {
               });
               expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
                 type: 'string',
-                value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                value: 'auto.ai.openai',
               });
               expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
                 type: 'string',
@@ -1117,9 +1081,7 @@ describe('OpenAI integration (V6)', () => {
                   data: {
                     [GEN_AI_OPERATION_NAME]: 'chat',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: isOrchestrionEnabled()
-                      ? 'auto.ai.orchestrion.openai'
-                      : 'auto.ai.openai',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
                     [GEN_AI_SYSTEM]: 'openai',
                     [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                     [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
@@ -1131,7 +1093,7 @@ describe('OpenAI integration (V6)', () => {
                     [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
                   },
                   op: 'gen_ai.chat',
-                  origin: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                  origin: 'auto.ai.openai',
                   status: 'ok',
                 },
               },
@@ -1172,9 +1134,7 @@ describe('OpenAI integration (V6)', () => {
                   data: {
                     [GEN_AI_OPERATION_NAME]: 'chat',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: isOrchestrionEnabled()
-                      ? 'auto.ai.orchestrion.openai'
-                      : 'auto.ai.openai',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
                     [GEN_AI_SYSTEM]: 'openai',
                     [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                     [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
@@ -1186,7 +1146,7 @@ describe('OpenAI integration (V6)', () => {
                     [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
                   },
                   op: 'gen_ai.chat',
-                  origin: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
+                  origin: 'auto.ai.openai',
                   status: 'ok',
                 },
               },

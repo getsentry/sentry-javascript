@@ -120,7 +120,7 @@ describe('extractGenAiSpansFromEvent', () => {
     expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
   });
 
-  it('extracts gen_ai spans by default when streamGenAiSpans is unset', () => {
+  it('extracts gen_ai spans by default', () => {
     const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat', span_id: 'genai001' })], true);
 
     const result = extractGenAiSpansFromEvent(event, makeClient());
@@ -128,14 +128,6 @@ describe('extractGenAiSpansFromEvent', () => {
     expect(result).toBeDefined();
     expect(result![0].item_count).toBe(1);
     expect(event.spans).toHaveLength(0);
-  });
-
-  it('returns undefined when streamGenAiSpans is explicitly disabled', () => {
-    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })]);
-    const client = makeClient({ streamGenAiSpans: false });
-
-    expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
-    expect(event.spans).toHaveLength(1);
   });
 
   it('returns undefined when span streaming is enabled', () => {

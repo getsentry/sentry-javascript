@@ -54,12 +54,13 @@ Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces
 
   const mongoSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mongoSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mongoSpan!.description, 'mongodb.find');
+  assertEquals(mongoSpan!.description, '{"find":"?","filter":{"name":"?"}}');
   assertEquals(mongoSpan!.data?.['db.system'], 'mongodb');
+  assertEquals(mongoSpan!.data?.['db.statement'], '{"find":"?","filter":{"name":"?"}}');
   assertEquals(mongoSpan!.data?.['db.name'], 'mydb');
   assertEquals(mongoSpan!.data?.['db.mongodb.collection'], 'users');
   assertEquals(mongoSpan!.data?.['db.operation'], 'find');
   assertEquals(mongoSpan!.data?.['net.peer.name'], '127.0.0.1');
   assertEquals(mongoSpan!.data?.['net.peer.port'], 27017);
-  assertEquals(mongoSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.mongo');
+  assertEquals(mongoSpan!.data?.['sentry.origin'], 'auto.db.mongo');
 });

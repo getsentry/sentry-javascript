@@ -3,8 +3,8 @@ import { afterAll, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.producer' : 'auto.kafkajs.otel.producer';
-const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.consumer' : 'auto.kafkajs.otel.consumer';
+const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.producer' : 'auto.kafkajs.otel.producer';
+const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.consumer' : 'auto.kafkajs.otel.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {

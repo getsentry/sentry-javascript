@@ -133,9 +133,8 @@ export function wrapBullMQProcess(process: AnyFn, queueName: string): AnyFn {
 
 /**
  * Replace a method decorator's `descriptor.value` with a wrapped handler (via
- * `wrapHandler`), preserving the handler name and marking it wrapped. Shared
- * by the OTel schedule/event decorator wraps and the orchestrion factory
- * subscriber.
+ * `wrapHandler`), preserving the handler name and marking it wrapped. Used by
+ * the orchestrion factory subscriber.
  */
 export function patchMethodDescriptor(
   target: { __SENTRY_INTERNAL__?: boolean } | undefined,

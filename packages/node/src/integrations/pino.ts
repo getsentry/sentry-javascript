@@ -79,8 +79,7 @@ type PinoOptions = {
    */
   log: {
     /**
-     * Levels that trigger capturing of logs. Logs are only captured if
-     * `enableLogs` is enabled.
+     * Levels that trigger capturing of logs.
      *
      * @default ["trace", "debug", "info", "warn", "error", "fatal"]
      */

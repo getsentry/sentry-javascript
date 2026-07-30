@@ -1489,9 +1489,8 @@ describe('browserTracingIntegration', () => {
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
 
       // idle span itself is now ended
-      // there is also the `sentry-tracing-init` span included
-      expect(spans).toHaveLength(3);
-      expect(spans[2]).toBe(idleSpan);
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
 
     it('can be a custom value', () => {
@@ -1523,9 +1522,8 @@ describe('browserTracingIntegration', () => {
       vi.advanceTimersByTime(2000);
 
       // idle span itself is now ended
-      // there is also the `sentry-tracing-init` span included
-      expect(spans).toHaveLength(3);
-      expect(spans[2]).toBe(idleSpan);
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
   });
 

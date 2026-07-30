@@ -18,7 +18,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'set test-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
@@ -30,7 +30,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.redis',
+      origin: 'auto.db.redis',
       description: 'get test-key',
       status: 'ok',
       data: expect.objectContaining({
@@ -55,7 +55,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT 1 + 1 AS solution',
       status: 'ok',
       data: expect.objectContaining({
@@ -71,7 +71,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT NOW()',
       status: 'ok',
       data: expect.objectContaining({

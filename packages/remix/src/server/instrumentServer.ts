@@ -179,6 +179,7 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
     rootSpan.updateName(newSpanName);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     if (source === 'route') {
       rootSpan.setAttribute(HTTP_ROUTE, transactionName);
     }
@@ -377,7 +378,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
             const parentSpan = getActiveSpan();
             const rootSpan = parentSpan && getRootSpan(parentSpan);
             rootSpan?.updateName(name);
-
+            rootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
             return startSpan(
               {
                 name,

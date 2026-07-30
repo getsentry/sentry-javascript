@@ -18,10 +18,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span, SpanAttributeValue } from '../../types/span';
-import {
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
@@ -129,11 +126,6 @@ export function addRequestAttributes(
   span.setAttribute(
     GEN_AI_INPUT_MESSAGES,
     enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-  );
-
-  span.setAttribute(
-    GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-    Array.isArray(filteredMessages) ? filteredMessages.length : 1,
   );
 }
 

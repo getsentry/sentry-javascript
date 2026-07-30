@@ -4,11 +4,12 @@ import {
   captureException,
   flush,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
 
-const FUNCTIONS_ORIGIN = 'auto.firebase.orchestrion.functions';
+const FUNCTIONS_ORIGIN = 'auto.firebase.functions';
 
 // Set on a wrapped handler so re-entrant `start` events don't double-wrap it.
 const WRAPPED = '__sentryFirebaseWrapped';
@@ -72,7 +73,10 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
       {
         name: `firebase.function.${triggerType}`,
         op: 'function.firebase',
-        attributes,
+        attributes: {
+          ...attributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       },
       async span => {
         try {

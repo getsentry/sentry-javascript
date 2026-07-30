@@ -22,7 +22,7 @@ conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
 
   // `db.statement` (scrubbed full command doc) and `db.connection_string` vary
   // by driver version, so assert their presence rather than exact content;

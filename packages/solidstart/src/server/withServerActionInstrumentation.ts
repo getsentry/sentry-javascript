@@ -6,6 +6,8 @@ import {
 } from '@sentry/core';
 import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
+import { HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 
 /**
  * Wraps a server action (functions that use the 'use server' directive)
@@ -25,9 +27,9 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
     // if the target is `/_server`, otherwise we'd overwrite pageloads on routes that use
     // server actions (which are more meaningful, e.g. a request to `GET /users/5` is more
     // meaningful than overwriting it with `GET doSomeFunctionCall`).
-    if (spanData && !spanData['http.route'] && spanData['http.target'] === '/_server') {
-      activeSpan.setAttribute('http.route', serverActionName);
-      activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'component');
+    // oxlint-disable-next-line typescript/no-deprecated
+    if (spanData && !spanData[HTTP_ROUTE] && spanData[HTTP_TARGET] === '/_server') {
+      setHttpServerSpanRouteAttribute(serverActionName);
     }
   }
 

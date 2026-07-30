@@ -808,7 +808,8 @@ describe('MCP Server Transport Instrumentation', () => {
       );
     });
 
-    it('should NOT capture inputs/outputs when sendDefaultPii is false (legacy bridge)', async () => {
+    // todo: delete the following test once we remove sendDefaultPii
+    it('should capture inputs/outputs when sendDefaultPii is false (genAI collected by default)', async () => {
       getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(false));
 
       const mockMcpServer = createMockMcpServer();
@@ -829,7 +830,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          attributes: expect.not.objectContaining({
+          attributes: expect.objectContaining({
             'mcp.request.argument.location': expect.anything(),
           }),
         }),

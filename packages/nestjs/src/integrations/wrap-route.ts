@@ -2,14 +2,13 @@ import { HTTP_METHOD, HTTP_ROUTE, URL_FULL } from '@sentry/conventions/attribute
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
-import { copyReflectMetadata, httpOrigin, isWrapped, markWrapped } from './helpers';
-import { AttributeNames, NestType } from './vendored/enums';
+import { copyReflectMetadata, HTTP_ORIGIN, isWrapped, markWrapped } from './helpers';
+import { AttributeNames, NestType } from './enums';
 
 /**
  * Shared span-emitting logic for the NestJS route/controller spans
- * (app-creation / request-context / request-handler). Used by both the OTel
- * `NestFactory.create` / `RouterExecutionContext.create` wraps (`./vendored`)
- * and the orchestrion channel subscriber.
+ * (app-creation / request-context / request-handler). Used by the orchestrion
+ * channel subscriber.
  */
 
 const NESTJS_COMPONENT = '@nestjs/core';
@@ -34,7 +33,7 @@ export function getAppCreationSpanOptions(
     op: `${NestType.APP_CREATION}.nestjs`,
     attributes: {
       component: NESTJS_COMPONENT,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: httpOrigin(),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
       [AttributeNames.TYPE]: NestType.APP_CREATION,
       [AttributeNames.VERSION]: moduleVersion || undefined,
       [AttributeNames.MODULE]: moduleName || undefined,
@@ -54,7 +53,7 @@ export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn
   const spanName = callback.name || 'anonymous nest handler';
   const attributes: SpanAttributes = {
     component: NESTJS_COMPONENT,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: httpOrigin(),
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
     [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
     [AttributeNames.CALLBACK]: callback.name,
     [AttributeNames.VERSION]: moduleVersion || undefined,
@@ -89,7 +88,7 @@ export function wrapRequestContextHandler(
     const httpRoute = req.route?.path || req.routeOptions?.url || req.routerPath;
     const attributes: SpanAttributes = {
       component: NESTJS_COMPONENT,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: httpOrigin(),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
       [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
       [AttributeNames.CONTROLLER]: instanceName,
       [AttributeNames.CALLBACK]: callbackName,

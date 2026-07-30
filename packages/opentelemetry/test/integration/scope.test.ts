@@ -7,15 +7,11 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   describe.each([
     ['with tracing', true],
     ['without tracing', false],
@@ -111,8 +107,8 @@ describe('Integration | Scope', () => {
               trace: {
                 data: {
                   'sentry.origin': 'manual',
-                  'sentry.source': 'custom',
                   'sentry.sample_rate': 1,
+                  'sentry.source': 'custom',
                 },
                 span_id: spanId,
                 status: 'ok',
@@ -129,7 +125,6 @@ describe('Integration | Scope', () => {
               tag4: 'val4',
             },
             timestamp: expect.any(Number),
-            transaction_info: { source: 'custom' },
             type: 'transaction',
           }),
           {

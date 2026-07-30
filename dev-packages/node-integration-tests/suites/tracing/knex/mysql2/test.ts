@@ -5,7 +5,7 @@ import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../uti
 describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__dirname] }, () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.knex' : 'auto.db.otel.knex';
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.knex' : 'auto.db.otel.knex';
 
   describe('with `mysql2` client', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {

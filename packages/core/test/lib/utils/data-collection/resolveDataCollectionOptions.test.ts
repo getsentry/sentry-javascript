@@ -22,7 +22,7 @@ describe('resolveDataCollectionOptions', () => {
       // sendDefaultPii undefined → restrictive bridge (backward compat; userInfo defaults to true only when dataCollection is set)
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
-      expect(result.genAI).toEqual({ inputs: false, outputs: false });
+      expect(result.genAI).toEqual({ inputs: true, outputs: true });
       // GraphQL documents are redacted at collection time, so they stay on to preserve legacy behavior.
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.databaseQueryData).toBe(false);
@@ -60,7 +60,7 @@ describe('resolveDataCollectionOptions', () => {
 
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual([]);
-      expect(result.genAI).toEqual({ inputs: false, outputs: false });
+      expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.databaseQueryData).toBe(false);
     });

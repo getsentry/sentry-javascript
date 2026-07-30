@@ -36,9 +36,9 @@ test('Event emitter', async () => {
     data: {
       'sentry.source': 'custom',
       'sentry.op': 'event.nestjs',
-      'sentry.origin': 'auto.event.orchestrion.nestjs',
+      'sentry.origin': 'auto.event.nestjs',
     },
-    origin: 'auto.event.orchestrion.nestjs',
+    origin: 'auto.event.nestjs',
     op: 'event.nestjs',
     status: 'ok',
   });

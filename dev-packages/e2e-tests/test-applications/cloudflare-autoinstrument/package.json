@@ -1,0 +1,38 @@
+{
+  "name": "cloudflare-autoinstrument",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@cloudflare/ai-chat": "^0.10.0",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "agents": "^0.20.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@cloudflare/vite-plugin": "^1.47.0",
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^26.1.2",
+    "@types/ws": "^8.18.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.1.5",
+    "wrangler": "^4.114.0",
+    "ws": "^8.21.1"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  }
+}
