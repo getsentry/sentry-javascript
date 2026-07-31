@@ -18,9 +18,9 @@ export function maybeWarnAboutIgnoredTransactionOptions(options: ClientOptions):
 
   const ignoredOptions = [
     // oxlint-disable-next-line typescript/no-deprecated
-    options.beforeSendTransaction && 'beforeSendTransaction',
+    options.beforeSendTransaction && '\`beforeSendTransaction\`',
     // oxlint-disable-next-line typescript/no-deprecated
-    options.ignoreTransactions?.length && 'ignoreTransactions',
+    options.ignoreTransactions?.length && '\`ignoreTransactions\`',
   ].filter(Boolean);
 
   if (!ignoredOptions.length) {
@@ -30,7 +30,7 @@ export function maybeWarnAboutIgnoredTransactionOptions(options: ClientOptions):
   consoleSandbox(() => {
     // oxlint-disable-next-line no-console
     console.warn(
-      `[Sentry] Your \`Sentry.init()\` options include ${ignoredOptions.map(option => `\`${option}\``).join(' and ')}, which are currently ignored by the SDK.
+      `[Sentry] Your \`Sentry.init()\` options include ${ignoredOptions.join(' and ')}, which are currently ignored by the SDK!
 Use \`beforeSendSpan\` and \`ignoreSpans\` instead.
 Alternatively, set \`traceLifecycle: 'static'\` to opt out of streaming spans and keep the transaction-based options working.`,
     );
