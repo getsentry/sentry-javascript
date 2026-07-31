@@ -151,7 +151,7 @@ test.describe('middleware errors', () => {
     expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
     const transaction = await transactionPromise;
-    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
     expect(middlewareSpan?.status).toBe('internal_error');
   });
 
@@ -187,7 +187,7 @@ test.describe('middleware errors', () => {
     if (RUNTIME === 'cloudflare') {
       expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx');
 
-      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
       expect(middlewareSpan?.status).not.toBe('internal_error');
     }
 

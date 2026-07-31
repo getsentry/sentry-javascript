@@ -72,12 +72,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware.express',
+      'sentry.op': 'middleware',
       'express.name': 'query',
       'express.type': 'middleware',
     },
     description: 'query',
-    op: 'middleware.express',
+    op: 'middleware',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -90,12 +90,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware.express',
+      'sentry.op': 'middleware',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
     description: 'expressInit',
-    op: 'middleware.express',
+    op: 'middleware',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -148,12 +148,12 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware.express',
+      'sentry.op': 'middleware',
       'express.name': 'query',
       'express.type': 'middleware',
     },
     description: 'query',
-    op: 'middleware.express',
+    op: 'middleware',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -166,12 +166,12 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware.express',
+      'sentry.op': 'middleware',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
     description: 'expressInit',
-    op: 'middleware.express',
+    op: 'middleware',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

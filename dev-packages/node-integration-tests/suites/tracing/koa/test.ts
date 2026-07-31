@@ -47,13 +47,13 @@ describe('koa auto-instrumentation', () => {
               // Plain middleware span.
               expect.objectContaining({
                 description: 'simpleMiddleware',
-                op: 'middleware.koa',
+                op: 'middleware',
                 origin,
                 data: expect.objectContaining({
                   'koa.type': 'middleware',
                   'koa.name': 'simpleMiddleware',
                   'code.function.name': 'simpleMiddleware',
-                  'sentry.op': 'middleware.koa',
+                  'sentry.op': 'middleware',
                   'sentry.origin': origin,
                 }),
               }),

@@ -173,18 +173,18 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('sets infer_ip to "never" if sendDefaultPii is false', () => {
+    it('sets infer_ip to "never" if dataCollection.userInfo is false', () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: false,
+        dataCollection: { userInfo: false },
       });
       const client = new BrowserClient(options);
 
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('sets infer_ip to "auto" if sendDefaultPii is true', () => {
+    it('sets infer_ip to "auto" if dataCollection.userInfo is true', () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new BrowserClient(options);
 
@@ -209,19 +209,9 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('dataCollection.userInfo takes precedence over sendDefaultPii', () => {
-      const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
-        dataCollection: { userInfo: false },
-      });
-      const client = new BrowserClient(options);
-
-      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
-    });
-
     it("doesn't override already set sdk metadata settings", () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
         _metadata: {
           sdk: {
             settings: {
@@ -291,7 +281,7 @@ describe('SDK metadata', () => {
         },
         // Usually, this would cause infer_ip to be set to 'never'
         // but we're passing it in explicitly, so it should be preserved
-        sendDefaultPii: false,
+        dataCollection: { userInfo: false },
       });
       const client = new BrowserClient(options);
 

@@ -108,14 +108,18 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const url = request.url || '/';
       const normalizedRequest = httpRequestToRequestData(request);
       const {
-        maxRequestBodySize = 'medium',
+        maxRequestBodySize: configuredBodySize,
         ignoreRequestBody,
         sessions = true,
         sessionFlushingDelayMS = 60_000,
       } = options;
 
-      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
+      const effectiveBodySize =
+        configuredBodySize ??
+        (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+
+      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+        patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
       // Update the isolation scope, isolate this request

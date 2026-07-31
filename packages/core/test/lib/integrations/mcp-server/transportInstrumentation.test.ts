@@ -30,7 +30,6 @@ import {
   createMockStdioTransport,
   createMockTransport,
   createMockWrapperTransport,
-  createTestClientWithSendDefaultPii,
 } from './testUtils';
 
 describe('MCP Server Transport Instrumentation', () => {
@@ -803,63 +802,6 @@ describe('MCP Server Transport Instrumentation', () => {
         expect.objectContaining({
           attributes: expect.not.objectContaining({
             'mcp.request.argument.location': expect.anything(),
-          }),
-        }),
-      );
-    });
-
-    // todo: delete the following test once we remove sendDefaultPii
-    it('should capture inputs/outputs when sendDefaultPii is false (genAI collected by default)', async () => {
-      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(false));
-
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-      const transport = createMockTransport();
-
-      await wrappedMcpServer.connect(transport);
-
-      transport.onmessage?.(
-        {
-          jsonrpc: '2.0',
-          method: 'tools/call',
-          id: 'tool-1',
-          params: { name: 'weather', arguments: { location: 'London' } },
-        },
-        {},
-      );
-
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          attributes: expect.objectContaining({
-            'mcp.request.argument.location': expect.anything(),
-          }),
-        }),
-      );
-    });
-
-    it('should capture inputs/outputs when sendDefaultPii is true (legacy bridge)', async () => {
-      getClientSpy.mockReturnValue(createTestClientWithSendDefaultPii(true));
-
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-      const transport = createMockTransport();
-
-      await wrappedMcpServer.connect(transport);
-
-      transport.onmessage?.(
-        {
-          jsonrpc: '2.0',
-          method: 'tools/call',
-          id: 'tool-1',
-          params: { name: 'weather', arguments: { location: 'London' } },
-        },
-        {},
-      );
-
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          attributes: expect.objectContaining({
-            'mcp.request.argument.location': '"London"',
           }),
         }),
       );
