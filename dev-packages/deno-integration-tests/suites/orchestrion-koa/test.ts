@@ -44,8 +44,8 @@ Deno.test('koa instrumentation: orchestrion:koa:use channel wraps middleware int
     "'parent' transaction",
   );
 
-  const koaSpan = parent.spans?.find(s => s.op === 'middleware.koa');
-  assertExists(koaSpan, `expected a middleware.koa child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const koaSpan = parent.spans?.find(s => s.op === 'middleware');
+  assertExists(koaSpan, `expected a koa middleware child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(koaSpan!.description, 'myMiddleware');
   assertEquals(koaSpan!.data?.['sentry.origin'], 'auto.http.koa');
 });

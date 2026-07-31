@@ -39,10 +39,9 @@ describe('patchAppUse (middleware spans)', () => {
     expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
     expect(startInactiveSpanMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'middleware.hono',
         onlyIfParent: true,
         attributes: expect.objectContaining({
-          'sentry.op': 'middleware.hono',
+          'sentry.op': 'middleware',
           'sentry.origin': 'auto.middleware.hono',
         }),
       }),
@@ -124,8 +123,8 @@ describe('patchAppUse (middleware spans)', () => {
 
     expect(startInactiveSpanMock).toHaveBeenCalledTimes(3);
     const [firstCall, secondCall, thirdCall] = startInactiveSpanMock.mock.calls;
-    expect(firstCall![0]).toMatchObject({ op: 'middleware.hono' });
-    expect(secondCall![0]).toMatchObject({ op: 'middleware.hono' });
+    expect(firstCall![0]).toMatchObject({ attributes: { 'sentry.op': 'middleware' } });
+    expect(secondCall![0]).toMatchObject({ attributes: { 'sentry.op': 'middleware' } });
     expect(firstCall![0].name).toMatch('<anonymous>');
     expect(secondCall![0].name).toBe('namedMiddleware');
     expect(thirdCall![0].name).toBe('<anonymous>');
@@ -225,11 +224,10 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
       expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
       expect(startInactiveSpanMock).toHaveBeenCalledWith({
         name: 'inlineMw',
-        op: 'middleware.hono',
         onlyIfParent: true,
         parentSpan: undefined,
         attributes: {
-          'sentry.op': 'middleware.hono',
+          'sentry.op': 'middleware',
           'sentry.origin': 'auto.middleware.hono',
         },
       });

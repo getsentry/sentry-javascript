@@ -32,7 +32,7 @@ describe('express tracing', () => {
                   'express.type': 'middleware',
                 }),
                 description: 'corsMiddleware',
-                op: 'middleware.express',
+                op: 'middleware',
                 origin: 'auto.http.express',
               }),
               expect.objectContaining({

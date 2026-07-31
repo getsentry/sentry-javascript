@@ -48,13 +48,13 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
 
       const middlewareSpan = spans.find(
         (span: { description?: string; op?: string }) =>
-          span.op === 'middleware.hono' && span.description === 'storefrontAuth',
+          span.op === 'middleware' && span.description === 'storefrontAuth',
       );
 
       expect(middlewareSpan).toEqual(
         expect.objectContaining({
           description: 'storefrontAuth',
-          op: 'middleware.hono',
+          op: 'middleware',
           origin: 'auto.middleware.hono',
         }),
       );
