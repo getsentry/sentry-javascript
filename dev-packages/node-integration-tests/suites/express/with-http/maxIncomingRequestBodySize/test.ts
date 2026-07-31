@@ -60,6 +60,34 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
   });
 });
 
+describe('express with httpIntegration, disabled httpBodies, and explicit maxIncomingRequestBodySize', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-small.mjs', (createRunner, test) => {
+    test('captures request bodies because the explicit size overrides dataCollection.httpBodies', async () => {
+      const runner = createRunner()
+        .expect({
+          transaction: {
+            transaction: 'POST /test-body-size',
+            request: {
+              data: JSON.stringify(generatePayload(MAX_SMALL)),
+            },
+          },
+        })
+        .start();
+
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_SMALL)),
+      });
+
+      await runner.completed();
+    });
+  });
+});
+
 describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', () => {
   afterAll(() => {
     cleanupChildProcesses();
