@@ -11,7 +11,11 @@ const IORedisDependencies = ['standard-as-callback'];
  * Configures Nitro to bundle and transform dependencies that publish tracing
  * events through diagnostics channels.
  */
-export function setupOrchestrion(nuxt: Nuxt): void {
+export function setupOrchestrion(nuxt: Nuxt, buildTimeInstrumentation?: boolean): void {
+  if (buildTimeInstrumentation === false) {
+    return;
+  }
+
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (nuxt.options?._prepare) {
       return;
