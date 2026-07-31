@@ -48,6 +48,7 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
     transaction: 'GET /agents/my-agent/user-123',
     type: 'transaction',
     request: {
+      cookies: {},
       headers: expect.any(Object),
       method: 'GET',
       url: expect.stringContaining('/agents/my-agent/user-123'),
