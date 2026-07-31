@@ -20,6 +20,8 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1",
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
