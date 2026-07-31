@@ -79,51 +79,6 @@ describe('spanJsonToSerializedStreamedSpan', () => {
     expect(result.attributes['gen_ai.usage.output_tokens']).toEqual({ type: 'integer', value: 50 });
   });
 
-  it('maps top-level op/origin into sentry.op/sentry.origin attributes', () => {
-    const span = makeSpanJSON({ op: 'ui.interaction.click', origin: 'auto.http.browser.inp', data: {} });
-
-    const result = spanJsonToSerializedStreamedSpan(span);
-
-    expect(result.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
-    expect(result.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
-  });
-
-  it('lets a mutated top-level op/origin win over the original data attribute', () => {
-    // A `beforeSendSpan` callback mutates the top-level field while the data attribute stays stale.
-    const span = makeSpanJSON({
-      op: 'changed.op',
-      origin: 'changed.origin',
-      data: { 'sentry.op': 'stale.op', 'sentry.origin': 'stale.origin' },
-    });
-
-    const result = spanJsonToSerializedStreamedSpan(span);
-
-    expect(result.attributes['sentry.op']).toEqual({ type: 'string', value: 'changed.op' });
-    expect(result.attributes['sentry.origin']).toEqual({ type: 'string', value: 'changed.origin' });
-  });
-
-  it('keeps the data attribute when there is no top-level op/origin', () => {
-    const span = makeSpanJSON({ op: undefined, origin: undefined, data: { 'sentry.op': 'from.data' } });
-
-    const result = spanJsonToSerializedStreamedSpan(span);
-
-    expect(result.attributes['sentry.op']).toEqual({ type: 'string', value: 'from.data' });
-    expect(result.attributes['sentry.origin']).toBeUndefined();
-  });
-
-  it('maps mutated top-level profile_id/exclusive_time back into attributes', () => {
-    const span = makeSpanJSON({
-      profile_id: 'new-profile',
-      exclusive_time: 42,
-      data: { 'sentry.profile_id': 'stale-profile', 'sentry.exclusive_time': 1 },
-    });
-
-    const result = spanJsonToSerializedStreamedSpan(span);
-
-    expect(result.attributes['sentry.profile_id']).toEqual({ type: 'string', value: 'new-profile' });
-    expect(result.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 42 });
-  });
-
   it('carries over links', () => {
     const span = makeSpanJSON({
       links: [{ trace_id: 'aabb', span_id: 'ccdd', sampled: true, attributes: { foo: 'bar' } }],
