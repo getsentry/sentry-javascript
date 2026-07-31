@@ -52,8 +52,6 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
 
   // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` at `end`.
-  DEBUG_BUILD &&
-    debug.log(`[orchestrion:langgraph] subscribing to channel "${CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE}"`);
   diagnosticsChannel
     .tracingChannel<CompileChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
     .end.subscribe(message => {
@@ -66,7 +64,6 @@ function instrumentLanggraph(options: LangGraphOptions): void {
 
   // createReactAgent only wraps tools and the returned graph's `invoke`. Tools are wrapped at
   // `start` (before the agent runs), invoke at `end`.
-  DEBUG_BUILD && debug.log(`[orchestrion:langgraph] subscribing to channel "${CHANNELS.LANGGRAPH_CREATE_REACT_AGENT}"`);
   const reactAgentChannel = diagnosticsChannel.tracingChannel<CreateReactAgentChannelContext>(
     CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
   );

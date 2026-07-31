@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { debug, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
@@ -8,7 +8,6 @@ import {
   HTTP_STATUS_CODE,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../../debug-build';
 import { CHANNELS } from '../../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
@@ -229,8 +228,6 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
     CHANNELS.AWS_SMITHY_CLIENT_SEND,
     CHANNELS.AWS_SDK_SMITHY_CLIENT_SEND,
   ] as const;
-
-  DEBUG_BUILD && debug.log(`[orchestrion:aws-sdk] subscribing to channels "${awsSendChannels.join('", "')}"`);
 
   for (const channelName of awsSendChannels) {
     bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<AwsSendChannelContext>(channelName), getSpan, opts);

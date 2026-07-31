@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Client } from '@sentry/core';
-import { addNonEnumerableProperty, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, debug, waitForTracingChannelBinding } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import { getOrchestrionInjectedModules } from './detect';
 
 // Marks an instrumentation callback as already run, so it subscribes at most once
@@ -54,12 +55,16 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
   // they pass `false` so a missing binding never blocks their subscription.
   { requiresTracingChannelBinding = true }: { requiresTracingChannelBinding?: boolean } = {},
 ): void {
+  const label = moduleNames.join(', ');
+
   // `tracingChannel` is unavailable before Node 18.19; nothing to subscribe to.
   if (!diagnosticsChannel.tracingChannel) {
+    DEBUG_BUILD && debug.log(`[orchestrion:${label}] no \`tracingChannel\` (Node < 18.19), not subscribing`);
     return;
   }
 
   if (hasBeenInstrumented(callback)) {
+    DEBUG_BUILD && debug.log(`[orchestrion:${label}] already subscribed, skipping`);
     return;
   }
 
@@ -72,6 +77,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
       }
       markInstrumented(callback);
       cleanup?.();
+      DEBUG_BUILD && debug.log(`[orchestrion:${label}] subscribing to channels`);
       callback(...args);
     };
 
@@ -84,18 +90,30 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
     // Avoids a very narrow case where the binding never arrives within the
     // retry window. So, don't mark until we know we're actually calling.
     waitForTracingChannelBinding(subscribe);
+
+    // `waitForTracingChannelBinding` retries once on a timer and then gives up
+    // silently. Not being subscribed by now means we took that path, so say so:
+    // without this, an integration that never subscribes leaves no trace at all.
+    if (DEBUG_BUILD && !hasBeenInstrumented(callback)) {
+      debug.log(`[orchestrion:${label}] async-context binding not ready, retrying before subscribing`);
+    }
   };
 
   if (isBun || isDeno) {
+    DEBUG_BUILD && debug.log(`[orchestrion:${label}] Bun/Deno, subscribing eagerly`);
     run();
     return;
   }
 
   const injected = getOrchestrionInjectedModules();
-  if (moduleNames.some(name => injected.includes(name))) {
+  const injectedName = moduleNames.find(name => injected.includes(name));
+  if (injectedName) {
+    DEBUG_BUILD && debug.log(`[orchestrion:${label}] "${injectedName}" already injected, subscribing now`);
     run();
     return;
   }
+
+  DEBUG_BUILD && debug.log(`[orchestrion:${label}] not injected yet, waiting for the module to load`);
 
   const cleanup = client.on('orchestrion.module-runtime-injected', (moduleName: string) => {
     if (hasBeenInstrumented(callback)) {
@@ -103,6 +121,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
       return;
     }
     if (moduleNames.includes(moduleName)) {
+      DEBUG_BUILD && debug.log(`[orchestrion:${label}] "${moduleName}" injected at runtime, subscribing now`);
       run(cleanup);
     }
   });
