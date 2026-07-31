@@ -82,7 +82,7 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
     (s: { description?: string }) => s.description === 'select(*) filter(order, asc) from(todos)',
   );
   expect(selectSpan).toBeDefined();
-  expect(selectSpan!.data).toHaveProperty('db.query', ['select(*)', 'filter(order, asc)']);
+  expect(selectSpan!.data?.['db.query']).toEqual(['select(*)', 'filter(order, asc)']);
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),

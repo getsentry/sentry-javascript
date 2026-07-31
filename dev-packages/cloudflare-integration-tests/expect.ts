@@ -54,6 +54,7 @@ export function expectedEvent(event: Event, { sdk }: { sdk: 'cloudflare' | 'hono
     environment: 'production',
     platform: 'javascript',
     sdk: getSdk(sdk),
+    user: { ip_address: '127.0.0.1' },
     ...event,
     contexts: defaultContexts(event.contexts),
   });

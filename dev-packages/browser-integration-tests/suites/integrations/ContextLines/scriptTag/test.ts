@@ -42,7 +42,13 @@ sentryTest(
               '  <body>',
             ],
             context_line: '    <button id="inline-error-btn" onclick="throwTestError()">Click me</button>',
-            post_context: ['', '</body>', '</html>'],
+            post_context: [
+              '  <script src="cdn.bundle.js"></script><script src="contextlines.bundle.js"></script><script defer="" src="init.bundle.js"></script>',
+              '  <footer>Some text...</footer>',
+              '',
+              '</body>',
+              '</html>',
+            ],
           },
           {
             lineno: 7,
