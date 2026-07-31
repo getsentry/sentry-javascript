@@ -47,8 +47,11 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     });
   }
 
+  // The isolation scope is shared, not forked, matching `withScope` above and the OpenTelemetry
+  // strategy. Forking it would silently discard `setUser`/`setTag`/`setContext` calls made inside
+  // the callback, as those write to the isolation scope.
   function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-    const isolationScope = getScopes().isolationScope.clone();
+    const isolationScope = getScopes().isolationScope;
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(scope);
     });

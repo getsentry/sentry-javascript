@@ -88,6 +88,19 @@ describe('withScope()', () => {
         done();
       });
     }));
+
+  it('does not fork the isolation scope when passing a scope', () =>
+    new Promise<void>(done => {
+      const initialIsolationScope = getIsolationScope();
+
+      withScope(new Scope(), () => {
+        expect(getIsolationScope()).toBe(initialIsolationScope);
+        getIsolationScope().setTag('bb', 'bb');
+        done();
+      });
+
+      expect(initialIsolationScope.getScopeData().tags).toEqual({ bb: 'bb' });
+    }));
 });
 
 describe('withIsolationScope()', () => {
