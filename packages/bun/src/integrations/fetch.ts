@@ -90,10 +90,10 @@ const _fetchIntegration = ((options: FetchOptions = {}) => {
     setupOnce() {
       addFetchInstrumentationHandler(handlerData => {
         const client = getClient();
-        const { propagateTraceparent } = client?.getOptions() || {};
         if (!client || !HAS_CLIENT_MAP.get(client)) {
           return;
         }
+        const { propagateTraceparent } = client.getOptions();
 
         if (isSentryRequestUrl(handlerData.fetchData.url, client)) {
           return;
