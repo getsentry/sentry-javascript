@@ -5,6 +5,28 @@ function isSensitiveKey(lower: string, denySnippets: string[]): boolean {
   return denySnippets.some(snippet => lower.includes(snippet));
 }
 
+export function shouldFilterDataKey(key: string, behavior: CollectBehavior, additionalDenyTerms?: string[]): boolean {
+  if (behavior === false) {
+    return true;
+  }
+
+  const lowerKey = key.toLowerCase();
+  const denySnippets =
+    additionalDenyTerms != null ? [...SENSITIVE_KEY_SNIPPETS, ...additionalDenyTerms] : SENSITIVE_KEY_SNIPPETS;
+
+  if (isSensitiveKey(lowerKey, denySnippets)) {
+    return true;
+  }
+
+  if (behavior === true) {
+    return false;
+  }
+
+  const terms = 'deny' in behavior ? behavior.deny : behavior.allow;
+  const matchesConfiguredTerm = terms.some(term => lowerKey.includes(term.toLowerCase()));
+  return 'deny' in behavior ? matchesConfiguredTerm : !matchesConfiguredTerm;
+}
+
 /**
  * Filters a key-value record according to a `CollectBehavior`.
  *
@@ -22,37 +44,9 @@ export function filterKeyValueData<T>(
     return {};
   }
 
-  const denySnippets =
-    additionalDenyTerms != null ? [...SENSITIVE_KEY_SNIPPETS, ...additionalDenyTerms] : SENSITIVE_KEY_SNIPPETS;
   const result: Record<string, T | string> = {};
-
-  if (behavior === true) {
-    for (const key of Object.keys(data)) {
-      result[key] = isSensitiveKey(key.toLowerCase(), denySnippets) ? FILTERED : data[key]!;
-    }
-    return result;
-  }
-
-  if ('deny' in behavior) {
-    const lowerTerms = behavior.deny.map(t => t.toLowerCase());
-    for (const key of Object.keys(data)) {
-      const lower = key.toLowerCase();
-      const isDenied = isSensitiveKey(lower, denySnippets) || lowerTerms.some(term => lower.includes(term));
-      result[key] = isDenied ? FILTERED : data[key]!;
-    }
-    return result;
-  }
-
-  // allowList mode
-  const lowerTerms = behavior.allow.map(t => t.toLowerCase());
   for (const key of Object.keys(data)) {
-    const lower = key.toLowerCase();
-    if (isSensitiveKey(lower, denySnippets)) {
-      result[key] = FILTERED;
-    } else {
-      const isAllowed = lowerTerms.some(term => lower.includes(term));
-      result[key] = isAllowed ? data[key]! : FILTERED;
-    }
+    result[key] = shouldFilterDataKey(key, behavior, additionalDenyTerms) ? FILTERED : data[key]!;
   }
   return result;
 }

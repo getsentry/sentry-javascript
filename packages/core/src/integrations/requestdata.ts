@@ -8,7 +8,7 @@ import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
-import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
+import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { httpHeadersToSpanAttributes } from '../utils/request';
@@ -128,7 +128,7 @@ function addNormalizedRequestDataToEvent(
     requestData.headers = filterKeyValueData(requestData.headers, dataCollection.httpHeaders.request);
   }
   if (requestData.query_string) {
-    requestData.query_string = filterQueryString(requestData.query_string, dataCollection.urlQueryParams);
+    requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
 
   event.request = {
@@ -166,7 +166,7 @@ function addNormalizedRequestDataToSpan(
   }
 
   if (requestData.query_string) {
-    attributes[URL_QUERY] = filterQueryString(requestData.query_string, dataCollection.urlQueryParams);
+    attributes[URL_QUERY] = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
 
   safeSetSpanJSONAttributes(span, attributes);
@@ -252,27 +252,9 @@ function resolveFilteringBehavior(isIncluded: boolean, behavior: CollectBehavior
   return isIncluded && behavior === false ? true : behavior;
 }
 
-function filterQueryString(queryString: QueryParams, behavior: CollectBehavior): string | undefined {
+function normalizeAndFilterQueryString(queryString: QueryParams, behavior: CollectBehavior): string | undefined {
   const normalized = normalizeQueryString(queryString);
-  if (!normalized) {
-    return undefined;
-  }
-
-  const filtered = filterQueryParams(normalized, behavior);
-  if (typeof filtered === 'string') {
-    return filtered;
-  }
-
-  const result = normalized
-    .split('&')
-    .map(pair => {
-      const [key] = pair.split('=', 1);
-      const normalizedKey = new URLSearchParams(pair).keys().next().value;
-
-      return normalizedKey && filtered[normalizedKey] === FILTERED_VALUE ? `${key}=${FILTERED_VALUE}` : pair;
-    })
-    .join('&');
-  return result || undefined;
+  return normalized ? filterQueryParams(normalized, behavior) : undefined;
 }
 
 function normalizeQueryString(queryString: QueryParams): string | undefined {
@@ -281,5 +263,6 @@ function normalizeQueryString(queryString: QueryParams): string | undefined {
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
-  return pairs.map(([key, value]) => `${key}=${value}`).join('&') || undefined;
+  const normalized = new URLSearchParams(pairs).toString();
+  return normalized || undefined;
 }

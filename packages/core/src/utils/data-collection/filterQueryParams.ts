@@ -1,31 +1,25 @@
 import type { CollectBehavior } from '../../types/datacollection';
-import { FILTERED_VALUE as FILTERED } from './filtering-snippets';
-import { filterKeyValueData } from './filterKeyValueData';
+import { FILTERED_VALUE } from './filtering-snippets';
+import { shouldFilterDataKey } from './filterKeyValueData';
 
 /**
  * Filters a query parameter string according to a `CollectBehavior`.
  *
- * When individual params can be parsed, each key-value pair is filtered
- * independently. When parsing fails, the entire string is replaced with `[Filtered]`.
+ * Parameter names are decoded for filtering, while the original encoding, order, and duplicate keys are preserved.
  */
-export function filterQueryParams(queryString: string, behavior: CollectBehavior): Record<string, string> | string {
-  if (behavior === false) {
-    return {};
+export function filterQueryParams(queryString: string, behavior: CollectBehavior): string | undefined {
+  if (!queryString || behavior === false) {
+    return undefined;
   }
 
-  try {
-    const params = new URLSearchParams(queryString);
-    const parsed: Record<string, string> = {};
-    params.forEach((value, key) => {
-      parsed[key] = value;
-    });
+  return queryString
+    .split('&')
+    .map(pair => {
+      const separatorIndex = pair.indexOf('=');
+      const encodedKey = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
+      const key = new URLSearchParams(`${encodedKey}=`).keys().next().value;
 
-    if (Object.keys(parsed).length === 0) {
-      return {};
-    }
-
-    return filterKeyValueData(parsed, behavior);
-  } catch {
-    return FILTERED;
-  }
+      return key !== undefined && shouldFilterDataKey(key, behavior) ? `${encodedKey}=${FILTERED_VALUE}` : pair;
+    })
+    .join('&');
 }

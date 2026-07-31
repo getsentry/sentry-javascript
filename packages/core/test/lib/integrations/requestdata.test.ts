@@ -987,6 +987,38 @@ describe('requestDataIntegration processSegmentSpan', () => {
     });
   });
 
+  it('encodes query_string in object format before filtering', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ query_string: { redirect: '/home?tab=one&sort=asc', token: 'secret' } });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.query': 'redirect=%2Fhome%3Ftab%3Done%26sort%3Dasc&token=[Filtered]',
+    });
+  });
+
+  it('encodes query_string in tuple format and preserves duplicate keys', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      query_string: [
+        ['page', 'hello world'],
+        ['page', 'second&value'],
+        ['token', 'secret'],
+      ],
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.query': 'page=hello+world&page=second%26value&token=[Filtered]',
+    });
+  });
+
   describe('respects include options', () => {
     it('excludes url when include.url is false', () => {
       const integration = requestDataIntegration({ include: { url: false } });
