@@ -54,7 +54,7 @@ import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span
 import { showSpanDropWarning } from './utils/spanUtils';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
-import { warnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
+import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -510,8 +510,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._setupIntegrations();
     }
 
-    // Checked after integration setup because `spanStreamingIntegration` may fall back to the static trace lifecycle.
-    warnAboutIgnoredTransactionOptions(this._options);
+    maybeWarnAboutIgnoredTransactionOptions(this._options);
   }
 
   /**

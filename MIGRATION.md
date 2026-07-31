@@ -122,24 +122,13 @@ Affected SDKs: All SDKs.
 
 Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
 
-The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration.
+The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
 
-`beforeSendTransaction` and `ignoreTransactions` are **deprecated** and will be removed in v12. Both operate on the
-transaction event that span streaming no longer produces, so the SDK **ignores** them and logs a console warning if it
-finds either option in your `Sentry.init()` call. Migrate to `beforeSendSpan` and `ignoreSpans`, which apply to both
-trace lifecycles.
-
-If you cannot migrate yet, opt back into the transaction-based model, which keeps both options working until they are
-removed:
-
-```js
-Sentry.init({
-  traceLifecycle: 'static',
-});
-```
-
-> **TODO(v11):** The migration path for span streaming is still being defined. Document the concrete before/after for
-> `beforeSendSpan` and `ignoreSpans`.
+> **TODO(v11):** The migration path for span streaming is still being defined. Document:
+>
+> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
+> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
+> - how to opt back into the transaction-based model (option name + example).
 
 ### Logs are enabled by default
 

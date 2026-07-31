@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClientOptions } from '../../../src/types/options';
 import * as debugLoggerModule from '../../../src/utils/debug-logger';
-import { warnAboutIgnoredTransactionOptions } from '../../../src/utils/warnAboutIgnoredTransactionOptions';
+import { maybeWarnAboutIgnoredTransactionOptions } from '../../../src/utils/warnAboutIgnoredTransactionOptions';
 
-describe('warnAboutIgnoredTransactionOptions', () => {
+describe('maybeWarnAboutIgnoredTransactionOptions', () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -20,7 +20,9 @@ describe('warnAboutIgnoredTransactionOptions', () => {
   }
 
   it('warns about `beforeSendTransaction` when span streaming is enabled', () => {
-    warnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream', beforeSendTransaction: event => event }));
+    maybeWarnAboutIgnoredTransactionOptions(
+      options({ traceLifecycle: 'stream', beforeSendTransaction: event => event }),
+    );
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
     expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction`');
@@ -28,7 +30,9 @@ describe('warnAboutIgnoredTransactionOptions', () => {
   });
 
   it('warns about `ignoreTransactions` when span streaming is enabled', () => {
-    warnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream', ignoreTransactions: ['/healthcheck'] }));
+    maybeWarnAboutIgnoredTransactionOptions(
+      options({ traceLifecycle: 'stream', ignoreTransactions: ['/healthcheck'] }),
+    );
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
     expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`ignoreTransactions`');
@@ -36,7 +40,7 @@ describe('warnAboutIgnoredTransactionOptions', () => {
   });
 
   it('warns once about both options when both are set', () => {
-    warnAboutIgnoredTransactionOptions(
+    maybeWarnAboutIgnoredTransactionOptions(
       options({
         traceLifecycle: 'stream',
         beforeSendTransaction: event => event,
@@ -49,7 +53,7 @@ describe('warnAboutIgnoredTransactionOptions', () => {
   });
 
   it('does not warn when the trace lifecycle is static', () => {
-    warnAboutIgnoredTransactionOptions(
+    maybeWarnAboutIgnoredTransactionOptions(
       options({
         traceLifecycle: 'static',
         beforeSendTransaction: event => event,
@@ -61,13 +65,13 @@ describe('warnAboutIgnoredTransactionOptions', () => {
   });
 
   it('does not warn when neither option is set', () => {
-    warnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream' }));
+    maybeWarnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream' }));
 
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it('does not warn for an empty `ignoreTransactions` array', () => {
-    warnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream', ignoreTransactions: [] }));
+    maybeWarnAboutIgnoredTransactionOptions(options({ traceLifecycle: 'stream', ignoreTransactions: [] }));
 
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });

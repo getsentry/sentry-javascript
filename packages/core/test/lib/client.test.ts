@@ -109,7 +109,11 @@ describe('Client', () => {
       new TestClient(options).init();
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-      expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction` and `ignoreTransactions`');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '`beforeSendTransaction` and `ignoreTransactions`, which are currently ignored by the SDK.',
+        ),
+      );
       consoleWarnSpy.mockRestore();
     });
 
