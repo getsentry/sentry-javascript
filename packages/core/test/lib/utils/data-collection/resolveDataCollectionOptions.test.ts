@@ -16,14 +16,12 @@ describe('resolveDataCollectionOptions', () => {
   };
 
   describe('with no options', () => {
-    it('falls through to sendDefaultPii: undefined bridge when neither option is set', () => {
+    it('uses restrictive defaults when dataCollection is not set', () => {
       const result = resolveDataCollectionOptions({});
 
-      // sendDefaultPii undefined → restrictive bridge (backward compat; userInfo defaults to true only when dataCollection is set)
       expect(result.userInfo).toBe(false);
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
-      // GraphQL documents are redacted at collection time, so they stay on to preserve legacy behavior.
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.databaseQueryData).toBe(false);
       expect(result.stackFrameVariables).toBe(true);
@@ -41,41 +39,11 @@ describe('resolveDataCollectionOptions', () => {
     });
   });
 
-  describe('sendDefaultPii bridge (no dataCollection)', () => {
-    it('bridges sendDefaultPii: true to permissive config', () => {
-      const result = resolveDataCollectionOptions({ sendDefaultPii: true });
-
-      expect(result.userInfo).toBe(true);
-      expect(result.cookies).toBe(true);
-      expect(result.httpHeaders).toEqual({ request: true, response: true });
-      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
-      expect(result.urlQueryParams).toBe(true);
-      expect(result.graphQL).toEqual({ document: true, variables: true });
-      expect(result.genAI).toEqual({ inputs: true, outputs: true });
-      expect(result.databaseQueryData).toBe(true);
-    });
-
-    it('bridges sendDefaultPii: false to restrictive config', () => {
-      const result = resolveDataCollectionOptions({ sendDefaultPii: false });
+  describe('dataCollection options', () => {
+    it('uses spec defaults for fields that are not explicitly set', () => {
+      const result = resolveDataCollectionOptions({ dataCollection: { userInfo: false } });
 
       expect(result.userInfo).toBe(false);
-      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
-      expect(result.genAI).toEqual({ inputs: true, outputs: true });
-      expect(result.graphQL).toEqual({ document: true, variables: true });
-      expect(result.databaseQueryData).toBe(false);
-    });
-  });
-
-  describe('dataCollection takes precedence over sendDefaultPii', () => {
-    it('uses dataCollection fields when both are set', () => {
-      const result = resolveDataCollectionOptions({
-        sendDefaultPii: true,
-        dataCollection: { userInfo: false },
-      });
-
-      // Explicit dataCollection override
-      expect(result.userInfo).toBe(false);
-      // Remaining fields use spec defaults (not sendDefaultPii bridge)
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.databaseQueryData).toBe(true);

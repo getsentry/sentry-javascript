@@ -8,10 +8,10 @@ import type { StreamedSpanJSON } from '../../../src/types/span';
 import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 import { ipHeaderNames } from '../../../src/vendor/getIpAddress';
 
-function mockClient(sendDefaultPii: boolean | undefined, dataCollection?: DataCollection): Client {
+function mockClient(dataCollection?: DataCollection): Client {
   return {
-    getOptions: () => ({ sendDefaultPii: sendDefaultPii as boolean | undefined }),
-    getDataCollectionOptions: () => resolveDataCollectionOptions({ sendDefaultPii, dataCollection }),
+    getOptions: () => ({ dataCollection }),
+    getDataCollectionOptions: () => resolveDataCollectionOptions({ dataCollection }),
   } as unknown as Client;
 }
 
@@ -54,7 +54,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
@@ -77,7 +77,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
@@ -89,7 +89,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
@@ -102,7 +102,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration({ include: { ip: true } });
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(false, { userInfo: false }));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers?.['X-Forwarded-For']).toBe('192.168.1.1');
       expect(event.user?.ip_address).toBe('192.168.1.1');
@@ -112,7 +112,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration({ include: { ip: false } });
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request?.headers).toEqual({ Host: 'example.com' });
     });
@@ -133,7 +133,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toEqual({
         host: 'example.com',
@@ -157,7 +157,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request?.headers).toEqual({
         host: 'example.com',
@@ -172,7 +172,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.user?.ip_address).toBeUndefined();
     });
@@ -181,7 +181,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration();
       const event = baseEvent();
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.user?.ip_address).toBe('192.168.1.1');
     });
@@ -201,7 +201,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.user?.ip_address).toBe('192.168.1.9');
     });
@@ -219,7 +219,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.user?.ip_address).toBe('198.51.100.7');
     });
@@ -237,7 +237,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.user?.ip_address).toBeUndefined();
     });
@@ -250,7 +250,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toBeUndefined();
       expect(event.request?.method).toBe('POST');
@@ -271,7 +271,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toBeUndefined();
       expect(event.request?.cookies).toEqual({ id: '42' });
@@ -285,7 +285,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { httpHeaders: { request: true, response: true } }));
+      integration.processEvent?.(event, {}, mockClient({ httpHeaders: { request: true, response: true } }));
 
       expect(event.request?.headers).toBeUndefined();
     });
@@ -303,7 +303,7 @@ describe('requestDataIntegration', () => {
       integration.processEvent?.(
         event,
         {},
-        mockClient(false, { httpHeaders: { request: { allow: ['accept'] }, response: true } }),
+        mockClient({ httpHeaders: { request: { allow: ['accept'] }, response: true } }),
       );
 
       expect(event.request?.headers).toEqual({
@@ -325,7 +325,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request?.headers).toBeUndefined();
       expect(event.user?.ip_address).toBe('192.0.2.1');
@@ -342,7 +342,7 @@ describe('requestDataIntegration', () => {
       },
     };
 
-    integration.processEvent?.(event, {}, mockClient(false));
+    integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
     expect(event.request?.headers).toEqual({ Accept: 'application/json', Authorization: '[Filtered]' });
   });
@@ -366,7 +366,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
@@ -389,7 +389,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toBeUndefined();
     });
@@ -402,7 +402,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { cookies: true }));
+      integration.processEvent?.(event, {}, mockClient({ cookies: true }));
 
       expect(event.request?.cookies).toBeUndefined();
     });
@@ -415,7 +415,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { cookies: false }));
+      integration.processEvent?.(event, {}, mockClient({ cookies: false }));
 
       expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
     });
@@ -428,7 +428,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { cookies: { deny: ['experiment'] } }));
+      integration.processEvent?.(event, {}, mockClient({ cookies: { deny: ['experiment'] } }));
 
       expect(event.request?.cookies).toEqual({
         theme: 'dark',
@@ -445,7 +445,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { cookies: { allow: ['theme'] } }));
+      integration.processEvent?.(event, {}, mockClient({ cookies: { allow: ['theme'] } }));
 
       expect(event.request?.cookies).toEqual({
         theme: 'dark',
@@ -467,7 +467,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toEqual({ preference: 'abc' });
     });
@@ -485,7 +485,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toEqual({ from: 'object' });
     });
@@ -502,7 +502,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toEqual({ a: '1', b: 'two' });
     });
@@ -517,7 +517,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toEqual({
         theme: 'dark',
@@ -536,7 +536,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { cookies: { deny: ['experiment'] } }));
+      integration.processEvent?.(event, {}, mockClient({ cookies: { deny: ['experiment'] } }));
 
       expect(event.request?.cookies).toEqual({ theme: 'dark', experiment: '[Filtered]' });
     });
@@ -553,7 +553,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.cookies).toEqual({});
     });
@@ -566,7 +566,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.url).toBeUndefined();
       expect(event.request?.method).toBe('POST');
@@ -582,7 +582,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: true }));
+      integration.processEvent?.(event, {}, mockClient({ urlQueryParams: true }));
 
       expect(event.request?.query_string).toBeUndefined();
     });
@@ -595,7 +595,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: false }));
+      integration.processEvent?.(event, {}, mockClient({ urlQueryParams: false }));
 
       expect(event.request?.query_string).toBe('page=1&token=[Filtered]');
     });
@@ -608,7 +608,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.query_string).toBe('q=hello%20world&token=[Filtered]');
     });
@@ -621,7 +621,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: { allow: ['page'] } }));
+      integration.processEvent?.(event, {}, mockClient({ urlQueryParams: { allow: ['page'] } }));
 
       expect(event.request?.query_string).toBe('page=1&sort=[Filtered]&token=[Filtered]');
     });
@@ -632,7 +632,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.query_string).toBeUndefined();
       expect(event.request?.url).toBe('https://example.com/items?q=1');
@@ -646,7 +646,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.data).toBeUndefined();
     });
@@ -659,7 +659,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request).toEqual({
         method: 'POST',
@@ -683,7 +683,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.headers).toEqual({
         Host: 'example.com',
@@ -707,7 +707,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: { normalizedRequest: richNormalizedRequest() },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.method).toBe('POST');
       expect(event.request?.headers?.Host).toBe('example.com');
@@ -724,7 +724,7 @@ describe('requestDataIntegration', () => {
       const integration = requestDataIntegration();
       const event: Event = { sdkProcessingMetadata: {} };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request).toBeUndefined();
     });
@@ -736,7 +736,7 @@ describe('requestDataIntegration', () => {
         sdkProcessingMetadata: {},
       };
 
-      integration.processEvent?.(event, {}, mockClient(true));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
       expect(event.request).toEqual({ url: 'https://unchanged/' });
     });
@@ -756,7 +756,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.env).toEqual({ INTEGRATION: 'test' });
       expect(event.request?.method).toBe('PUT');
@@ -776,7 +776,7 @@ describe('requestDataIntegration', () => {
         },
       };
 
-      integration.processEvent?.(event, {}, mockClient(false));
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
       expect(event.request?.url).toBe('https://preserved/');
       expect(event.request?.method).toBe('GET');
@@ -799,7 +799,7 @@ describe('requestDataIntegration', () => {
       },
     };
 
-    integration.processEvent?.(event, {}, mockClient(false));
+    integration.processEvent?.(event, {}, mockClient({ userInfo: false }));
 
     expect(normalizedHeaders['X-Forwarded-For']).toBe('192.168.1.1');
     expect(event.request?.headers?.['X-Forwarded-For']).toBeUndefined();
@@ -847,7 +847,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       },
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'url.full': 'https://example.com/api/users',
@@ -864,7 +864,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     mockIsolationScope({});
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toEqual({});
   });
@@ -878,7 +878,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       headers: { 'x-forwarded-for': '203.0.113.50' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(true));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: true }));
 
     expect(span.attributes).toMatchObject({
       'user.ip_address': '203.0.113.50',
@@ -891,7 +891,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     mockIsolationScope({ url: 'https://example.com', headers: {} }, '192.168.1.1');
 
-    integration.processSegmentSpan!(span, mockClient(true));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: true }));
 
     expect(span.attributes).toMatchObject({
       'user.ip_address': '192.168.1.1',
@@ -907,7 +907,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       headers: { 'x-forwarded-for': '203.0.113.50' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).not.toHaveProperty('user.ip_address');
   });
@@ -920,7 +920,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       cookies: { theme: 'dark', locale: 'en' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'http.request.header.cookie.theme': 'dark',
@@ -936,7 +936,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       headers: { cookie: 'theme=dark; locale=en' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'http.request.header.cookie.theme': 'dark',
@@ -952,7 +952,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       cookies: { theme: 'dark', 'connect.sid': 'secret', session_token: 'secret' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'http.request.header.cookie.theme': 'dark',
@@ -967,7 +967,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     mockIsolationScope({ data: { key: 'value' } });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'http.request.body.data': '{"key":"value"}',
@@ -980,7 +980,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     mockIsolationScope({ query_string: { page: '1', limit: '10' } });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'url.query': 'page=1&limit=10',
@@ -993,7 +993,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     mockIsolationScope({ query_string: { redirect: '/home?tab=one&sort=asc', token: 'secret' } });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'url.query': 'redirect=%2Fhome%3Ftab%3Done%26sort%3Dasc&token=[Filtered]',
@@ -1012,7 +1012,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       ],
     });
 
-    integration.processSegmentSpan!(span, mockClient(false));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
       'url.query': 'page=hello+world&page=second%26value&token=[Filtered]',
@@ -1026,7 +1026,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ url: 'https://example.com', method: 'GET' });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).not.toHaveProperty('url.full');
       expect(span.attributes).toMatchObject({ 'http.request.method': 'GET' });
@@ -1041,7 +1041,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         headers: { 'content-type': 'application/json' },
       });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).not.toHaveProperty('http.request.header.content_type');
     });
@@ -1054,7 +1054,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         headers: { 'content-type': 'application/json', cookie: 'theme=dark' },
       });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).toMatchObject({
         'http.request.header.content_type': 'application/json',
@@ -1070,7 +1070,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
       });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).toMatchObject({
         'http.request.header.content_type': 'application/json',
@@ -1085,7 +1085,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ url: 'https://example.com', data: { key: 'value' } });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).not.toHaveProperty('http.request.body.data');
     });
@@ -1096,7 +1096,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ url: 'https://example.com', query_string: 'page=1' });
 
-      integration.processSegmentSpan!(span, mockClient(false));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).not.toHaveProperty('url.query');
     });
@@ -1107,7 +1107,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ headers: { 'x-forwarded-for': '203.0.113.50' } });
 
-      integration.processSegmentSpan!(span, mockClient(false, { userInfo: false }));
+      integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes?.['user.ip_address']).toBe('203.0.113.50');
     });
@@ -1120,7 +1120,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         headers: { 'content-type': 'application/json', accept: 'text/html' },
       });
 
-      integration.processSegmentSpan!(span, mockClient(false, { httpHeaders: { request: false, response: false } }));
+      integration.processSegmentSpan!(span, mockClient({ httpHeaders: { request: false, response: false } }));
 
       expect(span.attributes).toMatchObject({
         'http.request.header.content_type': 'application/json',
@@ -1136,7 +1136,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       integration.processSegmentSpan!(
         span,
-        mockClient(false, { httpHeaders: { request: { allow: ['accept'] }, response: true } }),
+        mockClient({ httpHeaders: { request: { allow: ['accept'] }, response: true } }),
       );
 
       expect(span.attributes?.['http.request.header.accept']).toBe('application/json');
@@ -1151,7 +1151,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
         cookies: { theme: 'dark', locale: 'en' },
       });
 
-      integration.processSegmentSpan!(span, mockClient(false, { cookies: false }));
+      integration.processSegmentSpan!(span, mockClient({ cookies: false }));
 
       expect(span.attributes).toMatchObject({
         'http.request.header.cookie.theme': 'dark',
@@ -1165,7 +1165,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ cookies: { theme: 'dark', locale: 'en', session: 'secret' } });
 
-      integration.processSegmentSpan!(span, mockClient(false, { cookies: { allow: ['theme'] } }));
+      integration.processSegmentSpan!(span, mockClient({ cookies: { allow: ['theme'] } }));
 
       expect(span.attributes?.['http.request.header.cookie.theme']).toBe('dark');
       expect(span.attributes?.['http.request.header.cookie.locale']).toBe('[Filtered]');
@@ -1178,14 +1178,14 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       mockIsolationScope({ query_string: 'page=1&token=secret' });
 
-      integration.processSegmentSpan!(span, mockClient(false, { urlQueryParams: false }));
+      integration.processSegmentSpan!(span, mockClient({ urlQueryParams: false }));
 
       expect(span.attributes?.['url.query']).toBe('page=1&token=[Filtered]');
     });
   });
 });
 
-describe('requestDataIntegration legacy sendDefaultPii bridge', () => {
+describe('requestDataIntegration userInfo collection', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -1212,17 +1212,17 @@ describe('requestDataIntegration legacy sendDefaultPii bridge', () => {
     } as ReturnType<typeof currentScopes.getIsolationScope>);
   }
 
-  it('sendDefaultPii: true bridges to userInfo: true and includes IP on events', () => {
+  it('includes IP on events when dataCollection.userInfo is true', () => {
     const integration = requestDataIntegration();
     const event = baseEvent();
 
-    integration.processEvent?.(event, {}, mockClient(true));
+    integration.processEvent?.(event, {}, mockClient({ userInfo: true }));
 
     expect(event.user?.ip_address).toBe('192.168.1.1');
     expect(event.request?.headers?.['X-Forwarded-For']).toBe('192.168.1.1');
   });
 
-  it('sendDefaultPii: true bridges to userInfo: true and includes IP on spans', () => {
+  it('includes IP on spans when dataCollection.userInfo is true', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();
 
@@ -1231,7 +1231,7 @@ describe('requestDataIntegration legacy sendDefaultPii bridge', () => {
       headers: { 'x-forwarded-for': '203.0.113.50', 'content-type': 'application/json' },
     });
 
-    integration.processSegmentSpan!(span, mockClient(true));
+    integration.processSegmentSpan!(span, mockClient({ userInfo: true }));
 
     expect(span.attributes).toMatchObject({
       'user.ip_address': '203.0.113.50',

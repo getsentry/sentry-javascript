@@ -20,13 +20,6 @@ describe('resolveAIRecordingOptions', () => {
     getGlobalScope().clear();
   });
 
-  function setupWithSendDefaultPii(sendDefaultPii: boolean): void {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, sendDefaultPii });
-    const client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
-  }
-
   function setupWithDataCollection(genAI: { inputs?: boolean; outputs?: boolean }): void {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { genAI } });
     const client = new TestClient(options);
@@ -36,22 +29,6 @@ describe('resolveAIRecordingOptions', () => {
 
   it('defaults to true when no client is set', () => {
     expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
-  });
-
-  // todo: delete the following tests once we remove sendDefaultPii
-  it.skip('defaults to false when sendDefaultPii is false (bridge)', () => {
-    setupWithSendDefaultPii(false);
-    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: false, recordOutputs: false });
-  });
-
-  it.skip('defaults to true when sendDefaultPii is true (bridge)', () => {
-    setupWithSendDefaultPii(true);
-    expect(resolveAIRecordingOptions()).toEqual({ recordInputs: true, recordOutputs: true });
-  });
-
-  it.skip('explicit options override sendDefaultPii bridge', () => {
-    setupWithSendDefaultPii(true);
-    expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
   });
 
   it('respects dataCollection.genAI.inputs and outputs', () => {
