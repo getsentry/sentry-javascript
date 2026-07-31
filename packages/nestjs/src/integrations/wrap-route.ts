@@ -1,4 +1,5 @@
 import { HTTP_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
@@ -23,16 +24,16 @@ interface NestRequest {
   url?: string;
 }
 
-/** Span options for the `Create Nest App` (app_creation) span. */
+/** Span options for the `Create Nest App` (app_creation, `function` op) span. */
 export function getAppCreationSpanOptions(
   moduleVersion?: string,
   moduleName?: string,
-): { name: string; op: string; attributes: SpanAttributes } {
+): { name: string; attributes: SpanAttributes } {
   return {
     name: 'Create Nest App',
-    op: `${NestType.APP_CREATION}.nestjs`,
     attributes: {
       component: NESTJS_COMPONENT,
+      [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
       [AttributeNames.TYPE]: NestType.APP_CREATION,
       [AttributeNames.VERSION]: moduleVersion || undefined,
@@ -73,7 +74,7 @@ export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn
 
 /**
  * Wrap the per-request handler that `RouterExecutionContext.create` returns so
- * each request opens the `request_context.nestjs` span (REQUEST_CONTEXT),
+ * each request opens the request-context (`function` op) span (REQUEST_CONTEXT),
  * carrying controller/callback names plus the per-request http.* attributes.
  */
 export function wrapRequestContextHandler(
@@ -89,6 +90,7 @@ export function wrapRequestContextHandler(
     const attributes: SpanAttributes = {
       component: NESTJS_COMPONENT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
+      [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
       [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
       [AttributeNames.CONTROLLER]: instanceName,
       [AttributeNames.CALLBACK]: callbackName,
@@ -98,9 +100,7 @@ export function wrapRequestContextHandler(
       [HTTP_METHOD]: req.method || undefined,
       [URL_FULL]: req.originalUrl || req.url || undefined,
     };
-    return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
-      handler.apply(this, handlerArgs),
-    );
+    return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));
   };
   markWrapped(wrapped);
   return wrapped;

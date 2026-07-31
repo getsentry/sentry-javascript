@@ -147,7 +147,7 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
     expect(span).toBeDefined();
     const json = spanToJSON(span!);
     expect(json.description).toBe('Create Nest App');
-    expect(json.op).toBe('app_creation.nestjs');
+    expect(json.op).toBe('function');
     expect(json.origin).toBe('auto.http.nestjs');
     expect(json.data).toMatchObject({
       component: '@nestjs/core',
@@ -241,7 +241,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
 
     expect(contextSpanJson).toBeDefined();
     expect(contextSpanJson!.description).toBe('CatsController.getCats');
-    expect(contextSpanJson!.op).toBe('request_context.nestjs');
+    expect(contextSpanJson!.op).toBe('function');
     expect(contextSpanJson!.origin).toBe('auto.http.nestjs');
     expect(contextSpanJson!.data).toMatchObject({
       component: '@nestjs/core',
@@ -872,7 +872,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('event user.created');
-    expect(json.op).toBe('event.nestjs');
+    expect(json.op).toBe('function');
     expect(json.origin).toBe('auto.event.nestjs');
   });
 

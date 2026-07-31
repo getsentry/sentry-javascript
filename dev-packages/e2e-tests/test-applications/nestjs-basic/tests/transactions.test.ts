@@ -14,14 +14,14 @@ test('Sends an app_creation transaction', async () => {
     contexts: { trace: { op?: string; origin?: string; data?: Record<string, unknown> } };
   };
 
-  expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
+  expect(transaction.contexts.trace.op).toBe('function');
   expect(transaction.contexts.trace.origin).toBe('auto.http.nestjs');
   expect(transaction.contexts.trace.data).toEqual(
     expect.objectContaining({
       component: '@nestjs/core',
       'nestjs.type': 'app_creation',
       'nestjs.module': 'AppModule',
-      'sentry.op': 'app_creation.nestjs',
+      'sentry.op': 'function',
       'sentry.origin': 'auto.http.nestjs',
     }),
   );

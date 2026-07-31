@@ -12,6 +12,6 @@ test('@OnEvent opens an event.nestjs transaction', async ({ baseURL }) => {
   await fetch(`${baseURL}/test-event`);
   const transactionEvent = await transactionPromise;
 
-  expect(transactionEvent.contexts?.trace?.op).toBe('event.nestjs');
+  expect(transactionEvent.contexts?.trace?.op).toBe('function');
   expect(transactionEvent.contexts?.trace?.origin).toBe('auto.event.nestjs');
 });
