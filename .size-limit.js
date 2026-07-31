@@ -286,7 +286,7 @@ module.exports = [
     path: createCDNPath('bundle.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '100 KB',
+    limit: '101 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {

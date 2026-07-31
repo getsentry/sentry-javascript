@@ -509,8 +509,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     ) {
       this._setupIntegrations();
 
-      // Inside this branch on purpose: integrations may switch `traceLifecycle` to 'static' during setup,
-      // and a client that never sets them up (disabled, no DSN) sends nothing, so it has nothing to ignore.
       maybeWarnAboutIgnoredTransactionOptions(this._options);
     }
   }
