@@ -166,6 +166,34 @@ describe('withIsolationScope()', () => {
         done();
       });
     }));
+
+  it('gives each forked isolation scope its own trace id when not continuing an incoming trace', () => {
+    const traceIds: string[] = [];
+
+    withIsolationScope(() => {
+      traceIds.push(getCurrentScope().getPropagationContext().traceId);
+    });
+    withIsolationScope(() => {
+      traceIds.push(getCurrentScope().getPropagationContext().traceId);
+    });
+
+    expect(traceIds[0]).toMatch(/^[a-f0-9]{32}$/);
+    expect(traceIds[1]).toMatch(/^[a-f0-9]{32}$/);
+    expect(traceIds[0]).not.toBe(traceIds[1]);
+  });
+
+  it('keeps the trace id when continuing an incoming trace (parentSpanId set)', () => {
+    const incomingTraceId = 'cafecafecafecafecafecafecafecafe';
+    getCurrentScope().setPropagationContext({
+      traceId: incomingTraceId,
+      parentSpanId: '1234567890abcdef',
+      sampleRand: 0.42,
+    });
+
+    withIsolationScope(() => {
+      expect(getCurrentScope().getPropagationContext().traceId).toBe(incomingTraceId);
+    });
+  });
 });
 
 describe('AsyncLocalStorage re-use', () => {

@@ -3,6 +3,8 @@ import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_createTracingChannelBinding,
   getAsyncContextStrategy,
+  _INTERNAL_safeMathRandom,
+  generateTraceId,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
@@ -57,6 +59,18 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
     const scope = getScopes().scope;
     const isolationScope = getScopes().isolationScope.clone();
+
+    // When forking an isolation scope, unless we are continuing an incoming trace (identified by a `parentSpanId`),
+    // we give the freshly forked scope its own trace.
+    // This way, new root spans in an isolation scope will get separate traces.
+    const propagationContext = scope.getPropagationContext();
+    if (!propagationContext.parentSpanId) {
+      scope.setPropagationContext({
+        ...propagationContext,
+        traceId: generateTraceId(),
+        sampleRand: _INTERNAL_safeMathRandom(),
+      });
+    }
 
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);

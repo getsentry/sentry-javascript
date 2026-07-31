@@ -19,6 +19,15 @@ import { TraceState } from '../src/utils/TraceState';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
+  // `withIsolationScope` gives the forked current scope a fresh propagation context (unless it is
+  // continuing an incoming trace), so scope data is expected to match apart from that context.
+  function scopeDataWithoutPropagationContext(
+    scope: Scope,
+  ): Omit<ReturnType<Scope['getScopeData']>, 'propagationContext'> {
+    const { propagationContext: _propagationContext, ...rest } = scope.getScopeData();
+    return rest;
+  }
+
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -45,7 +54,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b', 'b');
@@ -162,7 +172,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       await asyncSetExtra(scope1, 'b', 'b');
@@ -207,7 +218,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b', 'b');
@@ -244,7 +256,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b2', 'b');
@@ -294,7 +307,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       await asyncSetExtra(scope1, 'b', 'b');
@@ -331,7 +345,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b2', 'b');
