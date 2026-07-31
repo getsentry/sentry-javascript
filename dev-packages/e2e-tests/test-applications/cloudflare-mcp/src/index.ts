@@ -22,7 +22,6 @@ export default Sentry.withSentry(
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     debug: true,
     transportOptions: {
       // We are doing a lot of events at once in this test

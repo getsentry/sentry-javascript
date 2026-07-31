@@ -435,7 +435,6 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
-          dataCollection: { userInfo: true },
         }),
       );
 

@@ -6,7 +6,6 @@ const client = new Sentry.NodeClient({
   transport: loggingTransport,
   stackParser: Sentry.defaultStackParser,
   integrations: [],
-  dataCollection: { userInfo: true },
 });
 
 const customScope = new Sentry.Scope();

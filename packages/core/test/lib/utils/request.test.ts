@@ -9,6 +9,7 @@ import {
   winterCGRequestToRequestData,
 } from '../../../src/utils/request';
 import type { ResolvedDataCollection } from '../../../src/types/datacollection';
+import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 import type { Scope } from '../../../src/scope';
 
 describe('request utils', () => {
@@ -740,18 +741,11 @@ describe('request utils', () => {
 
       it.each([
         {
-          dataCollection: {
-            userInfo: false,
-            cookies: true,
-            httpHeaders: { request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] }, response: true },
-            httpBodies: [],
-            urlQueryParams: true,
-            graphQL: { document: true, variables: true },
-            genAI: { inputs: true, outputs: true },
-            databaseQueryData: true,
-            stackFrameVariables: true,
-            frameContextLines: 5,
-          },
+          dataCollection: resolveDataCollectionOptions({
+            dataCollection: {
+              httpHeaders: { request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] }, response: true },
+            },
+          }),
           expected: {
             'http.request.header.content_type': 'application/json',
             'http.request.header.user_agent': 'Mozilla/5.0',
@@ -762,18 +756,7 @@ describe('request utils', () => {
           },
         },
         {
-          dataCollection: {
-            userInfo: true,
-            cookies: true,
-            httpHeaders: { request: true, response: true },
-            httpBodies: [],
-            urlQueryParams: true,
-            graphQL: { document: true, variables: true },
-            genAI: { inputs: true, outputs: true },
-            databaseQueryData: true,
-            stackFrameVariables: true,
-            frameContextLines: 5,
-          },
+          dataCollection: resolveDataCollectionOptions({}),
           expected: {
             'http.request.header.content_type': 'application/json',
             'http.request.header.user_agent': 'Mozilla/5.0',

@@ -331,7 +331,7 @@ describe('Supabase Integration', () => {
     });
 
     it('includes data when dataCollection.databaseQueryData is true', async () => {
-      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: true } });
+      const resolved = resolveDataCollectionOptions({});
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
       } as any);
