@@ -18,9 +18,9 @@ export function maybeWarnAboutIgnoredTransactionOptions(options: ClientOptions):
 
   const ignoredOptions = [
     // oxlint-disable-next-line typescript/no-deprecated
-    options.beforeSendTransaction && '\`beforeSendTransaction\`',
+    options.beforeSendTransaction && '`beforeSendTransaction`',
     // oxlint-disable-next-line typescript/no-deprecated
-    options.ignoreTransactions?.length && '\`ignoreTransactions\`',
+    options.ignoreTransactions?.length && '`ignoreTransactions`',
   ].filter(Boolean);
 
   if (!ignoredOptions.length) {

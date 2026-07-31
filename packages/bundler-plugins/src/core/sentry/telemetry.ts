@@ -46,7 +46,7 @@ export function createSentryInstance(
     },
 
     // Deprecated, but still applied because this client runs on the static trace lifecycle.
-    // eslint-disable-next-line typescript/no-deprecated
+    // oxlint-disable-next-line typescript/no-deprecated
     beforeSendTransaction: event => {
       delete event.server_name; // Server name might contain PII
       return event;

@@ -1656,8 +1656,12 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  // eslint-disable-next-line typescript/no-deprecated
-  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+  const {
+    beforeSend,
+    ignoreSpans,
+    // oxlint-disable-next-line typescript/no-deprecated
+    beforeSendTransaction,
+  } = options;
   const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;
