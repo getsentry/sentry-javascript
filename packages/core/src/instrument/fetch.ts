@@ -129,7 +129,8 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
 
             if (
               shouldEnhance &&
-              error instanceof TypeError &&
+              isError(error) &&
+              error.name === 'TypeError' &&
               (error.message === 'Failed to fetch' ||
                 error.message === 'Load failed' ||
                 error.message === 'NetworkError when attempting to fetch resource.')
