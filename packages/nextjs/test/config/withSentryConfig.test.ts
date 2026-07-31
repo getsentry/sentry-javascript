@@ -1,8 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  filterInstrumentedExternals,
+  ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+} from '../../src/config/diagnosticsChannelInjection';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
+
+// Build-time instrumentation is on by default, so the bundle-safe packages are deliberately dropped
+// from the externals defaults (the loader transforms them) and the orchestrion runtime is added.
+const EXPECTED_DEFAULT_EXTERNALS = [
+  ...filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES),
+  ...ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+];
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
@@ -30,7 +42,7 @@ describe('withSentryConfig', () => {
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
+    expect(serverExternalPackages).toEqual(expect.arrayContaining(EXPECTED_DEFAULT_EXTERNALS));
   });
 
   it("works when user's overall config is a function", () => {
@@ -44,7 +56,7 @@ describe('withSentryConfig', () => {
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
+    expect(serverExternalPackages).toEqual(expect.arrayContaining(EXPECTED_DEFAULT_EXTERNALS));
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
@@ -90,7 +102,7 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
       expect(finalConfig.serverExternalPackages).toBeDefined();
-      expect(finalConfig.serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
+      expect(finalConfig.serverExternalPackages).toEqual(expect.arrayContaining(EXPECTED_DEFAULT_EXTERNALS));
       expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeUndefined();
     });
 
@@ -101,7 +113,7 @@ describe('withSentryConfig', () => {
       expect(finalConfig.serverExternalPackages).toBeUndefined();
       expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeDefined();
       expect(finalConfig.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
+        expect.arrayContaining(EXPECTED_DEFAULT_EXTERNALS),
       );
     });
 
@@ -114,7 +126,7 @@ describe('withSentryConfig', () => {
         serverExternalPackages: existingPackages,
       });
       expect(config15.serverExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
+        expect.arrayContaining([...existingPackages, ...EXPECTED_DEFAULT_EXTERNALS]),
       );
 
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
@@ -125,7 +137,7 @@ describe('withSentryConfig', () => {
         },
       });
       expect(config14.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
+        expect.arrayContaining([...existingPackages, ...EXPECTED_DEFAULT_EXTERNALS]),
       );
     });
   });
