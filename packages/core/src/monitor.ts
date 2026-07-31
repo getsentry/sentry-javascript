@@ -1,13 +1,11 @@
 import { getClient, getCurrentScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { continueTrace, startNewTrace, withActiveSpan } from './tracing/trace';
+import { startNewTrace } from './tracing/trace';
 import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types/checkin';
 import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
-import { getActiveSpan } from './utils/spanUtils';
 import { timestampInSeconds } from './utils/time';
-import { getTraceData } from './utils/traceData';
 
 /**
  * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
@@ -56,23 +54,20 @@ export function withMonitor<T>(
   }
 
   // With isolation scope resets the propagation context, so if we do not pass isolateTace, we want to manually continue the trace
-  const traceData = getTraceData();
-  const activeSpan = getActiveSpan();
+  const oldPropagationContext = getCurrentScope().getPropagationContext();
 
   return withIsolationScope(() => {
     if (upsertMonitorConfig?.isolateTrace) {
       return startNewTrace(runCallback);
     }
 
-    // If we are not isolating the trace, we want to keep the same trace as the parent
-    // We also need to ensure to set the same span active as before, to ensure an eventually active span is set back in continueTrace
-    return continueTrace(
-      {
-        sentryTrace: traceData['sentry-trace'],
-        baggage: traceData['baggage'],
-      },
-      () => withActiveSpan(activeSpan ?? null, runCallback),
-    );
+    // If we are not isolating the trace, in this case we want to keep the same trace as the parent
+    const newPropagationContext = getCurrentScope().getPropagationContext();
+    if (!newPropagationContext.parentSpanId) {
+      getCurrentScope().setPropagationContext(oldPropagationContext);
+    }
+
+    return runCallback();
   });
 }
 
