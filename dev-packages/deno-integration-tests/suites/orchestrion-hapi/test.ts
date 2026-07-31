@@ -47,5 +47,5 @@ Deno.test('hapi instrumentation: orchestrion:@hapi/hapi:route channel wraps the 
   assertEquals(hapiSpan!.description, 'GET /hello');
   assertEquals(hapiSpan!.data?.['hapi.type'], 'router');
   assertEquals(hapiSpan!.data?.['http.route'], '/hello');
-  assertEquals(hapiSpan!.data?.['sentry.origin'], 'auto.http.orchestrion.hapi');
+  assertEquals(hapiSpan!.data?.['sentry.origin'], 'auto.http.hapi');
 });

@@ -9,7 +9,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // `postgresIntegration()` is the diagnostics-channel implementation by default, so query spans carry
   // the orchestrion origin.
-  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
+  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.postgres' : 'auto.db.otel.postgres';
 
   describe('default', () => {
     const EXPECTED_TRANSACTION = {
@@ -335,10 +335,10 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // Orchestrion (diagnostics-channel) coverage via a dedicated instrument file. Produces the same
   // spans as the OTel path did, except the query origin reports the mechanism
-  // (`auto.db.orchestrion.postgres`); connect/pool-connect spans stay 'manual' (those spans never set
+  // (`auto.db.postgres`); connect/pool-connect spans stay 'manual' (those spans never set
   // an origin).
   describe('orchestrion (diagnostics-channel)', () => {
-    const ORIGIN = 'auto.db.orchestrion.postgres';
+    const ORIGIN = 'auto.db.postgres';
 
     describe('default', () => {
       const EXPECTED_TRANSACTION = {

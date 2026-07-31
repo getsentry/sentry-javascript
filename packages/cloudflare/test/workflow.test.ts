@@ -159,11 +159,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -276,11 +276,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -353,11 +353,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'internal_error',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -396,11 +396,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -609,7 +609,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     const rootSpanId = rootSpan.contexts.trace.span_id;
 
     // Child span for the step.do with the custom span as parent
-    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function.step.do');
+    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function');
     expect(stepSpan).toBeDefined();
     expect(stepSpan.parent_span_id).toBe(rootSpanId);
   });

@@ -4,7 +4,7 @@ import {
   getBullMQProcessSpanOptions,
   getEventSpanOptions,
   getMiddlewareSpanOptions,
-  httpOrigin,
+  HTTP_ORIGIN,
 } from '../../src/integrations/helpers';
 
 function middlewareOrigin(componentType?: string): unknown {
@@ -19,14 +19,14 @@ function bullmqOrigin(): unknown {
   return getBullMQProcessSpanOptions('q').attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
 }
 
-describe('NestJS span origins', () => {
-  it('emits origins', () => {
-    expect(httpOrigin()).toBe('auto.http.orchestrion.nestjs');
-    expect(middlewareOrigin()).toBe('auto.middleware.orchestrion.nestjs');
-    expect(middlewareOrigin('guard')).toBe('auto.middleware.orchestrion.nestjs.guard');
-    expect(middlewareOrigin('interceptor')).toBe('auto.middleware.orchestrion.nestjs.interceptor');
-    expect(middlewareOrigin('pipe')).toBe('auto.middleware.orchestrion.nestjs.pipe');
-    expect(eventOrigin()).toBe('auto.event.orchestrion.nestjs');
-    expect(bullmqOrigin()).toBe('auto.queue.orchestrion.nestjs.bullmq');
+describe('NestJS span origin', () => {
+  it('emits the nestjs origins', () => {
+    expect(HTTP_ORIGIN).toBe('auto.http.nestjs');
+    expect(middlewareOrigin()).toBe('auto.middleware.nestjs');
+    expect(middlewareOrigin('guard')).toBe('auto.middleware.nestjs.guard');
+    expect(middlewareOrigin('interceptor')).toBe('auto.middleware.nestjs.interceptor');
+    expect(middlewareOrigin('pipe')).toBe('auto.middleware.nestjs.pipe');
+    expect(eventOrigin()).toBe('auto.event.nestjs');
+    expect(bullmqOrigin()).toBe('auto.queue.nestjs.bullmq');
   });
 });

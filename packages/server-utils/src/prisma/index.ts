@@ -15,10 +15,6 @@ export interface PrismaInstrumentationConfig {
 
 export interface PrismaOptions {
   /**
-   * @deprecated This is no longer used, v5 works out of the box.
-   */
-  prismaInstrumentation?: unknown;
-  /**
    * Configuration for the Prisma tracing helper.
    */
   instrumentationConfig?: PrismaInstrumentationConfig;

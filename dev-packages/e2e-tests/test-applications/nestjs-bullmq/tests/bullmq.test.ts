@@ -34,7 +34,7 @@ test('Creates a transaction for successful job processing', async ({ baseURL }) 
 
   expect(transaction.transaction).toBe('test-queue process');
   expect(transaction.contexts?.trace?.op).toBe('queue.process');
-  expect(transaction.contexts?.trace?.origin).toBe('auto.queue.orchestrion.nestjs.bullmq');
+  expect(transaction.contexts?.trace?.origin).toBe('auto.queue.nestjs.bullmq');
 });
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {

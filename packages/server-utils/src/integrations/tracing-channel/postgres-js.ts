@@ -22,7 +22,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // integration of the same name is deduplicated out of the default set.
 const INTEGRATION_NAME = 'PostgresJs' as const;
 
-const ORIGIN = 'auto.db.orchestrion.postgresjs';
+const ORIGIN = 'auto.db.postgresjs';
 
 // Not part of `@sentry/conventions`, so we keep it inline (matches the OTel `PostgresJsInstrumentation`).
 const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';

@@ -3,11 +3,11 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - redis db spans (instrumentation API)', () => {
-  test('OTel db.redis spans nest under the native instrumentation-API http.server transaction', async ({ page }) => {
+  test('OTel db.query spans nest under the native instrumentation-API http.server transaction', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
         transactionEvent.transaction === 'GET /performance/redis' &&
-        (transactionEvent.spans?.some(span => span.op === 'db.redis') ?? false)
+        (transactionEvent.spans?.some(span => span.op === 'db.query') ?? false)
       );
     });
 
@@ -24,7 +24,7 @@ test.describe('server - redis db spans (instrumentation API)', () => {
     const rootSpanId = transaction.contexts?.trace?.span_id;
     const spanIds = new Set([rootSpanId, ...(transaction.spans ?? []).map(span => span.span_id)]);
 
-    const redisSpans = transaction.spans!.filter(span => span.op === 'db.redis');
+    const redisSpans = transaction.spans!.filter(span => span.op === 'db.query');
 
     // loader runs SET then GET => at least two redis command spans
     expect(redisSpans.length).toBeGreaterThanOrEqual(2);

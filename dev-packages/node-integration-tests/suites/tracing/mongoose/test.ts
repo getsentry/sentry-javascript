@@ -4,8 +4,8 @@ import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Mongoose experimental Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
-  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
+  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
+  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

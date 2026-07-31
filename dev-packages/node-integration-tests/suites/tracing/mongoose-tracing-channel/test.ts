@@ -9,7 +9,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // query text, span relationships, and that the legacy IITM patcher does NOT also fire (no double
 // instrumentation). mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
 conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
-  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongo' : 'auto.db.otel.mongo';
+  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

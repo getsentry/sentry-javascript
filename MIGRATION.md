@@ -206,8 +206,17 @@ Sentry.init({
 Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
 `true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
 
+#### RequestData
+
+The `requestDataIntegration`'s `include` options remain an integration-level override. An explicit `false`
+prevents that category from being attached, while an explicit `true` enables it even when the corresponding
+`dataCollection` category is disabled. For cookies, headers, and query parameters, any configured `allow` or
+`deny` filtering continues to apply: When `include` enables a category which `dataCollection` disabled, the
+default sensitive-value denylist is applied.
+
 User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
-`dataCollection.userInfo`.
+`dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
+`dataCollection.userInfo: false` for data collected by that integration.
 
 ### Browser sessions use `unhandled` instead of `crashed`
 
@@ -255,6 +264,12 @@ Affected SDKs: All SDKs.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+
+### LangGraph no longer emits `create_agent` spans
+
+Affected SDKs: All server-side SDKs.
+
+The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
 ### `thirdPartyErrorFilterIntegration` filters internal frames by default
 

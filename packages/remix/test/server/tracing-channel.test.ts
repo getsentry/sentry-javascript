@@ -45,7 +45,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'GET /users',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.origin': 'auto.http.remix',
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.source': 'url',
@@ -101,7 +101,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.origin': 'auto.http.remix',
           'sentry.op': 'loader.remix',
           'code.function': 'loader',
           'http.method': 'GET',

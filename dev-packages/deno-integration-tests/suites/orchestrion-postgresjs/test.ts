@@ -57,5 +57,5 @@ Deno.test('postgres.js instrumentation: orchestrion:postgres:handle channel prod
   assertEquals(pgSpan!.data?.['db.query.text'], 'SELECT name FROM users');
   // Set by the resolve wrapper from the `command` passed to `query.resolve`.
   assertEquals(pgSpan!.data?.['db.operation.name'], 'SELECT');
-  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.postgresjs');
+  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.postgresjs');
 });

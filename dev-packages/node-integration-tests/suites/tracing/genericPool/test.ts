@@ -8,7 +8,7 @@ describe('genericPool auto instrumentation', () => {
   });
 
   // The orchestrion channel integration replaces the OTel one 1:1 but tags spans with its own origin.
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.generic_pool' : 'auto.db.otel.generic_pool';
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.generic_pool' : 'auto.db.otel.generic_pool';
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should auto-instrument `genericPool` package when calling pool.require()', async () => {

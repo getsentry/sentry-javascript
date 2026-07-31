@@ -6,8 +6,8 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 // The span origin depends on which instrumentation is active. These blocks drive the SDK's default
 // integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
 // `Amqplib` integration is swapped for the diagnostics-channel one, changing the origin.
-const PUBLISHER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.publisher' : 'auto.amqplib.otel.publisher';
-const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.consumer' : 'auto.amqplib.otel.consumer';
+const PUBLISHER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.publisher' : 'auto.amqplib.otel.publisher';
+const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.consumer' : 'auto.amqplib.otel.consumer';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.

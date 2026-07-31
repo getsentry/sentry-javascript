@@ -23,7 +23,6 @@ export interface StartMongooseLegacySpanOptions {
   collection: MongooseLegacyCollection | undefined;
   modelName: string | undefined;
   operation: string;
-  /** Span origin: distinguishes the OTel/IITM caller from orchestrion */
   origin: string;
   parentSpan?: Span;
 }

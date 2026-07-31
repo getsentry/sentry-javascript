@@ -17,10 +17,10 @@ test('Instruments generic-pool automatically via orchestrion', async ({ baseURL 
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'generic-pool.acquire',
-      origin: 'auto.db.orchestrion.generic_pool',
+      origin: 'auto.db.generic_pool',
       status: 'ok',
       data: expect.objectContaining({
-        'sentry.origin': 'auto.db.orchestrion.generic_pool',
+        'sentry.origin': 'auto.db.generic_pool',
       }),
     }),
   );
