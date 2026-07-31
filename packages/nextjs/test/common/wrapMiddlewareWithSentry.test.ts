@@ -11,7 +11,7 @@ describe('wrapMiddlewareWithSentry', () => {
     vi.restoreAllMocks();
   });
 
-  it('does not start its own span when the Next.js OTEL root span is already active', async () => {
+  it('does not start its own span when the Next.js OTEL root span is already active (Next.js >= 14)', async () => {
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({} as SentryCore.Span);
     vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue({} as SentryCore.Span);
     const setCapturedScopesSpy = vi.spyOn(SentryCore, 'setCapturedScopesOnSpan').mockReturnValue(undefined);
@@ -29,7 +29,7 @@ describe('wrapMiddlewareWithSentry', () => {
     expect(startSpanSpy).not.toHaveBeenCalled();
   });
 
-  it('does not start its own span when no span is active', async () => {
+  it('starts its own span when no span is active (Next.js 13)', async () => {
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(undefined);
     const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
@@ -39,7 +39,15 @@ describe('wrapMiddlewareWithSentry', () => {
     await wrapped(new Request('https://example.com/foo', { method: 'GET' }));
 
     expect(handler).toHaveBeenCalledTimes(1);
-    expect(startSpanSpy).not.toHaveBeenCalled();
+    // Next.js 13 never emits `Middleware.execute`, so without this span there would be no middleware transaction.
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'middleware GET',
+        op: 'http.server.middleware',
+      }),
+      expect.any(Function),
+    );
   });
 
   it('captures errors thrown by the middleware when a root span is already active', async () => {
