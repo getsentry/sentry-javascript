@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import { defaultDbStatementSerializer } from '@sentry/server-utils';
+import { defaultDbStatementSerializer } from '../../../../server-utils/src/redis/redis-statement-serializer';
 import { describe, expect, it } from 'vitest';
 
 describe('defaultDbStatementSerializer()', () => {

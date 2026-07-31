@@ -1,36 +1,28 @@
-// Need to use node: prefix for deno compatibility
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_createTracingChannelBinding,
+  getAsyncContextStrategy,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  getMainCarrier,
   setAsyncContextStrategy,
 } from '@sentry/core';
 
-let installed = false;
+type ScopeStore = { scope: Scope; isolationScope: Scope };
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage.
- *
- * Idempotent: multiple integrations each call this from their `setupOnce`,
- * but they must all share a single `AsyncLocalStorage` so context propagates
- * between them. The first call wins, later calls are no-ops. This prevents
- * orphaning an in-flight context if an integration is set up asynchronously.
- *
- * @internal Only exported to be used in higher-level Sentry packages
- * @hidden Only exported to be used in higher-level Sentry packages
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {
-  if (installed) {
-    return;
-  }
-  installed = true;
+  // Re-use the AsyncLocalStorage of an already-installed strategy, if any. Otherwise a repeated
+  // setup (e.g. a second `Sentry.init()`) would swap in a new store while integrations that captured
+  // the previous one (via `getTracingChannelBinding().asyncLocalStorage`) keep reading the old one,
+  // breaking scope propagation across async boundaries.
+  const existingAsyncStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
+    ?.asyncLocalStorage as AsyncLocalStorage<ScopeStore> | undefined;
 
-  const asyncStorage = new AsyncLocalStorage<{
-    scope: Scope;
-    isolationScope: Scope;
-  }>();
+  const asyncStorage = existingAsyncStorage ?? new AsyncLocalStorage<ScopeStore>();
 
   function getScopes(): { scope: Scope; isolationScope: Scope } {
     const scopes = asyncStorage.getStore();
@@ -65,6 +57,7 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
     const scope = getScopes().scope;
     const isolationScope = getScopes().isolationScope.clone();
+
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
     });

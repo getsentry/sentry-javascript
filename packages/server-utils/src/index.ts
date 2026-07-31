@@ -1,9 +1,6 @@
-/**
- * Server-only utilities shared across Sentry server SDKs.
- *
- * @module
- */
+export * from './exports';
 
+// Exports using diagnostics channels
 export { graphqlIntegration } from './graphql';
 export { mongooseIntegration, startMongooseLegacySpan } from './mongoose';
 export type { MongooseLegacyCollection, StartMongooseLegacySpanOptions } from './mongoose';
@@ -19,7 +16,6 @@ export { instrumentPrisma, prismaIntegration } from './prisma';
 export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
 export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';
 export type { RedisDiagnosticChannelResponseHook } from './redis/redis-dc-subscriber';
-export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
   SentryTracingChannel,
@@ -36,4 +32,3 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentFastify,
 } from './integrations/tracing-channel/fastify';
-export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';

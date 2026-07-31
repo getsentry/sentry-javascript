@@ -1,6 +1,6 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {

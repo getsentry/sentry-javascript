@@ -1,6 +1,16 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, withIsolationScope, withScope } from '@sentry/core';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
+import {
+  getAsyncContextStrategy,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  getMainCarrier,
+  Scope,
+  setAsyncContextStrategy,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async-context';
 
 describe('withScope()', () => {
   beforeEach(() => {
@@ -156,4 +166,51 @@ describe('withIsolationScope()', () => {
         done();
       });
     }));
+});
+
+describe('AsyncLocalStorage re-use', () => {
+  afterEach(() => {
+    setAsyncContextStrategy(undefined);
+  });
+
+  it('re-uses the AsyncLocalStorage of an already-installed strategy on repeated setup', () => {
+    setAsyncLocalStorageAsyncContextStrategy();
+    const firstStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+    expect(firstStorage).toBeDefined();
+
+    setAsyncLocalStorageAsyncContextStrategy();
+    const secondStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+
+    expect(secondStorage).toBe(firstStorage);
+  });
+
+  it('keeps scope propagation working after a repeated setup', () =>
+    new Promise<void>(done => {
+      setAsyncLocalStorageAsyncContextStrategy();
+
+      // A consumer captures the store from the initial setup...
+      const capturedStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+
+      // ...and then a second setup happens (e.g. a second `Sentry.init()`).
+      setAsyncLocalStorageAsyncContextStrategy();
+
+      withIsolationScope(isolationScope => {
+        // The store captured before the second setup still observes the active scopes,
+        // because the same AsyncLocalStorage instance was re-used.
+        expect((capturedStorage as { getStore: () => { isolationScope: Scope } }).getStore().isolationScope).toBe(
+          isolationScope,
+        );
+        expect(getIsolationScope()).toBe(isolationScope);
+        done();
+      });
+    }));
+
+  it('creates a new AsyncLocalStorage when no strategy is installed yet', () => {
+    setAsyncContextStrategy(undefined);
+
+    setAsyncLocalStorageAsyncContextStrategy();
+    const storage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+
+    expect(storage).toBeDefined();
+  });
 });
