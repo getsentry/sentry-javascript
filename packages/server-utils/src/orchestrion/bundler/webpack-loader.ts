@@ -48,7 +48,7 @@ function onInjectSnippet(moduleName: string): string {
   const name = JSON.stringify(moduleName);
   return (
     ';(function(){' +
-    'var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};' +
+    'var g=globalThis.__SENTRY_ORCHESTRION__||={};' +
     'if(!Array.isArray(g.bundler))g.bundler=[];' +
     `if(g.bundler.indexOf(${name})<0)g.bundler.push(${name});` +
     `if(typeof g.onInject==='function')g.onInject(${name});` +
