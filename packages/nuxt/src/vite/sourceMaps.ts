@@ -163,8 +163,9 @@ export function getPluginOptions(
 }
 
 /**
- * Resolves the `filesToDeleteAfterUpload` value: the user-specified globs if provided, otherwise the
- * client/server fallback globs when Sentry enabled source maps itself. Logs the fallback in debug mode.
+ * Users can set `filesToDeleteAfterUpload` themselves. If they don't, we fall back to deleting the
+ * client/server source maps — but only the ones Sentry generated itself (i.e. when the user didn't
+ * configure source maps at all). If the user explicitly set source maps, we leave their files alone.
  */
 function resolveFilesToDeleteAfterUpload(
   moduleOptions: SentryNuxtModuleOptions,

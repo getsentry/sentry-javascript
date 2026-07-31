@@ -113,6 +113,35 @@ describe('getPluginOptions', () => {
     );
   });
 
+  it('resolves root-level options into plugin options', () => {
+    const errorHandler = (err: Error): void => {
+      throw err;
+    };
+    const result = getPluginOptions({
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-token',
+      sentryUrl: 'https://my.sentry.io',
+      telemetry: false,
+      silent: true,
+      errorHandler,
+      headers: { 'X-Foo': 'bar' },
+      release: { name: '1.2.3' },
+    } as SentryNuxtModuleOptions);
+
+    expect(result).toMatchObject({
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-token',
+      url: 'https://my.sentry.io', // sentryUrl is resolved to the plugin's `url` option
+      telemetry: false,
+      silent: true,
+      errorHandler,
+      headers: { 'X-Foo': 'bar' },
+      release: { name: '1.2.3' },
+    });
+  });
+
   it('normalizes source paths via rewriteSources', () => {
     const options = getPluginOptions({} as SentryNuxtModuleOptions, undefined);
     const rewrite = options.sourcemaps?.rewriteSources as ((s: string) => string) | undefined;
