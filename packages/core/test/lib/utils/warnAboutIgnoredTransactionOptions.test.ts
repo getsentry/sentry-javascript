@@ -19,27 +19,25 @@ describe('maybeWarnAboutIgnoredTransactionOptions', () => {
     return { integrations: [], transport: () => ({}) as never, stackParser: () => [], ...overrides } as ClientOptions;
   }
 
-  it('warns about `beforeSendTransaction` when span streaming is enabled', () => {
+  it('warns when `beforeSendTransaction` is set and span streaming is enabled', () => {
     maybeWarnAboutIgnoredTransactionOptions(
       options({ traceLifecycle: 'stream', beforeSendTransaction: event => event }),
     );
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-    expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction`');
-    expect(consoleWarnSpy.mock.calls[0]?.[0]).not.toContain('`ignoreTransactions`');
+    expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction` and `ignoreTransactions`');
   });
 
-  it('warns about `ignoreTransactions` when span streaming is enabled', () => {
+  it('warns when `ignoreTransactions` is set and span streaming is enabled', () => {
     maybeWarnAboutIgnoredTransactionOptions(
       options({ traceLifecycle: 'stream', ignoreTransactions: ['/healthcheck'] }),
     );
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-    expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`ignoreTransactions`');
-    expect(consoleWarnSpy.mock.calls[0]?.[0]).not.toContain('`beforeSendTransaction`');
+    expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction` and `ignoreTransactions`');
   });
 
-  it('warns once about both options when both are set', () => {
+  it('warns only once when both options are set', () => {
     maybeWarnAboutIgnoredTransactionOptions(
       options({
         traceLifecycle: 'stream',
@@ -49,7 +47,16 @@ describe('maybeWarnAboutIgnoredTransactionOptions', () => {
     );
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-    expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction` and `ignoreTransactions`');
+  });
+
+  it('points at the replacement options and the opt-out', () => {
+    maybeWarnAboutIgnoredTransactionOptions(
+      options({ traceLifecycle: 'stream', beforeSendTransaction: event => event }),
+    );
+
+    const message = consoleWarnSpy.mock.calls[0]?.[0];
+    expect(message).toContain('`beforeSendSpan` and `ignoreSpans`');
+    expect(message).toContain("`traceLifecycle: 'static'`");
   });
 
   it('does not warn when the trace lifecycle is static', () => {
