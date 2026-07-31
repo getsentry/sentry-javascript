@@ -23,8 +23,6 @@ export async function sentryReactRouter(
   plugins.push(makeServerBuildCapturePlugin());
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
-    // Build-time `diagnostics_channel` injection for instrumented server deps (mysql, ioredis, …).
-    // Build-only: `ssr.noExternal` force-bundles CJS deps, which Vite's dev SSR can't interop. Cloudflare/workerd out of scope — opt out via `buildTimeInstrumentation: false`.
     plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
     plugins.push(makeEnableSourceMapsPlugin(options));
     plugins.push(...(await makeCustomSentryVitePlugins(options)));
