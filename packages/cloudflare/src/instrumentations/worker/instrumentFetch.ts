@@ -3,7 +3,8 @@ import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers'
 import type { CloudflareOptions } from '../../client';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
-import { wrapRequestHandler } from '../../request';
+import { wrapRequestHandlerWithInit } from '../../request';
+import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
 
@@ -35,7 +36,7 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
           args[1] = instrumentEnv(env, options);
           args[2] = context;
 
-          return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
+          return wrapRequestHandlerWithInit({ options, request, context }, () => target.apply(thisArg, args), init);
         },
       }),
   );
@@ -62,7 +63,11 @@ export function instrumentWorkerEntrypointFetch<T extends WorkerEntrypoint>(
         return Reflect.apply(target, thisArg, args);
       }
 
-      return wrapRequestHandler({ options, request, context }, () => Reflect.apply(target, thisArg, args));
+      return wrapRequestHandlerWithInit(
+        { options, request, context },
+        () => Reflect.apply(target, thisArg, args),
+        init,
+      );
     },
   });
 }
