@@ -95,13 +95,7 @@ export function instrumentBunHttpServer(options: BunHttpServerOptions = {}): voi
     return;
   }
 
-  const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions({
-    spans: options.spans ?? true,
-    sessions: options.sessions ?? true,
-    sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? 60_000,
-    maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-    ignoreRequestBody: options.ignoreRequestBody,
-  });
+  const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions(options);
 
   // Track which servers we have already handed to core, so we instrument each server exactly once.
   // After core instruments a server it installs its own `emit` on the instance, which shadows this
