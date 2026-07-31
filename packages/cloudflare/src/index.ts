@@ -121,8 +121,6 @@ export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
-export { wrapRequestHandler } from './request';
-
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
