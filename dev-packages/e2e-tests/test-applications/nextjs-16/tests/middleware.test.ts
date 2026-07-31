@@ -21,6 +21,11 @@ test('Should create a transaction for middleware', async ({ request }) => {
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
   expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
+  // The `Middleware.execute` OTEL root span is the only middleware span. The build-time
+  // `wrapMiddlewareWithSentry` wrapper used to start a second, redundant one nested inside it.
+  const nestedMiddlewareSpans = middlewareTransaction.spans?.filter(span => span.op === 'http.server.middleware');
+  expect(nestedMiddlewareSpans).toHaveLength(0);
+
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
   expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
