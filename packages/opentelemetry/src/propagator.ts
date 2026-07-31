@@ -2,8 +2,10 @@ import type { Context, SpanContext, TextMapGetter, TextMapPropagator, TextMapSet
 import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { continueTrace, DynamicSamplingContext } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
   baggageHeaderToDynamicSamplingContext,
   consoleSandbox,
+  generateTraceId,
   getClient,
   getCurrentScope,
   getIsolationScope,
@@ -122,16 +124,36 @@ export function continueTraceAsRemoteSpan<T>(
  * so it can be used to implement an OpenTelemetry propagator's `extract`.
  */
 function getContextWithRemoteActiveSpanAndScopes(ctx: Context, options: Parameters<typeof continueTrace>[0]): Context {
-  return ensureScopesOnContext(getContextWithRemoteActiveSpan(ctx, options));
+  const ctxWithRemoteSpan = getContextWithRemoteActiveSpan(ctx, options);
+  // If a remote active span was set, we are continuing an incoming trace, so the trace id is fixed.
+  // Otherwise there was no (valid) incoming trace and we are the head of a new trace.
+  const isContinuingTrace = trace.getSpanContext(ctxWithRemoteSpan) !== undefined;
+  return ensureScopesOnContext(ctxWithRemoteSpan, isContinuingTrace);
 }
 
-function ensureScopesOnContext(ctx: Context): Context {
+function ensureScopesOnContext(ctx: Context, isContinuingTrace: boolean): Context {
   // If there are no scopes yet on the context, ensure we have them
   const scopes = getScopesFromContext(ctx);
+
+  // If we have no scope here, this is most likely either the root context or a context manually derived from it
+  // In this case, we want to fork the current scope, to ensure we do not pollute the root scope
+  const scope = scopes ? scopes.scope : getCurrentScope().clone();
+
+  // When we forked a fresh scope and are not continuing an incoming trace, we give it its own trace.
+  // Without this, concurrent header-less requests (e.g. edge middleware, whose root span is created by
+  // upstream OTEL instrumentation rather than through `continueTrace`) would all inherit the forked
+  // scope's trace id and collapse into a single trace. Mirrors `continueTrace` in the core HTTP server.
+  if (!scopes && !isContinuingTrace) {
+    const propagationContext = scope.getPropagationContext();
+    scope.setPropagationContext({
+      ...propagationContext,
+      traceId: generateTraceId(),
+      sampleRand: _INTERNAL_safeMathRandom(),
+    });
+  }
+
   const newScopes = {
-    // If we have no scope here, this is most likely either the root context or a context manually derived from it
-    // In this case, we want to fork the current scope, to ensure we do not pollute the root scope
-    scope: scopes ? scopes.scope : getCurrentScope().clone(),
+    scope,
     isolationScope: scopes ? scopes.isolationScope : getIsolationScope(),
   };
 
