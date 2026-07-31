@@ -26,7 +26,6 @@ describe('Bun HTTP Server Integration', () => {
       tracesSampleRate: 1.0,
       // Avoid sending anything to Sentry
       transport: () => ({ send: async () => ({}), flush: async () => true }),
-      integrations: [bunHttpServerIntegration()],
     });
   });
 
