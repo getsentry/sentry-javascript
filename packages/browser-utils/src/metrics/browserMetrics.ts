@@ -27,6 +27,7 @@ import {
 } from './instrument';
 import { isValidLcpMetric } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';
+import { getNavigationSpanForNavigationId } from './softNavCorrelation';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
@@ -97,7 +98,7 @@ function _emitMeasurement(
     return;
   }
 
-  _emitSoftNavWebVitalSpan(name, value, unit);
+  _emitSoftNavWebVitalSpan(name, value, unit, metric.navigationId);
 }
 
 /**
@@ -105,18 +106,35 @@ function _emitMeasurement(
  * This is a regular (non-standalone) span so it flows through the span streaming
  * pipeline (afterSpanEnd -> captureSpan -> SpanBuffer) and gets grouped with
  * the navigation span by trace ID.
+ *
+ * On a best-effort basis, the span is linked to the navigation span it belongs to (via the
+ * soft-nav `navigationId` correlation). When correlation fails - e.g. the navigation didn't
+ * meet the soft-nav heuristic or the entry arrived too late - the span is still emitted, just
+ * without the navigation link.
  */
-function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string): void {
+function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string, navigationId: string): void {
   const startTime = msToSec(browserPerformanceTimeOrigin() || 0);
-  const routeName = getCurrentScope().getScopeData().transactionName;
+  const navigationSpan = getNavigationSpanForNavigationId(navigationId);
+  const routeName = navigationSpan
+    ? spanToJSON(navigationSpan).description
+    : getCurrentScope().getScopeData().transactionName;
+
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.soft_navigation',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.webvital.${name}`,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
+    // Explicit marker so consumers can filter soft-nav web vital spans without relying on origin conventions.
+    'sentry.web_vital.navigation_type': 'soft-navigation',
+    'sentry.navigation_id': navigationId,
+  };
+
+  if (navigationSpan) {
+    attributes['sentry.navigation.span_id'] = navigationSpan.spanContext().spanId;
+  }
 
   const span = startInactiveSpan({
     name: routeName || '',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.softnavigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.webvital.${name}`,
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
-    },
+    attributes,
     startTime,
   });
 

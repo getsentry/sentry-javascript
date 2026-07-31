@@ -26,6 +26,8 @@ export { extractNetworkProtocol } from './metrics/utils';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
 
+export { registerNavigationSpan } from './metrics/softNavCorrelation';
+
 export { whenIdleOrHidden } from './metrics/web-vitals/lib/whenIdleOrHidden';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';

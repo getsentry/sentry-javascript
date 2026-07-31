@@ -40,6 +40,7 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  registerNavigationSpan,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
@@ -429,6 +430,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
     if (isPageloadSpan && enableReportPageLoaded) {
       _pageloadSpan = idleSpan;
+    }
+
+    // Register navigation spans so soft-nav web vitals can be correlated back to them by
+    // `navigationId` once the browser emits the (async) soft-navigation performance entry.
+    if (finalStartSpanOptions.op === 'navigation' && enableSoftNavWebVitals) {
+      registerNavigationSpan(idleSpan, enableSoftNavWebVitals);
     }
 
     setActiveIdleSpan(client, idleSpan);
