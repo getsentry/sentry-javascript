@@ -272,7 +272,7 @@ describe('_INTERNAL_captureMetric', () => {
     expect(envelopeItemPayload.ingest_settings).toEqual({ infer_ip: 'auto', infer_user_agent: 'auto' });
   });
 
-  it('includes ingest_settings with never when dataCollection is not set (sendDefaultPii bridge defaults to userInfo: false)', () => {
+  it('includes ingest_settings with never when dataCollection is not set', () => {
     vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(true);
 
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });

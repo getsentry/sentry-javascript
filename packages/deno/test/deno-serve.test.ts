@@ -281,7 +281,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    sendDefaultPii: true,
+    dataCollection: { httpHeaders: { request: true, response: true } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -335,42 +335,6 @@ Deno.test('Deno.serve should capture client address and port when userInfo data 
     tracesSampleRate: 1,
     traceLifecycle: 'static',
     dataCollection: { userInfo: true },
-    beforeSendTransaction: (event: TransactionEvent) => {
-      transactionEvents.push(event);
-      return null;
-    },
-  }) as DenoClient;
-
-  const abortController = new AbortController();
-  let onListen: ((_: unknown) => void) | undefined = undefined;
-  const p = new Promise(resolve => (onListen = resolve));
-  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
-    return new Response('OK');
-  });
-  await p;
-
-  const res = await fetch(`http://localhost:${server.addr.port}/test`);
-  assertEquals(await res.text(), 'OK');
-
-  abortController.abort();
-  await server.finished;
-
-  assertEquals(transactionEvents.length, 1);
-  const [transaction] = transactionEvents;
-
-  assertExists(transaction?.contexts?.trace?.data?.['client.address']);
-  assertExists(transaction?.contexts?.trace?.data?.['client.port']);
-});
-
-Deno.test('Deno.serve should capture client address and port when sendDefaultPii is enabled', async () => {
-  resetGlobals();
-  const transactionEvents: TransactionEvent[] = [];
-
-  init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
-    traceLifecycle: 'static',
-    sendDefaultPii: true,
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;

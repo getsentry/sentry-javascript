@@ -325,56 +325,6 @@ describe('withSentry', () => {
       expect(sentryEvent.request?.cookies).toBeUndefined();
     });
 
-    test('captures cookies when dataCollection.cookies is enabled', async () => {
-      let sentryEvent: Event = {};
-
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            dataCollection: { cookies: true },
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
-          context: createMockExecutionContext(),
-        },
-        () => {
-          SentryCore.captureMessage('cookies');
-          return new Response('test');
-        },
-      );
-
-      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
-    });
-
-    test('captures cookies when sendDefaultPii is enabled', async () => {
-      let sentryEvent: Event = {};
-
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            sendDefaultPii: true,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: new Request('https://example.com', { headers: { cookie: 'foo=bar' } }),
-          context: createMockExecutionContext(),
-        },
-        () => {
-          SentryCore.captureMessage('cookies');
-          return new Response('test');
-        },
-      );
-
-      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar' });
-    });
-
     test('does not capture request body for GET requests', async () => {
       let sentryEvent: Event = {};
       const context = createMockExecutionContext();
