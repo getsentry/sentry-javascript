@@ -21,7 +21,7 @@ import {
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
-import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
@@ -77,7 +77,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   const { beforeSendSpan } = client.getOptions();
   const processedSpan =
-    beforeSendSpan && isStreamedBeforeSendSpanCallback(beforeSendSpan)
+    beforeSendSpan && !isStaticBeforeSendSpanCallback(beforeSendSpan)
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 

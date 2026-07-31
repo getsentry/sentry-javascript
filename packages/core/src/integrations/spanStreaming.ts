@@ -7,7 +7,7 @@ import { SpanBuffer } from '../tracing/spans/spanBuffer';
 import { debug } from '../utils/debug-logger';
 import { spanIsSampled } from '../utils/spanUtils';
 
-const INTEGRATION_NAME = 'SpanStreaming' as const;
+export const INTEGRATION_NAME = 'SpanStreaming' as const;
 
 export const spanStreamingIntegration = defineIntegration(() => {
   return {

@@ -9,7 +9,7 @@ import {
 } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 
-const INTEGRATION_NAME = 'SpanStreaming' as const;
+export const INTEGRATION_NAME = 'SpanStreaming' as const;
 
 export const spanStreamingIntegration = defineIntegration(() => {
   return {

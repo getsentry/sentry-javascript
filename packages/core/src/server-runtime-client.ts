@@ -2,7 +2,10 @@ import { createCheckInEnvelope } from './checkin';
 import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { spanStreamingIntegration } from './integrations/spanStreaming';
+import {
+  spanStreamingIntegration,
+  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
+} from './integrations/spanStreaming';
 import type { Scope } from './scope';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import { addUserAgentToTransportHeaders } from './transports/userAgent';
@@ -43,7 +46,10 @@ export class ServerRuntimeClient<
     // When span streaming is enabled (`traceLifecycle: 'stream'`), the `spanStreamingIntegration`
     // is required to flush spans. We add it here so the individual server SDKs don't have to.
     // A user-provided `spanStreamingIntegration` always takes precedence over the one we add.
-    if (options.traceLifecycle !== 'static' && !options.integrations.some(i => i.name === 'SpanStreaming')) {
+    if (
+      options.traceLifecycle !== 'static' &&
+      !options.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
+    ) {
       options.integrations.push(spanStreamingIntegration());
     }
 

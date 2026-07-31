@@ -215,6 +215,11 @@ The payload fields were renamed:
 | `timestamp`         | `end_timestamp`                |
 | `status` (`string`) | `status` (`'ok'` or `'error'`) |
 
+The `status` field, now only contains two statuses: `'ok'` and `'error'`.
+Streamed spans always have a status (while status was optional on transaction-based spans).
+Previously more fine-grained error statuses are now mapped to `'error'`.
+Additional error information may be set via span attributes (e.g. `sentry.status.message`).
+
 ```js
 // Before
 Sentry.init({
@@ -241,7 +246,7 @@ Sentry.init({
 
 Returning `null` to drop a span was already disallowed in v9 and remains a no-op. Use `ignoreSpans` to filter spans.
 
-If you cannot migrate a callback yet, wrap it with `Sentry.withStaticSpan()` and opt out of span streaming (see below). `withStaticSpan` marks the callback as expecting the legacy `SpanJSON` format:
+If you cannot migrate the callback yet, opt out of span streaming and wrap `beforeSendSpan` with `Sentry.withStaticSpan()`:
 
 ```js
 Sentry.init({
@@ -269,12 +274,17 @@ The internal `isStreamedBeforeSendSpanCallback()` function from `@sentry/core` w
 
 #### Replacing `beforeSendTransaction`
 
-`beforeSendTransaction` no-ops because no transaction events are produced. For **scrubbing and data modification**, move the logic to `beforeSendSpan` and guard on `is_segment` to target what used to be the transaction:
+`beforeSendTransaction` no-ops because no transaction events are produced.
+For **scrubbing and data modification**, move the logic to `beforeSendSpan` and guard on `is_segment` to target what used to be the transaction
+For **dropping** a transaction or child spans, use `ignoreSpans` (see below). The `beforeSendSpan` callback cannot drop spans.
 
 ```js
 // Before
 Sentry.init({
   beforeSendTransaction: event => {
+    if (event.transaction === 'GET /health') {
+      return null;
+    }
     event.transaction = scrubIds(event.transaction);
     return event;
   },
@@ -282,6 +292,9 @@ Sentry.init({
 
 // After
 Sentry.init({
+  ignoreSpans: [
+    'GET /health'
+  ]
   beforeSendSpan: span => {
     if (span.is_segment) {
       span.name = scrubIds(span.name);
@@ -292,8 +305,6 @@ Sentry.init({
 ```
 
 Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
-
-For **dropping** a transaction, use `ignoreSpans` (see below). The `beforeSendSpan` callback cannot drop spans.
 
 #### Replacing `ignoreTransactions` with `ignoreSpans`
 
@@ -337,7 +348,7 @@ Sentry.init({
 });
 ```
 
-In Node, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
 
 ### Logs are enabled by default
 
