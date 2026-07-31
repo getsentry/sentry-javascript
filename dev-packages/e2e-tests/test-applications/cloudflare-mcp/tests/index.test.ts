@@ -56,7 +56,7 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
         },
         name: 'my-tool',
         arguments: {
-          message: 'modern protocol request',
+          message: 'ʕっ•ᴥ•ʔっ',
         },
       },
     }),
@@ -68,7 +68,7 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
     id: 'modern-tool-call',
     result: {
       resultType: 'complete',
-      content: [{ type: 'text', text: 'Tool my-tool: modern protocol request' }],
+      content: [{ type: 'text', text: 'Tool my-tool: ʕっ•ᴥ•ʔっ' }],
     },
   });
 
@@ -91,7 +91,7 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   expect(requestTrace?.data?.['url.port']).toBe('38787');
   expect(requestTrace?.data?.['url.scheme']).toBe('http:');
   expect(requestTrace?.data?.['server.address']).toBe('localhost');
-  expect(requestTrace?.data?.['http.request.body.size']).toBe(345);
+  expect(requestTrace?.data?.['http.request.body.size']).toBe(341);
   expect(requestTrace?.data?.['user_agent.original']).toBe('node');
   expect(requestTrace?.data?.['http.request.header.content_type']).toBe('application/json');
   expect(requestTrace?.data?.['network.protocol.name']).toBe('HTTP/1.1');
@@ -114,9 +114,9 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   expect(mcpTrace?.data?.['mcp.method.name']).toBe('tools/call');
   expect(mcpTrace?.data?.['mcp.request.id']).toBe('modern-tool-call');
   expect(mcpTrace?.data?.['mcp.tool.name']).toBe('my-tool');
-  expect(mcpTrace?.data?.['mcp.request.argument.message']).toBe('"modern protocol request"');
+  expect(mcpTrace?.data?.['mcp.request.argument.message']).toBe('"ʕっ•ᴥ•ʔっ"');
   expect(mcpTrace?.data?.['mcp.tool.result.content_count']).toBe(1);
-  expect(mcpTrace?.data?.['mcp.tool.result.content']).toBe('Tool my-tool: modern protocol request');
+  expect(mcpTrace?.data?.['mcp.tool.result.content']).toBe('Tool my-tool: ʕっ•ᴥ•ʔっ');
 });
 
 test('keeps sending spans for legacy-compatible MCP tool calls', async ({ baseURL }) => {
