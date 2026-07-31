@@ -92,58 +92,6 @@ For most users, day-to-day tracing is **unchanged**.
 > **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
 > (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
 
-### Channel-based instrumentation is the default
-
-Affected SDKs: `@sentry/node` and all dependents.
-
-The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
-
-### Initializing via `--require` is no longer supported
-
-Affected SDKs: `@sentry/node` and all dependents.
-
-Node re-runs `--require` preloads on the internal module loader thread it spawns for `Module.register()` — which the SDK triggers itself when it installs its instrumentation hooks. A `--require`d instrument file therefore ran `Sentry.init()` a second time, on a thread that never executes any of your code. The SDK now skips initialization on that thread and warns when it detects that it was loaded through `--require`.
-
-Use [`--import`](https://nodejs.org/api/cli.html#--importmodule) instead. It is not re-run on the loader thread, and it works for CommonJS apps too — the instrument file's extension (`.cjs`, or `.js` in a package without `"type": "module"`) is what decides that it loads as CommonJS:
-
-```bash
-# Before
-node --require ./instrument.js app.js
-
-# After
-node --import ./instrument.js app.js
-```
-
-The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
-
-### Span streaming is now the default
-
-Affected SDKs: All SDKs.
-
-Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
-
-The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
-
-> **TODO(v11):** The migration path for span streaming is still being defined. Document:
->
-> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
-> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
-> - how to opt back into the transaction-based model (option name + example).
-
-### Logs are enabled by default
-
-Affected SDKs: All SDKs.
-
-Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
-
-To opt out of logging entirely, set `enableLogs` to `false`:
-
-```js
-Sentry.init({
-  enableLogs: false,
-});
-```
-
 ### `sendDefaultPii` is replaced by `dataCollection`
 
 Affected SDKs: All SDKs.
@@ -217,6 +165,58 @@ default sensitive-value denylist is applied.
 User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
+
+### Channel-based instrumentation is the default
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
+
+### Initializing via `--require` is no longer supported
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+Node re-runs `--require` preloads on the internal module loader thread it spawns for `Module.register()` — which the SDK triggers itself when it installs its instrumentation hooks. A `--require`d instrument file therefore ran `Sentry.init()` a second time, on a thread that never executes any of your code. The SDK now skips initialization on that thread and warns when it detects that it was loaded through `--require`.
+
+Use [`--import`](https://nodejs.org/api/cli.html#--importmodule) instead. It is not re-run on the loader thread, and it works for CommonJS apps too — the instrument file's extension (`.cjs`, or `.js` in a package without `"type": "module"`) is what decides that it loads as CommonJS:
+
+```bash
+# Before
+node --require ./instrument.js app.js
+
+# After
+node --import ./instrument.js app.js
+```
+
+The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
+
+### Span streaming is now the default
+
+Affected SDKs: All SDKs.
+
+Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
+
+The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
+
+> **TODO(v11):** The migration path for span streaming is still being defined. Document:
+>
+> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
+> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
+> - how to opt back into the transaction-based model (option name + example).
+
+### Logs are enabled by default
+
+Affected SDKs: All SDKs.
+
+Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
+
+To opt out of logging entirely, set `enableLogs` to `false`:
+
+```js
+Sentry.init({
+  enableLogs: false,
+});
+```
 
 ### Browser sessions use `unhandled` instead of `crashed`
 
