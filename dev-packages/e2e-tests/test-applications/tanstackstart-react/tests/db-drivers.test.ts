@@ -1,8 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react-orchestrion', transactionEvent => {
+const usesManagedTunnelRoute =
+  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
+
+test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
+
+// `sentryTanstackStart()` auto-wires the orchestrion build-time transform, which injects
+// `diagnostics_channel` publishers into these drivers as Vite bundles the server. That only
+// happens in the production build, which is what the e2e app runs.
+test('Instruments ioredis automatically', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
     );
@@ -40,8 +48,8 @@ test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) =>
   );
 });
 
-test('Instruments mysql automatically via orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react-orchestrion', transactionEvent => {
+test('Instruments mysql automatically', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-mysql'
     );
