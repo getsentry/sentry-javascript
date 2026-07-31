@@ -21,7 +21,14 @@ import {
   getProtocolVersionForTransport,
   getSessionDataForTransport,
 } from './sessionManagement';
-import type { ExtraHandlerData, JsonRpcRequest, MCPTransport, PartyInfo, SessionData } from './types';
+import type {
+  ExtraHandlerData,
+  JsonRpcNotification,
+  JsonRpcRequest,
+  MCPTransport,
+  PartyInfo,
+  SessionData,
+} from './types';
 import { isValidContentItem } from './validation';
 
 const MCP_PROTOCOL_VERSION_META_KEY = 'io.modelcontextprotocol/protocolVersion';
@@ -57,15 +64,6 @@ function extractPartyInfo(obj: unknown): PartyInfo {
  * @returns Session data extracted from request parameters including protocol version and client info
  */
 export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest): SessionData {
-  return extractSessionDataFromRequest(request);
-}
-
-/**
- * Extracts session data from legacy initialize params or an MCP 2026-07-28 request envelope.
- * @param request - JSON-RPC request containing legacy or modern request metadata
- * @returns Session data extracted from the request
- */
-export function extractSessionDataFromRequest(request: JsonRpcRequest): SessionData {
   const sessionData: SessionData = {};
   if (isValidContentItem(request.params)) {
     if (typeof request.params.protocolVersion === 'string') {
@@ -74,9 +72,21 @@ export function extractSessionDataFromRequest(request: JsonRpcRequest): SessionD
     if (request.params.clientInfo) {
       sessionData.clientInfo = extractPartyInfo(request.params.clientInfo);
     }
+  }
 
-    if (isValidContentItem(request.params._meta)) {
-      const meta = request.params._meta;
+  return sessionData;
+}
+
+/**
+ * Extracts session data from an MCP 2026-07-28 request or notification envelope.
+ * @param message - JSON-RPC message containing modern request metadata
+ * @returns Session data extracted from the message
+ */
+export function extractSessionDataFromMessage(message: JsonRpcRequest | JsonRpcNotification): SessionData {
+  const sessionData: SessionData = {};
+  if (isValidContentItem(message.params)) {
+    if (isValidContentItem(message.params._meta)) {
+      const meta = message.params._meta;
       if (typeof meta[MCP_PROTOCOL_VERSION_META_KEY] === 'string') {
         sessionData.protocolVersion = meta[MCP_PROTOCOL_VERSION_META_KEY];
       }
@@ -95,15 +105,6 @@ export function extractSessionDataFromRequest(request: JsonRpcRequest): SessionD
  * @returns Partial session data extracted from response including protocol version and server info
  */
 export function extractSessionDataFromInitializeResponse(result: unknown): Partial<SessionData> {
-  return extractSessionDataFromResponse(result);
-}
-
-/**
- * Extracts session data from a legacy initialize result or MCP 2026-07-28 result metadata.
- * @param result - JSON-RPC result containing legacy or modern response metadata
- * @returns Session data extracted from the result
- */
-export function extractSessionDataFromResponse(result: unknown): Partial<SessionData> {
   const sessionData: Partial<SessionData> = {};
   if (isValidContentItem(result)) {
     if (typeof result.protocolVersion === 'string') {
@@ -112,6 +113,19 @@ export function extractSessionDataFromResponse(result: unknown): Partial<Session
     if (result.serverInfo) {
       sessionData.serverInfo = extractPartyInfo(result.serverInfo);
     }
+  }
+
+  return sessionData;
+}
+
+/**
+ * Extracts session data from MCP 2026-07-28 result metadata.
+ * @param result - JSON-RPC result containing modern response metadata
+ * @returns Session data extracted from the result
+ */
+export function extractSessionDataFromResponse(result: unknown): Partial<SessionData> {
+  const sessionData: Partial<SessionData> = {};
+  if (isValidContentItem(result)) {
     if (isValidContentItem(result._meta) && result._meta[MCP_SERVER_INFO_META_KEY]) {
       sessionData.serverInfo = extractPartyInfo(result._meta[MCP_SERVER_INFO_META_KEY]);
     }

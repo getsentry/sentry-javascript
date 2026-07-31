@@ -14,18 +14,18 @@ import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForR
 import { captureError } from './errorCapture';
 import {
   buildClientAttributesFromInfo,
-  extractSessionDataFromRequest,
-  extractSessionDataFromResponse,
+  extractSessionDataFromInitializeRequest,
+  extractSessionDataFromMessage,
 } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
-import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidContentItem } from './validation';
+import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
  * Extracts and stores client info and protocol version from legacy initialize
- * requests and modern request envelopes.
+ * requests and modern message envelopes.
  * @param transport - MCP transport instance to wrap
  * @param options - Resolved MCP options
  */
@@ -33,43 +33,52 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
-        if (isJsonRpcRequest(message)) {
-          let requestSessionData: SessionData | undefined;
+        const request = isJsonRpcRequest(message) ? message : undefined;
+        const notification = isJsonRpcNotification(message) ? message : undefined;
+        const jsonRpcMessage = request || notification;
+        let messageSessionData: SessionData | undefined;
+
+        if (jsonRpcMessage) {
           try {
-            requestSessionData = extractSessionDataFromRequest(message);
-            if (requestSessionData.protocolVersion || requestSessionData.clientInfo) {
-              updateSessionDataForTransport(transport, requestSessionData);
+            messageSessionData =
+              request?.method === 'initialize'
+                ? extractSessionDataFromInitializeRequest(request)
+                : extractSessionDataFromMessage(jsonRpcMessage);
+            if (messageSessionData.protocolVersion || messageSessionData.clientInfo) {
+              updateSessionDataForTransport(transport, messageSessionData);
             }
           } catch {
             // noop
           }
+        }
 
+        if (request) {
           const isolationScope = getIsolationScope().clone();
 
           return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(message, transport, extra as ExtraHandlerData, options);
+            const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, options);
             const span = startInactiveSpan(spanConfig);
 
-            if (message.method === 'initialize' && requestSessionData) {
+            if (request.method === 'initialize' && messageSessionData) {
               span.setAttributes({
-                ...buildClientAttributesFromInfo(requestSessionData.clientInfo),
-                ...(requestSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: requestSessionData.protocolVersion,
+                ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
+                ...(messageSessionData.protocolVersion && {
+                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: messageSessionData.protocolVersion,
                 }),
               });
             }
 
-            storeSpanForRequest(transport, message.id, span, message.method);
+            storeSpanForRequest(transport, request.id, span, request.method);
 
             return withActiveSpan(span, () => {
-              return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
+              return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
             });
           });
         }
 
-        if (isJsonRpcNotification(message)) {
-          return createMcpNotificationSpan(message, transport, extra as ExtraHandlerData, options, () => {
-            return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
+        if (notification) {
+          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, options, () => {
+            return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
           });
         }
 
@@ -102,17 +111,6 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
           if (message.id !== null && message.id !== undefined) {
             if (message.error) {
               captureJsonRpcErrorResponse(message.error);
-            }
-
-            if (isValidContentItem(message.result)) {
-              try {
-                const serverData = extractSessionDataFromResponse(message.result);
-                if (serverData.protocolVersion || serverData.serverInfo) {
-                  updateSessionDataForTransport(transport, serverData);
-                }
-              } catch {
-                // noop
-              }
             }
 
             completeSpanWithResults(transport, message.id, message.result, options, !!message.error);

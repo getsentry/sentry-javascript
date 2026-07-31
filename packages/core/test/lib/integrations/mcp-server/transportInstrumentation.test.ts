@@ -5,7 +5,7 @@ import {
   buildTransportAttributes,
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
-  extractSessionDataFromRequest,
+  extractSessionDataFromMessage,
   extractSessionDataFromResponse,
   getTransportTypes,
 } from '../../../../src/integrations/mcp-server/sessionExtraction';
@@ -518,7 +518,7 @@ describe('MCP Server Transport Instrumentation', () => {
         },
       };
 
-      const sessionData = extractSessionDataFromRequest(request);
+      const sessionData = extractSessionDataFromMessage(request);
 
       expect(sessionData).toEqual({
         protocolVersion: '2026-07-28',
@@ -552,6 +552,33 @@ describe('MCP Server Transport Instrumentation', () => {
           version: '2.0.0',
         },
       });
+    });
+
+    it('ignores legacy session fields outside initialize requests', () => {
+      const request = {
+        jsonrpc: '2.0' as const,
+        method: 'custom/process',
+        id: 'custom-request',
+        params: {
+          protocolVersion: 'application-version',
+          clientInfo: { name: 'application-client', version: '1.0.0' },
+        },
+      };
+
+      const sessionData = extractSessionDataFromMessage(request);
+
+      expect(sessionData).toEqual({});
+    });
+
+    it('ignores legacy session fields outside initialize responses', () => {
+      const result = {
+        protocolVersion: 'application-version',
+        serverInfo: { name: 'application-server', version: '1.0.0' },
+      };
+
+      const sessionData = extractSessionDataFromResponse(result);
+
+      expect(sessionData).toEqual({});
     });
 
     it('should store and retrieve session data', () => {
@@ -810,6 +837,49 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.protocol.version': '2026-07-28',
           }),
         }),
+      );
+    });
+
+    it('adds modern protocol and client info to notification spans', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'notifications/tools/list_changed',
+          params: {
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientInfo': { name: 'modern-client', version: '2.0.0' },
+            },
+          },
+        },
+        { classification: { era: 'modern', revision: '2026-07-28' } },
+      );
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'notifications/tools/list_changed',
+          forceTransaction: true,
+          attributes: {
+            'mcp.transport': 'StreamableHTTPServerTransport',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            'mcp.protocol.version': '2026-07-28',
+            'mcp.client.name': 'modern-client',
+            'mcp.client.version': '2.0.0',
+            'mcp.method.name': 'notifications/tools/list_changed',
+            'sentry.op': 'mcp.notification.client_to_server',
+            'sentry.origin': 'auto.mcp.notification',
+            'sentry.source': 'route',
+          },
+        },
+        expect.any(Function),
       );
     });
 

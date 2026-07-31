@@ -14,7 +14,12 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
-import { buildServerAttributesFromInfo, extractSessionDataFromResponse } from './sessionExtraction';
+import {
+  buildServerAttributesFromInfo,
+  extractSessionDataFromInitializeResponse,
+  extractSessionDataFromResponse,
+} from './sessionExtraction';
+import { updateSessionDataForTransport } from './sessionManagement';
 import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
 
 /**
@@ -94,7 +99,13 @@ export function completeSpanWithResults(
   const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
-    const responseSessionData = extractSessionDataFromResponse(result);
+    const responseSessionData =
+      method === 'initialize'
+        ? extractSessionDataFromInitializeResponse(result)
+        : extractSessionDataFromResponse(result);
+    if (responseSessionData.protocolVersion || responseSessionData.serverInfo) {
+      updateSessionDataForTransport(transport, responseSessionData);
+    }
     const responseAttributes: Record<string, string | number> = {
       ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
     };
