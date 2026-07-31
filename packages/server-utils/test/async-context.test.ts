@@ -166,6 +166,40 @@ describe('withIsolationScope()', () => {
         done();
       });
     }));
+
+  it('forks the current scope as well, so mutations do not leak out', () =>
+    new Promise<void>(done => {
+      const initialScope = getCurrentScope();
+      initialScope.setTag('aa', 'aa');
+
+      withIsolationScope(() => {
+        const scope = getCurrentScope();
+        expect(scope).not.toBe(initialScope);
+        expect(scope.getScopeData().tags).toEqual({ aa: 'aa' });
+
+        scope.setTag('bb', 'bb');
+        done();
+      });
+
+      expect(initialScope.getScopeData().tags).toEqual({ aa: 'aa' });
+    }));
+
+  it('forks the current scope as well when passing an isolation scope', () =>
+    new Promise<void>(done => {
+      const initialScope = getCurrentScope();
+      initialScope.setTag('aa', 'aa');
+
+      withIsolationScope(new Scope(), () => {
+        const scope = getCurrentScope();
+        expect(scope).not.toBe(initialScope);
+        expect(scope.getScopeData().tags).toEqual({ aa: 'aa' });
+
+        scope.setTag('bb', 'bb');
+        done();
+      });
+
+      expect(initialScope.getScopeData().tags).toEqual({ aa: 'aa' });
+    }));
 });
 
 describe('AsyncLocalStorage re-use', () => {

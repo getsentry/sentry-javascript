@@ -54,8 +54,11 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     });
   }
 
+  // The current scope is forked alongside the isolation scope, matching the OpenTelemetry strategy
+  // (`buildContextWithSentryScopes` clones it on every fork). Sharing it by reference would let
+  // current-scope mutations inside the callback leak back out to the caller.
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-    const scope = getScopes().scope;
+    const scope = getScopes().scope.clone();
     const isolationScope = getScopes().isolationScope.clone();
 
     return asyncStorage.run({ scope, isolationScope }, () => {
@@ -64,7 +67,7 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   }
 
   function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
-    const scope = getScopes().scope;
+    const scope = getScopes().scope.clone();
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
     });
