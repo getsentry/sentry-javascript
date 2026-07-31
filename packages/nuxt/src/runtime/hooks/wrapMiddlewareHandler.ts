@@ -202,10 +202,10 @@ function getSpanAttributes(
     headers = Object.fromEntries(eventH3v2?.req.headers.entries());
   }
 
-  const headerAttributes = httpHeadersToSpanAttributes(headers, getClient()?.getDataCollectionOptions() ?? false);
-
-  // Merge header attributes with existing attributes
-  Object.assign(attributes, headerAttributes);
+  const client = getClient();
+  if (client) {
+    Object.assign(attributes, httpHeadersToSpanAttributes(headers, client.getDataCollectionOptions()));
+  }
 
   return attributes;
 }

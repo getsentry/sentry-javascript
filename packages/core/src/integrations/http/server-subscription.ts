@@ -330,7 +330,7 @@ function buildServerSpanWrap(
               'http.status_code': response.statusCode,
               ...httpHeadersToSpanAttributes(
                 headersToDict(response.headers),
-                client?.getDataCollectionOptions() ?? false,
+                client.getDataCollectionOptions(),
                 'response',
               ),
             });

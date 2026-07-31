@@ -374,26 +374,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Controls if potentially sensitive data should be sent to Sentry by default.
-   * Note that this only applies to data that the SDK is sending by default
-   * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
-   *
-   * @default false
-   *
-   * @deprecated Use the {@link ClientOptions.dataCollection} option instead, which lets you control
-   * each category of collected data individually. `sendDefaultPii` will be removed in the next major
-   * version (v11). For backwards compatibility, setting `sendDefaultPii: true` currently behaves like
-   * enabling all `dataCollection` categories. If both `sendDefaultPii` and `dataCollection` are set,
-   * `sendDefaultPii` will be ignored.
-   */
-  sendDefaultPii?: boolean;
-
-  /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
    *
-   * This replaces the deprecated {@link ClientOptions.sendDefaultPii} option and lets you control
-   * each category of collected data (user info, cookies, headers, query params, request/response
+   * Configure each category of collected data (user info, cookies, headers, query params, request/response
    * bodies, gen AI inputs/outputs, etc.) individually.
    */
   dataCollection?: DataCollection;
