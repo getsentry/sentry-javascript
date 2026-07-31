@@ -432,15 +432,7 @@ function createChildOrRootSpan({
 
     freezeDscOnSpan(span, dsc);
   } else {
-    const {
-      traceId,
-      dsc,
-      parentSpanId,
-      sampled: parentSampled,
-    } = {
-      ...isolationScope.getPropagationContext(),
-      ...scope.getPropagationContext(),
-    };
+    const { traceId, dsc, parentSpanId, sampled: parentSampled } = scope.getPropagationContext();
 
     span = _startRootSpan(
       {
