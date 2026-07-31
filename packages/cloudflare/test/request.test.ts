@@ -290,7 +290,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual({ foo: 'bar', session: '[Filtered]' });
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar', session: '[Filtered]' });
     });
 
     test('explicit maxRequestBodySize overrides dataCollection.httpBodies', async () => {
