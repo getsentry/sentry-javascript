@@ -216,6 +216,9 @@ describe('instrumentWorkerEntrypoint', () => {
     const waitUntil = vi.fn();
     const TestClass = vi.fn((context: ExecutionContext) => ({
       fetch: () => {
+        // The client is created per request, on the scope forked for that request, so it is only
+        // reachable from inside the handler.
+        testClient = SentryCore.getClient();
         context.waitUntil(deferred);
         return new Response('test');
       },
@@ -225,7 +228,6 @@ describe('instrumentWorkerEntrypoint', () => {
     const worker = Reflect.construct(instrumented, [context, {}]);
 
     const responsePromise = worker.fetch(new Request('https://example.com'));
-    testClient = SentryCore.getClient();
 
     const response = await responsePromise;
     await response.text();
