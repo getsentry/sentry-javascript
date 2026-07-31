@@ -354,7 +354,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(next).toHaveBeenCalledTimes(1);
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('LoggerMiddleware');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs');
     // startSpanManual span ends when the proxied `next` is called.
     expect(json.timestamp).toBeDefined();
@@ -377,7 +377,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(new AuthGuard().canActivate({ ctx: true })).toBe(true);
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('AuthGuard');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs.guard');
   });
 
@@ -398,7 +398,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(new ParseIntPipe().transform('42', { type: 'param' })).toBe(42);
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('ParseIntPipe');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs.pipe');
   });
 
@@ -432,7 +432,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     const beforeJson = spanToJSON(beforeSpan!);
     expect(beforeJson.description).toBe('LoggingInterceptor');
-    expect(beforeJson.op).toBe('middleware.nestjs');
+    expect(beforeJson.op).toBe('middleware');
     expect(beforeJson.origin).toBe('auto.middleware.nestjs.interceptor');
     // before-span ends when `next.handle()` is called.
     expect(beforeJson.timestamp).toBeDefined();
@@ -659,7 +659,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
 
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
   });
 
@@ -714,7 +714,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
 
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
   });
 
@@ -738,7 +738,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
 
     const json = spanToJSON(spanInside!);
     expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware.nestjs');
+    expect(json.op).toBe('middleware');
     expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
   });
 

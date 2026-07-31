@@ -90,13 +90,13 @@ for (const { route, origin, description } of MIDDLEWARE_CASES) {
     await fetch(`${baseURL}/${route}`);
     const transactionEvent = await transactionPromise;
 
-    const span = findSpan(transactionEvent, 'middleware.nestjs', origin);
+    const span = findSpan(transactionEvent, 'middleware', origin);
     expect(span, `expected a ${origin} span`).toBeDefined();
     expect(span?.description).toBe(description);
   });
 }
 
-test('exception_filter span: a @Catch filter opens a middleware.nestjs span', async ({ baseURL }) => {
+test('exception_filter span: a @Catch filter opens a middleware span', async ({ baseURL }) => {
   const transactionPromise = waitForTransaction(PROXY, transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-exception'
@@ -106,7 +106,7 @@ test('exception_filter span: a @Catch filter opens a middleware.nestjs span', as
   await fetch(`${baseURL}/test-exception`);
   const transactionEvent = await transactionPromise;
 
-  const span = findSpan(transactionEvent, 'middleware.nestjs', 'auto.middleware.nestjs.exception_filter');
+  const span = findSpan(transactionEvent, 'middleware', 'auto.middleware.nestjs.exception_filter');
   expect(span).toBeDefined();
   expect(span?.description).toBe('ExampleExceptionFilter');
 });

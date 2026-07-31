@@ -12,9 +12,8 @@ The tests assert the **same** span tree the OTel path produced
 instrumentation against that baseline:
 
 - `transactions.test.ts`: `app_creation`, `request_context`,
-  `handler`, and the
-  `middleware.nestjs[.guard|.pipe|.interceptor|.exception_filter]`
-  spans.
+  `handler`, and the `middleware` spans
+  (origin `auto.middleware.nestjs[.guard|.pipe|.interceptor|.exception_filter]`).
 - `schedule.test.ts`: `@Cron`/`@Interval`/`@Timeout` error
   mechanisms.
 - `events.test.ts`: the `@OnEvent` `event.nestjs` transaction.

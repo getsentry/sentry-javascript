@@ -10,7 +10,7 @@ const app = new Koa();
 // Registered first so it wraps every downstream middleware/route in its try/catch.
 Sentry.setupKoaErrorHandler(app);
 
-// Plain middleware -> produces a `middleware.koa` span named after the function.
+// Plain middleware -> produces a `middleware` span named after the function.
 app.use(async function simpleMiddleware(ctx, next) {
   await next();
 });
