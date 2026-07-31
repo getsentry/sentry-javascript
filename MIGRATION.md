@@ -418,6 +418,7 @@ Sentry.init({
 - (AWS Lambda) The `@sentry/aws-serverless/loader` entry point was removed. Use `node --import @sentry/aws-serverless/import` instead.
 - (Google Cloud) The `@sentry/google-cloud-serverless/loader` entry point was removed. Use `node --import @sentry/google-cloud-serverless/import` instead.
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
+- (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
