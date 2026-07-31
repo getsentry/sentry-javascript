@@ -1,4 +1,5 @@
 import mysql from 'mysql';
+import type { Route } from './+types/db-mysql';
 
 const connection = mysql.createConnection({
   user: 'root',
@@ -15,6 +16,6 @@ export function loader() {
   });
 }
 
-export default function DbMysql() {
+export default function DbMysql(_props: Route.ComponentProps) {
   return <div>db-mysql</div>;
 }

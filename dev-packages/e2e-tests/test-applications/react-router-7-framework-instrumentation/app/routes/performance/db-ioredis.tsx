@@ -1,9 +1,6 @@
 import Redis from 'ioredis';
+import type { Route } from './+types/db-ioredis';
 
-// Page route (not a loader-only resource route): `@sentry/react-router` only
-// renames the `http.server` transaction to the matched route (`GET /db-ioredis`)
-// for rendered routes, so the orchestrion-injected ioredis spans land on a
-// per-route transaction rather than the Express catch-all `GET /{*splat}`.
 export async function loader() {
   const redis = new Redis({
     // Don't keep retrying forever if Redis goes away (e.g. on test teardown)
@@ -20,6 +17,6 @@ export async function loader() {
   }
 }
 
-export default function DbIoredis() {
+export default function DbIoredis(_props: Route.ComponentProps) {
   return <div>db-ioredis</div>;
 }
