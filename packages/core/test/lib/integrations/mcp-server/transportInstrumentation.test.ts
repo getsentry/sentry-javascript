@@ -554,33 +554,6 @@ describe('MCP Server Transport Instrumentation', () => {
       });
     });
 
-    it('ignores legacy session fields outside initialize requests', () => {
-      const request = {
-        jsonrpc: '2.0' as const,
-        method: 'custom/process',
-        id: 'custom-request',
-        params: {
-          protocolVersion: 'application-version',
-          clientInfo: { name: 'application-client', version: '1.0.0' },
-        },
-      };
-
-      const sessionData = extractSessionDataFromMessage(request);
-
-      expect(sessionData).toEqual({});
-    });
-
-    it('ignores legacy session fields outside initialize responses', () => {
-      const result = {
-        protocolVersion: 'application-version',
-        serverInfo: { name: 'application-server', version: '1.0.0' },
-      };
-
-      const sessionData = extractSessionDataFromResponse(result);
-
-      expect(sessionData).toEqual({});
-    });
-
     it('should store and retrieve session data', () => {
       const sessionData = {
         protocolVersion: '2025-06-18',
@@ -838,6 +811,42 @@ describe('MCP Server Transport Instrumentation', () => {
           }),
         }),
       );
+    });
+
+    it('ignores legacy session fields outside initialize messages', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'custom/process',
+          id: 'custom-request',
+          params: {
+            protocolVersion: 'application-version',
+            clientInfo: { name: 'application-client', version: '1.0.0' },
+          },
+        },
+        {},
+      );
+      await transport.send?.({
+        jsonrpc: '2.0',
+        id: 'custom-request',
+        result: {
+          protocolVersion: 'application-version',
+          serverInfo: { name: 'application-server', version: '1.0.0' },
+        },
+      });
+
+      expect(getSessionDataForTransport(transport)).toBeUndefined();
+      expect(mockSpan.setAttributes).not.toHaveBeenCalled();
+      expect(mockSpan.end).toHaveBeenCalledOnce();
     });
 
     it('adds modern protocol and client info to notification spans', async () => {
