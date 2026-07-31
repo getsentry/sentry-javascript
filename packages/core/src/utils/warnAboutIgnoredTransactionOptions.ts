@@ -11,8 +11,9 @@ import { consoleSandbox } from './debug-logger';
  * The message is one static string rather than one naming whichever option is set: it ships in every bundle,
  * and interpolating the names costs more gzipped than the rest of this function put together.
  *
- * Must be called after integrations are set up: `spanStreamingIntegration` may fall back to the static
- * trace lifecycle, in which case the options do take effect and we must stay silent.
+ * Must be called after integrations are set up, and only when they were set up at all: `spanStreamingIntegration`
+ * may fall back to the static trace lifecycle, in which case the options do take effect and we must stay silent.
+ * A client that skips integration setup never sends anything, so it ignores nothing worth warning about.
  */
 export function maybeWarnAboutIgnoredTransactionOptions(options: ClientOptions): void {
   if (

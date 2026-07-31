@@ -115,6 +115,49 @@ describe('Client', () => {
       consoleWarnSpy.mockRestore();
     });
 
+    test('stays silent when the client is disabled because no DSN was provided', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when the client is disabled via `enabled: false`', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enabled: false,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('warns without a DSN when Spotlight is enabled, since spans are still sent', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [{ name: 'SpotlightBrowser' }],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      consoleWarnSpy.mockRestore();
+    });
+
     test('stays silent when an integration falls back to the static trace lifecycle during setup', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
