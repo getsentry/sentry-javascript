@@ -132,6 +132,8 @@ function commonSpanAttributes(
   serializedSegmentSpan: StreamedSpanJSON,
   client: Client,
   scopeData: ScopeData,
+  // TODO(standalone): remove this param (always include scope attributes) once the static (transaction)
+  // trace lifecycle is dropped and standalone spans no longer need to look transaction-shaped.
   includeScopeAttributes = true,
 ): RawAttributes<Record<string, unknown>> {
   const sdk = client.getSdkMetadata();

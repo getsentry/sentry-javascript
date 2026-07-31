@@ -112,6 +112,8 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see
   // `captureStandaloneSpanWithStaticCallback`), so Replay can't attach the replay id itself. Set it
   // here, mirroring Replay's `processSpan`, so INP keeps its replay association like it did on v1.
+  // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always
+  // streams, at which point Replay's `processSpan` runs and attaches the replay id.
   if (standalone) {
     Object.assign(attributes, getReplayAttributes());
   }
@@ -135,6 +137,8 @@ interface ReplayIntegration extends Integration {
   getRecordingMode: () => 'session' | 'buffer' | undefined;
 }
 
+// TODO(standalone): remove once the static (transaction) trace lifecycle is dropped; Replay's
+// `processSpan` then attaches the replay id to the streamed INP span instead.
 function getReplayAttributes(): SpanAttributes {
   const replay = getClient()?.getIntegrationByName<ReplayIntegration>('Replay');
   const replayId = replay?.getReplayId(true);
