@@ -93,6 +93,9 @@ function _emitMeasurement(
   value: number,
   unit: string,
 ): void {
+  DEBUG_BUILD &&
+    debug.log(`[SoftNav] _emitMeasurement ${name}: navigationType=${metric.navigationType}, navigationId=${metric.navigationId}`);
+
   if (metric.navigationType !== 'soft-navigation') {
     _measurements[name] = { value, unit };
     return;
@@ -115,6 +118,10 @@ function _emitMeasurement(
 function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string, navigationId: string): void {
   const startTime = msToSec(browserPerformanceTimeOrigin() || 0);
   const navigationSpan = getNavigationSpanForNavigationId(navigationId);
+  DEBUG_BUILD &&
+    debug.log(
+      `[SoftNav] Emitting soft-nav ${name} span (value=${value}, navigationId=${navigationId}, linkedNavSpan=${!!navigationSpan})`,
+    );
   const routeName = navigationSpan
     ? spanToJSON(navigationSpan).description
     : getCurrentScope().getScopeData().transactionName;

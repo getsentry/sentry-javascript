@@ -32,6 +32,10 @@ vi.mock('../../src/htmlTreeAsString', () => ({
   htmlTreeAsString: vi.fn(),
 }));
 
+vi.mock('../../src/metrics/softNavCorrelation', () => ({
+  getNavigationSpanForNavigationId: vi.fn(),
+}));
+
 // Mock WINDOW
 vi.mock('../../src/types', () => ({
   WINDOW: {
@@ -375,6 +379,27 @@ describe('_sendLcpSpan', () => {
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
 
     expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+  });
+
+  it('tags a soft-nav LCP span and links it to the navigation span', async () => {
+    const { getNavigationSpanForNavigationId } = await import('../../src/metrics/softNavCorrelation');
+    const mockNavSpan = { spanContext: () => ({ spanId: 'nav-span-1' }) };
+    vi.mocked(getNavigationSpanForNavigationId).mockReturnValue(mockNavSpan as any);
+
+    _sendLcpSpan(250, undefined, undefined, undefined, 'nav-id-1');
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.origin': 'auto.http.browser.soft_navigation',
+          'sentry.op': 'ui.webvital.lcp',
+          'sentry.web_vital.navigation_type': 'soft-navigation',
+          'sentry.navigation_id': 'nav-id-1',
+          'sentry.navigation.span_id': 'nav-span-1',
+        }),
+        parentSpan: mockNavSpan,
+      }),
+    );
   });
 });
 
