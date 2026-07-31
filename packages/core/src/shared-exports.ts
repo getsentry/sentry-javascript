@@ -12,8 +12,6 @@ export * from './tracing';
 export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
-  captureCheckIn,
-  withMonitor,
   captureException,
   captureEvent,
   captureMessage,
@@ -36,6 +34,7 @@ export {
   captureSession,
   addEventProcessor,
 } from './exports';
+export { withMonitor, captureCheckIn } from './monitor';
 export {
   getCurrentScope,
   getIsolationScope,

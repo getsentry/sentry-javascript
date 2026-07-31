@@ -367,7 +367,7 @@ function createChildOrRootSpan({
   const isolationScope = getIsolationScope();
 
   if (!hasSpansEnabled()) {
-    const scopePropagationContext = { ...isolationScope.getPropagationContext(), ...scope.getPropagationContext() };
+    const scopePropagationContext = scope.getPropagationContext();
     const traceId = parentSpan ? parentSpan.spanContext().traceId : scopePropagationContext.traceId;
 
     // The placeholder is a thin marker; it carries no sampling decision or DSC. Both are read from

@@ -541,8 +541,7 @@ class ContinuousProfiler {
       return;
     }
 
-    const traceId =
-      getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
+    const traceId = getCurrentScope().getPropagationContext().traceId;
     const chunk = this._initializeChunk(traceId);
 
     CpuProfilerBindings.startProfiling(chunk.id);
