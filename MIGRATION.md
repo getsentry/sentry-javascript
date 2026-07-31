@@ -319,6 +319,7 @@ Affected SDKs: `@sentry/cloudflare`.
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
+- The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
 - The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
 
@@ -411,6 +412,14 @@ Sentry.init({
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
 - The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
 - The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
+- The `generateInstrumentOnce` export was removed (from `@sentry/node` and the framework SDKs that re-exported it). It wrapped OpenTelemetry's `registerInstrumentations` and is no longer needed now that instrumentation is channel-based.
+- The `@sentry/node/loader` entry point was removed. Use `node --import @sentry/node/import` instead.
+- (Astro) The `@sentry/astro/loader` entry point was removed. Use `node --import @sentry/astro/import` instead.
+- (AWS Lambda) The `@sentry/aws-serverless/loader` entry point was removed. Use `node --import @sentry/aws-serverless/import` instead.
+- (Google Cloud) The `@sentry/google-cloud-serverless/loader` entry point was removed. Use `node --import @sentry/google-cloud-serverless/import` instead.
+- (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
+- (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
+- (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.

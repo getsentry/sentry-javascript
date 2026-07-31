@@ -1,5 +1,4 @@
 import { captureException } from '@sentry/core';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 
 /**
  * Add an Koa error handler to capture errors to Sentry.
@@ -38,6 +37,4 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
       throw error;
     }
   });
-
-  ensureIsWrapped(app.use, 'koa');
 };

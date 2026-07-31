@@ -12,7 +12,6 @@
   "files": [
     "/build/npm",
     "/build/import-hook.mjs",
-    "/build/loader-hook.mjs",
     "/build/lambda-extension"
   ],
   "main": "build/npm/cjs/index.js",
@@ -33,11 +32,6 @@
     "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
-      }
-    },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
       }
     },
     "./awslambda-auto": {

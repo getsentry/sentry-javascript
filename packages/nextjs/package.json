@@ -58,11 +58,6 @@
       "import": {
         "default": "./build/import-hook.mjs"
       }
-    },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
-      }
     }
   },
   "publishConfig": {

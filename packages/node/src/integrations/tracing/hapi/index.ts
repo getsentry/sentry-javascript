@@ -1,5 +1,4 @@
 import { captureException, debug, getDefaultIsolationScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { Request, RequestEvent, Server } from './types';
 
@@ -64,5 +63,4 @@ export const hapiErrorPlugin = {
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
-  ensureIsWrapped(server.register, 'hapi');
 }

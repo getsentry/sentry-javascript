@@ -351,7 +351,6 @@ export type {
   CultureContext,
   TraceContext,
   CloudResourceContext,
-  MissingInstrumentationContext,
 } from './types/context';
 export type { DataCategory } from './types/datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './types/dsn';
