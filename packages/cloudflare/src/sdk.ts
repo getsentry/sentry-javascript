@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import { vercelAIIntegration } from './integrations/tracing/vercelai';
 import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseSdk';
 import type { CloudflareClient, CloudflareOptions } from './client';
 
@@ -10,7 +11,11 @@ import type { CloudflareClient, CloudflareOptions } from './client';
  * `getBaseDefaultIntegrations`.
  */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
-  return [...getBaseDefaultIntegrations(options)];
+  return [
+    ...getBaseDefaultIntegrations(options),
+    // Subscribes to the `ai` SDK's native `node:diagnostics_channel` telemetry channel.
+    vercelAIIntegration(),
+  ];
 }
 
 /**
