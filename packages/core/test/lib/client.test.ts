@@ -96,6 +96,46 @@ describe('Client', () => {
     });
   });
 
+  describe('init() / transaction option warnings', () => {
+    test('warns about transaction options ignored by span streaming', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy.mock.calls[0]?.[0]).toContain('`beforeSendTransaction` and `ignoreTransactions`');
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when an integration falls back to the static trace lifecycle during setup', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [
+          {
+            name: 'FallsBackToStatic',
+            setup: client => {
+              client.getOptions().traceLifecycle = 'static';
+            },
+          },
+        ],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
   describe('getOptions()', () => {
     test('returns the options', () => {
       expect.assertions(1);
