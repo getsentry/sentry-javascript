@@ -30,7 +30,7 @@ type RequestDataIntegrationOptions = {
   /**
    * Defines what request data should be collected.
    *
-   * @deprecated Use `dataCollection` from the `init()` options instead.
+   * @deprecated Use `dataCollection` from the `init()` options instead. Check the docs for more info: https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
    */
   include?: RequestDataIncludeOptions;
 };
