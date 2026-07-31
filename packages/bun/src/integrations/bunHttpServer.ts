@@ -1,6 +1,7 @@
+import { errorMonitor } from 'node:events';
 import http from 'node:http';
 import https from 'node:https';
-import type { IntegrationFn } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core';
 
 const INTEGRATION_NAME = 'BunHttpServer' as const;
@@ -43,6 +44,31 @@ interface BunHttpServerOptions {
    * @default 'medium'
    */
   maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
+   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
+   *
+   * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   *
+   * @default true
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the response is finished.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 let hasPatched = false;
@@ -95,7 +121,12 @@ export function instrumentBunHttpServer(options: BunHttpServerOptions = {}): voi
     return;
   }
 
-  const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions(options);
+  const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions({
+    ...options,
+    // Pass the real `errorMonitor` symbol so core observes `'error'` events without consuming
+    // them — otherwise it would swallow errors before they reach user-supplied `'error'` handlers.
+    errorMonitor,
+  });
 
   // Track which servers we have already handed to core, so we instrument each server exactly once.
   // After core instruments a server it installs its own `emit` on the instance, which shadows this

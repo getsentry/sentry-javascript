@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { getActiveSpan, getTraceData, spanToJSON } from '@sentry/core';
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { bunHttpServerIntegration, init } from '../../src';
+import { init } from '../../src';
 
 async function startServer(handler: http.RequestListener): Promise<{ port: number; close: () => Promise<void> }> {
   const server = http.createServer(handler);
