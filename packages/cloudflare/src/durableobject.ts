@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { captureException } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';

@@ -134,4 +134,4 @@ export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 
-export { setAsyncLocalStorageAsyncContextStrategy } from './async';
+export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
