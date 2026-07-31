@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+// The Nuxt module auto-wires the orchestrion build-time transform, which injects
+// `diagnostics_channel` publishers into these drivers as Nitro bundles them. That
+// only happens in the production build, so these tests are excluded from the
+// `test:dev` pass (which filters to `environment`).
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nuxt-4-orchestrion', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nuxt-4', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
     );
@@ -46,7 +50,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 });
 
 test('Instruments mysql automatically', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nuxt-4-orchestrion', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nuxt-4', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-mysql'
     );
