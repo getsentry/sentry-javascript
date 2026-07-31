@@ -171,16 +171,7 @@ function resolveFilesToDeleteAfterUpload(
   moduleOptions: SentryNuxtModuleOptions,
   shouldDeleteFilesFallback?: { client: boolean; server: boolean },
 ): string | Array<string> | undefined {
-  const userFilesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
-  if (typeof userFilesToDeleteAfterUpload !== 'undefined') {
-    return userFilesToDeleteAfterUpload;
-  }
-
   const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
-  if (!shouldDeleteFilesAfterUpload) {
-    return undefined;
-  }
-
   const fallbackFilesToDelete = [
     ...(shouldDeleteFilesFallback?.client ? ['.*/**/public/**/*.map'] : []),
     ...(shouldDeleteFilesFallback?.server
@@ -188,7 +179,9 @@ function resolveFilesToDeleteAfterUpload(
       : []),
   ];
 
-  if (moduleOptions.debug) {
+  const filesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
+
+  if (typeof filesToDeleteAfterUpload === 'undefined' && shouldDeleteFilesAfterUpload && moduleOptions.debug) {
     // eslint-disable-next-line no-console
     console.log(
       `[Sentry] Setting \`sentry.sourcemaps.filesToDeleteAfterUpload: [${fallbackFilesToDelete
@@ -198,7 +191,11 @@ function resolveFilesToDeleteAfterUpload(
     );
   }
 
-  return fallbackFilesToDelete;
+  return filesToDeleteAfterUpload
+    ? filesToDeleteAfterUpload
+    : shouldDeleteFilesAfterUpload
+      ? fallbackFilesToDelete
+      : undefined;
 }
 
 /*  There are multiple ways to set up source maps (https://github.com/getsentry/sentry-javascript/issues/13993 and https://github.com/getsentry/sentry-javascript/pull/15859)
