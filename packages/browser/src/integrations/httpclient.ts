@@ -298,7 +298,7 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
     }
 
     _fetchResponseHandler(options, requestInfo, response as Response, requestInit, error || virtualError);
-  }, false);
+  });
 }
 
 /**

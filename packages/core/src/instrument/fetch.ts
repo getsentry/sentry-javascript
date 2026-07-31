@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import type { HandlerDataFetch } from '../types/instrument';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { isError, isObjectLike, isRequest } from '../utils/is';
+import { isBrowser } from '../utils/isBrowser';
 import { addNonEnumerableProperty, fill } from '../utils/object';
 import { supportsNativeFetch } from '../utils/supports';
 import { timestampInSeconds } from '../utils/time';
@@ -20,13 +21,10 @@ type FetchResource = string | { toString(): string } | { url: string };
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addFetchInstrumentationHandler(
-  handler: (data: HandlerDataFetch) => void,
-  skipNativeFetchCheck?: boolean,
-): () => void {
+export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch) => void): () => void {
   const type = 'fetch';
   const removeHandler = addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
+  maybeInstrument(type, () => instrumentFetch());
   return removeHandler;
 }
 
@@ -46,8 +44,12 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   return removeHandler;
 }
 
-function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
-  if (skipNativeFetchCheck && !supportsNativeFetch()) {
+function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
+  // The native-fetch check is only meaningful in the browser: it probes for `[native code]` and
+  // falls back to an iframe DOM check to detect a polyfilled/wrapped `fetch` (which we don't want to
+  // double-instrument alongside XHR). Outside the browser there is no DOM, and `fetch` may be
+  // legitimately wrapped by the host (e.g. Next.js on Bun), so we always patch the global there.
+  if (isBrowser() && !supportsNativeFetch()) {
     return;
   }
 
