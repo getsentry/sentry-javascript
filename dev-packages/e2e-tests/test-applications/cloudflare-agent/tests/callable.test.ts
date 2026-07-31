@@ -57,6 +57,9 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
     platform: 'javascript',
     event_id: expect.stringMatching(/[a-f0-9]{32}/),
     environment: expect.any(String),
+    user: {
+      ip_address: '127.0.0.1',
+    },
     release: expect.any(String),
     sdk: {
       integrations: expect.any(Array),

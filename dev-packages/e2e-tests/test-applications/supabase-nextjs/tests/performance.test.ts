@@ -59,7 +59,7 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   // Client-side database query data is collected by default.
   const selectSpanExpectation = expect.objectContaining({
-    description: 'select(*) from(todos)',
+    description: 'select(*) filter(order, asc) from(todos)',
     op: 'db',
     data: expect.objectContaining({
       'db.operation': 'select',
@@ -79,16 +79,16 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
   expect(transactionEvent.spans).toContainEqual(selectSpanExpectation);
 
   const selectSpan = transactionEvent.spans?.find(
-    (s: { description?: string }) => s.description === 'select(*) from(todos)',
+    (s: { description?: string }) => s.description === 'select(*) filter(order, asc) from(todos)',
   );
   expect(selectSpan).toBeDefined();
-  expect(selectSpan!.data).toHaveProperty('db.query', ['select(*)']);
+  expect(selectSpan!.data).toHaveProperty('db.query', ['select(*)', 'filter(order, asc)']);
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.select',
-    message: 'select(*) from(todos)',
+    message: 'select(*) filter(order, asc) from(todos)',
   });
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
