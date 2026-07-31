@@ -179,5 +179,5 @@ test('Captures request metadata', async ({ baseURL }) => {
     }),
   });
 
-  expect(transactionEvent.user).toEqual(undefined);
+  expect(transactionEvent.user).toEqual({ ip_address: '::1' });
 });
