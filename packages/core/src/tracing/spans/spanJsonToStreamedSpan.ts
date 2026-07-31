@@ -20,17 +20,16 @@ const TOP_LEVEL_ATTRIBUTE_FIELDS = [
 ] as const;
 
 /**
- * Converts a v1 SpanJSON (from a legacy transaction) to the intermediate v2 {@link StreamedSpanJSON}
- * (raw attributes), before serialization. Use this when a hook needs to mutate the span JSON.
+ * Converts a v1 SpanJSON (from a legacy transaction) to a serialized v2 StreamedSpan.
  */
-export function spanJsonToStreamedSpanJSON(span: SpanJSON): StreamedSpanJSON {
+export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStreamedSpan {
   const attributes = { ...(span.data as RawAttributes<Record<string, unknown>>) };
 
   for (const [field, attribute] of TOP_LEVEL_ATTRIBUTE_FIELDS) {
     attributes[attribute] = span[field] ?? attributes[attribute];
   }
 
-  return {
+  const streamedSpan: StreamedSpanJSON = {
     trace_id: span.trace_id,
     span_id: span.span_id,
     parent_span_id: span.parent_span_id,
@@ -42,11 +41,6 @@ export function spanJsonToStreamedSpanJSON(span: SpanJSON): StreamedSpanJSON {
     attributes,
     links: span.links,
   };
-}
 
-/**
- * Converts a v1 SpanJSON (from a legacy transaction) to a serialized v2 StreamedSpan.
- */
-export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStreamedSpan {
-  return streamedSpanJsonToSerializedSpan(spanJsonToStreamedSpanJSON(span));
+  return streamedSpanJsonToSerializedSpan(streamedSpan);
 }

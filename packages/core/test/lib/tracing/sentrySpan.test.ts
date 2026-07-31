@@ -334,14 +334,12 @@ describe('SentrySpan', () => {
       expect(spanItem[1].items[0]!.name).toBe('scrubbed');
     });
 
-    test('runs `processSpan` hooks before a non-streamed `beforeSendSpan` for standalone spans', () => {
-      // Integrations (e.g. Replay attaching `sentry.replay_id`) enrich spans via the `processSpan` hook.
-      // The static-callback standalone path must run those hooks, and (as in `captureSpan`) run them
-      // before `beforeSendSpan`, so the callback sees the enrichment and its mutation lands on the span.
-      let seenReplayId: unknown;
+    test('does not apply scope attributes to standalone spans with a non-streamed `beforeSendSpan`', () => {
+      // Scope attributes can hold `{ unit, value }` objects, unexpected for a static callback, so they
+      // are not applied to the standalone (INP) span, just as they are not applied to transactions.
+      const seen: SpanJSON['data'][] = [];
       const beforeSendSpan = vi.fn((span: SpanJSON) => {
-        seenReplayId = span.data['sentry.replay_id'];
-        span.data['sentry.replay_id'] = 'scrubbed';
+        seen.push({ ...span.data });
         return span;
       });
       const client = new TestClient(
@@ -352,15 +350,7 @@ describe('SentrySpan', () => {
         }),
       );
       setCurrentClient(client);
-
-      client.on('processSpan', span => {
-        (span.attributes ?? (span.attributes = {}))['sentry.replay_id'] = 'abc';
-      });
-
-      const envelopes: Envelope[] = [];
-      client.on('beforeEnvelope', envelope => {
-        envelopes.push(envelope);
-      });
+      getCurrentScope().setAttribute('my.scope.attr', 'from-scope');
 
       const span = new SentrySpan({
         name: 'test',
@@ -371,15 +361,7 @@ describe('SentrySpan', () => {
       });
       span.end();
 
-      // The callback saw the hook-added attribute (hooks ran first)...
-      expect(seenReplayId).toBe('abc');
-
-      // ...and its own change to that attribute is what gets sent.
-      const spanItem = envelopes[0]?.[1][0] as [
-        { type: string },
-        { items: Array<{ attributes: Record<string, { value: unknown }> }> },
-      ];
-      expect(spanItem[1].items[0]!.attributes['sentry.replay_id']!.value).toBe('scrubbed');
+      expect(seen[0]!['my.scope.attr']).toBeUndefined();
     });
 
     test('sends a standalone span on its own and excludes it from the parent transaction', async () => {

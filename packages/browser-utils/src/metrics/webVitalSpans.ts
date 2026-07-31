@@ -1,8 +1,9 @@
-import type { Client, Span, SpanAttributes } from '@sentry/core';
+import type { Client, Integration, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
@@ -108,6 +109,13 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
   }
 
+  // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see
+  // `captureStandaloneSpanWithStaticCallback`), so Replay can't attach the replay id itself. Set it
+  // here, mirroring Replay's `processSpan`, so INP keeps its replay association like it did on v1.
+  if (standalone) {
+    Object.assign(attributes, getReplayAttributes());
+  }
+
   const span = startInactiveSpan({
     name,
     attributes,
@@ -120,6 +128,24 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   if (span) {
     span.end(endTime ?? startTime);
   }
+}
+
+interface ReplayIntegration extends Integration {
+  getReplayId: (onlyIfSampled?: boolean) => string | undefined;
+  getRecordingMode: () => 'session' | 'buffer' | undefined;
+}
+
+function getReplayAttributes(): SpanAttributes {
+  const replay = getClient()?.getIntegrationByName<ReplayIntegration>('Replay');
+  const replayId = replay?.getReplayId(true);
+  if (!replayId) {
+    return {};
+  }
+
+  return {
+    'sentry.replay_id': replayId,
+    'sentry._internal.replay_is_buffering': replay!.getRecordingMode() === 'buffer' ? true : undefined,
+  };
 }
 
 /**
