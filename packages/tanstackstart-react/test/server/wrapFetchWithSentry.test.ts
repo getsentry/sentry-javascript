@@ -50,7 +50,7 @@ describe('wrapFetchWithSentry', () => {
     expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('creates a function.tanstackstart span for server function requests', async () => {
+  it('creates a function span for server function requests', async () => {
     const mockResponse = new Response('ok');
     const fetchFn = vi.fn().mockResolvedValue(mockResponse);
 
@@ -61,8 +61,10 @@ describe('wrapFetchWithSentry', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function.tanstackstart',
         name: 'GET /_serverFn/abc123',
+        attributes: expect.objectContaining({
+          'sentry.op': 'function',
+        }),
       }),
       expect.any(Function),
     );

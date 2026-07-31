@@ -122,14 +122,14 @@ test.describe('server - performance', () => {
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.http.react_router',
-        'sentry.op': 'function.react_router.loader',
+        'sentry.op': 'function',
       },
       description: 'Executing Server Loader',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react_router.loader',
+      op: 'function',
       origin: 'auto.http.react_router',
     });
   });
@@ -150,14 +150,14 @@ test.describe('server - performance', () => {
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.http.react_router',
-        'sentry.op': 'function.react_router.action',
+        'sentry.op': 'function',
       },
       description: 'Executing Server Action',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react_router.action',
+      op: 'function',
       origin: 'auto.http.react_router',
     });
   });

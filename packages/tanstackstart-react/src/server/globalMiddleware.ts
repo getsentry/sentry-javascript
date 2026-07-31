@@ -38,7 +38,7 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
   }): Promise<unknown> {
     const activeSpan = getActiveSpan();
     const spanData = activeSpan ? spanToJSON(activeSpan) : undefined;
-    if (activeSpan && spanData?.op === 'function.tanstackstart') {
+    if (activeSpan && spanData?.origin === 'auto.function.tanstackstart.server') {
       if (serverFnMeta?.name) {
         const method = spanData.description?.split(' ')[0] || 'GET';
         updateSpanName(activeSpan, `${method} /_serverFn/${serverFnMeta.name}`);

@@ -83,7 +83,7 @@ test('Should set a "not_found" status on a server component span when notFound()
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       description: 'resolve page server component "/server-component/not-found"',
-      op: 'function.nextjs',
+      op: 'function',
       data: expect.objectContaining({
         'sentry.nextjs.ssr.function.type': 'Page',
         'sentry.nextjs.ssr.function.route': '/server-component/not-found',
@@ -122,7 +122,7 @@ test('Should capture an error and transaction for a app router page', async ({ p
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       description: 'resolve page server component "/server-component/faulty"',
-      op: 'function.nextjs',
+      op: 'function',
       data: expect.objectContaining({
         'sentry.nextjs.ssr.function.type': 'Page',
         'sentry.nextjs.ssr.function.route': '/server-component/faulty',

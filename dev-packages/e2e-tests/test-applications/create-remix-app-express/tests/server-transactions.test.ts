@@ -38,7 +38,7 @@ test('Sends form data with action span', async ({ page }) => {
   );
 
   expect(actionSpan).toBeDefined();
-  expect(actionSpan?.op).toBe('action.remix');
+  expect(actionSpan?.op).toBe('function');
   expect(actionSpan?.data).toMatchObject({
     'formData.text': 'test',
     'formData.file': 'file.txt',
@@ -57,7 +57,7 @@ test('Sends a loader span to Sentry', async ({ page }) => {
   );
 
   expect(loaderSpan).toBeDefined();
-  expect(loaderSpan?.op).toBe('loader.remix');
+  expect(loaderSpan?.op).toBe('function');
 });
 
 test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
@@ -111,7 +111,7 @@ test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
   const transaction = await transactionPromise;
 
   expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
-  expect(transaction.spans?.some(s => s.data?.['code.function'] === 'loader' && s.op === 'loader.remix')).toBe(true);
+  expect(transaction.spans?.some(s => s.data?.['code.function'] === 'loader' && s.op === 'function')).toBe(true);
 });
 
 test('Parameterizes a 3-level nested API route on the server', async ({ page }) => {
@@ -163,7 +163,7 @@ test('Records action and loader spans on a parameterized action route', async ({
     s => s.data?.['code.function'] === 'action' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
   );
   expect(actionSpan).toBeDefined();
-  expect(actionSpan?.op).toBe('action.remix');
+  expect(actionSpan?.op).toBe('function');
   expect(actionSpan?.data?.['match.params.id']).toBe('123123');
 
   const rootLoaderSpan = transaction.spans?.find(

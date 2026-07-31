@@ -169,10 +169,11 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          'code.function.name': 'load',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
-        op: 'function.sveltekit.load',
         name: '/users/[id]',
       },
       expect.any(Function),
@@ -187,10 +188,11 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          'code.function.name': 'load',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
-        op: 'function.sveltekit.load',
         name: '/users/123',
       },
       expect.any(Function),
@@ -258,11 +260,12 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.server.load',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+        'code.function.name': 'load',
         'http.method': 'GET',
         'sentry.sample_rate': 1,
       },
-      op: 'function.sveltekit.server.load',
+      op: 'function',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.function.sveltekit',
@@ -297,7 +300,9 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function.sveltekit.server.load',
+        attributes: expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+        }),
         name: '/users/[id]', // <-- this shows that the route was still accessed
       }),
       expect.any(Function),

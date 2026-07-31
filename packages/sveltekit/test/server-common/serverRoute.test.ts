@@ -3,6 +3,7 @@ import type { NumericRange, RequestEvent } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   wrapServerRouteWithSentry,
@@ -36,12 +37,14 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            'code.function.name': 'GET',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            'http.method': 'GET',
           },
           name: 'GET /api/users/:id',
           onlyIfParent: true,
-          op: 'function.sveltekit.server.get',
         },
         expect.any(Function),
       );
@@ -57,12 +60,14 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            'code.function.name': 'GET',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            'http.method': 'GET',
           },
           name: 'GET Server Route',
           onlyIfParent: true,
-          op: 'function.sveltekit.server.get',
         },
         expect.any(Function),
       );

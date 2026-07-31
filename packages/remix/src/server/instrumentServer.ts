@@ -40,7 +40,8 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
-import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -135,7 +136,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
               method: request.method,
               [URL_FULL]: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+              [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
             },
           },
           () => {
@@ -206,11 +207,11 @@ function makeWrappedDataFunction(
 
       res = await startSpan(
         {
-          op: `function.remix.${name}`,
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `function.remix.${name}`,
+            [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+            [CODE_FUNCTION_NAME]: name,
             name,
           },
         },

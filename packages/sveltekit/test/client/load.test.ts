@@ -1,4 +1,8 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
@@ -103,10 +107,11 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           },
-          op: 'function.sveltekit.load',
           name: '/users/[id]',
         },
         expect.any(Function),
@@ -130,10 +135,11 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
-          op: 'function.sveltekit.load',
           name: '/users/123',
         },
         expect.any(Function),
