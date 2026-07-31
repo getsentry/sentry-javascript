@@ -117,4 +117,11 @@ describe('resolveBuildTimeInstrumentationOption', () => {
   it('still applies on webpack when the Next.js version is unknown', () => {
     expect(resolveBuildTimeInstrumentationOption({}, webpack, undefined)).toBe(true);
   });
+
+  // Same reasoning as the Turbopack gate: without Sentry's webpack config there is no transform.
+  it("stays off on webpack when Sentry's webpack config is disabled", () => {
+    expect(resolveBuildTimeInstrumentationOption({ webpack: { disableSentryConfig: true } }, webpack, '15.0.0')).toBe(
+      false,
+    );
+  });
 });

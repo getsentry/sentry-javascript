@@ -97,8 +97,9 @@ export function maybeConstructTurbopackConfig(
 /**
  * Resolves whether to wire up orchestrion build-time instrumentation.
  *
- * Turbopack needs rule `condition`s (Next.js 16+) to run the transform. Without it, un-externalizing
- * the bundle-safe packages would leave them bundled *and* uninstrumented, so keep the feature off.
+ * Only on when the transform can actually run: Turbopack needs rule `condition`s (Next.js 16+), and
+ * webpack needs Sentry's config. Otherwise un-externalizing the bundle-safe packages would leave
+ * them bundled *and* uninstrumented, so keep the feature off.
  */
 export function resolveBuildTimeInstrumentationOption(
   userSentryOptions: SentryBuildOptions,
@@ -113,7 +114,7 @@ export function resolveBuildTimeInstrumentationOption(
     return !!nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion);
   }
 
-  return true;
+  return !userSentryOptions.webpack?.disableSentryConfig;
 }
 
 /**
