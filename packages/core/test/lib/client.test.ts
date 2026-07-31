@@ -110,7 +110,9 @@ describe('Client', () => {
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('`beforeSendTransaction` and `ignoreTransactions` are ignored with span streaming.'),
+        expect.stringContaining(
+          "`beforeSendTransaction` and `ignoreTransactions` are ignored with `traceLifecycle: 'stream'` (enabled by default).",
+        ),
       );
       consoleWarnSpy.mockRestore();
     });
