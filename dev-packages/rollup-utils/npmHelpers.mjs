@@ -282,3 +282,53 @@ export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
     },
   ]);
 }
+
+/**
+ * Emits the `@sentry/<framework>/import` entry (`build/import-hook.mjs`) as part of the rollup build,
+ * used as `node --import @sentry/<framework>/import app.js`. The generated hook imports
+ * `@sentry/server-utils/orchestrion/import-hook`, which registers the orchestrion
+ * diagnostics-channel injection, so the consuming package must declare `@sentry/server-utils` as a
+ * dependency.
+ *
+ * @param {string} outputFolder Build output folder.
+ */
+export function makeOrchestrionLoader(outputFolder) {
+  const expectedImportHookLocation = `${outputFolder}/import-hook.mjs`;
+  const foundImportHookExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === expectedImportHookLocation;
+  });
+  if (!foundImportHookExport) {
+    throw new Error(
+      `You used the makeOrchestrionLoader() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedImportHookLocation}" as a value there (maybe check for typos - it needs to be "${expectedImportHookLocation}" exactly).`,
+    );
+  }
+
+  const requiredDep = '@sentry/server-utils';
+  const foundRequiredDep =
+    Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
+      return key === requiredDep;
+    }) ||
+    Object.keys(packageDotJSON.devDependencies ?? {}).some(key => {
+      return key === requiredDep;
+    });
+
+  if (!foundRequiredDep) {
+    throw new Error(
+      `You used the makeOrchestrionLoader() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
+        process.cwd(),
+        'package.json',
+      )}. Please add it to the dependencies.`,
+    );
+  }
+
+  return defineConfig([
+    {
+      input: path.join(__dirname, 'code', 'importHookTemplate.js'),
+      external: /.*/,
+      output: {
+        format: 'esm',
+        file: path.join(outputFolder, 'import-hook.mjs'),
+      },
+    },
+  ]);
+}
