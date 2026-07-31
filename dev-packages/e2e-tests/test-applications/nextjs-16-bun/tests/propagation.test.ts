@@ -1,11 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// Bun runtime does not propagate trace headers for outgoing fetch requests.
-// The OTel node_fetch instrumentation does not intercept Bun's native fetch,
-// so sentry-trace and baggage headers are not attached to outgoing requests.
-// This test documents the current limitation - un-skip when Bun fetch instrumentation is supported.
-test.skip('Propagates trace for outgoing fetch requests', async ({ baseURL, request }) => {
+test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }) => {
   const inboundTransactionPromise = waitForTransaction('nextjs-16-bun', transactionEvent => {
     return transactionEvent.transaction === 'GET /propagation/test-outgoing-fetch/check';
   });
@@ -22,8 +18,12 @@ test.skip('Propagates trace for outgoing fetch requests', async ({ baseURL, requ
   expect(inboundTransaction.contexts?.trace?.trace_id).toStrictEqual(expect.any(String));
   expect(inboundTransaction.contexts?.trace?.trace_id).toBe(outboundTransaction.contexts?.trace?.trace_id);
 
+  // Although we have a fetch http.client span, we propagate through Next.js and AppRouteRouteHandlers.runHandler
+  // as that is the active span at that time - not ideal, but it's the best we can do.
   const httpClientSpan = outboundTransaction.spans?.find(
-    span => span.op === 'http.client' && span.data?.['sentry.origin'] === 'auto.http.otel.node_fetch',
+    span =>
+      span.data?.['next.span_type'] === 'AppRouteRouteHandlers.runHandler' &&
+      span.data?.['next.route'] === '/propagation/test-outgoing-fetch',
   );
 
   expect(httpClientSpan).toBeDefined();
