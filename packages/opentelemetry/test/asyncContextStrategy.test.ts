@@ -541,10 +541,30 @@ describe('asyncContextStrategy', () => {
         });
       }));
 
-    // A new trace must not inherit the previous trace's frozen DSC, sampling
-    // decision or propagation span id. Keeping them makes the outgoing
-    // `baggage` advertise the old trace id, marks the fresh trace as not
-    // head-of-trace, and propagates a span id from a different trace.
+    // A trace-id-only `sentry-trace` header yields a propagation context with
+    // a `dsc` but no `parentSpanId`, because the span id is optional in the
+    // header. Such a trace is still being continued, so its trace id must
+    // survive the fork.
+    it('keeps the trace id when continuing an incoming trace without a span id (dsc set)', () => {
+      const incomingTraceId = 'cafecafecafecafecafecafecafecafe';
+      getCurrentScope().setPropagationContext({
+        traceId: incomingTraceId,
+        sampleRand: 0.42,
+        dsc: { trace_id: incomingTraceId, sample_rate: '1' },
+      });
+
+      withIsolationScope(() => {
+        const propagationContext = getCurrentScope().getPropagationContext();
+
+        expect(propagationContext.traceId).toBe(incomingTraceId);
+        expect(propagationContext.dsc).toEqual({ trace_id: incomingTraceId, sample_rate: '1' });
+      });
+    });
+
+    // A new trace must not inherit the previous trace's sampling decision or
+    // propagation span id. Keeping them would apply the old trace's sampling
+    // decision to the new one and propagate a span id belonging to a
+    // different trace.
     it('drops the previous trace data when giving a forked isolation scope its own trace', () => {
       const oldTraceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       getCurrentScope().setPropagationContext({
@@ -552,7 +572,6 @@ describe('asyncContextStrategy', () => {
         sampleRand: 0.1,
         sampled: true,
         propagationSpanId: 'bbbbbbbbbbbbbbbb',
-        dsc: { trace_id: oldTraceId, sampled: 'true' },
       });
 
       withIsolationScope(() => {

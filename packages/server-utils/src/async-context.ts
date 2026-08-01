@@ -8,6 +8,7 @@ import {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
+  isContinuingTrace,
   setAsyncContextStrategy,
 } from '@sentry/core';
 
@@ -66,13 +67,13 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     const scope = getScopes().scope.clone();
     const isolationScope = getScopes().isolationScope.clone();
 
-    // When forking an isolation scope, unless we are continuing an incoming trace (identified by a `parentSpanId`),
-    // we give the freshly forked scope its own trace.
-    // This way, new root spans in an isolation scope will get separate traces.
-    // The previous trace's `dsc`, `sampled` and `propagationSpanId` are
-    // dropped on purpose. Carrying them over would tie the new trace to the
-    // old one's DSC and sampling decision.
-    if (!scope.getPropagationContext().parentSpanId) {
+    // When forking an isolation scope, unless we are continuing an incoming
+    // trace, we give the freshly forked scope its own trace. This way, new
+    // root spans in an isolation scope will get separate traces. The previous
+    // trace's `sampled` and `propagationSpanId` are dropped on purpose.
+    // Carrying them over would apply the old trace's sampling decision to the
+    // new one and propagate a span id from a different trace.
+    if (!isContinuingTrace(scope.getPropagationContext())) {
       scope.setPropagationContext({
         traceId: generateTraceId(),
         sampleRand: _INTERNAL_safeMathRandom(),

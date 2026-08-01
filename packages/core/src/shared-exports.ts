@@ -276,6 +276,7 @@ export {
   TRACEPARENT_REGEXP,
   extractTraceparentData,
   generateSentryTraceHeader,
+  isContinuingTrace,
   propagationContextFromHeaders,
   shouldContinueTrace,
   generateTraceparentHeader,
