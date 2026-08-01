@@ -19,6 +19,11 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     release,
   } = options;
 
+  // Destructure keys that are merged explicitly below so the trailing spread
+  // cannot overwrite them with the user's raw value.
+  const { sourcemaps: userSourcemaps, ...restUnstableVitePluginOptions } =
+    unstable_sentryVitePluginOptions ?? {};
+
   const sentryVitePlugins = sentryVitePlugin({
     applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
@@ -45,9 +50,9 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     // will be handled in buildEnd hook
     sourcemaps: {
       disable: true,
-      ...unstable_sentryVitePluginOptions?.sourcemaps,
+      ...userSourcemaps,
     },
-    ...unstable_sentryVitePluginOptions,
+    ...restUnstableVitePluginOptions,
   }) as Plugin[];
 
   return sentryVitePlugins;
