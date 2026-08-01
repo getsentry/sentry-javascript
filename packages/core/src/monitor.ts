@@ -53,15 +53,19 @@ export function withMonitor<T>(
     return maybePromiseResult;
   }
 
-  // With isolation scope resets the propagation context, so if we do not pass isolateTace, we want to manually continue the trace
-  const oldPropagationContext = getCurrentScope().getPropagationContext();
+  // `withIsolationScope` resets the propagation context, so unless
+  // `isolateTrace` is set we restore the parent's trace below. Copied rather
+  // than aliased: the monitor scope must not share an object with the parent,
+  // or in-place writes inside the callback would rewrite the parent's trace
+  const oldPropagationContext = { ...getCurrentScope().getPropagationContext() };
 
   return withIsolationScope(() => {
     if (upsertMonitorConfig?.isolateTrace) {
       return startNewTrace(runCallback);
     }
 
-    // If we are not isolating the trace, in this case we want to keep the same trace as the parent
+    // If we are not isolating the trace, in this case we want to keep the same
+    // trace as the parent
     const newPropagationContext = getCurrentScope().getPropagationContext();
     if (!newPropagationContext.parentSpanId) {
       getCurrentScope().setPropagationContext(oldPropagationContext);
