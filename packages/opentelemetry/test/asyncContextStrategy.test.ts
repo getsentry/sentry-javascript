@@ -540,5 +540,31 @@ describe('asyncContextStrategy', () => {
           done();
         });
       }));
+
+    // A new trace must not inherit the previous trace's frozen DSC, sampling
+    // decision or propagation span id. Keeping them makes the outgoing
+    // `baggage` advertise the old trace id, marks the fresh trace as not
+    // head-of-trace, and propagates a span id from a different trace.
+    it('drops the previous trace data when giving a forked isolation scope its own trace', () => {
+      const oldTraceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      getCurrentScope().setPropagationContext({
+        traceId: oldTraceId,
+        sampleRand: 0.1,
+        sampled: true,
+        propagationSpanId: 'bbbbbbbbbbbbbbbb',
+        dsc: { trace_id: oldTraceId, sampled: 'true' },
+      });
+
+      withIsolationScope(() => {
+        const propagationContext = getCurrentScope().getPropagationContext();
+
+        expect(propagationContext.traceId).toMatch(/^[a-f0-9]{32}$/);
+        expect(propagationContext.traceId).not.toBe(oldTraceId);
+        expect(propagationContext.sampleRand).toEqual(expect.any(Number));
+        expect(propagationContext.sampled).toBeUndefined();
+        expect(propagationContext.propagationSpanId).toBeUndefined();
+        expect(propagationContext.dsc).toBeUndefined();
+      });
+    });
   });
 });

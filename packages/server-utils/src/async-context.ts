@@ -69,10 +69,11 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     // When forking an isolation scope, unless we are continuing an incoming trace (identified by a `parentSpanId`),
     // we give the freshly forked scope its own trace.
     // This way, new root spans in an isolation scope will get separate traces.
-    const propagationContext = scope.getPropagationContext();
-    if (!propagationContext.parentSpanId) {
+    // The previous trace's `dsc`, `sampled` and `propagationSpanId` are
+    // dropped on purpose. Carrying them over would tie the new trace to the
+    // old one's DSC and sampling decision.
+    if (!scope.getPropagationContext().parentSpanId) {
       scope.setPropagationContext({
-        ...propagationContext,
         traceId: generateTraceId(),
         sampleRand: _INTERNAL_safeMathRandom(),
       });

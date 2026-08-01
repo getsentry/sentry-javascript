@@ -88,14 +88,15 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
     // the OTEL context manager, which uses the presence of this key to determine if it should
     // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY, true), () => {
-      // When forking an isolation scope, unless we are continuing an incoming trace (identified by a `parentSpanId`),
-      // we give the freshly forked scope its own trace.
-      // This way, new root spans in an isolation scope will get separate traces
+      // When forking an isolation scope, unless we are continuing an
+      // incoming trace (identified by a `parentSpanId`), we give the freshly
+      // forked scope its own trace. This way, new root spans in an isolation
+      // scope will get separate traces. The previous trace's `dsc`, `sampled`
+      // and `propagationSpanId` are dropped on purpose. Carrying them over
+      // would tie the new trace to the old one's DSC and sampling decision.
       const scope = getCurrentScope();
-      const propagationContext = scope.getPropagationContext();
-      if (!propagationContext.parentSpanId) {
+      if (!scope.getPropagationContext().parentSpanId) {
         scope.setPropagationContext({
-          ...propagationContext,
           traceId: generateTraceId(),
           sampleRand: _INTERNAL_safeMathRandom(),
         });
