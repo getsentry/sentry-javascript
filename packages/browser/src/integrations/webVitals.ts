@@ -1,5 +1,5 @@
 import type { IntegrationFn, Span } from '@sentry/core/browser';
-import { debug, defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
+import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
 import {
   addWebVitalsToSpan,
   registerInpInteractionListener,
@@ -8,7 +8,6 @@ import {
   trackInpAsSpan,
   trackLcpAsSpan,
 } from '@sentry/browser-utils';
-import { DEBUG_BUILD } from '../debug-build';
 
 export const WEB_VITALS_INTEGRATION_NAME = 'WebVitals' as const;
 
@@ -42,11 +41,6 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
-      DEBUG_BUILD &&
-        debug.log(
-          `[SoftNav] webVitalsIntegration setup: spanStreamingEnabled=${spanStreamingEnabled}, reportSoftNavs=${!!reportSoftNavs}`,
-        );
 
       // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
       // Otherwise, they're recorded as measurements on the pageload span.

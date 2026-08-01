@@ -76,7 +76,15 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
       }
 
       for (const entry of entries) {
-        if (softNavsEnabled && entry?.navigationId !== metric.navigationId) {
+        // Guard against undefined/empty entries. `po.takeRecords()` and the
+        // `interaction-contentful-paint` observer can yield gaps (e.g. a soft nav that hasn't
+        // produced a contentful paint yet), and reading `.startTime` off those throws.
+        // See: https://github.com/GoogleChrome/web-vitals/issues/725
+        if (!entry) {
+          continue;
+        }
+
+        if (softNavsEnabled && entry.navigationId !== metric.navigationId) {
           // If the entry is for a new navigationId than previous, then we have
           // entered a new soft nav, so emit the final LCP and reinitialize the
           // metric.

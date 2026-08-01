@@ -49,7 +49,6 @@ let _observerStarted = false;
  */
 export function registerNavigationSpan(span: Span, reportSoftNavs?: boolean): void {
   if (!softNavs({ reportSoftNavs })) {
-    DEBUG_BUILD && debug.log(`[SoftNav] registerNavigationSpan skipped (soft navs not enabled/supported)`);
     return;
   }
 
@@ -57,8 +56,6 @@ export function registerNavigationSpan(span: Span, reportSoftNavs?: boolean): vo
   if (startTimestamp == null) {
     return;
   }
-
-  DEBUG_BUILD && debug.log(`[SoftNav] Registered navigation span (startTimestamp=${startTimestamp})`);
 
   _navigationSpans.push({ span, startTimestamp });
   if (_navigationSpans.length > MAX_TRACKED) {
@@ -104,14 +101,11 @@ function _startObserver(): void {
   }
   _observerStarted = true;
 
-  DEBUG_BUILD && debug.log(`[SoftNav] Starting soft-navigation correlation observer`);
-
   // When a soft-navigation entry lands, correlate it to the navigation span it belongs to.
   const opts: ReportOpts = { reportSoftNavs: true };
   observe(
     'soft-navigation',
     entries => {
-      DEBUG_BUILD && debug.log(`[SoftNav] soft-navigation observer fired with ${entries.length} entry/entries`);
       for (const entry of entries) {
         if (entry.navigationId) {
           _matchEntryToNavigationSpan(entry.startTime, entry.navigationId);
@@ -145,8 +139,7 @@ function _matchEntryToNavigationSpan(entryStartTimeMs: number, navigationId: str
     return undefined;
   }
 
-  DEBUG_BUILD &&
-    debug.log(`[SoftNav] Correlated navigationId ${navigationId} to navigation span (diff=${bestDiff}s)`);
+  DEBUG_BUILD && debug.log(`[SoftNav] Correlated navigationId ${navigationId} to navigation span (diff=${bestDiff}s)`);
 
   best.span.setAttribute('sentry.navigation_id', navigationId);
   _navigationIdToSpan.set(navigationId, best.span);

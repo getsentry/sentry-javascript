@@ -20,7 +20,7 @@ import { WINDOW } from '../types';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
 import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
-import { isValidLcpMetric } from './lcp';
+import { isValidLcpMetric, MAX_PLAUSIBLE_LCP_DURATION } from './lcp';
 import { getNavigationSpanForNavigationId } from './softNavCorrelation';
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
@@ -149,10 +149,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   });
 
   if (span) {
-    DEBUG_BUILD &&
-      debug.log(
-        `[SoftNav] Emitted ${op} span: spanTrace=${span.spanContext().traceId}, parentTrace=${parentSpan?.spanContext().traceId ?? 'none'}, hasParent=${!!parentSpan}, standalone=${!!standalone}`,
-      );
     span.end(endTime ?? startTime);
   }
 }
@@ -188,23 +184,22 @@ export function trackLcpAsSpan(client: Client, reportSoftNavs?: boolean): void {
     return;
   }
 
-  DEBUG_BUILD && debug.log(`[SoftNav] trackLcpAsSpan wired (reportSoftNavs=${!!reportSoftNavs})`);
-
   const cleanupLcpHandler = addLcpInstrumentationHandler(
     ({ metric }) => {
-      DEBUG_BUILD &&
-        debug.log(`[SoftNav] LCP handler fired: navigationType=${metric.navigationType}, value=${metric.value}`);
       const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
-      if (!entry || !isValidLcpMetric(metric.value)) {
-        return;
-      }
 
       // Soft navigations re-fire this handler with a fresh `soft-navigation` metric. Each one is its
       // own vital, so emit it immediately as its own span (like INP) rather than buffering it for the
       // one-shot pageload report below. The vendored web-vitals lib keeps the observer alive for us
       // when soft navs are enabled (see `stopOnCallback: !reportSoftNavs`).
+      // Unlike the pageload path, a soft-nav LCP of 0 is a valid data point (the contentful paint
+      // often lands at navigation start), so we don't drop it.
       if (metric.navigationType === 'soft-navigation') {
         _sendLcpSpan(metric.value, entry, undefined, undefined, metric.navigationId);
+        return;
+      }
+
+      if (!entry || !isValidLcpMetric(metric.value)) {
         return;
       }
 
@@ -236,7 +231,14 @@ export function _sendLcpSpan(
   reportEvent?: WebVitalReportEvent,
   navigationId?: string,
 ): void {
-  if (!isValidLcpMetric(lcpValue)) {
+  // For soft navs, a value of 0 is valid (the contentful paint often lands at navigation start).
+  // For the pageload path we still drop implausible (<= 0 or too-large) values.
+  if (!navigationId && !isValidLcpMetric(lcpValue)) {
+    return;
+  }
+
+  // Guard against implausibly large values regardless of navigation type.
+  if (lcpValue > MAX_PLAUSIBLE_LCP_DURATION) {
     return;
   }
 
@@ -281,21 +283,19 @@ export function trackClsAsSpan(client: Client, reportSoftNavs?: boolean): void {
     return;
   }
 
-  DEBUG_BUILD && debug.log(`[SoftNav] trackClsAsSpan wired (reportSoftNavs=${!!reportSoftNavs})`);
-
   const cleanupClsHandler = addClsInstrumentationHandler(
     ({ metric }) => {
-      DEBUG_BUILD &&
-        debug.log(`[SoftNav] CLS handler fired: navigationType=${metric.navigationType}, value=${metric.value}`);
       const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
-      if (!entry) {
-        return;
-      }
 
       // Soft navigations re-fire with a fresh `soft-navigation` metric; emit each as its own span
       // instead of buffering for the one-shot pageload report below (see the LCP handler for details).
+      // A soft-nav CLS of 0 (no layout shift, hence no entry) is a valid data point, so we emit it.
       if (metric.navigationType === 'soft-navigation') {
         _sendClsSpan(metric.value, entry, undefined, undefined, metric.navigationId);
+        return;
+      }
+
+      if (!entry) {
         return;
       }
 
@@ -368,11 +368,7 @@ export function trackInpAsSpan(client: Client, reportSoftNavs?: boolean): void {
   // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
   const standalone = !hasSpanStreamingEnabled(client);
 
-  DEBUG_BUILD && debug.log(`[SoftNav] trackInpAsSpan wired (reportSoftNavs=${!!reportSoftNavs})`);
-
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
-    DEBUG_BUILD &&
-      debug.log(`[SoftNav] INP handler fired: navigationType=${metric.navigationType}, value=${metric.value}`);
     if (metric.value == null) {
       return;
     }
@@ -389,7 +385,8 @@ export function trackInpAsSpan(client: Client, reportSoftNavs?: boolean): void {
       return;
     }
 
-    _sendInpSpan(metric.value, entry, standalone);
+    const isSoftNav = metric.navigationType === 'soft-navigation';
+    _sendInpSpan(metric.value, entry, standalone, isSoftNav ? metric.navigationId : undefined);
   };
 
   addInpInstrumentationHandler(onInp, reportSoftNavs);
@@ -398,8 +395,13 @@ export function trackInpAsSpan(client: Client, reportSoftNavs?: boolean): void {
 /**
  * Exported only for testing.
  */
-export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, standalone = false): void {
-  DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
+export function _sendInpSpan(
+  inpValue: number,
+  entry: PerformanceEventTiming,
+  standalone = false,
+  navigationId?: string,
+): void {
+  DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})${navigationId ? ` [soft-nav ${navigationId}]` : ''}`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
   const duration = msToSec(inpValue);
@@ -409,7 +411,9 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-  const spanToUse = cachedContext?.span || rootSpan;
+  // For soft navs, prefer the correlated navigation span so the INP span is grouped with it.
+  const navigationSpan = navigationId ? getNavigationSpanForNavigationId(navigationId) : undefined;
+  const spanToUse = navigationSpan || cachedContext?.span || rootSpan;
   const routeName = spanToUse
     ? spanToStreamedSpanJSON(spanToUse).name
     : getCurrentScope().getScopeData().transactionName;
@@ -418,15 +422,18 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
   _emitWebVitalSpan({
     name,
     op: `ui.interaction.${interactionType}`,
-    origin: 'auto.http.browser.inp',
+    origin: navigationId ? 'auto.http.browser.soft_navigation' : 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-      // oxlint-disable-next-line typescript-eslint/no-deprecated
-      [SENTRY_TRANSACTION]: routeName,
-      [SENTRY_SEGMENT_NAME]: routeName,
-    },
+    attributes: _withSoftNavAttributes(
+      {
+        [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+        // oxlint-disable-next-line typescript-eslint/no-deprecated
+        [SENTRY_TRANSACTION]: routeName,
+        [SENTRY_SEGMENT_NAME]: routeName,
+      },
+      navigationId,
+    ),
     startTime,
     endTime: startTime + duration,
     parentSpan: spanToUse,

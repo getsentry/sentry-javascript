@@ -237,10 +237,6 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
 function instrumentCls(reportSoftNavs?: boolean): StopListening {
   return onCLS(
     metric => {
-      DEBUG_BUILD &&
-        debug.log(
-          `[SoftNav] vendored onCLS report: value=${metric.value}, navType=${metric.navigationType}, navId=${metric.navigationId}`,
-        );
       triggerHandlers('cls', {
         metric,
       });
@@ -255,10 +251,6 @@ function instrumentCls(reportSoftNavs?: boolean): StopListening {
 function instrumentLcp(reportSoftNavs?: boolean): StopListening {
   return onLCP(
     metric => {
-      DEBUG_BUILD &&
-        debug.log(
-          `[SoftNav] vendored onLCP report: value=${metric.value}, navType=${metric.navigationType}, navId=${metric.navigationId}`,
-        );
       triggerHandlers('lcp', {
         metric,
       });

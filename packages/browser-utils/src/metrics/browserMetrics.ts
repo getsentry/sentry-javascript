@@ -93,9 +93,6 @@ function _emitMeasurement(
   value: number,
   unit: string,
 ): void {
-  DEBUG_BUILD &&
-    debug.log(`[SoftNav] _emitMeasurement ${name}: navigationType=${metric.navigationType}, navigationId=${metric.navigationId}`);
-
   if (metric.navigationType !== 'soft-navigation') {
     _measurements[name] = { value, unit };
     return;
