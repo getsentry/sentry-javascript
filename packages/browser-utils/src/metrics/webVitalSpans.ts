@@ -368,6 +368,12 @@ export function trackInpAsSpan(client: Client, reportSoftNavs?: boolean): void {
   // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
   const standalone = !hasSpanStreamingEnabled(client);
 
+  // The vendored INP collector can report the same finalized value twice around a soft-nav boundary
+  // (on the interaction, then again when the next soft nav re-initializes the metric). Track the last
+  // emitted value per navigation to avoid emitting a duplicate INP span.
+  let lastInpNavigationId: string | undefined;
+  let lastInpValue: number | undefined;
+
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
     if (metric.value == null) {
       return;
@@ -385,8 +391,16 @@ export function trackInpAsSpan(client: Client, reportSoftNavs?: boolean): void {
       return;
     }
 
-    const isSoftNav = metric.navigationType === 'soft-navigation';
-    _sendInpSpan(metric.value, entry, standalone, isSoftNav ? metric.navigationId : undefined);
+    const navigationId = metric.navigationType === 'soft-navigation' ? metric.navigationId : undefined;
+
+    // Skip duplicate reports of the same value for the same navigation.
+    if (navigationId != null && navigationId === lastInpNavigationId && metric.value === lastInpValue) {
+      return;
+    }
+    lastInpNavigationId = navigationId;
+    lastInpValue = metric.value;
+
+    _sendInpSpan(metric.value, entry, standalone, navigationId);
   };
 
   addInpInstrumentationHandler(onInp, reportSoftNavs);
