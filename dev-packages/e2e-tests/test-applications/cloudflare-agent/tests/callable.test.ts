@@ -48,6 +48,7 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
     transaction: 'GET /agents/my-agent/user-123',
     type: 'transaction',
     request: {
+      cookies: {},
       headers: expect.any(Object),
       method: 'GET',
       url: expect.stringContaining('/agents/my-agent/user-123'),
@@ -181,8 +182,7 @@ test('creates an rpc span named after the @callable() method', async ({ page, ba
       description: 'greet',
       origin: 'auto.faas.cloudflare.agents',
       data: expect.objectContaining({
-        'cloudflare.agent.class': 'MyBaseAgent',
-        'cloudflare.agent.name': 'user-123',
+        'gen_ai.agent.name': 'MyBaseAgent',
       }),
     }),
   );

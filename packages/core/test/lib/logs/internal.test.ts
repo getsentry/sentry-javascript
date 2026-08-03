@@ -863,7 +863,7 @@ describe('_INTERNAL_captureLog', () => {
     it('includes partial user data when only some fields are available', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -888,7 +888,7 @@ describe('_INTERNAL_captureLog', () => {
     it('includes user email and username without id', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -918,7 +918,7 @@ describe('_INTERNAL_captureLog', () => {
     it('does not include user data when user object is empty', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -936,7 +936,7 @@ describe('_INTERNAL_captureLog', () => {
     it('combines user data with other log attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
         release: '1.0.0',
         environment: 'test',
       });
@@ -990,7 +990,7 @@ describe('_INTERNAL_captureLog', () => {
     it('handles user data with non-string values', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1020,7 +1020,7 @@ describe('_INTERNAL_captureLog', () => {
     it('preserves existing user attributes in log and does not override them', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1063,7 +1063,7 @@ describe('_INTERNAL_captureLog', () => {
     it('only adds scope user data for attributes that do not already exist', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();

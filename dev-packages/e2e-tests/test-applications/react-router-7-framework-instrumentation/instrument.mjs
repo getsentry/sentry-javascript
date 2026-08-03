@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/react-router';
 
-// Initialize Sentry early (before the server starts)
-// The server instrumentations are created in entry.server.tsx
 Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://username@domain/123',

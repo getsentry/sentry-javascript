@@ -4,6 +4,8 @@
 import { assert } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { getOwnConfig } from '@embroider/macros';
+import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { BrowserOptions } from '@sentry/browser';
 import { startSpan } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
@@ -54,7 +56,7 @@ type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Ro
 export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const instrumentFunction = async <X extends (...args: unknown[]) => any>(
-    op: string,
+    hookName: string,
     name: string,
     fn: X,
     args: Parameters<X>,
@@ -65,8 +67,9 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+          [CODE_FUNCTION_NAME]: hookName,
         },
-        op,
         name,
         onlyIfParent: true,
       },
@@ -82,32 +85,20 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     // @ts-expect-error TS2545 We do not need to redefine a constructor here
     [routeName]: class extends BaseRoute {
       public beforeModel(...args: unknown[]): void | Promise<unknown> {
-        return instrumentFunction(
-          'ui.ember.route.before_model',
-          this.fullRouteName,
-          super.beforeModel.bind(this),
-          args,
-          'custom',
-        );
+        return instrumentFunction('beforeModel', this.fullRouteName, super.beforeModel.bind(this), args, 'custom');
       }
 
       public async model(...args: unknown[]): Promise<unknown> {
-        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args, 'custom');
+        return instrumentFunction('model', this.fullRouteName, super.model.bind(this), args, 'custom');
       }
 
       public afterModel(...args: unknown[]): void | Promise<unknown> {
-        return instrumentFunction(
-          'ui.ember.route.after_model',
-          this.fullRouteName,
-          super.afterModel.bind(this),
-          args,
-          'custom',
-        );
+        return instrumentFunction('afterModel', this.fullRouteName, super.afterModel.bind(this), args, 'custom');
       }
 
       public setupController(...args: unknown[]): void | Promise<unknown> {
         return instrumentFunction(
-          'ui.ember.route.setup_controller',
+          'setupController',
           this.fullRouteName,
           super.setupController.bind(this),
           args,

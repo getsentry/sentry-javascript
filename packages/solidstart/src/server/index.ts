@@ -38,7 +38,6 @@ export {
   fastifyIntegration,
   flush,
   functionToStringIntegration,
-  generateInstrumentOnce,
   genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,

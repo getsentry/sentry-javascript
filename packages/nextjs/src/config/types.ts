@@ -465,6 +465,17 @@ export type SentryBuildOptions = {
   };
 
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+
+  /**
    * A key that is used to identify the application in the Sentry bundler plugins.
    * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
    * originating from third-party scripts.
@@ -765,18 +776,6 @@ export type SentryBuildOptions = {
       enabled?: boolean;
       ignoredComponents?: string[];
     };
-    /**
-     * EXPERIMENTAL: Wire up orchestrion diagnostics-channel instrumentation at build time.
-     *
-     * When enabled, `withSentryConfig` injects the orchestrion code-transform loader for bundled
-     * server packages and keeps the remaining instrumented packages external so the runtime module
-     * hook picks them up.
-     *
-     * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
-     *
-     * @experimental May change or be removed in any release.
-     */
-    useDiagnosticsChannelInjection?: boolean;
   }>;
 
   /**

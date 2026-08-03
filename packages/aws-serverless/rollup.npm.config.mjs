@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 // The handler shim (loaded by the AWS Lambda runtime via the redirected `_HANDLER`) is
 // built as a standalone, ESM-only bundle: it uses top-level await to load the user's
@@ -41,5 +41,5 @@ export default [
       },
     }),
   ),
-  ...makeOtelLoaders('./build', 'sentry-node'),
+  ...makeOrchestrionLoader('./build'),
 ];

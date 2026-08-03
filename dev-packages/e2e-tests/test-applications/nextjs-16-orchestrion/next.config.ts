@@ -5,5 +5,4 @@ const nextConfig: NextConfig = {};
 
 export default withSentryConfig(nextConfig, {
   silent: true,
-  _experimental: { useDiagnosticsChannelInjection: true },
 });

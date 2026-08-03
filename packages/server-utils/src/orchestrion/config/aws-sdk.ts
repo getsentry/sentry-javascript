@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '../apmTypes';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // The AWS SDK (v3) routes every command through the smithy `Client.prototype.send` method. Which
 // package hosts that `Client` class changed across versions, so we target all of them; only the one
@@ -27,6 +27,8 @@ export const awsSdkConfig = [
     functionQuery: { className: 'Client', methodName: 'send', kind: 'Async' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const awsSdkModuleNames = getModuleNames(awsSdkConfig);
 
 export const awsSdkChannels = {
   AWS_SMITHY_CORE_SEND: 'orchestrion:@smithy/core:send',

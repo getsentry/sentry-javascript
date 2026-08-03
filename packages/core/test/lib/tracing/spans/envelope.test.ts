@@ -303,11 +303,11 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it('respects sendDefaultPii: true bridged to dataCollection.userInfo', () => {
+    it('sets ingest settings when dataCollection.userInfo is true', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
-      const mockClient = new TestClient(getDefaultTestClientOptions({ sendDefaultPii: true }));
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: true } }));
       const dsc: Partial<DynamicSamplingContext> = {};
 
       const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
@@ -324,11 +324,11 @@ describe('createStreamedSpanEnvelope', () => {
       ]);
     });
 
-    it('respects sendDefaultPii: false bridged to dataCollection.userInfo', () => {
+    it('sets ingest settings when dataCollection.userInfo is false', () => {
       vi.mocked(isBrowser).mockReturnValue(true);
 
       const mockSpan = createMockSerializedSpan();
-      const mockClient = new TestClient(getDefaultTestClientOptions({ sendDefaultPii: false }));
+      const mockClient = new TestClient(getDefaultTestClientOptions({ dataCollection: { userInfo: false } }));
       const dsc: Partial<DynamicSamplingContext> = {};
 
       const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];

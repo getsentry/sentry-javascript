@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const lruMemoizerConfig = [
   {
@@ -9,6 +9,8 @@ export const lruMemoizerConfig = [
     functionQuery: { functionName: 'memoizedFunction', kind: 'Callback' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const lruMemoizerModuleNames = getModuleNames(lruMemoizerConfig);
 
 export const lruMemoizerChannels = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',

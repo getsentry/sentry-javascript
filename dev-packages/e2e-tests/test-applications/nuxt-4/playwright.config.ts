@@ -22,4 +22,8 @@ const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
 });
 
-export default config;
+export default {
+  ...config,
+  globalSetup: './global-setup.mjs',
+  globalTeardown: './global-teardown.mjs',
+};

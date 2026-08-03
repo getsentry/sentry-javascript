@@ -41,11 +41,6 @@
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
-      }
-    },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/vite/index.js",
@@ -62,6 +57,7 @@
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0"
   },
   "devDependencies": {

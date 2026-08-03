@@ -54,6 +54,7 @@ import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span
 import { showSpanDropWarning } from './utils/spanUtils';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -507,6 +508,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
     ) {
       this._setupIntegrations();
+
+      maybeWarnAboutIgnoredTransactionOptions(this._options);
     }
   }
 
@@ -932,6 +935,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
+   * A hook that is called when an orchestrion-instrumented module is injected at
+   * runtime (by the `--import` module hook). Channel-based integrations use it to
+   * subscribe their diagnostics-channel listeners lazily, only once the module
+   * they instrument is actually loaded. Receives the injected module name.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'orchestrion.module-runtime-injected', callback: (moduleName: string) => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -1194,6 +1207,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for stopping the UI Profiler.
    */
   public emit(hook: 'stopUIProfiler'): void;
+
+  /**
+   * Emit a hook when an orchestrion-instrumented module is injected at runtime.
+   */
+  public emit(hook: 'orchestrion.module-runtime-injected', moduleName: string): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -1653,7 +1671,12 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+  const {
+    beforeSend,
+    ignoreSpans,
+    // oxlint-disable-next-line typescript/no-deprecated
+    beforeSendTransaction,
+  } = options;
   const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;

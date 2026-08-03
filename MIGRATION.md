@@ -92,58 +92,6 @@ For most users, day-to-day tracing is **unchanged**.
 > **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
 > (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
 
-### Channel-based instrumentation is the default
-
-Affected SDKs: `@sentry/node` and all dependents.
-
-The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
-
-### Initializing via `--require` is no longer supported
-
-Affected SDKs: `@sentry/node` and all dependents.
-
-Node re-runs `--require` preloads on the internal module loader thread it spawns for `Module.register()` — which the SDK triggers itself when it installs its instrumentation hooks. A `--require`d instrument file therefore ran `Sentry.init()` a second time, on a thread that never executes any of your code. The SDK now skips initialization on that thread and warns when it detects that it was loaded through `--require`.
-
-Use [`--import`](https://nodejs.org/api/cli.html#--importmodule) instead. It is not re-run on the loader thread, and it works for CommonJS apps too — the instrument file's extension (`.cjs`, or `.js` in a package without `"type": "module"`) is what decides that it loads as CommonJS:
-
-```bash
-# Before
-node --require ./instrument.js app.js
-
-# After
-node --import ./instrument.js app.js
-```
-
-The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
-
-### Span streaming is now the default
-
-Affected SDKs: All SDKs.
-
-Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
-
-The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
-
-> **TODO(v11):** The migration path for span streaming is still being defined. Document:
->
-> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
-> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
-> - how to opt back into the transaction-based model (option name + example).
-
-### Logs are enabled by default
-
-Affected SDKs: All SDKs.
-
-Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
-
-To opt out of logging entirely, set `enableLogs` to `false`:
-
-```js
-Sentry.init({
-  enableLogs: false,
-});
-```
-
 ### `sendDefaultPii` is replaced by `dataCollection`
 
 Affected SDKs: All SDKs.
@@ -217,6 +165,58 @@ default sensitive-value denylist is applied.
 User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
+
+### Channel-based instrumentation is the default
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
+
+### Initializing via `--require` is no longer supported
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+Node re-runs `--require` preloads on the internal module loader thread it spawns for `Module.register()` — which the SDK triggers itself when it installs its instrumentation hooks. A `--require`d instrument file therefore ran `Sentry.init()` a second time, on a thread that never executes any of your code. The SDK now skips initialization on that thread and warns when it detects that it was loaded through `--require`.
+
+Use [`--import`](https://nodejs.org/api/cli.html#--importmodule) instead. It is not re-run on the loader thread, and it works for CommonJS apps too — the instrument file's extension (`.cjs`, or `.js` in a package without `"type": "module"`) is what decides that it loads as CommonJS:
+
+```bash
+# Before
+node --require ./instrument.js app.js
+
+# After
+node --import ./instrument.js app.js
+```
+
+The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
+
+### Span streaming is now the default
+
+Affected SDKs: All SDKs.
+
+Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
+
+The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
+
+> **TODO(v11):** The migration path for span streaming is still being defined. Document:
+>
+> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
+> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
+> - how to opt back into the transaction-based model (option name + example).
+
+### Logs are enabled by default
+
+Affected SDKs: All SDKs.
+
+Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
+
+To opt out of logging entirely, set `enableLogs` to `false`:
+
+```js
+Sentry.init({
+  enableLogs: false,
+});
+```
 
 ### Browser sessions use `unhandled` instead of `crashed`
 
@@ -319,6 +319,7 @@ Affected SDKs: `@sentry/cloudflare`.
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
+- The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
 - The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
 
@@ -411,6 +412,14 @@ Sentry.init({
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
 - The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
 - The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
+- The `generateInstrumentOnce` export was removed (from `@sentry/node` and the framework SDKs that re-exported it). It wrapped OpenTelemetry's `registerInstrumentations` and is no longer needed now that instrumentation is channel-based.
+- The `@sentry/node/loader` entry point was removed. Use `node --import @sentry/node/import` instead.
+- (Astro) The `@sentry/astro/loader` entry point was removed. Use `node --import @sentry/astro/import` instead.
+- (AWS Lambda) The `@sentry/aws-serverless/loader` entry point was removed. Use `node --import @sentry/aws-serverless/import` instead.
+- (Google Cloud) The `@sentry/google-cloud-serverless/loader` entry point was removed. Use `node --import @sentry/google-cloud-serverless/import` instead.
+- (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
+- (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
+- (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
@@ -516,6 +525,38 @@ Remove these options from your `next.config.js` / `next.config.ts`.
 ### Meta-framework build options
 
 The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+
+### `@sentry/nuxt`
+
+The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    // before
+    sourceMapsUploadOptions: {
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      url: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./dist/**/*'],
+      },
+    },
+
+    // after
+    org: 'my-org',
+    project: 'my-project',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sentryUrl: 'https://my-sentry.example.com',
+    sourcemaps: {
+      assets: ['./dist/**/*'],
+    },
+  },
+});
+```
 
 ## 4. Package Removals
 
