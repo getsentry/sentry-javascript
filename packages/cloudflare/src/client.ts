@@ -282,20 +282,6 @@ interface BaseCloudflareOptions {
   durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
 
   /**
-   * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
-   *
-   * Enable instrumentation of prototype methods for DurableObjects.
-   *
-   * When `true`, the SDK will wrap all methods on the DurableObject prototype chain
-   * to automatically create spans and capture errors for RPC method calls.
-   *
-   * When an array of strings is provided, only the specified method names will be instrumented.
-   *
-   * @default false
-   */
-  instrumentPrototypeMethods?: boolean | string[];
-
-  /**
    * If you use Spotlight by Sentry during development, use
    * this option to forward captured Sentry events to Spotlight.
    *
