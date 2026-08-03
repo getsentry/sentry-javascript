@@ -41,7 +41,7 @@ import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry } from './initOtel';
+import { initOpenTelemetry, setupSpanDataBackfill } from './initOtel';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -226,6 +226,10 @@ function _init(
   if (!clientOptions.skipOpenTelemetrySetup) {
     setupEventContextTrace(client);
     initOpenTelemetry(client);
+  } else {
+    // Without a tracer provider, channel-based instrumentation still emits spans via core `startSpan`.
+    // Backfill the Sentry-convention span data (e.g. `sentry.op`) the provider pipeline would derive.
+    setupSpanDataBackfill(client);
   }
 
   // Warn about missing or doubled channel injection. Runs after the client
