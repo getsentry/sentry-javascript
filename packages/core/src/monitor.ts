@@ -6,6 +6,7 @@ import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
 import { timestampInSeconds } from './utils/time';
+import { isContinuingTrace } from './utils/tracing';
 
 /**
  * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
@@ -53,10 +54,10 @@ export function withMonitor<T>(
     return maybePromiseResult;
   }
 
-  // `withIsolationScope` resets the propagation context, so unless
-  // `isolateTrace` is set we restore the parent's trace below. Copied rather
-  // than aliased: the monitor scope must not share an object with the parent,
-  // or in-place writes inside the callback would rewrite the parent's trace
+  // `withIsolationScope` gives the fork its own trace, so unless `isolateTrace` is set we restore the
+  // parent's trace below. Copied rather than aliased: sharing the object with the parent scope would
+  // let in-place writes inside the callback (e.g. the HTTP server integration assigning
+  // `propagationSpanId`) rewrite the parent's trace.
   const oldPropagationContext = { ...getCurrentScope().getPropagationContext() };
 
   return withIsolationScope(() => {
@@ -64,11 +65,11 @@ export function withMonitor<T>(
       return startNewTrace(runCallback);
     }
 
-    // If we are not isolating the trace, in this case we want to keep the same
-    // trace as the parent
-    const newPropagationContext = getCurrentScope().getPropagationContext();
-    if (!newPropagationContext.parentSpanId) {
-      getCurrentScope().setPropagationContext(oldPropagationContext);
+    // Mirrors the reset condition in the async context strategies: only a fork that was given a fresh
+    // trace needs the parent's trace put back.
+    const scope = getCurrentScope();
+    if (!isContinuingTrace(scope.getPropagationContext())) {
+      scope.setPropagationContext(oldPropagationContext);
     }
 
     return runCallback();
