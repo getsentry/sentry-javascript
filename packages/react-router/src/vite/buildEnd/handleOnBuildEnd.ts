@@ -17,6 +17,23 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
 }
 
 /**
+ * This hook is the only place that injects debug IDs and uploads source maps for React
+ * Router, so `disable` has to be honoured wherever the user set it. Reading it from the
+ * top-level config only would silently ignore `unstable_sentryVitePluginOptions`.
+ *
+ * `unstable_sentryVitePluginOptions` takes precedence, since it is documented as being able
+ * to override the options the SDK passes to the plugin - matching the other SDKs.
+ */
+function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): boolean | 'disable-upload' | undefined {
+  // eslint-disable-next-line typescript/no-deprecated
+  if (sentryConfig.sourceMapsUploadOptions?.enabled === false) {
+    return true;
+  }
+
+  return sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps?.disable ?? sentryConfig.sourcemaps?.disable;
+}
+
+/**
  * A build end hook that handles Sentry release creation and source map uploads.
  * It creates a new Sentry release if configured, uploads source maps to Sentry,
  * and optionally deletes the source map files after upload.
@@ -48,8 +65,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
       ...sourceMapsUploadOptions,
-      // eslint-disable-next-line typescript/no-deprecated
-      disable: sourceMapsUploadOptions?.enabled === false ? true : sentryConfig.sourcemaps?.disable,
+      disable: resolveSourceMapsDisable(sentryConfig),
     },
     release: {
       ...unstableSentryVitePluginOptions?.release,
@@ -80,7 +96,12 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     }
   }
 
-  if (!sourcemaps?.disable && viteConfig.build.sourcemap !== false) {
+  // `disable: 'disable-upload'` still injects debug IDs, so that source maps can be
+  // uploaded manually at a later point - only `true` turns source maps off entirely.
+  const sourceMapsFullyDisabled = sourcemaps?.disable === true;
+  const uploadDisabled = sourceMapsFullyDisabled || sourcemaps?.disable === 'disable-upload';
+
+  if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
     // inject debugIds
     try {
       await cliInstance.execute(
@@ -92,21 +113,30 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       console.error('[Sentry] Could not inject debug ids', error);
     }
 
-    // upload sourcemaps
-    try {
-      await cliInstance.releases.uploadSourceMaps(release?.name || 'undefined', {
-        include: [
-          {
-            paths: [reactRouterConfig.buildDirectory],
-          },
-        ],
-        live: 'rejectOnError',
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[Sentry] Could not upload sourcemaps', error);
+    if (!uploadDisabled) {
+      // upload sourcemaps
+      try {
+        await cliInstance.releases.uploadSourceMaps(release?.name || 'undefined', {
+          include: [
+            {
+              paths: [reactRouterConfig.buildDirectory],
+            },
+          ],
+          live: 'rejectOnError',
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[Sentry] Could not upload sourcemaps', error);
+      }
     }
   }
+
+  // Only clean up source maps that were actually uploaded. Deleting them after skipping
+  // the upload would leave the user with neither, breaking a manual upload.
+  if (uploadDisabled) {
+    return;
+  }
+
   // delete sourcemaps after upload
   let updatedFilesToDeleteAfterUpload = await sourcemaps?.filesToDeleteAfterUpload;
 
