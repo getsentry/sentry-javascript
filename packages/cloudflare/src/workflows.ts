@@ -30,6 +30,7 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
+import type { DefaultEnv, ResolveEnv } from './types';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -198,13 +199,23 @@ class WrappedWorkflowStep implements WorkflowStep {
  * @returns Instrumented workflow class with the same interface
  */
 export function instrumentWorkflowWithSentry<
-  E, // Environment type
-  P, // Payload type
-  T extends WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
-  C extends new (ctx: ExecutionContext, env: E) => T, // Constructor type of the WorkflowEntrypoint class
->(optionsCallback: (env: E) => CloudflareOptions, WorkFlowClass: C): C {
+  E = DefaultEnv, // Environment type
+  P = unknown, // Payload type
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends WorkflowEntrypoint<any, any> = WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
+  // The constraint must not route through `T`: workers-types defaults `WorkflowEntrypoint`'s
+  // `Env` to `unknown` (unlike `WorkerEntrypoint`/`DurableObject`, which default to
+  // `Cloudflare.Env`), so a bare subclass would be rejected in a `wrangler types` project.
+  // The callback env is resolved from the inferred constructor via `ResolveEnv` instead.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (ctx: ExecutionContext, env: any) => WorkflowEntrypoint<any, any> = new (
+    ctx: ExecutionContext,
+    env: any,
+  ) => T, // Constructor type of the WorkflowEntrypoint class
+>(optionsCallback: (env: ResolveEnv<C, E>) => CloudflareOptions, WorkFlowClass: C): C {
   return new Proxy(WorkFlowClass, {
-    construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
+    // oxlint-disable-next-line typescript/no-explicit-any
+    construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
       const options = optionsCallback(env);

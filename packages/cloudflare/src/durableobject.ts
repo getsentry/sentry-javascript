@@ -12,6 +12,7 @@ import { instrumentContext } from './utils/instrumentContext';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
+import type { DefaultEnv, ResolveEnv } from './types';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
 
 /**
@@ -280,10 +281,12 @@ export function finalizeWithRpcInstrumentation<T extends object>(
  * ```
  */
 export function instrumentDurableObjectWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
+  Env = DefaultEnv,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends DurableObject<any> = DurableObject<Env>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context } = constructInstrumentedDurableObject(
@@ -340,10 +343,12 @@ export function instrumentDurableObjectWithSentry<
  * ```
  */
 export function instrumentAgentWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, AgentClass: C): C {
+  Env = DefaultEnv,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends DurableObject<any> = DurableObject<Env>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, AgentClass: C): C {
   return new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context } = constructInstrumentedDurableObject(

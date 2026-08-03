@@ -34,7 +34,7 @@ function streamWorkersAi(): Response {
   return result.toTextStreamResponse();
 }
 
-class MyBaseAgent extends Agent<Env> {
+class MyBaseAgent extends Agent {
   @callable()
   async greet(name: string): Promise<string> {
     // User keys — instrumented, spans expected
@@ -57,7 +57,7 @@ class MyBaseAgent extends Agent<Env> {
   }
 }
 
-class MyChatAgentBase extends AIChatAgent<Env> {
+class MyChatAgentBase extends AIChatAgent {
   @callable()
   async greet(name: string): Promise<string> {
     return `Hello, ${name}!`;
@@ -79,7 +79,7 @@ export const MyAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyBaseAge
 export const MyChatAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyChatAgentBase);
 
 export default Sentry.withSentry(sentryOptions, {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request, env): Promise<Response> {
     const agentResponse = await routeAgentRequest(request, env);
 
     if (agentResponse) {
@@ -88,4 +88,4 @@ export default Sentry.withSentry(sentryOptions, {
 
     return new Response(null, { status: 404 });
   },
-} satisfies ExportedHandler<Env>);
+} satisfies ExportedHandler);

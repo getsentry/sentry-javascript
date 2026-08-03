@@ -1,4 +1,5 @@
-import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
+import type { ScheduledController } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
@@ -61,8 +62,7 @@ function wrapScheduledHandler(
 /**
  * Instruments a scheduled handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerScheduled<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

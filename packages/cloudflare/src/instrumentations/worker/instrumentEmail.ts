@@ -1,4 +1,5 @@
-import type { EmailMessage, ExportedHandler } from '@cloudflare/workers-types';
+import type { EmailMessage } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
@@ -62,8 +63,7 @@ function wrapEmailHandler(
 /**
  * Instruments an email handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerEmail<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerEmail<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

@@ -5,7 +5,10 @@
 
   // `suites/prisma` imports a Prisma-generated client (`./generated`) that only exists after codegen,
   // so it can't be type-checked as part of the static suite check.
-  "exclude": ["suites/prisma/**"],
+  // `suites/types` has its own per-version programs (`tsconfig.v4.json` / `tsconfig.v5.json`,
+  // and the same pair under `typegen/`), since each set of files is checked once per
+  // supported `@cloudflare/workers-types` major. See `lint:types`.
+  "exclude": ["suites/prisma/**", "suites/types/**"],
 
   "compilerOptions": {
     // Although this seems wrong to include `DOM` here, it's necessary to make

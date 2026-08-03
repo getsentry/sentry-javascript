@@ -36,7 +36,8 @@ import { init } from './sdk';
  * @returns A plugin function that can be used in Cloudflare Pages.
  */
 export function sentryPagesPlugin<
-  Env = unknown,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  Env = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Params extends string = any,
   Data extends Record<string, unknown> = Record<string, unknown>,
