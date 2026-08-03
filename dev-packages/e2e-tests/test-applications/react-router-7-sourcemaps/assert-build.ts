@@ -29,25 +29,26 @@ assert.ok(chunks.length > 0, `Expected at least one client chunk in ${CLIENT_ASS
 // https://github.com/getsentry/sentry-javascript/issues/22929: both snippets run at
 // runtime, `applyDebugIds` flattens them to a single filename, and the last one wins -
 // which is the CLI's, the one with no uploaded artifact bundle. Frames arrive minified.
-const injectedDebugIds = new Map<string, string[]>();
+const injectedDebugIds = new Map<string, string>();
 
 for (const chunk of chunks) {
   const code = fs.readFileSync(chunk, 'utf-8');
   const ids = [...code.matchAll(DEBUG_ID_ASSIGNMENT)].map(match => match[1] as string);
 
-  if (ids.length > 0) {
-    injectedDebugIds.set(chunk, ids);
-  }
-
-  assert.ok(
-    ids.length <= 1,
-    `Expected at most one debug ID in ${chunk}, found ${ids.length}: ${JSON.stringify([...new Set(ids)])}. ` +
-      'More than one means debug IDs were injected twice (Vite plugin *and* sentryOnBuildEnd).',
+  // Exactly one, not "at most one": zero would mean injection silently skipped a chunk,
+  // which leaves its frames unresolvable just as surely as injecting twice does.
+  assert.equal(
+    ids.length,
+    1,
+    `Expected exactly one debug ID in ${chunk}, found ${ids.length}: ${JSON.stringify([...new Set(ids)])}. ` +
+      'More than one means debug IDs were injected twice (Vite plugin *and* sentryOnBuildEnd); ' +
+      'none means injection skipped this chunk.',
   );
+
+  injectedDebugIds.set(chunk, ids[0] as string);
 }
 
-assert.ok(injectedDebugIds.size > 0, 'Expected at least one client chunk to carry a debug ID');
-console.log(`${injectedDebugIds.size} of ${chunks.length} client chunk(s) carry exactly one debug ID\n`);
+console.log(`all ${chunks.length} client chunk(s) carry exactly one debug ID\n`);
 
 const requests = loadMockServerResults();
 const bundles = getArtifactBundles(requests);
@@ -83,12 +84,12 @@ assert.ok(uploadedDebugIds.size > 0, 'Expected at least one uploaded JS/source m
 const uploadedJsFiles = new Set(debugIdPairs.map(pair => path.basename(pair.jsUrl)));
 let crossCheckedChunks = 0;
 
-for (const [chunk, ids] of injectedDebugIds) {
+for (const [chunk, injectedDebugId] of injectedDebugIds) {
   if (!uploadedJsFiles.has(path.basename(chunk))) {
     continue;
   }
 
-  const debugId = (ids[0] as string).toLowerCase();
+  const debugId = injectedDebugId.toLowerCase();
   assert.ok(
     uploadedDebugIds.has(debugId),
     `Debug ID ${debugId} in ${chunk} was never uploaded. Uploaded: ${JSON.stringify([...uploadedDebugIds])}`,
