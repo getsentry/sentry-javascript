@@ -211,8 +211,6 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  setupEventContextTrace(client);
-
   // Ensure we flush events when vercel functions are ended
   // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
   if (process.env.VERCEL) {
@@ -222,8 +220,11 @@ function _init(
     });
   }
 
-  // Add Node SDK specific OpenTelemetry setup
+  // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the
+  // OpenTelemetry context, so it only belongs here: without a Sentry tracer provider a foreign OTel
+  // span could otherwise override the Sentry trace on error events.
   if (!clientOptions.skipOpenTelemetrySetup) {
+    setupEventContextTrace(client);
     initOpenTelemetry(client);
   }
 

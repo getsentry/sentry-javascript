@@ -237,6 +237,24 @@ describe('init()', () => {
       expect(alsStrategySpy).not.toHaveBeenCalled();
     });
 
+    it('does not set up the OpenTelemetry event trace hook by default', () => {
+      const eventContextTraceSpy = vi.spyOn(SentryOpentelemetry, 'setupEventContextTrace');
+
+      init({ dsn: PUBLIC_DSN });
+
+      // Without a tracer provider this hook would read a foreign OTel active span and could override
+      // the Sentry trace on error events.
+      expect(eventContextTraceSpy).not.toHaveBeenCalled();
+    });
+
+    it('sets up the OpenTelemetry event trace hook when opting in', () => {
+      const eventContextTraceSpy = vi.spyOn(SentryOpentelemetry, 'setupEventContextTrace');
+
+      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+
+      expect(eventContextTraceSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
       // Must be a complete DiagLogger: once carried over, the SDK's api copy resolves it and
       // calls it for its own diag output.
