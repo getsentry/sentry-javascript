@@ -2,10 +2,8 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { captureException } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import { captureException, getClient, isThenable } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { isThenable } from '@sentry/core';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,

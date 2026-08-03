@@ -1,4 +1,3 @@
-import { instrumentOpenAiClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 
 class MockOpenAI {
@@ -77,7 +76,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const client = instrumentOpenAiClient(mockClient, { enableTruncation: true, recordInputs: true });
+    const client = Sentry.instrumentOpenAiClient(mockClient, { enableTruncation: true, recordInputs: true });
 
     // Create 1 large message that gets truncated to fit within the 20KB limit
     const largeContent = 'A'.repeat(25000) + 'B'.repeat(25000); // ~50KB gets truncated to include only As

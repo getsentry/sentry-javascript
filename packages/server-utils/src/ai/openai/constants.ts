@@ -1,4 +1,4 @@
-import type { InstrumentedMethodRegistry } from '../ai/utils';
+import type { InstrumentedMethodRegistry } from '../core/utils';
 
 export const OPENAI_INTEGRATION_NAME = 'OpenAI' as const;
 
