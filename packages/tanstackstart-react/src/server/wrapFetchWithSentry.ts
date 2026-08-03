@@ -10,7 +10,11 @@ import { updateSpanWithRouteParametrization } from './routeParametrization';
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
 
 export type ServerEntry = {
-  fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
+  // `opts` is forwarded verbatim to the wrapped handler, so this must accept whatever shape
+  // the real framework entry uses (e.g. TanStack's `RequestOptions<Register>`). Under
+  // parameter contravariance `unknown` would reject such an entry; `any` keeps it assignable.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  fetch: (request: Request, opts?: any) => Promise<Response> | Response;
 };
 
 /**

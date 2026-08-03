@@ -210,6 +210,7 @@ export function instrumentWorkflowWithSentry<
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (ctx: ExecutionContext, env: any) => WorkflowEntrypoint<any, any> = new (
     ctx: ExecutionContext,
+    // oxlint-disable-next-line typescript/no-explicit-any
     env: any,
   ) => T, // Constructor type of the WorkflowEntrypoint class
 >(optionsCallback: (env: ResolveEnv<C, E>) => CloudflareOptions, WorkFlowClass: C): C {
