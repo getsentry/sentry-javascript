@@ -18,10 +18,11 @@ import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeR
 import { getMiddlewareName } from './serverBuild';
 import { markInstrumentationApiUsed } from './serverGlobals';
 
-// Per-request middleware counters, keyed by the incoming `Request` (shared across a request's handler
-// and middleware hooks). This mirrors the client instrumentation and works whether or not a Sentry
-// OpenTelemetry tracer provider is set up, unlike storing the counter on the OTel context.
-const middlewareCountersByRequest = new WeakMap<object, Record<string, number>>();
+// Per-request middleware counters, keyed by the request's root span (the one transaction all of a
+// request's middlewares run under). The root span is the same instance across those middleware hooks
+// whether or not a Sentry OpenTelemetry tracer provider is set up, unlike the OTel context the counter
+// used to live on (which does not propagate without a provider).
+const middlewareCountersByRootSpan = new WeakMap<object, Record<string, number>>();
 
 // Re-export for backward compatibility and external use
 export { isInstrumentationApiUsed } from './serverGlobals';
@@ -180,13 +181,18 @@ export function createSentryServerInstrumentation(
 
           updateRootSpanWithRoute(info.request.method, pattern, urlPath);
 
-          let counters = middlewareCountersByRequest.get(info.request);
-          if (!counters) {
-            counters = {};
-            middlewareCountersByRequest.set(info.request, counters);
+          const activeSpan = getActiveSpan();
+          const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+          let middlewareIndex = 0;
+          if (rootSpan) {
+            let counters = middlewareCountersByRootSpan.get(rootSpan);
+            if (!counters) {
+              counters = {};
+              middlewareCountersByRootSpan.set(rootSpan, counters);
+            }
+            middlewareIndex = counters[routeId] ?? 0;
+            counters[routeId] = middlewareIndex + 1;
           }
-          const middlewareIndex = counters[routeId] ?? 0;
-          counters[routeId] = middlewareIndex + 1;
 
           const middlewareName = getMiddlewareName(routeId, middlewareIndex);
 

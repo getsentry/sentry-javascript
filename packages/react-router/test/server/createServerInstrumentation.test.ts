@@ -418,6 +418,10 @@ describe('createSentryServerInstrumentation', () => {
       startSpanCalls.push(opts);
       return fn();
     });
+    // The per-request middleware counter is keyed by the (stable) root span, so the 3 calls increment.
+    const mockRootSpan = { setAttributes: vi.fn() };
+    (core.getActiveSpan as any).mockReturnValue(mockRootSpan);
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
 
     const instrumentation = createSentryServerInstrumentation();
     instrumentation.route?.({
@@ -428,7 +432,6 @@ describe('createSentryServerInstrumentation', () => {
     });
 
     const hooks = mockInstrument.mock.calls[0]![0];
-    // The per-request middleware counter is keyed by this shared `request`, so the 3 calls increment.
     const requestInfo = {
       request: { method: 'GET', url: 'http://example.com/multi-middleware', headers: { get: () => null } },
       params: {},
