@@ -18,7 +18,7 @@ export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | '
 export interface DataCollection {
   /**
    * Automatically populate `user.*` fields from instrumentation sources.
-   * @default false
+   * @default true
    */
   userInfo?: boolean;
 
