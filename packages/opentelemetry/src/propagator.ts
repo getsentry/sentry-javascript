@@ -34,7 +34,7 @@ export class SentryPropagator implements TextMapPropagator {
       consoleSandbox(() => {
         // oxlint-disable-next-line no-console
         console.warn(
-          'SentryPropagator: Injecting with a different context than the active one - this is not supported. Skipping injection.',
+          'SentryPropagator: Injecting trace data of a different context than the active one is not supported. Skipping injection.',
         );
       });
       return;
