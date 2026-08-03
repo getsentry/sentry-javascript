@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { addVercelAiProcessors } from '../../../src/tracing/vercel-ai';
-import type { SpanJSON } from '../../../src/types/span';
-import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { addVercelAiProcessors } from '../../../../src/ai/vercel-ai';
+import type { SpanJSON } from '@sentry/core';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('vercel-ai parent span token attributes', () => {
   it('should map ai.usage.inputTokens to gen_ai.usage.input_tokens', () => {

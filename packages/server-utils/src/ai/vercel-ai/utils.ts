@@ -1,6 +1,6 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import type { TraceContext } from '../../types/context';
-import type { Span, SpanAttributes, SpanJSON } from '../../types/span';
+import { stringify } from '@sentry/core';
+import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
@@ -10,8 +10,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
