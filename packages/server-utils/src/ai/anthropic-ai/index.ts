@@ -1,9 +1,12 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types/span';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+} from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROMPT,
@@ -20,14 +23,14 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../ai/gen-ai-attributes';
-import type { InstrumentedMethodEntry } from '../ai/utils';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
+import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
   shouldEnableTruncation,
   wrapPromiseWithMethods,
-} from '../ai/utils';
+} from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';

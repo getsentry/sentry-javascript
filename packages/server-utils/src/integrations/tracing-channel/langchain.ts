@@ -4,13 +4,13 @@ import {
   _INTERNAL_getLangChainEmbeddingsSpanOptions,
   _INTERNAL_mergeLangChainCallbackHandler,
   _INTERNAL_skipAiProviderWrapping,
-  ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
   defineIntegration,
   GOOGLE_GENAI_INTEGRATION_NAME,
   LANGCHAIN_INTEGRATION_NAME,
   startInactiveSpan,
 } from '@sentry/core';
+import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../ai/anthropic-ai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../../ai/openai/constants';
 import { CHANNELS } from '../../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';
