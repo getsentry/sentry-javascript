@@ -31,10 +31,10 @@ export default Sentry.withSentry(
               warnings: [],
             }),
           }),
-          prompt: 'Where is the first span?',
+          prompt: 'How much is the fish?',
         });
 
-        return new Response('ok');
+        return new Response('Here we go, here we go, here we go again');
       }
 
       return new Response('Not found', { status: 404 });

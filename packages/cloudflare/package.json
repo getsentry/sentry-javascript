@@ -37,11 +37,6 @@
       "import": "./build/esm/prod/request.js",
       "require": "./build/cjs/prod/request.js"
     },
-    "./nodejs_compat": {
-      "types": "./build/types/nodejs_compat/index.d.ts",
-      "import": "./build/esm/prod/nodejs_compat/index.js",
-      "require": "./build/cjs/prod/nodejs_compat/index.js"
-    },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/prod/vite/index.js",
