@@ -89,6 +89,9 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
     type: 'supabase',
     category: 'db.select',
     message: 'select(*) filter(order, asc) from(todos)',
+    data: expect.objectContaining({
+      query: ['select(*)', 'filter(order, asc)'],
+    }),
   });
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
@@ -96,6 +99,9 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
     type: 'supabase',
     category: 'db.insert',
     message: 'insert(...) select(*) from(todos)',
+    data: expect.objectContaining({
+      query: ['select(*)'],
+    }),
   });
 });
 
