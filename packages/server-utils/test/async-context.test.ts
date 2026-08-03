@@ -213,6 +213,77 @@ describe('withIsolationScope()', () => {
 
       expect(initialScope.getScopeData().tags).toEqual({ aa: 'aa' });
     }));
+
+  it('gives each forked isolation scope its own trace id when not continuing an incoming trace', () => {
+    const traceIds: string[] = [];
+
+    withIsolationScope(() => {
+      traceIds.push(getCurrentScope().getPropagationContext().traceId);
+    });
+    withIsolationScope(() => {
+      traceIds.push(getCurrentScope().getPropagationContext().traceId);
+    });
+
+    expect(traceIds[0]).toMatch(/^[a-f0-9]{32}$/);
+    expect(traceIds[1]).toMatch(/^[a-f0-9]{32}$/);
+    expect(traceIds[0]).not.toBe(traceIds[1]);
+  });
+
+  it('keeps the trace id when continuing an incoming trace (parentSpanId set)', () => {
+    const incomingTraceId = 'cafecafecafecafecafecafecafecafe';
+    getCurrentScope().setPropagationContext({
+      traceId: incomingTraceId,
+      parentSpanId: '1234567890abcdef',
+      sampleRand: 0.42,
+    });
+
+    withIsolationScope(() => {
+      expect(getCurrentScope().getPropagationContext().traceId).toBe(incomingTraceId);
+    });
+  });
+
+  // A trace-id-only `sentry-trace` header yields a propagation context with a `dsc` but no
+  // `parentSpanId`, because the span id is optional in the header. Such a trace is still being
+  // continued, so its trace id must survive the fork.
+  it('keeps the trace id when continuing an incoming trace without a span id (dsc set)', () => {
+    const incomingTraceId = 'cafecafecafecafecafecafecafecafe';
+    getCurrentScope().setPropagationContext({
+      traceId: incomingTraceId,
+      sampleRand: 0.42,
+      dsc: { trace_id: incomingTraceId, sample_rate: '1' },
+    });
+
+    withIsolationScope(() => {
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      expect(propagationContext.traceId).toBe(incomingTraceId);
+      expect(propagationContext.dsc).toEqual({ trace_id: incomingTraceId, sample_rate: '1' });
+    });
+  });
+
+  // A new trace must not inherit the previous trace's sampling decision or propagation span id.
+  // Keeping them would apply the old trace's sampling decision to the new one and propagate a
+  // span id belonging to a different trace.
+  it('drops the previous trace data when giving a forked isolation scope its own trace', () => {
+    const oldTraceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    getCurrentScope().setPropagationContext({
+      traceId: oldTraceId,
+      sampleRand: 0.1,
+      sampled: true,
+      propagationSpanId: 'bbbbbbbbbbbbbbbb',
+    });
+
+    withIsolationScope(() => {
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      expect(propagationContext.traceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(propagationContext.traceId).not.toBe(oldTraceId);
+      expect(propagationContext.sampleRand).toEqual(expect.any(Number));
+      expect(propagationContext.sampled).toBeUndefined();
+      expect(propagationContext.propagationSpanId).toBeUndefined();
+      expect(propagationContext.dsc).toBeUndefined();
+    });
+  });
 });
 
 describe('AsyncLocalStorage re-use', () => {
