@@ -78,8 +78,8 @@ function startPolling(
   integrationOptions: Partial<ThreadBlockedIntegrationOptions>,
 ): IntegrationInternal | undefined {
   if (client.asyncLocalStorageLookup) {
-    const { asyncLocalStorage, contextSymbol } = client.asyncLocalStorageLookup;
-    registerThread({ asyncLocalStorage, stateLookup: ['_currentContext', contextSymbol] });
+    const { asyncLocalStorage, stateLookup } = client.asyncLocalStorageLookup;
+    registerThread({ asyncLocalStorage, stateLookup });
   } else {
     registerThread();
   }

@@ -30,7 +30,12 @@ import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScop
 
 export type AsyncLocalStorageLookup = {
   asyncLocalStorage: AsyncLocalStorage<unknown>;
-  contextSymbol: symbol;
+  /**
+   * Key path traversed through the store to reach the `{ scope, isolationScope }` object, for native
+   * threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Empty when the
+   * store already is that object.
+   */
+  stateLookup: Array<string | symbol>;
 };
 type ListenerFn = (...args: unknown[]) => unknown;
 
@@ -99,7 +104,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   public getAsyncLocalStorageLookup(): AsyncLocalStorageLookup {
     return {
       asyncLocalStorage: this._asyncLocalStorage,
-      contextSymbol: SENTRY_SCOPES_CONTEXT_KEY,
+      stateLookup: ['_currentContext', SENTRY_SCOPES_CONTEXT_KEY],
     };
   }
 
