@@ -266,6 +266,88 @@ describe('sentryOnBuildEnd', () => {
     });
   });
 
+  // `'disable-upload'` means "inject debug IDs, but let me upload the maps myself", so
+  // injection must still run and the maps must survive.
+  it('should inject debug IDs but skip upload and deletion when disable is "disable-upload"', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: 'disable-upload' },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+    expect(glob).not.toHaveBeenCalled();
+  });
+
+  it('should honour "disable-upload" set via unstable_sentryVitePluginOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: {
+            sourcemaps: { disable: 'disable-upload' },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+    expect(glob).not.toHaveBeenCalled();
+  });
+
+  // Deleting maps that were never uploaded would leave the user with neither.
+  it('should not delete source maps when upload is disabled', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: true },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(glob).not.toHaveBeenCalled();
+    expect(fs.promises.rm).not.toHaveBeenCalled();
+  });
+
+  it('should not delete source maps when disabled via the deprecated sourceMapsUploadOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourceMapsUploadOptions: { enabled: false },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(glob).not.toHaveBeenCalled();
+  });
+
   it('should delete source maps after upload with default pattern', async () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);

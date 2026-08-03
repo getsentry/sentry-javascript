@@ -21,14 +21,15 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
 
   const unstableSourcemapsDisable = unstable_sentryVitePluginOptions?.sourcemaps?.disable;
 
-  // Any value other than `true` asks the Vite plugin to inject debug IDs, which the
-  // `sentryOnBuildEnd` hook already does - so it is ignored rather than honoured.
+  // Anything other than `true` would have the Vite plugin inject debug IDs on top of the
+  // ones `sentryOnBuildEnd` injects, which breaks source map resolution. The value still
+  // applies to the buildEnd hook - only the Vite plugin ignores it.
   if (unstableSourcemapsDisable !== undefined && unstableSourcemapsDisable !== true) {
     // eslint-disable-next-line no-console
     console.warn(
-      `[Sentry] Ignoring \`unstable_sentryVitePluginOptions.sourcemaps.disable: ${JSON.stringify(
+      `[Sentry] \`unstable_sentryVitePluginOptions.sourcemaps.disable: ${JSON.stringify(
         unstableSourcemapsDisable,
-      )}\`. Debug ID injection and source map upload are handled by the \`sentryOnBuildEnd\` hook for React Router; letting the Vite plugin do it as well injects a second debug ID per chunk and breaks source map resolution. Remove the option, or set \`sourcemaps.disable: true\` at the top level to opt out of Sentry source maps entirely.`,
+      )}\` does not apply to the Vite plugin. Debug ID injection and source map upload are handled by the \`sentryOnBuildEnd\` hook for React Router, so letting the Vite plugin do it as well would inject a second debug ID per chunk. The option still applies to \`sentryOnBuildEnd\`.`,
     );
   }
 
