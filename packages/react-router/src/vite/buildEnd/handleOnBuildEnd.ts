@@ -20,6 +20,9 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
  * This hook is the only place that injects debug IDs and uploads source maps for React
  * Router, so `disable` has to be honoured wherever the user set it. Reading it from the
  * top-level config only would silently ignore `unstable_sentryVitePluginOptions`.
+ *
+ * `unstable_sentryVitePluginOptions` takes precedence, since it is documented as being able
+ * to override the options the SDK passes to the plugin - matching the other SDKs.
  */
 function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): boolean | 'disable-upload' | undefined {
   // eslint-disable-next-line typescript/no-deprecated
@@ -27,7 +30,7 @@ function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): 
     return true;
   }
 
-  return sentryConfig.sourcemaps?.disable ?? sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps?.disable;
+  return sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps?.disable ?? sentryConfig.sourcemaps?.disable;
 }
 
 /**

@@ -220,7 +220,9 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
   });
 
-  it('should let top-level sourcemaps.disable override unstable_sentryVitePluginOptions', async () => {
+  // `unstable_sentryVitePluginOptions` is documented as being able to override the options
+  // the SDK passes to the plugin, so it wins over the top-level value.
+  it('should let unstable_sentryVitePluginOptions sourcemaps.disable override the top-level option', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
@@ -238,7 +240,29 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalled();
+    expect(mockSentryCliInstance.execute).not.toHaveBeenCalled();
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+  });
+
+  it('should let top-level sourcemaps.disable apply when unstable_sentryVitePluginOptions does not set it', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: true },
+          unstable_sentryVitePluginOptions: {
+            sourcemaps: { assets: ['dist/**'] },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
   });
 
   it('should still upload source maps when unstable_sentryVitePluginOptions only sets unrelated sourcemaps keys', async () => {
