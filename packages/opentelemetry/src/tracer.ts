@@ -136,15 +136,11 @@ export class SentryTracer implements Tracer {
       return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
     }
 
-    // No parent span and no remote parent: this is a fresh root span. Start a new trace instead of
-    // continuing the scope's (possibly auto-generated) propagation context, matching the OpenTelemetry
-    // SDK where each root span without an incoming trace gets its own trace id.
-    return startNewTrace(() =>
-      _INTERNAL_startInactiveSpan({
-        ...sentryOptions,
-        parentSpan: hasExplicitContext ? null : undefined,
-      }),
-    );
+    // No parent span and no remote parent: this is a fresh root span.
+    return _INTERNAL_startInactiveSpan({
+      ...sentryOptions,
+      parentSpan: hasExplicitContext ? null : undefined,
+    });
   }
 
   private _startRootSpanWithRemoteParent(
@@ -176,7 +172,11 @@ export class SentryTracer implements Tracer {
   }
 
   private _createNonRecordingSpan(parentSpan: OpenTelemetrySpan | undefined): OpenTelemetrySpan {
-    const span = new SentryNonRecordingSpan({ traceId: parentSpan?.spanContext().traceId });
+    // Without a parent, fall back to the current scope's propagation context trace id, so that
+    // non-recording spans (TwP mode) stay on the trace set by `startNewTrace`/`continueTrace`
+    // instead of minting a fresh random trace id. Mirrors core's `createChildOrRootSpan` TwP branch.
+    const traceId = parentSpan?.spanContext().traceId ?? getCurrentScope().getPropagationContext().traceId;
+    const span = new SentryNonRecordingSpan({ traceId });
     // Link to the parent (like core's `createChildOrRootSpan`) so `getRootSpan` and DSC
     // resolution reach the parent. Non-recording spans no longer carry a `parentSpanId`.
     if (parentSpan) {

@@ -43,10 +43,8 @@ export interface BaseVercelEdgeOptions {
   /**
    * If this is set to true, the SDK will not set up OpenTelemetry automatically.
    * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentrySpanProcessor`
+   * * The `SentryTracerProvider`
    * * The `SentryPropagator`
-   * * The `SentryContextManager`
-   * * The `SentrySampler`
    */
   skipOpenTelemetrySetup?: boolean;
 

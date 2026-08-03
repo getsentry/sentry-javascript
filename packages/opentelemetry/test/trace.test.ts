@@ -9,20 +9,16 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  isTracingSuppressed,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanIsSampled,
   spanToJSON,
-  suppressTracing,
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanManual } from '../src/trace';
+import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
-import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { isSpan } from './helpers/isSpan';
 import { mockSdkInit } from './helpers/mockSdkInit';
@@ -1292,7 +1288,9 @@ describe('trace', () => {
         const traceId = spanToJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
         expect(spanToJSON(span).parent_span_id).toBe(undefined);
-        expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
+        // A root span without a parent continues the current scope's propagation context trace,
+        // matching the core SDK behavior.
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           trace_id: traceId,
@@ -1306,8 +1304,7 @@ describe('trace', () => {
       });
     });
 
-    // Note: This _should_ never happen, when we have an incoming trace, we should always have a parent span
-    it('starts new trace, ignoring parentSpanId, if there is no parent', () => {
+    it('continues the scope propagation context, including parentSpanId, if there is no active span', () => {
       withScope(scope => {
         const propagationContext = scope.getPropagationContext();
         propagationContext.parentSpanId = '1121201211212012';
@@ -1316,8 +1313,10 @@ describe('trace', () => {
         expect(span).toBeDefined();
         const traceId = spanToJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
-        expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
+        // The root span continues the scope's trace and inherits the propagation context's
+        // parentSpanId as its parent, matching the core SDK behavior.
+        expect(spanToJSON(span).parent_span_id).toBe('1121201211212012');
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           environment: 'production',
@@ -1595,7 +1594,6 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
@@ -1622,7 +1620,6 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.NONE,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
@@ -1780,7 +1777,6 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
@@ -1816,219 +1812,6 @@ describe('trace (sampling)', () => {
         expect(span.spanContext().traceId).toMatch(/[a-f0-9]{32}/);
       });
     });
-  });
-});
-
-describe('continueTrace', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  it('works without trace & baggage data', () => {
-    const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
-      const span = getActiveSpan()!;
-      expect(span).toBeUndefined();
-      return getCurrentScope();
-    });
-
-    expect(scope.getPropagationContext()).toEqual({
-      traceId: expect.any(String),
-      sampleRand: expect.any(Number),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
-  });
-
-  it('works with trace data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-        baggage: undefined,
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-          status: 'ok',
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(false);
-        expect(spanIsSampled(span)).toBe(false);
-      },
-    );
-  });
-
-  it('works with trace & baggage data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
-        baggage: 'sentry-version=1.0,sentry-environment=production',
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-          status: 'ok',
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(true);
-        expect(spanIsSampled(span)).toBe(true);
-      },
-    );
-  });
-
-  it('works with trace & 3rd party baggage data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
-        baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-          status: 'ok',
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(true);
-        expect(spanIsSampled(span)).toBe(true);
-      },
-    );
-  });
-
-  it('returns response of callback', () => {
-    const result = continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-        baggage: undefined,
-      },
-      () => {
-        return 'aha';
-      },
-    );
-
-    expect(result).toEqual('aha');
-  });
-});
-
-describe('suppressTracing', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  it('works for a root span', () => {
-    const span = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    expect(span.isRecording()).toBe(false);
-    expect(spanIsSampled(span)).toBe(false);
-  });
-
-  it('works for a child span', () => {
-    startSpan({ name: 'outer' }, span => {
-      expect(span.isRecording()).toBe(true);
-      expect(spanIsSampled(span)).toBe(true);
-
-      const child1 = startInactiveSpan({ name: 'inner1' });
-
-      expect(child1.isRecording()).toBe(true);
-      expect(spanIsSampled(child1)).toBe(true);
-
-      const child2 = suppressTracing(() => {
-        return startInactiveSpan({ name: 'span' });
-      });
-
-      expect(child2.isRecording()).toBe(false);
-      expect(spanIsSampled(child2)).toBe(false);
-    });
-  });
-
-  it('works for a child span with forceTransaction=true', () => {
-    startSpan({ name: 'outer' }, span => {
-      expect(span.isRecording()).toBe(true);
-      expect(spanIsSampled(span)).toBe(true);
-
-      const child = suppressTracing(() => {
-        return startInactiveSpan({ name: 'span', forceTransaction: true });
-      });
-
-      expect(child.isRecording()).toBe(false);
-      expect(spanIsSampled(child)).toBe(false);
-    });
-  });
-
-  it('works with parallel processes', async () => {
-    const span = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    const span2Promise = suppressTracing(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return startInactiveSpan({ name: 'span2' });
-    });
-
-    const span3Promise = suppressTracing(async () => {
-      const span = startInactiveSpan({ name: 'span3' });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return span;
-    });
-
-    const span4 = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    const span5 = startInactiveSpan({ name: 'span5' });
-
-    const span2 = await span2Promise;
-    const span3 = await span3Promise;
-
-    expect(spanIsSampled(span)).toBe(false);
-    expect(spanIsSampled(span2)).toBe(false);
-    expect(spanIsSampled(span3)).toBe(false);
-    expect(spanIsSampled(span4)).toBe(false);
-    expect(spanIsSampled(span5)).toBe(true);
-  });
-});
-
-describe('isTracingSuppressed', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  it('returns false when tracing is not suppressed', () => {
-    expect(isTracingSuppressed()).toBe(false);
-  });
-
-  it('returns true while inside suppressTracing', () => {
-    const suppressed = suppressTracing(() => isTracingSuppressed());
-    expect(suppressed).toBe(true);
-  });
-
-  it('returns false again after suppressTracing has finished', () => {
-    suppressTracing(() => {
-      expect(isTracingSuppressed()).toBe(true);
-    });
-
-    expect(isTracingSuppressed()).toBe(false);
-  });
-
-  it('stays suppressed across async boundaries within suppressTracing', async () => {
-    const suppressed = await suppressTracing(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-      return isTracingSuppressed();
-    });
-
-    expect(suppressed).toBe(true);
   });
 });
 
@@ -2117,108 +1900,6 @@ describe('span.end() timestamp conversion', () => {
       expect(capturedEndTime![0]).toBe(nowSec);
       expect(capturedEndTime![1]).toBe(0);
     });
-  });
-});
-
-describe('startNewTrace', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  it('sequential startInactiveSpan calls share the same traceId', () => {
-    startNewTrace(() => {
-      const propagationContext = getCurrentScope().getPropagationContext();
-
-      const span1 = startInactiveSpan({ name: 'span-1' });
-      const span2 = startInactiveSpan({ name: 'span-2' });
-      const span3 = startInactiveSpan({ name: 'span-3' });
-
-      const traceId1 = span1.spanContext().traceId;
-      const traceId2 = span2.spanContext().traceId;
-      const traceId3 = span3.spanContext().traceId;
-
-      expect(traceId1).toBe(propagationContext.traceId);
-      expect(traceId2).toBe(propagationContext.traceId);
-      expect(traceId3).toBe(propagationContext.traceId);
-
-      span1.end();
-      span2.end();
-      span3.end();
-    });
-  });
-
-  it('startSpan inside startNewTrace uses the correct traceId', () => {
-    startNewTrace(() => {
-      const propagationContext = getCurrentScope().getPropagationContext();
-
-      startSpan({ name: 'parent-span' }, parentSpan => {
-        const parentTraceId = parentSpan.spanContext().traceId;
-        expect(parentTraceId).toBe(propagationContext.traceId);
-
-        const child = startInactiveSpan({ name: 'child-span' });
-        expect(child.spanContext().traceId).toBe(propagationContext.traceId);
-        child.end();
-      });
-    });
-  });
-
-  it('generates a different traceId than the outer trace', () => {
-    startSpan({ name: 'outer-span' }, outerSpan => {
-      const outerTraceId = outerSpan.spanContext().traceId;
-
-      startNewTrace(() => {
-        const innerSpan = startInactiveSpan({ name: 'inner-span' });
-        const innerTraceId = innerSpan.spanContext().traceId;
-
-        expect(innerTraceId).not.toBe(outerTraceId);
-
-        const propagationContext = getCurrentScope().getPropagationContext();
-        expect(innerTraceId).toBe(propagationContext.traceId);
-
-        innerSpan.end();
-      });
-    });
-  });
-
-  it('allows spans to be sampled based on tracesSampleRate', () => {
-    startNewTrace(() => {
-      const span = startInactiveSpan({ name: 'sampled-span' });
-      // tracesSampleRate is 1 in mockSdkInit, so spans should be sampled
-      // This verifies that TraceFlags.NONE on the remote span context does not
-      // cause the sampler to inherit a "not sampled" decision from the parent
-      expect(spanIsSampled(span)).toBe(true);
-      span.end();
-    });
-  });
-
-  it('samples a forced transaction based on tracesSampleRate', () => {
-    // `startNewTrace` injects a remote parent with `traceFlags: NONE` and no trace state, i.e. a
-    // *deferred* decision. A forced transaction under it runs through `getContext`'s simulated-root
-    // branch, which derives a DSC from that parent. Core naively reads `sampled=false` off the binary
-    // trace flags; without reconciliation that gets baked into the trace state and the transaction
-    // wrongly inherits a negative decision despite `tracesSampleRate: 1`.
-    startNewTrace(() => {
-      const span = startInactiveSpan({ name: 'forced-transaction', forceTransaction: true });
-      expect(spanIsSampled(span)).toBe(true);
-      span.end();
-    });
-  });
-
-  it('does not leak the new traceId to the outer scope', () => {
-    const outerScope = getCurrentScope();
-    const outerTraceId = outerScope.getPropagationContext().traceId;
-
-    startNewTrace(() => {
-      // Manually set a known traceId on the inner scope to verify it doesn't leak
-      getCurrentScope().setPropagationContext({
-        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        sampleRand: 0.5,
-      });
-    });
-
-    const afterTraceId = outerScope.getPropagationContext().traceId;
-    expect(afterTraceId).toBe(outerTraceId);
-    expect(afterTraceId).not.toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 });
 

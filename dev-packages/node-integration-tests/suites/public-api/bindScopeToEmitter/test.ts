@@ -34,7 +34,9 @@ test('bindScopeToEmitter preserves the active span for listeners firing in a dif
   expect(childBound?.parent_span_id).toBe(parentSpanId);
   expect(childBound?.trace_id).toBe(parentTraceId);
 
-  // The unbound emitter's listener ran without the parent active -> its own, separate trace.
+  // The unbound emitter's listener ran without the parent active -> its own root transaction,
+  // not nested under the parent span. It still shares the isolation scope's propagation context
+  // trace, matching the core SDK behavior for root spans.
   expect(childUnbound?.spans).toEqual([]);
-  expect(childUnbound?.contexts?.trace?.trace_id).not.toBe(parentTraceId);
+  expect(childUnbound?.contexts?.trace?.parent_span_id).toBeUndefined();
 });

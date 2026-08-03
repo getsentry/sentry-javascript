@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/cloudflare/nodejs_compat';
+import * as Sentry from '@sentry/cloudflare';
 import { generateText } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 
@@ -11,7 +11,6 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1,
-    integrations: [Sentry.vercelAIIntegration()],
   }),
   {
     async fetch(_request, _env, _ctx) {

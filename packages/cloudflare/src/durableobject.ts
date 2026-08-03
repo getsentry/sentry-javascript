@@ -6,7 +6,8 @@ import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
-import { wrapRequestHandler } from './request';
+import { wrapRequestHandlerWithInit } from './request';
+import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
@@ -89,9 +90,13 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
       original =>
         new Proxy(original, {
           apply(target, thisArg, args) {
-            return wrapRequestHandler({ options, request: args[0], context }, () => {
-              return Reflect.apply(target, thisArg, args);
-            });
+            return wrapRequestHandlerWithInit(
+              { options, request: args[0], context },
+              () => {
+                return Reflect.apply(target, thisArg, args);
+              },
+              init,
+            );
           },
         }),
     );

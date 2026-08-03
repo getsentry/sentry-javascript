@@ -66,11 +66,13 @@ async function runMiddlewareRequest(
   delay = 0,
 ): Promise<{ traceId: string; childTraceId: string }> {
   const request = new Request(url, { method: 'GET', headers });
-  // Mirror `wrapMiddlewareWithSentry`: fork an isolation scope per request, then run Next's
-  // `withPropagatedContext` + `Middleware.execute` trace inside it.
-  return withIsolationScope(() =>
-    withPropagatedContext(request.headers, () =>
-      nextMiddlewareTrace(new URL(url).pathname, async () => {
+  // Faithfully mirror production ordering: Next's native OTEL creates the `Middleware.execute` root span
+  // (via `withPropagatedContext` -> `trace`) BEFORE `wrapMiddlewareWithSentry` forks its isolation scope.
+  // So the root span's trace id is fixed by `extract` (SentryPropagator), not by the later fork - the fork
+  // is nested *inside* the span callback, exactly like `wrapMiddlewareWithSentry`.
+  return withPropagatedContext(request.headers, () =>
+    nextMiddlewareTrace(new URL(url).pathname, () =>
+      withIsolationScope(async () => {
         const rootSpan = trace.getActiveSpan()!;
         const traceId = spanToJSON(rootSpan).trace_id!;
 

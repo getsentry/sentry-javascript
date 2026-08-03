@@ -18,7 +18,7 @@ function envelopeItem(envelope: Envelope): Record<string, unknown> {
   return envelope[1][0]![1] as Record<string, unknown>;
 }
 
-it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare/nodejs_compat prismaIntegration', async ({
+it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare prismaIntegration', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)

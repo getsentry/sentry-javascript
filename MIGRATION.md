@@ -502,7 +502,7 @@ Sentry.init({
 
 ### `@sentry/opentelemetry`
 
-- `SentryPropagator` was removed. It is no longer needed now that Sentry does not manage OpenTelemetry trace propagation by default.
+- `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
 - `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events.
@@ -578,6 +578,40 @@ export default defineNuxtConfig({
       assets: ['./dist/**/*'],
     },
   },
+});
+```
+
+### `@sentry/sveltekit`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentrySvelteKit()`. Move its fields to the root level of the `sentrySvelteKit()` options. Note that `url` was renamed to `sentryUrl`.
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  plugins: [
+    sentrySvelteKit({
+      // before
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        url: 'https://my-sentry.example.com',
+        sourcemaps: {
+          assets: ['./build/**/*'],
+        },
+      },
+
+      // after
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sentryUrl: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./build/**/*'],
+      },
+    }),
+    sveltekit(),
+  ],
 });
 ```
 

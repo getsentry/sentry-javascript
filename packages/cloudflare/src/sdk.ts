@@ -1,68 +1,20 @@
 import type { Integration } from '@sentry/core';
-import {
-  consoleIntegration,
-  conversationIdIntegration,
-  dedupeIntegration,
-  functionToStringIntegration,
-  getIntegrationsToSetup,
-  GLOBAL_OBJ,
-  inboundFiltersIntegration,
-  initAndBind,
-  linkedErrorsIntegration,
-  requestDataIntegration,
-  stackParserFromStackParserOptions,
-} from '@sentry/core';
-import type { CloudflareClientOptions, CloudflareOptions } from './client';
-import { CloudflareClient } from './client';
-import { makeFlushLock } from './flush';
-import { httpServerIntegration } from './integrations/httpServer';
-import { fetchIntegration } from './integrations/fetch';
-import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
-import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
-import { makeCloudflareTransport } from './transport';
-import { defaultStackParser } from './vendor/stacktrace';
+import { vercelAIIntegration } from './integrations/tracing/vercelai';
+import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseSdk';
+import type { CloudflareClient, CloudflareOptions } from './client';
 
 /**
- * Instantiate the channel-subscriber factories the `@sentry/cloudflare/vite`
- * plugin registered on the global marker. The plugin splices a small snippet
- * into each instrumented module that `.set`s its factory here (keyed by export
- * name), so the marker holds one factory per package actually bundled.
+ * Get the default integrations for the Cloudflare SDK.
  *
- * The marker is read directly instead of importing the factories, so a worker
- * built without the plugin — where the channels never fire — ships none of this
- * code.
- * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default.
+ * This is the full set and requires the `nodejs_compat` compatibility flag. Runtimes that cannot
+ * enable it (e.g. Shopify Oxygen) go through `wrapRequestHandler`, which only sets up
+ * `getBaseDefaultIntegrations`.
  */
-function getRegisteredChannelIntegrations(): Integration[] {
-  const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
-
-  return registered ? [...registered.values()].map(factory => factory()) : [];
-}
-
-/** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   return [
-    // The Dedupe integration should not be used in workflows because we want to
-    // capture all step failures, even if they are the same error.
-    ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
-    functionToStringIntegration(),
-    conversationIdIntegration(),
-    linkedErrorsIntegration(),
-    fetchIntegration(),
-    httpServerIntegration(),
-    // oxlint-disable-next-line typescript/no-deprecated
-    requestDataIntegration(),
-    consoleIntegration(),
-    // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
-    // `@sentry/cloudflare/vite` plugin injects the channels at build time and,
-    // next to each, a snippet that registers the matching subscriber factory on
-    // the global marker. Read from there instead of importing them so bundles
-    // built without the plugin — where the channels would never fire — don't
-    // ship the code.
-    ...getRegisteredChannelIntegrations(),
+    ...getBaseDefaultIntegrations(options),
+    // Subscribes to the `ai` SDK's native `node:diagnostics_channel` telemetry channel.
+    vercelAIIntegration(),
   ];
 }
 
@@ -70,39 +22,5 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
  * Initializes the cloudflare SDK.
  */
 export function init(options: CloudflareOptions): CloudflareClient | undefined {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-
-  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
-  delete options.ctx;
-
-  const clientOptions: CloudflareClientOptions = {
-    ...options,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeCloudflareTransport,
-    // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
-    // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
-    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
-    flushLock,
-  };
-
-  /*! rollup-include-development-only */
-  if (options.spotlight && !clientOptions.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
-    clientOptions.integrations.push(
-      spotlightIntegration({
-        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-      }),
-    );
-  }
-  /*! rollup-include-development-only-end */
-
-  // Opt-in only: when `skipOpenTelemetrySetup` is `false`, set up a custom trace provider so spans
-  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
-  if (!clientOptions.skipOpenTelemetrySetup) {
-    setupOpenTelemetryTracer();
-  }
-
-  return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+  return initWithDefaultIntegrations(options, getDefaultIntegrations);
 }

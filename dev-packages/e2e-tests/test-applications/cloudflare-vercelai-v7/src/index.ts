@@ -10,7 +10,6 @@ export default Sentry.withSentry(
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1.0,
     dataCollection: { genAI: { inputs: false, outputs: false } },
-    integrations: [Sentry.vercelAIIntegration()],
   }),
   {
     async fetch(request, _env, _ctx) {
@@ -31,10 +30,10 @@ export default Sentry.withSentry(
               warnings: [],
             }),
           }),
-          prompt: 'Where is the first span?',
+          prompt: 'How much is the fish?',
         });
 
-        return new Response('ok');
+        return new Response('Here we go, here we go, here we go again');
       }
 
       return new Response('Not found', { status: 404 });

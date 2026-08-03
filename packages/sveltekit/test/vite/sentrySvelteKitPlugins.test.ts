@@ -35,13 +35,6 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
 
 function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[0]): Promise<Plugin[]> {
   return sentrySvelteKit({
-    sourceMapsUploadOptions: {
-      authToken: 'token',
-      org: 'org',
-      project: 'project',
-      // eslint-disable-next-line typescript/no-deprecated
-      ...options?.sourceMapsUploadOptions,
-    },
     ...options,
   });
 }
@@ -129,12 +122,10 @@ describe('sentrySvelteKit()', () => {
     const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
     await getSentrySvelteKitPlugins({
       debug: true,
-      sourceMapsUploadOptions: {
-        sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
-          filesToDeleteAfterUpload: ['baz/*.js'],
-        },
+      sourcemaps: {
+        assets: ['foo/*.js'],
+        ignore: ['bar/*.js'],
+        filesToDeleteAfterUpload: ['baz/*.js'],
       },
       autoInstrument: false,
       adapter: 'vercel',
@@ -158,31 +149,29 @@ describe('sentrySvelteKit()', () => {
     const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
     await getSentrySvelteKitPlugins({
       debug: true,
-      sourceMapsUploadOptions: {
-        org: 'my-org',
+      org: 'my-org',
+      sourcemaps: {
+        assets: ['nope/*.js'],
+        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
+      release: {
+        inject: false,
+        name: '2.0.0',
+      },
+      unstable_sentryVitePluginOptions: {
+        org: 'other-org',
         sourcemaps: {
-          assets: ['nope/*.js'],
-          filesToDeleteAfterUpload: ['baz/*.js'],
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
         },
         release: {
-          inject: false,
-          name: '2.0.0',
+          name: '3.0.0',
+          setCommits: {
+            auto: true,
+          },
         },
-        unstable_sentryVitePluginOptions: {
-          org: 'other-org',
-          sourcemaps: {
-            assets: ['foo/*.js'],
-            ignore: ['bar/*.js'],
-          },
-          release: {
-            name: '3.0.0',
-            setCommits: {
-              auto: true,
-            },
-          },
-          headers: {
-            'X-My-Header': 'foo',
-          },
+        headers: {
+          'X-My-Header': 'foo',
         },
       },
       autoInstrument: false,
@@ -272,19 +261,17 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it('applies user-defined sourceMapsUploadOptions', () => {
+  it('applies user-defined source maps options', () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
 
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
-      sourceMapsUploadOptions: {
-        authToken: 'token',
-        org: 'org',
-        project: 'project',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-        },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['foo/*.js'],
       },
     };
     const expected: CustomSentryVitePluginOptions = {
@@ -307,18 +294,16 @@ describe('generateVitePluginOptions', () => {
 
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
-      sourceMapsUploadOptions: {
-        authToken: 'token',
-        org: 'org',
-        project: 'project',
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['foo/*.js'],
+      },
+      unstable_sentryVitePluginOptions: {
+        org: 'unstable-org',
         sourcemaps: {
-          assets: ['foo/*.js'],
-        },
-        unstable_sentryVitePluginOptions: {
-          org: 'unstable-org',
-          sourcemaps: {
-            assets: ['unstable/*.js'],
-          },
+          assets: ['unstable/*.js'],
         },
       },
     };
@@ -342,16 +327,14 @@ describe('generateVitePluginOptions', () => {
 
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
-      sourceMapsUploadOptions: {
+      release: {
+        name: '1.0.0',
+      },
+      unstable_sentryVitePluginOptions: {
         release: {
-          name: '1.0.0',
-        },
-        unstable_sentryVitePluginOptions: {
-          release: {
-            name: '2.0.0',
-            setCommits: {
-              auto: true,
-            },
+          name: '2.0.0',
+          setCommits: {
+            auto: true,
           },
         },
       },
@@ -378,11 +361,9 @@ describe('generateVitePluginOptions', () => {
       autoUploadSourceMaps: true,
       adapter: 'vercel',
       debug: true,
-      sourceMapsUploadOptions: {
-        authToken: 'token',
-        org: 'org',
-        project: 'project',
-      },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
     };
     const expected: CustomSentryVitePluginOptions = {
       authToken: 'token',
@@ -397,7 +378,7 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it('applies bundleSizeOptimizations AND sourceMapsUploadOptions when both are set', () => {
+  it('applies bundleSizeOptimizations AND source maps options when both are set', () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
 
@@ -408,13 +389,11 @@ describe('generateVitePluginOptions', () => {
         excludeDebugStatements: false,
       },
       autoUploadSourceMaps: true,
-      sourceMapsUploadOptions: {
-        authToken: 'token',
-        org: 'org',
-        project: 'project',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-        },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['foo/*.js'],
       },
     };
     const expected = {
@@ -442,12 +421,6 @@ describe('generateVitePluginOptions', () => {
       options: {
         autoUploadSourceMaps: true,
         org: 'root-org',
-        sourceMapsUploadOptions: {
-          org: 'deprecated-org',
-          unstable_sentryVitePluginOptions: {
-            org: 'unstable-org',
-          },
-        },
         unstable_sentryVitePluginOptions: {
           org: 'new-unstable-org',
         },
@@ -459,12 +432,6 @@ describe('generateVitePluginOptions', () => {
       options: {
         autoUploadSourceMaps: true,
         project: 'root-project',
-        sourceMapsUploadOptions: {
-          project: 'deprecated-project',
-          unstable_sentryVitePluginOptions: {
-            project: 'unstable-project',
-          },
-        },
         unstable_sentryVitePluginOptions: {
           project: 'new-unstable-project',
         },
@@ -476,12 +443,6 @@ describe('generateVitePluginOptions', () => {
       options: {
         autoUploadSourceMaps: true,
         authToken: 'root-token',
-        sourceMapsUploadOptions: {
-          authToken: 'deprecated-token',
-          unstable_sentryVitePluginOptions: {
-            authToken: 'unstable-token',
-          },
-        },
         unstable_sentryVitePluginOptions: {
           authToken: 'new-unstable-token',
         },
@@ -493,12 +454,6 @@ describe('generateVitePluginOptions', () => {
       options: {
         autoUploadSourceMaps: true,
         telemetry: true,
-        sourceMapsUploadOptions: {
-          telemetry: false,
-          unstable_sentryVitePluginOptions: {
-            telemetry: true,
-          },
-        },
         unstable_sentryVitePluginOptions: {
           telemetry: false,
         },
@@ -510,12 +465,6 @@ describe('generateVitePluginOptions', () => {
       options: {
         autoUploadSourceMaps: true,
         sentryUrl: 'https://root.sentry.io',
-        sourceMapsUploadOptions: {
-          url: 'https://deprecated.sentry.io',
-          unstable_sentryVitePluginOptions: {
-            url: 'https://unstable.sentry.io',
-          },
-        },
         unstable_sentryVitePluginOptions: {
           url: 'https://new-unstable.sentry.io',
         },
@@ -553,19 +502,6 @@ describe('generateVitePluginOptions', () => {
         ignore: ['root/ignore/*.js'],
         filesToDeleteAfterUpload: ['root/delete/*.js'],
       },
-      sourceMapsUploadOptions: {
-        sourcemaps: {
-          assets: ['deprecated/*.js'],
-          ignore: ['deprecated/ignore/*.js'],
-          filesToDeleteAfterUpload: ['deprecated/delete/*.js'],
-        },
-        unstable_sentryVitePluginOptions: {
-          sourcemaps: {
-            assets: ['unstable/*.js'],
-            ignore: ['unstable/ignore/*.js'],
-          },
-        },
-      },
       unstable_sentryVitePluginOptions: {
         sourcemaps: {
           assets: ['new-unstable/*.js'],
@@ -577,9 +513,9 @@ describe('generateVitePluginOptions', () => {
     const result = generateVitePluginOptions(options);
 
     expect(result?.sourcemaps).toEqual({
-      assets: ['new-unstable/*.js'], // new unstable takes precedence
-      ignore: ['unstable/ignore/*.js'], // from deprecated unstable (not overridden by new unstable)
-      filesToDeleteAfterUpload: ['new-unstable/delete/*.js'], // new unstable takes precedence
+      assets: ['new-unstable/*.js'], // unstable takes precedence
+      ignore: ['root/ignore/*.js'], // from root (not overridden by unstable)
+      filesToDeleteAfterUpload: ['new-unstable/delete/*.js'], // unstable takes precedence
     });
   });
 
@@ -598,28 +534,16 @@ describe('generateVitePluginOptions', () => {
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       release: newReleaseOptions,
-      sourceMapsUploadOptions: {
-        release: {
-          name: 'deprecated-release',
-          inject: false,
-        },
-        unstable_sentryVitePluginOptions: {
-          release: { name: 'deprecated-unstable-release', setCommits: { auto: true } },
-        },
-      },
       unstable_sentryVitePluginOptions: { release: newUnstableReleaseOptions },
     };
 
     const result = generateVitePluginOptions(options);
 
     expect(result?.release).toEqual({
-      name: newUnstableReleaseOptions.name,
-      inject: newReleaseOptions.inject,
-      setCommits: {
-        auto: true, // from deprecated unstable (not overridden)
-      },
+      name: newUnstableReleaseOptions.name, // from unstable
+      inject: newReleaseOptions.inject, // from root (not overridden by unstable)
       deploy: {
-        env: 'production', // from new unstable
+        env: 'production', // from unstable
       },
     });
   });
@@ -635,30 +559,11 @@ describe('generateVitePluginOptions', () => {
       debug: false,
       sourcemaps: {
         assets: ['root/*.js'],
+        ignore: ['root/ignore/*.js'],
       },
       release: {
         name: 'root-1.0.0',
-      },
-      sourceMapsUploadOptions: {
-        org: 'deprecated-org',
-        project: 'deprecated-project',
-        authToken: 'deprecated-token',
-        telemetry: false,
-        url: 'https://deprecated.sentry.io',
-        sourcemaps: {
-          assets: ['deprecated/*.js'],
-          ignore: ['deprecated/ignore/*.js'],
-        },
-        release: {
-          name: 'deprecated-1.0.0',
-          inject: false,
-        },
-        unstable_sentryVitePluginOptions: {
-          org: 'old-unstable-org',
-          sourcemaps: {
-            assets: ['old-unstable/*.js'],
-          },
-        },
+        inject: false,
       },
       unstable_sentryVitePluginOptions: {
         org: 'new-unstable-org',
@@ -683,7 +588,7 @@ describe('generateVitePluginOptions', () => {
       url: 'https://root.sentry.io',
       sourcemaps: {
         assets: ['new-unstable/*.js'],
-        ignore: ['deprecated/ignore/*.js'],
+        ignore: ['root/ignore/*.js'],
         filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
       },
       release: {
