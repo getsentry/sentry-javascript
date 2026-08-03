@@ -43,7 +43,7 @@ sentryTest(
             ],
             context_line: '    <button id="inline-error-btn" onclick="throwTestError()">Click me</button>',
             post_context: [
-              '  <script defer="" src="init.bundle.js"></script>',
+              expect.stringContaining('<script'), // this line varies in the test based on tarball/cdn bundle (+variants)
               '  <footer>Some text...</footer>',
               '',
               '</body>',
