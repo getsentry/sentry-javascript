@@ -123,7 +123,7 @@ export function constructTurbopackConfig({
 }
 
 /**
- * Adds the orchestrion code-transform loader rule when diagnostics-channel injection is enabled.
+ * Adds the orchestrion code-transform loader rule unless build-time instrumentation is turned off.
  */
 function maybeAddOrchestrionRule(
   rules: TurbopackOptions['rules'],
@@ -131,7 +131,7 @@ function maybeAddOrchestrionRule(
   nextJsVersion: string | undefined,
 ): TurbopackOptions['rules'] {
   if (
-    !userSentryOptions?._experimental?.useDiagnosticsChannelInjection ||
+    userSentryOptions?.buildTimeInstrumentation === false ||
     !nextJsVersion ||
     !supportsTurbopackRuleCondition(nextJsVersion)
   ) {
