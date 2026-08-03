@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildMethodPath } from '../../../src/tracing/ai/utils';
-import { isChatCompletionChunk, isResponsesApiStreamEvent } from '../../../src/tracing/openai/utils';
+import { buildMethodPath } from '../../../../src/ai/core/utils';
+import { isChatCompletionChunk, isResponsesApiStreamEvent } from '../../../../src/ai/openai/utils';
 
 describe('openai-utils', () => {
   describe('buildMethodPath', () => {

@@ -1,11 +1,15 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types/span';
-import { debug } from '../../utils/debug-logger';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+  debug,
+  stringify,
+} from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
@@ -15,8 +19,7 @@ import {
   GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import type { InstrumentedMethodEntry } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
@@ -24,7 +27,7 @@ import {
   resolveAIRecordingOptions,
   shouldEnableTruncation,
   wrapPromiseWithMethods,
-} from '../ai/utils';
+} from '../core/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';

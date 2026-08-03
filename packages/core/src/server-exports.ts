@@ -61,17 +61,6 @@ export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptio
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export {
-  instrumentOpenAiClient,
-  extractRequestAttributes as extractOpenAiRequestAttributes,
-  addRequestAttributes as addOpenAiRequestAttributes,
-} from './tracing/openai';
-export {
-  addResponseAttributes as addOpenAiResponseAttributes,
-  extractRequestParameters as extractOpenAiRequestParameters,
-} from './tracing/openai/utils';
-export { instrumentStream as instrumentOpenAiStream } from './tracing/openai/streaming';
-export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
-export {
   instrumentAnthropicAiClient,
   extractRequestAttributes as extractAnthropicRequestAttributes,
   addPrivateRequestAttributes as addAnthropicRequestAttributes,
@@ -104,8 +93,6 @@ export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export { instrumentWorkersAiClient } from './tracing/workers-ai';
 export type { WorkersAiClient, WorkersAiOptions } from './tracing/workers-ai/types';
-// eslint-disable-next-line typescript/no-deprecated
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
