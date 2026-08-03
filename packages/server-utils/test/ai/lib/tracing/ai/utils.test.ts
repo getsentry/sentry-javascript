@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '../../../../src';
+import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '@sentry/core';
 import {
   resolveAIRecordingOptions,
   shouldEnableTruncation,
   wrapPromiseWithMethods,
-} from '../../../../src/tracing/ai/utils';
-import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+} from '../../../../../src/ai/core/utils';
+import { getDefaultTestClientOptions, TestClient } from '../../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
   beforeEach(() => {
