@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const ioredisConfig = [
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)
@@ -26,6 +26,8 @@ export const ioredisConfig = [
     functionQuery: { className: 'Redis', methodName: 'connect', kind: 'Async' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const ioredisModuleNames = getModuleNames(ioredisConfig);
 
 export const ioredisChannels = {
   IOREDIS_COMMAND: 'orchestrion:ioredis:command',

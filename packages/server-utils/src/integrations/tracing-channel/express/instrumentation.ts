@@ -70,8 +70,6 @@ export function instrumentExpress(
   }
 
   for (const channelName of [CHANNELS.EXPRESS_HANDLE, CHANNELS.ROUTER_HANDLE]) {
-    DEBUG_BUILD && debug.log(`[orchestrion:express] subscribing to channel "${channelName}"`);
-
     const channel = tracingChannel<HandleChannelContext>(channelName);
 
     bindTracingChannelToSpan(channel, data => getSpanForLayer(data, options), {

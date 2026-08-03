@@ -73,49 +73,6 @@ describe('Sentry Nuxt build-time options type', () => {
     expectTypeOf(completeOptions).toEqualTypeOf<SentryNuxtModuleOptions>();
   });
 
-  it('includes all deprecated options', () => {
-    const completeOptions: SentryNuxtModuleOptions = {
-      // SentryNuxtModuleOptions specific options
-      enabled: true,
-      debug: true,
-      autoInjectServerSentry: 'experimental_dynamic-import', // No need for 'as const' with type assertion
-      experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],
-      unstable_sentryBundlerPluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
-
-      // Deprecated sourceMapsUploadOptions
-      sourceMapsUploadOptions: {
-        silent: false,
-        // eslint-disable-next-line no-console
-        errorHandler: (err: Error) => console.warn(err),
-        release: {
-          name: 'deprecated-release',
-        },
-        enabled: true,
-        authToken: 'deprecated-token',
-        org: 'deprecated-org',
-        url: 'https://deprecated.sentry.io',
-        project: 'deprecated-project',
-        telemetry: false,
-        sourcemaps: {
-          assets: './build/**/*',
-          ignore: ['./build/*.spec.js'],
-          filesToDeleteAfterUpload: ['./build/*.map'],
-        },
-      },
-    };
-
-    expectTypeOf(completeOptions).toEqualTypeOf<SentryNuxtModuleOptions>();
-  });
-
   it('allows partial configuration', () => {
     const minimalOptions: SentryNuxtModuleOptions = { enabled: true };
 

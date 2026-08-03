@@ -6,6 +6,7 @@ import type { ResolvedConfig } from 'vite';
 import type { Compiler } from 'webpack';
 import { describe, expect, it, vi } from 'vitest';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
+import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
 import { sentryOrchestrionPlugin as vitePlugin } from '../../src/orchestrion/bundler/vite';
 import {
@@ -206,5 +207,39 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   it('returns undefined for unresolvable requests', () => {
     expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/no-such-subpath')).toBeUndefined();
     expect(resolveOrchestrionRuntimeRequest('some-package-that-does-not-exist')).toBeUndefined();
+  });
+});
+
+describe('orchestrionTransformOptions injectDiagnostics banner', () => {
+  // Evaluate the emitted boot-banner snippet against a fake global, mirroring
+  // what runs when a bundled app boots. The banner must record `.bundler` for
+  // detection AND fire the on-inject bridge for each transformed module
+  // (force-bundled modules never reach the runtime hook, so the bridge is the
+  // only thing that triggers their channel subscription).
+  function runBanner(transformedModules: string[], global: Record<string, unknown>): void {
+    const opts = orchestrionTransformOptions({});
+    const banner = opts.injectDiagnostics?.({ transformedModules, failedModules: [] });
+    expect(typeof banner).toBe('string');
+    // `globalThis` inside the snippet resolves to the sandbox object we pass in.
+    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
+    new Function('globalThis', banner as string)(global);
+  }
+
+  it('records `.bundler` and fires the on-inject bridge for each module', () => {
+    const onInject = vi.fn();
+    const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { onInject } };
+
+    runBanner(['mysql', 'pg'], global);
+
+    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql', 'pg']);
+    expect(onInject.mock.calls.map(c => c[0])).toEqual(['mysql', 'pg']);
+  });
+
+  it('is a guarded no-op for the bridge when none is installed (bundler-only runtimes)', () => {
+    const global: Record<string, unknown> = {};
+
+    expect(() => runBanner(['mysql'], global)).not.toThrow();
+    // `.bundler` is still recorded so `init()` can drive subscription from it.
+    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
   });
 });

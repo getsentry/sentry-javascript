@@ -1,9 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { TracingChannelSubscribers } from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { debug, defineIntegration } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
+import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../../../orchestrion/channels';
+import { kafkajsModuleNames } from '../../../orchestrion/config/kafkajs';
+import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
 import { isWrappedConsumerCallback, wrapEachBatch, wrapEachMessage } from './consumer';
 import { applyErrorToSpans, startProducerSpan } from './spans';
 import type { ConsumerRunConfig, ProducerBatch } from './types';
@@ -81,21 +82,18 @@ function subscribeToConsumer(): void {
 const _kafkajsIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD &&
-        debug.log(
-          `[orchestrion:kafkajs] subscribing to channels "${CHANNELS.KAFKAJS_SEND_BATCH}", "${CHANNELS.KAFKAJS_CONSUMER_RUN}"`,
-        );
-
-      subscribeToProducer();
-      subscribeToConsumer();
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, kafkajsModuleNames, instrumentKafkajs, [], {
+        requiresTracingChannelBinding: false,
+      });
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentKafkajs(): void {
+  subscribeToProducer();
+  subscribeToConsumer();
+}
 
 /**
  * Orchestrion-driven kafkajs integration.

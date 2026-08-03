@@ -2,10 +2,13 @@ import * as api from '@opentelemetry/api';
 import type { Scope, TracingChannelBinding } from '@sentry/core';
 import {
   getAsyncContextStrategy,
+  _INTERNAL_safeMathRandom,
+  generateTraceId,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
   getRootSpan,
+  isContinuingTrace,
   setAsyncContextStrategy,
   spanIsIgnored,
 } from '@sentry/core';
@@ -86,6 +89,19 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
     // the OTEL context manager, which uses the presence of this key to determine if it should
     // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY, true), () => {
+      // When forking an isolation scope, unless we are continuing an incoming
+      // trace, we give the freshly forked scope its own trace. This way, new
+      // root spans in an isolation scope will get separate traces. The
+      // previous trace's `sampled` and `propagationSpanId` are dropped on
+      // purpose. Carrying them over would apply the old trace's sampling
+      // decision to the new one and propagate a span id from a different trace.
+      const scope = getCurrentScope();
+      if (!isContinuingTrace(scope.getPropagationContext())) {
+        scope.setPropagationContext({
+          traceId: generateTraceId(),
+          sampleRand: _INTERNAL_safeMathRandom(),
+        });
+      }
       return callback(getIsolationScope());
     });
   }

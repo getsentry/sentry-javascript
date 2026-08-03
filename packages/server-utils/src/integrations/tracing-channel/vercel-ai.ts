@@ -1,7 +1,9 @@
-import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { vercelAiIntegration as baseVercelAiIntegration } from '../../vercel-ai';
 import * as dc from 'node:diagnostics_channel';
+import { vercelAiModuleNames } from '../../orchestrion/config/vercel-ai';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-orchestrion-subscriber';
 
 type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
@@ -17,20 +19,19 @@ type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   const parentIntegration = baseVercelAiIntegration(options);
 
+  // The native `ai:telemetry` half is the base integration's own `setupOnce`; the
+  // orchestrion half registers lazily via `setup`, only once `ai` is injected.
   return extendIntegration(parentIntegration, {
     options,
-    setupOnce() {
-      // Bail if this is not available
-      if (!dc.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        subscribeVercelAiOrchestrionChannels(dc.tracingChannel, options);
-      });
+    setup(client: Client) {
+      invokeOrchestrionInstrumentation(client, vercelAiModuleNames, instrumentVercelAiOrchestrion, [options]);
     },
   });
 }) satisfies IntegrationFn;
+
+function instrumentVercelAiOrchestrion(options: VercelAiOptions): void {
+  subscribeVercelAiOrchestrionChannels(dc.tracingChannel, options);
+}
 
 /**
  * Auto-instrument the `ai` SDK. Supported are:

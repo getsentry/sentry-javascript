@@ -157,10 +157,10 @@ function _init(
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // Channel-based (orchestrion diagnostics-channel) instrumentation is the default. Gated on span
-  // recording: the channel integrations only produce spans, so with tracing off there are no
-  // subscribers and injecting the module hooks would be pointless work. Install the hooks as early
-  // as possible, before the app imports its instrumented modules.
+  // Gate channel-based (orchestrion diagnostics-channel) instrumentation on span recording: the
+  // channel integrations only produce spans, so with tracing off there are no subscribers and
+  // injecting the module hooks would be pointless work. Install the hooks as early as possible,
+  // before the app imports its instrumented modules.
   const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
   if (useChannelInjection) {
     registerDiagnosticsChannelInjection();
