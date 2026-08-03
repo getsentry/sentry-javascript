@@ -16,6 +16,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy, setupEventContextTrace } from '@sentry/opentelemetry';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
@@ -171,7 +172,15 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  const asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+  // When Sentry does not own an OpenTelemetry tracer provider, scope isolation runs on a pure
+  // AsyncLocalStorage strategy instead of the OpenTelemetry context strategy. Instrumentation still
+  // emits spans via core `startSpan`; there is just no OTel provider or propagator behind them.
+  let asyncLocalStorageLookup: ReturnType<typeof setOpenTelemetryContextAsyncContextStrategy> | undefined;
+  if (clientOptions.skipOpenTelemetrySetup) {
+    setAsyncLocalStorageAsyncContextStrategy();
+  } else {
+    asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+  }
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
@@ -249,6 +258,9 @@ function getClientOptions(
     tracesSampleRate,
     spotlight,
     traceLifecycle,
+    // Most Node-based SDKs default to running without a Sentry OpenTelemetry tracer provider. SDKs
+    // that need OTel spans surfaced in Sentry (nextjs, sveltekit) opt back in by passing `false`.
+    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 

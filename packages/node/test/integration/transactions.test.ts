@@ -23,6 +23,7 @@ describe('Integration | Transactions', () => {
       tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
+      skipOpenTelemetrySetup: false,
     });
 
     const client = Sentry.getClient()!;
@@ -309,7 +310,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
     const beforeSendTransaction = vi.fn(() => null);
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, skipOpenTelemetrySetup: false });
 
     const client = Sentry.getClient<Sentry.NodeClient>();
 
@@ -457,7 +458,7 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, skipOpenTelemetrySetup: false });
 
     const client = Sentry.getClient()!;
 

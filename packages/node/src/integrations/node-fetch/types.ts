@@ -106,7 +106,7 @@ export interface NodeFetchOptions extends UndiciInstrumentationConfig {
    * If set to false, do not emit any spans.
    * Breadcrumbs and trace propagation for outgoing fetch requests are still applied.
    *
-   * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
+   * Defaults to `true` when tracing is enabled.
    */
   spans?: boolean;
 

@@ -82,6 +82,29 @@ Only `@sentry/nextjs` and `@sentry/sveltekit` still set up an OpenTelemetry comp
 
 This means you can run your own OpenTelemetry setup cleanly alongside Sentry without having Sentry spans leak into your pipeline anymore. Your OpenTelemetry setup will no longer be required to use Sentry components for exporting, context management and trace propagation.
 
+This behavior is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11. It now defaults to `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs, and `@sentry/cloudflare`) and to `false` for `@sentry/nextjs` and `@sentry/sveltekit`. When `true`, the SDK skips the tracer provider and isolates scopes with a native AsyncLocalStorage strategy; it still emits its own spans, but does not pick up spans created through `@opentelemetry/api`. Set it to `false` to have Sentry register its tracer provider and surface your OpenTelemetry spans:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  // Register the Sentry OpenTelemetry tracer provider to surface OTel spans in Sentry
+  skipOpenTelemetrySetup: false,
+});
+```
+
+In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    // Let your own OpenTelemetry HttpInstrumentation own HTTP & fetch spans
+    Sentry.httpIntegration({ spans: false }),
+    Sentry.nativeNodeFetchIntegration({ spans: false }),
+  ],
+});
+```
+
 With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only remaining package we abide by. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
 
 For most users, day-to-day tracing is **unchanged**.

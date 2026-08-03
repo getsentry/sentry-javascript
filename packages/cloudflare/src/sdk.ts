@@ -82,6 +82,9 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
+    // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
+    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
     flushLock,
   };
 
@@ -95,14 +98,9 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
   }
   /*! rollup-include-development-only-end */
 
-  /**
-   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
-   */
-  if (!options.skipOpenTelemetrySetup) {
+  // Opt-in only: when `skipOpenTelemetrySetup` is `false`, set up a custom trace provider so spans
+  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
+  if (!clientOptions.skipOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
 

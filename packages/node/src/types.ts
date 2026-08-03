@@ -8,10 +8,16 @@ import type { NodeTransportOptions } from './transports';
  */
 export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions {
   /**
-   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
-   * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentryPropagator`
-   * * The `SentryContextManager`
+   * Controls whether the SDK registers a Sentry OpenTelemetry tracer provider.
+   *
+   * When `true` (the default for most SDKs), no tracer provider is set up. The SDK isolates scopes
+   * with a native AsyncLocalStorage context strategy and still emits spans via its own
+   * instrumentation, but OpenTelemetry spans created through `@opentelemetry/api` are not picked up.
+   *
+   * When `false`, the SDK registers the `SentryTracerProvider` and `SentryPropagator` so that
+   * OpenTelemetry spans are surfaced in Sentry. This is the default for the Next.js and SvelteKit SDKs.
+   *
+   * @default true
    */
   skipOpenTelemetrySetup?: boolean;
 }
