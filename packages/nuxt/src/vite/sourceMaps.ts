@@ -163,9 +163,12 @@ export function getPluginOptions(
 }
 
 /**
- * Users can set `filesToDeleteAfterUpload` themselves. If they don't, we fall back to deleting the
- * client/server source maps — but only the ones Sentry generated itself (i.e. when the user didn't
- * configure source maps at all). If the user explicitly set source maps, we leave their files alone.
+ * Determines which files to delete after upload. If the user set `filesToDeleteAfterUpload`, we use
+ * that. Otherwise we only delete the source maps Sentry generated itself — i.e. the sides
+ * (client/server) whose `sourcemap` setting resolved to `undefined`, where Sentry stepped in and
+ * enabled `'hidden'`. Given Nuxt's default of `{ server: true, client: false }`, this isn't the
+ * default case: it only kicks in when a side is left `undefined` (whole config or a single sub-key).
+ * @see https://nuxt.com/docs/4.x/api/nuxt-config#sourcemap
  */
 function resolveFilesToDeleteAfterUpload(
   moduleOptions: SentryNuxtModuleOptions,

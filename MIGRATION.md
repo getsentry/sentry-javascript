@@ -502,6 +502,38 @@ Remove these options from your `next.config.js` / `next.config.ts`.
 
 The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
+### `@sentry/nuxt`
+
+The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    // before
+    sourceMapsUploadOptions: {
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      url: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./dist/**/*'],
+      },
+    },
+
+    // after
+    org: 'my-org',
+    project: 'my-project',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sentryUrl: 'https://my-sentry.example.com',
+    sourcemaps: {
+      assets: ['./dist/**/*'],
+    },
+  },
+});
+```
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
