@@ -125,8 +125,32 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: {
-          filesToDeleteAfterUpload: ['./build/**/*.map'],
+          filesToDeleteAfterUpload: undefined,
           disable: true,
+        },
+      }),
+    );
+  });
+
+  // The plugin's `writeBundle` deletes these in a `finally` block that runs even when
+  // `sourcemaps.disable` is set, which would remove the maps before `sentryOnBuildEnd`
+  // uploads them. `sentryOnBuildEnd` performs the deletion instead.
+  it('should not forward filesToDeleteAfterUpload to the Vite plugin', async () => {
+    await makeCustomSentryVitePlugins({
+      unstable_sentryVitePluginOptions: {
+        sourcemaps: {
+          assets: ['dist/**'],
+          filesToDeleteAfterUpload: ['./build/**/*.map'],
+        },
+      },
+    });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: {
+          assets: ['dist/**'],
+          disable: true,
+          filesToDeleteAfterUpload: undefined,
         },
       }),
     );

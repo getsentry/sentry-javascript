@@ -68,6 +68,10 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       // Injection and upload are handled in the buildEnd hook, so the Vite plugin must
       // never do it too. This is deliberately not overridable - see the warning above.
       disable: true,
+      // The plugin deletes these in a `finally` block that runs regardless of `disable`,
+      // which would remove the maps before `sentryOnBuildEnd` gets to upload them.
+      // Deletion is handled there instead, from the same option.
+      filesToDeleteAfterUpload: undefined,
     },
   }) as Plugin[];
 
