@@ -19,7 +19,7 @@
     "@react-router/dev": "^7.13.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "ts-node": "10.9.1",
+    "tsx": "^4.23.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   },
@@ -27,7 +27,7 @@
     "build": "node start-mock-sentry-server.mjs & SENTRY_URL=http://localhost:3032 react-router build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm ts-node --esm assert-build.ts"
+    "test:assert": "pnpm tsx assert-build.ts"
   },
   "volta": {
     "extends": "../../package.json"
