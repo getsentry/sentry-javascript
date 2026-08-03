@@ -1,6 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { init, spanStreamingIntegration } from '../src';
-import { type Integration } from '@sentry/core';
+import { getDefaultIntegrations, init, spanStreamingIntegration } from '../src';
+import { type Event, type Integration } from '@sentry/core';
+
+describe('getDefaultIntegrations', () => {
+  it('includes request data collection by default', () => {
+    expect(getDefaultIntegrations().map(integration => integration.name)).toContain('RequestData');
+  });
+
+  it('collects and filters request cookies by default', () => {
+    const client = init({ skipOpenTelemetrySetup: true });
+    const requestDataIntegration = getDefaultIntegrations().find(integration => integration.name === 'RequestData');
+    const event: Event = {
+      sdkProcessingMetadata: {
+        normalizedRequest: { headers: { cookie: 'theme=dark; session=secret' } },
+      },
+    };
+
+    requestDataIntegration?.processEvent?.(event, {}, client);
+
+    expect(requestDataIntegration).toBeDefined();
+    expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
+    expect(event.request?.headers?.cookie).toBe('[Filtered]');
+  });
+
+  it('does not collect request cookies when dataCollection.cookies is disabled', () => {
+    const client = init({ dataCollection: { cookies: false }, skipOpenTelemetrySetup: true });
+    const requestDataIntegration = getDefaultIntegrations().find(integration => integration.name === 'RequestData');
+    const event: Event = {
+      sdkProcessingMetadata: {
+        normalizedRequest: { headers: { cookie: 'theme=dark' } },
+      },
+    };
+
+    requestDataIntegration?.processEvent?.(event, {}, client);
+
+    expect(requestDataIntegration).toBeDefined();
+    expect(event.request?.cookies).toBeUndefined();
+    expect(event.request?.headers).toEqual({});
+  });
+});
 
 describe('init', () => {
   it('adds spanStreamingIntegration by default', () => {

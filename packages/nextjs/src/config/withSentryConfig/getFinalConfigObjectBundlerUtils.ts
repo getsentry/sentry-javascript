@@ -7,7 +7,7 @@ import { handleRunAfterProductionCompile } from '../handleRunAfterProductionComp
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
 import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../types';
-import { detectActiveBundler, supportsProductionCompileHook } from '../util';
+import { detectActiveBundler, supportsProductionCompileHook, supportsTurbopackRuleCondition } from '../util';
 import { constructWebpackConfigFunction } from '../webpack';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
 import type { VercelCronsConfigResult } from './getFinalConfigObjectUtils';
@@ -92,6 +92,29 @@ export function maybeConstructTurbopackConfig(
     nextJsVersion,
     vercelCronsConfig,
   });
+}
+
+/**
+ * Resolves whether to wire up orchestrion build-time instrumentation.
+ *
+ * Only on when the transform can actually run: Turbopack needs rule `condition`s (Next.js 16+), and
+ * webpack needs Sentry's config. Otherwise un-externalizing the bundle-safe packages would leave
+ * them bundled *and* uninstrumented, so keep the feature off.
+ */
+export function resolveBuildTimeInstrumentationOption(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+  nextJsVersion: string | undefined,
+): boolean {
+  if (userSentryOptions.buildTimeInstrumentation === false) {
+    return false;
+  }
+
+  if (bundlerInfo.isTurbopack) {
+    return !!nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion);
+  }
+
+  return !userSentryOptions.webpack?.disableSentryConfig;
 }
 
 /**
@@ -232,19 +255,19 @@ export function maybeEnableTurbopackSourcemaps(
 export function getServerExternalPackagesPatch(
   incomingUserNextConfigObject: NextConfigObject,
   nextMajor: number | undefined,
-  useDiagnosticsChannelInjection = false,
+  buildTimeInstrumentation = false,
 ): Partial<NextConfigObject> {
-  // Diagnostics-channel injection: only bundle-safe packages leave OUR defaults (→ build-time
+  // With build-time instrumentation, only bundle-safe packages leave OUR defaults (→ build-time
   // loader); everything else stays external (→ runtime module hook), including the orchestrion
   // machinery itself, which breaks when bundled.
   const mergeExternals = (userProvided: string[] | undefined): string[] => {
-    const defaults = useDiagnosticsChannelInjection
+    const defaults = buildTimeInstrumentation
       ? filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES)
       : DEFAULT_SERVER_EXTERNAL_PACKAGES;
     return [
       ...(userProvided || []),
       ...defaults,
-      ...(useDiagnosticsChannelInjection ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
+      ...(buildTimeInstrumentation ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
     ];
   };
 

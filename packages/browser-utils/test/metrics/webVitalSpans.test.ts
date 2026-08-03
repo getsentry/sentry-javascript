@@ -19,6 +19,7 @@ vi.mock('@sentry/core', async () => {
     browserPerformanceTimeOrigin: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
+    getClient: vi.fn(),
     startInactiveSpan: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
@@ -64,6 +65,7 @@ describe('_emitWebVitalSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.getClient).mockReturnValue({ getIntegrationByName: () => undefined } as any);
   });
 
   afterEach(() => {
@@ -116,6 +118,71 @@ describe('_emitWebVitalSpan', () => {
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({ experimental: { standalone: true } }),
     );
+  });
+
+  it('adds the replay id to a standalone span when a replay is recording', () => {
+    vi.mocked(SentryCore.getClient).mockReturnValue({
+      getIntegrationByName: () => ({ getReplayId: () => 'replay-123', getRecordingMode: () => 'session' }),
+    } as any);
+
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.interaction.click',
+      origin: 'auto.http.browser.inp',
+      metricName: 'inp',
+      value: 100,
+      startTime: 1.5,
+      standalone: true,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.replay_id': 'replay-123',
+          'sentry._internal.replay_is_buffering': undefined,
+        }),
+      }),
+    );
+  });
+
+  it('flags buffering when the replay is in buffer mode', () => {
+    vi.mocked(SentryCore.getClient).mockReturnValue({
+      getIntegrationByName: () => ({ getReplayId: () => 'replay-123', getRecordingMode: () => 'buffer' }),
+    } as any);
+
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.interaction.click',
+      origin: 'auto.http.browser.inp',
+      metricName: 'inp',
+      value: 100,
+      startTime: 1.5,
+      standalone: true,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'sentry._internal.replay_is_buffering': true }),
+      }),
+    );
+  });
+
+  it('does not add a replay id to non-standalone spans', () => {
+    vi.mocked(SentryCore.getClient).mockReturnValue({
+      getIntegrationByName: () => ({ getReplayId: () => 'replay-123', getRecordingMode: () => 'session' }),
+    } as any);
+
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.interaction.click',
+      origin: 'auto.http.browser.inp',
+      metricName: 'inp',
+      value: 100,
+      startTime: 1.5,
+    });
+
+    const attributes = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0].attributes!;
+    expect(attributes['sentry.replay_id']).toBeUndefined();
   });
 
   it('includes pageload span id when parentSpan is a pageload span', () => {

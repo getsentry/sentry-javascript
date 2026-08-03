@@ -16,7 +16,7 @@ const _redisIntegration = ((options: RedisOptions = {}) => {
   // diagnostics_channel subscription (node-redis >= 5.12.0, ioredis >= 5.11.0, and batches) lives in
   // server-utils so it is shared across server runtimes; the orchestrion channel integrations cover
   // the older node-redis (`<5.12.0`) and ioredis (`<5.11.0`) ranges. We fold the orchestrion
-  // subscribers into this integration's `setupOnce` so `Sentry.redisIntegration()` alone instruments
+  // subscribers into this integration's `setup` so `Sentry.redisIntegration()` alone instruments
   // all ranges, even with `defaultIntegrations: []`. All three share the node cache `responseHook`,
   // which reads the options set below but only runs at command time, by which point they are set.
   const orchestrionIntegrations = [
@@ -28,8 +28,10 @@ const _redisIntegration = ((options: RedisOptions = {}) => {
     name: INTEGRATION_NAME,
     setupOnce() {
       setRedisOptions(options);
+    },
+    setup(client) {
       for (const integration of orchestrionIntegrations) {
-        integration.setupOnce?.();
+        integration.setup?.(client);
       }
     },
   });

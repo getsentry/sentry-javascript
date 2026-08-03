@@ -861,9 +861,28 @@ describe('ProfilingIntegration', () => {
       expect(stopProfilingSpy).not.toHaveBeenCalled();
     });
 
+    it('does not start profiler when profile session is not sampled', () => {
+      const [client] = makeCurrentSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 0,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+
+      const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+
+      expect(startProfilingSpy).not.toHaveBeenCalled();
+
+      span.end();
+    });
+
     it('starts profiler when first span is created', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -884,6 +903,7 @@ describe('ProfilingIntegration', () => {
     it('waits for the tail span to end before stopping the profiler', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -908,6 +928,7 @@ describe('ProfilingIntegration', () => {
     it('ending last span does not stop the profiler if first span is not ended', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -930,6 +951,7 @@ describe('ProfilingIntegration', () => {
     it('multiple calls to span.end do not restart the profiler', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);

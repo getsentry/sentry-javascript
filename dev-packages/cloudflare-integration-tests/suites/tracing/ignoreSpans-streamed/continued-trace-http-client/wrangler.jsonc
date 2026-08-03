@@ -2,5 +2,5 @@
   "name": "ignore-spans-streamed-continued-trace-http-client",
   "compatibility_date": "2025-06-17",
   "main": "index.ts",
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
 }

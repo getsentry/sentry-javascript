@@ -5,7 +5,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { httpServerIntegration } from '../src/integrations/httpServer';
@@ -268,6 +268,31 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
     });
 
+    test('captures cookies with denylist filtering by default', async () => {
+      let sentryEvent: Event = {};
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            dataCollection: { httpBodies: [] },
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { headers: { cookie: 'foo=bar; session=secret' } }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('request body');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.request?.cookies).toEqual({ foo: 'bar', session: '[Filtered]' });
+    });
+
     test('explicit maxRequestBodySize overrides dataCollection.httpBodies', async () => {
       let sentryEvent: Event = {};
       const context = createMockExecutionContext();
@@ -299,15 +324,14 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ key: 'value' }));
     });
 
-    // TODO(v11): Cookies should be attached (subject to denylist filtering) by default. Until then we keep the
-    // historical Cloudflare behavior of not attaching cookies unless the user explicitly opts in.
-    test('does not capture cookies by default', async () => {
+    test('does not capture cookies when dataCollection.cookies is disabled', async () => {
       let sentryEvent: Event = {};
 
       await wrapRequestHandler(
         {
           options: {
             ...MOCK_OPTIONS,
+            dataCollection: { cookies: false },
             beforeSend(event) {
               sentryEvent = event;
               return null;

@@ -134,6 +134,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
 - Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
+- Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
+  Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
 
 ## Lazy Loading Is a Last Resort
 

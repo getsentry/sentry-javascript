@@ -109,6 +109,17 @@ describe('setupSourceMaps hooks', () => {
       expect(mockAddVitePlugin).not.toHaveBeenCalled();
     });
 
+    it('does not add plugins when source maps are disabled via `sourcemaps.disable`', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ sourcemaps: { disable: true } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      expect(mockAddVitePlugin).not.toHaveBeenCalled();
+    });
+
     it.each([
       { label: 'server (SSR) build', buildConfig: { build: { ssr: true }, plugins: [] } },
       { label: 'client build', buildConfig: { build: { ssr: false }, plugins: [] } },

@@ -28,7 +28,9 @@ type RequestDataIncludeOptions = {
 
 type RequestDataIntegrationOptions = {
   /**
-   * Controls what data is pulled from the request and added to the event.
+   * Defines what request data should be collected.
+   *
+   * @deprecated Use `dataCollection` from the `init()` options instead. Check the docs for more info: https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
    */
   include?: RequestDataIncludeOptions;
 };
@@ -44,13 +46,19 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
   function resolveRequestDataOptions(client: Client): ResolvedRequestDataOptions {
     const dataCollection = client.getDataCollectionOptions();
     const include = {
+      // oxlint-disable-next-line typescript/no-deprecated
       cookies: options.include?.cookies ?? dataCollection.cookies !== false,
       // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
+      // oxlint-disable-next-line typescript/no-deprecated
       data: options.include?.data ?? true,
+      // oxlint-disable-next-line typescript/no-deprecated
       headers: options.include?.headers ?? dataCollection.httpHeaders.request !== false,
+      // oxlint-disable-next-line typescript/no-deprecated
       ip: options.include?.ip ?? dataCollection.userInfo,
+      // oxlint-disable-next-line typescript/no-deprecated
       query_string: options.include?.query_string ?? dataCollection.urlQueryParams !== false,
       // No dataCollection equivalent — URL is always included
+      // oxlint-disable-next-line typescript/no-deprecated
       url: options.include?.url ?? true,
     };
 

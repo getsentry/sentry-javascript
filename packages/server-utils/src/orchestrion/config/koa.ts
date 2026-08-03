@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '../apmTypes';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const koaConfig = [
   {
@@ -8,6 +8,8 @@ export const koaConfig = [
     functionQuery: { className: 'Application', methodName: 'use', kind: 'Sync' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const koaModuleNames = getModuleNames(koaConfig);
 
 export const koaChannels = {
   KOA_USE: 'orchestrion:koa:use',

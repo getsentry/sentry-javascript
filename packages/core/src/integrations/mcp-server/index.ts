@@ -12,10 +12,10 @@ import { validateMcpServerInstance } from './validation';
 const wrappedMcpServerInstances = new WeakSet();
 
 /**
- * Wraps a MCP Server instance from the `@modelcontextprotocol/sdk` package with Sentry instrumentation.
+ * Wraps an MCP Server instance with Sentry instrumentation.
  *
  * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package (legacy `tool`/`resource`/`prompt` API)
- * and versions that expose the newer `registerTool`/`registerResource`/`registerPrompt` API (introduced in 1.x, sole API in 2.x).
+ * and `@modelcontextprotocol/server` version 2.x (`registerTool`/`registerResource`/`registerPrompt` API).
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
  *
  * Both call orderings are supported: wrapping before or after registering tools, resources,
@@ -26,8 +26,8 @@ const wrappedMcpServerInstances = new WeakSet();
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/core';
- * import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
- * import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+ * import { McpServer } from '@modelcontextprotocol/server';
+ * import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
  *
  * // Wrap first, then register tools — this is the correct order
  * const server = Sentry.wrapMcpServerWithSentry(
@@ -42,7 +42,7 @@ const wrappedMcpServerInstances = new WeakSet();
  *   { recordInputs: true, recordOutputs: false }
  * );
  *
- * const transport = new StreamableHTTPServerTransport();
+ * const transport = new NodeStreamableHTTPServerTransport();
  * await server.connect(transport);
  * ```
  *

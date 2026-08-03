@@ -1,5 +1,5 @@
 import type { env as cloudflareEnv } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';

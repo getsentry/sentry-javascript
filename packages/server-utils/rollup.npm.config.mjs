@@ -104,6 +104,7 @@ export default [
       // subpath export.
       entrypoints: [
         'src/index.ts',
+        'src/index.no-diagnostic-channels.ts',
         'src/orchestrion/index.ts',
         'src/orchestrion/config/index.ts',
         // `src/orchestrion/runtime/register.ts` backs the `./orchestrion/register`

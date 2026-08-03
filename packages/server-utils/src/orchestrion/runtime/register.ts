@@ -1,4 +1,4 @@
-import { debug, GLOBAL_OBJ, parseSemver } from '@sentry/core';
+import { debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
@@ -36,6 +36,19 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
  * the channel-based integrations subscribe to.
  */
 export function registerDiagnosticsChannelInjection(): void {
+  // Install the on-inject bridge. Force-bundled modules (vite SSR, nextjs's
+  // bundle-safe packages) are transformed at build time and never loaded
+  // through the module hook, so the hook's own client event never fires for
+  // them. Instead, the bundler's `injectDiagnostics` boot banner (see
+  // `bundler/options.ts`) calls this bridge for each such module once the
+  // bundle boots, which re-emits that same event so the lazily-registered
+  // channel integrations subscribe. `getClient()` is read lazily since the
+  // banner runs after `init()`.
+  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
+  marker.onInject ??= (moduleName: string): void => {
+    getClient()?.emit('orchestrion.module-runtime-injected', moduleName);
+  };
+
   if (GLOBAL_OBJ?.__SENTRY_ORCHESTRION__?.runtime) {
     return;
   }
@@ -54,6 +67,10 @@ export function registerDiagnosticsChannelInjection(): void {
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
+      // Tell channel integrations their module just loaded, so they subscribe
+      // now. They hold off at `init()` to avoid claiming channel slots for
+      // modules that never load, because Node caps channels in use at 1024.
+      getClient()?.emit('orchestrion.module-runtime-injected', moduleName);
     }
   });
 

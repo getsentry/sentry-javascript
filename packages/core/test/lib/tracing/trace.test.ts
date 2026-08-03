@@ -1471,6 +1471,30 @@ describe('startInactiveSpan', () => {
     expect(getActiveSpan()).toBeUndefined();
   });
 
+  // A root span reads its trace from the current scope only. The isolation
+  // scope's propagation context must not contribute: mixing the two yields
+  // a span whose `parent_span_id` and frozen DSC describe a different trace
+  // than its own `trace_id`.
+  it('ignores the propagation context on the isolation scope', () => {
+    const isolationTraceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    getIsolationScope().setPropagationContext({
+      traceId: isolationTraceId,
+      sampleRand: 0.1,
+      parentSpanId: 'bbbbbbbbbbbbbbbb',
+      sampled: true,
+      dsc: { trace_id: isolationTraceId, transaction: 'from-isolation-scope' },
+    });
+
+    const currentTraceId = getCurrentScope().getPropagationContext().traceId;
+    const span = startInactiveSpan({ name: 'GET users/[id]' });
+
+    expect(spanToJSON(span).trace_id).toBe(currentTraceId);
+    expect(spanToJSON(span).parent_span_id).toBeUndefined();
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual(
+      expect.objectContaining({ trace_id: currentTraceId, transaction: 'GET users/[id]' }),
+    );
+  });
+
   it('allows to pass a scope', () => {
     const initialScope = getCurrentScope();
 

@@ -12,8 +12,6 @@ export * from './tracing';
 export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
-  captureCheckIn,
-  withMonitor,
   captureException,
   captureEvent,
   captureMessage,
@@ -36,6 +34,7 @@ export {
   captureSession,
   addEventProcessor,
 } from './exports';
+export { withMonitor, captureCheckIn } from './monitor';
 export {
   getCurrentScope,
   getIsolationScope,
@@ -277,6 +276,7 @@ export {
   TRACEPARENT_REGEXP,
   extractTraceparentData,
   generateSentryTraceHeader,
+  isContinuingTrace,
   propagationContextFromHeaders,
   shouldContinueTrace,
   generateTraceparentHeader,
@@ -351,7 +351,6 @@ export type {
   CultureContext,
   TraceContext,
   CloudResourceContext,
-  MissingInstrumentationContext,
 } from './types/context';
 export type { DataCategory } from './types/datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './types/dsn';

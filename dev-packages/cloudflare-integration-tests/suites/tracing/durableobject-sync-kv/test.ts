@@ -13,6 +13,7 @@ const flushMarkerMatcher = (envelope: Envelope): void => {
 
 it('instruments sync KV operations on Durable Object storage', async ({ signal }) => {
   const runner = createRunner(__dirname)
+    .unordered()
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent | undefined;
       const spans = transactionEvent?.spans ?? [];

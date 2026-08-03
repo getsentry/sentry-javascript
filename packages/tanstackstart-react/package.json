@@ -41,11 +41,6 @@
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
-      }
-    },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/vite/index.js",
