@@ -265,7 +265,9 @@ describe('sentryHandle', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
-      expect(envelopeHeaders!.trace).toEqual({});
+      // Continuing a trace without incoming baggage does not populate a new DSC, but the `sample_rand`
+      // is still propagated so downstream sampling decisions stay consistent across the trace.
+      expect(envelopeHeaders!.trace).toEqual({ sample_rand: expect.stringMatching(/^0(\.\d+)?$/) });
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
