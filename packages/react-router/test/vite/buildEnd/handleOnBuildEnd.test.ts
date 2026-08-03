@@ -178,6 +178,94 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
   });
 
+  it('should not upload source maps when disabled via top-level sourcemaps.disable', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: true },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).not.toHaveBeenCalled();
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+  });
+
+  // `disable` used to be read from the top-level config only, so this opt-out was
+  // silently ignored while the Vite plugin honoured it - see #22929.
+  it('should not upload source maps when disabled via unstable_sentryVitePluginOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: {
+            sourcemaps: { disable: true },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).not.toHaveBeenCalled();
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+  });
+
+  it('should let top-level sourcemaps.disable override unstable_sentryVitePluginOptions', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: false },
+          unstable_sentryVitePluginOptions: {
+            sourcemaps: { disable: true },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalled();
+  });
+
+  it('should still upload source maps when unstable_sentryVitePluginOptions only sets unrelated sourcemaps keys', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: {
+            sourcemaps: { filesToDeleteAfterUpload: ['./build/**/*.map'] },
+          },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalled();
+    expect(glob).toHaveBeenCalledWith(['./build/**/*.map'], {
+      absolute: true,
+      nodir: true,
+    });
+  });
+
   it('should delete source maps after upload with default pattern', async () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
