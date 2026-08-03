@@ -1,11 +1,15 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types/span';
-import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+  handleCallbackErrors,
+  stringify,
+} from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
@@ -27,15 +31,14 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import type { InstrumentedMethodEntry } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
-} from '../ai/utils';
+} from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -411,7 +414,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * @example
  * ```typescript
  * import { GoogleGenAI } from '@google/genai';
- * import { instrumentGoogleGenAIClient } from '@sentry/core';
+ * import { instrumentGoogleGenAIClient } from '@sentry/node';
  *
  * const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
  * const instrumentedClient = instrumentGoogleGenAIClient(genAI);

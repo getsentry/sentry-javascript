@@ -60,15 +60,6 @@ export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/
 export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export {
-  instrumentGoogleGenAIClient,
-  extractRequestAttributes as extractGoogleGenAIRequestAttributes,
-  addPrivateRequestAttributes as addGoogleGenAIRequestAttributes,
-  addResponseAttributes as addGoogleGenAIResponseAttributes,
-} from './tracing/google-genai';
-export { instrumentStream as instrumentGoogleGenAIStream } from './tracing/google-genai/streaming';
-export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
-export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { _INTERNAL_getLangChainEmbeddingsSpanOptions } from './tracing/langchain/embeddings';
 export { _INTERNAL_mergeLangChainCallbackHandler } from './tracing/langchain/utils';
@@ -85,11 +76,3 @@ export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export { instrumentWorkersAiClient } from './tracing/workers-ai';
 export type { WorkersAiClient, WorkersAiOptions } from './tracing/workers-ai/types';
-export type {
-  GoogleGenAIClient,
-  GoogleGenAIChat,
-  GoogleGenAIOptions,
-  GoogleGenAIInstrumentedMethod,
-} from './tracing/google-genai/types';
-// eslint-disable-next-line typescript/no-deprecated
-export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';

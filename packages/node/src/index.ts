@@ -30,7 +30,12 @@ export {
   vercelAiIntegration as vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
-export { prismaIntegration, instrumentOpenAiClient, instrumentAnthropicAiClient } from '@sentry/server-utils';
+export {
+  prismaIntegration,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+} from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
@@ -133,7 +138,6 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentGoogleGenAIClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
