@@ -16,6 +16,7 @@ export { instrumentPrisma, prismaIntegration } from './prisma';
 export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
 export { redisIntegration, type RedisDiagnosticChannelsOptions } from './redis';
 export type { RedisDiagnosticChannelResponseHook } from './redis/redis-dc-subscriber';
+export { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type {
   SentryTracingChannel,
