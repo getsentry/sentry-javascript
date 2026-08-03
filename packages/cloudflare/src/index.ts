@@ -121,8 +121,6 @@ export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 
-export { wrapRequestHandler } from './request';
-
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
@@ -136,4 +134,4 @@ export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 
-export { setAsyncLocalStorageAsyncContextStrategy } from './async';
+export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';

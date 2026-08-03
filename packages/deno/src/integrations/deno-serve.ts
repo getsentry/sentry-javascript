@@ -1,9 +1,21 @@
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, MaxRequestBodySize } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
 const INTEGRATION_NAME = 'DenoServe' as const;
+
+export type DenoServeIntegrationOptions = {
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   * An explicit value overrides `dataCollection.httpBodies`.
+   *
+   * If `dataCollection.httpBodies` excludes `'incomingRequest'`, body capture defaults to `'none'`.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: MaxRequestBodySize;
+};
 
 export type ServeParams =
   // [(Request) => Response]
@@ -59,9 +71,10 @@ const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
     },
   });
 
-const _denoServeIntegration = (() => {
+const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    maxRequestBodySize: options.maxRequestBodySize,
     setupOnce() {
       const originalServe = Deno.serve;
       const wrappedServe = instrumentedDenoServe(originalServe);

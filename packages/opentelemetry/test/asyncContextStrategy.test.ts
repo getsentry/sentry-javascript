@@ -362,6 +362,31 @@ describe('asyncContextStrategy', () => {
     });
   });
 
+  describe('AsyncLocalStorage re-use', () => {
+    it('re-uses the AsyncLocalStorage of an already-installed strategy on repeated setup', () => {
+      setOpenTelemetryContextAsyncContextStrategy();
+      const firstStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+      expect(firstStorage).toBeDefined();
+
+      setOpenTelemetryContextAsyncContextStrategy();
+      const secondStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+
+      expect(secondStorage).toBe(firstStorage);
+    });
+
+    it('returns a context manager backed by the re-used AsyncLocalStorage', () => {
+      const firstLookup = setOpenTelemetryContextAsyncContextStrategy();
+      const secondLookup = setOpenTelemetryContextAsyncContextStrategy();
+
+      // The context manager returned on the second setup wraps the same AsyncLocalStorage instance,
+      // so consumers that captured the lookup from the first setup keep observing the active context.
+      expect(secondLookup.asyncLocalStorage).toBe(firstLookup.asyncLocalStorage);
+      expect(getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage).toBe(
+        firstLookup.asyncLocalStorage,
+      );
+    });
+  });
+
   describe('withScope()', () => {
     it('will make the passed scope the active scope within the callback', () =>
       new Promise<void>(done => {

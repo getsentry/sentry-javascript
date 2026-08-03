@@ -63,7 +63,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     );
   }
 
-  const customDefaultIntegrations = getDefaultIntegrations(options);
+  const customDefaultIntegrations = getDefaultIntegrations();
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.

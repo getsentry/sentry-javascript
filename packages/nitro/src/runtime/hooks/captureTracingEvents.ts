@@ -1,4 +1,6 @@
 import * as dc from 'node:diagnostics_channel';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_HTTP_SERVER_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import {
   isObjectLike,
   getActiveSpan,
@@ -8,7 +10,6 @@ import {
   GLOBAL_OBJ,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   type Span,
@@ -107,7 +108,7 @@ function setupH3TracingChannels(): void {
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data?.type === 'middleware' ? 'middleware.nitro' : 'http.server',
+          [SENTRY_OP]: data?.type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : WEB_SERVER_HTTP_SERVER_SPAN_OP,
         },
       });
 
@@ -172,7 +173,7 @@ function setupSrvxTracingChannels(): void {
           ...urlAttributes,
           ...headerAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data.middleware ? 'middleware.nitro' : 'http.server',
+          [SENTRY_OP]: data.middleware ? WEB_SERVER_MIDDLEWARE_SPAN_OP : WEB_SERVER_HTTP_SERVER_SPAN_OP,
           'server.port': data.server.options.port,
         },
         // Use the same parent span as middleware to make them siblings
@@ -211,7 +212,7 @@ function setupSrvxTracingChannels(): void {
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+          [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
         },
         parentSpan: requestParentSpans.get(data.request) || undefined,
       });

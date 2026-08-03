@@ -1,8 +1,10 @@
 import * as api from '@opentelemetry/api';
 import type { Scope, TracingChannelBinding } from '@sentry/core';
 import {
+  getAsyncContextStrategy,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  getMainCarrier,
   getRootSpan,
   setAsyncContextStrategy,
   spanIsIgnored,
@@ -27,7 +29,14 @@ import { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContex
  * We handle forking a hub inside of our custom OTEL Context Manager (./otelContextManager.ts)
  */
 export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorageLookup {
-  const asyncLocalStorage = new AsyncLocalStorage<api.Context>();
+  // Re-use the AsyncLocalStorage of an already-installed strategy, if any. Otherwise a repeated
+  // setup would swap in a new store while integrations that captured the previous one (via
+  // `getTracingChannelBinding().asyncLocalStorage`) keep reading the old one, breaking scope
+  // propagation across async boundaries.
+  const existingAsyncLocalStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
+    ?.asyncLocalStorage as AsyncLocalStorage<api.Context> | undefined;
+
+  const asyncLocalStorage = existingAsyncLocalStorage ?? new AsyncLocalStorage<api.Context>();
 
   function getScopes(): CurrentScopes {
     const ctx = api.context.active();

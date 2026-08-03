@@ -55,7 +55,7 @@ test.skip('.basePath() middleware instrumentation', () => {
     const spans = transaction.spans || [];
     const middlewareSpan = spans.find(
       (span: { description?: string; op?: string }) =>
-        span.op === 'middleware.hono' && span.description === 'basepathMiddleware',
+        span.op === 'middleware' && span.description === 'basepathMiddleware',
     );
 
     expect(middlewareSpan).toBeDefined();

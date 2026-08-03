@@ -1,7 +1,6 @@
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
 import {
@@ -75,64 +74,63 @@ interface OutgoingHttpRequestInstrumentationOptions {
   ) => void;
 }
 
-export type SentryHttpInstrumentationOptions = InstrumentationConfig &
-  OutgoingHttpRequestInstrumentationOptions & {
-    // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
-    // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
+export type SentryHttpInstrumentationOptions = OutgoingHttpRequestInstrumentationOptions & {
+  // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
+  // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    extractIncomingTraceFromHeader?: boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  extractIncomingTraceFromHeader?: boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    ignoreStaticAssets?: boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreStaticAssets?: boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    disableIncomingRequestSpans?: boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  disableIncomingRequestSpans?: boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+  /**
+   * @deprecated This no longer does anything.
+   */
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    trackIncomingRequestsAsSessions?: boolean;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
 
-    /**
-     * @deprecated This no longer does anything.
-     */
-    instrumentation?: {
-      requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
-      responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
-      applyCustomAttributesOnSpan?: (
-        span: Span,
-        request: ClientRequest | IncomingMessage,
-        response: IncomingMessage | ServerResponse,
-      ) => void;
-    };
-
-    /**
-     * @deprecated This no longer does anything.
-     */
-    sessionFlushingDelayMS?: number;
+  /**
+   * @deprecated This no longer does anything.
+   */
+  instrumentation?: {
+    requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
+    responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
+    applyCustomAttributesOnSpan?: (
+      span: Span,
+      request: ClientRequest | IncomingMessage,
+      response: IncomingMessage | ServerResponse,
+    ) => void;
   };
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  sessionFlushingDelayMS?: number;
+};
 
 /**
  * This instruments the http modules for outgoing requests.

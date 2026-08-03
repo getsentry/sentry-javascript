@@ -1,4 +1,5 @@
 import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -29,15 +30,15 @@ const ELYSIA_ORIGIN = 'auto.http.elysia';
  * Map Elysia lifecycle phase names to Sentry span ops.
  */
 const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
-  Request: 'middleware.elysia',
-  Parse: 'middleware.elysia',
-  Transform: 'middleware.elysia',
-  BeforeHandle: 'middleware.elysia',
+  Request: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  Parse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  Transform: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  BeforeHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   Handle: 'request_handler.elysia',
-  AfterHandle: 'middleware.elysia',
-  MapResponse: 'middleware.elysia',
-  AfterResponse: 'middleware.elysia',
-  Error: 'middleware.elysia',
+  AfterHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  MapResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  AfterResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  Error: WEB_SERVER_MIDDLEWARE_SPAN_OP,
 };
 
 function isBun(): boolean {

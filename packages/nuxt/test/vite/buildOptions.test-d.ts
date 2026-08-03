@@ -51,12 +51,10 @@ describe('Sentry Nuxt build-time options type', () => {
         excludeReplayIframe: true,
         excludeReplayWorker: true,
       },
+      buildTimeInstrumentation: false,
 
       // --- SentryNuxtModuleOptions specific options ---
       enabled: true,
-      _experimental: {
-        useDiagnosticsChannelInjection: true,
-      },
       autoInjectServerSentry: 'experimental_dynamic-import',
       configDir: '~/custom-config',
       experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],

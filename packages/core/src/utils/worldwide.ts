@@ -54,7 +54,6 @@ export type InternalGlobal = {
    * Keys are `error.stack` strings, values are the metadata.
    */
   _sentryModuleMetadata?: Record<string, any>;
-  _sentryEsmLoaderHookRegistered?: boolean;
   _sentryWrappedDepth?: number;
   /**
    * Orchestrion bundler and runtime detection.

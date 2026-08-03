@@ -85,9 +85,7 @@ export default defineNuxtModule<ModuleOptions>({
     const isMinNuxtV4 = nuxtMajor >= 4;
 
     if (serverConfigFile) {
-      if (moduleOptions._experimental?.useDiagnosticsChannelInjection) {
-        setupOrchestrion(nuxt);
-      }
+      setupOrchestrion(nuxt, moduleOptions.buildTimeInstrumentation);
 
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));

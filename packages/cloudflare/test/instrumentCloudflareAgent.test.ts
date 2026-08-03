@@ -1,7 +1,7 @@
 import type { Event } from '@sentry/core';
 import { getCurrentScope, setCurrentClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { instrumentCloudflareAgent } from '../src/instrumentations/agents';
 import { resetSdk } from './testUtils';
@@ -86,8 +86,7 @@ describe('instrumentCloudflareAgent', () => {
           op: 'rpc',
           origin: 'auto.faas.cloudflare.agents',
           data: expect.objectContaining({
-            'cloudflare.agent.class': 'MyAgent',
-            'cloudflare.agent.name': 'instance-1',
+            'gen_ai.agent.name': 'MyAgent',
           }),
         }),
       );

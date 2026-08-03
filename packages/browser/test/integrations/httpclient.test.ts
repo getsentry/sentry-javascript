@@ -90,8 +90,10 @@ describe('httpClientIntegration', () => {
   }
 
   describe('fetch', () => {
-    it('filters sensitive request and response headers while keeping safe ones with sendDefaultPii', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers while keeping safe ones with data collection enabled', () => {
+      const { fetchHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -123,7 +125,9 @@ describe('httpClientIntegration', () => {
     });
 
     it('keeps PII headers like x-forwarded-for when collection is enabled', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { fetchHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -219,8 +223,10 @@ describe('httpClientIntegration', () => {
   });
 
   describe('xhr', () => {
-    it('filters sensitive request and response headers with sendDefaultPii', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers with data collection enabled', () => {
+      const { xhrHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerXhr(xhrHandler, {
         requestHeaders: { Authorization: 'Bearer super-secret-token', 'X-Custom': 'safe-value' },
@@ -242,7 +248,9 @@ describe('httpClientIntegration', () => {
     });
 
     it('parses and filters sensitive cookies from the Set-Cookie response header', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { xhrHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerXhr(xhrHandler, {
         setCookie: 'session=abc123; theme=dark; connect.sid=secret',

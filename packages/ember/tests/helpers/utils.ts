@@ -44,6 +44,11 @@ export function assertSentryErrors(
   });
 }
 
+// Runloop spans share the generic `ui.task` op, so the queue attribute is what identifies them
+function isRunloopSpan(span: NonNullable<Event['spans']>[number]): boolean {
+  return span.op === 'ui.task' && span.data?.['ember.runloop.queue'] !== undefined;
+}
+
 export function assertSentryTransactions(
   assert: Assert,
   callNumber: number,
@@ -68,20 +73,15 @@ export function assertSentryTransactions(
   const filteredSpans = spans
     .filter(span => {
       const op = span.op;
-      return (
-        !op?.startsWith('ui.ember.runloop.') &&
-        !op?.startsWith('ui.long-task') &&
-        !op?.startsWith('ui.long-animation-frame')
-      );
+      return !isRunloopSpan(span) && !op?.startsWith('ui.long-task') && !op?.startsWith('ui.long-animation-frame');
     })
     .map(spanJson => {
-      return `${spanJson.op} | ${spanJson.description}`;
+      // Route hooks all share the `function` op, so the hook name is what distinguishes them
+      const hook = spanJson.data?.['code.function.name'];
+      return hook ? `${spanJson.op}:${hook} | ${spanJson.description}` : `${spanJson.op} | ${spanJson.description}`;
     });
 
-  assert.true(
-    spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
-    'it captures runloop spans',
-  );
+  assert.true(spans.some(isRunloopSpan), 'it captures runloop spans');
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');
 
   assert.equal(event.transaction, options.transaction);

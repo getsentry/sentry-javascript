@@ -10,6 +10,7 @@ it('Captures JSON request body', async ({ signal }) => {
           level: 'info',
           message: 'POST JSON request',
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'POST',
             url: expect.stringContaining('/post-json'),
@@ -38,6 +39,7 @@ it('Captures form-urlencoded request body', async ({ signal }) => {
           level: 'info',
           message: 'POST form request',
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'POST',
             url: expect.stringContaining('/post-form'),
@@ -66,6 +68,7 @@ it('Captures plain text request body', async ({ signal }) => {
           level: 'info',
           message: 'POST text request',
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'POST',
             url: expect.stringContaining('/post-text'),
@@ -94,6 +97,7 @@ it('Does not capture body for POST without content', async ({ signal }) => {
           level: 'info',
           message: 'POST no body request',
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'POST',
             url: expect.stringContaining('/post-no-body'),

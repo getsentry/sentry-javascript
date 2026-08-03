@@ -45,7 +45,6 @@ export {
   flush,
   fsIntegration,
   functionToStringIntegration,
-  generateInstrumentOnce,
   genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,

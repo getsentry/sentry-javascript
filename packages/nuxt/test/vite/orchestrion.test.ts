@@ -70,6 +70,18 @@ describe('setupOrchestrion', () => {
     });
   });
 
+  it('does not change Nitro configuration when `buildTimeInstrumentation` is `false`', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt();
+    const nitroConfig = {};
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, false);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
+    expect(nitroConfig).toEqual({});
+  });
+
   it('does not change Nitro configuration in prepare mode', async () => {
     const { setupOrchestrion } = await import('../../src/vite/orchestrion');
     const mockNuxt = createMockNuxt({ _prepare: true });

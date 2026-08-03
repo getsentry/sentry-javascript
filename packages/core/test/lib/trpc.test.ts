@@ -12,9 +12,11 @@ describe('trpcMiddleware', () => {
   const mockClient = {
     getOptions: vi.fn().mockReturnValue({
       normalizeDepth: 3,
-      sendDefaultPii: false,
+      dataCollection: { httpBodies: [] },
     }),
-    getDataCollectionOptions: vi.fn().mockReturnValue(resolveDataCollectionOptions({ sendDefaultPii: false })),
+    getDataCollectionOptions: vi
+      .fn()
+      .mockReturnValue(resolveDataCollectionOptions({ dataCollection: { httpBodies: [] } })),
     captureException: vi.fn(),
   } as unknown as Client;
 
