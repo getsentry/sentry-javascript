@@ -15,6 +15,5 @@ Sentry.init({
 
     return 1.0;
   },
-  dataCollection: { userInfo: true },
   // debug: true,
 });

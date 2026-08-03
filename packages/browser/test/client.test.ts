@@ -166,35 +166,8 @@ describe('applyDefaultOptions', () => {
 
 describe('SDK metadata', () => {
   describe('sdk.settings', () => {
-    it('sets infer_ip to "never" by default', () => {
+    it('sets infer_ip to "auto" by default', () => {
       const options = getDefaultBrowserClientOptions({});
-      const client = new BrowserClient(options);
-
-      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
-    });
-
-    it('sets infer_ip to "never" if dataCollection.userInfo is false', () => {
-      const options = getDefaultBrowserClientOptions({
-        dataCollection: { userInfo: false },
-      });
-      const client = new BrowserClient(options);
-
-      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
-    });
-
-    it('sets infer_ip to "auto" if dataCollection.userInfo is true', () => {
-      const options = getDefaultBrowserClientOptions({
-        dataCollection: { userInfo: true },
-      });
-      const client = new BrowserClient(options);
-
-      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('auto');
-    });
-
-    it('sets infer_ip to "auto" if dataCollection.userInfo is true', () => {
-      const options = getDefaultBrowserClientOptions({
-        dataCollection: { userInfo: true },
-      });
       const client = new BrowserClient(options);
 
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('auto');
@@ -211,7 +184,6 @@ describe('SDK metadata', () => {
 
     it("doesn't override already set sdk metadata settings", () => {
       const options = getDefaultBrowserClientOptions({
-        dataCollection: { userInfo: true },
         _metadata: {
           sdk: {
             settings: {
@@ -243,7 +215,7 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk).toEqual({
         name: 'sentry.javascript.angular',
         settings: {
-          infer_ip: 'never',
+          infer_ip: 'auto',
         },
       });
     });
@@ -279,7 +251,7 @@ describe('SDK metadata', () => {
             },
           },
         },
-        // Usually, this would cause infer_ip to be set to 'never'
+        // Usually, this would cause infer_ip to be set to 'auto'
         // but we're passing it in explicitly, so it should be preserved
         dataCollection: { userInfo: false },
       });

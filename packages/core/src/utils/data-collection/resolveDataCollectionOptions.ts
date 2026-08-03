@@ -18,21 +18,20 @@ const DEFAULTS: ResolvedDataCollection = {
  * Resolves the effective `DataCollection` configuration from client options.
  *
  * Precedence:
- * 1. Fields explicitly set in `dataCollection`
- * 2. If `sendDefaultPii` is set and `dataCollection` is absent, bridge via `defaultPiiToCollectionOptions`
- * 3. Spec defaults
+ * 1. Spec defaults
+ * 2. Fields explicitly set in `dataCollection`
+ * 3. If `sendDefaultPii` is set and `dataCollection` is absent, bridge via `defaultPiiToCollectionOptions`
  *
- * TODO(v11): Remove `sendDefaultPii` support and always fall through to DEFAULTS so that `userInfo: true`
- * NOTE: In v10, DEFAULTS only apply when `dataCollection` is explicitly provided.
- * When `dataCollection` is absent, the legacy `sendDefaultPii` bridge is used, which defaults to
- * `userInfo: false` to preserve backward compatibility.
+ * TODO(v11): Remove `sendDefaultPii` support and always use DEFAULTS.
  */
 export function resolveDataCollectionOptions(options: {
   dataCollection?: DataCollection;
   sendDefaultPii?: boolean;
 }): ResolvedDataCollection {
-  // TODO(v11): Remove the sendDefaultPii bridge and always use DEFAULTS.
-  const base = options.dataCollection != null ? DEFAULTS : defaultPiiToCollectionOptions(options.sendDefaultPii);
+  const base =
+    options.dataCollection == null && options.sendDefaultPii != null
+      ? defaultPiiToCollectionOptions(options.sendDefaultPii)
+      : DEFAULTS;
 
   const dc = options.dataCollection ?? {};
 
