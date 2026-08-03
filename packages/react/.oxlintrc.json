@@ -4,5 +4,10 @@
   "plugins": ["react"],
   "env": {
     "browser": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/display-name": "error"
   }
 }

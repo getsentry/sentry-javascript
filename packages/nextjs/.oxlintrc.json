@@ -7,12 +7,15 @@
       "specifier": "@sentry/eslint-plugin-sdk"
     }
   ],
+  "plugins": ["react"],
   "env": {
     "browser": true,
     "node": true
   },
   "rules": {
-    "sdk/no-unsafe-random-apis": "error"
+    "sdk/no-unsafe-random-apis": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error"
   },
   "overrides": [
     {
