@@ -558,6 +558,40 @@ export default defineNuxtConfig({
 });
 ```
 
+### `@sentry/sveltekit`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentrySvelteKit()`. Move its fields to the root level of the `sentrySvelteKit()` options. Note that `url` was renamed to `sentryUrl`.
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  plugins: [
+    sentrySvelteKit({
+      // before
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        url: 'https://my-sentry.example.com',
+        sourcemaps: {
+          assets: ['./build/**/*'],
+        },
+      },
+
+      // after
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sentryUrl: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./build/**/*'],
+      },
+    }),
+    sveltekit(),
+  ],
+});
+```
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
