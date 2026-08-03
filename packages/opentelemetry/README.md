@@ -74,7 +74,6 @@ function setupSentry() {
 
   // Initialize the provider
   trace.setGlobalTracerProvider(provider);
-  propagation.setGlobalPropagator(new SentryPropagator());
   context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
 
   setOpenTelemetryContextAsyncContextStrategy();

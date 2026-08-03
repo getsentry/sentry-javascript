@@ -479,7 +479,7 @@ Sentry.init({
 
 ### `@sentry/opentelemetry`
 
-- `SentryPropagator` was removed. It is no longer needed now that Sentry does not manage OpenTelemetry trace propagation by default.
+- `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
 - `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events.
