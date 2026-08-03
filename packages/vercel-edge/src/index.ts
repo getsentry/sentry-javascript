@@ -75,7 +75,6 @@ export {
   inboundFiltersIntegration,
   instrumentStateGraph,
   instrumentGoogleGenAIClient,
-  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -107,7 +106,7 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentOpenAiClient } from '@sentry/server-utils/no-diagnostic-channels';
+export { instrumentOpenAiClient, instrumentAnthropicAiClient } from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';

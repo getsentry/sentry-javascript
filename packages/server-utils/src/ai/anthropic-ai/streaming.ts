@@ -1,7 +1,6 @@
-import { captureException } from '../../exports';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types/span';
-import { endStreamSpan } from '../ai/utils';
+import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { endStreamSpan } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
