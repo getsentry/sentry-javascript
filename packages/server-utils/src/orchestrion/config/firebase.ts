@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // firebase 9+ ships firestore as `@firebase/firestore` (matches the OTel integration's range). Only the
 // `lite` SDK exposes the free `addDoc`/`getDocs`/`setDoc`/`deleteDoc` functions we trace, and only the
@@ -73,6 +73,8 @@ export const firebaseConfig = [
     functionQuery: { functionName, kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];
+
+export const firebaseModuleNames = getModuleNames(firebaseConfig);
 
 export const firebaseChannels = {
   FIREBASE_FIRESTORE_ADD_DOC: 'orchestrion:@firebase/firestore:add-doc',

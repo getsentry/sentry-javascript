@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const anthropicAiConfig = [
   // One entry each for CJS/ESM
@@ -33,6 +33,8 @@ export const anthropicAiConfig = [
     functionQuery: { className: 'Messages', methodName: 'stream', kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];
+
+export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
 
 export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',

@@ -10,7 +10,23 @@ import { debug, GLOBAL_OBJ } from '@sentry/core';
  * will ever publish to those channels.
  */
 export function isOrchestrionInjected(): boolean {
-  return !!GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+  const marker = GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+  return !!(marker?.runtime || marker?.bundler || marker?.integrations);
+}
+
+/**
+ * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
+ * into this process — from the runtime `--import` hook (`runtime`) and/or a
+ * bundler plugin (`bundler`). Channel-based integrations use it to decide whether
+ * to subscribe now (their module is already loaded) or wait for the runtime
+ * injection event.
+ *
+ * `bundler` can be `true` rather than an array (Bun's banner sets a plain flag);
+ * that carries no module names, so it contributes nothing here.
+ */
+export function getOrchestrionInjectedModules(): string[] {
+  const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
+  return [...(runtime ?? []), ...(Array.isArray(bundler) ? bundler : [])];
 }
 
 /**

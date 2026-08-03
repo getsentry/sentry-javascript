@@ -1,10 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope } from '@sentry/core';
+import type { Client, Scope } from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  GLOBAL_OBJ,
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -67,14 +68,19 @@ function installTestAsyncContextStrategy(): void {
 describe('postgresIntegration({ ignoreConnectSpans: true })', () => {
   beforeAll(() => {
     installTestAsyncContextStrategy();
+    // Mark `pg` injected so the integration's lazy `setup` subscribes right away.
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['pg', 'pg-pool'] };
   });
 
   afterAll(() => {
     setAsyncContextStrategy(undefined);
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
   });
 
   it('subscribes to the query channel but NOT the connect / pool-connect channels', () => {
-    postgresIntegration({ ignoreConnectSpans: true }).setupOnce?.();
+    postgresIntegration({ ignoreConnectSpans: true }).setup?.({
+      on: () => () => undefined,
+    } as unknown as Client);
 
     expect(tracingChannel(CHANNELS.PG_QUERY).start.hasSubscribers).toBe(true);
     expect(tracingChannel(CHANNELS.PG_CONNECT).start.hasSubscribers).toBe(false);

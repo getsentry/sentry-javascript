@@ -1,8 +1,9 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
+import { hapiModuleNames } from '../../orchestrion/config/hapi';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { wrapExtArguments, wrapRouteArguments } from './hapi-utils';
 
 // NOTE: same name as the OTel integration by design — when enabled, the OTel
@@ -26,41 +27,40 @@ interface HapiChannelContext {
 const _hapiIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD &&
-        debug.log(`[orchestrion:hapi] subscribing to channels "${CHANNELS.HAPI_ROUTE}" / "${CHANNELS.HAPI_EXT}"`);
-
-      // `subscribe` requires all five lifecycle hooks. We only act on `start`,
-      // which orchestrion fires synchronously with the live args array — that's
-      // the moment we mutate the handlers in place.
-      diagnosticsChannel.tracingChannel(CHANNELS.HAPI_ROUTE).subscribe({
-        start(rawCtx) {
-          const ctx = rawCtx as HapiChannelContext;
-          wrapRouteArguments(ctx.arguments, ctx.self?.realm?.plugin);
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
-      });
-
-      diagnosticsChannel.tracingChannel(CHANNELS.HAPI_EXT).subscribe({
-        start(rawCtx) {
-          const ctx = rawCtx as HapiChannelContext;
-          wrapExtArguments(ctx.arguments, ctx.self?.realm?.plugin);
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, hapiModuleNames, instrumentHapi, [], {
+        requiresTracingChannelBinding: false,
       });
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentHapi(): void {
+  // `subscribe` requires all five lifecycle hooks. We only act on `start`,
+  // which orchestrion fires synchronously with the live args array — that's
+  // the moment we mutate the handlers in place.
+  diagnosticsChannel.tracingChannel(CHANNELS.HAPI_ROUTE).subscribe({
+    start(rawCtx) {
+      const ctx = rawCtx as HapiChannelContext;
+      wrapRouteArguments(ctx.arguments, ctx.self?.realm?.plugin);
+    },
+    end() {},
+    asyncStart() {},
+    asyncEnd() {},
+    error() {},
+  });
+
+  diagnosticsChannel.tracingChannel(CHANNELS.HAPI_EXT).subscribe({
+    start(rawCtx) {
+      const ctx = rawCtx as HapiChannelContext;
+      wrapExtArguments(ctx.arguments, ctx.self?.realm?.plugin);
+    },
+    end() {},
+    asyncStart() {},
+    asyncEnd() {},
+    error() {},
+  });
+}
 
 /**
  * Orchestrion-driven hapi integration. Subscribes to the

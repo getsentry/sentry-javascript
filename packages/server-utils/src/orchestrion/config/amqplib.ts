@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // `amqplib` splits its API across three files:
 // - `lib/channel_model.js` holds `class Channel` (publish/consume/ack/nack/reject/…) and
@@ -75,6 +75,8 @@ export const amqplibConfig = [
     functionQuery: { functionName: 'connect', kind: 'Callback' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const amqplibModuleNames = getModuleNames(amqplibConfig);
 
 export const amqplibChannels = {
   AMQPLIB_PUBLISH: 'orchestrion:amqplib:publish',

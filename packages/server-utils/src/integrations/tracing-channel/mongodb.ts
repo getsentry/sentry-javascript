@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { MongodbNamespace, MongoV3Topology } from '../../mongodb/mongodb-span';
 import {
   getV3CommandOperation,
@@ -10,6 +10,8 @@ import {
 } from '../../mongodb/mongodb-span';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { mongodbModuleNames } from '../../orchestrion/config/mongodb';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 const INTEGRATION_NAME = 'Mongo' as const;
 
@@ -49,19 +51,17 @@ const V3_DEDICATED_COMMANDS = new Set(['insert', 'update', 'delete', 'find', 'ge
 const _mongodbIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        subscribeV4Command();
-        subscribeV4Checkout();
-        subscribeV3Wireprotocol();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, mongodbModuleNames, instrumentMongodb, []);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentMongodb(): void {
+  subscribeV4Command();
+  subscribeV4Checkout();
+  subscribeV3Wireprotocol();
+}
 
 /**
  * `Connection.prototype.command` (mongodb >=4.0) one span per command.

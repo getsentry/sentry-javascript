@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const vercelAiConfig = [
   // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting
@@ -69,5 +69,7 @@ function vercelAiEntries(
     functionQuery: { functionName, kind },
   }));
 }
+
+export const vercelAiModuleNames = getModuleNames(vercelAiConfig);
 
 export const vercelAiSubscribeInjection = toSubscribeInjections(vercelAiConfig);
