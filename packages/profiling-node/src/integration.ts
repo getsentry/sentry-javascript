@@ -259,7 +259,8 @@ class ContinuousProfiler {
    */
   private _startTraceLifecycleProfiling(): void {
     if (!this._sampled) {
-      DEBUG_BUILD && debug.log('[Profiling] Profile session not sampled, trace lifecycle profiling will not be started.');
+      DEBUG_BUILD &&
+        debug.log('[Profiling] Profile session not sampled, trace lifecycle profiling will not be started.');
       return;
     }
 
