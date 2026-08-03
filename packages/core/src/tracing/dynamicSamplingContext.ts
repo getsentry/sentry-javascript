@@ -103,6 +103,16 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
+    // A trace continued without an incoming DSC freezes an empty DSC (we are not the head of trace).
+    // The `sample_rand` still has to be propagated downstream so sampling decisions stay consistent.
+    // In OTel mode the SpanSampler writes it onto the trace state; here we backfill it from the
+    // captured scope's propagation context, mirroring the span-derived path below.
+    if (frozenDsc.sample_rand === undefined) {
+      const sampleRand = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand;
+      if (sampleRand !== undefined) {
+        return applyLocalSampleRateToDsc({ ...frozenDsc, sample_rand: sampleRand.toString() });
+      }
+    }
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
