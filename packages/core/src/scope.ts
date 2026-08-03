@@ -365,7 +365,7 @@ export class Scope {
    * ```
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setAttribute<T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown>(
+  public setAttribute<T extends (RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown)>(
     key: string,
     value: RawAttribute<T>,
   ): this {

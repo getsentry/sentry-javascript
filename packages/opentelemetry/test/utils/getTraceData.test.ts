@@ -1,19 +1,17 @@
 import { context, trace } from '@opentelemetry/api';
-import { getCurrentScope, Scope, setAsyncContextStrategy } from '@sentry/core';
+import { getCurrentScope, Scope } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTraceData } from '../../src/utils/getTraceData';
 import { makeTraceState } from '../../src/utils/makeTraceState';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('getTraceData', () => {
   beforeEach(() => {
-    setAsyncContextStrategy(undefined);
     mockSdkInit();
   });
 
   afterEach(async () => {
-    await cleanupOtel();
     vi.clearAllMocks();
   });
 

@@ -2,8 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
-// TODO(sveltekit-3): Unskip once SvelteKit 3 browser support lands (#22264).
-test.skip('capture a distributed pageload trace', async ({ page }) => {
+test('capture a distributed pageload trace', async ({ page }) => {
   const clientTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
     return txnEvent?.transaction === '/users/[id]';
   });
@@ -60,7 +59,7 @@ test.skip('capture a distributed pageload trace', async ({ page }) => {
   expect(clientTxnEvent.contexts?.trace?.parent_span_id).toBe(serverKitResolveSpan?.span_id);
 });
 
-test.skip('capture a distributed navigation trace', async ({ page }) => {
+test('capture a distributed navigation trace', async ({ page }) => {
   const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
     return txnEvent?.transaction === '/users' && txnEvent.contexts?.trace?.op === 'navigation';
   });
@@ -109,7 +108,7 @@ test.skip('capture a distributed navigation trace', async ({ page }) => {
   expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
 });
 
-test.skip('record client-side universal load fetch span and trace', async ({ page }) => {
+test('record client-side universal load fetch span and trace', async ({ page }) => {
   await waitForInitialPageload(page);
 
   const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
@@ -166,7 +165,7 @@ test.skip('record client-side universal load fetch span and trace', async ({ pag
     op: 'http.client',
     origin: 'auto.http.browser',
     data: {
-      url: expect.stringContaining('/api/users'),
+      'url.full': expect.stringContaining('/api/users'),
       type: 'fetch',
       'http.method': 'GET',
       'http.response.status_code': 200,
@@ -186,7 +185,7 @@ test.skip('record client-side universal load fetch span and trace', async ({ pag
   });
 });
 
-test.skip('captures a navigation transaction directly after pageload', async ({ page }) => {
+test('captures a navigation transaction directly after pageload', async ({ page }) => {
   const clientPageloadTxnPromise = waitForTransaction('sveltekit-3', txnEvent => {
     return txnEvent?.contexts?.trace?.op === 'pageload';
   });
@@ -251,7 +250,7 @@ test.skip('captures a navigation transaction directly after pageload', async ({ 
   });
 });
 
-test.skip('captures one navigation transaction per redirect', async ({ page }) => {
+test('captures one navigation transaction per redirect', async ({ page }) => {
   const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-3', txnEvent => {
     return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect1';
   });

@@ -1,11 +1,12 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, extendIntegration, waitForTracingChannelBinding } from '@sentry/core';
-import { DEBUG_BUILD } from '../../../debug-build';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { defineIntegration, extendIntegration } from '@sentry/core';
 import { graphqlIntegration as graphqlNativeIntegration } from '../../../graphql';
 import type { GraphqlDiagnosticChannelsOptions } from '../../../graphql/graphql-dc-subscriber';
 import { CHANNELS } from '../../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../../tracing-channel';
+import { graphqlModuleNames } from '../../../orchestrion/config/graphql';
+import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../../../tracing-channel';
 import {
   finalizeExecuteSpan,
   finalizeValidateSpan,
@@ -35,64 +36,46 @@ function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): Grap
   };
 }
 
-/**
- * Runs a span-building callback so a throw inside it can never break the user's graphql call: these
- * run inside the `tracingChannel(...).trace*` machinery wrapping the real function (as the `getSpan`
- * producer / `beforeSpanEnd` handler), where an unguarded throw would propagate into the traced call.
- */
-function safe<T>(fn: () => T): T | undefined {
-  try {
-    return fn();
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion:graphql] error building span', error);
-    return undefined;
-  }
-}
-
-const _graphqlChannelIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
+const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
-          safe(() => startParseSpan()),
-        );
-
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
-          data => safe(() => startValidateSpan(data.arguments[1])),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeValidateSpan(span, data.result)) },
-        );
-
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
-          data => safe(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
-          { beforeSpanEnd: (span, data) => void safe(() => finalizeExecuteSpan(span, data.result)) },
-        );
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, graphqlModuleNames, instrumentGraphql, [config, getConfig]);
     },
   };
 }) satisfies IntegrationFn;
 
+function instrumentGraphql(config: GraphqlResolvedConfig, getConfig: () => GraphqlResolvedConfig): void {
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_PARSE), () =>
+    safeChannelCallback(() => startParseSpan()),
+  );
+
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_VALIDATE),
+    data => safeChannelCallback(() => startValidateSpan(data.arguments[1])),
+    { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeValidateSpan(span, data.result)) },
+  );
+
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<GraphqlChannelContext>(CHANNELS.GRAPHQL_EXECUTE),
+    data => safeChannelCallback(() => startExecuteSpan(data.arguments, data.self, config, getConfig)),
+    { beforeSpanEnd: (span, data) => safeChannelCallback(() => finalizeExecuteSpan(span, data.result)) },
+  );
+}
+
 /**
- * EXPERIMENTAL — orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
+ * Orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
  * `diagnostics_channel` events handled by `@sentry/server-utils`'s graphql integration instead).
  *
  * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code
  * transform injects into `graphql`'s `language/parser.js`, `validation/validate.js` and
  * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
- * runtime hook or bundler plugin — wire it up via `experimentalUseDiagnosticsChannelInjection()`.
- *
- * @experimental
+ * runtime hook or bundler plugin.
  */
-export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegration);
+export const graphqlIntegration = defineIntegration(_graphqlIntegration);
 
 /**
  * The complete graphql diagnostics-channel integration: the native subscriber (graphql v17) composed
@@ -100,10 +83,13 @@ export const graphqlChannelIntegration = defineIntegration(_graphqlChannelIntegr
  * version via diagnostics channels without the OTel patcher. Reuses the OTel `Graphql` name so
  * enabling injection swaps this in for it.
  */
-export const graphqlDiagnosticsChannelIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
-  const orchestrion = graphqlChannelIntegration(options);
+export const graphqlDiagnosticsIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
+  const orchestrion = graphqlIntegration(options);
+  // The native half is the base integration's own `setupOnce`; the orchestrion half
+  // registers lazily via `setup` (only once `graphql` is injected), so it isn't
+  // merged onto the base `setupOnce` — both run.
   return extendIntegration(graphqlNativeIntegration(options), {
     name: INTEGRATION_NAME,
-    setupOnce: () => orchestrion.setupOnce?.(),
+    setup: (client: Client) => orchestrion.setup?.(client),
   });
 };

@@ -108,6 +108,12 @@ const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
 const COMPILE_CACHE_ENV: Record<string, string> =
   NODE_MAJOR >= 22 ? { NODE_COMPILE_CACHE: join(tmpdir(), 'sentry-node-it-compile-cache') } : {};
 
+/** Node flags that preload a module before the entry point. */
+const PRELOAD_FLAGS = ['--import', '--require', '-r'];
+
+/** tsx's CommonJS require hook, preloaded for `.ts` scenarios. */
+const TS_LOADER = 'tsx/cjs';
+
 export const CLEANUP_STEPS = new Set<VoidFunction>();
 
 export function cleanupChildProcesses(): void {
@@ -132,7 +138,7 @@ export function createRunner(...paths: string[]) {
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let unordered = false;
-  let withEnv: Record<string, string> = {};
+  let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
@@ -147,7 +153,7 @@ export function createRunner(...paths: string[]) {
     // 22+ gives the scenario a different `@sentry/node` instance than the CJS instrument/auto-flush,
     // so instrumentation and flushing target the wrong SDK object. The require hook keeps one CJS
     // instance, matching how ts-node loaded them.
-    flags.push('-r', 'tsx/cjs');
+    flags.push('-r', TS_LOADER);
   }
 
   // Cleanup steps registered by this specific runner (child process, docker, mock server). They are
@@ -194,7 +200,7 @@ export function createRunner(...paths: string[]) {
       ignored.delete('metric');
       return this;
     },
-    withEnv: function (env: Record<string, string>) {
+    withEnv: function (env: Record<string, string | undefined>) {
       withEnv = {
         ...withEnv,
         ...env,
@@ -386,8 +392,6 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      // We need to properly define & pass these types around for TS 3.8,
-      // which otherwise fails to infer these correctly :(
       type ServerStartup = [number | undefined, (() => void) | undefined];
 
       const serverStartup: Promise<ServerStartup> = withSentryServer
@@ -419,11 +423,9 @@ export function createRunner(...paths: string[]) {
           // flush keeps the event loop alive until queued envelopes reach the
           // transport, then the process exits naturally.
           //
-          // We inject the matching loader for the scenario's module system
-          // (detected by whether `flags` already contains `--import` for the
-          // instrument file). For ESM scenarios we use `--import auto-flush.mjs`
-          // so the `import * as Sentry` resolves to the same SDK instance the
-          // scenario uses; for CJS we use `--require auto-flush.cjs`.
+          // We inject the loader matching the scenario's module system, so that its
+          // `Sentry` reference resolves to the same SDK instance the scenario uses —
+          // see `buildAutoFlushFlags`.
           //
           // Skipped when no envelopes are expected — these tests (e.g. ANR
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
@@ -431,7 +433,7 @@ export function createRunner(...paths: string[]) {
           // requests to the fake DSN.
           const wantsAutoFlush =
             !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
-          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags), ...flags] : flags;
+          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath), ...flags] : flags;
 
           child = spawn('node', [...childFlags, testPath], { env });
 
@@ -654,24 +656,58 @@ function log(...args: unknown[]): void {
 }
 
 /**
- * Returns Node flags that inject the auto-flush loader matching the scenario's
- * module system. ESM scenarios already have `--import` for the instrument
- * file — we mirror that with `--import auto-flush.mjs` so both resolve to the
- * same `@sentry/node` instance. Otherwise we fall back to `--require
- * auto-flush.cjs`.
- *
- * Node accepts both `--import foo` (two array elements, e.g. `withInstrument`
- * or `withFlags('--import', foo)`) and `--import=foo` (one element, e.g.
- * `withFlags('--import=@sentry/node/init')` in `suites/no-code/test.ts`); we
- * have to recognise both, otherwise the missed form silently gets
- * `auto-flush.cjs` and the flush targets the wrong SDK instance.
+ * Extracts the preloaded module paths from Node flags, accepting both the
+ * two-element form (`--import foo`, e.g. `withInstrument`) and the single-element
+ * form (`--import=foo`, e.g. `withFlags('--import=@sentry/node/init')` in
+ * `suites/no-code/test.ts`).
  */
-function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
-  const isEsm = existingFlags.some(flag => flag === '--import' || flag.startsWith('--import='));
-  if (isEsm) {
-    return ['--import', join(__dirname, 'auto-flush.mjs')];
+function getPreloadPaths(flags: readonly string[]): string[] {
+  const paths: string[] = [];
+
+  for (let i = 0; i < flags.length; i++) {
+    const flag = flags[i] as string;
+    const [name, ...rest] = flag.split('=');
+
+    if (!PRELOAD_FLAGS.includes(name as string)) {
+      continue;
+    }
+
+    const path = rest.length ? rest.join('=') : flags[++i];
+    if (path) {
+      paths.push(path);
+    }
   }
-  return ['--require', join(__dirname, 'auto-flush.cjs')];
+
+  return paths;
+}
+
+/**
+ * Returns Node flags that inject the auto-flush loader matching the scenario's
+ * module system.
+ *
+ * Which of the two SDK builds (CJS or ESM) holds the queued envelopes is decided by
+ * the file that calls `Sentry.init()` — the last preloaded instrument file if there is
+ * one, otherwise the scenario itself. Getting this wrong is silent: the flush targets
+ * the other build's client, which has nothing queued, and no envelope ever arrives.
+ *
+ * The flag name is no longer a usable signal, since CJS instrument files are preloaded
+ * with `--import` too (`--require` re-runs the preload on Node's module loader thread).
+ * The extension is: `.mjs` and extensionless package specifiers such as
+ * `@sentry/node/init` resolve as ESM, while `.cjs`, `.js` and `.ts` are all CommonJS
+ * here because the test package sets no `"type"`.
+ *
+ * The CJS loader stays on `--require`: any `--import` makes Node resolve the entry point
+ * through the ESM loader, which rejects the `.ts` scenarios that `tsx/cjs` handles. Unlike
+ * an instrument file it never calls `Sentry.init()`, so the loader thread is not a concern.
+ */
+function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string): string[] {
+  const initPath =
+    getPreloadPaths(existingFlags)
+      .filter(path => path !== TS_LOADER)
+      .at(-1) ?? testPath;
+  const isEsm = initPath.endsWith('.mjs') || !/\.[cm]?[jt]s$/.test(initPath);
+
+  return isEsm ? ['--import', join(__dirname, 'auto-flush.mjs')] : ['--require', join(__dirname, 'auto-flush.cjs')];
 }
 
 function expectErrorEvent(item: Event, expected: ExpectedEvent): void {

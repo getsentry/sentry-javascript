@@ -1,8 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  filterInstrumentedExternals,
+  ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+} from '../../src/config/diagnosticsChannelInjection';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
+
+// Build-time instrumentation is on by default, so the bundle-safe packages are deliberately dropped
+// from the externals defaults (the loader transforms them) and the orchestrion runtime is added.
+// Asserted by exact equality, so a regression that left them external fails here.
+const EXPECTED_DEFAULT_EXTERNALS = [
+  ...filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES),
+  ...ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+];
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
@@ -24,18 +37,13 @@ describe('withSentryConfig', () => {
   it("works when user's overall config is an object", () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { webpack: _userWebpack, experimental: _userExperimental, ...restOfUserConfig } = userNextConfig;
+    const { webpack: _userWebpack, ...restOfUserConfig } = userNextConfig;
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
   });
 
   it("works when user's overall config is a function", () => {
@@ -43,23 +51,13 @@ describe('withSentryConfig', () => {
 
     const finalConfig = materializeFinalNextConfig(exportedNextConfigFunction);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      webpack: _userWebpack,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      experimental: _userExperimental,
-      ...restOfUserConfig
-    } = exportedNextConfigFunction();
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { webpack: _userWebpack, ...restOfUserConfig } = exportedNextConfigFunction();
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
@@ -104,8 +102,7 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-      expect(finalConfig.serverExternalPackages).toBeDefined();
-      expect(finalConfig.serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
+      expect(finalConfig.serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
       expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeUndefined();
     });
 
@@ -114,10 +111,7 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
       expect(finalConfig.serverExternalPackages).toBeUndefined();
-      expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeDefined();
-      expect(finalConfig.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      );
+      expect(finalConfig.experimental?.serverComponentsExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
     });
 
     it('preserves existing packages in both versions', () => {
@@ -128,9 +122,7 @@ describe('withSentryConfig', () => {
         ...exportedNextConfig,
         serverExternalPackages: existingPackages,
       });
-      expect(config15.serverExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
-      );
+      expect(config15.serverExternalPackages).toEqual([...existingPackages, ...EXPECTED_DEFAULT_EXTERNALS]);
 
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
       const config14 = materializeFinalNextConfig({
@@ -139,9 +131,10 @@ describe('withSentryConfig', () => {
           serverComponentsExternalPackages: existingPackages,
         },
       });
-      expect(config14.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
-      );
+      expect(config14.experimental?.serverComponentsExternalPackages).toEqual([
+        ...existingPackages,
+        ...EXPECTED_DEFAULT_EXTERNALS,
+      ]);
     });
   });
 

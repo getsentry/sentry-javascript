@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const lruMemoizerConfig = [
   {
@@ -9,6 +10,10 @@ export const lruMemoizerConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const lruMemoizerModuleNames = getModuleNames(lruMemoizerConfig);
+
 export const lruMemoizerChannels = {
   LRU_MEMOIZER_LOAD: 'orchestrion:lru-memoizer:load',
 } as const;
+
+export const lruMemoizerSubscribeInjection = toSubscribeInjections(lruMemoizerConfig);

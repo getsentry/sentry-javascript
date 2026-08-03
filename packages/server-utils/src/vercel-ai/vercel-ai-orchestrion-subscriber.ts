@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */
 import type { Span } from '@sentry/core';
-import { debug, getActiveSpan, isObjectLike, SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  debug,
+  getActiveSpan,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  withActiveSpan,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -100,6 +107,21 @@ const callIdBySpan = new WeakMap<Span, string>();
 // child `generate_content` span (whose event would fall back to the global default). v7's channel forwards
 // these flags on every event, so this keeps v6 identical.
 const recordingBySpan = new WeakMap<Span, ReturnType<typeof recording>>();
+interface OperationErrorInfo {
+  // The span active when the operation was invoked (its call site, e.g. the enclosing request/`main` span).
+  // When an operation's error bubbles out unhandled it reaches the global handler outside any span, so — as
+  // the OTel path does — we stamp this span onto the error (in `beforeSpanEnd`) so the unhandled-rejection
+  // handler can restore it and correlate the captured error to the operation's trace.
+  callSiteSpan: Span | undefined;
+  // Whether a thrown tool error bubbles out of the `ai` call (v4). On v4 a tool-`execute` rejection is
+  // wrapped in `AI_ToolExecutionError` and re-thrown, so it reaches the user's own error handling (or our
+  // global handlers) — capturing it at the tool span too would double-report it, matching how the OTel path
+  // leaves v4 tool errors to bubble. On v5 `executeTools` swallows the rejection into `tool-error` content,
+  // so it never surfaces and we must capture it ourselves (see `failSpan`).
+  toolErrorsBubbleToCaller: boolean;
+}
+// Per-operation error-handling info, keyed by the operation span (see `OperationErrorInfo`).
+const operationErrorInfoBySpan = new WeakMap<Span, OperationErrorInfo>();
 
 // The `experimental_telemetry` objects we swapped in to suppress `ai`'s native OTel spans (see
 // `suppressNativeTelemetry`). Our skip logic treats `isEnabled === false` as "user disabled telemetry,
@@ -220,10 +242,17 @@ function bindOperation(
     // from the channels, so the SDK's would be duplicates. Reads above have already captured everything
     // we need off `telemetry`.
     suppressNativeTelemetry(callOptions, telemetry);
+    // The span active here is the operation's call site — `bindTracingChannelToSpan` only makes the
+    // operation span active *after* this returns — so this is the span we later restore for a bubbled error.
+    const callSiteSpan = getActiveSpan();
     const span = createSpanFromMessage(message, options);
     if (span) {
       messages.set(data, message);
       operationSpans.add(span);
+      // `'v1'` models are v4 (v5/v6 are `'v2'`), where a thrown tool error bubbles out of the call rather
+      // than being swallowed into `tool-error` content — so its tool spans must not self-capture the error.
+      const isV4 = isObjectLike(callOptions.model) && callOptions.model.specificationVersion === 'v1';
+      operationErrorInfoBySpan.set(span, { callSiteSpan, toolErrorsBubbleToCaller: isV4 });
       // v6's `executeToolCall` span: tracked so the v5 tool-`execute` patch can recognize (and skip)
       // tool calls it runs, since that patch sees this span as its active parent (see `patchToolExecute`).
       if (message.type === 'executeTool') {
@@ -239,13 +268,12 @@ function bindOperation(
       if (isObjectLike(callOptions.tools)) {
         patchOperationTools(callOptions.tools, options);
       }
-      // v4 has no `resolveLanguageModel` chokepoint — the passed `LanguageModelV1`
-      // (`specificationVersion: 'v1'`) is called directly — so patch its `doGenerate`/`doStream`
-      // here, at the operation start, instead. v5/v6 models are `'v2'` and are patched via
-      // `resolveLanguageModel`, so restricting to `'v1'` keeps this strictly additive and avoids
-      // double-patching. Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so
-      // the patch is a no-op for `embed`/`embedMany`.
-      if (isObjectLike(callOptions.model) && callOptions.model.specificationVersion === 'v1') {
+      // v4 has no `resolveLanguageModel` chokepoint — the passed `LanguageModelV1` is called directly — so
+      // patch its `doGenerate`/`doStream` here, at the operation start, instead. v5/v6 models are patched via
+      // `resolveLanguageModel`, so restricting to v4 keeps this strictly additive and avoids double-patching.
+      // Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so the patch is a no-op for
+      // `embed`/`embedMany`.
+      if (isV4) {
         patchModelMethods(callOptions.model as PatchableModel, options);
       }
     }
@@ -262,7 +290,16 @@ function bindOperation(
           return;
         }
         // The helper's `error` handler already set the span status; only enrich from a successful result.
-        if (!('error' in data)) {
+        if ('error' in data) {
+          // The error bubbles out of the `ai` call. If nothing handles it before our global handler, that
+          // handler runs outside any span — so stamp the operation's call-site span onto the error, letting
+          // the unhandled-rejection handler restore it and correlate the report to this trace. This mirrors
+          // the OTel path; it's a no-op when the error is handled earlier (e.g. a framework error handler).
+          const callSiteSpan = operationErrorInfoBySpan.get(span)?.callSiteSpan;
+          if (callSiteSpan && isObjectLike(data.error)) {
+            addNonEnumerableProperty(data.error, '_sentry_active_span', callSiteSpan);
+          }
+        } else {
           // v6's `executeToolCall` returns the tool result/error object directly, whereas the shared core
           // (matching v7) expects it nested under `output`; wrap it so tool-error detection works.
           message.result = message.type === 'executeTool' ? { output: data.result } : data.result;
@@ -363,14 +400,14 @@ function subscribeResolveLanguageModel(
 ): void {
   tracingChannel<OrchestrionContext>(channelName).subscribe({
     end(rawCtx) {
-      const ctx = rawCtx as OrchestrionContext;
+      const ctx = rawCtx;
       if (!isObjectLike(ctx.result)) {
         return;
       }
       // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from the
       // active async context at call time (the operation span `bindTracingChannelToSpan` bound), which
       // propagates into the model call for `streamText` too, so there is nothing to capture on the model here.
-      patchModelMethods(ctx.result as PatchableModel, options);
+      patchModelMethods(ctx.result, options);
     },
     start() {
       /* no-op */
@@ -537,7 +574,7 @@ function patchOperationTools(tools: Record<string, unknown>, options: VercelAiCh
   try {
     for (const [toolName, tool] of Object.entries(tools)) {
       if (isObjectLike(tool)) {
-        patchToolExecute(toolName, tool as PatchableTool, tools, options);
+        patchToolExecute(toolName, tool, tools, options);
       }
     }
   } catch {
@@ -586,11 +623,17 @@ function patchToolExecute(
       return original.apply(this, [input, ...rest]);
     }
 
-    // v5's `executeTools` catches a thrown tool error and turns it into `tool-error` content rather
-    // than rejecting, so the user never sees a rejection — we must capture it here. Rethrow so
-    // `executeTools` still produces its `tool-error` result and the operation continues normally.
+    // v5's `executeTools` catches a thrown tool error and turns it into `tool-error` content rather than
+    // rejecting, so the user never sees a rejection — we must capture it here. On v4 the rejection bubbles
+    // out of the call and reaches the user's error handling (or our global handlers), so we only mark the
+    // span and leave the capture to them, avoiding a duplicate report. Rethrow either way so `executeTools`
+    // still produces its `tool-error` result (v5) and the rejection propagates (v4).
     const failSpan = (error: unknown): never => {
-      captureToolError(span, message, error);
+      if (operationErrorInfoBySpan.get(parent)?.toolErrorsBubbleToCaller) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: error instanceof Error ? error.message : 'tool_error' });
+      } else {
+        captureToolError(span, message, error);
+      }
       span.end();
       throw error;
     };

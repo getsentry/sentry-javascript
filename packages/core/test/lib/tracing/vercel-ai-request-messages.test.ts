@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
 import { stringify } from '../../../src/utils/string';
-import {
-  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-} from '../../../src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
 import { requestMessagesFromPrompt } from '../../../src/tracing/vercel-ai/utils';
 import { AI_PROMPT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/vercel-ai/vercel-ai-attributes';
 import type { Span, SpanAttributes } from '../../../src/types/span';
@@ -39,9 +35,8 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
     requestMessagesFromPrompt(span, attributes, /* enableTruncation */ false);
 
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(original);
-    expect(recorded[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBe(original);
-    expect(recorded[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toBe(1);
-    expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBeUndefined();
+    expect(recorded[GEN_AI_INPUT_MESSAGES]).toBe(original);
+    expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
   });
 
   it('extracts the system message and re-serializes the remainder when truncation is off', () => {
@@ -55,11 +50,10 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     requestMessagesFromPrompt(span, attributes, false);
 
-    expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]).toBe(JSON.stringify([{ type: 'text', content: 'be nice' }]));
+    expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe(JSON.stringify([{ type: 'text', content: 'be nice' }]));
     // System message removed; output is the SDK's own serialization of just the remainder.
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify([{ role: 'user', content: 'hello' }]));
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
-    expect(recorded[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toBe(1);
   });
 
   it('keeps the truncation path untouched when truncation is on', () => {
@@ -78,8 +72,6 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
     // input), proving the fast-path reuse did NOT short-circuit the truncation branch.
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getTruncatedJsonString(messages));
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
-    // Original (pre-truncation) message count is still reported.
-    expect(recorded[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toBe(2);
   });
 
   it('does not throw and sets no attributes for malformed JSON', () => {

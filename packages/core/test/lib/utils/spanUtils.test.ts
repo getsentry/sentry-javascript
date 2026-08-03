@@ -321,6 +321,7 @@ describe('spanToJSON', () => {
         trace_id: span.spanContext().traceId,
         origin: 'manual',
         start_timestamp: span['_startTime'],
+        status: 'ok',
         data: {
           'sentry.origin': 'manual',
         },
@@ -378,6 +379,7 @@ describe('spanToJSON', () => {
         start_timestamp: 123,
         description: 'test span',
         data: {},
+        status: 'ok',
       });
     });
 
@@ -730,6 +732,7 @@ describe('spanToJSON', () => {
     };
 
     expect(spanToJSON(span as unknown as Span)).toEqual({
+      status: 'ok',
       span_id: 'SPAN-1',
       trace_id: 'TRACE-1',
       start_timestamp: 0,

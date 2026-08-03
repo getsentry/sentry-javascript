@@ -13,10 +13,10 @@ describeWithDockerCompose(
       transaction: 'Test Span Redis 5 DC',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'SET dc-test-key ?',
@@ -47,10 +47,10 @@ describeWithDockerCompose(
           }),
         }),
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'GET dc-test-key',
@@ -82,12 +82,12 @@ describeWithDockerCompose(
           }),
         }),
         // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
-        // so cache detection cannot match prefixes — remains a plain db.redis span.
+        // so cache detection cannot match prefixes — remains a plain db.query span.
         expect.objectContaining({
-          op: 'db.redis',
+          op: 'db.query',
           origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.op': 'db.redis',
+            'sentry.op': 'db.query',
             'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system.name': 'redis',
             'db.query.text': 'MGET ? ? ?',

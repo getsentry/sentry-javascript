@@ -4,11 +4,12 @@ interface __BaseEnv_Env {
   CF_VERSION_METADATA: WorkerVersionMetadata;
   E2E_TEST_DSN: string;
   MyAgent: DurableObjectNamespace<import('./worker/index').MyAgent>;
+  MyChatAgent: DurableObjectNamespace<import('./worker/index').MyChatAgent>;
 }
 declare namespace Cloudflare {
   interface GlobalProps {
     mainModule: typeof import('./worker/index');
-    durableNamespaces: 'MyAgent';
+    durableNamespaces: 'MyAgent' | 'MyChatAgent';
   }
   interface Env extends __BaseEnv_Env {}
 }

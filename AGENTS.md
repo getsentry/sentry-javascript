@@ -63,12 +63,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Feature branches: `feat/descriptive-name`
 - Never update dependencies, `package.json`, or build scripts unless explicitly asked
 
-## Before Every Commit
+## Before Every Pull Request
 
 1. `yarn format`
-2. `yarn lint`
-3. `yarn test`
-4. `yarn build:dev`
+2. `yarn build:dev`
+3. `yarn lint`
+4. `yarn test`
 5. NEVER push on `develop`
 
 ## Pull Requests
@@ -86,12 +86,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `packages/core/` — Base SDK: interfaces, types, core functionality
 - `packages/types/` — Shared types (**deprecated, never modify – instead find types in packages/core**)
 - `packages/browser-utils/` — Browser utilities and instrumentation
-- `packages/node-core/` — Node core logic (excludes OTel instrumentation)
 
 ### Platform SDKs
 
 - `packages/browser/` — Browser SDK + CDN bundles
-- `packages/node/` — Node.js SDK (OTel instrumentation on top of node-core)
+- `packages/node/` — Node.js SDK (client, transports, non-OTel integrations, and OTel instrumentation)
 - `packages/bun/`, `packages/deno/`, `packages/cloudflare/`
 
 ### Framework Integrations
@@ -130,10 +129,23 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 ## Coding Standards
 
 - Follow existing conventions — check neighboring files
+- Reach for existing utils before writing a new one. Most shared helpers live in `@sentry/core` (`packages/core/src/utils/`), with browser helpers in `packages/browser-utils/`. Search first (LSP `workspaceSymbol` or grep) for common needs (type guards in `is.ts`, object/array helpers, `normalize`, `dsn`, `merge`, string/url helpers). Reuse or extend the existing util rather than adding a near-duplicate; only introduce a new util when nothing fits.
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
 - Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
+- Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
+  Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
+
+## Lazy Loading Is a Last Resort
+
+Do NOT "fix" a bundler, runtime, or platform incompatibility by making an import lazy or opaque — `createRequire`, require-inside-a-function, dynamic `import()`, computed specifiers. Not all bundlers understand `createRequire`, and anything opaque to static analysis just moves the breakage to a different consumer (pnpm isolation, workerd, Turbopack, nft tracing) while masking the real defect. SDK code must stay statically analyzable.
+
+Before even proposing lazy loading:
+
+1. Reproduce the failure and read the **actual** error — not a plausible theory about it. If the error is swallowed, extract it (debug logging, running the server/bundle directly) before choosing a fix.
+2. Fix the root cause at the layer it lives in, in roughly this order: build output shape (rollup/commonjs options like `interop`, `strictRequires`, `requireReturnsDefault`, `output.paths`), module resolution (`exports` maps, self-references, absolute-path externals), packaging (what ships in the tarball, bundled vs external deps), and only then consumer-side configuration.
+3. If, after exhausting these, lazy loading still seems necessary, stop and ask — explain what was tried and why nothing else works. Do not implement it first.
 
 ## Reference Documentation
 

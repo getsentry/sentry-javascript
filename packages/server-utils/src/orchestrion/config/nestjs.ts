@@ -1,4 +1,5 @@
-import type { FunctionKind, InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -12,9 +13,9 @@ function astQueryInstrumentation(config: {
   channelName: string;
   module: InstrumentationConfig['module'];
   astQuery: string;
-  functionQuery: { kind: FunctionKind };
+  functionQuery: { kind: 'Sync' | 'Async' | 'Callback' | 'Auto' };
 }): InstrumentationConfig {
-  return config as unknown as InstrumentationConfig;
+  return config;
 }
 
 /**
@@ -141,3 +142,5 @@ export const nestjsChannels = {
   NESTJS_ONEVENT: 'orchestrion:@nestjs/event-emitter:onEventDecorator',
   NESTJS_PROCESSOR: 'orchestrion:@nestjs/bullmq:processorDecorator',
 } as const;
+
+export const nestjsSubscribeInjection = toSubscribeInjections(nestjsConfig);

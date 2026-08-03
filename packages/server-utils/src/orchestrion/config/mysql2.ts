@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // Ports `@opentelemetry/instrumentation-mysql2` (which patches `query`/`execute` on the connection
 // prototype) to orchestrion channel injection.
@@ -42,7 +43,11 @@ export const mysql2Config = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const mysql2ModuleNames = getModuleNames(mysql2Config);
+
 export const mysql2Channels = {
   MYSQL2_QUERY: 'orchestrion:mysql2:query',
   MYSQL2_EXECUTE: 'orchestrion:mysql2:execute',
 } as const;
+
+export const mysql2SubscribeInjection = toSubscribeInjections(mysql2Config);

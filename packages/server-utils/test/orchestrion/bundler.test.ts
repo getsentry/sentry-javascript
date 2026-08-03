@@ -1,16 +1,245 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { getTracingHooksDirectory } from '../../src/orchestrion/bundler/webpack';
+import { isAbsolute } from 'node:path';
+import type { OnStartResult, PluginBuild } from 'esbuild';
+import type { NormalizedInputOptions, PluginContext } from 'rollup';
+import type { ResolvedConfig } from 'vite';
+import type { Compiler } from 'webpack';
+import { describe, expect, it, vi } from 'vitest';
+import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
+import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
+import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
+import { sentryOrchestrionPlugin as vitePlugin } from '../../src/orchestrion/bundler/vite';
+import {
+  resolveOrchestrionRuntimeRequest,
+  sentryOrchestrionWebpackPlugin,
+} from '../../src/orchestrion/bundler/webpack';
 
-describe('getTracingHooksDirectory', () => {
-  it('returns the tracing-hooks package directory with the runtime hook entry points', () => {
-    const dir = getTracingHooksDirectory();
+// The upstream transform plugins are mocked so tests exercise only the hooks
+// added on top of them (the externalized-modules warnings).
+vi.mock('@apm-js-collab/code-transformer-bundler-plugins/esbuild', () => ({
+  default: () => ({ name: 'code-transformer', setup: vi.fn() }),
+}));
+vi.mock('@apm-js-collab/code-transformer-bundler-plugins/vite', () => ({
+  default: () => ({ name: 'code-transformer' }),
+}));
+vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
+  default: () => ({ apply: vi.fn() }),
+}));
 
-    expect(dir).not.toContain('\\');
-    // The runtime module hook loads these files by joining them onto the directory.
-    expect(existsSync(join(dir, 'hook-sync.mjs'))).toBe(true);
-    expect(existsSync(join(dir, 'hook.mjs'))).toBe(true);
-    expect(existsSync(join(dir, 'package.json'))).toBe(true);
+describe('sentryOrchestrionPlugin (rollup)', () => {
+  // Mirrors what Rollup passes to buildStart: `external` is already normalized
+  // into a predicate function, regardless of how the user configured it.
+  function runBuildStart(external: (source: string) => boolean): ReturnType<typeof vi.fn> {
+    const warn = vi.fn();
+    const plugin = rollupPlugin();
+    (plugin.buildStart as (this: unknown, options: unknown) => void).call(
+      { warn } as unknown as PluginContext,
+      { external } as unknown as NormalizedInputOptions,
+    );
+    return warn;
+  }
+
+  it('warns when instrumented modules are externalized', () => {
+    const warn = runBuildStart(source => source === 'mysql' || source === 'pg');
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('mysql, pg'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('need to be bundled'));
+  });
+
+  it('does not warn when no instrumented modules are externalized', () => {
+    const warn = runBuildStart(source => source === 'some-other-package');
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('sentryOrchestrionPlugin (esbuild)', () => {
+  function runSetup(external: string[] | undefined): OnStartResult[] {
+    const onStartCallbacks: Array<() => OnStartResult> = [];
+    const build = {
+      initialOptions: { external },
+      onStart: (callback: () => OnStartResult) => onStartCallbacks.push(callback),
+    } as unknown as PluginBuild;
+    void esbuildPlugin().setup(build);
+    return onStartCallbacks.map(callback => callback());
+  }
+
+  it('warns when instrumented modules are externalized', () => {
+    const results = runSetup(['mysql', 'pg/lib/client']);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.warnings?.[0]?.text).toContain('mysql, pg');
+  });
+
+  it('matches wildcard external patterns', () => {
+    const results = runSetup(['mysql*']);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.warnings?.[0]?.text).toContain('mysql');
+    expect(results[0]?.warnings?.[0]?.text).toContain('mysql2');
+  });
+
+  it('does not warn when no instrumented modules are externalized', () => {
+    expect(runSetup(['lodash'])).toHaveLength(0);
+    expect(runSetup(undefined)).toHaveLength(0);
+  });
+});
+
+describe('sentryOrchestrionWebpackPlugin', () => {
+  function runApply(externals: unknown): Error[] {
+    const compilation = { warnings: [] as Error[] };
+    const compiler = {
+      options: { externals },
+      hooks: {
+        thisCompilation: { tap: (_name: string, callback: (compilation: unknown) => void) => callback(compilation) },
+      },
+      webpack: { WebpackError: Error },
+    } as unknown as Compiler;
+    sentryOrchestrionWebpackPlugin().apply(compiler);
+    return compilation.warnings;
+  }
+
+  it('warns for string, RegExp and object externals', () => {
+    expect(runApply(['mysql'])[0]?.message).toContain('mysql');
+    expect(runApply('mysql')[0]?.message).toContain('mysql');
+    expect(runApply([/^pg$/])[0]?.message).toContain('pg');
+    expect(runApply({ mysql: 'commonjs mysql' })[0]?.message).toContain('mysql');
+  });
+
+  it('does not warn for unrelated or function externals', () => {
+    expect(runApply(['lodash'])).toHaveLength(0);
+    expect(runApply(() => undefined)).toHaveLength(0);
+    expect(runApply(undefined)).toHaveLength(0);
+  });
+});
+
+describe('sentryOrchestrionPlugin (vite)', () => {
+  function runConfigResolved(ssrExternal: string[] | true | undefined): ReturnType<typeof vi.fn> {
+    const warn = vi.fn();
+    const plugin = vitePlugin();
+    (plugin.configResolved as (config: unknown) => void)({
+      ssr: { external: ssrExternal },
+      logger: { warn },
+    } as unknown as ResolvedConfig);
+    return warn;
+  }
+
+  it('warns when instrumented modules are listed in ssr.external', () => {
+    const warn = runConfigResolved(['mysql', 'lodash']);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('mysql'));
+  });
+
+  it('does not warn for ssr.external: true or unrelated entries', () => {
+    // `ssr.external: true` does not override the plugin's noExternal entries.
+    expect(runConfigResolved(true)).not.toHaveBeenCalled();
+    expect(runConfigResolved(['lodash'])).not.toHaveBeenCalled();
+    expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildTimeInstrumentation: false', () => {
+  const disabled = { buildTimeInstrumentation: false };
+
+  it('returns an inert vite plugin without the transform hooks', () => {
+    const plugin = vitePlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.config).toBeUndefined();
+    expect(plugin.configResolved).toBeUndefined();
+    expect(plugin.applyToEnvironment).toBeUndefined();
+  });
+
+  it('returns an inert rollup plugin without the transform hooks', () => {
+    const plugin = rollupPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.buildStart).toBeUndefined();
+    expect((plugin as { transform?: unknown }).transform).toBeUndefined();
+  });
+
+  it('returns an inert esbuild plugin whose setup is a no-op', () => {
+    const build = { initialOptions: {}, onStart: vi.fn() } as unknown as PluginBuild;
+    const plugin = esbuildPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.setup(build)).toBeUndefined();
+    expect(build.onStart).not.toHaveBeenCalled();
+  });
+
+  it('returns an inert webpack plugin whose apply is a no-op', () => {
+    const tap = vi.fn();
+    const compiler = {
+      options: { externals: ['mysql'] },
+      hooks: { thisCompilation: { tap } },
+    } as unknown as Compiler;
+
+    expect(() => sentryOrchestrionWebpackPlugin(disabled).apply(compiler)).not.toThrow();
+    expect(tap).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveOrchestrionRuntimeRequest', () => {
+  it.each([
+    // Self-references — resolve through this package's own exports map to the CJS build.
+    '@sentry/server-utils/orchestrion/register',
+    '@sentry/server-utils/orchestrion',
+    // Dependencies of this package, including subpaths only reachable from its location.
+    '@apm-js-collab/tracing-hooks',
+    '@apm-js-collab/tracing-hooks/hook.mjs',
+    '@apm-js-collab/tracing-hooks/hook-sync.mjs',
+    '@apm-js-collab/tracing-hooks/lib/diagnostics.js',
+    '@apm-js-collab/code-transformer',
+  ])('resolves %s to an existing absolute path', request => {
+    const resolved = resolveOrchestrionRuntimeRequest(request);
+
+    expect(resolved).toBeDefined();
+    expect(isAbsolute(resolved!)).toBe(true);
+    expect(existsSync(resolved!)).toBe(true);
+  });
+
+  it('resolves self-references with require conditions, so the paths are loadable via require()', () => {
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/register')).toMatch(/[/\\]cjs[/\\]/);
+  });
+
+  it('returns undefined for unresolvable requests', () => {
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/no-such-subpath')).toBeUndefined();
+    expect(resolveOrchestrionRuntimeRequest('some-package-that-does-not-exist')).toBeUndefined();
+  });
+});
+
+describe('orchestrionTransformOptions injectDiagnostics banner', () => {
+  // Evaluate the emitted boot-banner snippet against a fake global, mirroring
+  // what runs when a bundled app boots. The banner must record `.bundler` for
+  // detection AND fire the on-inject bridge for each transformed module
+  // (force-bundled modules never reach the runtime hook, so the bridge is the
+  // only thing that triggers their channel subscription).
+  function runBanner(transformedModules: string[], global: Record<string, unknown>): void {
+    const opts = orchestrionTransformOptions({});
+    const banner = opts.injectDiagnostics?.({ transformedModules, failedModules: [] });
+    expect(typeof banner).toBe('string');
+    // `globalThis` inside the snippet resolves to the sandbox object we pass in.
+    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
+    new Function('globalThis', banner as string)(global);
+  }
+
+  it('records `.bundler` and fires the on-inject bridge for each module', () => {
+    const onInject = vi.fn();
+    const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { onInject } };
+
+    runBanner(['mysql', 'pg'], global);
+
+    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql', 'pg']);
+    expect(onInject.mock.calls.map(c => c[0])).toEqual(['mysql', 'pg']);
+  });
+
+  it('is a guarded no-op for the bridge when none is installed (bundler-only runtimes)', () => {
+    const global: Record<string, unknown> = {};
+
+    expect(() => runBanner(['mysql'], global)).not.toThrow();
+    // `.bundler` is still recorded so `init()` can drive subscription from it.
+    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
   });
 });

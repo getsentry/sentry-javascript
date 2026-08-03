@@ -1,10 +1,21 @@
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, MaxRequestBodySize } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
 const INTEGRATION_NAME = 'DenoServe' as const;
+
+export type DenoServeIntegrationOptions = {
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   * An explicit value overrides `dataCollection.httpBodies`.
+   *
+   * If `dataCollection.httpBodies` excludes `'incomingRequest'`, body capture defaults to `'none'`.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: MaxRequestBodySize;
+};
 
 export type ServeParams =
   // [(Request) => Response]
@@ -30,11 +41,12 @@ const isServeInitOptions = (p: ServeParams): p is [Deno.ServeOptions<Deno.Addr> 
   'handler' in p[0] &&
   typeof p[0].handler === 'function';
 
-const applyHandlerWrap = <A extends Deno.Addr>(
-  handler: (request: Request, info: Deno.ServeHandlerInfo<A>) => Response | Promise<Response>,
-  serveOptions?: Deno.ServeOptions,
-): Deno.ServeHandler =>
-  ((request, info) =>
+const applyHandlerWrap =
+  <A extends Deno.Addr>(
+    handler: (request: Request, info: Deno.ServeHandlerInfo<A>) => Response | Promise<Response>,
+    serveOptions?: Deno.ServeOptions,
+  ): Deno.ServeHandler =>
+  (request, info) =>
     wrapDenoRequestHandler<A>(
       {
         request,
@@ -42,7 +54,7 @@ const applyHandlerWrap = <A extends Deno.Addr>(
         serveOptions,
       } as RequestHandlerWrapperOptions<A>,
       () => handler(request, info as Deno.ServeHandlerInfo<A>),
-    )) as Deno.ServeHandler;
+    );
 
 const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
   new Proxy(serve, {
@@ -59,12 +71,11 @@ const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
     },
   });
 
-const _denoServeIntegration = (() => {
+const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    maxRequestBodySize: options.maxRequestBodySize,
     setupOnce() {
-      setAsyncLocalStorageAsyncContextStrategy();
-
       const originalServe = Deno.serve;
       const wrappedServe = instrumentedDenoServe(originalServe);
 

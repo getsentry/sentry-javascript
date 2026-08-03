@@ -90,8 +90,10 @@ describe('httpClientIntegration', () => {
   }
 
   describe('fetch', () => {
-    it('filters sensitive request and response headers while keeping safe ones with sendDefaultPii', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers while keeping safe ones with data collection enabled', () => {
+      const { fetchHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -123,7 +125,9 @@ describe('httpClientIntegration', () => {
     });
 
     it('keeps PII headers like x-forwarded-for when collection is enabled', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { fetchHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -142,21 +146,24 @@ describe('httpClientIntegration', () => {
       });
     });
 
-    // TODO(v11): also collect safe headers by default (but no PII headers) to align with server behavior
-    it('does not collect headers or cookies without sendDefaultPii or dataCollection', () => {
+    it('collects safe headers and filters sensitive headers by default', () => {
       const { fetchHandler, captureEventSpy } = setup();
 
       triggerFetch(fetchHandler, {
-        requestHeaders: { Authorization: 'Bearer x', Accept: 'application/json' },
-        responseHeaders: { 'Content-Type': 'text/html' },
+        requestHeaders: { Authorization: 'Bearer x', Accept: 'application/json', Cookie: 'theme=dark; session=secret' },
+        responseHeaders: { 'Content-Type': 'text/html', 'Set-Cookie': 'locale=en; session=secret' },
       });
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       const event = getEvent(captureEventSpy);
-      expect(event.request?.headers).toBeUndefined();
-      expect(event.request?.cookies).toBeUndefined();
-      expect(event.contexts?.response?.headers).toBeUndefined();
-      expect(event.contexts?.response?.cookies).toBeUndefined();
+      expect(event.request?.headers).toEqual({
+        accept: 'application/json',
+        authorization: '[Filtered]',
+        cookie: '[Filtered]',
+      });
+      expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
+      expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html', 'set-cookie': '[Filtered]' });
+      expect(event.contexts?.response?.cookies).toEqual({ locale: 'en', session: '[Filtered]' });
     });
 
     it('filters PII headers when an explicit deny list is configured', () => {
@@ -216,8 +223,10 @@ describe('httpClientIntegration', () => {
   });
 
   describe('xhr', () => {
-    it('filters sensitive request and response headers with sendDefaultPii', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers with data collection enabled', () => {
+      const { xhrHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerXhr(xhrHandler, {
         requestHeaders: { Authorization: 'Bearer super-secret-token', 'X-Custom': 'safe-value' },
@@ -239,7 +248,9 @@ describe('httpClientIntegration', () => {
     });
 
     it('parses and filters sensitive cookies from the Set-Cookie response header', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { xhrHandler, captureEventSpy } = setup({
+        dataCollection: { httpHeaders: { request: true, response: true } },
+      });
 
       triggerXhr(xhrHandler, {
         setCookie: 'session=abc123; theme=dark; connect.sid=secret',
@@ -252,7 +263,7 @@ describe('httpClientIntegration', () => {
       });
     });
 
-    it('does not collect response headers or cookies without sendDefaultPii or dataCollection', () => {
+    it('collects response headers and filters response cookies by default', () => {
       const { xhrHandler, captureEventSpy } = setup();
 
       triggerXhr(xhrHandler, {
@@ -263,9 +274,9 @@ describe('httpClientIntegration', () => {
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       const event = getEvent(captureEventSpy);
-      expect(event.request?.headers).toBeUndefined();
-      expect(event.contexts?.response?.headers).toBeUndefined();
-      expect(event.contexts?.response?.cookies).toBeUndefined();
+      expect(event.request?.headers).toEqual({ Authorization: '[Filtered]' });
+      expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html' });
+      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]', theme: 'dark' });
     });
   });
 });

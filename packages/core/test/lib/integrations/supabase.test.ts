@@ -330,8 +330,8 @@ describe('Supabase Integration', () => {
       expect(spanOptions.attributes['db.body']).toBeUndefined();
     });
 
-    it('includes data when legacy sendDefaultPii: true is bridged to dataCollection.databaseQueryData', async () => {
-      const resolved = resolveDataCollectionOptions({ sendDefaultPii: true });
+    it('includes data when dataCollection.databaseQueryData is true', async () => {
+      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: true } });
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
       } as any);
@@ -354,8 +354,8 @@ describe('Supabase Integration', () => {
       );
     });
 
-    it('redacts data when legacy sendDefaultPii is not set (bridged defaults)', async () => {
-      const resolved = resolveDataCollectionOptions({ sendDefaultPii: false });
+    it('redacts data when dataCollection.databaseQueryData is false', async () => {
+      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: false } });
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
       } as any);

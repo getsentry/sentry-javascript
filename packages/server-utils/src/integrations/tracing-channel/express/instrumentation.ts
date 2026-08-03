@@ -1,15 +1,13 @@
 import type * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   debug,
   getActiveSpan,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
 } from '@sentry/core';
@@ -34,6 +32,7 @@ import type {
   HandleChannelContext,
   RegistrationChannelContext,
 } from './types';
+import { setHttpServerSpanRouteAttribute } from '../../../utils/setHttpServerSpanRouteAttribute';
 
 const ORIGIN = 'auto.http.express';
 
@@ -60,12 +59,7 @@ export function instrumentExpress(
   // matched route can be reconstructed with its parameters intact at request
   // time. Only the `end` event matters (the layer is on the router's stack by
   // then); the others are required by the subscriber type, so no-op them.
-  for (const channelName of [
-    CHANNELS.EXPRESS_ROUTE,
-    CHANNELS.EXPRESS_USE,
-    CHANNELS.ROUTER_ROUTE,
-    CHANNELS.ROUTER_USE,
-  ]) {
+  for (const channelName of [CHANNELS.EXPRESS_REGISTER, CHANNELS.ROUTER_REGISTER]) {
     tracingChannel<RegistrationChannelContext>(channelName).subscribe({
       start: NOOP,
       asyncStart: NOOP,
@@ -76,8 +70,6 @@ export function instrumentExpress(
   }
 
   for (const channelName of [CHANNELS.EXPRESS_HANDLE, CHANNELS.ROUTER_HANDLE]) {
-    DEBUG_BUILD && debug.log(`[orchestrion:express] subscribing to channel "${channelName}"`);
-
     const channel = tracingChannel<HandleChannelContext>(channelName);
 
     bindTracingChannelToSpan(channel, data => getSpanForLayer(data, options), {
@@ -178,9 +170,13 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
 
   // `constructedRoute` (the full registered pattern) names the span/transaction;
   // `matchedRoute` (validated against the request URL) is the `http.route`.
-  const constructedRoute = type === 'request_handler' ? getConstructedRoute(req) : undefined;
-  const matchedRoute =
-    type === 'request_handler' && constructedRoute != null ? getActualMatchedRoute(req, constructedRoute) : undefined;
+  // Computed for every layer type (not just `request_handler`) so routes served
+  // by mounted middleware (`app.use('/trpc', handler)`) still propagate their
+  // path to the root `http.server` span — mirroring the OTel Express integration,
+  // which resolves the route on every layer. Without this, such transactions keep
+  // the raw URL name (e.g. `GET /trpc/foo` instead of `GET /trpc`).
+  const constructedRoute = getConstructedRoute(req);
+  const matchedRoute = constructedRoute != null ? getActualMatchedRoute(req, constructedRoute) : undefined;
 
   const name =
     type === 'request_handler'
@@ -193,7 +189,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // check, so the transaction is still named even when the layer's own span is
   // ignored — matches the OTel Express integration's `onRouteResolved` timing.
   if (matchedRoute) {
-    setHttpServerSpanRoute(matchedRoute);
+    setHttpServerSpanRouteAttribute(matchedRoute);
   }
 
   if (type === 'request_handler' && constructedRoute) {
@@ -225,7 +221,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.express`,
+      [SENTRY_OP]: type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${type}.express`,
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
       ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),
@@ -256,24 +252,6 @@ function getLayerType(layer: ExpressLayer): ExpressLayerType {
     return 'request_handler';
   }
   return 'middleware';
-}
-
-/**
- * Propagate the resolved route to the root `http.server` span so the
- * transaction gets a parameterized `http.route`. Mirrors `@sentry/node`'s
- * `setHttpServerSpanRouteAttribute`; inlined to keep this package free of
- * `@sentry/node` deps. No-op unless the root span is an `http.server` span.
- */
-function setHttpServerSpanRoute(route: string): void {
-  const activeSpan = getActiveSpan();
-  const rootSpan = activeSpan && getRootSpan(activeSpan);
-  if (!rootSpan) {
-    return;
-  }
-  if (spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') {
-    return;
-  }
-  rootSpan.setAttribute(HTTP_ROUTE, route);
 }
 
 /**

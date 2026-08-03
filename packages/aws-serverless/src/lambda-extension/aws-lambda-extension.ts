@@ -153,7 +153,7 @@ export class AwsLambdaExtension {
 
           fetch(upstreamSentryUrl, {
             method: 'POST',
-            body: envelopeBytes,
+            body: envelopeBytes as BodyInit,
           }).catch(err => {
             DEBUG_BUILD && debug.error('Error sending envelope to Sentry', err);
           });

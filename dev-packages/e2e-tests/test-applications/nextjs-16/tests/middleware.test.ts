@@ -17,9 +17,17 @@ test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
   expect(middlewareTransaction.transaction_info?.source).toBe('route');
+
+  expect(middlewareTransaction.request?.method).toBe('GET');
+  expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
+
+  // The `Middleware.execute` OTEL root span is the only `middleware` span. The build-time
+  // `wrapMiddlewareWithSentry` wrapper used to start a second, redundant one nested inside it.
+  const nestedMiddlewareSpans = middlewareTransaction.spans?.filter(span => span.op === 'middleware');
+  expect(nestedMiddlewareSpans).toHaveLength(0);
 
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
@@ -49,7 +57,7 @@ test('Faulty middlewares', async ({ request }) => {
   await test.step('should record transactions', async () => {
     const middlewareTransaction = await middlewareTransactionPromise;
     expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
     expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
     expect(middlewareTransaction.transaction_info?.source).toBe('route');
   });
@@ -107,39 +115,34 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
 
   if (hasHttpClientSpan) {
     // Check if fetch is traced as a child span of the middleware transaction
-    expect(middlewareTransaction.spans).toEqual(
-      expect.arrayContaining([
-        {
-          data: {
-            'http.request.method': 'GET',
-            'http.request.method_original': 'GET',
-            'http.response.status_code': 200,
-            'network.peer.address': '::1',
-            'network.peer.port': 3030,
-            'otel.kind': 'CLIENT',
-            'sentry.op': 'http.client',
-            'sentry.origin': 'auto.http.otel.node_fetch',
-            'server.address': 'localhost',
-            'server.port': 3030,
-            url: 'http://localhost:3030/',
-            'url.full': 'http://localhost:3030/',
-            'url.path': '/',
-            'url.query': '',
-            'url.scheme': 'http',
-            'user_agent.original': 'node',
-          },
-          description: 'GET http://localhost:3030/',
-          op: 'http.client',
-          origin: 'auto.http.otel.node_fetch',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        },
-      ]),
-    );
+    expect(middlewareTransaction.spans).toContainEqual({
+      data: {
+        'http.request.method': 'GET',
+        'http.request.method_original': 'GET',
+        'http.response.status_code': 200,
+        'network.peer.address': '::1',
+        'network.peer.port': 3030,
+        'sentry.kind': 'client',
+        'sentry.op': 'http.client',
+        'sentry.source': 'url',
+        'sentry.origin': 'auto.http.otel.node_fetch',
+        'server.address': 'localhost',
+        'server.port': 3030,
+        'url.full': 'http://localhost:3030/',
+        'url.path': '/',
+        'url.scheme': 'http',
+        'user_agent.original': 'node',
+      },
+      description: 'GET http://localhost:3030/',
+      op: 'http.client',
+      origin: 'auto.http.otel.node_fetch',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
   } else {
     // Alternatively, fetch is traced as a separate transaction, similar to Dev builds
     const fetchTransaction = await fetchTransactionPromise;

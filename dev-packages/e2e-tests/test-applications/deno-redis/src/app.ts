@@ -3,6 +3,7 @@ import IORedis from 'ioredis';
 import { createClient } from 'redis';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa',
   dsn: Deno.env.get('E2E_TEST_DSN'),
   debug: !!Deno.env.get('DEBUG'),
@@ -55,7 +56,7 @@ Deno.serve({ port, hostname: '0.0.0.0' }, async (req: Request) => {
   }
 
   // node-redis: SET then GET — exercises two commands inside a single
-  // transaction so we can assert the parent has two db.redis children.
+  // transaction so we can assert the parent has two db.query children.
   if (url.pathname === '/redis-set-get') {
     const key = url.searchParams.get('key') ?? 'cache:key';
     const value = url.searchParams.get('value') ?? 'hello';
@@ -88,7 +89,7 @@ Deno.serve({ port, hostname: '0.0.0.0' }, async (req: Request) => {
 
   // ioredis: MULTI — ioredis has no separate batch channel; per-command
   // payloads carry `batchMode`/`batchSize` instead, so we still expect one
-  // db.redis span per command.
+  // db.query span per command.
   if (url.pathname === '/ioredis-multi') {
     const result = await ioredis.multi().set('iomulti:a', '1').set('iomulti:b', '2').get('iomulti:a').exec();
     return Response.json({ result });

@@ -1,8 +1,8 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { describe, expect, it, vi } from 'vitest';
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: vi.fn().mockReturnValue([{ name: 'sentry-vite-plugin' }]),
 }));
 

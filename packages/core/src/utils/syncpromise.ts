@@ -125,7 +125,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
           return;
         }
 
-        resolve(val as unknown as any);
+        resolve(val);
       });
     });
   }
@@ -145,7 +145,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
       }
 
       if (this._state === STATE_RESOLVED) {
-        handler[1](this._value as unknown as any);
+        handler[1](this._value);
       }
 
       if (this._state === STATE_REJECTED) {

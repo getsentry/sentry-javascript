@@ -13,6 +13,7 @@ function makeLegacySpanProfilingClient(): [Sentry.NodeClient, Transport] {
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: 1,
+    traceLifecycle: 'static',
     debug: true,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -34,6 +35,7 @@ function makeLegacyContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     debug: true,
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -859,9 +861,28 @@ describe('ProfilingIntegration', () => {
       expect(stopProfilingSpy).not.toHaveBeenCalled();
     });
 
+    it('does not start profiler when profile session is not sampled', () => {
+      const [client] = makeCurrentSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 0,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+
+      const span = Sentry.startInactiveSpan({ forceTransaction: true, name: 'test' });
+
+      expect(startProfilingSpy).not.toHaveBeenCalled();
+
+      span.end();
+    });
+
     it('starts profiler when first span is created', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -882,6 +903,7 @@ describe('ProfilingIntegration', () => {
     it('waits for the tail span to end before stopping the profiler', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -906,6 +928,7 @@ describe('ProfilingIntegration', () => {
     it('ending last span does not stop the profiler if first span is not ended', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -928,6 +951,7 @@ describe('ProfilingIntegration', () => {
     it('multiple calls to span.end do not restart the profiler', () => {
       const [client] = makeCurrentSpanProfilingClient({
         profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
       });
 
       Sentry.setCurrentClient(client);
@@ -956,6 +980,7 @@ describe('ProfilingIntegration', () => {
 
       it('sends a profile_chunk envelope type', async () => {
         const [client, transport] = makeCurrentSpanProfilingClient({
+          traceLifecycle: 'static',
           profileLifecycle: 'trace',
           profileSessionSampleRate: 1,
         });

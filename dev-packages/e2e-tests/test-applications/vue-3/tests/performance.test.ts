@@ -120,6 +120,7 @@ test('sends a pageload transaction with a route name as transaction name if avai
           'sentry.source': 'custom',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
+          'navigation.route.id': 'AboutView',
           'url.path': '/about',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/about$/),
         },

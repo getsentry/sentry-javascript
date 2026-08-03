@@ -16,11 +16,11 @@ test('instruments RegExp router routes', async ({ baseURL }) => {
     expect.arrayContaining([
       expect.objectContaining({
         op: 'router.koa',
-        origin: 'auto.http.otel.koa',
+        origin: 'auto.http.koa',
         data: expect.objectContaining({
           'koa.type': 'router',
           'sentry.op': 'router.koa',
-          'sentry.origin': 'auto.http.otel.koa',
+          'sentry.origin': 'auto.http.koa',
           'http.route': '/^\\/test-regexp/',
         }),
       }),
@@ -49,7 +49,7 @@ test('instruments nested routers with the composed http.route', async ({ baseURL
           'koa.type': 'router',
           'http.route': '/:first/details/:id',
           'sentry.op': 'router.koa',
-          'sentry.origin': 'auto.http.otel.koa',
+          'sentry.origin': 'auto.http.koa',
         }),
       }),
     ]),
@@ -91,7 +91,7 @@ test('marks the layer span as errored when a handler throws', async ({ baseURL }
     expect.arrayContaining([
       expect.objectContaining({
         op: 'router.koa',
-        origin: 'auto.http.otel.koa',
+        origin: 'auto.http.koa',
         status: 'internal_error',
       }),
     ]),

@@ -15,30 +15,34 @@
 /* eslint-disable max-lines */
 
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_REQUEST_METHOD, HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
   debug,
-  getActiveSpan,
   getIsolationScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  spanToJSON,
   startInactiveSpan,
   startSpan,
   withActiveSpan,
 } from '@sentry/core';
 import type { FastifyInstance, FastifyRequest } from './types';
 import { DEBUG_BUILD } from '../../../debug-build';
+import { setHttpServerSpanRouteAttribute } from '../../../utils/setHttpServerSpanRouteAttribute';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
 const ORIGIN = 'auto.http.otel.fastify';
-const HOOK_OP = 'hook.fastify';
+const HOOK_OP = WEB_SERVER_MIDDLEWARE_SPAN_OP;
 const REQUEST_HANDLER_OP = 'request_handler.fastify';
 
 const FASTIFY_HOOKS = [
@@ -187,15 +191,14 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
   if (route != null) {
     attributes[HTTP_ROUTE] = route;
 
-    // Update the route of the request on the root span, if it is a http.server span
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    if (rootSpan && spanToJSON(rootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'http.server') {
-      rootSpan.setAttribute(HTTP_ROUTE, route);
-    }
+    setHttpServerSpanRouteAttribute(route);
   }
 
-  const requestSpan = startInactiveSpan({ name: 'request', op: REQUEST_HANDLER_OP, attributes });
+  const requestSpan = startInactiveSpan({
+    name: route != null ? `${request.method} ${route}` : 'request',
+    op: REQUEST_HANDLER_OP,
+    attributes,
+  });
   request[kRequestSpan] = requestSpan;
 
   // Set the request span as the active span for the remainder of the request lifecycle, so that
@@ -348,9 +351,9 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     return startSpan(
       {
         name,
-        op,
         attributes: {
           ...spanAttributes,
+          [SENTRY_OP]: op,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
         parentSpan,

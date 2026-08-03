@@ -18,13 +18,12 @@
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
     "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sveltejs/adapter-auto": "^7.0.1",

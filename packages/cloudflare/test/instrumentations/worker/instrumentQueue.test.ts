@@ -258,6 +258,7 @@ describe('instrumentQueue', () => {
         env => ({
           dsn: env.SENTRY_DSN,
           tracesSampleRate: 1,
+          traceLifecycle: 'static',
           beforeSendTransaction(event) {
             sentryEvent = event;
             return null;
@@ -287,6 +288,7 @@ describe('instrumentQueue', () => {
         },
         op: 'queue.process',
         origin: 'auto.faas.cloudflare.queue',
+        status: 'ok',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });

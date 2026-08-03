@@ -18,6 +18,7 @@ import User from './pages/User';
 const replay = Sentry.replayIntegration();
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   integrations: [

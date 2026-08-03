@@ -1,5 +1,6 @@
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
+import { awsSdkChannels } from './config/aws-sdk';
 import { dataloaderChannels } from './config/dataloader';
 import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
@@ -10,6 +11,7 @@ import { hapiChannels } from './config/hapi';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
 import { knexChannels } from './config/knex';
+import { koaChannels } from './config/koa';
 import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
@@ -21,8 +23,6 @@ import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
-import { prismaChannels } from './config/prisma';
-import { reactRouterChannels } from './config/react-router';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
@@ -47,6 +47,7 @@ import { vercelAiChannels } from './config/vercel-ai';
 export const CHANNELS = {
   ...amqplibChannels,
   ...anthropicAiChannels,
+  ...awsSdkChannels,
   ...dataloaderChannels,
   ...expressChannels,
   ...firebaseChannels,
@@ -57,6 +58,7 @@ export const CHANNELS = {
   ...ioredisChannels,
   ...kafkajsChannels,
   ...knexChannels,
+  ...koaChannels,
   ...langchainChannels,
   ...langgraphChannels,
   ...lruMemoizerChannels,
@@ -68,8 +70,6 @@ export const CHANNELS = {
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,
-  ...prismaChannels,
-  ...reactRouterChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,

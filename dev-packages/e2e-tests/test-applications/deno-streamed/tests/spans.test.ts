@@ -115,7 +115,7 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'url',
     },
-    'sentry.span.source': {
+    'sentry.segment.name.source': {
       type: 'string',
       value: 'url',
     },

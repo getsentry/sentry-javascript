@@ -110,6 +110,9 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
+/**
+ * @deprecated Use `URL_FULL` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
 
 /**

@@ -19,6 +19,11 @@ interface VercelAiOptions {
    * Defaults to `true`.
    */
   enableTruncation?: boolean;
+
+  // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
+  // spans the AI SDK already emitted (no OTel patch or tracing channel in the edge runtime), so it
+  // cannot decide whether inputs/outputs are recorded. Control this per call via
+  // `experimental_telemetry.recordInputs`/`recordOutputs`.
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {

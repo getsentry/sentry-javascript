@@ -9,6 +9,7 @@ import * as Effect from 'effect/Effect';
 
 const AppLayer = Layer.mergeAll(
   Sentry.effectLayer({
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
     integrations: [
       Sentry.browserTracingIntegration({
@@ -19,7 +20,6 @@ const AppLayer = Layer.mergeAll(
     release: 'e2e-test',
     environment: 'qa',
     tunnel: 'http://localhost:3031',
-    enableLogs: true,
   }),
   Logger.layer([Sentry.SentryEffectLogger]),
   Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),

@@ -1,7 +1,7 @@
 import { ProxyTracer } from '@opentelemetry/api';
-import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import type { Event, EventHint, Log } from '@sentry/core';
 import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
+import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
@@ -28,9 +28,11 @@ describe('NodeClient', () => {
     const client = new NodeClient(options);
 
     expect(client.getOptions()).toEqual({
+      attachStacktrace: true,
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      traceLifecycle: 'static',
       transportOptions: {
         headers: {
           'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
@@ -53,6 +55,7 @@ describe('NodeClient', () => {
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
       tracesSampleRate: 1,
+      enableLogs: true,
     });
   });
 
@@ -95,6 +98,19 @@ describe('NodeClient', () => {
       expect(event.contexts?.runtime).toEqual({
         name: 'node',
         version: process.version,
+      });
+    });
+
+    test('uses custom runtime when provided in options', () => {
+      const options = getDefaultNodeClientOptions({ runtime: { name: 'cloudflare' } });
+      const client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
+
+      expect(event.contexts?.runtime).toEqual({
+        name: 'cloudflare',
       });
     });
 
@@ -284,24 +300,9 @@ describe('NodeClient', () => {
     });
   });
 
-  it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = vi
-      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
-      .mockImplementationOnce(() => () => undefined);
-    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
-
-    new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
-
-    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instrumentations: instrumentationsArray,
-      }),
-    );
-  });
-
   describe('log capture', () => {
     it('adds server name to log attributes', () => {
-      const options = getDefaultNodeClientOptions({ enableLogs: true });
+      const options = getDefaultNodeClientOptions();
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: {} };
@@ -314,7 +315,7 @@ describe('NodeClient', () => {
 
     it('preserves existing log attributes', () => {
       const serverName = 'test-server';
-      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
+      const options = getDefaultNodeClientOptions({ serverName });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };
@@ -324,6 +325,87 @@ describe('NodeClient', () => {
         'existing.attr': 'value',
         'server.address': serverName,
       });
+    });
+  });
+
+  describe('close', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('shuts down the OTel trace provider', async () => {
+      const shutdownSpy = vi.fn().mockResolvedValue(true);
+      const forceFlushSpy = vi.fn().mockResolvedValue(undefined);
+
+      const client = new NodeClient(getDefaultNodeClientOptions());
+
+      client.traceProvider = {
+        shutdown: shutdownSpy,
+        forceFlush: forceFlushSpy,
+      } as unknown as SentryTracerProvider;
+
+      const result = await client.close();
+
+      // ensure we return the flush result rather than void from the traceProvider shutdown
+      expect(result).toBe(true);
+
+      expect(shutdownSpy).toHaveBeenCalledTimes(1);
+
+      // close calls flush and flush force-flushes the traceProvider
+      expect(forceFlushSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops client report tracking if it was started', async () => {
+      const processOffSpy = vi.spyOn(process, 'off');
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+
+      const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: true }));
+
+      client.startClientReportTracking();
+
+      const result = await client.close();
+
+      expect(result).toBe(true);
+
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
+
+      // removes `_clientReportOnExitFlushListener`
+      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+    });
+
+    it('stops log capture if it was started', async () => {
+      const processOffSpy = vi.spyOn(process, 'off');
+
+      const client = new NodeClient(getDefaultNodeClientOptions());
+
+      const result = await client.close();
+
+      expect(result).toBe(true);
+
+      // removes `_logOnExitFlushListener`
+      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+    });
+  });
+
+  describe('flush', () => {
+    it('flush returns immediately when nothing is processing', async () => {
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      const startTime = Date.now();
+      const result = await client.flush(1000);
+      const elapsed = Date.now() - startTime;
+
+      expect(result).toBe(true);
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    it('flush does not block process exit with unref timers', async () => {
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      const result = await client.flush(5000);
+      expect(result).toBe(true);
     });
   });
 });

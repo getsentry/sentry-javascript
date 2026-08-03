@@ -1,3 +1,4 @@
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +41,7 @@ describe('getHttpServerSubscriptions', () => {
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
-  async function makeRequest(path: string, method: 'GET' | 'HEAD' = 'GET'): Promise<void> {
+  async function makeRequest(path: string, method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET'): Promise<void> {
     const { port } = server.address() as AddressInfo;
     return new Promise<void>((resolve, reject) => {
       // Connection: close so the server-side `response.once('close', ...)`
@@ -99,14 +100,15 @@ describe('getHttpServerSubscriptions', () => {
         origin: 'auto.http.server',
         data: expect.objectContaining({
           'http.method': 'GET',
-          'http.route': '/users/42',
           'http.response.status_code': 200,
           'http.status_code': 200,
           'http.target': '/users/42?foo=bar',
-          'otel.kind': 'SERVER',
+          'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
           'sentry.source': 'url',
+          [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
+          [URL_PATH]: '/users/42',
         }),
       }),
     );
@@ -145,6 +147,17 @@ describe('getHttpServerSubscriptions', () => {
     instrument(true);
 
     await makeRequest('/anything', 'HEAD');
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(events.find(e => e.type === 'transaction')).toBeUndefined();
+  });
+
+  it('skips span creation for OPTIONS requests', async () => {
+    server = http.createServer((_req, res) => res.end());
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/anything', 'OPTIONS');
     await new Promise(resolve => setImmediate(resolve));
 
     expect(events.find(e => e.type === 'transaction')).toBeUndefined();

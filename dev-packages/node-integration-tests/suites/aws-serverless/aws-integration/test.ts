@@ -1,6 +1,12 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+// The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
+// orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
+// same spans; only the origin differs.
+const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -40,17 +46,17 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('S3.PutObject', {
     description: 'S3.PutObject',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     status: 'ok',
     data: expect.objectContaining({
-      'sentry.origin': 'auto.otel.aws',
+      'sentry.origin': ORIGIN,
       'sentry.op': 'rpc',
       'rpc.system': 'aws-api',
       'rpc.method': 'PutObject',
       'rpc.service': 'S3',
       'cloud.region': 'us-east-1',
       'aws.s3.bucket': 'ot-demo-test',
-      'otel.kind': 'CLIENT',
+      'sentry.kind': 'client',
     }),
   });
 
@@ -58,7 +64,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('S3.GetObject (success)', {
     description: 'S3.GetObject',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     status: 'ok',
     data: expect.objectContaining({ 'rpc.method': 'GetObject', 'rpc.service': 'S3', 'aws.s3.bucket': 'ot-demo-test' }),
   });
@@ -67,7 +73,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('S3.GetObject (error)', {
     description: 'S3.GetObject',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     status: 'internal_error',
     data: expect.objectContaining({ 'rpc.method': 'GetObject', 'rpc.service': 'S3' }),
   });
@@ -76,7 +82,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('DynamoDB.PutItem', {
     description: 'DynamoDB.PutItem',
     op: 'db',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'sentry.op': 'db',
       'rpc.method': 'PutItem',
@@ -92,7 +98,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('DynamoDB.Query', {
     description: 'DynamoDB.Query',
     op: 'db',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Query',
       'db.operation': 'Query',
@@ -105,7 +111,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('SQS SendMessage', {
     description: 'my-queue send',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'SendMessage',
       'rpc.service': 'SQS',
@@ -113,7 +119,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.destination.name': 'my-queue',
       'url.full': 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue',
       'messaging.message.id': 'message-id-1',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
     }),
   });
 
@@ -121,13 +127,13 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('SQS ReceiveMessage', {
     description: 'my-queue receive',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'ReceiveMessage',
       'messaging.system': 'aws_sqs',
       'messaging.operation.type': 'receive',
       'messaging.batch.message_count': 1,
-      'otel.kind': 'CONSUMER',
+      'sentry.kind': 'consumer',
     }),
   });
 
@@ -135,14 +141,14 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('SNS Publish', {
     description: 'my-topic send',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Publish',
       'rpc.service': 'SNS',
       'messaging.system': 'aws.sns',
       'messaging.destination': 'my-topic',
       'aws.sns.topic.arn': 'arn:aws:sns:us-east-1:123456789012:my-topic',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
     }),
   });
 
@@ -150,7 +156,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('Lambda Invoke', {
     description: 'my-function Invoke',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Invoke',
       'rpc.service': 'Lambda',
@@ -164,7 +170,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('Kinesis.PutRecord', {
     description: 'Kinesis.PutRecord',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     status: 'ok',
     data: expect.objectContaining({
       'rpc.method': 'PutRecord',
@@ -177,7 +183,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('SecretsManager.GetSecretValue', {
     description: 'SecretsManager.GetSecretValue',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'GetSecretValue',
       'rpc.service': 'SecretsManager',
@@ -189,7 +195,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   expectSpan('StepFunctions.StartExecution', {
     description: 'SFN.StartExecution',
     op: 'rpc',
-    origin: 'auto.otel.aws',
+    origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'StartExecution',
       'rpc.service': 'SFN',

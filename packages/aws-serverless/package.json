@@ -1,18 +1,17 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "10.65.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build/npm",
     "/build/import-hook.mjs",
-    "/build/loader-hook.mjs",
     "/build/lambda-extension"
   ],
   "main": "build/npm/cjs/index.js",
@@ -35,11 +34,6 @@
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
-      }
-    },
     "./awslambda-auto": {
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
@@ -58,23 +52,14 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/instrumentation": "^0.220.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/core": "10.65.0",
-    "@sentry/node": "10.65.0",
-    "@sentry/node-core": "10.65.0",
+    "@sentry/core": "10.67.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
@@ -88,17 +73,15 @@
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "run-s build:transpile:npm build:extension",
     "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

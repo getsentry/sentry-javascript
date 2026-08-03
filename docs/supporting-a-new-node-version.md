@@ -86,7 +86,7 @@ Repo: [sentry-javascript](https://github.com/getsentry/sentry-javascript)
 
 Reference: [#20710](https://github.com/getsentry/sentry-javascript/pull/20710)
 
-1. Add the version to the CI test matrix in `.github/workflows/build.yml` to every `node: [18, 20, 22, 24]` entry.
+1. Add the version to the CI test matrix in `.github/workflows/build.yml` to every `node: [20.19, 22, 24, 26]` entry.
 
 2. Bump the native module dependencies to the versions released in Steps 1 and 2:
    - [ ] `@sentry-internal/node-cpu-profiler` in `packages/profiling-node`

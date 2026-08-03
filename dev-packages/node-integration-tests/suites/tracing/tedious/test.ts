@@ -1,7 +1,10 @@
 import { afterAll, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
+  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.tedious' : 'auto.db.otel.tedious';
+
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -9,9 +12,9 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
   const dbSpan = (overrides: Record<string, unknown>) =>
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.otel.tedious',
+      origin: ORIGIN,
       data: expect.objectContaining({
-        'sentry.origin': 'auto.db.otel.tedious',
+        'sentry.origin': ORIGIN,
         'sentry.op': 'db',
         'db.system': 'mssql',
         'db.name': 'master',
@@ -33,7 +36,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
       expect.objectContaining({
         description: 'execBulkLoad test_bulk master',
         op: 'db',
-        origin: 'auto.db.otel.tedious',
+        origin: ORIGIN,
         status: 'ok',
         data: expect.objectContaining({ 'db.sql.table': 'test_bulk' }),
       }),

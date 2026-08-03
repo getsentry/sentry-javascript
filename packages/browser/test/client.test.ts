@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { getCurrentScope, makeSession, setCurrentClient } from '@sentry/core/browser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
@@ -48,6 +49,51 @@ describe('BrowserClient', () => {
 
     expect(flushOutcomesSpy).not.toHaveBeenCalled();
     expect(flushSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('session status on unhandled errors', () => {
+    afterEach(() => {
+      getCurrentScope().setSession(undefined);
+      getCurrentScope().setClient(undefined);
+    });
+
+    it('sets the session status to "unhandled" for an unhandled exception', () => {
+      client = new BrowserClient(getDefaultBrowserClientOptions());
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('test'), { mechanism: { handled: false } });
+
+      expect(session.status).toBe('unhandled');
+      expect(session.errors).toBe(1);
+    });
+
+    it('sets the session status to "unhandled" for a fatal event', () => {
+      client = new BrowserClient(getDefaultBrowserClientOptions());
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureEvent({ message: 'test', level: 'fatal' });
+
+      expect(session.status).toBe('unhandled');
+    });
+
+    it('keeps the session status "ok" for a handled exception', () => {
+      client = new BrowserClient(getDefaultBrowserClientOptions());
+      setCurrentClient(client);
+
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('test'));
+
+      expect(session.status).toBe('ok');
+      expect(session.errors).toBe(1);
+    });
   });
 });
 
@@ -127,18 +173,18 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('sets infer_ip to "never" if sendDefaultPii is false', () => {
+    it('sets infer_ip to "never" if dataCollection.userInfo is false', () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: false,
+        dataCollection: { userInfo: false },
       });
       const client = new BrowserClient(options);
 
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('sets infer_ip to "auto" if sendDefaultPii is true', () => {
+    it('sets infer_ip to "auto" if dataCollection.userInfo is true', () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new BrowserClient(options);
 
@@ -163,19 +209,9 @@ describe('SDK metadata', () => {
       expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
     });
 
-    it('dataCollection.userInfo takes precedence over sendDefaultPii', () => {
-      const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
-        dataCollection: { userInfo: false },
-      });
-      const client = new BrowserClient(options);
-
-      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
-    });
-
     it("doesn't override already set sdk metadata settings", () => {
       const options = getDefaultBrowserClientOptions({
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
         _metadata: {
           sdk: {
             settings: {
@@ -245,7 +281,7 @@ describe('SDK metadata', () => {
         },
         // Usually, this would cause infer_ip to be set to 'never'
         // but we're passing it in explicitly, so it should be preserved
-        sendDefaultPii: false,
+        dataCollection: { userInfo: false },
       });
       const client = new BrowserClient(options);
 

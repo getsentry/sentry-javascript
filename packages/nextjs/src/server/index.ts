@@ -12,13 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
-  getDefaultIntegrations,
-  httpIntegration,
-  init as nodeInit,
-  isDiagnosticsChannelInjectionEnabled,
-} from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -47,25 +41,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryUseDiagnosticsChannelInjection?: string;
-  _sentryOrchestrionTracingHooksDir?: string;
 };
-
-/**
- * EXPERIMENTAL: Next.js-aware variant of `Sentry.experimentalUseDiagnosticsChannelInjection()`
- * from `@sentry/node` (see its docs for behavior and caveats).
- *
- * Next.js bundles the SDK into the server build, from where the runtime module hook can't resolve
- * the `@apm-js-collab/tracing-hooks` bare specifier under isolated installs (pnpm). This variant
- * points the hook at the package location that `withSentryConfig` resolved at build time.
- *
- * @experimental May change or be removed in any release.
- */
-export function experimentalUseDiagnosticsChannelInjection(): void {
-  const tracingHooksDir =
-    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  nodeExperimentalUseDiagnosticsChannelInjection(tracingHooksDir ? { tracingHooksDir } : undefined);
-}
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
 prepareSafeIdGeneratorContext();
@@ -162,17 +138,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  // The build wired the orchestrion loader but the runtime opt-in is missing → no DB spans.
-  const useDiagnosticsChannelInjection =
-    process.env._sentryUseDiagnosticsChannelInjection || globalWithInjectedValues._sentryUseDiagnosticsChannelInjection;
-  if (DEBUG_BUILD && useDiagnosticsChannelInjection && !isDiagnosticsChannelInjectionEnabled()) {
-    debug.warn(
-      '[@sentry/nextjs] `useDiagnosticsChannelInjection` is enabled in `withSentryConfig`, but ' +
-        '`Sentry.experimentalUseDiagnosticsChannelInjection()` was not called before `Sentry.init()`. ' +
-        'Server DB spans will not be recorded.',
-    );
-  }
-
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
@@ -194,7 +159,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /^\/404$/,
     // App router /404 and /_not-found segments (any HTTP method)
     /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
+    // Root transactions named "NextServer.getRequestHandler" containing useless tracing
     /^NextServer\.getRequestHandler$/,
     // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)

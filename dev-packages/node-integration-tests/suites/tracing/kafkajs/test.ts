@@ -3,8 +3,8 @@ import { afterAll, expect } from 'vitest';
 import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.producer' : 'auto.kafkajs.otel.producer';
-const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.consumer' : 'auto.kafkajs.otel.consumer';
+const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.producer' : 'auto.kafkajs.otel.producer';
+const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.consumer' : 'auto.kafkajs.otel.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
@@ -58,7 +58,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
                   'sentry.origin': producerOrigin,
                 }),
@@ -72,7 +72,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'CONSUMER',
+                  'sentry.kind': 'consumer',
                   'sentry.op': 'message',
                   'sentry.origin': consumerOrigin,
                 }),
@@ -98,7 +98,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
-                  'otel.kind': 'PRODUCER',
+                  'sentry.kind': 'producer',
                   'sentry.op': 'message',
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',

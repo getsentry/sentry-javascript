@@ -324,7 +324,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'http.url': '/test-path' } },
+      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'url.full': '/test-path' } },
     });
 
     // Should also set span status to error for actual Error instances
@@ -384,7 +384,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/about' } },
+      mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/about' } },
     });
 
     // Should set span status to error
@@ -445,6 +445,7 @@ describe('createSentryClientInstrumentation', () => {
         );
         expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
         expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+          'sentry.source': 'url',
           'url.path': destination,
           'url.full': `https://example.com${destination}`,
         });
@@ -486,6 +487,7 @@ describe('createSentryClientInstrumentation', () => {
       await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
 
       expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
@@ -511,7 +513,7 @@ describe('createSentryClientInstrumentation', () => {
 
       expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
       expect(core.captureException).toHaveBeenCalledWith(mockError, {
-        mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/error-page' } },
+        mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/error-page' } },
       });
     });
 
@@ -751,6 +753,7 @@ describe('createSentryClientInstrumentation', () => {
       // Only ONE span created (not two - no duplicate from popstate)
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });

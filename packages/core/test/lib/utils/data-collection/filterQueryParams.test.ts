@@ -3,8 +3,8 @@ import { filterQueryParams } from '../../../../src/utils/data-collection/filterQ
 
 describe('filterQueryParams', () => {
   describe('off mode (false)', () => {
-    it('returns empty record', () => {
-      expect(filterQueryParams('page=1&token=abc', false)).toEqual({});
+    it('returns undefined', () => {
+      expect(filterQueryParams('page=1&token=abc', false)).toBeUndefined();
     });
   });
 
@@ -12,20 +12,13 @@ describe('filterQueryParams', () => {
     it('filters sensitive param names and preserves safe ones', () => {
       const result = filterQueryParams('page=1&api_key=secret&sort=name', true);
 
-      expect(result).toEqual({
-        page: '1',
-        api_key: '[Filtered]', // matches "key"
-        sort: 'name',
-      });
+      expect(result).toBe('page=1&api_key=[Filtered]&sort=name');
     });
 
     it('filters auth-related params', () => {
       const result = filterQueryParams('auth=abc&redirect=/home', true);
 
-      expect(result).toEqual({
-        auth: '[Filtered]', // matches "auth"
-        redirect: '/home',
-      });
+      expect(result).toBe('auth=[Filtered]&redirect=/home');
     });
   });
 
@@ -33,10 +26,7 @@ describe('filterQueryParams', () => {
     it('applies extra deny terms on top of built-in denylist', () => {
       const result = filterQueryParams('page=1&utm_source=email', { deny: ['utm'] });
 
-      expect(result).toEqual({
-        page: '1',
-        utm_source: '[Filtered]',
-      });
+      expect(result).toBe('page=1&utm_source=[Filtered]');
     });
   });
 
@@ -46,53 +36,76 @@ describe('filterQueryParams', () => {
         allow: ['page', 'sort'],
       });
 
-      expect(result).toEqual({
-        page: '1',
-        token: '[Filtered]', // sensitive denylist
-        sort: 'name',
-      });
+      expect(result).toBe('page=1&token=[Filtered]&sort=name');
     });
 
     it('sensitive denylist overrides allowlist', () => {
       const result = filterQueryParams('token=secret', { allow: ['token'] });
 
-      expect(result).toEqual({
-        token: '[Filtered]', // "token" matches sensitive denylist
-      });
+      // "token" matches sensitive denylist
+      expect(result).toBe('token=[Filtered]');
     });
   });
 
   describe('empty input', () => {
-    it('returns empty record for empty string', () => {
-      expect(filterQueryParams('', true)).toEqual({});
+    it('returns undefined for empty string', () => {
+      expect(filterQueryParams('', true)).toBeUndefined();
     });
   });
 
   describe('edge cases', () => {
-    it('handles URL-encoded values', () => {
+    it('preserves URL-encoded values', () => {
       const result = filterQueryParams('name=hello%20world&page=1', true);
 
-      expect(result).toEqual({
-        name: 'hello world',
-        page: '1',
-      });
+      expect(result).toBe('name=hello%20world&page=1');
     });
 
-    it('handles params with no value', () => {
+    it('preserves plus-encoded spaces', () => {
+      const result = filterQueryParams('name=hello+world&page=1', true);
+
+      expect(result).toBe('name=hello+world&page=1');
+    });
+
+    it('filters URL-encoded sensitive param names', () => {
+      const result = filterQueryParams('to%6Ben=secret&page=1', true);
+
+      expect(result).toBe('to%6Ben=[Filtered]&page=1');
+    });
+
+    it('filters empty param names in allowlist mode', () => {
+      const result = filterQueryParams('=secret&page=1', { allow: ['page'] });
+
+      expect(result).toBe('=[Filtered]&page=1');
+    });
+
+    it('preserves empty param names in denylist mode', () => {
+      const result = filterQueryParams('=secret&page=1', { deny: [] });
+
+      expect(result).toBe('=secret&page=1');
+    });
+
+    it('preserves params with no value', () => {
       const result = filterQueryParams('debug&page=1', true);
 
-      expect(result).toEqual({
-        debug: '',
-        page: '1',
-      });
+      expect(result).toBe('debug&page=1');
     });
 
-    it('handles duplicate params (last value wins via URLSearchParams)', () => {
-      const result = filterQueryParams('page=1&page=2', true);
+    it('filters sensitive params with no value', () => {
+      const result = filterQueryParams('debug&token&page=1', true);
 
-      expect(result).toEqual({
-        page: '2',
-      });
+      expect(result).toBe('debug&token=[Filtered]&page=1');
+    });
+
+    it('preserves duplicate params and their order', () => {
+      const result = filterQueryParams('page=1&page=2&token=first&token=second', true);
+
+      expect(result).toBe('page=1&page=2&token=[Filtered]&token=[Filtered]');
+    });
+
+    it('preserves encoded delimiters in values', () => {
+      const result = filterQueryParams('redirect=%2Fhome%3Ftab%3Done%26sort%3Dasc&token=a%26b', true);
+
+      expect(result).toBe('redirect=%2Fhome%3Ftab%3Done%26sort%3Dasc&token=[Filtered]');
     });
   });
 });

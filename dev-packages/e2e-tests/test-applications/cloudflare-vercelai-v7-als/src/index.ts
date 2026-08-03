@@ -4,11 +4,12 @@ import { MockLanguageModelV3 } from 'ai/test';
 
 export default Sentry.withSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tunnel: 'http://localhost:3031/',
-    streamGenAiSpans: false,
     tracesSampleRate: 1.0,
+    dataCollection: { genAI: { inputs: false, outputs: false } },
     integrations: [Sentry.vercelAIIntegration()],
   }),
   {

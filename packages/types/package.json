@@ -1,13 +1,13 @@
 {
   "name": "@sentry/types",
-  "version": "10.65.0",
+  "version": "10.67.0",
   "description": "Types for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/types",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -28,13 +28,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -42,21 +35,19 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build sentry-types-*.tgz",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {
-    "@sentry/core": "10.65.0"
+    "@sentry/core": "10.67.0"
   },
   "volta": {
     "extends": "../../package.json"

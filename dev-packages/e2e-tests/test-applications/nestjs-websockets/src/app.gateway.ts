@@ -1,11 +1,19 @@
-import { SubscribeMessage, WebSocketGateway, MessageBody } from '@nestjs/websockets';
+import { UseFilters } from '@nestjs/common';
+import { MessageBody, SubscribeMessage, WebSocketGateway, WsException } from '@nestjs/websockets';
 import * as Sentry from '@sentry/nestjs';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
+@UseFilters(new SentryGlobalFilter())
 @WebSocketGateway()
 export class AppGateway {
   @SubscribeMessage('test-exception')
   handleTestException() {
     throw new Error('This is an exception in a WebSocket handler');
+  }
+
+  @SubscribeMessage('test-ws-exception')
+  handleWsException() {
+    throw new WsException('Expected WebSocket exception');
   }
 
   @SubscribeMessage('test-manual-capture')

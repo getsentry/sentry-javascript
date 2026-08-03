@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const redisConfig = [
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an
@@ -62,6 +63,8 @@ export const redisConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const redisModuleNames = getModuleNames(redisConfig);
+
 export const redisChannels = {
   REDIS_COMMAND: 'orchestrion:redis:command',
   NODE_REDIS_COMMAND: 'orchestrion:@redis/client:command',
@@ -71,3 +74,5 @@ export const redisChannels = {
   NODE_REDIS_PIPELINE: 'orchestrion:@redis/client:pipeline',
   NODE_REDIS_BATCH: 'orchestrion:@redis/client:batch',
 } as const;
+
+export const redisSubscribeInjection = toSubscribeInjections(redisConfig);

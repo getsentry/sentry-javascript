@@ -256,6 +256,77 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
   });
 
+  it('wraps RateLimit bindings in a proxy and forwards calls', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const limit = vi.fn().mockResolvedValue({ success: true });
+    const rateLimiter = { limit };
+    const env = { MY_RATE_LIMITER: rateLimiter };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_RATE_LIMITER as typeof rateLimiter;
+    // Wrapped binding is a Proxy, not the original reference
+    expect(wrapped).not.toBe(rateLimiter);
+
+    const outcome = await wrapped.limit({ key: 'user-123' });
+    expect(outcome).toEqual({ success: true });
+    expect(limit).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'rate_limit MY_RATE_LIMITER' }),
+      expect.any(Function),
+    );
+  });
+
+  it('caches the wrapped RateLimit binding across repeated access', () => {
+    const rateLimiter = { limit: vi.fn() };
+    const env = { MY_RATE_LIMITER: rateLimiter };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_RATE_LIMITER).toBe(instrumented.MY_RATE_LIMITER);
+  });
+
+  describe('Workers AI bindings', () => {
+    function createMockAiBinding() {
+      return {
+        run: vi.fn().mockResolvedValue({ response: 'Paris', usage: { prompt_tokens: 1, completion_tokens: 2 } }),
+        gateway: vi.fn(),
+        toMarkdown: vi.fn(),
+        models: vi.fn(),
+        autorag: vi.fn(),
+      };
+    }
+
+    it('detects and wraps AI bindings, forwarding run calls unchanged', async () => {
+      const ai = createMockAiBinding();
+      const env = { AI: ai };
+      const instrumented = instrumentEnv(env);
+
+      const wrapped = instrumented.AI as typeof ai;
+      expect(wrapped).not.toBe(ai);
+
+      const result = await wrapped.run('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello' });
+
+      expect(ai.run).toHaveBeenCalledTimes(1);
+      expect(ai.run).toHaveBeenCalledWith('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello' });
+      expect(result).toEqual({ response: 'Paris', usage: { prompt_tokens: 1, completion_tokens: 2 } });
+    });
+
+    it('caches the wrapped AI binding across repeated access', () => {
+      const ai = createMockAiBinding();
+      const env = { AI: ai };
+      const instrumented = instrumentEnv(env);
+
+      expect(instrumented.AI).toBe(instrumented.AI);
+    });
+
+    it('does not treat bindings with only a run method as AI bindings', () => {
+      const notAi = { run: vi.fn() };
+      const env = { RUNNER: notAi };
+      const instrumented = instrumentEnv(env);
+
+      expect(instrumented.RUNNER).toBe(notAi);
+    });
+  });
+
   describe('mTLS Fetcher bindings', () => {
     function createMtlsFetcherProxy(mockFetch: ReturnType<typeof vi.fn>) {
       return new Proxy(

@@ -607,6 +607,37 @@ export function waitForStreamedSpans(
 }
 
 /**
+ * Accumulate streamed Span V2 spans across multiple envelopes until `isDone` returns true.
+ *
+ * Unlike {@link waitForStreamedSpans}, which resolves with the spans of a single envelope, this
+ * collects spans from every Span V2 envelope as they arrive and resolves with the full set once
+ * `isDone` is satisfied. Streamed spans are flushed in multiple envelopes as they end (a child span
+ * can be sent before its root segment span), so any assertion that needs the whole trace must
+ * accumulate rather than snapshot a single envelope.
+ *
+ * `isDone` receives all spans collected so far. A common predicate is "the segment/root span has
+ * arrived", since the root ends last and therefore flushes after its children:
+ *
+ * @example
+ * ```ts
+ * const spans = await collectStreamedSpans(PROXY_SERVER_NAME, allSpans =>
+ *   allSpans.some(span => span.name === 'GET /nested-layout' && span.is_segment),
+ * );
+ * expect(spans.map(span => span.name)).toContainEqual('build component tree');
+ * ```
+ */
+export function collectStreamedSpans(
+  proxyServerName: string,
+  isDone: (spans: SerializedStreamedSpan[]) => boolean,
+): Promise<SerializedStreamedSpan[]> {
+  const collected: SerializedStreamedSpan[] = [];
+  return waitForStreamedSpans(proxyServerName, spans => {
+    collected.push(...spans);
+    return isDone(collected);
+  }).then(() => collected);
+}
+
+/**
  * Helper to get the span operation from a Span V2 JSON object.
  *
  * @example

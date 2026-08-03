@@ -44,8 +44,10 @@ jobs:
       - name: Run Claude digest
         id: digest
         uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: '*'
           prompt: |
@@ -71,6 +73,15 @@ jobs:
 
           DIGEST=".agents/skills/track-framework-updates/output/framework-updates-digest.md"
           SCRIPT=".agents/skills/track-framework-updates/scripts/write_job_summary.py"
+
+          # The digest may land elsewhere if Claude derived the output dir from a
+          # sandboxed absolute path — fall back to searching the workspace.
+          if [ ! -f "$DIGEST" ]; then
+            FOUND=$(find . -name framework-updates-digest.md -not -path './node_modules/*' -print -quit)
+            if [ -n "$FOUND" ]; then
+              DIGEST="$FOUND"
+            fi
+          fi
 
           if [ -f "$EXEC_FILE" ]; then
             python3 "$SCRIPT" "$EXEC_FILE" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"

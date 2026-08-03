@@ -40,7 +40,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('sets the op but keeps the name when next.span_name is an empty string', () => {
@@ -52,7 +52,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('sets the op but keeps the name when next.span_name is not a string', () => {
@@ -64,7 +64,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('sets the op but keeps the name when the current name is empty', () => {
@@ -76,7 +76,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBeUndefined();
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it.each([
@@ -93,7 +93,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe(expected);
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('normalizes the plain "middleware {METHOD}" name emitted for Node.js middleware', () => {
@@ -107,7 +107,7 @@ describe('enhanceMiddlewareRootSpan', () => {
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware GET');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
   });
 
   it('strips query and fragment from non-method-prefixed middleware names', () => {

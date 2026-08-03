@@ -17,6 +17,15 @@ vi.mock('fs', async () => {
   };
 });
 
+// Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
+vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
+}));
+
 vi.spyOn(console, 'log').mockImplementation(() => {
   /* noop */
 });
@@ -42,16 +51,21 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 auto instrument plugin + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
-    expect(plugins).toHaveLength(6);
+    // 1 browser-tracing variant resolver + 1 auto instrument plugin + 1 orchestrion plugin
+    // + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(8);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
     const plugins = await getSentrySvelteKitPlugins();
     const pluginNames = plugins.map(plugin => plugin.name);
     expect(pluginNames).toEqual([
+      // browser-tracing variant resolver:
+      'sentry-sveltekit-browser-tracing-variant',
       // auto instrument plugin:
       'sentry-auto-instrumentation',
+      // orchestrion build-time instrumentation plugin:
+      'sentry-orchestrion-vite',
       // global values injection plugin:
       'sentry-sveltekit-global-values-injection-plugin',
       // modified main plugin (writeBundle deferred to closeBundle):
@@ -65,7 +79,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(1); // auto instrument
+    expect(plugins).toHaveLength(3); // browser-tracing variant resolver + auto instrument + orchestrion
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -73,9 +87,9 @@ describe('sentrySvelteKit()', () => {
 
     process.env.NODE_ENV = 'development';
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
-    const instrumentPlugin = plugins[0];
+    const instrumentPlugin = plugins[1];
 
-    expect(plugins).toHaveLength(2); // auto instrument + global values injection
+    expect(plugins).toHaveLength(4); // browser-tracing variant resolver + auto instrument + orchestrion + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -84,8 +98,31 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(5); // global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(7); // browser-tracing variant resolver + orchestrion + global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
+  });
+
+  it('adds the orchestrion plugin by default', async () => {
+    const plugins = await getSentrySvelteKitPlugins();
+    expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-vite');
+  });
+
+  it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', async () => {
+    orchestrionVite.mockClear();
+    const plugins = await getSentrySvelteKitPlugins({ buildTimeInstrumentation: false });
+    const pluginNames = plugins.map(plugin => plugin.name);
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
+    expect(pluginNames).toContain('sentry-orchestrion-disabled');
+    expect(pluginNames).not.toContain('sentry-orchestrion-vite');
+  });
+
+  it("doesn't add the orchestrion plugin for the cloudflare adapter", async () => {
+    orchestrionVite.mockClear();
+    const plugins = await getSentrySvelteKitPlugins({ adapter: 'cloudflare' });
+    const pluginNames = plugins.map(plugin => plugin.name);
+    expect(orchestrionVite).not.toHaveBeenCalled();
+    expect(pluginNames).not.toContain('sentry-orchestrion-vite');
+    expect(pluginNames).not.toContain('sentry-orchestrion-disabled');
   });
 
   it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {
@@ -188,7 +225,7 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[0]!;
+    const plugin = plugins[1]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({

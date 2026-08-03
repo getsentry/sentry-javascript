@@ -1,13 +1,13 @@
 {
   "name": "@sentry/bun",
-  "version": "10.65.0",
+  "version": "10.67.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -38,21 +38,15 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.6.1",
-    "@sentry/core": "10.65.0",
-    "@sentry/node": "10.65.0",
-    "@sentry/server-utils": "10.65.0"
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.3",
+    "@sentry/core": "10.67.0",
+    "@sentry/conventions": "^0.16.0",
+    "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0"
   },
   "devDependencies": {
     "bun-types": "^1.2.9"
@@ -61,17 +55,15 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-bun-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "run-s install:bun test:bun",

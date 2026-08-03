@@ -58,9 +58,15 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
 
-/** Returns true if orchestrion is enabled in env vars. */
+/**
+ * Whether channel-based (orchestrion diagnostics-channel) instrumentation is active.
+ *
+ * Channel-based instrumentation is the default in v11, so this is always `true`. Kept as a helper
+ * (rather than inlining `true`) so the suites' origin/shape selectors read intentionally; the OTel
+ * branches they still contain are dead and get removed alongside the vendored OTel code (JS-3074).
+ */
 export function isOrchestrionEnabled(): boolean {
-  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
+  return true;
 }
 
 /**

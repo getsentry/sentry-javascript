@@ -1,7 +1,8 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
-import { orchestrionTransformOptions } from './options';
+import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
 /**
  * Vite plugin that runs the orchestrion code transform on the bundled output.
@@ -17,9 +18,22 @@ import { orchestrionTransformOptions } from './options';
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Return an inert plugin so SDKs that unconditionally push it into their
+    // plugin array can still opt out without any code transform, `noExternal`
+    // force-bundling, or injected diagnostics landing in the build.
+    return { name: 'sentry-orchestrion-disabled' };
+  }
+
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
+    applyToEnvironment(environment) {
+      // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
+      // exist server-side. Only apply to server-consumed environments so injected `tracingChannel`
+      // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
+      return environment.config.consumer === 'server';
+    },
     config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by
@@ -29,6 +43,22 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
       return { ssr: { noExternal: instrumentedModuleNames(options.instrumentations) } };
+    },
+    configResolved(config: ResolvedConfig): void {
+      // Explicit `ssr.external` string entries take priority over `noExternal`
+      // in Vite, so they defeat the force-bundling above. (`ssr.external: true`
+      // does not — `noExternal` entries still win there.)
+      const external = config.ssr?.external;
+      if (!Array.isArray(external)) {
+        return;
+      }
+      const moduleNames = instrumentedModuleNames(options.instrumentations);
+      const externalizedModules = moduleNames.filter(name =>
+        external.some(entry => externalEntryMatchesModule(entry, name)),
+      );
+      if (externalizedModules.length > 0) {
+        config.logger.warn(`[Sentry] ${externalizedModulesWarning(externalizedModules)}`);
+      }
     },
   };
 }

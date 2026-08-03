@@ -4,6 +4,10 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    // package-specific options
+    // Resolve the self-referenced variant subpath to source for type-checking, so tsc doesn't resolve
+    // it via `exports` to a `.d.ts` it's emitting (TS5055/TS2209). Emitted types keep the subpath.
+    "paths": {
+      "@sentry/sveltekit/browser-tracing-variant": ["./src/client/svelte4BrowserTracing.ts"]
+    }
   }
 }

@@ -22,7 +22,7 @@ describe('_INTERNAL_captureLog', () => {
     _INTERNAL_resetSequenceNumber();
   });
   it('captures and sends logs', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -43,9 +43,9 @@ describe('_INTERNAL_captureLog', () => {
     );
   });
 
-  it('does not capture logs when enableLogs is not enabled', () => {
+  it('does not capture logs when enableLogs is disabled', () => {
     const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: false });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -59,7 +59,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('includes trace context when available', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -81,7 +81,6 @@ describe('_INTERNAL_captureLog', () => {
   it('includes release and environment in log attributes when available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
       release: '1.0.0',
       environment: 'test',
     });
@@ -108,7 +107,6 @@ describe('_INTERNAL_captureLog', () => {
   it('includes SDK metadata in log attributes when available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -140,7 +138,6 @@ describe('_INTERNAL_captureLog', () => {
   it('does not include SDK metadata in log attributes when not available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -161,7 +158,7 @@ describe('_INTERNAL_captureLog', () => {
 
   describe('attributes', () => {
     it('includes custom attributes in log', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -190,7 +187,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('applies scope attributes attributes to log', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -251,7 +248,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('flushes logs buffer when it reaches max size', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -273,7 +270,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('does not flush logs buffer when it is empty', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
 
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
@@ -282,7 +279,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('handles parameterized strings correctly', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -310,7 +307,7 @@ describe('_INTERNAL_captureLog', () => {
   });
 
   it('does not set the template attribute if there are no parameters', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -332,7 +329,6 @@ describe('_INTERNAL_captureLog', () => {
 
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
       beforeSendLog,
     });
     const client = new TestClient(options);
@@ -396,7 +392,6 @@ describe('_INTERNAL_captureLog', () => {
 
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
       beforeSendLog,
     });
     const client = new TestClient(options);
@@ -422,7 +417,7 @@ describe('_INTERNAL_captureLog', () => {
 
   it('emits beforeCaptureLog and afterCaptureLog events', () => {
     const beforeCaptureLogSpy = vi.spyOn(TestClient.prototype, 'emit');
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -442,7 +437,7 @@ describe('_INTERNAL_captureLog', () => {
 
   describe('replay integration with onlyIfSampled', () => {
     it('includes replay ID for sampled sessions', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -474,7 +469,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('excludes replay ID for unsampled sessions when onlyIfSampled=true', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -501,7 +496,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('includes replay ID for buffer mode sessions', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -536,7 +531,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('handles missing replay integration gracefully', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -555,7 +550,6 @@ describe('_INTERNAL_captureLog', () => {
     it('combines replay ID with other log attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
         release: '1.0.0',
         environment: 'test',
       });
@@ -607,7 +601,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not set replay ID attribute when getReplayId returns null or undefined', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -635,7 +629,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('sets replay_is_buffering attribute when replay is in buffer mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -668,7 +662,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay is in session mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -698,7 +692,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay is undefined mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -728,7 +722,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not set replay_is_buffering attribute when no replay ID is available', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -756,7 +750,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay integration is missing', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -777,7 +771,6 @@ describe('_INTERNAL_captureLog', () => {
     it('combines replay_is_buffering with other replay attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
         release: '1.0.0',
         environment: 'test',
       });
@@ -837,7 +830,6 @@ describe('_INTERNAL_captureLog', () => {
     it('includes user data in log attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -871,8 +863,7 @@ describe('_INTERNAL_captureLog', () => {
     it('includes partial user data when only some fields are available', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -897,8 +888,7 @@ describe('_INTERNAL_captureLog', () => {
     it('includes user email and username without id', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -928,8 +918,7 @@ describe('_INTERNAL_captureLog', () => {
     it('does not include user data when user object is empty', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -947,8 +936,7 @@ describe('_INTERNAL_captureLog', () => {
     it('combines user data with other log attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
         release: '1.0.0',
         environment: 'test',
       });
@@ -1002,8 +990,7 @@ describe('_INTERNAL_captureLog', () => {
     it('handles user data with non-string values', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1033,8 +1020,7 @@ describe('_INTERNAL_captureLog', () => {
     it('preserves existing user attributes in log and does not override them', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1077,8 +1063,7 @@ describe('_INTERNAL_captureLog', () => {
     it('only adds scope user data for attributes that do not already exist', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        sendDefaultPii: true,
+        dataCollection: { userInfo: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1127,7 +1112,6 @@ describe('_INTERNAL_captureLog', () => {
   it('overrides user-provided system attributes with SDK values', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      enableLogs: true,
       release: 'sdk-release-1.0.0',
       environment: 'sdk-environment',
     });
@@ -1188,7 +1172,7 @@ describe('_INTERNAL_captureLog', () => {
     it('increments the sequence number across consecutive logs', () => {
       vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1215,7 +1199,7 @@ describe('_INTERNAL_captureLog', () => {
         return log;
       });
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true, beforeSendLog });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendLog });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1235,7 +1219,7 @@ describe('_INTERNAL_captureLog', () => {
     it('produces monotonically increasing sequence numbers within the same millisecond', () => {
       vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1258,7 +1242,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('resets the sequence number via _INTERNAL_resetSequenceNumber', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1280,7 +1264,7 @@ describe('_INTERNAL_captureLog', () => {
 
   describe.runIf(hasToWellFormed)('lone surrogate sanitization', () => {
     it('sanitizes lone surrogates in log message body', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1292,7 +1276,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('sanitizes lone surrogates in parameterized (fmt) log message body', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1305,7 +1289,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('sanitizes lone surrogates in log attribute values', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1327,7 +1311,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('sanitizes lone surrogates in log attribute keys', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -1349,7 +1333,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     it('preserves valid emoji in log messages and attributes', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);

@@ -15,7 +15,7 @@ export function convertTransactionEventToSpanJson(event: TransactionEvent): Span
     parent_span_id,
     span_id: span_id ?? '',
     start_timestamp: event.start_timestamp ?? 0,
-    status,
+    status: status ?? 'ok',
     timestamp: event.timestamp,
     trace_id: trace_id ?? '',
     origin,

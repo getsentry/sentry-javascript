@@ -81,7 +81,6 @@ import type {
   Measurements as Measurements_imported,
   MeasurementUnit as MeasurementUnit_imported,
   Mechanism as Mechanism_imported,
-  MissingInstrumentationContext as MissingInstrumentationContext_imported,
   MonitorConfig as MonitorConfig_imported,
   NoneUnit as NoneUnit_imported,
   Options as Options_imported,
@@ -133,8 +132,6 @@ import type {
   SpanAttributes as SpanAttributes_imported,
   SpanAttributeValue as SpanAttributeValue_imported,
   SpanContextData as SpanContextData_imported,
-  SpanEnvelope as SpanEnvelope_imported,
-  SpanItem as SpanItem_imported,
   SpanJSON as SpanJSON_imported,
   SpanOrigin as SpanOrigin_imported,
   SpanStatus as SpanStatus_imported,
@@ -216,8 +213,6 @@ export type TraceContext = TraceContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type CloudResourceContext = CloudResourceContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type MissingInstrumentationContext = MissingInstrumentationContext_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
 export type DataCategory = DataCategory_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type DsnComponents = DsnComponents_imported;
@@ -273,10 +268,6 @@ export type ProfileItem = ProfileItem_imported;
 export type ProfileChunkEnvelope = ProfileChunkEnvelope_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ProfileChunkItem = ProfileChunkItem_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type SpanEnvelope = SpanEnvelope_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-export type SpanItem = SpanItem_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ExtendedError = ExtendedError_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

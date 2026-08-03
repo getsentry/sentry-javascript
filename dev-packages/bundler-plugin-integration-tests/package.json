@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-plugin-integration-tests",
-  "version": "10.65.0",
+  "version": "10.67.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,11 +12,12 @@
     "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "10.65.0"
+    "@sentry/bundler-plugins": "10.67.0"
   },
   "devDependencies": {
     "premove": "^4.0.0",
-    "vitest": "^3.2.6"
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7"
   },
   "volta": {
     "extends": "../../package.json"

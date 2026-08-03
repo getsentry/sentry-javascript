@@ -12,7 +12,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
-import { PARAMS_KEY, URL_FULL, URL_PATH, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  PARAMS_KEY_BASE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 
 interface TanstackRouterLocation {
   pathname: string;
@@ -188,8 +194,8 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params).forEach(([key, value]) => {
     paramAttributes[`url.path.params.${key}`] = value; // TODO(v11): remove attribute which does not adhere to Sentry's semantic convention
-    paramAttributes[URL_PATH_PARAMETER_KEY.replace('<key>', key)] = value;
-    paramAttributes[PARAMS_KEY.replace('<key>', key)] = value; // params.[key] is an alias
+    paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+    paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
 
   return paramAttributes;

@@ -1,4 +1,4 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 
 type SourceMapsOptions = {
   /**
@@ -28,7 +28,7 @@ type SourceMapsOptions = {
   filesToDeleteAfterUpload?: string | Array<string>;
 
   /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
    * Options specified in this object take precedence over the options specified in
    * the `sourcemaps` and `release` objects.
    *
@@ -125,6 +125,15 @@ export type SentrySolidStartPluginOptions = {
    * Enabling this will give you, for example logs about source maps.
    */
   debug?: boolean;
+
+  /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
 
   /**
    * The path to your `instrument.server.ts|js` file.

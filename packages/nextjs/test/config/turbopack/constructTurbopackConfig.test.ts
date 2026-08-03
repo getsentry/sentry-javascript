@@ -1307,6 +1307,70 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
   });
 });
 
+describe('orchestrion build-time instrumentation', () => {
+  function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
+    instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
+  } {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+      loaders: Array<{ options: { instrumentations: Array<{ module: { name: string; filePath: unknown } }> } }>;
+    };
+    return rule.loaders[0]!.options;
+  }
+
+  it('serializes a RegExp filePath so it survives Turbopack JSON loader options', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    const firestore = getOrchestrionOptions(result).instrumentations.find(i => i.module.name === '@firebase/firestore');
+
+    expect(firestore).toBeDefined();
+    expect(firestore!.module.filePath).toEqual({
+      type: 'RegExp',
+      source: expect.any(String),
+      flags: expect.any(String),
+    });
+    expect(firestore!.module.filePath).not.toBeInstanceOf(RegExp);
+    // A raw RegExp would `JSON.stringify` to `{}`, dropping the match entirely.
+    expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
+  });
+
+  it('restricts the orchestrion rule to the node environment', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    // `condition: 'node'` is what keeps the transform off client code — orchestrion
+    // splices `node:diagnostics_channel` calls that throw `X is not a function` in the browser.
+    const rule = result.rules!['*.{js,mjs,cjs}'] as { condition?: unknown };
+    expect(rule.condition).toBe('node');
+  });
+
+  it('does not add the orchestrion rule when build-time instrumentation is turned off', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { buildTimeInstrumentation: false },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{js,mjs,cjs}']).toBeUndefined();
+  });
+
+  it('does not add the orchestrion rule below Next.js 16, where rule conditions are unsupported', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '15.4.1',
+    });
+
+    expect(result.rules?.['*.{js,mjs,cjs}']).toBeUndefined();
+  });
+});
+
 describe('safelyAddTurbopackRule', () => {
   const mockRule = {
     loaders: [

@@ -4,7 +4,6 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   addOpenAiRequestAttributes,
   addOpenAiResponseAttributes,
-  debug,
   defineIntegration,
   extractOpenAiRequestAttributes,
   instrumentOpenAiStream,
@@ -12,26 +11,22 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { openaiModuleNames } from '../../orchestrion/config/openai';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'OpenAI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'OpenAI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'OpenAI' as const;
 
-// Distinct from the proxy's `auto.ai.openai` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.openai';
+const ORIGIN = 'auto.ai.openai';
 
 // Each instrumented `create` method maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_CHAT, operation: 'chat' },
-  { channel: CHANNELS.OPENAI_RESPONSES, operation: 'chat' },
   { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },
-  { channel: CHANNELS.OPENAI_CONVERSATIONS, operation: 'chat' },
 ] as const;
 
 /**
@@ -44,39 +39,30 @@ interface OpenAiChatChannelContext {
   result?: unknown;
 }
 
-let subscribed = false;
-
-const _openaiChannelIntegration = ((options: OpenAiOptions = {}) => {
+const _openaiIntegration = ((options: OpenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19, and a second `init()` would double-subscribe.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      // `bindTracingChannelToSpan` needs the async-context binding that `initOpenTelemetry()` registers
-      // after `setupOnce` runs, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
-          DEBUG_BUILD && debug.log(`[orchestrion:openai] subscribing to channel "${channel}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<OpenAiChatChannelContext>(channel),
-            data => createGenAiSpan(data, operation, options),
-            {
-              beforeSpanEnd: (span, data) => {
-                addOpenAiResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
-              },
-              // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
-              deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
-            },
-          );
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, openaiModuleNames, instrumentOpenai, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentOpenai(options: OpenAiOptions): void {
+  for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<OpenAiChatChannelContext>(channel),
+      data => createGenAiSpan(data, operation, options),
+      {
+        beforeSpanEnd: (span, data) => {
+          addOpenAiResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+        },
+        // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+      },
+    );
+  }
+}
 
 /**
  * Build the span for an instrumented `create` call.
@@ -142,8 +128,8 @@ function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: O
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven OpenAI integration. Subscribes to the `orchestrion:openai:*`
+ * Orchestrion-driven OpenAI integration. Subscribes to the `orchestrion:openai:*`
  * diagnostics_channels injected into `openai`'s `create` methods (chat completions, responses, embeddings,
  * conversations), so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const openaiChannelIntegration = defineIntegration(_openaiChannelIntegration);
+export const openaiIntegration = defineIntegration(_openaiIntegration);

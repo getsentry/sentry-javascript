@@ -29,6 +29,7 @@ Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpen
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     skipOpenTelemetrySetup: true,
     beforeSendTransaction: event => {
       transactionEvents.push(event);
@@ -60,6 +61,7 @@ Deno.test('should capture spans emitted via @opentelemetry/api', async () => {
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -112,6 +114,7 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -156,6 +159,7 @@ Deno.test('should override pre-existing OTel provider with Sentry provider', asy
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -187,6 +191,7 @@ Deno.test('name parameter should take precedence over options.name in startSpan'
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -216,6 +221,7 @@ Deno.test('name parameter should take precedence over options.name in startActiv
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -252,6 +258,7 @@ Deno.test('should override native Deno OpenTelemetry when enabled', async () => 
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;

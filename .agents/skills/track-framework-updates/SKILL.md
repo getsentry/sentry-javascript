@@ -107,12 +107,16 @@ For each release or RFC that plausibly needs SDK work, draft one concrete, actio
 
 ### Step 6: Write output artifacts
 
-Produce **three files** in the skill's `output/` directory:
+Write all files to `.agents/skills/track-framework-updates/output/` **relative to the repository root** — never relative paths like `output/` from the workspace root.
 
-1. **`output/framework-updates-raw.json`** — already written by Step 1.
-2. **`output/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
-3. **`output/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
-   - Group by Client-Side / Server-Side / Meta-Framework.
+Do NOT reuse the absolute directory printed by `collect_updates.py` in Step 1: in CI, Bash commands run in a sandbox where the workspace is mounted at a different absolute path (e.g. `/github/workspace/...`) that does not exist for the Write tool. The repo-relative path is valid in both contexts.
+
+Produce **three files**:
+
+1. `.agents/skills/track-framework-updates/output/framework-updates-raw.json` — already written by Step 1, no action needed.
+2. **`.agents/skills/track-framework-updates/output/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
+3. **`.agents/skills/track-framework-updates/output/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
+   - Group by Client-Side / Server-Side / Meta-Framework / Platform / Libraries.
    - Omit frameworks with no activity.
    - Include a "Run notes" section only if a fetcher reported errors.
 

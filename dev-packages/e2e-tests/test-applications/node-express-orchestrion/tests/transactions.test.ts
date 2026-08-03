@@ -19,10 +19,10 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
-      url: 'http://localhost:3030/test-transaction',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-transaction',
+      'url.full': 'http://localhost:3030/test-transaction',
+      'url.path': '/test-transaction',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
@@ -140,14 +140,14 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT 1 + 1 AS solution',
     }),
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
       op: 'db',
-      origin: 'auto.db.orchestrion.mysql',
+      origin: 'auto.db.mysql',
       description: 'SELECT NOW()',
     }),
   );

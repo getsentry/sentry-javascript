@@ -5,24 +5,19 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
-import {
-  debug,
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  waitForTracingChannelBinding,
-} from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { defaultDbStatementSerializer } from '../../redis/redis-statement-serializer';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { ioredisModuleNames } from '../../orchestrion/config/ioredis';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Distinct from the OTel `Redis` integration, which is composite (node-redis +
 // ioredis + the >=5.11.0 diagnostics_channel subscriber) and stays in the set;
 // only its ioredis monkey-patch is gated off in the node SDK when this is active.
 const INTEGRATION_NAME = 'IORedis' as const;
 
-const ORIGIN = 'auto.db.orchestrion.redis';
+const ORIGIN = 'auto.db.redis';
 
 // todo(v11): Let's drop this as this is already covered with host and port
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
@@ -98,60 +93,51 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
 }
 
 const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions = {}) => {
-  const responseHook = options.responseHook;
-
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD &&
-        debug.log(`[orchestrion:ioredis] subscribing to "${CHANNELS.IOREDIS_COMMAND}"/"${CHANNELS.IOREDIS_CONNECT}"`);
-
-      const commandChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
-        CHANNELS.IOREDIS_COMMAND,
-      );
-      const connectChannel = diagnosticsChannel.tracingChannel<IORedisConnectContext, IORedisConnectContext>(
-        CHANNELS.IOREDIS_CONNECT,
-      );
-
-      // `bindTracingChannelToSpan` uses `bindStore`, which needs the async-context
-      // binding that `initOpenTelemetry()` registers after integration `setupOnce` —
-      // defer until it's available (matches the native redis diagnostics-channel subscriber).
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(commandChannel, startIORedisCommandSpan, {
-          // ioredis' `requireParentSpan` default: only create a span under an active span.
-          requiresParentSpan: true,
-          beforeSpanEnd(span, data) {
-            if ('error' in data || !responseHook) {
-              return;
-            }
-            const command = data.arguments?.[0] as RedisCommand | undefined;
-            if (command) {
-              runResponseHook(responseHook, span, command, data.result);
-            }
-          },
-        });
-
-        bindTracingChannelToSpan(
-          connectChannel,
-          data => {
-            const { host, port } = getConnectionOptions(data.self);
-            return startInactiveSpan({
-              name: 'connect',
-              op: 'db',
-              attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
-            });
-          },
-          { requiresParentSpan: true },
-        );
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, ioredisModuleNames, instrumentIoredis, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentIoredis(options: IORedisChannelIntegrationOptions): void {
+  const responseHook = options.responseHook;
+
+  const commandChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
+    CHANNELS.IOREDIS_COMMAND,
+  );
+  const connectChannel = diagnosticsChannel.tracingChannel<IORedisConnectContext, IORedisConnectContext>(
+    CHANNELS.IOREDIS_CONNECT,
+  );
+
+  bindTracingChannelToSpan(commandChannel, startIORedisCommandSpan, {
+    // ioredis' `requireParentSpan` default: only create a span under an active span.
+    requiresParentSpan: true,
+    beforeSpanEnd(span, data) {
+      if ('error' in data || !responseHook) {
+        return;
+      }
+      const command = data.arguments?.[0] as RedisCommand | undefined;
+      if (command) {
+        runResponseHook(responseHook, span, command, data.result);
+      }
+    },
+  });
+
+  bindTracingChannelToSpan(
+    connectChannel,
+    data => {
+      const { host, port } = getConnectionOptions(data.self);
+      return startInactiveSpan({
+        name: 'connect',
+        op: 'db',
+        attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
+      });
+    },
+    { requiresParentSpan: true },
+  );
+}
 
 function runResponseHook(hook: IORedisResponseHook, span: Span, command: RedisCommand, result: unknown): void {
   try {
@@ -162,7 +148,7 @@ function runResponseHook(hook: IORedisResponseHook, span: Span, command: RedisCo
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven ioredis integration. Subscribes to
+ * Orchestrion-driven ioredis integration. Subscribes to
  * `orchestrion:ioredis:command` / `:connect` (injected into ioredis' `<5.11.0`
  * `sendCommand`/`connect`) and creates db spans matching
  * `@opentelemetry/instrumentation-ioredis`. Requires the orchestrion runtime hook

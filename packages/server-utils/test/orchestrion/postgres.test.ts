@@ -1,15 +1,16 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope, Span } from '@sentry/core';
+import type { Client, Scope, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  GLOBAL_OBJ,
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { postgresChannelIntegration } from '../../src/orchestrion';
+import { postgresIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
 interface TestStore {
@@ -77,21 +78,25 @@ interface ChannelContext {
   self?: unknown;
 }
 
-describe('postgresChannelIntegration', () => {
+describe('postgresIntegration', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
   let span: Span;
 
   // Subscribe once for the whole file so a single subscriber handles each
   // publish (avoids accumulating duplicate subscriptions across tests). The
-  // strategy must be installed first so `setupOnce`'s `waitForTracingChannelBinding` fires synchronously.
+  // strategy must be installed first so `setup`'s `waitForTracingChannelBinding` fires synchronously.
+  // Mark `pg` injected so the integration's lazy `setup` subscribes right away
+  // (its normal gate — subscribe only once the module is loaded).
   beforeAll(() => {
     installTestAsyncContextStrategy();
-    postgresChannelIntegration().setupOnce?.();
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['pg', 'pg-pool'] };
+    postgresIntegration().setup?.({ on: () => () => undefined } as unknown as Client);
   });
 
   afterAll(() => {
     setAsyncContextStrategy(undefined);
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
   });
 
   beforeEach(() => {
@@ -124,7 +129,7 @@ describe('postgresChannelIntegration', () => {
           'net.peer.port': 5432,
           'db.connection_string': 'postgresql://localhost:5432/tests',
           'db.statement': 'SELECT * FROM "User"',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );
@@ -147,7 +152,7 @@ describe('postgresChannelIntegration', () => {
         attributes: expect.objectContaining({
           'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
           'db.postgresql.plan': 'select-user-by-email',
-          'sentry.origin': 'auto.db.orchestrion.postgres',
+          'sentry.origin': 'auto.db.postgres',
         }),
       }),
     );

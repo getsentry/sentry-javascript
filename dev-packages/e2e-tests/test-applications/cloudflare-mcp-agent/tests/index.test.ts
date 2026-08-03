@@ -84,6 +84,7 @@ test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ bas
     span_id: expect.any(String),
     op: 'mcp.server',
     origin: 'auto.function.mcp_server',
+    status: 'ok',
     data: expect.objectContaining({
       'sentry.origin': 'auto.function.mcp_server',
       'sentry.op': 'mcp.server',

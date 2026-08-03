@@ -1,12 +1,9 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import {
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  waitForTracingChannelBinding,
-} from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
+import { genericPoolModuleNames } from '../../orchestrion/config/generic-pool';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Same name as the OTel integration by design — when enabled, the OTel
@@ -17,27 +14,22 @@ interface GenericPoolAcquireContext {
   arguments: unknown[];
 }
 
-const _genericPoolChannelIntegration = (() => {
+const _genericPoolIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => instrumentGenericPool());
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, genericPoolModuleNames, instrumentGenericPool, []);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * EXPERIMENTAL — orchestrion-driven generic-pool integration. Subscribes to
+ * Orchestrion-driven generic-pool integration. Subscribes to
  * `orchestrion:generic-pool:acquire` (injected into `generic-pool/lib/Pool.js`'s
  * `Pool.prototype.acquire`). Creates a `generic-pool.acquire` span for each
  * acquisition. Requires the orchestrion runtime hook or bundler plugin.
  */
-export const genericPoolChannelIntegration = defineIntegration(_genericPoolChannelIntegration);
+export const genericPoolIntegration = defineIntegration(_genericPoolIntegration);
 
 function instrumentGenericPool(): void {
   bindTracingChannelToSpan(
@@ -46,7 +38,7 @@ function instrumentGenericPool(): void {
       startInactiveSpan({
         name: 'generic-pool.acquire',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.orchestrion.generic_pool',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.generic_pool',
         },
       }),
   );

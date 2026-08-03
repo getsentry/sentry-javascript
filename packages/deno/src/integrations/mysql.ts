@@ -1,34 +1,10 @@
-import { mysqlChannelIntegration } from '@sentry/server-utils/orchestrion';
-import type { Integration, IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-
-const INTEGRATION_NAME = 'DenoMysql' as const;
+import { mysqlIntegration } from '@sentry/server-utils/orchestrion';
 
 /**
- * Create spans for `mysql` queries under Deno.
+ * Create spans for `mysql` queries under Deno. Included in the default
+ * integrations.
  *
- * `mysql` channels are injected by the orchestrion runtime hook at load time.
- * The `@sentry/deno/import` loader must be active for this integration to
- * record anything.
- *
- * The channel-subscription logic is shared with the other server runtimes in
- * `@sentry/server-utils`. This just installs Deno's
- * `AsyncLocalStorage` context strategy (so spans nest under the active
- * span and survive mysql's internal callback dispatch) before delegating.
+ * @deprecated Use `mysqlIntegration` instead. This alias will be removed
+ * in a future major.
  */
-const _denoMysqlIntegration = (() => {
-  const inner = mysqlChannelIntegration();
-
-  return extendIntegration(inner, {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      setAsyncLocalStorageAsyncContextStrategy();
-    },
-  });
-}) satisfies IntegrationFn;
-
-export const denoMysqlIntegration = defineIntegration(_denoMysqlIntegration) as () => Integration & {
-  name: 'DenoMysql';
-  setupOnce: () => void;
-};
+export const denoMysqlIntegration = mysqlIntegration;

@@ -176,6 +176,7 @@ describe('browserTracingIntegration', () => {
       description: '/',
       op: 'pageload',
       origin: 'auto.pageload.browser',
+      status: 'ok',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -262,6 +263,7 @@ describe('browserTracingIntegration', () => {
       description: '/',
       op: 'pageload',
       origin: 'auto.pageload.browser',
+      status: 'ok',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -292,6 +294,7 @@ describe('browserTracingIntegration', () => {
       description: '/test',
       op: 'navigation',
       origin: 'auto.navigation.browser',
+      status: 'ok',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
@@ -333,6 +336,7 @@ describe('browserTracingIntegration', () => {
       description: '/test2',
       op: 'navigation',
       origin: 'auto.navigation.browser',
+      status: 'ok',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
@@ -376,6 +380,7 @@ describe('browserTracingIntegration', () => {
       description: '/',
       op: 'pageload',
       origin: 'auto.pageload.browser',
+      status: 'ok',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -470,6 +475,7 @@ describe('browserTracingIntegration', () => {
         description: 'test span',
         op: 'pageload',
         origin: 'manual',
+        status: 'ok',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
@@ -508,6 +514,7 @@ describe('browserTracingIntegration', () => {
         description: 'test span',
         op: 'pageload',
         origin: 'auto.test',
+        status: 'ok',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
@@ -750,6 +757,7 @@ describe('browserTracingIntegration', () => {
         description: 'test span',
         op: 'navigation',
         origin: 'manual',
+        status: 'ok',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
@@ -805,6 +813,7 @@ describe('browserTracingIntegration', () => {
         description: 'test span',
         op: 'navigation',
         origin: 'auto.test',
+        status: 'ok',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
@@ -1480,9 +1489,8 @@ describe('browserTracingIntegration', () => {
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
 
       // idle span itself is now ended
-      // there is also the `sentry-tracing-init` span included
-      expect(spans).toHaveLength(3);
-      expect(spans[2]).toBe(idleSpan);
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
 
     it('can be a custom value', () => {
@@ -1514,9 +1522,8 @@ describe('browserTracingIntegration', () => {
       vi.advanceTimersByTime(2000);
 
       // idle span itself is now ended
-      // there is also the `sentry-tracing-init` span included
-      expect(spans).toHaveLength(3);
-      expect(spans[2]).toBe(idleSpan);
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
   });
 

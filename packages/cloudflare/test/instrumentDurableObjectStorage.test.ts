@@ -324,6 +324,91 @@ describe('instrumentDurableObjectStorage', () => {
     );
   });
 
+  describe('framework-internal KV keys', () => {
+    it('does not create a span for a cf_-prefixed get', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('cf_agents_state');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a __ps_-prefixed get', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('__ps_name');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for cf:-prefixed chat-recovery keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.put('cf:chat-recovery:progress', 1);
+      await instrumented.get('cf:chat-recovery:incident:abc');
+      await instrumented.list({ prefix: 'cf:chat-recovery:incident:' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a cf_-prefixed put with object entries', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.put({ cf_agents_a: 1, cf_agents_b: 2 });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a cf_-prefixed delete with an array of keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.delete(['cf_agents_a', 'cf_agents_b']);
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a list with a cf_ prefix', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.list({ prefix: 'cf_agents_' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('still creates a span when a batch mixes framework and user keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get(['cf_agents_state', 'myKey']);
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
+
+    it('still creates a span for a list without a prefix', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.list();
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
+
+    it('still creates a span for a user key', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('myKey');
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('non-instrumented methods', () => {
     it('does not instrument deleteAll, sync, transaction', async () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');

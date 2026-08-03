@@ -18,10 +18,7 @@
  */
 export function getDefaultExport<T>(moduleExport: T | { default: T }): T {
   return (
-    (!!moduleExport &&
-      typeof moduleExport === 'object' &&
-      'default' in moduleExport &&
-      (moduleExport as { default: T }).default) ||
+    (!!moduleExport && typeof moduleExport === 'object' && 'default' in moduleExport && moduleExport.default) ||
     (moduleExport as T)
   );
 }

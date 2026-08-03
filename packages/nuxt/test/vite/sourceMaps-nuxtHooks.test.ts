@@ -54,10 +54,10 @@ describe('setupSourceMaps hooks', () => {
   const consoleWarnSpy = vi.spyOn(console, 'warn');
 
   beforeAll(() => {
-    vi.doMock('@sentry/vite-plugin', () => ({
+    vi.doMock('@sentry/bundler-plugins/vite', () => ({
       sentryVitePlugin: mockSentryVitePlugin,
     }));
-    vi.doMock('@sentry/rollup-plugin', () => ({
+    vi.doMock('@sentry/bundler-plugins/rollup', () => ({
       sentryRollupPlugin: mockSentryRollupPlugin,
     }));
   });
@@ -65,8 +65,8 @@ describe('setupSourceMaps hooks', () => {
   afterAll(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
-    vi.doUnmock('@sentry/vite-plugin');
-    vi.doUnmock('@sentry/rollup-plugin');
+    vi.doUnmock('@sentry/bundler-plugins/vite');
+    vi.doUnmock('@sentry/bundler-plugins/rollup');
   });
 
   beforeEach(() => {
@@ -104,6 +104,17 @@ describe('setupSourceMaps hooks', () => {
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      expect(mockAddVitePlugin).not.toHaveBeenCalled();
+    });
+
+    it('does not add plugins when source maps are disabled via `sourcemaps.disable`', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ sourcemaps: { disable: true } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
 
       expect(mockAddVitePlugin).not.toHaveBeenCalled();

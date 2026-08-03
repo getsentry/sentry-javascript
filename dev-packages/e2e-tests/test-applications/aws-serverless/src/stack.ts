@@ -61,7 +61,6 @@ export class LocalLambdaStack extends Stack {
         { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
         { dir: 'node', name: '@sentry/node' },
         { dir: 'core', name: '@sentry/core' },
-        { dir: 'node-core', name: '@sentry/node-core' },
         { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
         { dir: 'server-utils', name: '@sentry/server-utils' },
       ];
@@ -113,6 +112,7 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
+              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },

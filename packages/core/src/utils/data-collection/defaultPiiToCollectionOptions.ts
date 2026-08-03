@@ -15,7 +15,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         cookies: true,
         httpHeaders: { request: true, response: true },
         httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-        queryParams: true,
+        urlQueryParams: true,
         graphQL: { document: true, variables: true },
         genAI: { inputs: true, outputs: true },
         databaseQueryData: true,
@@ -26,12 +26,13 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): Resolve
         userInfo: false,
         cookies: { deny: PII_HEADER_SNIPPETS },
         httpHeaders: { request: { deny: PII_HEADER_SNIPPETS }, response: { deny: PII_HEADER_SNIPPETS } },
-        httpBodies: [],
-        queryParams: { deny: PII_HEADER_SNIPPETS },
+        // Request bodies were governed by maxRequestBodySize, not sendDefaultPii, so preserve that behavior.
+        httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
+        urlQueryParams: { deny: PII_HEADER_SNIPPETS },
         // The GraphQL document has literal values redacted at collection time, so it was historically
         // always attached regardless of `sendDefaultPii`; keep it on to preserve that behavior.
         graphQL: { document: true, variables: true },
-        genAI: { inputs: false, outputs: false },
+        genAI: { inputs: true, outputs: true },
         // Database query values were only sent with `sendDefaultPii: true` (e.g. Supabase gated on it),
         // so map the legacy "off" state to `false`.
         databaseQueryData: false,

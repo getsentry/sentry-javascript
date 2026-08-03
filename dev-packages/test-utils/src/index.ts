@@ -11,6 +11,7 @@ export {
   waitForStreamedSpan,
   waitForStreamedSpans,
   waitForStreamedSpanEnvelope,
+  collectStreamedSpans,
   getSpanOp,
 } from './event-proxy-server';
 

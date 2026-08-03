@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const kafkajsConfig = [
   {
@@ -21,7 +22,11 @@ export const kafkajsConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const kafkajsModuleNames = getModuleNames(kafkajsConfig);
+
 export const kafkajsChannels = {
   KAFKAJS_SEND_BATCH: 'orchestrion:kafkajs:send_batch',
   KAFKAJS_CONSUMER_RUN: 'orchestrion:kafkajs:consumer_run',
 } as const;
+
+export const kafkajsSubscribeInjection = toSubscribeInjections(kafkajsConfig);

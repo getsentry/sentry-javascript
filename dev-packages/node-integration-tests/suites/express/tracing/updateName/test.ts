@@ -12,24 +12,7 @@ describe('express tracing - updateName', () => {
     // This test documents the unfortunate behaviour of using `span.updateName` on the server-side.
     // For http.server root spans (which is the root span on the server 99% of the time), Otel's http instrumentation
     // calls `span.updateName` and overwrites whatever the name was set to before (by us or by users).
-    test("calling just `span.updateName` doesn't update the final name in express (missing source)", async () => {
-      const runner = createRunner()
-        .expect({
-          transaction: {
-            transaction: 'GET /test/:id/span-updateName',
-            transaction_info: {
-              source: 'route',
-            },
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/test/123/span-updateName');
-      await runner.completed();
-    });
-
-    // Also calling `updateName` AND setting a source doesn't change anything - Otel has no concept of source, this is sentry-internal.
-    // Therefore, only the source is updated but the name is still overwritten by Otel.
-    test('calling `span.updateName` and setting attribute source updates the final name in express', async () => {
+    test('calling just `span.updateName` updates the final name in express', async () => {
       const runner = createRunner()
         .expect({
           transaction: {
@@ -40,7 +23,7 @@ describe('express tracing - updateName', () => {
           },
         })
         .start();
-      runner.makeRequest('get', '/test/123/span-updateName-source');
+      runner.makeRequest('get', '/test/123/span-updateName');
       await runner.completed();
     });
 

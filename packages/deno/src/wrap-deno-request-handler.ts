@@ -1,4 +1,6 @@
+import type { Integration, MaxRequestBodySize } from '@sentry/core';
 import {
+  captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
   getClient,
@@ -78,6 +80,15 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
     });
+
+    const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
+      'DenoServe',
+    )?.maxRequestBodySize;
+    const effectiveBodySize =
+      configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+    if (request.method !== 'GET' && effectiveBodySize !== 'none') {
+      await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+    }
 
     return continueTrace(
       {

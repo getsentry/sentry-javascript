@@ -1,8 +1,10 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
+import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
@@ -34,6 +36,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           sourcemaps,
           // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
           // release,
+          buildTimeInstrumentation,
           bundleSizeOptimizations,
           applicationKey,
           unstable_sentryVitePluginOptions,
@@ -167,6 +170,19 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
 
+        // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
+        // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
+        // build time, with no manual plugin setup. The plugin opts out internally when
+        // `buildTimeInstrumentation` is `false`.
+        // TODO: Cloudflare/workerd needs different wiring — skipped for now.
+        if (sdkEnabled.server && !isCloudflare) {
+          updateConfig({
+            vite: {
+              plugins: [sentryOrchestrionPlugin({ buildTimeInstrumentation }) as VitePlugin],
+            },
+          });
+        }
+
         if (isCloudflare) {
           try {
             const _require = createRequire(`${process.cwd()}/`);
@@ -235,11 +251,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
-        // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
-        // Users on older versions of astro will need to add the middleware manually.
-        const supportsAddMiddleware = typeof addMiddleware === 'function';
-
-        if (supportsAddMiddleware && isSSR && shouldAddMiddleware) {
+        if (isSSR && shouldAddMiddleware) {
           addMiddleware({
             order: 'pre',
             entrypoint: '@sentry/astro/middleware',

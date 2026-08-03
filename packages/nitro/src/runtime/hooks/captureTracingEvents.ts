@@ -1,4 +1,6 @@
 import * as dc from 'node:diagnostics_channel';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_HTTP_SERVER_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import {
   isObjectLike,
   getActiveSpan,
@@ -8,15 +10,16 @@ import {
   GLOBAL_OBJ,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   type Span,
   startInactiveSpan,
-  updateSpanName,
 } from '@sentry/core';
-import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
+import {
+  bindTracingChannelToSpan,
+  setHttpServerSpanRouteAttribute,
+  type TracingChannelPayloadWithSpan,
+} from '@sentry/server-utils';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
@@ -105,7 +108,7 @@ function setupH3TracingChannels(): void {
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data?.type === 'middleware' ? 'middleware.nitro' : 'http.server',
+          [SENTRY_OP]: data?.type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : WEB_SERVER_HTTP_SERVER_SPAN_OP,
         },
       });
 
@@ -127,17 +130,9 @@ function setupH3TracingChannels(): void {
         // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
         // Note: data.type is always 'middleware' here regardless of handler type, so we rely on
         // getParameterizedRoute() to filter out catch-all routes instead.
-        const rootSpan = getRootSpan(span);
-        if (rootSpan && rootSpan !== span) {
-          const routePattern = getParameterizedRoute(data.event);
-          if (routePattern) {
-            const method = data.event.req.method || 'GET';
-            updateSpanName(rootSpan, `${method} ${routePattern}`);
-            rootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              'http.route': routePattern,
-            });
-          }
+        const routePattern = getParameterizedRoute(data.event);
+        if (routePattern) {
+          setHttpServerSpanRouteAttribute(routePattern);
         }
       },
     },
@@ -178,7 +173,7 @@ function setupSrvxTracingChannels(): void {
           ...urlAttributes,
           ...headerAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data.middleware ? 'middleware.nitro' : 'http.server',
+          [SENTRY_OP]: data.middleware ? WEB_SERVER_MIDDLEWARE_SPAN_OP : WEB_SERVER_HTTP_SERVER_SPAN_OP,
           'server.port': data.server.options.port,
         },
         // Use the same parent span as middleware to make them siblings
@@ -217,7 +212,7 @@ function setupSrvxTracingChannels(): void {
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+          [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
         },
         parentSpan: requestParentSpans.get(data.request) || undefined,
       });
@@ -234,20 +229,17 @@ function setupSrvxTracingChannels(): void {
  * Sets the parameterized route attributes on the span.
  */
 function setParameterizedRouteAttributes(span: Span, event: H3TracingRequestEvent['event']): void {
-  const rootSpan = getRootSpan(span);
-  if (!rootSpan) {
-    return;
-  }
-
   const matchedRoutePath = getParameterizedRoute(event);
   if (!matchedRoutePath) {
     return;
   }
 
-  rootSpan.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-    'http.route': matchedRoutePath,
-  });
+  setHttpServerSpanRouteAttribute(matchedRoutePath);
+
+  const rootSpan = getRootSpan(span);
+  if (!rootSpan) {
+    return;
+  }
 
   const params = event.context?.params;
 

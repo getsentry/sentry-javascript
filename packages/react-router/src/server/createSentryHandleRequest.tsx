@@ -145,6 +145,5 @@ export function createSentryHandleRequest(
   };
 
   // Wrap the handle request function for request parametrization
-  return wrapSentryHandleRequest(handleRequest as HandleRequestWithoutMiddleware) as HandleRequestWithoutMiddleware &
-    HandleRequestWithMiddleware;
+  return wrapSentryHandleRequest(handleRequest) as HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
 }

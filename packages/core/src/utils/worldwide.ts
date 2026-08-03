@@ -12,6 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { Integration } from '../types/integration';
 import type { Carrier } from '../carrier';
 import type { SdkSource } from './env';
 
@@ -53,7 +54,6 @@ export type InternalGlobal = {
    * Keys are `error.stack` strings, values are the metadata.
    */
   _sentryModuleMetadata?: Record<string, any>;
-  _sentryEsmLoaderHookRegistered?: boolean;
   _sentryWrappedDepth?: number;
   /**
    * Orchestrion bundler and runtime detection.
@@ -63,6 +63,24 @@ export type InternalGlobal = {
     runtime?: string[];
     /** Empty array signifies bundler plugin ran */
     bundler?: string[];
+    /**
+     * Channel-subscriber integration factories a bundler plugin's
+     * subscribe-injection stored here, keyed by export name (one per instrumented
+     * package actually bundled; the key dedupes packages split across several
+     * files). A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * `init()` and instantiates them.
+     */
+    integrations?: Map<string, () => Integration>;
+    /**
+     * Bridge installed at `init()` by `registerDiagnosticsChannelInjection`.
+     * The bundler's `injectDiagnostics` boot banner calls it for each
+     * transformed module, emitting the `orchestrion.module-runtime-injected`
+     * client event so channel integrations subscribe for force-bundled modules
+     * (which the runtime module hook never sees). Absent on bundler-only
+     * runtimes (e.g. `@sentry/cloudflare`), where the banner's call is a
+     * guarded no-op.
+     */
+    onInject?: (moduleName: string) => void;
   };
 } & Carrier;
 

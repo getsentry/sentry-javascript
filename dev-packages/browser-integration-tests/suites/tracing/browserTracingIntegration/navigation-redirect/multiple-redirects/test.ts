@@ -64,6 +64,7 @@ sentryTest(
         description: expect.stringContaining('/sub-page-redirect-'),
         op: 'navigation.redirect',
         origin: 'auto.navigation.browser',
+        status: 'ok',
         parent_span_id: pageloadRequest.contexts!.trace!.span_id,
         span_id: expect.any(String),
         start_timestamp: expect.any(Number),

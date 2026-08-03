@@ -5,7 +5,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // The span origin depends on which instrumentation is active. When the generic orchestrion run is
 // enabled (via INJECT_ORCHESTRION) the OTel `Dataloader` integration is swapped for the
 // diagnostics-channel one, which stamps a different origin.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.dataloader' : 'auto.db.otel.dataloader';
+const ORIGIN = isOrchestrionEnabled() ? 'auto.db.dataloader' : 'auto.db.otel.dataloader';
 const CACHE_GET_OP = 'cache.get';
 
 describe('dataloader auto-instrumentation', () => {
@@ -29,15 +29,17 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.status).toBe('ok');
             expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
             // A direct operation is a client call; the deferred `batch` below gets no kind
-            expect(loadSpan?.data?.['otel.kind']).toBe('CLIENT');
+            expect(loadSpan?.data?.['sentry.kind']).toBe('client');
 
             const batchSpan = spans.find(span => span.description === 'dataloader.batch');
             expect(batchSpan).toBeDefined();
             expect(batchSpan?.op).toBe(CACHE_GET_OP);
             expect(batchSpan?.origin).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
-            expect(batchSpan?.data?.['otel.kind']).toBeUndefined();
+            expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
+            expect(batchSpan?.data?.['sentry.kind']).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
             expect(batchSpan?.links).toEqual([
@@ -64,6 +66,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadManySpan?.status).toBe('ok');
             expect(loadManySpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadManySpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.data?.['cache.key']).toEqual(['user-1', 'user-2']);
           },
         })
         .expect({

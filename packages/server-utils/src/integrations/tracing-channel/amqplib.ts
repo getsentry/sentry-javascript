@@ -3,15 +3,13 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,
-  debug,
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 // eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
 import {
@@ -23,11 +21,13 @@ import {
   NET_PEER_PORT,
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../debug-build';
+import { amqplibModuleNames } from '../../orchestrion/config/amqplib';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
@@ -35,8 +35,8 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // When enabled, the OTel 'Amqplib' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Amqplib' as const;
 
-const PUBLISHER_ORIGIN = 'auto.amqplib.orchestrion.publisher';
-const CONSUMER_ORIGIN = 'auto.amqplib.orchestrion.consumer';
+const PUBLISHER_ORIGIN = 'auto.amqplib.publisher';
+const CONSUMER_ORIGIN = 'auto.amqplib.consumer';
 
 // Legacy messaging semantic-conventions, inlined to keep this integration free of `@opentelemetry/*`
 // deps. These mirror what the vendored OTel amqplib instrumentation has always emitted. We keep
@@ -156,35 +156,23 @@ interface AmqpConnectContext {
 
 const NOOP = (): void => {};
 
-// Guards against subscribing to the amqplib channels more than once in a process. Core dedupes
-// `setupOnce` by integration *name*, which is not enough here: the Deno SDK wraps this integration
-// under a different name (`DenoAmqplib`) via `extendIntegration`, so adding both would otherwise run
-// the subscribe logic twice and emit duplicate spans for every operation.
-let subscribed = false;
-
-const _amqplibChannelIntegration = (() => {
+const _amqplibIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      DEBUG_BUILD && debug.log('[orchestrion:amqplib] subscribing to amqplib tracing channels');
-
-      waitForTracingChannelBinding(() => {
-        subscribeConnect();
-        subscribePublish();
-        subscribeConfirmPublish();
-        subscribeConsume();
-        subscribeDispatch();
-        subscribeSettle();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, amqplibModuleNames, instrumentAmqplib, []);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentAmqplib(): void {
+  subscribeConnect();
+  subscribePublish();
+  subscribeConfirmPublish();
+  subscribeConsume();
+  subscribeDispatch();
+  subscribeSettle();
+}
 
 /**
  * Producer span for `Channel.prototype.publish`. Creates a PRODUCER span, injects the trace headers
@@ -475,8 +463,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
     op: 'message',
-    kind: SPAN_KIND.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: exchange,
@@ -513,8 +501,9 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
   return startInactiveSpan({
     name: `${queue} process`,
     op: 'message',
-    kind: SPAN_KIND.CONSUMER,
     attributes: {
+      [SENTRY_KIND]: 'consumer',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,
@@ -644,10 +633,10 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `amqplib` integration.
+ * Orchestrion-driven `amqplib` integration.
  *
  * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that the orchestrion code transform
  * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or
  * bundler plugin to be active.
  */
-export const amqplibChannelIntegration = defineIntegration(_amqplibChannelIntegration);
+export const amqplibIntegration = defineIntegration(_amqplibIntegration);

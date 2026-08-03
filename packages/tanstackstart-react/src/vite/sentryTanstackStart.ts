@@ -1,4 +1,5 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeRoutePatternPlugin } from './routePatterns';
@@ -95,6 +96,11 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
+
+  // Runs the orchestrion code transform over the server bundle so instrumented DB drivers get
+  // `diagnostics_channel` publishers injected. Production-only: it force-bundles the instrumented
+  // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
+  plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
   plugins.push(...makeAddSentryVitePlugin(options));
 

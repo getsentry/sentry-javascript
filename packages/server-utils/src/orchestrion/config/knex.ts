@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { toSubscribeInjections } from './subscribe-injection';
 
 const MODULE_NAME = 'knex';
 
@@ -51,3 +52,5 @@ export const knexChannels = {
   KNEX_SCHEMA_BUILDER: 'orchestrion:knex:schemaBuilder',
   KNEX_RAW: 'orchestrion:knex:raw',
 } as const;
+
+export const knexSubscribeInjection = toSubscribeInjections(knexConfig);

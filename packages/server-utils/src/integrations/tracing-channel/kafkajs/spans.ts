@@ -6,8 +6,7 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
  * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
  * - Span builders migrated to the `@sentry/core` span API. Kept byte-identical in span name/attributes
- *   for parity with the OTel integration this replaces; only the origin changes to
- *   `auto.kafkajs.orchestrion.*` to mark the injection path.
+ *   for parity with the OTel integration this replaces.
  */
 
 import {
@@ -16,13 +15,13 @@ import {
   MESSAGING_OPERATION_NAME,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
   propagationContextFromHeaders,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -38,8 +37,8 @@ import {
   MESSAGING_SYSTEM_VALUE_KAFKA,
 } from './semconv';
 
-const PRODUCER_ORIGIN = 'auto.kafkajs.orchestrion.producer';
-const CONSUMER_ORIGIN = 'auto.kafkajs.orchestrion.consumer';
+const PRODUCER_ORIGIN = 'auto.kafkajs.producer';
+const CONSUMER_ORIGIN = 'auto.kafkajs.consumer';
 
 // `@opentelemetry/api` `TraceFlags`, inlined to avoid an OTel dep: SAMPLED = 0x1, NONE = 0x0.
 const TRACE_FLAG_SAMPLED = 1;
@@ -104,9 +103,9 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
     name: `${operationName} ${topic}`,
     // todo(v11): Use https://getsentry.github.io/sentry-conventions/ops/#messaging
     op: 'message',
-    kind: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? SPAN_KIND.CLIENT : SPAN_KIND.CONSUMER,
     links,
     attributes: {
+      [SENTRY_KIND]: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? 'client' : 'consumer',
       ...attributes,
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
@@ -127,8 +126,8 @@ export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
     op: 'message',
-    kind: SPAN_KIND.PRODUCER,
     attributes: {
+      [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
       [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,

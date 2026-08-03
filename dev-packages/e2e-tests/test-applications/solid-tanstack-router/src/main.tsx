@@ -97,6 +97,7 @@ declare module '@tanstack/solid-router' {
 declare const __APP_DSN__: string;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: __APP_DSN__,
   debug: true,
   environment: 'qa', // dynamic sampling bias to keep transactions

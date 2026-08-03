@@ -19,13 +19,12 @@ import {
   getActiveSpan,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
-import { DB_SYSTEM } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, SENTRY_KIND } from '@sentry/conventions/attributes';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -105,6 +104,11 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
  * engine name. v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits `prisma:client:db_query`.
  */
 function buildSpanName(name: string, attributes: SpanAttributes): string {
+  // oxlint-disable-next-line typescript/no-deprecated
+  const dbStatement = attributes[DB_STATEMENT];
+  if (typeof dbStatement === 'string' && dbStatement) {
+    return dbStatement;
+  }
   const queryText = attributes['db.query.text'];
   if ((name === 'prisma:engine:db_query' || name === 'prisma:client:db_query') && typeof queryText === 'string') {
     return queryText;
@@ -135,8 +139,10 @@ function createResolvedEngineSpans(): void {
       const attributes = buildSpanAttributes(engineSpan.name, engineSpan.attributes);
       const span = startInactiveSpan({
         name: buildSpanName(engineSpan.name, attributes),
-        attributes,
-        kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
+        attributes: {
+          ...attributes,
+          [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,
+        },
         startTime: engineSpan.start_time,
         parentSpan,
       });
@@ -235,7 +241,7 @@ export class ActiveTracingHelper implements TracingHelper {
 
     const parentSpan = getActiveSpan();
 
-    const attributes = buildSpanAttributes(name, options.attributes as Record<string, unknown> | undefined);
+    const attributes = buildSpanAttributes(name, options.attributes);
     const spanOptions = {
       name: buildSpanName(name, attributes),
       attributes,
@@ -275,8 +281,10 @@ function dispatchEngineSpan(
   startSpanManual(
     {
       name: buildSpanName(engineSpan.name, attributes),
-      attributes,
-      kind: engineSpan.kind === 'client' ? SPAN_KIND.CLIENT : SPAN_KIND.INTERNAL,
+      attributes: {
+        ...attributes,
+        [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,
+      },
       startTime: engineSpan.startTime,
     },
     span => {

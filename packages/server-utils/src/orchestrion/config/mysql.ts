@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const mysqlConfig = [
   {
@@ -8,6 +9,10 @@ export const mysqlConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const mysqlModuleNames = getModuleNames(mysqlConfig);
+
 export const mysqlChannels = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
 } as const;
+
+export const mysqlSubscribeInjection = toSubscribeInjections(mysqlConfig);

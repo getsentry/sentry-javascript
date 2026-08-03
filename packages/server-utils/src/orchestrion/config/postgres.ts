@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // postgres.js (`postgres` npm package, v3.x). Named after the npm package;
 // `postgres` doesn't collide with `pg.ts` (that file instruments `pg`/`pg-pool`).
@@ -47,9 +48,13 @@ const postgresJsInstrumentationConfig = (dir: string): InstrumentationConfig[] =
 
 export const postgresJsConfig = ['src', 'cjs/src'].flatMap(postgresJsInstrumentationConfig);
 
+export const postgresJsModuleNames = getModuleNames(postgresJsConfig);
+
 export const postgresJsChannels = {
   POSTGRESJS_HANDLE: 'orchestrion:postgres:handle',
   POSTGRESJS_CONNECTION: 'orchestrion:postgres:connection',
   POSTGRESJS_EXECUTE: 'orchestrion:postgres:execute',
   POSTGRESJS_CONNECT: 'orchestrion:postgres:connect',
 } as const;
+
+export const postgresJsSubscribeInjection = toSubscribeInjections(postgresJsConfig);

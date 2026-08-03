@@ -7,7 +7,7 @@ describe('resolveDataCollectionOptions', () => {
     cookies: true,
     httpHeaders: { request: true, response: true },
     httpBodies: ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse'],
-    queryParams: true,
+    urlQueryParams: true,
     graphQL: { document: true, variables: true },
     genAI: { inputs: true, outputs: true },
     databaseQueryData: true,
@@ -16,14 +16,12 @@ describe('resolveDataCollectionOptions', () => {
   };
 
   describe('with no options', () => {
-    it('falls through to sendDefaultPii: undefined bridge when neither option is set', () => {
+    it('uses restrictive defaults when dataCollection is not set', () => {
       const result = resolveDataCollectionOptions({});
 
-      // sendDefaultPii undefined → restrictive bridge (backward compat; userInfo defaults to true only when dataCollection is set)
       expect(result.userInfo).toBe(false);
-      expect(result.httpBodies).toEqual([]);
-      expect(result.genAI).toEqual({ inputs: false, outputs: false });
-      // GraphQL documents are redacted at collection time, so they stay on to preserve legacy behavior.
+      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
+      expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.databaseQueryData).toBe(false);
       expect(result.stackFrameVariables).toBe(true);
@@ -41,41 +39,11 @@ describe('resolveDataCollectionOptions', () => {
     });
   });
 
-  describe('sendDefaultPii bridge (no dataCollection)', () => {
-    it('bridges sendDefaultPii: true to permissive config', () => {
-      const result = resolveDataCollectionOptions({ sendDefaultPii: true });
-
-      expect(result.userInfo).toBe(true);
-      expect(result.cookies).toBe(true);
-      expect(result.httpHeaders).toEqual({ request: true, response: true });
-      expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
-      expect(result.queryParams).toBe(true);
-      expect(result.graphQL).toEqual({ document: true, variables: true });
-      expect(result.genAI).toEqual({ inputs: true, outputs: true });
-      expect(result.databaseQueryData).toBe(true);
-    });
-
-    it('bridges sendDefaultPii: false to restrictive config', () => {
-      const result = resolveDataCollectionOptions({ sendDefaultPii: false });
+  describe('dataCollection options', () => {
+    it('uses spec defaults for fields that are not explicitly set', () => {
+      const result = resolveDataCollectionOptions({ dataCollection: { userInfo: false } });
 
       expect(result.userInfo).toBe(false);
-      expect(result.httpBodies).toEqual([]);
-      expect(result.genAI).toEqual({ inputs: false, outputs: false });
-      expect(result.graphQL).toEqual({ document: true, variables: true });
-      expect(result.databaseQueryData).toBe(false);
-    });
-  });
-
-  describe('dataCollection takes precedence over sendDefaultPii', () => {
-    it('uses dataCollection fields when both are set', () => {
-      const result = resolveDataCollectionOptions({
-        sendDefaultPii: true,
-        dataCollection: { userInfo: false },
-      });
-
-      // Explicit dataCollection override
-      expect(result.userInfo).toBe(false);
-      // Remaining fields use spec defaults (not sendDefaultPii bridge)
       expect(result.httpBodies).toEqual(['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']);
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.databaseQueryData).toBe(true);
@@ -96,7 +64,7 @@ describe('resolveDataCollectionOptions', () => {
       // Everything else is spec default
       expect(result.cookies).toBe(true);
       expect(result.httpHeaders).toEqual({ request: true, response: true });
-      expect(result.queryParams).toBe(true);
+      expect(result.urlQueryParams).toBe(true);
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
       expect(result.databaseQueryData).toBe(true);
@@ -147,14 +115,14 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.cookies).toEqual({ deny: ['x-custom'] });
     });
 
-    it('supports turning off query params', () => {
+    it('supports turning off URL query params', () => {
       const result = resolveDataCollectionOptions({
         dataCollection: {
-          queryParams: false,
+          urlQueryParams: false,
         },
       });
 
-      expect(result.queryParams).toBe(false);
+      expect(result.urlQueryParams).toBe(false);
     });
 
     it('supports turning off database query data', () => {
@@ -165,6 +133,28 @@ describe('resolveDataCollectionOptions', () => {
       });
 
       expect(result.databaseQueryData).toBe(false);
+    });
+
+    it('supports allow/deny list for stack frame variables', () => {
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { allow: ['user'] } } })
+          .stackFrameVariables,
+      ).toEqual({ allow: ['user'] });
+
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { deny: ['password'] } } })
+          .stackFrameVariables,
+      ).toEqual({ deny: ['password'] });
+    });
+
+    it('supports turning off stack frame variables', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          stackFrameVariables: false,
+        },
+      });
+
+      expect(result.stackFrameVariables).toBe(false);
     });
   });
 
@@ -179,7 +169,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result).toHaveProperty('httpHeaders.request');
       expect(result).toHaveProperty('httpHeaders.response');
       expect(result).toHaveProperty('httpBodies');
-      expect(result).toHaveProperty('queryParams');
+      expect(result).toHaveProperty('urlQueryParams');
       expect(result).toHaveProperty('graphQL');
       expect(result).toHaveProperty('graphQL.document');
       expect(result).toHaveProperty('graphQL.variables');

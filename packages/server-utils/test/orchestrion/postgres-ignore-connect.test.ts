@@ -1,14 +1,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope } from '@sentry/core';
+import type { Client, Scope } from '@sentry/core';
 import {
   _INTERNAL_setSpanForScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
+  GLOBAL_OBJ,
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { postgresChannelIntegration } from '../../src/orchestrion';
+import { postgresIntegration } from '../../src/orchestrion';
 import { CHANNELS } from '../../src/orchestrion/channels';
 
 interface TestStore {
@@ -64,17 +65,22 @@ function installTestAsyncContextStrategy(): void {
 // integration in the same module context has subscribed. vitest isolates
 // module state per file, so this file keeps that assertion clean (the default
 // options integration is exercised in `postgres.test.ts`).
-describe('postgresChannelIntegration({ ignoreConnectSpans: true })', () => {
+describe('postgresIntegration({ ignoreConnectSpans: true })', () => {
   beforeAll(() => {
     installTestAsyncContextStrategy();
+    // Mark `pg` injected so the integration's lazy `setup` subscribes right away.
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['pg', 'pg-pool'] };
   });
 
   afterAll(() => {
     setAsyncContextStrategy(undefined);
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
   });
 
   it('subscribes to the query channel but NOT the connect / pool-connect channels', () => {
-    postgresChannelIntegration({ ignoreConnectSpans: true }).setupOnce?.();
+    postgresIntegration({ ignoreConnectSpans: true }).setup?.({
+      on: () => () => undefined,
+    } as unknown as Client);
 
     expect(tracingChannel(CHANNELS.PG_QUERY).start.hasSubscribers).toBe(true);
     expect(tracingChannel(CHANNELS.PG_CONNECT).start.hasSubscribers).toBe(false);

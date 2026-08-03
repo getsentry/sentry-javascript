@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const hapiConfig = [
   // hapi's `route`/`ext` live on an anonymous class (`internals.Server = class {}`),
@@ -17,7 +18,11 @@ export const hapiConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const hapiModuleNames = getModuleNames(hapiConfig);
+
 export const hapiChannels = {
   HAPI_ROUTE: 'orchestrion:@hapi/hapi:route',
   HAPI_EXT: 'orchestrion:@hapi/hapi:ext',
 } as const;
+
+export const hapiSubscribeInjection = toSubscribeInjections(hapiConfig);

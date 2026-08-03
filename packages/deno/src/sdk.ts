@@ -11,21 +11,37 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import {
+  amqplibIntegration,
+  anthropicIntegration,
+  awsIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlDiagnosticsIntegration,
+  hapiIntegration,
+  kafkajsIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongodbIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openaiIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAiIntegration,
+} from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
-import {
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  MODULE_REGISTER_HOOKS_SUPPORTED,
-  TRACING_CHANNEL_SUPPORTED,
-} from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoAmqplibIntegration } from './integrations/amqplib';
-import { denoMysqlIntegration } from './integrations/mysql';
-import { denoPostgresIntegration } from './integrations/postgres';
 import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -49,21 +65,37 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     breadcrumbsIntegration(),
     denoContextIntegration(),
     denoServeIntegration(),
-    // node:http client diagnostics channels fire on Deno 2.7.13+
-    // server channels arrive at 2.8.0+
-    // Include in defaults if at least one is available
-    ...(HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED || HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED
-      ? [denoHttpIntegration()]
-      : []),
-    // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
-    ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
-    // orchestrion-based instrumentations.
-    // It's possible that the orchestrion channels will be injected AFTER
-    // (or in parallel to) loading the SDK, so we only gate on whether the
-    // feature is possible. If they're never loaded, it'll just be a no-op.
-    ...(MODULE_REGISTER_HOOKS_SUPPORTED
-      ? [denoMysqlIntegration(), denoPostgresIntegration(), denoAmqplibIntegration()]
-      : []),
+    denoHttpIntegration(),
+    denoRedisIntegration(),
+    graphqlDiagnosticsIntegration(),
+    vercelAiIntegration(),
+    // orchestrion-based instrumentations. We add a deliberate list here rather
+    // than every channel integration: each one needs a Deno test proving it
+    // records spans.
+    //
+    // The orchestrion channels may be injected after (or while) the SDK loads.
+    // If they never load, these are no-ops.
+    amqplibIntegration(),
+    anthropicIntegration(),
+    awsIntegration(),
+    expressIntegration(),
+    firebaseIntegration(),
+    genericPoolIntegration(),
+    googleGenAIIntegration(),
+    hapiIntegration(),
+    kafkajsIntegration(),
+    koaIntegration(),
+    langChainIntegration(),
+    langGraphIntegration(),
+    lruMemoizerIntegration(),
+    mongodbIntegration(),
+    mongooseIntegration(),
+    mysqlIntegration(),
+    mysql2Integration(),
+    openaiIntegration(),
+    postgresIntegration(),
+    postgresJsIntegration(),
+    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),

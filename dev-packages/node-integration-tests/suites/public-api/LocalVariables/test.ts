@@ -91,11 +91,11 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  test('Should include local variables when instrumenting via --require', async () => {
-    const requirePath = path.resolve(__dirname, 'local-variables-instrument.js');
+  test('Should include local variables when instrumenting via --import', async () => {
+    const instrumentPath = path.resolve(__dirname, 'local-variables-instrument.cjs');
 
     await createRunner(__dirname, 'local-variables-no-sentry.js')
-      .withFlags(`--require=${requirePath}`)
+      .withFlags(`--import=${instrumentPath}`)
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start()
       .completed();
@@ -126,6 +126,36 @@ module.exports = { out_of_app_function };`,
   test('Includes local variables for caught exceptions when enabled', async () => {
     await createRunner(__dirname, 'local-variables-caught.js')
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+      .start()
+      .completed();
+  });
+
+  test('Filters local variables by name via dataCollection.stackFrameVariables', async () => {
+    await createRunner(__dirname, 'local-variables-filtered.js')
+      .expect({
+        event: event => {
+          const frame = event.exception?.values?.[0]?.stacktrace?.frames?.find(frame => frame.function === 'one');
+
+          expect(frame?.vars).toEqual({
+            name: 'some name',
+            keepVar: 'keep me',
+            secretVar: '[Filtered]',
+          });
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('Does not attach local variables when dataCollection.stackFrameVariables is false', async () => {
+    await createRunner(__dirname, 'local-variables-disabled.js')
+      .expect({
+        event: event => {
+          for (const frame of event.exception?.values?.[0]?.stacktrace?.frames || []) {
+            expect(frame.vars).toBeUndefined();
+          }
+        },
+      })
       .start()
       .completed();
   });

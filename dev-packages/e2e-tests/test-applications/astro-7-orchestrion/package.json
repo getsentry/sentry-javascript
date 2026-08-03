@@ -18,13 +18,12 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
     "astro": "^7.0.6",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.5.0"
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1"
   },
   "volta": {
     "node": "22.22.0",

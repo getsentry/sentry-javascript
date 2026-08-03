@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-combination-entrypoint-do-manual-mixed",
+  // `main` points at the source entry; the Sentry Vite plugin builds from it (so
+  // the auto-instrument transform runs) and the runner serves the built output.
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  // Self-service-binding: the worker binds to its own named `WorkerEntrypoint`
+  // export, so the auto-instrument transform can identify and wrap it.
+  "services": [
+    {
+      "binding": "SELF",
+      "service": "cloudflare-vite-autoinstrument-combination-entrypoint-do-manual-mixed",
+      "entrypoint": "GreeterEntrypoint",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+}

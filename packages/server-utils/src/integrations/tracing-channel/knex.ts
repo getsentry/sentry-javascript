@@ -9,7 +9,6 @@ import {
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -24,6 +23,7 @@ import {
   NET_PEER_NAME,
   NET_PEER_PORT,
   NET_TRANSPORT,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -32,7 +32,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
 const INTEGRATION_NAME = 'Knex' as const;
-const ORIGIN = 'auto.db.orchestrion.knex';
+const ORIGIN = 'auto.db.knex';
 
 // Max length of the query text captured in `db.statement`; "..." is appended when truncated, so the
 // truncated statement caps at 1024 chars (1 KiB), matching `@opentelemetry/instrumentation-knex`.
@@ -100,7 +100,7 @@ interface KnexBuilderChannelContext {
   result?: KnexBuilder;
 }
 
-const _knexChannelIntegration = (() => {
+const _knexIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -166,7 +166,9 @@ function subscribeQuery(): void {
       const name =
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
 
+      const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       const attributes: SpanAttributes = {
+        [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM]: mapSystem(client?.driverName),
@@ -177,12 +179,11 @@ function subscribeQuery(): void {
         [NET_PEER_NAME]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [NET_PEER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NET_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_STATEMENT]: query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
+        [DB_STATEMENT]: dbStatement,
       };
 
       return startInactiveSpan({
-        name: getName(name, operation, table) ?? 'knex.query',
-        kind: SPAN_KIND.CLIENT,
+        name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
         op: 'db',
         parentSpan,
         attributes,
@@ -264,7 +265,7 @@ function getName(db: string | undefined, operation?: string, table?: string): st
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
   const table = builder?._single?.table;
   if (table && typeof table === 'object') {
-    return extractTableName(table as KnexBuilder);
+    return extractTableName(table);
   }
   return typeof table === 'string' ? table : undefined;
 }
@@ -305,10 +306,10 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
 }
 
 /**
- * EXPERIMENTAL - orchestrion-driven knex integration.
+ * Orchestrion-driven knex integration.
  *
  * Subscribes to the `orchestrion:knex:*` diagnostics_channels that the orchestrion code transform
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span
  * bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
  */
-export const knexChannelIntegration = defineIntegration(_knexChannelIntegration);
+export const knexIntegration = defineIntegration(_knexIntegration);

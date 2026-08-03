@@ -19,6 +19,7 @@ import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
+import { spanStreamingIntegration } from './integrations/spanstreaming';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
@@ -110,14 +111,22 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   }
   /*! rollup-include-development-only-end */
 
+  const integrations = getIntegrationsToSetup({
+    integrations: options.integrations,
+    defaultIntegrations,
+  });
+
+  options.traceLifecycle ??= 'stream';
+
+  if (options.traceLifecycle === 'stream' && !integrations.some(integration => integration.name === 'SpanStreaming')) {
+    integrations.push(spanStreamingIntegration());
+  }
+
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup({
-      integrations: options.integrations,
-      defaultIntegrations,
-    }),
+    integrations,
     transport: options.transport || makeFetchTransport,
   };
 

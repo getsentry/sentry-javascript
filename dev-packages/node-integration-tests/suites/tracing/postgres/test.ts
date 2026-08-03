@@ -7,11 +7,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
     cleanupChildProcesses();
   });
 
-  // The query-span origin depends on which instrumentation is active. The blocks below drive the SDK's
-  // default integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
-  // `Postgres` integration is swapped for the diagnostics-channel one, changing the origin. Blocks that pass
-  // an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin and don't use this.
-  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
+  // `postgresIntegration()` is the diagnostics-channel implementation by default, so query spans carry
+  // the orchestrion origin.
+  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.postgres' : 'auto.db.otel.postgres';
 
   describe('default', () => {
     const EXPECTED_TRANSACTION = {
@@ -107,26 +105,26 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       'db.system': 'postgresql',
                       'db.name': 'tests',
                       'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
                     description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                     op: 'db',
                     status: 'ok',
-                    origin: 'auto.db.otel.postgres',
+                    origin: QUERY_ORIGIN,
                   }),
                   expect.objectContaining({
                     data: expect.objectContaining({
                       'db.system': 'postgresql',
                       'db.name': 'tests',
                       'db.statement': 'SELECT * FROM "User"',
-                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
                     description: 'SELECT * FROM "User"',
                     op: 'db',
                     status: 'ok',
-                    origin: 'auto.db.otel.postgres',
+                    origin: QUERY_ORIGIN,
                   }),
                 ]),
               });
@@ -335,13 +333,12 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
     );
   });
 
-  // Orchestrion (diagnostics-channel) variant: the same scenarios opted into
-  // `experimentalUseDiagnosticsChannelInjection()`. Produces the same spans as
-  // the OTel path, except the query origin reports the mechanism
-  // (`auto.db.orchestrion.postgres`); connect/pool-connect spans stay 'manual'
-  // (mirroring OTel — those spans never set an origin).
+  // Orchestrion (diagnostics-channel) coverage via a dedicated instrument file. Produces the same
+  // spans as the OTel path did, except the query origin reports the mechanism
+  // (`auto.db.postgres`); connect/pool-connect spans stay 'manual' (those spans never set
+  // an origin).
   describe('orchestrion (diagnostics-channel)', () => {
-    const ORIGIN = 'auto.db.orchestrion.postgres';
+    const ORIGIN = 'auto.db.postgres';
 
     describe('default', () => {
       const EXPECTED_TRANSACTION = {
@@ -400,19 +397,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         ]),
       };
 
-      createEsmAndCjsTests(
-        __dirname,
-        'scenario.mjs',
-        'instrument-orchestrion.mjs',
-        (createTestRunner, test) => {
-          test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
-            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-          });
-        },
-        // This block enables orchestrion itself via its instrument file, so opt out of the generic
-        // INJECT_ORCHESTRION auto-injection to avoid enabling it twice.
-        { injectOrchestrion: false },
-      );
+      createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
+        test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      });
     });
 
     describe('pool', () => {
@@ -447,18 +436,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         ]),
       };
 
-      createEsmAndCjsTests(
-        __dirname,
-        'scenario-pool.mjs',
-        'instrument-orchestrion.mjs',
-        (createTestRunner, test) => {
-          test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
-            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-          });
-        },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
-      );
+      createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
+        test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      });
     });
 
     describe('connect error', () => {
@@ -488,8 +470,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
           });
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
 
@@ -533,8 +513,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
           );
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
 
@@ -593,8 +571,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
           );
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
   });

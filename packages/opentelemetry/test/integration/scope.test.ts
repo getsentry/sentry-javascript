@@ -1,23 +1,17 @@
 import {
   captureException,
   getCapturedScopesOnSpan,
-  getClient,
   getCurrentScope,
   getIsolationScope,
   setTag,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   describe.each([
     ['with tracing', true],
     ['without tracing', false],
@@ -26,13 +20,11 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({
+      const client = mockSdkInit({
         tracesSampleRate: tracingEnabled ? 1 : 0,
         beforeSend,
         beforeSendTransaction,
       });
-
-      const client = getClient() as TestClientInterface;
 
       const rootScope = getCurrentScope();
 
@@ -53,7 +45,10 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span).scope).toBe(tracingEnabled ? scope2 : undefined);
+            // A recording root span starts a new trace, which forks the active scope, so the captured
+            // scope is a fork of `scope2`; a non-recording span captures the active scope directly.
+            // Either way it carries `scope2`'s data.
+            expect(getCapturedScopesOnSpan(span).scope?.getScopeData().tags).toEqual(scope2.getScopeData().tags);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -112,8 +107,8 @@ describe('Integration | Scope', () => {
               trace: {
                 data: {
                   'sentry.origin': 'manual',
-                  'sentry.source': 'custom',
                   'sentry.sample_rate': 1,
+                  'sentry.source': 'custom',
                 },
                 span_id: spanId,
                 status: 'ok',
@@ -130,7 +125,6 @@ describe('Integration | Scope', () => {
               tag4: 'val4',
             },
             timestamp: expect.any(Number),
-            transaction_info: { source: 'custom' },
             type: 'transaction',
           }),
           {
@@ -144,9 +138,7 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
-
-      const client = getClient() as TestClientInterface;
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -262,9 +254,8 @@ describe('Integration | Scope', () => {
       const beforeSend = vi.fn(() => null);
       const beforeSendTransaction = vi.fn(() => null);
 
-      mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
+      const client = mockSdkInit({ tracesSampleRate: tracingEnabled ? 1 : 0, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');

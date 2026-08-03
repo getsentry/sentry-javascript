@@ -1,19 +1,18 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
   bindScopeToEmitter,
-  debug,
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { pgModuleNames } from '../../orchestrion/config/pg';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, the OTel 'Postgres' integration is omitted from the default set.
@@ -21,7 +20,7 @@ const INTEGRATION_NAME = 'Postgres' as const;
 
 // Only the query span carries an origin (the connect/pool-connect spans don't,
 // so they default to 'manual').
-const ORIGIN = 'auto.db.orchestrion.postgres';
+const ORIGIN = 'auto.db.postgres';
 
 // OpenTelemetry "OLD" db/net semantic-conventions, inlined to keep this
 // integration free of `@opentelemetry/*` deps.
@@ -79,31 +78,28 @@ interface PgPoolOptions extends PgConnectionParams {
   max?: number;
 }
 
-const _postgresChannelIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
+const _postgresIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        // Query spans: `pg`/native `Client.prototype.query`. Only this channel can return a streamable
-        // `Submittable` result, so it's the only one that defers span-ending to the emitter (see below).
-        subscribeQueryLikeChannel(CHANNELS.PG_QUERY, querySpanOptions, { deferStreamedResult: true });
-
-        // Connect spans, gated by `ignoreConnectSpans` (same as OTel pg).
-        // `Client.prototype.connect` (pg + native)
-        // and `Pool.prototype.connect` (pg-pool).
-        if (!options.ignoreConnectSpans) {
-          subscribeQueryLikeChannel(CHANNELS.PG_CONNECT, connectSpanOptions);
-          subscribeQueryLikeChannel(CHANNELS.PGPOOL_CONNECT, poolConnectSpanOptions);
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, pgModuleNames, instrumentPostgres, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentPostgres(options: { ignoreConnectSpans?: boolean }): void {
+  // Query spans: `pg`/native `Client.prototype.query`. Only this channel can return a streamable
+  // `Submittable` result, so it's the only one that defers span-ending to the emitter (see below).
+  subscribeQueryLikeChannel(CHANNELS.PG_QUERY, querySpanOptions, { deferStreamedResult: true });
+
+  // Connect spans, gated by `ignoreConnectSpans` (same as OTel pg).
+  // `Client.prototype.connect` (pg + native)
+  // and `Pool.prototype.connect` (pg-pool).
+  if (!options.ignoreConnectSpans) {
+    subscribeQueryLikeChannel(CHANNELS.PG_CONNECT, connectSpanOptions);
+    subscribeQueryLikeChannel(CHANNELS.PGPOOL_CONNECT, poolConnectSpanOptions);
+  }
+}
 
 /**
  * Subscribe to a pg tracing-channel and manage a span across its lifecycle.
@@ -116,8 +112,6 @@ function subscribeQueryLikeChannel(
   getSpanOptions: (ctx: PgChannelContext) => { name: string; op: string; attributes: SpanAttributes },
   { deferStreamedResult = false }: { deferStreamedResult?: boolean } = {},
 ): void {
-  DEBUG_BUILD && debug.log(`[orchestrion:pg] subscribing to channel "${channelName}"`);
-
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<PgChannelContext>(channelName),
     data => {
@@ -126,9 +120,13 @@ function subscribeQueryLikeChannel(
       // replays this scope onto that emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      // `kind: CLIENT` mirrors the OTel pg instrumentation, so the emitted
-      // `otel.kind` matches across the OTel and diagnostics-channel paths.
-      return startInactiveSpan({ ...getSpanOptions(data), kind: SPAN_KIND.CLIENT });
+      // `sentry.kind: 'client'` mirrors the OTel pg instrumentation, so the emitted
+      // `sentry.kind` matches across the OTel and diagnostics-channel paths.
+      const spanOptions = getSpanOptions(data);
+      return startInactiveSpan({
+        ...spanOptions,
+        attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
+      });
     },
     // `connect`/`pool-connect` resolve with a persistent `Client` (itself an
     // `EventEmitter`), which is NOT a streamed result. Deferring their span
@@ -274,7 +272,7 @@ function getConnectionString(params: PgConnectionParams): string {
 }
 
 /**
- * EXPERIMENTAL: orchestrion-driven `pg` (node-postgres) integration.
+ * Orchestrion-driven `pg` (node-postgres) integration.
  *
  * Subscribes to the `orchestrion:pg:query`/`:connect` and
  * `orchestrion:pg-pool:connect` diagnostics_channels that the orchestrion code
@@ -282,4 +280,4 @@ function getConnectionString(params: PgConnectionParams): string {
  * and `pg-pool`'s `Pool.prototype.connect`. Requires the orchestrion runtime
  * hook or bundler plugin to be active.
  */
-export const postgresChannelIntegration = defineIntegration(_postgresChannelIntegration);
+export const postgresIntegration = defineIntegration(_postgresIntegration);

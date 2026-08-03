@@ -1,3 +1,4 @@
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Client, Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
@@ -63,9 +64,9 @@ describe('sentryMiddleware', () => {
             cookies: true,
             httpHeaders: { request: true, response: true },
             httpBodies: [],
-            queryParams: true,
+            urlQueryParams: true,
             graphQL: { document: true, variables: true },
-            genAI: { inputs: false, outputs: false },
+            genAI: { inputs: true, outputs: true },
             databaseQueryData: true,
             stackFrameVariables: true,
             frameContextLines: 5,
@@ -116,7 +117,8 @@ describe('sentryMiddleware', () => {
         attributes: {
           'sentry.origin': 'auto.http.astro',
           method: 'GET',
-          url: 'https://mydomain.io/users/123/details',
+          [URL_FULL]: 'https://mydomain.io/users/123/details',
+          [URL_PATH]: '/users/123/details',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
           'http.route': '/users/[id]/details',
@@ -153,7 +155,8 @@ describe('sentryMiddleware', () => {
         attributes: {
           'sentry.origin': 'auto.http.astro',
           method: 'GET',
-          url: 'http://localhost:1234/a%xx',
+          [URL_FULL]: 'http://localhost:1234/a%xx',
+          [URL_PATH]: 'a%xx',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
         },

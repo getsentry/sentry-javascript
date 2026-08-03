@@ -9,12 +9,12 @@ import {
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { makeTraceState } from '../src/utils/makeTraceState';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('SentryPropagator', () => {
   const propagator = new SentryPropagator();
@@ -28,10 +28,6 @@ describe('SentryPropagator', () => {
       tracesSampleRate: 1,
       dsn: 'https://abc@domain/123',
     });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('returns fields set', () => {
@@ -381,6 +377,48 @@ describe('SentryPropagator', () => {
               expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}/);
               expect(carrier[SENTRY_TRACE_HEADER]).not.toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92');
             });
+          },
+        );
+      });
+
+      it('preserves a frozen incoming DSC on a directly-injected unsampled remote span', () => {
+        const carrier: Record<string, string> = {};
+        context.with(
+          trace.setSpanContext(ROOT_CONTEXT, {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            // A definitively-unsampled incoming trace that froze its own DSC, including a transaction name.
+            traceState: makeTraceState({
+              sampled: false,
+              dsc: {
+                transaction: 'incoming-transaction',
+                sampled: 'false',
+                trace_id: 'd4cda95b652f4a1592b449d5929fda1b',
+                public_key: 'incoming_public_key',
+                environment: 'incoming_environment',
+                release: 'incoming_release',
+                sample_rate: '0.5',
+              },
+            }),
+          }),
+          () => {
+            propagator.inject(context.active(), carrier, defaultTextMapSetter);
+
+            // The frozen incoming DSC is immutable, so its `transaction` must survive even though the
+            // trace is unsampled — we must not strip it the way we do for a freshly-derived DSC.
+            expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+              [
+                'sentry-environment=incoming_environment',
+                'sentry-release=incoming_release',
+                'sentry-public_key=incoming_public_key',
+                'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+                'sentry-transaction=incoming-transaction',
+                'sentry-sampled=false',
+                'sentry-sample_rate=0.5',
+              ].sort(),
+            );
           },
         );
       });

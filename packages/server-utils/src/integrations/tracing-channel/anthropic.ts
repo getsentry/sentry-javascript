@@ -1,32 +1,29 @@
+import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { AnthropicAiOptions, AnthropicAiResponse, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   addAnthropicRequestAttributes,
   addAnthropicResponseAttributes,
-  debug,
   defineIntegration,
   extractAnthropicRequestAttributes,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   instrumentAsyncIterableStream,
   instrumentMessageStream,
   resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   shouldEnableTruncation,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { anthropicAiModuleNames } from '../../orchestrion/config/anthropic-ai';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
-// Same name as the OTel integration by design: when enabled, the OTel 'Anthropic_AI'
-// integration is dropped from the default set (see the Node opt-in loader).
+// Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
+// integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
 
-// Distinct from the proxy's `auto.ai.anthropic` so spans from the orchestrion path
-// are attributable separately from the OTel/proxy one.
-const ORIGIN = 'auto.ai.orchestrion.anthropic';
+const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
@@ -47,42 +44,33 @@ interface AnthropicChannelContext {
   result?: unknown;
 }
 
-let subscribed = false;
-
-const _anthropicChannelIntegration = ((options: AnthropicAiOptions = {}) => {
+const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // tracingChannel is unavailable before Node 18.19 and prevent double-subscribe
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      // `bindTracingChannelToSpan` needs the async-context binding that `initOpenTelemetry()` registers
-      // after `setupOnce` runs, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
-          DEBUG_BUILD && debug.log(`[orchestrion:anthropic] subscribing to channel "${channel}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-            data => createGenAiSpan(data, operation, methodPath, options),
-            {
-              beforeSpanEnd: (span, data) => {
-                addAnthropicResponseAttributes(
-                  span,
-                  data.result as AnthropicAiResponse,
-                  resolveAIRecordingOptions(options).recordOutputs,
-                );
-              },
-              deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
-            },
-          );
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, anthropicAiModuleNames, instrumentAnthropic, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentAnthropic(options: AnthropicAiOptions): void {
+  for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
+      data => createGenAiSpan(data, operation, methodPath, options),
+      {
+        beforeSpanEnd: (span, data) => {
+          addAnthropicResponseAttributes(
+            span,
+            data.result as AnthropicAiResponse,
+            resolveAIRecordingOptions(options).recordOutputs,
+          );
+        },
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
+      },
+    );
+  }
+}
 
 /**
  * Build the span for an instrumented call.
@@ -116,7 +104,7 @@ function createGenAiSpan(
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
-  const model = (attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
   const span = startInactiveSpan({
@@ -176,8 +164,8 @@ function wrapStreamResult(
 }
 
 /**
- * EXPERIMENTAL — orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
+ * Orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
  * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`), `models`, and
  * `messages.stream()` methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const anthropicChannelIntegration = defineIntegration(_anthropicChannelIntegration);
+export const anthropicIntegration = defineIntegration(_anthropicIntegration);

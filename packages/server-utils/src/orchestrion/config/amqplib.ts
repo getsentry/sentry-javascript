@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '..';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 // `amqplib` splits its API across three files:
 // - `lib/channel_model.js` holds `class Channel` (publish/consume/ack/nack/reject/…) and
@@ -75,6 +76,8 @@ export const amqplibConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const amqplibModuleNames = getModuleNames(amqplibConfig);
+
 export const amqplibChannels = {
   AMQPLIB_PUBLISH: 'orchestrion:amqplib:publish',
   AMQPLIB_CONFIRM_PUBLISH: 'orchestrion:amqplib:confirmPublish',
@@ -87,3 +90,5 @@ export const amqplibChannels = {
   AMQPLIB_NACK_ALL: 'orchestrion:amqplib:nackAll',
   AMQPLIB_CONNECT: 'orchestrion:amqplib:connect',
 } as const;
+
+export const amqplibSubscribeInjection = toSubscribeInjections(amqplibConfig);

@@ -15,7 +15,6 @@ export {
   getClient,
   isInitialized,
   isEnabled,
-  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -100,8 +99,6 @@ export {
   setupExpressErrorHandler,
   koaIntegration,
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
   fsIntegration,
@@ -125,10 +122,6 @@ export {
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
-  // eslint-disable-next-line typescript/no-deprecated
-  honoIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
@@ -142,7 +135,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
@@ -176,7 +169,7 @@ export {
   rewriteFramesIntegration,
 } from '@sentry/core';
 
-export { awsIntegration } from './integration/aws';
+export { awsIntegration } from '@sentry/server-utils/orchestrion';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';

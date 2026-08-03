@@ -684,10 +684,21 @@ describe('request utils', () => {
         });
       });
 
-      it('still filters session-style cookie names when sendDefaultPii is true', () => {
+      it('still filters session-style cookie names when cookie collection is enabled', () => {
         const headers = { Cookie: 'connect.sid=s3cr3t; analytics=1' };
 
-        const result = httpHeadersToSpanAttributes(headers, true);
+        const result = httpHeadersToSpanAttributes(headers, {
+          userInfo: true,
+          cookies: true,
+          httpHeaders: { request: true, response: true },
+          httpBodies: [],
+          urlQueryParams: true,
+          graphQL: { document: true, variables: true },
+          genAI: { inputs: true, outputs: true },
+          databaseQueryData: true,
+          stackFrameVariables: true,
+          frameContextLines: 5,
+        });
 
         expect(result).toEqual({
           'http.request.header.cookie.connect.sid': '[Filtered]',
@@ -728,9 +739,51 @@ describe('request utils', () => {
       });
 
       it.each([
-        { sendDefaultPii: false, description: 'sendDefaultPii is false (default)' },
-        { sendDefaultPii: true, description: 'sendDefaultPii is true' },
-      ])('does not include PII headers when $description', ({ sendDefaultPii }) => {
+        {
+          dataCollection: {
+            userInfo: false,
+            cookies: true,
+            httpHeaders: { request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] }, response: true },
+            httpBodies: [],
+            urlQueryParams: true,
+            graphQL: { document: true, variables: true },
+            genAI: { inputs: true, outputs: true },
+            databaseQueryData: true,
+            stackFrameVariables: true,
+            frameContextLines: 5,
+          },
+          expected: {
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': '[Filtered]',
+            'http.request.header.x_forwarded_for': '[Filtered]',
+            'http.request.header.x_forwarded_host': '[Filtered]',
+            'http.request.header.x_forwarded_proto': '[Filtered]',
+          },
+        },
+        {
+          dataCollection: {
+            userInfo: true,
+            cookies: true,
+            httpHeaders: { request: true, response: true },
+            httpBodies: [],
+            urlQueryParams: true,
+            graphQL: { document: true, variables: true },
+            genAI: { inputs: true, outputs: true },
+            databaseQueryData: true,
+            stackFrameVariables: true,
+            frameContextLines: 5,
+          },
+          expected: {
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': 'my-personal-username',
+            'http.request.header.x_forwarded_for': '192.168.1.1',
+            'http.request.header.x_forwarded_host': 'example.com',
+            'http.request.header.x_forwarded_proto': 'https',
+          },
+        },
+      ])('filters PII headers according to dataCollection.httpHeaders', ({ dataCollection, expected }) => {
         const headers = {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0',
@@ -740,27 +793,7 @@ describe('request utils', () => {
           'X-Forwarded-Proto': 'https',
         };
 
-        const result = httpHeadersToSpanAttributes(headers, sendDefaultPii);
-
-        if (sendDefaultPii) {
-          expect(result).toEqual({
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': 'my-personal-username',
-            'http.request.header.x_forwarded_for': '192.168.1.1',
-            'http.request.header.x_forwarded_host': 'example.com',
-            'http.request.header.x_forwarded_proto': 'https',
-          });
-        } else {
-          expect(result).toEqual({
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': '[Filtered]',
-            'http.request.header.x_forwarded_for': '[Filtered]',
-            'http.request.header.x_forwarded_host': '[Filtered]',
-            'http.request.header.x_forwarded_proto': '[Filtered]',
-          });
-        }
+        expect(httpHeadersToSpanAttributes(headers, dataCollection)).toEqual(expected);
       });
 
       it('always filters comprehensive list of sensitive headers', () => {
@@ -873,7 +906,7 @@ describe('request utils', () => {
         cookies: true,
         httpHeaders: { request: true, response: true },
         httpBodies: [],
-        queryParams: true,
+        urlQueryParams: true,
         graphQL: { document: true, variables: true },
         genAI: { inputs: true, outputs: true },
         databaseQueryData: true,

@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { createSpanEnvelope } from '../envelope';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
@@ -10,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { SpanEnvelope } from '../types/envelope';
+import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
 import type { SpanLink } from '../types/link';
 import type {
@@ -47,6 +46,9 @@ import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { getSegmentSpanCaptureStrategy, type SegmentSpanCaptureConvertOptions } from './segmentSpanCaptureStrategy';
+import { isStreamedBeforeSendSpanCallback } from './spans/beforeSendSpan';
+import { captureSpan, captureStandaloneSpanWithStaticCallback } from './spans/captureSpan';
+import { createStreamedSpanEnvelope } from './spans/envelope';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import {
   getCapturedScopesOnSpan,
@@ -77,11 +79,18 @@ export class SentrySpan implements Span {
   /** The timed events added to this span. */
   protected _events: TimedEvent[];
 
-  /** if true, treat span as a standalone span (not part of a transaction) */
-  private _isStandaloneSpan?: boolean;
-
   /** if true, the span is sealed and ignores further mutations (set after end for tracer-provider spans) */
   private _frozen?: boolean;
+
+  /**
+   * If true, the span is sent on its own as a v2 streamed span and is never folded into a
+   * transaction. Used for late web vital spans (INP) when span streaming is disabled.
+   *
+   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and every
+   * span streams on its own. See the matching markers on `isStandaloneSpan`/`sendStandaloneSpan`,
+   * the `_convertSpanToTransaction` exclusion, and the `isStandalone`/`experimental.standalone` types.
+   */
+  private _isStandaloneSpan?: boolean;
 
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
@@ -296,8 +305,6 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
-      is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
-      segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
       links: convertSpanLinksForEnvelope(this._links),
     };
   }
@@ -319,7 +326,7 @@ export class SentrySpan implements Span {
       start_timestamp: this._startTime,
       // just in case _endTime is not set, we use the start time (i.e. duration 0)
       end_timestamp: this._endTime ?? this._startTime,
-      is_segment: this._isStandaloneSpan || this === getRootSpan(this),
+      is_segment: this === getRootSpan(this),
       status: getSimpleStatus(this._status),
       attributes: addStatusMessageAttribute(this._attributes, this._status),
       links: getStreamedSpanLinks(this._links),
@@ -359,12 +366,9 @@ export class SentrySpan implements Span {
   }
 
   /**
-   * This method should generally not be used,
-   * but for now we need a way to publicly check if the `_isStandaloneSpan` flag is set.
-   * USE THIS WITH CAUTION!
+   * Whether this span is sent on its own (as a v2 streamed span) rather than as part of a
+   * transaction. Used internally; see `_isStandaloneSpan`.
    * @internal
-   * @hidden
-   * @experimental
    */
   public isStandaloneSpan(): boolean {
     return !!this._isStandaloneSpan;
@@ -373,41 +377,33 @@ export class SentrySpan implements Span {
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
-    if (client) {
-      client.emit('spanEnd', this);
-      // Guarding sending standalone v1 spans as v2 streamed spans for now.
-      // Otherwise they'd be sent once as v1 spans and again as streamed spans.
-      // We'll migrate CLS and LCP spans to streamed spans in a later PR and
-      // INP spans in the next major of the SDK. At that point, we can fully remove
-      // standalone v1 spans <3
-      if (!this._isStandaloneSpan) {
-        client.emit('afterSpanEnd', this);
-      }
-    }
+    client?.emit('spanEnd', this);
 
-    // A segment span is basically the root span of a local span tree.
-    // So for now, this is either what we previously refer to as the root span,
-    // or a standalone span.
-    const rootSpan = getRootSpan(this);
-    const isSegmentSpan = this._isStandaloneSpan || this === rootSpan;
-
-    // if this is a standalone span, we send it immediately
+    // A standalone span is sent on its own as a v2 streamed span and never becomes/joins a
+    // transaction, so we send it here and stop.
+    // TODO(standalone): once we drop the static (transaction) trace lifecycle entirely and everything
+    // streams, standalone spans are no longer needed (every span streams on its own) and this branch,
+    // the `_isStandaloneSpan` flag, and the `_convertSpanToTransaction` exclusion can all be removed.
     if (this._isStandaloneSpan) {
+      if (!client) return;
+
       if (this._sampled) {
-        sendSpanEnvelope(createSpanEnvelope([this], client));
-      } else {
-        DEBUG_BUILD &&
-          debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-        if (client) {
-          client.recordDroppedEvent('sample_rate', 'span');
-        }
+        sendStandaloneSpan(this, client);
+        return;
       }
+
+      DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+      client.recordDroppedEvent('sample_rate', 'span');
+
       return;
     }
 
-    // Non-segment children aren't captured on their own. A registered strategy may re-emit a late child
+    client?.emit('afterSpanEnd', this);
+
+    // Child spans aren't captured on their own. A registered strategy may re-emit a late child
     // as its own orphan transaction; without one, it's dropped.
-    if (!isSegmentSpan) {
+    const rootSpan = getRootSpan(this);
+    if (rootSpan !== this) {
       const strategy = getSegmentSpanCaptureStrategy();
       if (strategy) {
         const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
@@ -417,7 +413,6 @@ export class SentrySpan implements Span {
     }
 
     if (client && hasSpanStreamingEnabled(client)) {
-      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
       client.emit('afterSegmentSpanEnd', this);
       return;
     }
@@ -458,8 +453,10 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // Skip the span itself, standalone spans, and (when a strategy tracks it) spans already sent. The
-    // synchronous default passes no hooks, so this bookkeeping stays out of SDKs that don't defer.
+    // Skip the span itself, standalone spans (they are sent on their own), and (when a strategy
+    // tracks it) spans already sent. The synchronous default passes no hooks, so this bookkeeping
+    // stays out of SDKs that don't defer.
+    // TODO(standalone): drop the `isStandaloneSpan(descendant)` check once the static trace lifecycle is gone.
     options.onSpanCaptured?.(this);
     const spans: SpanJSON[] = [];
     for (const descendant of getSpanDescendants(this)) {
@@ -541,30 +538,43 @@ function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
   return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
 }
 
-/** `SentrySpan`s can be sent as a standalone span rather than belonging to a transaction */
+/**
+ * `SentrySpan`s can be sent on their own (as a v2 streamed span) rather than as part of a transaction.
+ *
+ * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
+ */
 function isStandaloneSpan(span: Span): boolean {
   return span instanceof SentrySpan && span.isStandaloneSpan();
 }
 
 /**
- * Sends a `SpanEnvelope`.
+ * Sends a single span on its own, as a v2 streamed span envelope.
  *
- * Note: If the envelope's spans are dropped, e.g. via `beforeSendSpan`,
- * the envelope will not be sent either.
+ * Used for standalone spans (e.g. a late INP web vital when span streaming is disabled): they are
+ * not part of a transaction and are not handled by the span streaming buffer, so we serialize and
+ * send them here directly.
+ *
+ * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
  */
-function sendSpanEnvelope(envelope: SpanEnvelope): void {
-  const client = getClient();
-  if (!client) {
+function sendStandaloneSpan(span: SentrySpan, client: Client): void {
+  const { beforeSendSpan } = client.getOptions();
+
+  // A user who opted out of span streaming writes `beforeSendSpan` in the v1 `SpanJSON` format. That
+  // callback never runs through `captureSpan` (which only honors streamed callbacks), so scrub the
+  // span in its native v1 shape and convert it forward to v2, mirroring the gen_ai extraction path.
+  // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
+  if (beforeSendSpan && !isStreamedBeforeSendSpanCallback(beforeSendSpan)) {
+    const serializedSpan = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
+    const dsc = getDynamicSamplingContextFromSpan(span);
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
     return;
   }
 
-  const spanItems = envelope[1];
-  if (!spanItems || spanItems.length === 0) {
-    client.recordDroppedEvent('before_send', 'span');
-    return;
-  }
-
+  const { _segmentSpan, ...serializedSpan } = captureSpan(span, client);
+  const dsc = getDynamicSamplingContextFromSpan(_segmentSpan);
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  client.sendEnvelope(envelope);
+  client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
 }

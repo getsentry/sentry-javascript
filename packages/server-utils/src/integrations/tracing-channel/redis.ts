@@ -9,27 +9,27 @@ import {
   DB_SYSTEM_NAME,
   NET_PEER_NAME,
   NET_PEER_PORT,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
-  debug,
   defineIntegration,
   getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
-  waitForTracingChannelBinding,
   withActiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { defaultDbStatementSerializer } from '../../redis/redis-statement-serializer';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { redisModuleNames } from '../../orchestrion/config/redis';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // A distinct name from the composite OTel `Redis` integration — they can't share one, and
 // `Redis` stays in the set for its native diagnostics_channel subscriber (node-redis >=5.12 /
@@ -37,7 +37,7 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 // is fully gated off in the node SDK.
 const INTEGRATION_NAME = 'RedisChannel' as const;
 
-const ORIGIN = 'auto.db.orchestrion.redis';
+const ORIGIN = 'auto.db.redis';
 
 // todo(v11): drop this — it is already covered by host and port.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
@@ -143,13 +143,14 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 }
 
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
+  const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
   return startInactiveSpan({
-    name: `redis-${commandName}`,
-    kind: SPAN_KIND.CLIENT,
+    name: dbStatement || `redis-${commandName}`,
     attributes: {
+      [SENTRY_KIND]: 'client',
       ...attributes,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-      [DB_STATEMENT]: defaultDbStatementSerializer(commandName, commandArgs),
+      [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+      [DB_STATEMENT]: dbStatement,
     },
   });
 }
@@ -232,7 +233,6 @@ function bindNodeRedisCommandChannel(
       return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options));
     },
     {
-      captureError: false,
       beforeSpanEnd(span, data) {
         if ('error' in data || !responseHook) {
           return;
@@ -269,18 +269,17 @@ function getExecutorArgs(data: CommandContext): Array<string | Buffer> | undefin
 
 function bindNodeRedisConnectChannel(): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(CHANNELS.NODE_REDIS_CONNECT);
-  bindTracingChannelToSpan(
-    channel,
-    data => {
-      const options = (data.self as NodeRedisClient | undefined)?.options;
-      return startInactiveSpan({
-        name: 'redis-connect',
-        kind: SPAN_KIND.CLIENT,
-        attributes: { ...nodeRedisAttributes(options), [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' },
-      });
-    },
-    { captureError: false },
-  );
+  bindTracingChannelToSpan(channel, data => {
+    const options = (data.self as NodeRedisClient | undefined)?.options;
+    return startInactiveSpan({
+      name: 'redis-connect',
+      attributes: {
+        [SENTRY_KIND]: 'client',
+        ...nodeRedisAttributes(options),
+        [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+      },
+    });
+  });
 }
 
 // Batch (multi/pipeline): one span per `exec`. Batched commands bypass `sendCommand`, so
@@ -288,62 +287,61 @@ function bindNodeRedisConnectChannel(): void {
 // mirrors the native `node-redis:batch` span (see `redis-dc-subscriber.ts`).
 function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: CommandContext) => string): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
-  bindTracingChannelToSpan(
-    channel,
-    data => {
-      const commands = data.arguments?.[0];
-      const size = Array.isArray(commands) ? commands.length : undefined;
-      const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
-      return startInactiveSpan({
-        name: getOperation(data),
-        kind: SPAN_KIND.CLIENT,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.redis',
-          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-          ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
-          ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
-          ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
-        },
-      });
-    },
-    { captureError: false },
-  );
+  bindTracingChannelToSpan(channel, data => {
+    const commands = data.arguments?.[0];
+    const size = Array.isArray(commands) ? commands.length : undefined;
+    const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
+    return startInactiveSpan({
+      name: getOperation(data),
+      attributes: {
+        [SENTRY_KIND]: 'client',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+        ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
+        ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
+        ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
+      },
+    });
+  });
 }
 
 const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
-  const responseHook = options.responseHook;
-
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD &&
-        debug.log(`[orchestrion:redis] subscribing to "${CHANNELS.REDIS_COMMAND}" and node-redis channels`);
-
-      // redis v2-v3 uses a nested callback rather than `bindStore`, so it can be
-      // subscribed synchronously here.
-      subscribeLegacyRedisCommand(responseHook);
-
-      waitForTracingChannelBinding(() => {
-        bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
-        bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
-        bindNodeRedisConnectChannel();
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');
-        bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_BATCH, data =>
-          data.arguments?.[2] !== undefined ? 'MULTI' : 'PIPELINE',
-        );
+    setup(client) {
+      // redis v2-v3 uses a nested callback, not `bindStore`, so it subscribes
+      // without the async-context binding. Kept separate so a missing binding
+      // never defers it: on the bundler path the wait would push subscription
+      // past `Sentry.init()` and early commands would emit with no subscriber
+      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentLegacyRedis, [options], {
+        requiresTracingChannelBinding: false,
       });
+      // node-redis v4/v5 binds spans into async context via `bindTracingChannelToSpan`.
+      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentNodeRedis, [options]);
     },
   };
 }) satisfies IntegrationFn;
 
+function instrumentLegacyRedis(options: RedisChannelIntegrationOptions): void {
+  subscribeLegacyRedisCommand(options.responseHook);
+}
+
+function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
+  const responseHook = options.responseHook;
+
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
+  bindNodeRedisConnectChannel();
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');
+  bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_BATCH, data =>
+    data.arguments?.[2] !== undefined ? 'MULTI' : 'PIPELINE',
+  );
+}
+
 /**
- * EXPERIMENTAL — orchestrion-driven redis integration for `redis` v2-v3 and
+ * Orchestrion-driven redis integration for `redis` v2-v3 and
  * node-redis v4/v5 `<5.12.0` (`@redis/client`). Covers single commands, `connect`,
  * and multi/pipeline batches, fully replacing `@opentelemetry/instrumentation-redis`.
  * Requires the orchestrion runtime hook or bundler plugin.

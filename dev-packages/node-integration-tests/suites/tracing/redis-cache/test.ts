@@ -7,7 +7,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     cleanupChildProcesses();
   });
 
-  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
+  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -136,6 +136,19 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'network.peer.port': 6383,
           }),
         }),
+        // DEL
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'del ioredis-cache:test-key',
+            'cache.key': ['ioredis-cache:test-key'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6383,
+          }),
+        }),
       ]),
     };
 
@@ -155,7 +168,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       ? [
           expect.objectContaining({
             description: 'MULTI',
-            op: 'db.redis',
+            op: 'db.query',
             origin: redisOrigin,
             data: expect.objectContaining({
               'sentry.origin': redisOrigin,
@@ -258,11 +271,22 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
           }),
         }),
+        // DEL
+        expect.objectContaining({
+          description: 'redis-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-cache:test-key',
+            'cache.key': ['redis-cache:test-key'],
+          }),
+        }),
         ...batchSpans,
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({
@@ -297,7 +321,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       ? [
           expect.objectContaining({
             description: 'MULTI',
-            op: 'db.redis',
+            op: 'db.query',
             origin: redisOrigin,
             data: expect.objectContaining({
               'sentry.origin': redisOrigin,
@@ -400,11 +424,22 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
           }),
         }),
+        // DEL
+        expect.objectContaining({
+          description: 'redis-5-cache:test-key',
+          op: 'cache.remove',
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.statement': 'DEL redis-5-cache:test-key',
+            'cache.key': ['redis-5-cache:test-key'],
+          }),
+        }),
         ...batchSpans,
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-5-test-key',
-          op: 'db',
+          op: isOrchestrionEnabled() ? 'db.query' : 'db',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({
