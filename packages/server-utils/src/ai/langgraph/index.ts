@@ -1,7 +1,12 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  stringify,
+} from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -12,18 +17,16 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
   extractSystemInstructions,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   shouldEnableTruncation,
-} from '../ai/utils';
-import { stringify } from '../../utils/string';
+} from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
-import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import {

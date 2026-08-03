@@ -3,7 +3,7 @@ import {
   instrumentCreateReactAgent,
   instrumentStateGraph,
   instrumentStateGraphCompile,
-} from '../../../src/tracing/langgraph';
+} from '../../../../src/ai/langgraph';
 
 describe('langgraph double-patch guard', () => {
   it('instrumentStateGraphCompile returns the same wrapper when applied twice', () => {

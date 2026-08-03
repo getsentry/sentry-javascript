@@ -101,16 +101,12 @@ export {
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
   metrics,
   withStreamedSpan,
   spanStreamingIntegration,
-  instrumentStateGraph,
-  instrumentCreateReactAgent,
 } from '@sentry/core';
 
 export { withSentry } from './withSentry';
@@ -131,6 +127,10 @@ export {
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
   instrumentWorkersAiClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentCreateReactAgent,
 } from '@sentry/server-utils';
 
 // eslint-disable-next-line typescript/no-deprecated

@@ -1,10 +1,13 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types/span';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+} from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
@@ -13,7 +16,7 @@ import {
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
 } from '@sentry/conventions/attributes';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,

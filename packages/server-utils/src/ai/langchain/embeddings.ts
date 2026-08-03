@@ -1,8 +1,11 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { startSpan } from '../../tracing/trace';
-import type { SpanAttributeValue } from '../../types/span';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/core';
+import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_OPERATION_NAME,
@@ -13,8 +16,8 @@ import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../ai/utils';
+} from '../core/gen-ai-attributes';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type { LangChainOptions } from './types';
 

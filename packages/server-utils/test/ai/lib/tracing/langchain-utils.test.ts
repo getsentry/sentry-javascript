@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GEN_AI_INPUT_MESSAGES } from '@sentry/conventions/attributes';
-import type { LangChainMessage } from '../../../src/tracing/langchain/types';
+import type { LangChainMessage } from '../../../../src/ai/langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
   extractChatModelRequestAttributes,
   normalizeLangChainMessages,
-} from '../../../src/tracing/langchain/utils';
+} from '../../../../src/ai/langchain/utils';
 
 describe('normalizeLangChainMessages', () => {
   it('normalizes messages with _getType()', () => {

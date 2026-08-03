@@ -1,16 +1,13 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, LangChainOptions, Span } from '@sentry/core';
-import {
-  _INTERNAL_getLangChainEmbeddingsSpanOptions,
-  _INTERNAL_mergeLangChainCallbackHandler,
-  _INTERNAL_skipAiProviderWrapping,
-  createLangChainCallbackHandler,
-  defineIntegration,
-  LANGCHAIN_INTEGRATION_NAME,
-  startInactiveSpan,
-} from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
+import { _INTERNAL_skipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../ai/anthropic-ai/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../ai/google-genai/constants';
+import { createLangChainCallbackHandler } from '../../ai/langchain';
+import { LANGCHAIN_INTEGRATION_NAME } from '../../ai/langchain/constants';
+import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../../ai/langchain/embeddings';
+import type { LangChainOptions } from '../../ai/langchain/types';
+import { _INTERNAL_mergeLangChainCallbackHandler } from '../../ai/langchain/utils';
 import { OPENAI_INTEGRATION_NAME } from '../../ai/openai/constants';
 import { CHANNELS } from '../../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';

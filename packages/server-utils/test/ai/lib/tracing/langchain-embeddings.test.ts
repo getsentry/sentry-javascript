@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as AiCoreUtils from '../../../../src/ai/core/utils';
+import type * as SentryCore from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_OPERATION_NAME,
@@ -9,33 +11,38 @@ import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-} from '../../../src/tracing/ai/gen-ai-attributes';
-import { instrumentEmbeddingMethod, instrumentLangChainEmbeddings } from '../../../src/tracing/langchain/embeddings';
+} from '../../../../src/ai/core/gen-ai-attributes';
+import { instrumentEmbeddingMethod, instrumentLangChainEmbeddings } from '../../../../src/ai/langchain/embeddings';
 
-vi.mock('../../../src/tracing/ai/utils', () => ({
-  resolveAIRecordingOptions: (options: { recordInputs?: boolean; recordOutputs?: boolean } = {}) => ({
-    recordInputs: options.recordInputs ?? false,
-    recordOutputs: options.recordOutputs ?? false,
-  }),
-}));
+vi.mock('../../../../src/ai/core/utils', async importOriginal => {
+  const actual = (await importOriginal()) as typeof AiCoreUtils;
+  return {
+    ...actual,
+    resolveAIRecordingOptions: (options: { recordInputs?: boolean; recordOutputs?: boolean } = {}) => ({
+      recordInputs: options.recordInputs ?? false,
+      recordOutputs: options.recordOutputs ?? false,
+    }),
+  };
+});
 
 let capturedSpanConfig: { name: string; op: string; attributes: Record<string, unknown> } | undefined;
 
-vi.mock('../../../src/tracing/trace', () => ({
-  startSpan: (
-    config: { name: string; op: string; attributes: Record<string, unknown> },
-    callback: (span: unknown) => unknown,
-  ) => {
-    capturedSpanConfig = config;
-    return callback({ setAttribute: vi.fn() });
-  },
-}));
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = (await importOriginal()) as typeof SentryCore;
+  return {
+    ...actual,
+    startSpan: (
+      config: { name: string; op: string; attributes: Record<string, unknown> },
+      callback: (span: unknown) => unknown,
+    ) => {
+      capturedSpanConfig = config;
+      return callback({ setAttribute: vi.fn() });
+    },
+    captureException: vi.fn(),
+  };
+});
 
-import { captureException } from '../../../src/exports';
-
-vi.mock('../../../src/exports', () => ({
-  captureException: vi.fn(),
-}));
+import { captureException } from '@sentry/core';
 
 describe('instrumentEmbeddingMethod', () => {
   beforeEach(() => {

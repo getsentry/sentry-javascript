@@ -35,6 +35,10 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentStateGraphCompile,
 } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
@@ -145,10 +149,6 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
-  instrumentStateGraph,
-  instrumentStateGraphCompile,
 } from '@sentry/core';
 
 export type {

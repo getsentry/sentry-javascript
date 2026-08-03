@@ -1,16 +1,12 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { CompiledGraph, IntegrationFn, LangGraphOptions } from '@sentry/core';
-import {
-  createLangChainCallbackHandler,
-  debug,
-  defineIntegration,
-  extractAgentNameFromParams,
-  extractLLMFromParams,
-  instrumentCompiledGraphInvoke,
-  LANGGRAPH_INTEGRATION_NAME,
-  resolveAIRecordingOptions,
-  wrapToolsWithSpans,
-} from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
+import { resolveAIRecordingOptions } from '../../ai/core/utils';
+import { createLangChainCallbackHandler } from '../../ai/langchain';
+import { instrumentCompiledGraphInvoke } from '../../ai/langgraph';
+import { LANGGRAPH_INTEGRATION_NAME } from '../../ai/langgraph/constants';
+import type { CompiledGraph, LangGraphOptions } from '../../ai/langgraph/types';
+import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { langgraphModuleNames } from '../../orchestrion/config/langgraph';
