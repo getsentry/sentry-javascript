@@ -557,14 +557,14 @@ function isStandaloneSpan(span: Span): boolean {
  * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
  */
 function sendStandaloneSpan(span: SentrySpan, client: Client): void {
-  const { beforeSendSpan } = client.getOptions();
+  const { beforeSendSpan, traceLifecycle } = client.getOptions();
 
   // A user who opted out of span streaming wraps `beforeSendSpan` with `withStaticSpan` and writes it in
   // the v1 `SpanJSON` format. That callback never runs through `captureSpan` (which only honors streamed
   // callbacks), so scrub the span in its native v1 shape and convert it forward to v2, mirroring the
   // gen_ai extraction path.
   // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
-  if (beforeSendSpan && isStaticBeforeSendSpanCallback(beforeSendSpan)) {
+  if (traceLifecycle === 'static' && isStaticBeforeSendSpanCallback(beforeSendSpan)) {
     const serializedSpan = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
     const dsc = getDynamicSamplingContextFromSpan(span);
     // sendEnvelope should not throw
