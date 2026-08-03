@@ -121,7 +121,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Store NX cache
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@v6.1.0
         # Only cache this per-PR to speed up CI.
         if: github.event_name == 'pull_request'
         with:
@@ -206,7 +206,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
@@ -245,7 +245,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
@@ -968,7 +968,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
