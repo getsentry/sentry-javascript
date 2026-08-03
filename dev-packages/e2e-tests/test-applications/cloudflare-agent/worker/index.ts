@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/cloudflare';
-import { instrumentWorkersAiClient } from '@sentry/core';
 import { AIChatAgent } from '@cloudflare/ai-chat';
 import { Agent, callable, routeAgentRequest } from 'agents';
 import { streamText } from 'ai';
@@ -23,7 +22,7 @@ const sentryOptions = (env: Env) => ({
  * Vercel AI SDK + `workers-ai-provider` stack (the OpenAI-compatible SSE shape).
  */
 function streamWorkersAi(): Response {
-  const ai = instrumentWorkersAiClient(new MockAi(), { recordInputs: true, recordOutputs: true });
+  const ai = Sentry.instrumentWorkersAiClient(new MockAi(), { recordInputs: true, recordOutputs: true });
   const workersai = createWorkersAI({ binding: ai as unknown as Ai });
 
   const result = streamText({

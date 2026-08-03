@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Span } from '../../../src';
+import type { Span } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_STREAMING,
@@ -9,7 +9,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { instrumentWorkersAiStream } from '../../../src/tracing/workers-ai/streaming';
+import { instrumentWorkersAiStream } from '../../../../src/ai/workers-ai/streaming';
 
 function createMockSpan(): { span: Span; attributes: Record<string, unknown>; ended: () => boolean } {
   const attributes: Record<string, unknown> = {};

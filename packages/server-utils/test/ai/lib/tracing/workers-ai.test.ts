@@ -8,25 +8,46 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Span } from '../../../src';
 import {
+  _INTERNAL_clearAiProviderSkips,
+  addVercelAiProcessors,
+  Client,
+  createTransport,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  resolvedSyncPromise,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
+  spanToJSON,
   startSpan,
-} from '../../../src';
-import { addVercelAiProcessors } from '../../../src/tracing/vercel-ai';
-import { AI_OPERATION_ID_ATTRIBUTE } from '../../../src/tracing/vercel-ai/vercel-ai-attributes';
-import { instrumentWorkersAiClient } from '../../../src/tracing/workers-ai';
-import type { DataCollection } from '../../../src/types/datacollection';
-import { _INTERNAL_clearAiProviderSkips } from '../../../src/utils/ai/providerSkip';
-import { spanToJSON } from '../../../src/utils/spanUtils';
-import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+} from '@sentry/core';
+import type { ClientOptions, DataCollection, Span } from '@sentry/core';
+import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
+
+const AI_OPERATION_ID_ATTRIBUTE = 'ai.operationId';
+
+function getDefaultTestClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
+  return {
+    integrations: [],
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
+    stackParser: () => [],
+    ...options,
+  } as ClientOptions;
+}
+
+class TestClient extends Client<any> {
+  public eventFromException(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+
+  public eventFromMessage(): PromiseLike<any> {
+    return resolvedSyncPromise({});
+  }
+}
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 

@@ -1,6 +1,6 @@
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types/span';
-import { endStreamSpan, type StreamResponseState } from '../ai/utils';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { endStreamSpan, type StreamResponseState } from '../core/utils';
 import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
 

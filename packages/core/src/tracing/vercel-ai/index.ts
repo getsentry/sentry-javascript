@@ -8,7 +8,6 @@ import type { Event } from '../../types/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { _INTERNAL_skipAiProviderWrapping } from '../../utils/ai/providerSkip';
 import { spanToJSON } from '../../utils/spanUtils';
-import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -64,6 +63,8 @@ import {
   AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
+
+const WORKERS_AI_INTEGRATION_NAME = 'WorkersAI';
 
 /**
  * Post-process spans emitted by the Vercel AI SDK.

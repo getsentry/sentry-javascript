@@ -74,5 +74,3 @@ export {
 export { wrapToolsWithSpans, extractLLMFromParams, extractAgentNameFromParams } from './tracing/langgraph/utils';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
-export { instrumentWorkersAiClient } from './tracing/workers-ai';
-export type { WorkersAiClient, WorkersAiOptions } from './tracing/workers-ai/types';

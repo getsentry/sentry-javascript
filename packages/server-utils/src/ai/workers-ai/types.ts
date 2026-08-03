@@ -1,4 +1,4 @@
-import type { AIRecordingOptions } from '../ai/utils';
+import type { AIRecordingOptions } from '../core/utils';
 
 export interface WorkersAiOptions extends AIRecordingOptions {
   /**
