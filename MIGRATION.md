@@ -86,6 +86,8 @@ With this, we also heavily reduced our OpenTelemetry dependencies, with `@opente
 
 For most users, day-to-day tracing is **unchanged**.
 
+`SentryPropagator` was simplified into a thin `TextMapPropagator` (it no longer extends `W3CBaggagePropagator`) that delegates all trace-data serialization to core. If you register it in your own OpenTelemetry setup, note two behavior changes: `inject()` now only operates on the active context (it warns and skips otherwise), and outgoing-request filtering (`tracePropagationTargets`, `propagateTraceparent`) is no longer handled by the propagator, as it now lives in the SDK's HTTP layer.
+
 > **TODO(v11):** Document the new optional OpenTelemetry integration once its final name and signature
 > are locked in — add the `Sentry.init` example.
 
@@ -479,7 +481,7 @@ Sentry.init({
 
 ### `@sentry/opentelemetry`
 
-- `SentryPropagator` was removed. It is no longer needed now that Sentry does not manage OpenTelemetry trace propagation by default.
+- `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
 - `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events.
