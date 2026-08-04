@@ -36,11 +36,11 @@ module.exports = [
     },
   },
   {
-    name: '@sentry/browser - with treeshaking flags incl. tracing',
+    name: '@sentry/browser - with treeshaking flags tracing without tracing',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '34 KB',
+    limit: '32 KB',
     disablePlugins: ['@size-limit/esbuild'],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
