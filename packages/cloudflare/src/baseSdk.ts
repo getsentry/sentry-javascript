@@ -60,7 +60,6 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
     linkedErrorsIntegration(),
     fetchIntegration(),
     httpServerIntegration(),
-    // oxlint-disable-next-line typescript/no-deprecated
     requestDataIntegration(),
     consoleIntegration(),
     // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The

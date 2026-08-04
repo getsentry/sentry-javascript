@@ -4,13 +4,13 @@
 export interface LangChainOptions {
   /**
    * Whether to record input messages/prompts
-   * @default false (respects `dataCollection.genAI.inputs`, or `sendDefaultPii` when `dataCollection` is not configured)
+   * @default false (respects `dataCollection.genAI.inputs`)
    */
   recordInputs?: boolean;
 
   /**
    * Whether to record output text and responses
-   * @default false (respects `dataCollection.genAI.outputs`, or `sendDefaultPii` when `dataCollection` is not configured)
+   * @default false (respects `dataCollection.genAI.outputs`)
    */
   recordOutputs?: boolean;
 

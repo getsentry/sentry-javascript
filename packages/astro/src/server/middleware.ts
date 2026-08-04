@@ -175,6 +175,10 @@ async function instrumentRequestStartHttpServerSpan(
   }
 
   const request = ctx.request;
+  const client = getClient();
+  if (!client) {
+    return next();
+  }
 
   // Note: We guard outside of this function call that the request is dynamic
   // accessing headers on a static route would throw
@@ -212,10 +216,7 @@ async function instrumentRequestStartHttpServerSpan(
             method,
             [URL_FULL]: ctx.url.href,
             [URL_PATH]: ctx.url.pathname,
-            ...httpHeadersToSpanAttributes(
-              winterCGHeadersToDict(request.headers),
-              getClient()?.getDataCollectionOptions() ?? false,
-            ),
+            ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
           };
 
           if (parametrizedRoute) {
