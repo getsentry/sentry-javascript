@@ -15,7 +15,7 @@ Deno.test('amqplib instrumentation: included in default integrations (Deno 2.8.0
   assert(names.includes('Amqplib'), `Amqplib should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces a nested message span', async () => {
+Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces a nested queue.publish span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -49,8 +49,8 @@ Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces
     "'parent' transaction",
   );
 
-  const publishSpan = parent.spans?.find(s => s.op === 'message');
-  assertExists(publishSpan, `expected a message child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const publishSpan = parent.spans?.find(s => s.op === 'queue.publish');
+  assertExists(publishSpan, `expected a queue.publish child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(publishSpan!.description, 'publish my-exchange');
   assertEquals(publishSpan!.data?.['messaging.destination.name'], 'my-exchange');
   assertEquals(publishSpan!.data?.['messaging.system'], 'rabbitmq');
