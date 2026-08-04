@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME } from '@sentry/conventions/attributes';
 import type { IntegrationFn } from '@sentry/core/browser';
 import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
@@ -77,7 +78,7 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
             metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
               unit: 'millisecond',
               attributes: {
-                ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
+                [SENTRY_SEGMENT_NAME]: transactionName,
               },
             });
           }
@@ -89,7 +90,7 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
               attributes: {
                 'browser.bfcache.reason': reason,
                 'browser.bfcache.frame': frame,
-                ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
+                [SENTRY_SEGMENT_NAME]: transactionName,
               },
             });
           });
@@ -106,8 +107,8 @@ function _captureBFCacheNavigation(outcome: 'hit' | 'miss', reasonCount?: number
   metrics.count('browser.bfcache.navigation', 1, {
     attributes: {
       'browser.bfcache.outcome': outcome,
-      ...(reasonCount != null ? { 'browser.bfcache.not_restored_reason_count': reasonCount } : {}),
-      ...(transactionName ? { 'sentry.transaction': transactionName } : {}),
+      'browser.bfcache.not_restored_reason_count': reasonCount,
+      [SENTRY_SEGMENT_NAME]: transactionName,
     },
   });
 }
