@@ -10,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
+import { withStaticSpan } from '../src/index';
 import { instrumentCloudflareAgent } from '../src/instrumentations/agents';
 import { resetSdk } from './testUtils';
 
@@ -62,10 +63,10 @@ describe('instrumentCloudflareAgent', () => {
         transactions.push(event);
         return event;
       },
-      beforeSendSpan: span => {
+      beforeSendSpan: withStaticSpan(span => {
         childSpans.push(span);
         return span;
-      },
+      }),
     };
 
     client = new CloudflareClient(options);
