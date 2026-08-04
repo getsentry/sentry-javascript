@@ -6,7 +6,6 @@ import type { NodeClient } from './client';
 import {
   applyOtelSpanData,
   backfillStreamedSpanDataFromOtel,
-  getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
 } from '@sentry/opentelemetry';
@@ -123,7 +122,7 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 
 /** Just exported for tests. */
 export function setupOtel(client: NodeClient): SentryTracerProvider | undefined {
-  const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
+  const provider = new SentryTracerProvider();
 
   if (!registerGlobalTracerProvider(provider)) {
     DEBUG_BUILD &&
@@ -142,20 +141,6 @@ export function setupOtel(client: NodeClient): SentryTracerProvider | undefined 
   if (hasSpanStreamingEnabled(client)) {
     client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
   }
-
-  client.on('preprocessEvent', event => {
-    if (event.type !== 'transaction') {
-      return;
-    }
-
-    event.contexts = {
-      ...event.contexts,
-      otel: {
-        resource: provider.resource?.attributes,
-        ...event.contexts?.otel,
-      },
-    };
-  });
 
   return provider;
 }

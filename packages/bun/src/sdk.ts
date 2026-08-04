@@ -16,7 +16,6 @@ import {
   httpIntegration,
   init as initNode,
   modulesIntegration,
-  nativeNodeFetchIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -24,6 +23,7 @@ import {
 } from '@sentry/node';
 import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
+import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
@@ -78,7 +78,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
+    fetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),

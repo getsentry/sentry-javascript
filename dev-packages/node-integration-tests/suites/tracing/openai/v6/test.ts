@@ -21,7 +21,7 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+} from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('OpenAI integration (V6)', () => {

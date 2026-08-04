@@ -17,7 +17,6 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
-  getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
@@ -114,7 +113,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = new SentryTracerProvider({ resource: getSentryResource('edge') });
+  const provider = new SentryTracerProvider();
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());

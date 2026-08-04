@@ -72,17 +72,6 @@ describe('Integration | Transactions', () => {
       { message: 'test breadcrumb 3', timestamp: 123456 },
     ]);
 
-    expect(transaction.contexts?.otel).toEqual({
-      resource: {
-        'service.name': 'node',
-        'service.namespace': 'sentry',
-        'service.version': expect.any(String),
-        'telemetry.sdk.language': 'nodejs',
-        'telemetry.sdk.name': 'opentelemetry',
-        'telemetry.sdk.version': expect.any(String),
-      },
-    });
-
     expect(transaction.contexts?.trace).toEqual({
       data: {
         'sentry.op': 'test op',

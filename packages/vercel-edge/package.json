@@ -33,7 +33,8 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.67.0"
+    "@sentry/core": "10.67.0",
+    "@sentry/server-utils": "10.67.0"
   },
   "devDependencies": {
     "@edge-runtime/types": "4.0.0",

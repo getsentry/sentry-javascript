@@ -68,7 +68,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
         culture: expect.any(Object),
         device: expect.any(Object),
         os: expect.any(Object),
-        otel: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
           data: {

@@ -13,9 +13,7 @@ export function addHeadersAsAttributes(
   }
 
   const client = getClient();
-  const dataCollection = client?.getDataCollectionOptions();
-
-  if (dataCollection?.httpHeaders.request === false) {
+  if (!client || client.getDataCollectionOptions().httpHeaders.request === false) {
     return {};
   }
 
@@ -24,7 +22,7 @@ export function addHeadersAsAttributes(
       ? winterCGHeadersToDict(headers as Headers)
       : headers;
 
-  const headerAttributes = httpHeadersToSpanAttributes(headersDict, dataCollection ?? false);
+  const headerAttributes = httpHeadersToSpanAttributes(headersDict, client.getDataCollectionOptions());
 
   if (span) {
     span.setAttributes(headerAttributes);

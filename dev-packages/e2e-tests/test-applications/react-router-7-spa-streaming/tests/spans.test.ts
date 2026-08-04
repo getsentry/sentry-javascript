@@ -60,7 +60,8 @@ test('sends an INP span', async ({ page }) => {
 
   // Page hide to trigger INP
   await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
   });
 
   const inpSpan = await inpSpanPromise;
