@@ -1,3 +1,4 @@
+import type * as FsModule from 'fs';
 import type { AstroConfig, AstroIntegrationLogger } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
@@ -12,11 +13,14 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
-const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
-  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
-}));
+const orchestrionVite = vi.fn(
+  (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) => ({
+    name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+  }),
+);
 vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
-  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) =>
+    orchestrionVite(options),
 }));
 
 // The cloudflare adapter path resolves `@sentry/cloudflare` via `createRequire` and calls
@@ -27,6 +31,22 @@ vi.mock('module', async requireActual => {
   return {
     ...actual,
     createRequire: () => ({ resolve: () => '@sentry/cloudflare' }),
+  };
+});
+
+// `isCloudflarePages()` probes for a wrangler config with `pages_build_output_dir`. By default no
+// such file exists (Workers); the Pages test flips `wranglerPagesConfig` to a Pages config.
+let wranglerPagesConfig: string | undefined;
+vi.mock('fs', async requireActual => {
+  const actual = await requireActual<typeof FsModule>();
+  return {
+    ...actual,
+    existsSync: (p: unknown) =>
+      wranglerPagesConfig !== undefined && String(p).endsWith('wrangler.jsonc') ? true : actual.existsSync(p as string),
+    readFileSync: (p: unknown, ...rest: unknown[]) =>
+      wranglerPagesConfig !== undefined && String(p).endsWith('wrangler.jsonc')
+        ? wranglerPagesConfig
+        : (actual.readFileSync as (...args: unknown[]) => string)(p, ...rest),
   };
 });
 
@@ -431,7 +451,7 @@ describe('sentryAstro integration', () => {
     });
   });
 
-  it("doesn't add the orchestrion plugin for the cloudflare adapter", async () => {
+  it('adds the orchestrion plugin with channel-subscriber injection for the cloudflare workers adapter', async () => {
     const integration = sentryAstro({});
 
     const cloudflareConfig = { ...config, adapter: { name: '@astrojs/cloudflare' } } as AstroConfig;
@@ -445,12 +465,42 @@ describe('sentryAstro integration', () => {
       config: cloudflareConfig,
     });
 
-    expect(orchestrionVite).not.toHaveBeenCalled();
-    expect(updateConfig).not.toHaveBeenCalledWith({
+    // No wrangler config with `pages_build_output_dir` is present, so this resolves as Workers.
+    expect(orchestrionVite).toHaveBeenCalledWith(expect.objectContaining({ injectChannelSubscribers: true }));
+    expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
       },
     });
+  });
+
+  it("doesn't add the orchestrion plugin for the cloudflare pages adapter", async () => {
+    // Simulate a Pages project: a wrangler config containing `pages_build_output_dir`.
+    wranglerPagesConfig = '{ "pages_build_output_dir": "./dist" }';
+
+    try {
+      const integration = sentryAstro({});
+      const cloudflareConfig = { ...config, adapter: { name: '@astrojs/cloudflare' } } as AstroConfig;
+
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      // Pages has no `withSentry` wrap to read the marker, so orchestrion stays off there.
+      expect(orchestrionVite).not.toHaveBeenCalled();
+      expect(updateConfig).not.toHaveBeenCalledWith({
+        vite: {
+          plugins: [{ name: 'sentry-orchestrion-vite' }],
+        },
+      });
+    } finally {
+      wranglerPagesConfig = undefined;
+    }
   });
 
   it("doesn't warn about deprecated options when `buildTimeInstrumentation` is set", async () => {
