@@ -1,4 +1,3 @@
-import * as otelApi from '@opentelemetry/api';
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,21 +27,6 @@ vi.mock('@sentry/core', async () => {
 vi.mock('../../src/server/serverBuild', () => ({
   getMiddlewareName: vi.fn(),
 }));
-
-vi.mock('@opentelemetry/api', async () => {
-  const actual = await vi.importActual('@opentelemetry/api');
-  return {
-    ...actual,
-    context: {
-      active: vi.fn(() => ({
-        getValue: vi.fn(),
-        setValue: vi.fn(),
-      })),
-      with: vi.fn((ctx, fn) => fn()),
-    },
-    createContextKey: actual.createContextKey,
-  };
-});
 
 describe('createSentryServerInstrumentation', () => {
   beforeEach(() => {
@@ -425,18 +409,7 @@ describe('createSentryServerInstrumentation', () => {
   it('should increment middleware index for multiple middleware calls on same route', async () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
-    const mockSetAttributes = vi.fn();
-    const mockRootSpan = { setAttributes: mockSetAttributes };
     const routeId = 'routes/multi-middleware';
-
-    // Simulate counter store that would be created by handler and stored in OTel context
-    const counterStore = { counters: {} as Record<string, number> };
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    vi.mocked(otelApi.context.active).mockReturnValue({
-      getValue: vi.fn(() => counterStore),
-      setValue: vi.fn(),
-    } as any);
 
     vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue(undefined);
 
@@ -445,7 +418,9 @@ describe('createSentryServerInstrumentation', () => {
       startSpanCalls.push(opts);
       return fn();
     });
-    (core.getActiveSpan as any).mockReturnValue({});
+    // The per-request middleware counter is keyed by the (stable) root span, so the 3 calls increment.
+    const mockRootSpan = { setAttributes: vi.fn() };
+    (core.getActiveSpan as any).mockReturnValue(mockRootSpan);
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
 
     const instrumentation = createSentryServerInstrumentation();
@@ -464,7 +439,6 @@ describe('createSentryServerInstrumentation', () => {
       context: undefined,
     };
 
-    // Call middleware 3 times (simulating 3 middlewares on same route)
     await hooks.middleware(mockCallMiddleware, requestInfo);
     await hooks.middleware(mockCallMiddleware, requestInfo);
     await hooks.middleware(mockCallMiddleware, requestInfo);
