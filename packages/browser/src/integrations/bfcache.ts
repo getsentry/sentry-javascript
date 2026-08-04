@@ -6,6 +6,8 @@ import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'BFCacheMetrics';
 
+type BFCacheOutcome = 'hit' | 'miss';
+
 type BFCacheFrame = 'top' | 'child';
 
 interface BFCacheIntegrationOptions {
@@ -51,63 +53,68 @@ export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFC
         return;
       }
 
-      WINDOW.addEventListener(
-        'pageshow',
-        event => {
-          if (event.persisted) {
-            _captureBFCacheNavigation('hit');
-            return;
-          }
+      function onPageShow(event: PageTransitionEvent) {
+        const transactionName = _getTransactionName();
+        if (event.persisted) {
+          _captureBFCacheNavigation('hit', undefined, transactionName);
+          return;
+        }
 
-          const navigationEntry = WINDOW.performance.getEntriesByType('navigation')[0] as
-            | NavigationTimingWithNotRestoredReasons
-            | undefined;
+        const navigationEntry = WINDOW.performance.getEntriesByType('navigation')[0] as
+          | NavigationTimingWithNotRestoredReasons
+          | undefined;
 
-          if (navigationEntry?.type !== 'back_forward') {
-            return;
-          }
+        if (navigationEntry?.type !== 'back_forward') {
+          return;
+        }
 
-          const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
+        const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
+        _captureBFCacheNavigation('miss', reasons.length, transactionName);
 
-          _captureBFCacheNavigation('miss', reasons.length);
-
-          // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
-          if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
-            const transactionName = _getTransactionName();
-
-            metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
-              unit: 'millisecond',
-              attributes: {
-                [SENTRY_SEGMENT_NAME]: transactionName,
-              },
-            });
-          }
-
-          reasons.forEach(({ reason, frame }) => {
-            const transactionName = _getTransactionName();
-
-            metrics.count('browser.bfcache.not_restored', 1, {
-              attributes: {
-                'browser.bfcache.reason': reason,
-                'browser.bfcache.frame': frame,
-                [SENTRY_SEGMENT_NAME]: transactionName,
-              },
-            });
+        // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
+        if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
+          metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
+            unit: 'millisecond',
+            attributes: {
+              [SENTRY_SEGMENT_NAME]: transactionName,
+            },
           });
-        },
-        true,
-      );
+        }
+
+        reasons.forEach(r => _captureBFCacheReason(r, transactionName));
+      }
+
+      // Listener should stay active because the event can trigger for an initial show before the bfcache entry coming into the second one.
+      // This can be platform-dependent so we need to skip as many events till we get to the one containing the entry.
+      // So we can't have { once } or a cleanup logic here, which is fine because this is setup only once.
+      WINDOW.addEventListener('pageshow', onPageShow, true);
     },
   };
 }) satisfies IntegrationFn;
 
-function _captureBFCacheNavigation(outcome: 'hit' | 'miss', reasonCount?: number): void {
-  const transactionName = _getTransactionName();
-
+/**
+ * Captures a bf navigation as a metric and records the outcome and reason count.
+ */
+function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number, transactionName?: string): void {
   metrics.count('browser.bfcache.navigation', 1, {
     attributes: {
+      // TODO: use convention constants
       'browser.bfcache.outcome': outcome,
       'browser.bfcache.not_restored_reason_count': reasonCount,
+      [SENTRY_SEGMENT_NAME]: transactionName,
+    },
+  });
+}
+
+/**
+ * Maps a collected reason to a metric and captures/sends it.
+ */
+function _captureBFCacheReason({ reason, frame }: CollectedReason, transactionName?: string) {
+  metrics.count('browser.bfcache.not_restored', 1, {
+    attributes: {
+      // TODO: use convention constants
+      'browser.bfcache.reason': reason,
+      'browser.bfcache.frame': frame,
       [SENTRY_SEGMENT_NAME]: transactionName,
     },
   });
