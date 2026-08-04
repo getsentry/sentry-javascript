@@ -466,7 +466,7 @@ export type {
   SerializedStreamedSpanContainer,
   StreamedSpanJSON,
 } from './types/span';
-export type { SpanStatus } from './types/spanStatus';
+export type { SpanStatus, SpanStatusType } from './types/spanStatus';
 export type { Log, LogSeverityLevel } from './types/log';
 export type { SpanLink } from './types/link';
 export type {

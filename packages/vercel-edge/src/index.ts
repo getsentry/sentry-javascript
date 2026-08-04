@@ -73,10 +73,6 @@ export {
   functionToStringIntegration,
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
-  instrumentOpenAiClient,
-  instrumentStateGraph,
-  instrumentGoogleGenAIClient,
-  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -100,14 +96,20 @@ export {
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   logger,
   metrics,
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export {
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+} from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';

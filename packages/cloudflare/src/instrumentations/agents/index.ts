@@ -10,8 +10,9 @@ import type { AgentInternals } from './types';
  * - **Callable RPC spans** — a span (op `rpc`) for each `@callable()` method invoked over WebSocket.
  * - **Conversation correlation** — sets the conversation id on the scope for each unit of agent
  *   work — chat turn, callable RPC call, or HTTP request — so `gen_ai` spans created within it are
- *   correlated, for chat and plain agents alike. Defaults to the instance `name` and is rotated
- *   when the chat is cleared (the `message:clear` observability event).
+ *   correlated, for chat and plain agents alike. The id is minted once per agent instance and
+ *   rotated when the chat is cleared (the `message:clear` observability event); it is persisted to
+ *   Durable Object storage so it survives hibernation.
  *
  * It only hooks the `agents` package internals and uses Sentry's tracing primitives. On Cloudflare
  * Workers, prefer `instrumentAgentWithSentry`, which additionally instruments the Durable Object

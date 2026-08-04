@@ -96,63 +96,63 @@ For most users, day-to-day tracing is **unchanged**.
 
 Affected SDKs: All SDKs.
 
-The `sendDefaultPii` option was **removed** and replaced by a more granular `dataCollection` option that controls each category of collected data individually.
+> **Heads up — this is a behavior change, not just a renamed option.**
+> In v10, leaving `sendDefaultPii` unset behaved like `sendDefaultPii: false` (restrictive).
+> In v11, leaving `dataCollection` unset collects the categories below **by default**.
+> Review this before upgrading if you'd rather not collect HTTP request data, database queries, or GenAI inputs/outputs.
 
-The **default behaviour is now more permissive**. In v10, with neither `sendDefaultPii` nor `dataCollection` set, the SDK behaved like `sendDefaultPii: false`. In v11, the `dataCollection` defaults apply out of the box:
+We've replaced `sendDefaultPii` with `dataCollection`, which controls each category of collected data individually. The default is now more permissive than in v10.
 
-| Category              | v10 default (no `sendDefaultPii`) | v11 default          |
-| --------------------- | --------------------------------- | -------------------- |
-| `userInfo`            | `false`                           | `true`               |
-| `cookies`             | sensitive keys denied             | `true`               |
-| `httpHeaders`         | sensitive keys denied             | request + response   |
-| `httpBodies`          | none (`[]`)                       | all request/response |
-| `urlQueryParams`      | sensitive keys denied             | `true`               |
-| `genAI`               | inputs/outputs off                | inputs + outputs on  |
-| `stackFrameVariables` | `true`                            | `true`               |
-| `frameContextLines`   | `5`                               | `5`                  |
+| Category              | v10 default (`sendDefaultPii` off) | v11 default          |
+| --------------------- | ---------------------------------- | -------------------- |
+| `userInfo`            | `false`                            | `true`               |
+| `cookies`             | not collected                      | `true`               |
+| `httpHeaders`         | request + response, PII scrubbed   | request + response   |
+| `httpBodies`          | not collected (size only)          | all request/response |
+| `urlQueryParams`      | `true`                             | `true`               |
+| `genAI`               | inputs + outputs not collected     | inputs + outputs     |
+| `databaseQueryData`   | `false`                            | `true`               |
+| `stackFrameVariables` | `true`                             | `true`               |
+| `frameContextLines`   | `7`                                | `5`                  |
 
-> Sensitive values (keys, tokens, auth headers, etc.) are always filtered out regardless of these settings.
+> Sentry's built-in sensitive-data filtering still applies. Review your data-scrubbing config for categories that may contain sensitive values — especially request/response bodies.
 
-Migration:
+#### If you previously set `sendDefaultPii: true`
+
+The v11 default matches this, so just remove the option:
 
 ```js
-// before (v10) — collect the default set of PII
-Sentry.init({
-  sendDefaultPii: true,
-});
+// v10
+Sentry.init({ sendDefaultPii: true });
 
-// after (v11) — this is now the default; you can remove the option entirely,
-// or opt into specific categories explicitly:
-Sentry.init({
-  dataCollection: {
-    userInfo: true,
-    cookies: true,
-    httpHeaders: { request: true, response: true },
-    urlQueryParams: true,
-    genAI: { inputs: true, outputs: true },
-  },
-});
+// v11 — same behavior is now the default
+Sentry.init({});
 ```
 
-If you previously relied on the restrictive default (`sendDefaultPii: false` or unset) and want to
-keep collecting as little data as possible, you now need to opt out explicitly:
+#### If you want to keep the v10 default behavior
+
+Set the baseline explicitly. **Don't leave `dataCollection` unset** — that now enables broader collection.
 
 ```js
-// after (v11) — restrict data collection to the v10-like minimum
+// v11 — preserves the v10 default
 Sentry.init({
   dataCollection: {
     userInfo: false,
     cookies: false,
-    httpHeaders: { request: false, response: false },
+    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     httpBodies: [],
-    urlQueryParams: false,
+    urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    graphQL: { document: false, variables: false },
   },
 });
 ```
 
 Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
 `true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
+
+See the [`dataCollection` docs](https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection) for the full option list.
 
 #### RequestData
 
@@ -494,6 +494,11 @@ Sentry.init({
 - The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute was removed.
 - (Vercel AI) The internal JSON-stringify workaround for array span attributes was removed.
 - AI integrations are no longer available in the browser SDK. They remain available in the server-side SDKs.
+- The AI instrumentation code moved out of `@sentry/core` into `@sentry/server-utils`. If you imported any AI helper **directly from `@sentry/core`**, import it from `@sentry/server-utils` instead (or keep importing it from your platform SDK, e.g. `@sentry/node`, if it re-exported that helper before — platform SDK availability is unchanged from v10). Affected helpers: `instrumentOpenAiClient`, `instrumentAnthropicAiClient`, `instrumentGoogleGenAIClient`, `instrumentWorkersAiClient`, `createLangChainCallbackHandler`, `instrumentLangChainEmbeddings`, `instrumentStateGraph`, `instrumentStateGraphCompile`, `instrumentCreateReactAgent`, `addVercelAiProcessors`.
+- The following low-level AI exports are no longer part of the public API (they were provider-instrumentation internals exported from `@sentry/core`):
+  - Attribute/stream/util helpers: `extractOpenAiRequestAttributes`, `addOpenAiRequestAttributes`, `addOpenAiResponseAttributes`, `extractOpenAiRequestParameters`, `instrumentOpenAiStream`, `extractAnthropicRequestAttributes`, `addAnthropicRequestAttributes`, `addAnthropicResponseAttributes`, `instrumentAsyncIterableStream`, `instrumentMessageStream`, `extractGoogleGenAIRequestAttributes`, `addGoogleGenAIRequestAttributes`, `addGoogleGenAIResponseAttributes`, `instrumentGoogleGenAIStream`, `getProviderMetadataAttributes`, `getTruncatedJsonString`, `shouldEnableTruncation`, `resolveAIRecordingOptions`, `wrapToolsWithSpans`, `extractLLMFromParams`, `extractAgentNameFromParams`, `instrumentCompiledGraphInvoke`.
+  - Integration-name constants: `OPENAI_INTEGRATION_NAME`, `ANTHROPIC_AI_INTEGRATION_NAME`, `GOOGLE_GENAI_INTEGRATION_NAME`, `LANGCHAIN_INTEGRATION_NAME`, `LANGGRAPH_INTEGRATION_NAME`.
+  - Types: `OpenAiClient`, `OpenAiOptions`, `InstrumentedMethod`, `AnthropicAiClient`, `AnthropicAiOptions`, `AnthropicAiResponse`, `AnthropicAiInstrumentedMethod`, `GoogleGenAIClient`, `GoogleGenAIChat`, `GoogleGenAIOptions`, `GoogleGenAIResponse`, `GoogleGenAIInstrumentedMethod`, `GoogleGenAIIstrumentedMethod`, `WorkersAiClient`, `WorkersAiOptions`, `LangChainOptions`, `LangChainIntegration`, `LangGraphOptions`, `LangGraphIntegration`, `CompiledGraph`.
 
 ### `@sentry/react-router`
 

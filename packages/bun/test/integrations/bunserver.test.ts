@@ -44,7 +44,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
-        attributes: {
+        attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.source': 'url',
@@ -59,7 +59,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.connection': 'keep-alive',
           'http.request.header.host': expect.any(String),
           'http.request.header.user_agent': expect.stringContaining('Bun'),
-        },
+        }),
         op: 'http.server',
         name: 'GET /users',
       },
@@ -88,7 +88,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
-        attributes: {
+        attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
           'sentry.source': 'url',
@@ -103,7 +103,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.content_length': '0',
           'http.request.header.host': expect.any(String),
           'http.request.header.user_agent': expect.stringContaining('Bun'),
-        },
+        }),
         op: 'http.server',
         name: 'POST /',
       },
@@ -195,6 +195,8 @@ describe('Bun Serve Integration', () => {
           'http.request.header.connection': 'keep-alive',
           'http.request.header.content_length': '15',
           'http.request.header.host': expect.any(String),
+          'http.request.header.baggage': expect.any(String),
+          'http.request.header.sentry_trace': expect.any(String),
         }),
         op: 'http.server',
         name: 'POST /api/test',

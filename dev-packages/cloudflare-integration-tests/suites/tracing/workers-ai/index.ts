@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/cloudflare';
-import { instrumentWorkersAiClient } from '@sentry/core';
 import { MockAi } from './mocks';
 
 interface Env {
@@ -24,7 +23,7 @@ export default Sentry.withSentry(
       // Wrapped in-request, mirroring how `@sentry/cloudflare` instruments `env.AI` on first
       // property access: after `withSentry` has initialized the SDK, so `dataCollection.genAI`
       // is visible when recording options are resolved.
-      const ai = instrumentWorkersAiClient(aiBinding);
+      const ai = Sentry.instrumentWorkersAiClient(aiBinding);
 
       const url = new URL(request.url);
 

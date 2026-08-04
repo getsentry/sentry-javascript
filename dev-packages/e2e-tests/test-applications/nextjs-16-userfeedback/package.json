@@ -11,6 +11,7 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@types/node": "^20",
     "@types/react": "^19",
