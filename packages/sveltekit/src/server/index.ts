@@ -52,8 +52,6 @@ export {
   getTraceMetaTags,
   graphqlIntegration,
   hapiIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,

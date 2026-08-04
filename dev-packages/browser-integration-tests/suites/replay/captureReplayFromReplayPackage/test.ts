@@ -42,7 +42,7 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
     },
     sdk: {
       integrations: expect.arrayContaining([
-        'InboundFilters',
+        'EventFilters',
         'FunctionToString',
         'BrowserApiErrors',
         'Breadcrumbs',
@@ -91,7 +91,7 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
     },
     sdk: {
       integrations: expect.arrayContaining([
-        'InboundFilters',
+        'EventFilters',
         'FunctionToString',
         'BrowserApiErrors',
         'Breadcrumbs',
