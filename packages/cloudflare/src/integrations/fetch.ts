@@ -107,7 +107,7 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
         if (breadcrumbs) {
           createBreadcrumb(handlerData);
         }
-      }, true);
+      });
     },
     setup(client) {
       HAS_CLIENT_MAP.set(client, true);

@@ -433,7 +433,7 @@ function createChildOrRootSpan({
 
     freezeDscOnSpan(span, dsc);
   } else {
-    const { traceId, dsc, parentSpanId, sampled: parentSampled } = scope.getPropagationContext();
+    const { traceId, dsc, parentSpanId, sampled: parentSampled, sampleRand } = scope.getPropagationContext();
 
     span = _startRootSpan(
       {
@@ -447,7 +447,13 @@ function createChildOrRootSpan({
     );
 
     if (dsc) {
-      freezeDscOnSpan(span, dsc);
+      // A trace continued without incoming baggage carries an empty DSC (we are not the head of
+      // trace). Fold in the scope's `sample_rand` so it still propagates downstream and sampling
+      // decisions stay consistent across the trace. A populated frozen DSC (e.g. an OTel remote
+      // parent whose DSC came in via baggage/trace state) is left untouched.
+      const dscWithSampleRand =
+        Object.keys(dsc).length === 0 && sampleRand !== undefined ? { sample_rand: sampleRand.toString() } : dsc;
+      freezeDscOnSpan(span, dscWithSampleRand);
     }
   }
 

@@ -57,7 +57,7 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  nativeNodeFetchIntegration,
+  fetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,

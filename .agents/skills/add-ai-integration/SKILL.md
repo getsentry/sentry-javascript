@@ -95,7 +95,7 @@ Reference: `packages/node/src/integrations/tracing/langchain/`
 
 ## Key Rules
 
-1. Respect `sendDefaultPii` for `recordInputs`/`recordOutputs`
+1. Respect `dataCollection.genAI` for recording input and output messages
 2. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only)
 3. Truncate large data with helper functions from `utils.ts`
 4. `gen_ai.invoke_agent` for parent ops, `gen_ai.chat` for child ops
