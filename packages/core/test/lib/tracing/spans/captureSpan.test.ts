@@ -480,6 +480,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -523,6 +524,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );

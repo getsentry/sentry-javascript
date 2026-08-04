@@ -80,7 +80,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     // check for traceLifecycle here because in static lifecycle,
     // captureSpan is called for INP spans. If an unmigrated beforeSendSpan
     // callback is run on these spans, it will throw an error.
-    traceLifecycle === 'stream' && beforeSendSpan && !isStaticBeforeSendSpanCallback(beforeSendSpan)
+    traceLifecycle !== 'static' && beforeSendSpan && !isStaticBeforeSendSpanCallback(beforeSendSpan)
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
