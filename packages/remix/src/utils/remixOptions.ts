@@ -4,18 +4,21 @@ import type { BrowserOptions } from '@sentry/react';
 
 export type RemixOptions = (Options | BrowserOptions | NodeOptions) & {
   /**
-   * Controls which `action` form data fields are captured and attached to spans/errors.
+   * Controls which `action` form data fields are captured and attached to spans/errors, optionally
+   * renaming them (`{ username: 'user' }` reports `username` as `user`).
    *
-   * This option only takes effect when incoming request bodies are collected, i.e. when
-   * `dataCollection.httpBodies` includes `'incomingRequest'`:
+   * Setting this option is enough to opt into capturing the configured fields, and it takes
+   * precedence over `dataCollection.httpBodies`:
    *
    * ```js
    * Sentry.init({
    *   captureActionFormDataKeys: { username: true },
-   *   dataCollection: { httpBodies: ['incomingRequest'] },
    * });
    * ```
+   *
+   * When this option is not set, all form fields are captured if `dataCollection.httpBodies`
+   * includes `'incomingRequest'` (the default). Either way, values whose field name looks
+   * sensitive (`password`, `token`, …) are replaced with `[Filtered]`.
    */
   captureActionFormDataKeys?: Record<string, string | boolean>;
-  // TODO(v11): Remove the requirement to also set `dataCollection.httpBodies`. Setting `captureActionFormDataKeys` should be enough to opt into capturing the configured form values
 };

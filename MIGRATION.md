@@ -166,6 +166,29 @@ User IP address inference, which was previously gated on `sendDefaultPii`, is no
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
 
+#### Remix action form data
+
+`captureActionFormDataKeys` is an integration-level override, so it no longer requires
+`dataCollection.httpBodies` to also include `'incomingRequest'`:
+
+```js
+// v10 — both were required
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+  dataCollection: { httpBodies: ['incomingRequest'] },
+});
+
+// v11 — the option opts in on its own
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+});
+```
+
+If `captureActionFormDataKeys` is not set, all form fields are captured when
+`dataCollection.httpBodies` includes `'incomingRequest'` (the v11 default). Values whose field name
+looks sensitive (`password`, `token`, …) are replaced with `[Filtered]`, including explicitly
+allowlisted ones.
+
 ### Channel-based instrumentation is the default
 
 Affected SDKs: `@sentry/node` and all dependents.
