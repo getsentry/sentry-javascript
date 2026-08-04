@@ -82,7 +82,7 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
 
     const interactionManager = initUnique(opts, InteractionManager);
 
-    const initNewINPMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+    const initNewINPMetric = (navigation?: Metric['navigationType'], navigationId?: number) => {
       interactionManager._resetInteractions();
       metric = initMetric('INP', -1, navigation, navigationId);
       report = bindReporter(onReport, metric, INPThresholds, opts.reportAllChanges);

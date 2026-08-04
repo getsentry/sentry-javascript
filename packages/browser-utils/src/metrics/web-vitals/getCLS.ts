@@ -66,7 +66,7 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
 
       const layoutShiftManager = initUnique(opts, LayoutShiftManager);
 
-      const initNewCLSMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+      const initNewCLSMetric = (navigation?: Metric['navigationType'], navigationId?: number) => {
         metric = initMetric('CLS', 0, navigation, navigationId);
         layoutShiftManager._sessionValue = 0;
         report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);

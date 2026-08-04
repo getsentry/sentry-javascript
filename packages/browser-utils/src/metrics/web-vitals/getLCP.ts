@@ -46,8 +46,8 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
   let reportedMetric = false;
   const softNavsEnabled = softNavs(opts);
   let metricNavStartTime = 0;
-  const hardNavId = getNavigationEntry()?.navigationId || '1';
-  let finalizeNavId = '';
+  const hardNavId = getNavigationEntry()?.navigationId || 0;
+  let finalizeNavId = 0;
 
   whenActivated(() => {
     let visibilityWatcher = getVisibilityWatcher();
@@ -56,7 +56,7 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
 
     const lcpEntryManager = initUnique(opts, LCPEntryManager);
 
-    const initNewLCPMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+    const initNewLCPMetric = (navigation?: Metric['navigationType'], navigationId?: number) => {
       metric = initMetric('LCP', 0, navigation, navigationId);
       report = bindReporter(onReport, metric, LCPThresholds, opts.reportAllChanges);
       reportedMetric = false;

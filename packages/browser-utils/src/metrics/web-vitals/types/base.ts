@@ -91,10 +91,8 @@ export interface Metric {
   /**
    * The navigationId the metric happened for. This is particularly relevant for soft navigations where
    * the metric may be reported for a previous URL.
-   *
-   * navigationIds are UUID strings.
    */
-  navigationId: string;
+  navigationId: number;
 
   /**
    * The navigation URL the metric happened for. This is particularly relevant for soft navigations where

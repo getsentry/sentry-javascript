@@ -72,7 +72,7 @@ interface WebVitalSpanOptions {
  * soft navigation. Consumers can filter on `sentry.web_vital.navigation_type` and correlate the
  * vital to its navigation span via `sentry.navigation_id` / `sentry.navigation.span_id`.
  */
-function _withSoftNavAttributes(attributes: SpanAttributes, navigationId?: string): SpanAttributes {
+function _withSoftNavAttributes(attributes: SpanAttributes, navigationId?: number): SpanAttributes {
   if (!navigationId) {
     return attributes;
   }
@@ -229,7 +229,7 @@ export function _sendLcpSpan(
   entry: LargestContentfulPaint | undefined,
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
-  navigationId?: string,
+  navigationId?: number,
 ): void {
   // For soft navs, a value of 0 is valid (the contentful paint often lands at navigation start).
   // For the pageload path we still drop implausible (<= 0 or too-large) values.
@@ -322,7 +322,7 @@ export function _sendClsSpan(
   entry: LayoutShift | undefined,
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
-  navigationId?: string,
+  navigationId?: number,
 ): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})${navigationId ? ` [soft-nav ${navigationId}]` : ''}`);
 
@@ -399,7 +399,7 @@ export function _sendInpSpan(
   inpValue: number,
   entry: PerformanceEventTiming,
   standalone = false,
-  navigationId?: string,
+  navigationId?: number,
 ): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})${navigationId ? ` [soft-nav ${navigationId}]` : ''}`);
 

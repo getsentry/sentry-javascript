@@ -20,7 +20,7 @@ export const softNavs = (opts?: ReportOpts) => {
   return PerformanceObserver.supportedEntryTypes.includes('soft-navigation') && opts?.reportSoftNavs;
 };
 
-export const getSoftNavigationEntry = (navigationId?: string): SoftNavigationEntry | undefined => {
+export const getSoftNavigationEntry = (navigationId?: number): SoftNavigationEntry | undefined => {
   if (!navigationId) return;
 
   const softNavEntry = globalThis.performance

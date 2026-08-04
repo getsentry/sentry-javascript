@@ -37,7 +37,7 @@ let _pendingNavigationSpan: Span | undefined;
 // interactionId -> the navigation span that interaction triggered.
 const _interactionIdToSpan = new Map<number, Span>();
 // navigationId -> navigation span, resolved once a soft-nav entry joins the two.
-const _navigationIdToSpan = new Map<string, Span>();
+const _navigationIdToSpan = new Map<number, Span>();
 
 let _observersStarted = false;
 
@@ -60,7 +60,7 @@ export function registerNavigationSpan(span: Span, reportSoftNavs?: boolean): vo
 /**
  * Look up the navigation span a soft-nav `navigationId` belongs to, if we managed to correlate one.
  */
-export function getNavigationSpanForNavigationId(navigationId: string | undefined): Span | undefined {
+export function getNavigationSpanForNavigationId(navigationId: number | undefined): Span | undefined {
   if (!navigationId) {
     return undefined;
   }
@@ -137,7 +137,7 @@ function _rememberInteraction(interactionId: number, span: Span): void {
  * Join a soft-nav entry to the navigation span its interaction triggered, stamp the `navigationId`
  * onto that span, and cache the mapping.
  */
-function _joinEntryToSpan(interactionId: number, navigationId: string): Span | undefined {
+function _joinEntryToSpan(interactionId: number, navigationId: number): Span | undefined {
   const span = _interactionIdToSpan.get(interactionId);
   if (!span) {
     DEBUG_BUILD && debug.log(`[SoftNav] No navigation span for interactionId ${interactionId} (navigationId ${navigationId})`);

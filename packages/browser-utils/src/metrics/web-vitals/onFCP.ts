@@ -37,14 +37,14 @@ export const onFCP = (onReport: (metric: FCPMetric) => void, opts: ReportOpts = 
   // Set defaults
   const softNavsEnabled = softNavs(opts);
   let metricNavStartTime = 0;
-  const hardNavId = getNavigationEntry()?.navigationId || '1';
+  const hardNavId = getNavigationEntry()?.navigationId || 0;
 
   whenActivated(() => {
     let visibilityWatcher = getVisibilityWatcher();
     let metric = initMetric('FCP');
     let report: ReturnType<typeof bindReporter>;
 
-    const initNewFCPMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+    const initNewFCPMetric = (navigation?: Metric['navigationType'], navigationId?: number) => {
       metric = initMetric('FCP', 0, navigation, navigationId);
       report = bindReporter(onReport, metric, FCPThresholds, opts.reportAllChanges);
       if (navigation === 'soft-navigation') {
@@ -99,7 +99,7 @@ export const onFCP = (onReport: (metric: FCPMetric) => void, opts: ReportOpts = 
           ) {
             metric.value = value;
             metric.entries.push(entry);
-            metric.navigationId = entry.navigationId || '1';
+            metric.navigationId = entry.navigationId || 0;
             // FCP should only be reported once so can report right
             report(true);
           }

@@ -108,7 +108,7 @@ interface Metric {
    * The navigationId the metric belongs to. Relevant for soft navigations
    * where multiple navigations can occur within a single page lifecycle.
    */
-  navigationId: string;
+  navigationId: number;
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;

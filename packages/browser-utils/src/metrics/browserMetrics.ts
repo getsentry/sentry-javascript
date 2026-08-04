@@ -88,7 +88,7 @@ let _clsEntry: LayoutShift | undefined;
  * the span is buffered by trace ID and sent alongside the navigation span.
  */
 function _emitMeasurement(
-  metric: { navigationType: string; navigationId: string },
+  metric: { navigationType: string; navigationId: number; navigationStartTime?: number },
   name: string,
   value: number,
   unit: string,
@@ -98,7 +98,7 @@ function _emitMeasurement(
     return;
   }
 
-  _emitSoftNavWebVitalSpan(name, value, unit, metric.navigationId);
+  _emitSoftNavWebVitalSpan(name, value, unit, metric.navigationId, metric.navigationStartTime);
 }
 
 /**
@@ -112,8 +112,17 @@ function _emitMeasurement(
  * meet the soft-nav heuristic or the entry arrived too late - the span is still emitted, just
  * without the navigation link.
  */
-function _emitSoftNavWebVitalSpan(name: string, value: number, unit: string, navigationId: string): void {
-  const startTime = msToSec(browserPerformanceTimeOrigin() || 0);
+function _emitSoftNavWebVitalSpan(
+  name: string,
+  value: number,
+  unit: string,
+  navigationId: number,
+  navigationStartTime?: number,
+): void {
+  // Anchor the span to the soft navigation's own start time (relative to the page time origin)
+  // rather than the page time origin, so it lands alongside the navigation it belongs to instead
+  // of at the start of the page.
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (navigationStartTime || 0));
   const navigationSpan = getNavigationSpanForNavigationId(navigationId);
   DEBUG_BUILD &&
     debug.log(
