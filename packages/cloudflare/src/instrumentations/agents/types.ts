@@ -1,8 +1,10 @@
 import { getCurrentScope } from '@sentry/core';
 
+// v10 predates `@sentry/conventions` and doesn't expose this from `@sentry/core`, so keep the
+// standard semantic attribute name locally.
+const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
+
 export const AGENT_SPAN_ORIGIN = 'auto.faas.cloudflare.agents';
-export const AGENT_CLASS_ATTRIBUTE = 'cloudflare.agent.class';
-export const AGENT_NAME_ATTRIBUTE = 'cloudflare.agent.name';
 
 /**
  * The subset of the `agents` `Agent` instance internals that we instrument. These are runtime
@@ -40,12 +42,7 @@ export function getAgentAttributes(instance: AgentInternals): Record<string, str
 
   const agentClass = instance._ParentClass?.name;
   if (typeof agentClass === 'string' && agentClass) {
-    attributes[AGENT_CLASS_ATTRIBUTE] = agentClass;
-  }
-
-  const agentName = instance.name;
-  if (typeof agentName === 'string' && agentName) {
-    attributes[AGENT_NAME_ATTRIBUTE] = agentName;
+    attributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentClass;
   }
 
   return attributes;
