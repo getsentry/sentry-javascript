@@ -280,11 +280,15 @@ function _trackFpFcp(): () => void {
     for (const entry of entries) {
       // Only report if the page wasn't hidden prior to the web vital.
       const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+      // For prerendered pages, paint timestamps are relative to navigation start, but the vital
+      // should be relative to activation. Rebase against `activationStart` (0 for regular loads),
+      // matching how the vendored web-vitals library reports LCP/FCP/TTFB.
+      const value = Math.max(entry.startTime - getActivationStart(), 0);
       if (entry.name === 'first-paint' && shouldRecord) {
-        _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+        _measurements['fp'] = { value, unit: 'millisecond' };
       }
       if (entry.name === 'first-contentful-paint' && shouldRecord) {
-        _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+        _measurements['fcp'] = { value, unit: 'millisecond' };
       }
     }
   });

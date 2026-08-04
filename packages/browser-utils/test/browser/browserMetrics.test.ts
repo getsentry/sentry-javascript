@@ -49,6 +49,26 @@ function mockPerformanceResourceTiming(
 }
 
 describe('addWebVitalsToSpan', () => {
+  // `addPerformanceInstrumentationHandler` only constructs the underlying PerformanceObserver once
+  // (module-level `instrumented` guard), so the paint observer callback is captured here at describe
+  // scope and reused across tests rather than per-test.
+  let performanceObserverCallback: ((list: PerformanceObserverEntryList) => void) | undefined;
+  class MockPerformanceObserver {
+    public static supportedEntryTypes = ['paint'];
+
+    public constructor(callback: (list: PerformanceObserverEntryList) => void) {
+      performanceObserverCallback = callback;
+    }
+
+    public observe(): void {
+      // noop
+    }
+
+    public disconnect(): void {
+      // noop
+    }
+  }
+
   beforeEach(() => {
     vi.restoreAllMocks();
     getCurrentScope().clear();
@@ -69,23 +89,6 @@ describe('addWebVitalsToSpan', () => {
   });
 
   it('clears pending measurements when the performance API is unavailable', async () => {
-    let performanceObserverCallback: ((list: PerformanceObserverEntryList) => void) | undefined;
-    class MockPerformanceObserver {
-      public static supportedEntryTypes = ['paint'];
-
-      public constructor(callback: (list: PerformanceObserverEntryList) => void) {
-        performanceObserverCallback = callback;
-      }
-
-      public observe(): void {
-        // noop
-      }
-
-      public disconnect(): void {
-        // noop
-      }
-    }
-
     vi.stubGlobal('PerformanceObserver', MockPerformanceObserver);
     vi.stubGlobal('addEventListener', vi.fn());
     vi.stubGlobal('removeEventListener', vi.fn());
@@ -141,6 +144,65 @@ describe('addWebVitalsToSpan', () => {
 
     expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fp.value']).toBeUndefined();
     expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fcp.value']).toBeUndefined();
+  });
+
+  it('rebases fp/fcp against activationStart for prerendered pages', async () => {
+    vi.stubGlobal('PerformanceObserver', MockPerformanceObserver);
+    vi.stubGlobal('addEventListener', vi.fn());
+    vi.stubGlobal('removeEventListener', vi.fn());
+    vi.stubGlobal('document', {
+      prerendering: false,
+      readyState: 'complete',
+      visibilityState: 'visible',
+    });
+
+    // The page was prerendered and activated 5ms after navigation start.
+    const realPerformance = WINDOW.performance;
+    vi.stubGlobal('performance', {
+      timeOrigin: realPerformance.timeOrigin,
+      now: () => realPerformance.now(),
+      getEntries: () => [],
+      getEntriesByType: (type: string) =>
+        type === 'navigation' ? [{ responseStart: 100, activationStart: 5 } as PerformanceNavigationTiming] : [],
+    });
+
+    const cleanupWebVitals = startTrackingWebVitals({
+      trackCls: true,
+      trackLcp: true,
+      client: getClient()!,
+    });
+
+    performanceObserverCallback?.({
+      getEntries: () => [
+        {
+          entryType: 'paint',
+          name: 'first-paint',
+          duration: 0,
+          startTime: 12,
+          toJSON: () => ({}),
+        },
+        {
+          entryType: 'paint',
+          name: 'first-contentful-paint',
+          duration: 0,
+          startTime: 18,
+          toJSON: () => ({}),
+        },
+      ],
+    } as PerformanceObserverEntryList);
+    await Promise.resolve();
+    cleanupWebVitals();
+
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    addWebVitalsToSpan(pageloadSpan, {
+      recordClsOnPageloadSpan: true,
+      recordLcpOnPageloadSpan: true,
+      spanStreamingEnabled: true,
+    });
+
+    // Raw startTimes are 12 and 18, activationStart is 5, so values are clamped to 7 and 13.
+    expect(spanToJSON(pageloadSpan).data['browser.web_vital.fp.value']).toBe(7);
+    expect(spanToJSON(pageloadSpan).data['browser.web_vital.fcp.value']).toBe(13);
   });
 });
 
