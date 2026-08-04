@@ -482,7 +482,8 @@ Sentry.init({
 - `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
 - `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
-- OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events.
+- `getSentryResource` was removed.
+- OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
 
 ### `@sentry/core` span attributes
 
