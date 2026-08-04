@@ -76,7 +76,6 @@ export {
   functionToStringIntegration,
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
-  instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
   instrumentAnthropicAiClient,
   eventFiltersIntegration,
@@ -128,7 +127,7 @@ export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-export { prismaIntegration } from '@sentry/server-utils';
+export { prismaIntegration, instrumentOpenAiClient } from '@sentry/server-utils';
 
 // eslint-disable-next-line typescript/no-deprecated
 export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';

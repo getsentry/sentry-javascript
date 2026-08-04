@@ -9,9 +9,9 @@ import {
   defineIntegration,
   GOOGLE_GENAI_INTEGRATION_NAME,
   LANGCHAIN_INTEGRATION_NAME,
-  OPENAI_INTEGRATION_NAME,
   startInactiveSpan,
 } from '@sentry/core';
+import { OPENAI_INTEGRATION_NAME } from '../../ai/openai/constants';
 import { CHANNELS } from '../../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../../tracing-channel';

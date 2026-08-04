@@ -1,4 +1,3 @@
-import { instrumentOpenAiClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 
 class MockOpenAI {
@@ -45,7 +44,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const client = instrumentOpenAiClient(mockClient, { enableTruncation: true, recordInputs: true });
+    const client = Sentry.instrumentOpenAiClient(mockClient, { enableTruncation: true, recordInputs: true });
 
     // Test 1: Given an array of messages only the last message should be kept
     // The last message should be truncated to fit within the 20KB limit

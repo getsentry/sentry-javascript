@@ -1,6 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import type { Span } from '../../types/span';
-import type { SpanAttributeValue } from '../../types/span';
+import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
@@ -21,7 +20,7 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+} from '../core/gen-ai-attributes';
 import type { ChatCompletionChunk, ResponseStreamingEvent } from './types';
 
 /**
