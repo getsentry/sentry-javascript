@@ -32,7 +32,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -86,7 +85,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -137,7 +135,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -174,7 +171,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with tool calls', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -233,6 +229,7 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
+        // Blocked content is reported from within the stream, not thrown to the caller.
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -289,6 +286,7 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
+        // Blocked content is reported from within the stream, not thrown to the caller.
         .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -348,7 +346,6 @@ describe('Google GenAI integration', () => {
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -372,7 +369,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -411,7 +407,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -458,7 +453,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           span: container => {
             const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');

@@ -19,24 +19,12 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
-  const EXPECTED_MODEL_ERROR = {
-    exception: {
-      values: [
-        {
-          type: 'Error',
-          value: '404 Model not found',
-        },
-      ],
-    },
-  };
 
   const EXPECTED_STREAM_EVENT_HANDLER_MESSAGE = {
     message: 'stream event from user-added event listener captured',
@@ -45,7 +33,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
     test('preserves .withResponse() and .asResponse() for non-streaming and streaming', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'main',
@@ -81,15 +68,7 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      const runner = createRunner();
-
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
-
-      await runner
+      await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -122,15 +101,7 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      const runner = createRunner();
-
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
-
-      await runner
+      await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -192,15 +163,7 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
-      const runner = createRunner();
-
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
-
-      await runner
+      await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -246,7 +209,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createRunner, test) => {
     test('streams produce spans with token usage and metadata (PII false)', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: EXPECTED_STREAM_SPANS_PII_FALSE })
         .expect({
           span: container => {
@@ -300,7 +262,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streams record response text when PII true', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE })
         .expect({
           span: container => {
@@ -351,7 +312,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream-nested-create.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces a create() invoked from a stream event handler (dedup does not over-suppress)', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -382,7 +342,6 @@ describe('Anthropic integration', () => {
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {},
         })
@@ -412,7 +371,6 @@ describe('Anthropic integration', () => {
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {},
         })
@@ -453,6 +411,8 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles streaming errors correctly', async () => {
       await createRunner()
+        // Anthropic surfaces stream errors as events on a resolved stream rather than by rejecting,
+        // so the instrumentation still reports them; the caller never sees them as a thrown error.
         .ignore('event')
         .expect({ transaction: EXPECTED_STREAM_ERROR_SPANS })
         .expect({
@@ -501,7 +461,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles tool errors correctly', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -531,7 +490,6 @@ describe('Anthropic integration', () => {
       test('extracts system instructions from messages', async () => {
         const expectedInstructions = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]);
         await createRunner()
-          .ignore('event')
           .expect({
             transaction: {
               transaction: 'main',
@@ -555,7 +513,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates anthropic related spans with span streaming enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           span: container => {
             const completionSpan = container.items.find(
