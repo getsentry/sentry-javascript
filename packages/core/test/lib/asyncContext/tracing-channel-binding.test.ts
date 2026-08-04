@@ -1,8 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAsyncContextStrategy, setAsyncContextStrategy } from '../../../src/asyncContext';
-import { waitForTracingChannelBinding } from '../../../src/asyncContext/tracing-channel-binding';
+import {
+  _INTERNAL_createTracingChannelBinding,
+  waitForTracingChannelBinding,
+} from '../../../src/asyncContext/tracing-channel-binding';
 import type { TracingChannelBinding } from '../../../src/asyncContext/types';
 import { getMainCarrier } from '../../../src/carrier';
+import { Scope } from '../../../src/scope';
+import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import { SentrySpan } from '../../../src/tracing/sentrySpan';
+import { _getSpanForScope } from '../../../src/utils/spanOnScope';
 
 const FAKE_BINDING: TracingChannelBinding = {
   asyncLocalStorage: {},
@@ -119,5 +126,32 @@ describe('waitForTracingChannelBinding', () => {
     waitForTracingChannelBinding(callback, 0);
 
     expect(callback).not.toHaveBeenCalled();
+  });
+});
+
+describe('_INTERNAL_createTracingChannelBinding', () => {
+  const scope = new Scope();
+  const isolationScope = new Scope();
+  const getScopes = (): { scope: Scope; isolationScope: Scope } => ({ scope, isolationScope });
+
+  it('sets a normal span as the active span on the store scope', () => {
+    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+    const span = new SentrySpan({ name: 'test' });
+
+    const store = binding.getStoreWithActiveSpan(span) as { scope: Scope; isolationScope: Scope };
+
+    expect(_getSpanForScope(store.scope)).toBe(span);
+    expect(store.isolationScope).toBe(isolationScope);
+  });
+
+  it('does not set an ignored span as the active span', () => {
+    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+    const ignoredSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+
+    const store = binding.getStoreWithActiveSpan(ignoredSpan) as { scope: Scope; isolationScope: Scope };
+
+    // No span is emitted for an ignored span, so children/outgoing requests must propagate from the
+    // nearest emitted parent instead of the ignored placeholder.
+    expect(_getSpanForScope(store.scope)).toBeUndefined();
   });
 });
