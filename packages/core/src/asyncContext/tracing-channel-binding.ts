@@ -53,23 +53,10 @@ export function _INTERNAL_createTracingChannelBinding(
     getStoreWithActiveSpan: span => {
       const { scope, isolationScope } = getScopes();
       const activeScope = scope.clone();
-      // Whether an ignored span becomes the active span decides what its descendants and outgoing
-      // requests propagate from, so it must follow the same rule everywhere:
-      //
-      // - Ignored *child*: keep the parent active. No span is emitted for the ignored child, so if it
-      //   became active its descendants would parent to (and propagate a `sentry-trace` referencing) a
-      //   span that never reaches Sentry, producing orphaned/misparented spans downstream. Leaving the
-      //   parent active re-parents them onto the nearest emitted span instead.
-      // - Ignored *root*: keep it active so the whole subtree is dropped with it. That is the point of
-      //   `ignoreSpans` on a root; not activating it would let its children escape and be emitted as
-      //   standalone spans.
-      //
-      // This is the no-tracer-provider (AsyncLocalStorage) counterpart of the tracer-provider path in
-      // `@sentry/opentelemetry`'s `getStoreWithActiveSpan`, which applies the same
-      // `spanIsIgnored(span) && getRootSpan(span) !== span` check on the OTel context (it additionally
-      // consults trace state to carry the "child ignored" decision across process boundaries, which the
-      // channel binding does not need). Keeping the rule identical means `ignoreSpans` behaves the same
-      // whether or not Sentry owns an OpenTelemetry tracer provider.
+      // Do not make an ignored *child* the active span: no span is emitted for it, so its children and
+      // outgoing requests must propagate from the nearest emitted parent instead. An ignored *root* is
+      // still activated so its whole subtree is dropped with it. Mirrors core `startSpan` and the OTel
+      // context manager (`spanIsIgnored(span) && getRootSpan(span) !== span`).
       if (!spanIsIgnored(span) || getRootSpan(span) === span) {
         _setSpanForScope(activeScope, span);
       }
