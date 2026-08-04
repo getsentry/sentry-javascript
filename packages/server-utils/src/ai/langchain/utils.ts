@@ -1,7 +1,7 @@
+/* eslint-disable max-lines */
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import type { SpanAttributeValue } from '../../types/span';
-import { stringify } from '../../utils/string';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
@@ -25,9 +25,9 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../ai/gen-ai-attributes';
-import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { isContentMedia, stripInlineMediaFromSingleMessage } from '../core/mediaStripping';
+import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 

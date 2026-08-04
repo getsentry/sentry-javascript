@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractAgentNameFromParams, extractLLMFromParams } from '../../../src/tracing/langgraph/utils';
+import { extractAgentNameFromParams, extractLLMFromParams } from '../../../../src/ai/langgraph/utils';
 
 describe('extractLLMFromParams', () => {
   it('returns null for empty or invalid args', () => {

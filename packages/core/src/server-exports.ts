@@ -60,17 +60,3 @@ export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/
 export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
-export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
-export { _INTERNAL_getLangChainEmbeddingsSpanOptions } from './tracing/langchain/embeddings';
-export { _INTERNAL_mergeLangChainCallbackHandler } from './tracing/langchain/utils';
-export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
-export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
-export {
-  instrumentStateGraphCompile,
-  instrumentCreateReactAgent,
-  instrumentStateGraph,
-  instrumentCompiledGraphInvoke,
-} from './tracing/langgraph';
-export { wrapToolsWithSpans, extractLLMFromParams, extractAgentNameFromParams } from './tracing/langgraph/utils';
-export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
-export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';

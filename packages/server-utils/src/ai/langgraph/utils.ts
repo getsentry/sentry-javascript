@@ -1,8 +1,12 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span, SpanAttributes } from '../../types/span';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+} from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_OPERATION_NAME,
@@ -19,10 +23,9 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import { GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
-import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
 
