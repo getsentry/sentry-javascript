@@ -1,0 +1,383 @@
+import type { Client, Measurements, Span, SpanAttributes } from '@sentry/core';
+import {
+  browserPerformanceTimeOrigin,
+  debug,
+  getCurrentScope,
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  setMeasurement,
+  spanToJSON,
+  startInactiveSpan,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { htmlTreeAsString } from '../htmlTreeAsString';
+import {
+  addClsInstrumentationHandler,
+  addLcpInstrumentationHandler,
+  addPerformanceInstrumentationHandler,
+  addTtfbInstrumentationHandler,
+} from '../instrumentation/performanceObserver';
+import { getBrowserPerformanceAPI, msToSec } from '../performance/utils';
+import { getActivationStart, getNavigationEntry, getVisibilityWatcher } from './utils';
+import { isValidLcpMetric } from './lcp';
+import { getNavigationSpanForNavigationId } from './softNavCorrelation';
+
+let _measurements: Measurements = {};
+let _lcpEntry: LargestContentfulPaint | undefined;
+let _clsEntry: LayoutShift | undefined;
+
+/**
+ * Routes a web vital measurement to the correct destination.
+ * For hard navigations, stores in `_measurements` to be flushed onto the pageload span.
+ * For soft navigations, emits a web vital span. With span streaming (v2) enabled,
+ * the span is buffered by trace ID and sent alongside the navigation span.
+ */
+function _emitMeasurement(
+  metric: { navigationType: string; navigationId: number; navigationStartTime?: number },
+  name: string,
+  value: number,
+  unit: string,
+): void {
+  if (metric.navigationType !== 'soft-navigation') {
+    _measurements[name] = { value, unit };
+    return;
+  }
+
+  _emitSoftNavWebVitalSpan(name, value, unit, metric.navigationId, metric.navigationStartTime);
+}
+
+/**
+ * Creates a v2 web vital span for a soft navigation metric.
+ * This is a regular (non-standalone) span so it flows through the span streaming
+ * pipeline (afterSpanEnd -> captureSpan -> SpanBuffer) and gets grouped with
+ * the navigation span by trace ID.
+ *
+ * On a best-effort basis, the span is linked to the navigation span it belongs to (via the
+ * soft-nav `navigationId` correlation). When correlation fails - e.g. the navigation didn't
+ * meet the soft-nav heuristic or the entry arrived too late - the span is still emitted, just
+ * without the navigation link.
+ */
+function _emitSoftNavWebVitalSpan(
+  name: string,
+  value: number,
+  unit: string,
+  navigationId: number,
+  navigationStartTime?: number,
+): void {
+  // Anchor the span to the soft navigation's own start time (relative to the page time origin)
+  // rather than the page time origin, so it lands alongside the navigation it belongs to instead
+  // of at the start of the page.
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (navigationStartTime || 0));
+  const navigationSpan = getNavigationSpanForNavigationId(navigationId);
+  DEBUG_BUILD &&
+    debug.log(
+      `[SoftNav] Emitting soft-nav ${name} span (value=${value}, navigationId=${navigationId}, linkedNavSpan=${!!navigationSpan})`,
+    );
+  const routeName = navigationSpan
+    ? spanToJSON(navigationSpan).description
+    : getCurrentScope().getScopeData().transactionName;
+
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.soft_navigation',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.webvital.${name}`,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
+    // Explicit marker so consumers can filter soft-nav web vital spans without relying on origin conventions.
+    'sentry.web_vital.navigation_type': 'soft-navigation',
+    'sentry.navigation_id': navigationId,
+  };
+
+  if (navigationSpan) {
+    attributes['sentry.navigation.span_id'] = navigationSpan.spanContext().spanId;
+  }
+
+  const span = startInactiveSpan({
+    name: routeName || '',
+    attributes,
+    startTime,
+  });
+
+  if (span) {
+    span.addEvent(name, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: unit,
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: value,
+    });
+    span.end(startTime);
+  }
+}
+
+interface StartTrackingWebVitalsOptions {
+  trackCls: boolean;
+  trackLcp: boolean;
+  reportSoftNavs?: boolean;
+  client: Client;
+}
+
+/**
+ * Start tracking web vitals.
+ * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
+ *
+ * @returns A function that forces web vitals collection
+ */
+export function startTrackingWebVitals({
+  trackCls,
+  trackLcp,
+  reportSoftNavs,
+}: StartTrackingWebVitalsOptions): () => void {
+  const performance = getBrowserPerformanceAPI();
+  if (performance && browserPerformanceTimeOrigin()) {
+    const lcpCleanupCallback = trackLcp ? _trackLCP(reportSoftNavs) : undefined;
+    const clsCleanupCallback = trackCls ? _trackCLS(reportSoftNavs) : undefined;
+    const ttfbCleanupCallback = _trackTtfb(reportSoftNavs);
+    const fpFcpCleanupCallback = _trackFpFcp();
+
+    return (): void => {
+      ttfbCleanupCallback();
+      fpFcpCleanupCallback();
+      // When soft navs are enabled, keep the LCP and CLS observers alive across the page
+      // lifetime so vitals for subsequent soft navigations are still captured.
+      if (!reportSoftNavs) {
+        lcpCleanupCallback?.();
+        clsCleanupCallback?.();
+      }
+    };
+  }
+
+  return () => undefined;
+}
+
+export { registerInpInteractionListener } from './inp';
+
+/**
+ * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
+ * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
+ */
+function _trackCLS(reportSoftNavs?: boolean): () => void {
+  return addClsInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      if (!entry) {
+        return;
+      }
+      _emitMeasurement(metric, 'cls', metric.value, '');
+      _clsEntry = entry;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
+}
+
+/** Starts tracking the Largest Contentful Paint on the current page. */
+function _trackLCP(reportSoftNavs?: boolean): () => void {
+  return addLcpInstrumentationHandler(
+    ({ metric }) => {
+      const entry = metric.entries[metric.entries.length - 1];
+      if (!entry || !isValidLcpMetric(metric.value)) {
+        return;
+      }
+      _emitMeasurement(metric, 'lcp', metric.value, 'millisecond');
+      _lcpEntry = entry as LargestContentfulPaint;
+    },
+    !reportSoftNavs,
+    reportSoftNavs,
+  );
+}
+
+function _trackTtfb(reportSoftNavs?: boolean): () => void {
+  return addTtfbInstrumentationHandler(({ metric }) => {
+    const entry = metric.entries[metric.entries.length - 1];
+    if (!entry) {
+      return;
+    }
+
+    _emitMeasurement(metric, 'ttfb', metric.value, 'millisecond');
+  }, reportSoftNavs);
+}
+
+/** Starts tracking First Paint and First Contentful Paint on the current page. */
+function _trackFpFcp(): () => void {
+  return addPerformanceInstrumentationHandler('paint', ({ entries }) => {
+    const firstHidden = getVisibilityWatcher();
+    for (const entry of entries) {
+      // Only report if the page wasn't hidden prior to the web vital.
+      const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+      if (entry.name === 'first-paint' && shouldRecord) {
+        _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+      }
+      if (entry.name === 'first-contentful-paint' && shouldRecord) {
+        _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+      }
+    }
+  });
+}
+
+interface AddWebVitalsToSpanOptions {
+  /**
+   * Flag to determine if CLS should be recorded as a measurement on the pageload span or
+   * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
+   */
+  recordClsOnPageloadSpan: boolean;
+
+  /**
+   * Flag to determine if LCP should be recorded as a measurement on the pageload span or
+   * sent as a standalone span instead.
+   * Sending it as a standalone span will yield more accurate LCP values.
+   *
+   * Default: `false` for backwards compatibility.
+   */
+  recordLcpOnPageloadSpan: boolean;
+
+  /**
+   * Whether span streaming is enabled.
+   */
+  spanStreamingEnabled?: boolean;
+}
+
+/**
+ * Writes the collected web vitals (LCP, CLS, INP, TTFB, FP, FCP) onto the pageload span,
+ * either as measurements/attributes (v1) or as web vital attributes (span streaming).
+ *
+ * This should be called when the pageload span ends, after the web vitals have been finalized.
+ * It is a no-op for non-pageload spans, but always resets the collected web vital state so it
+ * doesn't leak into a subsequent navigation.
+ */
+export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOptions): void {
+  const origin = browserPerformanceTimeOrigin();
+  if (!getBrowserPerformanceAPI()?.getEntries || !origin) {
+    // Gatekeeper if performance API not available
+    resetWebVitalState();
+    return;
+  }
+
+  const { spanStreamingEnabled, recordClsOnPageloadSpan, recordLcpOnPageloadSpan } = options;
+  const timeOrigin = msToSec(origin);
+
+  // Measurements are only available for pageload transactions
+  if (spanToJSON(span).op === 'pageload') {
+    _addTtfbRequestTimeToMeasurements(_measurements);
+
+    if (spanStreamingEnabled) {
+      const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
+        const attrKey = customAttrName ?? `browser.web_vital.${shortWebVitalName}.value`;
+        span.setAttribute(attrKey, value);
+        DEBUG_BUILD && debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
+      };
+      // for streamed pageload spans, we add the web vital measurements as attributes.
+      // We omit LCP, CLS and INP because they're tracked separately as spans
+      ['ttfb', 'fp', 'fcp'].forEach(measurementName => {
+        if (_measurements[measurementName]) {
+          setAttr(measurementName, _measurements[measurementName].value);
+        }
+      });
+      if (_measurements['ttfb.requestTime']) {
+        setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
+      }
+    } else {
+      // If CLS is tracked as a span (span streaming), don't record CLS as a measurement
+      if (!recordClsOnPageloadSpan) {
+        delete _measurements.cls;
+      }
+
+      // If LCP is tracked as a span (span streaming), don't record LCP as a measurement
+      if (!recordLcpOnPageloadSpan) {
+        delete _measurements.lcp;
+      }
+
+      Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+        setMeasurement(measurementName, measurement.value, measurement.unit, span);
+      });
+
+      _setWebVitalAttributes(span, options);
+    }
+
+    // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
+    span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
+
+    // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
+    // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
+    // user-perceived time, so they are not reported from the actual start of the navigation, but rather from the
+    // time where the user actively started the navigation, for example by clicking a link.
+    // This is user action is called "activation" and the time between navigation and activation is stored in
+    // the `activationStart` attribute of the "navigation" PerformanceEntry.
+    span.setAttribute(
+      spanStreamingEnabled ? 'browser.performance.navigation.activation_start' : 'performance.activationStart',
+      getActivationStart(),
+    );
+  }
+
+  resetWebVitalState();
+}
+
+function resetWebVitalState(): void {
+  _lcpEntry = undefined;
+  _clsEntry = undefined;
+  _measurements = {};
+}
+
+/** Add LCP / CLS data to span to allow debugging */
+function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions): void {
+  // Only add LCP attributes if LCP is being recorded on the pageload span
+  if (_lcpEntry && options.recordLcpOnPageloadSpan) {
+    // Capture Properties of the LCP element that contributes to the LCP.
+
+    if (_lcpEntry.element) {
+      span.setAttribute('lcp.element', htmlTreeAsString(_lcpEntry.element));
+    }
+
+    if (_lcpEntry.id) {
+      span.setAttribute('lcp.id', _lcpEntry.id);
+    }
+
+    if (_lcpEntry.url) {
+      // Trim URL to the first 200 characters.
+      span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
+    }
+
+    if (_lcpEntry.loadTime != null) {
+      // loadTime is the time of LCP that's related to receiving the LCP element response..
+      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
+    }
+
+    if (_lcpEntry.renderTime != null) {
+      // renderTime is loadTime + rendering time
+      // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
+      // `Timing-Allow-Origin` header.
+      span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
+    }
+
+    span.setAttribute('lcp.size', _lcpEntry.size);
+  }
+
+  // Only add CLS attributes if CLS is being recorded on the pageload span
+  if (_clsEntry?.sources && options.recordClsOnPageloadSpan) {
+    _clsEntry.sources.forEach((source, index) =>
+      span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+    );
+  }
+}
+
+/**
+ * Add ttfb request time information to measurements.
+ *
+ * ttfb information is added via the web vitals library.
+ */
+function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
+  const navEntry = getNavigationEntry(false);
+  if (!navEntry) {
+    return;
+  }
+
+  const { responseStart, requestStart } = navEntry;
+
+  if (requestStart <= responseStart) {
+    _measurements['ttfb.requestTime'] = {
+      value: responseStart - requestStart,
+      unit: 'millisecond',
+    };
+  }
+}

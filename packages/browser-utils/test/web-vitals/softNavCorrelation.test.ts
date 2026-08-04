@@ -4,7 +4,7 @@ import {
   _resetSoftNavCorrelation,
   getNavigationSpanForNavigationId,
   registerNavigationSpan,
-} from '../../src/metrics/softNavCorrelation';
+} from '../../src/web-vitals/softNavCorrelation';
 
 type ObserverEntries = Array<{ interactionId?: number; navigationId?: number }>;
 

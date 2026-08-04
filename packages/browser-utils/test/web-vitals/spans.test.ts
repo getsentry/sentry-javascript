@@ -1,16 +1,16 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
-import * as inpModule from '../../src/metrics/inp';
-import * as instrument from '../../src/metrics/instrument';
-import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
+import * as inpModule from '../../src/web-vitals/inp';
+import * as instrument from '../../src/instrumentation/performanceObserver';
+import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
 import {
   _emitWebVitalSpan,
   _sendClsSpan,
   _sendInpSpan,
   _sendLcpSpan,
   trackInpAsSpan,
-} from '../../src/metrics/webVitalSpans';
+} from '../../src/web-vitals/spans';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -32,7 +32,7 @@ vi.mock('../../src/htmlTreeAsString', () => ({
   htmlTreeAsString: vi.fn(),
 }));
 
-vi.mock('../../src/metrics/softNavCorrelation', () => ({
+vi.mock('../../src/web-vitals/softNavCorrelation', () => ({
   getNavigationSpanForNavigationId: vi.fn(),
 }));
 
@@ -382,7 +382,7 @@ describe('_sendLcpSpan', () => {
   });
 
   it('tags a soft-nav LCP span and links it to the navigation span', async () => {
-    const { getNavigationSpanForNavigationId } = await import('../../src/metrics/softNavCorrelation');
+    const { getNavigationSpanForNavigationId } = await import('../../src/web-vitals/softNavCorrelation');
     const mockNavSpan = { spanContext: () => ({ spanId: 'nav-span-1' }) };
     vi.mocked(getNavigationSpanForNavigationId).mockReturnValue(mockNavSpan as any);
 

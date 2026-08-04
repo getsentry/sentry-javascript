@@ -8,7 +8,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/core';
 import { getBrowserPerformanceAPI, msToSec, startAndEndSpan } from './utils';
-import { getNavigationEntry } from './web-vitals-helpers/getNavigationEntry';
+import { getNavigationEntry } from '../web-vitals/utils';
 
 interface UserTimingOptions {
   /**

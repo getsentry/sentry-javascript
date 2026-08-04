@@ -1,8 +1,8 @@
 import * as utils from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resourceTimingToSpanAttributes } from '../../src/metrics/resourceTiming';
-import * as browserMetricsUtils from '../../src/metrics/utils';
+import { resourceTimingToSpanAttributes } from '../../src/performance/resourceTiming';
+import * as browserMetricsUtils from '../../src/performance/utils';
 
 describe('resourceTimingToSpanAttributes', () => {
   let browserPerformanceTimeOriginSpy: MockInstance;
