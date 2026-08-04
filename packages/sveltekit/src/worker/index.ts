@@ -50,6 +50,7 @@ export {
   lastEventId,
   linkedErrorsIntegration,
   logger,
+  metrics,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
