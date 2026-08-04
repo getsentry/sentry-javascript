@@ -1,6 +1,6 @@
 import type { Context, Span, SpanContext, SpanOptions, TimeInput, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
-import { isTracingSuppressed, suppressTracing } from '@opentelemetry/core';
+import { isTracingSuppressed, suppressTracing } from './utils/suppressTracing';
 import type { Client, Scope, Span as SentrySpan } from '@sentry/core';
 import {
   getClient,
