@@ -415,9 +415,9 @@
     module-details-from-path "^1.0.4"
 
 "@apm-js-collab/code-transformer@^0.18.0":
-  version "0.18.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.18.0.tgz#722972c05f04bc37f4bbd5067f42ffd7a990eee9"
-  integrity sha512-aN3Oq8r1J3gPJtCwErP664gM0+HhM1I1lujPr9TMTCcEl/joQQbpGpeMdts9B1+W2wHMsvioDMv5F4PvMWE6gw==
+  version "0.18.1"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.18.1.tgz#66ce01cfe9607779b4abebb4f54c49a46e8b48ca"
+  integrity sha512-u1Hb6bHjWtkSpiprwVP6YaHC1DTN4RAU3zYkUDUe7WMnJwdyU1pwTL9dFKiSJB9IiLue/EQovmyx6xhU7FFtAQ==
   dependencies:
     "@types/estree" "^1.0.8"
     astring "^1.9.0"
