@@ -1,10 +1,6 @@
 import { debug, getFunctionName } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { onCLS } from './web-vitals/getCLS';
-import { onINP } from './web-vitals/getINP';
-import { onLCP } from './web-vitals/getLCP';
-import { observe } from './web-vitals/lib/observe';
-import { onTTFB } from './web-vitals/onTTFB';
+import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
 
 type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
@@ -310,20 +306,23 @@ function addMetricObserver(
 }
 
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
-  const options: PerformanceObserverInit = {};
+  const options: PerformanceObserverInit = { type, buffered: true };
 
   // Special per-type options we want to use
   if (type === 'event') {
-    options.durationThreshold = 0;
+    (options as PerformanceObserverInit & { durationThreshold?: number }).durationThreshold = 0;
   }
 
-  observe(
-    type,
-    entries => {
-      triggerHandlers(type, { entries });
-    },
-    options,
-  );
+  try {
+    if (PerformanceObserver.supportedEntryTypes.includes(type)) {
+      const po = new PerformanceObserver(list => {
+        triggerHandlers(type, { entries: list.getEntries() });
+      });
+      po.observe(options);
+    }
+  } catch {
+    // Unsupported entry type; nothing to observe.
+  }
 }
 
 function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {

@@ -1,9 +1,46 @@
 import type { Span } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import type { ReportOpts } from './web-vitals/types';
-import { observe } from './web-vitals/lib/observe';
-import { getSoftNavigationEntry, softNavs } from './web-vitals/lib/softNavs';
+import { WINDOW } from '../types';
+
+// Minimal shapes of the browser performance entries we read. `interactionId` comes from the Event
+// Timing spec; `navigationId` from the Soft Navigations spec. We type them locally so this module
+// depends only on the browser, not on the web-vitals package.
+interface EventTimingEntry extends PerformanceEntry {
+  interactionId?: number;
+}
+interface SoftNavEntry extends PerformanceEntry {
+  interactionId?: number;
+  navigationId?: number;
+}
+
+/** Whether the Soft Navigation API is available and soft-nav reporting is enabled. */
+function _softNavsEnabled(reportSoftNavs?: boolean): boolean {
+  return !!reportSoftNavs && PerformanceObserver.supportedEntryTypes.includes('soft-navigation');
+}
+
+/** Look up a buffered soft-navigation entry by its navigationId. */
+function _getSoftNavEntry(navigationId: number): SoftNavEntry | undefined {
+  return (WINDOW.performance?.getEntriesByType('soft-navigation') as SoftNavEntry[] | undefined)?.find(
+    entry => entry.navigationId === navigationId,
+  );
+}
+
+/** Observe a performance entry type, swallowing unsupported-type errors. */
+function _observe<T extends PerformanceEntry>(
+  type: string,
+  callback: (entries: T[]) => void,
+  opts?: PerformanceObserverInit,
+): void {
+  try {
+    if (PerformanceObserver.supportedEntryTypes.includes(type)) {
+      const po = new PerformanceObserver(list => callback(list.getEntries() as T[]));
+      po.observe({ type, buffered: true, ...opts });
+    }
+  } catch {
+    // Unsupported entry type; nothing to observe.
+  }
+}
 
 /**
  * Correlation between Chrome Soft Navigation `navigationId`s and the Sentry navigation spans they
@@ -46,7 +83,7 @@ let _observersStarted = false;
  * No-op unless the Soft Navigation API is available and soft-nav reporting is enabled.
  */
 export function registerNavigationSpan(span: Span, reportSoftNavs?: boolean): void {
-  if (!softNavs({ reportSoftNavs })) {
+  if (!_softNavsEnabled(reportSoftNavs)) {
     return;
   }
 
@@ -71,7 +108,7 @@ export function getNavigationSpanForNavigationId(navigationId: number | undefine
   }
 
   // The soft-nav observer may not have fired yet for this entry; join it now via its interactionId.
-  const entry = getSoftNavigationEntry(navigationId);
+  const entry = _getSoftNavEntry(navigationId);
   if (entry?.interactionId) {
     return _joinEntryToSpan(entry.interactionId, navigationId);
   }
@@ -97,7 +134,7 @@ function _startObservers(): void {
   // that triggered the navigation and the soft-nav entry share this id, so it is our join key.
   // `durationThreshold: 0` is required so fast interactions (below the 104ms default) are still
   // observed, otherwise their `interactionId` never arrives and the join fails.
-  const attachInteraction = (entries: PerformanceEventTiming[]): void => {
+  const attachInteraction = (entries: EventTimingEntry[]): void => {
     for (const entry of entries) {
       if (entry.interactionId && _pendingNavigationSpan) {
         _rememberInteraction(entry.interactionId, _pendingNavigationSpan);
@@ -105,22 +142,17 @@ function _startObservers(): void {
       }
     }
   };
-  observe('event', attachInteraction, { durationThreshold: 0 });
-  observe('first-input', attachInteraction);
+  _observe<EventTimingEntry>('event', attachInteraction, { durationThreshold: 0 });
+  _observe<EventTimingEntry>('first-input', attachInteraction);
 
   // When a soft-navigation entry lands, join it to the span its interaction triggered.
-  const opts: ReportOpts = { reportSoftNavs: true };
-  observe(
-    'soft-navigation',
-    entries => {
-      for (const entry of entries) {
-        if (entry.interactionId && entry.navigationId) {
-          _joinEntryToSpan(entry.interactionId, entry.navigationId);
-        }
+  _observe<SoftNavEntry>('soft-navigation', entries => {
+    for (const entry of entries) {
+      if (entry.interactionId && entry.navigationId) {
+        _joinEntryToSpan(entry.interactionId, entry.navigationId);
       }
-    },
-    opts,
-  );
+    }
+  });
 }
 
 function _rememberInteraction(interactionId: number, span: Span): void {

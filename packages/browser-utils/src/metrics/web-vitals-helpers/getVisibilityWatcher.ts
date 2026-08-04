@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types';
+import { WINDOW } from '../../types';
 import { getActivationStart } from './getActivationStart';
 import { addPageListener, removePageListener } from './globalListeners';
 

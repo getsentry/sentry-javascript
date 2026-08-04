@@ -28,7 +28,7 @@ export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVit
 
 export { registerNavigationSpan } from './metrics/softNavCorrelation';
 
-export { whenIdleOrHidden } from './metrics/web-vitals/lib/whenIdleOrHidden';
+export { whenIdleOrHidden } from './metrics/web-vitals-helpers/whenIdleOrHidden';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 

@@ -1,31 +1,36 @@
-import * as SentryCore from '@sentry/core';
+import type * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _resetSoftNavCorrelation,
   getNavigationSpanForNavigationId,
   registerNavigationSpan,
 } from '../../src/metrics/softNavCorrelation';
-import * as observeModule from '../../src/metrics/web-vitals/lib/observe';
-import * as softNavsModule from '../../src/metrics/web-vitals/lib/softNavs';
 
-vi.mock('@sentry/core', async () => {
-  const actual = await vi.importActual('@sentry/core');
-  return {
-    ...actual,
-  };
-});
+type ObserverEntries = Array<{ interactionId?: number; navigationId?: number }>;
 
-vi.mock('../../src/metrics/web-vitals/lib/observe', () => ({
-  observe: vi.fn(),
-}));
+// Registry of PerformanceObserver callbacks by observed entry type, so tests can drive them.
+const observers = new Map<string, (entries: ObserverEntries) => void>();
+let softNavEntries: ObserverEntries = [];
 
-vi.mock('../../src/metrics/web-vitals/lib/softNavs', () => ({
-  softNavs: vi.fn(() => true),
-  getSoftNavigationEntry: vi.fn(),
-}));
+// Minimal PerformanceObserver mock that records the callback per observed `type`.
+class MockPerformanceObserver {
+  public constructor(private _cb: (list: { getEntries: () => ObserverEntries }) => void) {}
+  public static supportedEntryTypes = ['event', 'first-input', 'soft-navigation'];
+  public observe(opts: { type: string }): void {
+    observers.set(opts.type, entries => this._cb({ getEntries: () => entries }));
+  }
+  public disconnect(): void {
+    /* no-op */
+  }
+}
 
-type EventObserverCallback = (entries: Array<{ interactionId?: number }>) => void;
-type SoftNavObserverCallback = (entries: Array<{ interactionId?: number; navigationId?: string }>) => void;
+function fireObserver(type: string, entries: ObserverEntries): void {
+  const cb = observers.get(type);
+  if (!cb) {
+    throw new Error(`${type} observer was not registered`);
+  }
+  cb(entries);
+}
 
 function createMockSpan(spanId: string): SentryCore.Span {
   const attributes: Record<string, unknown> = {};
@@ -34,30 +39,24 @@ function createMockSpan(spanId: string): SentryCore.Span {
     setAttribute: vi.fn((key: string, value: unknown) => {
       attributes[key] = value;
     }),
-    // expose for assertions
     _attributes: attributes,
   } as unknown as SentryCore.Span;
 }
 
-/** Grab the callback the module registered with `observe(<type>, ...)`. */
-function getObserverCallback(type: string): (entries: unknown[]) => void {
-  const observeMock = vi.mocked(observeModule.observe);
-  const call = observeMock.mock.calls.find(c => c[0] === type);
-  if (!call) {
-    throw new Error(`${type} observer was not registered`);
-  }
-  return call[1] as unknown as (entries: unknown[]) => void;
-}
-
 describe('softNavCorrelation', () => {
   beforeEach(() => {
+    observers.clear();
+    softNavEntries = [];
     _resetSoftNavCorrelation();
-    vi.mocked(observeModule.observe).mockReset();
-    vi.mocked(softNavsModule.softNavs).mockReturnValue(true as unknown as boolean);
-    vi.mocked(softNavsModule.getSoftNavigationEntry).mockReset();
+    vi.stubGlobal('PerformanceObserver', MockPerformanceObserver);
+    // Buffered soft-navigation entries, read by getNavigationSpanForNavigationId's fallback.
+    vi.stubGlobal('performance', {
+      getEntriesByType: (type: string) => (type === 'soft-navigation' ? softNavEntries : []),
+    });
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
@@ -66,76 +65,63 @@ describe('softNavCorrelation', () => {
     registerNavigationSpan(span, true);
 
     // The triggering interaction's event entry lands and attaches its interactionId to the span.
-    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 42 }]);
-
+    fireObserver('event', [{ interactionId: 42 }]);
     // The soft-nav entry arrives carrying the same interactionId.
-    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
-      { interactionId: 42, navigationId: 'nav-id-1' },
-    ]);
+    fireObserver('soft-navigation', [{ interactionId: 42, navigationId: 5001 }]);
 
-    expect(span.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 'nav-id-1');
-    expect(getNavigationSpanForNavigationId('nav-id-1')).toBe(span);
+    expect(span.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 5001);
+    expect(getNavigationSpanForNavigationId(5001)).toBe(span);
   });
 
   it('joins each navigation to its own span by interactionId', () => {
     const spanA = createMockSpan('nav-a');
     registerNavigationSpan(spanA, true);
-    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 10 }]);
+    fireObserver('event', [{ interactionId: 10 }]);
 
     const spanB = createMockSpan('nav-b');
     registerNavigationSpan(spanB, true);
-    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 20 }]);
+    fireObserver('event', [{ interactionId: 20 }]);
 
-    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
-      { interactionId: 20, navigationId: 'id-b' },
-    ]);
+    fireObserver('soft-navigation', [{ interactionId: 20, navigationId: 5002 }]);
 
-    expect(spanB.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 'id-b');
+    expect(spanB.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 5002);
     expect(spanA.setAttribute).not.toHaveBeenCalled();
-    expect(getNavigationSpanForNavigationId('id-b')).toBe(spanB);
+    expect(getNavigationSpanForNavigationId(5002)).toBe(spanB);
   });
 
   it('does not correlate when no span shares the entry interactionId', () => {
     const span = createMockSpan('nav-1');
     registerNavigationSpan(span, true);
-    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 1 }]);
+    fireObserver('event', [{ interactionId: 1 }]);
 
-    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
-      { interactionId: 999, navigationId: 'id-unmatched' },
-    ]);
+    fireObserver('soft-navigation', [{ interactionId: 999, navigationId: 5003 }]);
 
     expect(span.setAttribute).not.toHaveBeenCalled();
-    expect(getNavigationSpanForNavigationId('id-unmatched')).toBeUndefined();
+    expect(getNavigationSpanForNavigationId(5003)).toBeUndefined();
   });
 
   it('returns undefined for an unknown navigationId with no buffered entry', () => {
-    vi.mocked(softNavsModule.getSoftNavigationEntry).mockReturnValue(undefined);
-    expect(getNavigationSpanForNavigationId('never-seen')).toBeUndefined();
+    expect(getNavigationSpanForNavigationId(404)).toBeUndefined();
     expect(getNavigationSpanForNavigationId(undefined)).toBeUndefined();
   });
 
   it('joins via the buffered soft-navigation entry when the observer has not fired yet', () => {
     const span = createMockSpan('nav-1');
     registerNavigationSpan(span, true);
-    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 7 }]);
+    fireObserver('event', [{ interactionId: 7 }]);
 
     // The soft-nav observer never fires; the entry is available synchronously in the buffer with
     // the same interactionId the span was registered against.
-    vi.mocked(softNavsModule.getSoftNavigationEntry).mockReturnValue({
-      interactionId: 7,
-      navigationId: 'id-buffered',
-    } as unknown as ReturnType<typeof softNavsModule.getSoftNavigationEntry>);
+    softNavEntries = [{ interactionId: 7, navigationId: 5004 }];
 
-    expect(getNavigationSpanForNavigationId('id-buffered')).toBe(span);
-    expect(span.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 'id-buffered');
+    expect(getNavigationSpanForNavigationId(5004)).toBe(span);
+    expect(span.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 5004);
   });
 
   it('is a no-op when soft navs are not enabled', () => {
-    vi.mocked(softNavsModule.softNavs).mockReturnValue(false as unknown as boolean);
     const span = createMockSpan('nav-1');
-
     registerNavigationSpan(span, false);
 
-    expect(observeModule.observe).not.toHaveBeenCalled();
+    expect(observers.size).toBe(0);
   });
 });

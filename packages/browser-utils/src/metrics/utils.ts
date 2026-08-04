@@ -1,7 +1,7 @@
 import type { Client, SentrySpan, Span, SpanTimeInput, StartSpanOptions } from '@sentry/core';
 import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
-import { onHidden } from './web-vitals/lib/onHidden';
+import { addPageListener } from './web-vitals-helpers/globalListeners';
 
 export type WebVitalReportEvent = 'pagehide' | 'navigation';
 
@@ -130,10 +130,15 @@ export function listenForWebVitalReportEvents(
     collected = true;
   }
 
-  // eslint-disable-next-line typescript/no-deprecated
-  onHidden(() => {
-    _runCollectorCallbackOnce('pagehide');
-  });
+  addPageListener(
+    'visibilitychange',
+    () => {
+      if (WINDOW.document?.visibilityState === 'hidden') {
+        _runCollectorCallbackOnce('pagehide');
+      }
+    },
+    { capture: true },
+  );
 
   const unsubscribeStartNavigation = client.on('beforeStartNavigationSpan', (_, options) => {
     // we only want to collect LCP if we actually navigate. Redirects should be ignored.

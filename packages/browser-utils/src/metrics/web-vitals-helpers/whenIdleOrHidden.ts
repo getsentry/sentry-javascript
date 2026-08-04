@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types.js';
-import { addPageListener, removePageListener } from './globalListeners.js';
-import { runOnce } from './runOnce.js';
+import { WINDOW } from '../../types';
+import { addPageListener, removePageListener } from './globalListeners';
 
 /**
  * Runs the passed callback during the next idle period, or immediately
@@ -30,14 +29,20 @@ export const whenIdleOrHidden = (cb: () => void) => {
   if (WINDOW.document?.visibilityState === 'hidden') {
     cb();
   } else {
-    // eslint-disable-next-line no-param-reassign
-    cb = runOnce(cb);
-    addPageListener('visibilitychange', cb, { once: true, capture: true });
+    // Ensure the callback only runs once, whichever of the two racers wins.
+    let called = false;
+    const runOnce = () => {
+      if (!called) {
+        cb();
+        called = true;
+      }
+    };
+    addPageListener('visibilitychange', runOnce, { once: true, capture: true });
     rIC(() => {
-      cb();
+      runOnce();
       // Remove the above event listener since no longer required.
       // See: https://github.com/GoogleChrome/web-vitals/issues/622
-      removePageListener('visibilitychange', cb, { capture: true });
+      removePageListener('visibilitychange', runOnce, { capture: true });
     });
   }
 };
