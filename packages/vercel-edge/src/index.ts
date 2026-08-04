@@ -74,7 +74,6 @@ export {
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   instrumentStateGraph,
-  instrumentGoogleGenAIClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -106,7 +105,11 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentOpenAiClient, instrumentAnthropicAiClient } from '@sentry/server-utils/no-diagnostic-channels';
+export {
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+} from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';

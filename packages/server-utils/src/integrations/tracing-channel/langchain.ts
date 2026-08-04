@@ -6,11 +6,11 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   createLangChainCallbackHandler,
   defineIntegration,
-  GOOGLE_GENAI_INTEGRATION_NAME,
   LANGCHAIN_INTEGRATION_NAME,
   startInactiveSpan,
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../ai/anthropic-ai/constants';
+import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../ai/google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../../ai/openai/constants';
 import { CHANNELS } from '../../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../../orchestrion/config/langchain';

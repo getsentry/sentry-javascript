@@ -1,4 +1,4 @@
-import type { InstrumentedMethodRegistry } from '../ai/utils';
+import type { InstrumentedMethodRegistry } from '../core/utils';
 
 export const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI' as const;
 

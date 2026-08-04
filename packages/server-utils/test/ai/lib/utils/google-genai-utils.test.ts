@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ContentListUnion } from '../../../src/tracing/google-genai/utils';
-import { contentUnionToMessages } from '../../../src/tracing/google-genai/utils';
+import type { ContentListUnion } from '../../../../src/ai/google-genai/utils';
+import { contentUnionToMessages } from '../../../../src/ai/google-genai/utils';
 
 describe('convert google-genai messages to consistent message', () => {
   it('converts strings to messages', () => {
