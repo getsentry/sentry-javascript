@@ -20,7 +20,7 @@ import type {
 } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
@@ -175,7 +175,7 @@ export function instrumentWorkflowWithSentry<
               setAsyncLocalStorageAsyncContextStrategy();
 
               return withIsolationScope(async isolationScope => {
-                const waitUntil = context.waitUntil.bind(context);
+                const waitUntil = getOriginalWaitUntil(context).bind(context);
                 const client = init({ ...options, ctx: context, enableDedupe: false });
                 isolationScope.setClient(client);
 

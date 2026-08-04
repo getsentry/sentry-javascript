@@ -206,6 +206,117 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
   });
 
+  test('teardown does not deadlock when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let runCount = 0;
+    let releaseAppWork: () => void = () => undefined;
+
+    class ReusedWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        runCount += 1;
+        await step.do('reused step', async () => {
+          if (runCount === 2) {
+            this._ctx.waitUntil(
+              new Promise<void>(resolve => {
+                releaseAppWork = resolve;
+              }),
+            );
+          }
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedWorkflow as any);
+    // Cloudflare reuses a Workflow instance across runs, so the context
+    // captured at construction is instrumented by the first run's init()
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    await workflow.run(event, mockStep);
+
+    releaseAppWork();
+
+    // Both the application work and the teardown promise must settle
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+  });
+
+  test('step errors are still captured when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let shouldThrow = false;
+
+    class ReusedErrorWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('flaky step', async () => {
+          if (shouldThrow) {
+            shouldThrow = false;
+            throw new Error('second run error');
+          }
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedErrorWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedErrorWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    shouldThrow = true;
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    expect(mockTransport.send).toHaveBeenCalledWith([
+      expect.objectContaining({
+        trace: expect.objectContaining({
+          transaction: 'flaky step',
+          trace_id: TRACE_ID,
+        }),
+      }),
+      [
+        [
+          {
+            type: 'event',
+          },
+          expect.objectContaining({
+            exception: {
+              values: [
+                expect.objectContaining({
+                  type: 'Error',
+                  value: 'second run error',
+                  mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+                }),
+              ],
+            },
+          }),
+        ],
+      ],
+    ]);
+  });
+
   test('Wraps env with instrumentEnv', async () => {
     class EnvTestWorkflow {
       constructor(_ctx: ExecutionContext, _env: unknown) {}

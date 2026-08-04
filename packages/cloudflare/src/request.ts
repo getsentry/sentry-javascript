@@ -52,7 +52,7 @@ export function wrapRequestHandler(
     // to track pending tasks. If we use the instrumented version for flushAndDispose,
     // it acquires the lock, then flushAndDispose tries to wait for the same lock,
     // creating a deadlock.
-    const waitUntil = context ? getOriginalWaitUntil(context)?.bind(context) : undefined;
+    const waitUntil = context ? getOriginalWaitUntil(context).bind(context) : undefined;
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);

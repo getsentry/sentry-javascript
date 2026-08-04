@@ -135,7 +135,7 @@ describe('getOriginalWaitUntil', () => {
 
     expect(result).not.toBe(context.waitUntil);
     expect(result).toBeDefined();
-    result!(Promise.resolve());
+    result(Promise.resolve());
     expect(originalWaitUntil).toHaveBeenCalled();
   });
 
@@ -153,7 +153,7 @@ describe('getOriginalWaitUntil', () => {
     const result = getOriginalWaitUntil(context);
 
     expect(result).not.toBe(context.waitUntil);
-    result!(Promise.resolve());
+    result(Promise.resolve());
     expect(originalWaitUntil).toHaveBeenCalled();
   });
 
@@ -177,7 +177,7 @@ describe('getOriginalWaitUntil', () => {
     } as unknown as Client;
 
     const originalWaitUntil = getOriginalWaitUntil(context);
-    originalWaitUntil!.call(context, flushAndDispose(mockClient));
+    originalWaitUntil.call(context, flushAndDispose(mockClient));
 
     await vi.waitFor(() => Promise.all(waitUntilPromises));
     expect(mockClient.flush).toHaveBeenCalled();
