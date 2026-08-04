@@ -1,7 +1,31 @@
-import { describe, expect, it } from 'vitest';
-import { _collectNotRestoredReasons } from '../../src/integrations/bfcache';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { debug } from '@sentry/core/browser';
+import { _collectNotRestoredReasons, _resolveMaxReasons } from '../../src/integrations/bfcache';
 
 describe('bfcacheMetricsIntegration', () => {
+  describe('_resolveMaxReasons', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('reports every reason by default', () => {
+      expect(_resolveMaxReasons(undefined)).toBe(Infinity);
+    });
+
+    it('keeps a valid configured cap', () => {
+      expect(_resolveMaxReasons(3)).toBe(3);
+      expect(_resolveMaxReasons(1)).toBe(1);
+    });
+
+    it('clamps values below 1 to 1 and warns', () => {
+      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+
+      expect(_resolveMaxReasons(0)).toBe(1);
+      expect(_resolveMaxReasons(-5)).toBe(1);
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('_collectNotRestoredReasons', () => {
     it('returns an empty list when there are no reasons', () => {
       expect(_collectNotRestoredReasons(undefined, 5)).toEqual([]);
@@ -106,6 +130,21 @@ describe('bfcacheMetricsIntegration', () => {
       expect(_collectNotRestoredReasons(tree, 2)).toEqual([
         { reason: 'a', frame: 'top' },
         { reason: 'b', frame: 'top' },
+      ]);
+    });
+
+    it('collects every reason when maxReasons is Infinity', () => {
+      const tree = {
+        reasons: [{ reason: 'a' }, { reason: 'b' }, { reason: 'c' }],
+        children: [{ reasons: [{ reason: 'd' }, { reason: 'e' }] }],
+      };
+
+      expect(_collectNotRestoredReasons(tree, Infinity)).toEqual([
+        { reason: 'a', frame: 'top' },
+        { reason: 'b', frame: 'top' },
+        { reason: 'c', frame: 'top' },
+        { reason: 'd', frame: 'child' },
+        { reason: 'e', frame: 'child' },
       ]);
     });
   });

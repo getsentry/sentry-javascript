@@ -5,7 +5,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'BFCacheMetrics';
-const DEFAULT_MAX_REASONS = 5;
 
 type BFCacheFrame = 'top' | 'child';
 
@@ -13,7 +12,8 @@ interface BFCacheIntegrationOptions {
   /**
    * Maximum number of not-restored reasons to emit per miss.
    *
-   * Defaults to 5.
+   * By default every reason is reported. Set this to cap the number emitted per miss.
+   * Values below 1 are clamped to 1.
    */
   maxReasons: number;
 }
@@ -40,7 +40,7 @@ interface CollectedReason {
  * Captures bfcache hit/miss counters and Chromium notRestoredReasons when available.
  */
 export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFCacheIntegrationOptions> = {}) => {
-  const maxReasons = options.maxReasons ?? DEFAULT_MAX_REASONS;
+  const maxReasons = _resolveMaxReasons(options.maxReasons);
 
   return {
     name: INTEGRATION_NAME,
@@ -115,6 +115,25 @@ function _captureBFCacheNavigation(outcome: 'hit' | 'miss', reasonCount?: number
 
 function _getTransactionName(): string | undefined {
   return getCurrentScope().getScopeData().transactionName || WINDOW.location?.pathname;
+}
+
+/**
+ * Resolves the configured `maxReasons` cap. Reports every reason by default and clamps values below 1 to 1,
+ * since a cap under 1 would silently drop all reasons.
+ *
+ * Exported for tests only.
+ */
+export function _resolveMaxReasons(maxReasons: number | undefined): number {
+  if (maxReasons == null) {
+    return Infinity;
+  }
+
+  if (maxReasons < 1) {
+    DEBUG_BUILD && debug.warn(`[BFCache] \`maxReasons\` must be at least 1, got ${maxReasons}. Using 1 instead.`);
+    return 1;
+  }
+
+  return maxReasons;
 }
 
 /**
