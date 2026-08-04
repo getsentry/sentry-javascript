@@ -33,11 +33,8 @@ import {
   captureException,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   getClient,
-  getProviderMetadataAttributes,
-  getTruncatedJsonString,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
@@ -46,6 +43,9 @@ import {
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
+import { getProviderMetadataAttributes } from '../ai/vercel-ai';
+import { getTruncatedJsonString, shouldEnableTruncation } from '../ai/core/utils';
+import { WORKERS_AI_INTEGRATION_NAME } from '../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
 
@@ -66,8 +66,6 @@ const GEN_AI_RERANK_OPERATION = 'rerank';
 // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
 // the generic `gen_ai.chat`, so v6 (OTel) and v7 (channel) produce the same spans.
 const GEN_AI_GENERATE_CONTENT_OPERATION = 'generate_content';
-// TODO(v11): export the constant from server-utils and import it here instead.
-const WORKERS_AI_INTEGRATION_NAME = 'WorkersAI';
 
 // Subset of the `vercel.ai.*` passthrough attributes the OTel integration emits that we reproduce.
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';

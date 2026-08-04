@@ -37,7 +37,7 @@ describe('Client init()', () => {
               },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

@@ -148,6 +148,7 @@ async function instrumentHandle(
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
   const kitTracingEnabled = event.tracing?.enabled;
+  const dataCollectionOptions = getClient()?.getDataCollectionOptions();
 
   try {
     const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
@@ -185,10 +186,9 @@ async function instrumentHandle(
           ...(routeName && {
             [HTTP_ROUTE]: routeName,
           }),
-          ...httpHeadersToSpanAttributes(
-            winterCGHeadersToDict(event.request.headers),
-            getClient()?.getDataCollectionOptions() ?? false,
-          ),
+          ...(dataCollectionOptions
+            ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+            : {}),
         });
       }
 
@@ -219,10 +219,9 @@ async function instrumentHandle(
               ...(routeId && {
                 [HTTP_ROUTE]: routeId,
               }),
-              ...httpHeadersToSpanAttributes(
-                winterCGHeadersToDict(event.request.headers),
-                getClient()?.getDataCollectionOptions() ?? false,
-              ),
+              ...(dataCollectionOptions
+                ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+                : {}),
             },
             name: routeName,
           },

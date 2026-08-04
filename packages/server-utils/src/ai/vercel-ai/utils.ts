@@ -1,0 +1,282 @@
+/* eslint-disable typescript-eslint/no-deprecated */
+import { stringify } from '@sentry/core';
+import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
+import {
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+} from '@sentry/conventions/attributes';
+import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
+import { toolCallSpanContextMap } from './constants';
+import type { TokenSummary, ToolCallSpanContext } from './types';
+import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
+
+/**
+ * Accumulates token data from a span to its parent in the token accumulator map.
+ * This function extracts token usage from the current span and adds it to the
+ * accumulated totals for its parent span.
+ */
+export function accumulateTokensForParent(span: SpanJSON, tokenAccumulator: Map<string, TokenSummary>): void {
+  const parentSpanId = span.parent_span_id;
+  if (!parentSpanId) {
+    return;
+  }
+
+  const inputTokens = span.data[GEN_AI_USAGE_INPUT_TOKENS];
+  const outputTokens = span.data[GEN_AI_USAGE_OUTPUT_TOKENS];
+
+  if (typeof inputTokens === 'number' || typeof outputTokens === 'number') {
+    const existing = tokenAccumulator.get(parentSpanId) || { inputTokens: 0, outputTokens: 0 };
+
+    if (typeof inputTokens === 'number') {
+      existing.inputTokens += inputTokens;
+    }
+    if (typeof outputTokens === 'number') {
+      existing.outputTokens += outputTokens;
+    }
+
+    tokenAccumulator.set(parentSpanId, existing);
+  }
+}
+
+/**
+ * Applies accumulated token data to the `gen_ai.invoke_agent` span.
+ * Only immediate children of the `gen_ai.invoke_agent` span are considered,
+ * since aggregation will automatically occur for each parent span.
+ */
+export function applyAccumulatedTokens(
+  spanOrTrace: SpanJSON | TraceContext,
+  tokenAccumulator: Map<string, TokenSummary>,
+): void {
+  const accumulated = tokenAccumulator.get(spanOrTrace.span_id);
+  if (!accumulated || !spanOrTrace.data) {
+    return;
+  }
+
+  if (accumulated.inputTokens > 0) {
+    spanOrTrace.data[GEN_AI_USAGE_INPUT_TOKENS] = accumulated.inputTokens;
+  }
+  if (accumulated.outputTokens > 0) {
+    spanOrTrace.data[GEN_AI_USAGE_OUTPUT_TOKENS] = accumulated.outputTokens;
+  }
+  if (accumulated.inputTokens > 0 || accumulated.outputTokens > 0) {
+    spanOrTrace.data['gen_ai.usage.total_tokens'] = accumulated.inputTokens + accumulated.outputTokens;
+  }
+}
+
+/**
+ * Builds a map of tool name -> description from all spans with available_tools.
+ * This avoids O(n²) iteration and repeated JSON parsing.
+ */
+function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
+  const toolDescriptions = new Map<string, string>();
+
+  for (const span of spans) {
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS];
+    if (typeof availableTools !== 'string') {
+      continue;
+    }
+    try {
+      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
+      for (const tool of tools) {
+        if (tool.name && tool.description && !toolDescriptions.has(tool.name)) {
+          toolDescriptions.set(tool.name, tool.description);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return toolDescriptions;
+}
+
+/**
+ * Applies tool descriptions and accumulated tokens to spans in a single pass.
+ *
+ * - For `gen_ai.execute_tool` spans: looks up tool description from
+ *   `gen_ai.request.available_tools` on sibling spans
+ * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
+ */
+export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {
+  // Build lookup map once to avoid O(n²) iteration and repeated JSON parsing
+  const toolDescriptions = buildToolDescriptionMap(spans);
+
+  for (const span of spans) {
+    if (span.op === 'gen_ai.execute_tool') {
+      const toolName = span.data[GEN_AI_TOOL_NAME];
+      if (typeof toolName === 'string') {
+        const description = toolDescriptions.get(toolName);
+        if (description) {
+          span.data[GEN_AI_TOOL_DESCRIPTION] = description;
+        }
+      }
+    }
+
+    if (span.op === 'gen_ai.invoke_agent') {
+      applyAccumulatedTokens(span, tokenAccumulator);
+    }
+  }
+}
+
+/**
+ * Get the span context associated with a tool call ID.
+ */
+export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolCallSpanContext | undefined {
+  return toolCallSpanContextMap.get(toolCallId);
+}
+
+/**
+ * Clean up the span mapping for a tool call ID
+ */
+export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
+  toolCallSpanContextMap.delete(toolCallId);
+}
+
+/**
+ * Convert an array of tool strings to a JSON string
+ */
+export function convertAvailableToolsToJsonString(tools: unknown[]): string {
+  const toolObjects = tools.map(tool => {
+    if (typeof tool === 'string') {
+      try {
+        return JSON.parse(tool);
+      } catch {
+        return tool;
+      }
+    }
+    return tool;
+  });
+  return JSON.stringify(toolObjects);
+}
+
+/**
+ * Filter out invalid entries in messages array
+ * @param input - The input array to filter
+ * @returns The filtered array
+ */
+function filterMessagesArray(input: unknown[]): { role: string; content: string }[] {
+  return input.filter(
+    (m: unknown): m is { role: string; content: string } =>
+      !!m && typeof m === 'object' && 'role' in m && 'content' in m,
+  );
+}
+
+/**
+ * Normalize the user input (stringified object with prompt, system, messages) to messages array
+ */
+export function convertUserInputToMessagesFormat(userInput: string): { role: string; content: string }[] {
+  try {
+    const p = JSON.parse(userInput);
+    if (!!p && typeof p === 'object') {
+      let { messages } = p;
+      const { prompt, system } = p;
+      const result: { role: string; content: string }[] = [];
+
+      // prepend top-level system instruction if present
+      if (typeof system === 'string') {
+        result.push({ role: 'system', content: system });
+      }
+
+      // stringified messages array
+      if (typeof messages === 'string') {
+        try {
+          messages = JSON.parse(messages);
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      // messages array format: { messages: [...] }
+      if (Array.isArray(messages)) {
+        result.push(...filterMessagesArray(messages));
+        return result;
+      }
+
+      // prompt array format: { prompt: [...] }
+      if (Array.isArray(prompt)) {
+        result.push(...filterMessagesArray(prompt));
+        return result;
+      }
+
+      // prompt string format: { prompt: "..." }
+      if (typeof prompt === 'string') {
+        result.push({ role: 'user', content: prompt });
+      }
+
+      if (result.length > 0) {
+        return result;
+      }
+    }
+    // eslint-disable-next-line no-empty
+  } catch {}
+  return [];
+}
+
+/**
+ * Generate a request.messages JSON array from the prompt field in the
+ * invoke_agent op
+ */
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
+  if (
+    typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
+    !attributes[GEN_AI_INPUT_MESSAGES] &&
+    !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
+  ) {
+    // No messages array is present, so we need to convert the prompt to the proper messages format
+    // This is the case for ai.generateText spans
+    // The ai.prompt attribute is a stringified object with prompt, system, messages attributes
+    // The format of these is described in the vercel docs, for instance: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object#parameters
+    const userInput = attributes[AI_PROMPT_ATTRIBUTE];
+    const messages = convertUserInputToMessagesFormat(userInput);
+    if (messages.length) {
+      const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+      if (systemInstructions) {
+        span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+      }
+
+      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
+
+      span.setAttributes({
+        [AI_PROMPT_ATTRIBUTE]: messagesJson,
+        [GEN_AI_INPUT_MESSAGES]: messagesJson,
+      });
+    }
+  } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
+    // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
+    // This is the case for ai.generateText.doGenerate spans
+    const originalMessagesJson = attributes[AI_PROMPT_MESSAGES_ATTRIBUTE];
+    try {
+      const messages = JSON.parse(originalMessagesJson);
+      if (Array.isArray(messages)) {
+        const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+        if (systemInstructions) {
+          span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+        }
+
+        // `extractSystemInstructions` returns the original array reference unchanged when no
+        // system message is extracted. When truncation is also disabled, re-serializing would
+        // reproduce the SDK's own input string, so we reuse it instead of allocating a second
+        // full-size copy of the payload (matters for large prompts in memory-constrained runtimes).
+        const messagesJson =
+          !enableTruncation && filteredMessages === messages
+            ? originalMessagesJson
+            : enableTruncation
+              ? getTruncatedJsonString(filteredMessages)
+              : stringify(filteredMessages);
+
+        span.setAttributes({
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,
+          [GEN_AI_INPUT_MESSAGES]: messagesJson,
+        });
+      }
+      // eslint-disable-next-line no-empty
+    } catch {}
+  }
+}

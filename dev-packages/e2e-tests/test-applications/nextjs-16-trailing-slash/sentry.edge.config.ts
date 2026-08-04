@@ -6,5 +6,4 @@ Sentry.init({
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
-  dataCollection: { userInfo: true },
 });

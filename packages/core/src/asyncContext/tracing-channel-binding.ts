@@ -2,6 +2,7 @@ import { getMainCarrier } from '../carrier';
 import type { Scope } from '../scope';
 import { spanIsIgnored } from '../tracing/trace';
 import { _setSpanForScope } from '../utils/spanOnScope';
+import { getRootSpan } from '../utils/spanUtils';
 import { safeUnref } from '../utils/timer';
 import { getAsyncContextStrategy } from './index';
 import type { TracingChannelBinding } from './types';
@@ -52,10 +53,11 @@ export function _INTERNAL_createTracingChannelBinding(
     getStoreWithActiveSpan: span => {
       const { scope, isolationScope } = getScopes();
       const activeScope = scope.clone();
-      // Do not make an ignored span the active span: no span is emitted for it, so its children and
-      // outgoing requests must propagate from the nearest emitted parent instead. Mirrors the OTel
-      // context manager, which likewise skips ignored spans.
-      if (!spanIsIgnored(span)) {
+      // Do not make an ignored *child* the active span: no span is emitted for it, so its children and
+      // outgoing requests must propagate from the nearest emitted parent instead. An ignored *root* is
+      // still activated so its whole subtree is dropped with it. Mirrors core `startSpan` and the OTel
+      // context manager (`spanIsIgnored(span) && getRootSpan(span) !== span`).
+      if (!spanIsIgnored(span) || getRootSpan(span) === span) {
         _setSpanForScope(activeScope, span);
       }
 

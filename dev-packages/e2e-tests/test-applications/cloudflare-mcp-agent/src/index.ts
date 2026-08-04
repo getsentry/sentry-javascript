@@ -54,7 +54,6 @@ export const MyMCPAgent = Sentry.instrumentDurableObjectWithSentry(
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     debug: true,
     transportOptions: {
       bufferSize: 1000,
@@ -70,7 +69,6 @@ export default Sentry.withSentry(
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     debug: true,
     transportOptions: {
       bufferSize: 1000,

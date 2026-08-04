@@ -22,24 +22,23 @@ export interface SentryCloudflareVitePluginOptions {
    */
   wranglerConfigPath?: string;
   /**
+   * Build-time automatic instrumentation of supported dependencies (e.g.
+   * database clients like `mysql`) so the Sentry Cloudflare SDK can trace them
+   * without monkey-patching, which wouldn't work in workerd anyway.
+   *
+   * When enabled, the plugin injects `diagnostics_channel.tracingChannel` calls
+   * into the bundled packages and, next to each, a snippet that registers the
+   * matching Sentry channel-subscriber factory on the global marker, which the
+   * SDK picks up in `Sentry.withSentry()`. Both `vite build` and `vite dev` are
+   * instrumented. Set to `false` to opt out.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+  /**
    * Experimental options that may change or be removed without notice.
    */
   _experimental?: {
-    /**
-     * Enables build-time automatic instrumentation of supported dependencies
-     * (e.g. database clients like `mysql`) so the Sentry Cloudflare SDK can
-     * trace them without monkey-patching, which wouldn't work in workerd anyway.
-     *
-     * When enabled, the plugin injects `diagnostics_channel.tracingChannel`
-     * calls into the bundled packages and, next to each, a snippet that
-     * registers the matching Sentry channel-subscriber factory on the global
-     * marker, which the SDK picks up in `Sentry.withSentry()`. Both `vite build`
-     * and `vite dev` are instrumented.
-     *
-     * @default false
-     * @experimental May change or be removed in any release.
-     */
-    useDiagnosticsChannelInjection?: boolean;
     /**
      * Automatically wraps your Worker at build time so you don't have to edit
      * your entry: the plugin reads your wrangler config, wraps the default
@@ -62,10 +61,9 @@ export interface SentryCloudflareVitePluginOptions {
  * instrumentation for Cloudflare Workers built with Vite. Configure the Sentry
  * SDK in your Worker as usual with `Sentry.withSentry()`.
  *
- * Currently, the only functionality is the experimental
- * `_experimental.useDiagnosticsChannelInjection` option, which traces supported
- * dependencies (such as database clients) without changing your application
- * code. Without it, the plugin is a no-op.
+ * By default, the plugin build-time instruments supported dependencies (such as
+ * database clients) so they are traced without changing your application code.
+ * Opt out with `buildTimeInstrumentation: false`.
  *
  * @example
  * ```ts
@@ -75,22 +73,16 @@ export interface SentryCloudflareVitePluginOptions {
  * import { defineConfig } from 'vite';
  *
  * export default defineConfig({
- *   plugins: [
- *     cloudflare(),
- *     sentryCloudflareVitePlugin({
- *       _experimental: {
- *         useDiagnosticsChannelInjection: true,
- *       },
- *     }),
- *   ],
+ *   plugins: [cloudflare(), sentryCloudflareVitePlugin()],
  * });
  * ```
  */
 export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOptions = {}) {
   return [
-    ...(options._experimental?.useDiagnosticsChannelInjection
-      ? [sentryOrchestrionPlugin({ injectChannelSubscribers: true })]
-      : []),
+    sentryOrchestrionPlugin({
+      injectChannelSubscribers: true,
+      buildTimeInstrumentation: options.buildTimeInstrumentation,
+    }),
     ...(options._experimental?.autoInstrumentation
       ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
       : []),

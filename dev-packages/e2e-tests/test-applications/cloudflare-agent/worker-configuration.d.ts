@@ -5,11 +5,12 @@ interface __BaseEnv_Env {
   E2E_TEST_DSN: string;
   MyAgent: DurableObjectNamespace<import('./worker/index').MyAgent>;
   MyChatAgent: DurableObjectNamespace<import('./worker/index').MyChatAgent>;
+  MyManualChatAgent: DurableObjectNamespace<import('./worker/index').MyManualChatAgent>;
 }
 declare namespace Cloudflare {
   interface GlobalProps {
     mainModule: typeof import('./worker/index');
-    durableNamespaces: 'MyAgent' | 'MyChatAgent';
+    durableNamespaces: 'MyAgent' | 'MyChatAgent' | 'MyManualChatAgent';
   }
   interface Env extends __BaseEnv_Env {}
 }

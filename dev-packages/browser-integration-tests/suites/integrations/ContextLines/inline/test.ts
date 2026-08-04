@@ -33,7 +33,7 @@ sentryTest(
       stacktrace: {
         frames: [
           {
-            pre_context: ['<!DOCTYPE html>', '<html>', '<head>', '    <meta charset="utf-8">', '  </head>', '  <body>'],
+            pre_context: ['<html>', '<head>', '    <meta charset="utf-8">', '  </head>', '  <body>'],
             context_line:
               '    <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\');">Click me</button>',
             post_context: [

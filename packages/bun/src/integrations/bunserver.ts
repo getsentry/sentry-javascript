@@ -221,7 +221,9 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
+    if (dataCollection) {
+      Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
+    }
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
@@ -254,7 +256,11 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                   status_code: response.status,
                 });
 
-                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'));
+                if (dataCollection) {
+                  span.setAttributes(
+                    httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'),
+                  );
+                }
               }
               return response;
             } catch (e) {

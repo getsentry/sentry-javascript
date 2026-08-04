@@ -1,5 +1,5 @@
 import { isObjectLike } from '@sentry/core';
-import { instrumentWorkersAiClient } from '@sentry/core';
+import { instrumentWorkersAiClient } from '@sentry/server-utils';
 import type { CloudflareOptions } from '../../client';
 import {
   isAiBinding,

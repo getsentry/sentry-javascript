@@ -35,8 +35,6 @@ sentryTest(
           {
             lineno: 12,
             pre_context: [
-              '    <script>',
-              '      function throwTestError() {',
               "        throw new Error('Error with context lines');",
               '      }',
               '    </script>',
@@ -55,7 +53,6 @@ sentryTest(
           {
             lineno: 7,
             pre_context: [
-              '<!DOCTYPE html>',
               '<html>',
               '<head>',
               '    <meta charset="utf-8">',
@@ -69,8 +66,6 @@ sentryTest(
               '  </head>',
               '  <body>',
               '    <button id="inline-error-btn" onclick="throwTestError()">Click me</button>',
-              expect.stringContaining('<script'), // this line varies in the test based on tarball/cdn bundle (+variants)
-              '  <footer>Some text...</footer>',
             ],
           },
         ],

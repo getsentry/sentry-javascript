@@ -31,7 +31,7 @@ function delay(time: number): Promise<void> {
   });
 }
 
-Deno.test('captureException', async t => {
+Deno.test('captureException', async () => {
   let ev: Event | undefined;
   const client = getTestClient(event => {
     ev = event;
@@ -44,8 +44,43 @@ Deno.test('captureException', async t => {
   client.captureException(something());
 
   await delay(200);
-  await assertSnapshot(t, ev);
+  expectCaptureExceptionEvent(ev);
 });
+
+function expectCaptureExceptionEvent(event: Event | undefined): void {
+  const exception = event?.exception?.values?.[0];
+
+  assertEquals(exception?.type, 'Error');
+  assertEquals(exception?.value, 'Some unhandled error');
+  assertEquals(
+    exception?.stacktrace?.frames?.map(frame => ({
+      colno: frame.colno,
+      context_line: frame.context_line,
+      filename: frame.filename,
+      function: frame.function,
+      in_app: frame.in_app,
+      lineno: frame.lineno,
+    })),
+    [
+      {
+        colno: 27,
+        context_line: '  client.captureException(something());',
+        filename: 'app:///test/mod.test.ts',
+        function: '?',
+        in_app: true,
+        lineno: 44,
+      },
+      {
+        colno: 12,
+        context_line: "    return new Error('Some unhandled error');",
+        filename: 'app:///test/mod.test.ts',
+        function: 'something',
+        in_app: true,
+        lineno: 41,
+      },
+    ],
+  );
+}
 
 Deno.test('captureMessage', async t => {
   let ev: Event | undefined;

@@ -32,10 +32,9 @@ const initHiddenTime = () => {
 
 const onVisibilityUpdate = (event: Event) => {
   // Handle changes to hidden state
-  if (isPageHidden(event) && firstHiddenTime > -1) {
-    // Sentry-specific change: Also call onHidden callbacks for pagehide events
-    // to support older browsers (Safari <14.4) that don't properly fire visibilitychange
-    if (event.type === 'visibilitychange' || event.type === 'pagehide') {
+  if (WINDOW.document?.visibilityState === 'hidden' && firstHiddenTime > -1) {
+    // Call onHidden callbacks when the page becomes hidden
+    if (event.type === 'visibilitychange') {
       for (const onHiddenFunction of onHiddenFunctions) {
         onHiddenFunction();
       }
@@ -48,14 +47,14 @@ const onVisibilityUpdate = (event: Event) => {
       // visible prior to this change, so the event timestamp is the first
       // hidden time.
       // However, if the event is not a 'visibilitychange' event, then it must
-      // be a 'prerenderingchange' or 'pagehide' event, and the fact that the document is
+      // be a 'prerenderingchange' event, and the fact that the document is
       // still 'hidden' from the above check means the tab was activated
       // in a background state and so has always been hidden.
       firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
 
       // We no longer need the `prerenderingchange` event listener now we've
       // set an initial init time so remove that
-      // (we'll keep the visibilitychange and pagehide ones for onHiddenFunction above)
+      // (we'll keep the visibilitychange one for onHiddenFunction above)
       removePageListener('prerenderingchange', onVisibilityUpdate, true);
     }
   }
@@ -81,11 +80,6 @@ export const getVisibilityWatcher = () => {
     // timestamps in detail and also for onHidden function calls.
     addPageListener('visibilitychange', onVisibilityUpdate, true);
 
-    // Sentry-specific change: Some browsers have buggy implementations of visibilitychange,
-    // so we use pagehide in addition, just to be safe. This is also required for older
-    // Safari versions (<14.4) that we still support.
-    addPageListener('pagehide', onVisibilityUpdate, true);
-
     // IMPORTANT: when a page is prerendering, its `visibilityState` is
     // 'hidden', so in order to account for cases where this module checks for
     // visibility during prerendering, an additional check after prerendering
@@ -102,13 +96,3 @@ export const getVisibilityWatcher = () => {
     },
   };
 };
-
-/**
- * Check if the page is hidden, uses the `pagehide` event for older browsers support that we used to have in `onHidden` function.
- * Some browsers we still support (Safari <14.4) don't fully support `visibilitychange`
- * or have known bugs w.r.t the `visibilitychange` event.
- * // TODO (v11): If we decide to drop support for Safari 14.4, we can use the logic from web-vitals 4.2.4
- */
-function isPageHidden(event: Event) {
-  return event.type === 'pagehide' || WINDOW.document?.visibilityState === 'hidden';
-}

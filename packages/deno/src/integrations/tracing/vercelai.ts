@@ -3,8 +3,12 @@
  */
 
 import type { IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration, extendIntegration } from '@sentry/core';
-import { vercelAiIntegration as serverUtilsVercelAiIntegration, type VercelAiOptions } from '@sentry/server-utils';
+import { defineIntegration, extendIntegration } from '@sentry/core';
+import {
+  addVercelAiProcessors,
+  vercelAiIntegration as serverUtilsVercelAiIntegration,
+  type VercelAiOptions,
+} from '@sentry/server-utils';
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   const inner = serverUtilsVercelAiIntegration(options);
