@@ -16,11 +16,11 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import type { Span, SpanAttributeValue } from '../../types/span';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../core/utils';
+import { stringify } from '@sentry/core';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 

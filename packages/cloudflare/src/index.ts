@@ -130,6 +130,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentWorkersAiClient,
 } from '@sentry/server-utils';
 
 // eslint-disable-next-line typescript/no-deprecated

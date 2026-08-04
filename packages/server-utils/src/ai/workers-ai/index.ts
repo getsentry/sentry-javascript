@@ -1,9 +1,12 @@
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span } from '../../types/span';
-import { _INTERNAL_shouldSkipAiProviderWrapping } from '../../utils/ai/providerSkip';
-import { isObjectLike } from '../../utils/is';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
+import {
+  _INTERNAL_shouldSkipAiProviderWrapping,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+} from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';

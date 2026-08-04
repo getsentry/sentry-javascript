@@ -7,3 +7,4 @@
 export { instrumentOpenAiClient } from './openai';
 export { instrumentAnthropicAiClient } from './anthropic-ai';
 export { instrumentGoogleGenAIClient } from './google-genai';
+export { instrumentWorkersAiClient } from './workers-ai';

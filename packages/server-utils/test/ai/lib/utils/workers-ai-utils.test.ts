@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../../src';
-import type { Span } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -21,14 +21,14 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
-import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from '../../../src/tracing/workers-ai/constants';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
+import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from '../../../../src/ai/workers-ai/constants';
 import {
   addRequestAttributes,
   addResponseAttributes,
   extractRequestAttributes,
   getOperationName,
-} from '../../../src/tracing/workers-ai/utils';
+} from '../../../../src/ai/workers-ai/utils';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
