@@ -29,7 +29,7 @@ describe('TanStack Start React Client SDK', () => {
               { name: 'npm:@sentry/react', version: SDK_VERSION },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

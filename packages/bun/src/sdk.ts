@@ -26,6 +26,7 @@ import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
+import { bunHttpServerIntegration } from './integrations/bunHttpServer';
 
 /**
  * The orchestrion channel-subscriber integrations, listening on the diagnostics
@@ -88,6 +89,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     processSessionIntegration(),
     // Bun Specific
     bunServerIntegration(),
+    bunHttpServerIntegration(),
   ];
 }
 

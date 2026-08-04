@@ -198,5 +198,6 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';

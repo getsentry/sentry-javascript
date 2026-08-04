@@ -1307,7 +1307,7 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
   });
 });
 
-describe('orchestrion diagnostics-channel injection', () => {
+describe('orchestrion build-time instrumentation', () => {
   function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
     instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
   } {
@@ -1320,7 +1320,7 @@ describe('orchestrion diagnostics-channel injection', () => {
   it('serializes a RegExp filePath so it survives Turbopack JSON loader options', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
-      userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      userSentryOptions: {},
       nextJsVersion: '16.0.0',
     });
 
@@ -1340,7 +1340,7 @@ describe('orchestrion diagnostics-channel injection', () => {
   it('restricts the orchestrion rule to the node environment', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
-      userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      userSentryOptions: {},
       nextJsVersion: '16.0.0',
     });
 
@@ -1350,14 +1350,24 @@ describe('orchestrion diagnostics-channel injection', () => {
     expect(rule.condition).toBe('node');
   });
 
-  it('does not add the orchestrion rule when injection is not opted in', () => {
+  it('does not add the orchestrion rule when build-time instrumentation is turned off', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
-      userSentryOptions: {},
+      userSentryOptions: { buildTimeInstrumentation: false },
       nextJsVersion: '16.0.0',
     });
 
     expect(result.rules!['*.{js,mjs,cjs}']).toBeUndefined();
+  });
+
+  it('does not add the orchestrion rule below Next.js 16, where rule conditions are unsupported', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '15.4.1',
+    });
+
+    expect(result.rules?.['*.{js,mjs,cjs}']).toBeUndefined();
   });
 });
 

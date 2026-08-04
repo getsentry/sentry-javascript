@@ -5,7 +5,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { httpServerIntegration } from '../src/integrations/httpServer';

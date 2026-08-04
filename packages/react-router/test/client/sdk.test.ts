@@ -34,7 +34,7 @@ describe('React Router client SDK', () => {
               { name: 'npm:@sentry/browser', version: SDK_VERSION },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

@@ -1,9 +1,6 @@
-/**
- * Server-only utilities shared across Sentry server SDKs.
- *
- * @module
- */
+export * from './exports';
 
+// Exports using diagnostics channels
 export { graphqlIntegration } from './graphql';
 export { mongooseIntegration, startMongooseLegacySpan } from './mongoose';
 export type { MongooseLegacyCollection, StartMongooseLegacySpanOptions } from './mongoose';
@@ -36,4 +33,3 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentFastify,
 } from './integrations/tracing-channel/fastify';
-export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';

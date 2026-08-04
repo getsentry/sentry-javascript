@@ -12,6 +12,7 @@ import {
   maybeSetUpRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedTurbopack,
+  resolveBuildTimeInstrumentationOption,
   resolveUseRunAfterProductionCompileHookOption,
 } from './getFinalConfigObjectBundlerUtils';
 import {
@@ -85,11 +86,11 @@ export function getFinalConfigObject(
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
-  const useDiagnosticsChannelInjection = userSentryOptions._experimental?.useDiagnosticsChannelInjection ?? false;
+  const buildTimeInstrumentation = resolveBuildTimeInstrumentationOption(userSentryOptions, bundlerInfo, nextJsVersion);
 
   return {
     ...incomingUserNextConfigObject,
-    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, useDiagnosticsChannelInjection),
+    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, buildTimeInstrumentation),
     ...getWebpackPatch({
       incomingUserNextConfigObject,
       userSentryOptions,

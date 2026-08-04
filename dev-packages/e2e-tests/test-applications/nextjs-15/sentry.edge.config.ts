@@ -20,7 +20,6 @@ Sentry.init({
 
     return 1.0;
   },
-  dataCollection: { userInfo: true },
   transportOptions: {
     // We are doing a lot of events at once in this test
     bufferSize: 1000,

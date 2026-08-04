@@ -5,7 +5,6 @@ export const SENTRY_BAGGAGE_HEADER = 'baggage';
 
 export const SENTRY_TRACE_STATE_DSC = 'sentry.dsc';
 export const SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING = 'sentry.sampled_not_recording';
-export const SENTRY_TRACE_STATE_URL = 'sentry.url';
 
 /**
  *  A flag marking a context as ignored because the span associated with the context

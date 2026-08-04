@@ -22,6 +22,11 @@
       "import": "./build/esm/index.js",
       "require": "./build/cjs/index.js"
     },
+    "./no-diagnostic-channels": {
+      "types": "./build/types/index.no-diagnostic-channels.d.ts",
+      "import": "./build/esm/index.no-diagnostic-channels.js",
+      "require": "./build/cjs/index.no-diagnostic-channels.js"
+    },
     "./orchestrion": {
       "types": "./build/types/orchestrion/index.d.ts",
       "import": "./build/esm/orchestrion/index.js",

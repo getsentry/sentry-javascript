@@ -1,6 +1,8 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import { expressModuleNames } from '../../../orchestrion/config/express';
+import { invokeOrchestrionInstrumentation } from '../../../orchestrion/instrumentation';
 import type { ExpressIntegrationOptions } from './types';
 import { instrumentExpress } from './instrumentation';
 
@@ -11,15 +13,11 @@ const INTEGRATION_NAME = 'Express' as const;
 const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      waitForTracingChannelBinding(() => {
-        instrumentExpress(options, diagnosticsChannel.tracingChannel);
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, expressModuleNames, instrumentExpress, [
+        options,
+        diagnosticsChannel.tracingChannel,
+      ]);
     },
   };
 }) satisfies IntegrationFn;

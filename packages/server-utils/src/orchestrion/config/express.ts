@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
@@ -59,6 +59,8 @@ export const expressConfig = [
     functionQuery: { expressionName: 'use', kind: 'Sync' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const expressModuleNames = getModuleNames(expressConfig);
 
 export const expressChannels = {
   // Express v4 runs each layer's handler through `Layer.prototype.handle_request`

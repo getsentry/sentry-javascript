@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
 
 export const redisConfig = [
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an
@@ -62,6 +62,8 @@ export const redisConfig = [
     functionQuery: { className: 'RedisClient', methodName: 'multiExecutor', kind: 'Async' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const redisModuleNames = getModuleNames(redisConfig);
 
 export const redisChannels = {
   REDIS_COMMAND: 'orchestrion:redis:command',

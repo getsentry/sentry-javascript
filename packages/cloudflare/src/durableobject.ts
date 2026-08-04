@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { captureException } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
-import { wrapRequestHandler } from './request';
+import { wrapRequestHandlerWithInit } from './request';
+import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
@@ -89,9 +90,13 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
       original =>
         new Proxy(original, {
           apply(target, thisArg, args) {
-            return wrapRequestHandler({ options, request: args[0], context }, () => {
-              return Reflect.apply(target, thisArg, args);
-            });
+            return wrapRequestHandlerWithInit(
+              { options, request: args[0], context },
+              () => {
+                return Reflect.apply(target, thisArg, args);
+              },
+              init,
+            );
           },
         }),
     );

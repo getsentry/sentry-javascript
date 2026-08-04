@@ -46,3 +46,8 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
 export function subscriberExportForModule(moduleName: string): string | undefined {
   return CHANNEL_INTEGRATION_DEFINITIONS.find(d => (d.modules as readonly string[]).includes(moduleName))?.exportName;
 }
+
+/** Look up the instrumented package names a subscriber export covers. */
+export function modulesForSubscriberExport(exportName: string): readonly string[] {
+  return CHANNEL_INTEGRATION_DEFINITIONS.find(d => d.exportName === exportName)?.modules ?? [];
+}

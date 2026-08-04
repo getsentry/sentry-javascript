@@ -1,205 +1,80 @@
-import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
-import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
-import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
-import { URL_FULL } from '@sentry/conventions/attributes';
-import type { Client, continueTrace, DynamicSamplingContext, Scope } from '@sentry/core';
+import type { Context, SpanContext, TextMapGetter, TextMapPropagator, TextMapSetter } from '@opentelemetry/api';
+import { context, trace, TraceFlags } from '@opentelemetry/api';
+import type { continueTrace, DynamicSamplingContext } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
   baggageHeaderToDynamicSamplingContext,
-  debug,
-  generateSentryTraceHeader,
-  generateTraceparentHeader,
+  consoleSandbox,
+  generateTraceId,
   getClient,
   getCurrentScope,
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
   getIsolationScope,
-  LRUMap,
-  parseBaggageHeader,
+  getTraceData,
+  isTracingSuppressed,
   propagationContextFromHeaders,
-  SENTRY_BAGGAGE_KEY_PREFIX,
   shouldContinueTrace,
-  shouldPropagateTraceForUrl,
-  spanToJSON,
 } from '@sentry/core';
-import {
-  SENTRY_BAGGAGE_HEADER,
-  SENTRY_TRACE_HEADER,
-  SENTRY_TRACE_STATE_DSC,
-  SENTRY_TRACE_STATE_URL,
-} from './constants';
-import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { getSampledForPropagation, getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
-import { reconcileDscSampled } from './utils/reconcileDscSampled';
+
+const SENTRY_TRACE_HEADER = 'sentry-trace';
+const SENTRY_BAGGAGE_HEADER = 'baggage';
+const W3C_TRACEPARENT_HEADER = 'traceparent';
 
 /**
- * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
+ * A minimal OpenTelemetry `TextMapPropagator` that injects and extracts Sentry trace data.
+ *
+ * This propagator only supports injecting/extracting from current context, for simplicity sake.
+ * It will bail and do nothing if using a different context.
  */
-export class SentryPropagator extends W3CBaggagePropagator {
-  /** A map of URLs that have already been checked for if they match tracePropagationTargets. */
-  private _urlMatchesTargetsMap: LRUMap<string, boolean>;
-
-  public constructor() {
-    super();
-
-    // We're caching results so we don't have to recompute regexp every time we create a request.
-    this._urlMatchesTargetsMap = new LRUMap<string, boolean>(100);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public inject(context: Context, carrier: unknown, setter: TextMapSetter): void {
-    if (isTracingSuppressed(context)) {
-      DEBUG_BUILD && debug.log('[Tracing] Not injecting trace data for url because tracing is suppressed.');
+export class SentryPropagator implements TextMapPropagator {
+  /** @inheritDoc */
+  public inject(ctx: Context, carrier: unknown, setter: TextMapSetter): void {
+    if (ctx !== context.active()) {
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          'SentryPropagator: Injecting trace data of a different context than the active one is not supported. Skipping injection.',
+        );
+      });
       return;
     }
 
-    const activeSpan = trace.getSpan(context);
-    const url = activeSpan && getCurrentURL(activeSpan);
-
-    const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
-    if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._urlMatchesTargetsMap)) {
-      DEBUG_BUILD &&
-        debug.log('[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:', url);
+    if (isTracingSuppressed()) {
       return;
     }
 
-    const existingBaggageHeader = getExistingBaggage(carrier);
-    const existingSentryTraceHeader = getExistingSentryTrace(carrier);
+    const { propagateTraceparent } = getClient()?.getOptions() ?? {};
 
-    let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
+    // Pick trace data from the current scope
+    const { 'sentry-trace': sentryTrace, baggage, traceparent } = getTraceData({ propagateTraceparent });
 
-    const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
-
-    if (existingBaggageHeader) {
-      const baggageEntries = parseBaggageHeader(existingBaggageHeader);
-
-      if (baggageEntries) {
-        Object.entries(baggageEntries).forEach(([key, value]) => {
-          if (!existingSentryTraceHeader && key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
-            // Edge case: A baggage header with sentry- keys was added previously but no
-            // sentry-trace header. In this case we remove the old sentry-keys and add new
-            // ones below.
-            return;
-          }
-          baggage = baggage.setEntry(key, { value });
-        });
-      }
+    if (sentryTrace) {
+      setter.set(carrier, SENTRY_TRACE_HEADER, sentryTrace);
     }
-
-    if (!existingSentryTraceHeader && dynamicSamplingContext) {
-      baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
-        if (dscValue) {
-          return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });
-        }
-        return b;
-      }, baggage);
+    if (baggage) {
+      setter.set(carrier, SENTRY_BAGGAGE_HEADER, baggage);
     }
-
-    // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
-    if (!existingSentryTraceHeader && traceId && traceId !== INVALID_TRACEID) {
-      setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
-
-      if (propagateTraceparent) {
-        setter.set(carrier, 'traceparent', generateTraceparentHeader(traceId, spanId, sampled));
-      }
+    if (traceparent) {
+      setter.set(carrier, W3C_TRACEPARENT_HEADER, traceparent);
     }
-
-    super.inject(propagation.setBaggage(context, baggage), carrier, setter);
   }
 
-  /**
-   * @inheritDoc
-   */
-  public extract(context: Context, carrier: unknown, getter: TextMapGetter): Context {
+  /** @inheritDoc */
+  public extract(ctx: Context, carrier: unknown, getter: TextMapGetter): Context {
     const maybeSentryTraceHeader: string | string[] | undefined = getter.get(carrier, SENTRY_TRACE_HEADER);
     const baggage = getter.get(carrier, SENTRY_BAGGAGE_HEADER);
 
-    const sentryTrace = maybeSentryTraceHeader
-      ? Array.isArray(maybeSentryTraceHeader)
-        ? maybeSentryTraceHeader[0]
-        : maybeSentryTraceHeader
-      : undefined;
+    const sentryTrace = Array.isArray(maybeSentryTraceHeader) ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
 
-    // Add remote parent span context
-    // If there is no incoming trace, this will return the context as-is
-    return ensureScopesOnContext(getContextWithRemoteActiveSpan(context, { sentryTrace, baggage }));
+    // Add remote parent span context. If there is no incoming trace, this returns the context as-is.
+    return getContextWithRemoteActiveSpanAndScopes(ctx, { sentryTrace, baggage });
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   public fields(): string[] {
-    return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER, 'traceparent'];
+    return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER, W3C_TRACEPARENT_HEADER];
   }
-}
-
-/**
- * Get propagation injection data for the given context.
- * The additional options can be passed to override the scope and client that is otherwise derived from the context.
- */
-export function getInjectionData(
-  context: Context,
-  options: { scope?: Scope; client?: Client } = {},
-): {
-  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined;
-  traceId: string | undefined;
-  spanId: string | undefined;
-  sampled: boolean | undefined;
-} {
-  const span = trace.getSpan(context);
-
-  // If we have a remote span, the spanId should be considered as the parentSpanId, not spanId itself
-  // Instead, we use a virtual (generated) spanId for propagation
-  if (span?.spanContext().isRemote) {
-    const spanContext = span.spanContext();
-    const sampled = getSamplingDecision(spanContext);
-    const dsc = getDynamicSamplingContextFromSpan(span);
-
-    // When the incoming trace froze its DSC on the trace state, `getDynamicSamplingContextFromSpan`
-    // returns that DSC verbatim; per the propagation spec it is immutable, so we must not rewrite
-    // `sampled` or strip `transaction` on it. We only reconcile the DSC that core freshly derives
-    // from the (binary) span trace flags, which is the sole case that can misrepresent a deferred
-    // decision as unsampled.
-    const hasIncomingFrozenDsc = !!spanContext.traceState?.get(SENTRY_TRACE_STATE_DSC);
-    const dynamicSamplingContext = hasIncomingFrozenDsc ? dsc : reconcileDscSampled(dsc, sampled);
-
-    return {
-      dynamicSamplingContext,
-      traceId: spanContext.traceId,
-      spanId: undefined,
-      sampled,
-    };
-  }
-
-  // If we have a local span, we just use this
-  if (span) {
-    const spanContext = span.spanContext();
-    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
-
-    return {
-      dynamicSamplingContext,
-      traceId: spanContext.traceId,
-      spanId: spanContext.spanId,
-      sampled: getSampledForPropagation(span, options.client),
-    };
-  }
-
-  // Else we try to use the propagation context from the scope
-  // The only scenario where this should happen is when we neither have a span, nor an incoming trace
-  const scope = options.scope || getScopesFromContext(context)?.scope || getCurrentScope();
-  const client = options.client || getClient();
-
-  const propagationContext = scope.getPropagationContext();
-  const dynamicSamplingContext = client ? getDynamicSamplingContextFromScope(client, scope) : undefined;
-  return {
-    dynamicSamplingContext,
-    traceId: propagationContext.traceId,
-    spanId: propagationContext.propagationSpanId,
-    sampled: propagationContext.sampled,
-  };
 }
 
 function getContextWithRemoteActiveSpan(
@@ -238,65 +113,51 @@ export function continueTraceAsRemoteSpan<T>(
   options: Parameters<typeof continueTrace>[0],
   callback: () => T,
 ): T {
-  const ctxWithSpanContext = ensureScopesOnContext(getContextWithRemoteActiveSpan(ctx, options));
+  const ctxWithSpanContext = getContextWithRemoteActiveSpanAndScopes(ctx, options);
 
   return context.with(ctxWithSpanContext, callback);
 }
 
-function ensureScopesOnContext(ctx: Context): Context {
+/**
+ * Build a context that continues an incoming trace as a remote active span, with scopes ensured.
+ * Unlike `continueTraceAsRemoteSpan`, this returns the context instead of running a callback within it,
+ * so it can be used to implement an OpenTelemetry propagator's `extract`.
+ */
+function getContextWithRemoteActiveSpanAndScopes(ctx: Context, options: Parameters<typeof continueTrace>[0]): Context {
+  const ctxWithRemoteSpan = getContextWithRemoteActiveSpan(ctx, options);
+  // If a remote active span was set, we are continuing an incoming trace, so the trace id is fixed.
+  // Otherwise there was no (valid) incoming trace and we are the head of a new trace.
+  const isContinuingTrace = trace.getSpanContext(ctxWithRemoteSpan) !== undefined;
+  return ensureScopesOnContext(ctxWithRemoteSpan, isContinuingTrace);
+}
+
+function ensureScopesOnContext(ctx: Context, isContinuingTrace: boolean): Context {
   // If there are no scopes yet on the context, ensure we have them
   const scopes = getScopesFromContext(ctx);
+
+  // If we have no scope here, this is most likely either the root context or a context manually derived from it
+  // In this case, we want to fork the current scope, to ensure we do not pollute the root scope
+  const scope = scopes ? scopes.scope : getCurrentScope().clone();
+
+  // When we forked a fresh scope and are not continuing an incoming trace, we give it its own trace.
+  // Without this, concurrent header-less requests (e.g. edge middleware, whose root span is created by
+  // upstream OTEL instrumentation rather than through `continueTrace`) would all inherit the forked
+  // scope's trace id and collapse into a single trace. Mirrors `continueTrace` in the core HTTP server.
+  if (!scopes && !isContinuingTrace) {
+    const propagationContext = scope.getPropagationContext();
+    scope.setPropagationContext({
+      ...propagationContext,
+      traceId: generateTraceId(),
+      sampleRand: _INTERNAL_safeMathRandom(),
+    });
+  }
+
   const newScopes = {
-    // If we have no scope here, this is most likely either the root context or a context manually derived from it
-    // In this case, we want to fork the current scope, to ensure we do not pollute the root scope
-    scope: scopes ? scopes.scope : getCurrentScope().clone(),
+    scope,
     isolationScope: scopes ? scopes.isolationScope : getIsolationScope(),
   };
 
   return setScopesOnContext(ctx, newScopes);
-}
-
-/** Try to get the existing baggage header so we can merge this in. */
-function getExistingBaggage(carrier: unknown): string | undefined {
-  try {
-    const baggage = (carrier as Record<string, string | string[]>)[SENTRY_BAGGAGE_HEADER];
-    return Array.isArray(baggage) ? baggage.join(',') : baggage;
-  } catch {
-    return undefined;
-  }
-}
-
-function getExistingSentryTrace(carrier: unknown): string | string[] | undefined {
-  try {
-    return (carrier as Record<string, string | string[]>)[SENTRY_TRACE_HEADER];
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * It is pretty tricky to get access to the outgoing request URL of a request in the propagator.
- * As we only have access to the context of the span to be sent and the carrier (=headers),
- * but the span may be unsampled and thus have no attributes.
- *
- * So we use the following logic:
- * 1. If we have an active span, we check if it has a URL attribute.
- * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
- */
-function getCurrentURL(span: Span): string | undefined {
-  const spanData = spanToJSON(span).data;
-  const urlAttribute = spanData[URL_FULL];
-  if (typeof urlAttribute === 'string') {
-    return urlAttribute;
-  }
-
-  // Also look at the traceState, which we may set in the sampler even for unsampled spans
-  const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
-  if (urlTraceState) {
-    return urlTraceState;
-  }
-
-  return undefined;
 }
 
 function generateRemoteSpanContext({

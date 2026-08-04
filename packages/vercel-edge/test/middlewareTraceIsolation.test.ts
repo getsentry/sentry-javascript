@@ -1,5 +1,12 @@
 import { context, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
-import { getCurrentScope, getGlobalScope, getIsolationScope, GLOBAL_OBJ, spanToJSON } from '@sentry/core';
+import {
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  GLOBAL_OBJ,
+  spanToJSON,
+  withIsolationScope,
+} from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -59,24 +66,30 @@ async function runMiddlewareRequest(
   delay = 0,
 ): Promise<{ traceId: string; childTraceId: string }> {
   const request = new Request(url, { method: 'GET', headers });
+  // Faithfully mirror production ordering: Next's native OTEL creates the `Middleware.execute` root span
+  // (via `withPropagatedContext` -> `trace`) BEFORE `wrapMiddlewareWithSentry` forks its isolation scope.
+  // So the root span's trace id is fixed by `extract` (SentryPropagator), not by the later fork - the fork
+  // is nested *inside* the span callback, exactly like `wrapMiddlewareWithSentry`.
   return withPropagatedContext(request.headers, () =>
-    nextMiddlewareTrace(new URL(url).pathname, async () => {
-      const rootSpan = trace.getActiveSpan()!;
-      const traceId = spanToJSON(rootSpan).trace_id!;
+    nextMiddlewareTrace(new URL(url).pathname, () =>
+      withIsolationScope(async () => {
+        const rootSpan = trace.getActiveSpan()!;
+        const traceId = spanToJSON(rootSpan).trace_id!;
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
 
-      // A child span started within the request must parent onto this request's root span (same trace id), not onto a
-      // concurrent request's span.
-      const childTracer = trace.getTracer('user');
-      const childSpan = childTracer.startSpan('user-work');
-      const childTraceId = spanToJSON(childSpan as unknown as Parameters<typeof spanToJSON>[0]).trace_id!;
-      childSpan.end();
+        // A child span started within the request must parent onto this request's root span (same trace id), not onto a
+        // concurrent request's span.
+        const childTracer = trace.getTracer('user');
+        const childSpan = childTracer.startSpan('user-work');
+        const childTraceId = spanToJSON(childSpan as unknown as Parameters<typeof spanToJSON>[0]).trace_id!;
+        childSpan.end();
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
 
-      return { traceId, childTraceId };
-    }),
+        return { traceId, childTraceId };
+      }),
+    ),
   );
 }
 

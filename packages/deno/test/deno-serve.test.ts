@@ -443,7 +443,6 @@ Deno.test('Deno.serve should capture request headers and set response context', 
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    dataCollection: { httpHeaders: { request: true, response: true } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -488,7 +487,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x_custom_header'], 'test');
 });
 
-Deno.test('Deno.serve should capture client address and port when userInfo data collection is enabled', async () => {
+Deno.test('Deno.serve should capture client address and port by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
@@ -496,7 +495,6 @@ Deno.test('Deno.serve should capture client address and port when userInfo data 
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    dataCollection: { userInfo: true },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -524,7 +522,7 @@ Deno.test('Deno.serve should capture client address and port when userInfo data 
   assertExists(transaction?.contexts?.trace?.data?.['client.port']);
 });
 
-Deno.test('Deno.serve should not capture client address by default', async () => {
+Deno.test('Deno.serve should not capture client address when userInfo collection is disabled', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
@@ -532,6 +530,7 @@ Deno.test('Deno.serve should not capture client address by default', async () =>
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
+    dataCollection: { userInfo: false },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -559,7 +558,7 @@ Deno.test('Deno.serve should not capture client address by default', async () =>
   assertEquals(transaction?.contexts?.trace?.data?.['client.port'], undefined);
 });
 
-Deno.test('Deno.serve should keep PII request headers when dataCollection enables header collection', async () => {
+Deno.test('Deno.serve should keep PII request headers by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
@@ -567,7 +566,6 @@ Deno.test('Deno.serve should keep PII request headers when dataCollection enable
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    dataCollection: { httpHeaders: { request: true } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -596,7 +594,7 @@ Deno.test('Deno.serve should keep PII request headers when dataCollection enable
   assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '203.0.113.7');
 });
 
-Deno.test('Deno.serve should filter PII request headers by default', async () => {
+Deno.test('Deno.serve should filter PII request headers when configured', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
@@ -604,6 +602,7 @@ Deno.test('Deno.serve should filter PII request headers by default', async () =>
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
+    dataCollection: { httpHeaders: { request: { deny: ['forwarded'] } } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;

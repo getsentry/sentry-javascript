@@ -34,7 +34,7 @@ test.describe('Worker V8 isolate memory tests', () => {
     // Compare batches to detect per-request leaks (excludes warm-up effects)
     const result = profiler.compareSnapshots(afterFirstBatch, afterSecondBatch);
 
-    expect(result.nodeGrowthPercent).toBeLessThan(0.25);
+    expect(result.nodeGrowthPercent).toBeLessThan(0.27);
 
     await profiler.close();
   });

@@ -19,7 +19,6 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
@@ -553,12 +552,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         lastInteractionTimestamp = undefined;
 
         maybeEndActiveSpan();
-
-        getIsolationScope().setPropagationContext({
-          traceId: generateTraceId(),
-          sampleRand: Math.random(),
-          propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
-        });
 
         const scope = getCurrentScope();
         scope.setPropagationContext({

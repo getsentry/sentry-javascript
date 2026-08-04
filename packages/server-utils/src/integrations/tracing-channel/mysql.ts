@@ -4,16 +4,15 @@ import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   isObjectLike,
   bindScopeToEmitter,
-  debug,
   defineIntegration,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { mysqlModuleNames } from '../../orchestrion/config/mysql';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // NOTE: this uses the same name as the OTel integration by design.
 // When enabled, OTel 'Mysql' integration is omitted from the default set.
@@ -61,69 +60,64 @@ interface MysqlConnection {
 const _mysqlIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel) {
-        return;
-      }
-
-      DEBUG_BUILD && debug.log(`[orchestrion:mysql] subscribing to channel "${CHANNELS.MYSQL_QUERY}"`);
-
-      waitForTracingChannelBinding(() => {
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<MysqlQueryChannelContext>(CHANNELS.MYSQL_QUERY),
-          data => {
-            const sql = extractSql(data.arguments[0]);
-            const { host, port, database, user } = getConnectionConfig(data.self);
-            const portNumber = typeof port === 'string' ? parseInt(port, 10) : port;
-            const portIsNumber = typeof portNumber === 'number' && !isNaN(portNumber);
-
-            // For the streamed path: mysql emits the `Query` emitter's events from its socket data
-            // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
-            data._sentryCallerScope = getCurrentScope();
-
-            return startInactiveSpan({
-              name: sql ?? 'mysql.query',
-              op: 'db',
-              attributes: {
-                [SENTRY_KIND]: 'client',
-                [ATTR_DB_SYSTEM]: 'mysql',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
-                [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
-                ...(database ? { [ATTR_DB_NAME]: database } : {}),
-                ...(user ? { [ATTR_DB_USER]: user } : {}),
-                ...(sql ? { [ATTR_DB_STATEMENT]: sql } : {}),
-                ...(host ? { [ATTR_NET_PEER_NAME]: host } : {}),
-                ...(portIsNumber ? { [ATTR_NET_PEER_PORT]: portNumber } : {}),
-              },
-            });
-          },
-          {
-            // No-callback `query(sql)` returns a streamable `Query` emitter as `result`; it settles on the
-            // emitter's `'end'`/`'error'`, not the channel, so defer ending to those.
-            deferSpanEnd({ data, end }) {
-              const result = data.result;
-              if (!result || typeof result !== 'object' || !hasOnMethod(result)) {
-                return false;
-              }
-
-              // Replay the caller's scope so user listeners on the emitter nest under it, not a new trace.
-              const callerScope = data._sentryCallerScope;
-              if (callerScope) {
-                bindScopeToEmitter(result, callerScope);
-              }
-
-              result.on('error', err => end(err));
-              result.on('end', () => end());
-
-              return true;
-            },
-          },
-        );
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, mysqlModuleNames, instrumentMysql, []);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentMysql(): void {
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<MysqlQueryChannelContext>(CHANNELS.MYSQL_QUERY),
+    data => {
+      const sql = extractSql(data.arguments[0]);
+      const { host, port, database, user } = getConnectionConfig(data.self);
+      const portNumber = typeof port === 'string' ? parseInt(port, 10) : port;
+      const portIsNumber = typeof portNumber === 'number' && !isNaN(portNumber);
+
+      // For the streamed path: mysql emits the `Query` emitter's events from its socket data
+      // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
+      data._sentryCallerScope = getCurrentScope();
+
+      return startInactiveSpan({
+        name: sql ?? 'mysql.query',
+        op: 'db',
+        attributes: {
+          [SENTRY_KIND]: 'client',
+          [ATTR_DB_SYSTEM]: 'mysql',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
+          [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
+          ...(database ? { [ATTR_DB_NAME]: database } : {}),
+          ...(user ? { [ATTR_DB_USER]: user } : {}),
+          ...(sql ? { [ATTR_DB_STATEMENT]: sql } : {}),
+          ...(host ? { [ATTR_NET_PEER_NAME]: host } : {}),
+          ...(portIsNumber ? { [ATTR_NET_PEER_PORT]: portNumber } : {}),
+        },
+      });
+    },
+    {
+      // No-callback `query(sql)` returns a streamable `Query` emitter as `result`; it settles on the
+      // emitter's `'end'`/`'error'`, not the channel, so defer ending to those.
+      deferSpanEnd({ data, end }) {
+        const result = data.result;
+        if (!result || typeof result !== 'object' || !hasOnMethod(result)) {
+          return false;
+        }
+
+        // Replay the caller's scope so user listeners on the emitter nest under it, not a new trace.
+        const callerScope = data._sentryCallerScope;
+        if (callerScope) {
+          bindScopeToEmitter(result, callerScope);
+        }
+
+        result.on('error', err => end(err));
+        result.on('end', () => end());
+
+        return true;
+      },
+    },
+  );
+}
 
 function hasOnMethod(obj: object): obj is { on: (event: string, listener: (arg?: unknown) => void) => unknown } {
   return 'on' in obj && typeof (obj as { on?: unknown }).on === 'function';

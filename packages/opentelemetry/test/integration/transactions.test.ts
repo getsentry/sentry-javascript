@@ -317,7 +317,6 @@ describe('Integration | Transactions', () => {
 
     const client = mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       startSpan(
         {
@@ -432,7 +431,6 @@ describe('Integration | Transactions', () => {
       release: '7.0.0',
     });
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       startSpan(
         {

@@ -681,12 +681,12 @@ describe('constructWebpackConfigFunction()', () => {
     const findOrchestrionPlugin = (config: { plugins?: unknown[] }): unknown =>
       config.plugins?.find(plugin => (plugin as { _name?: string })._name === 'sentry-orchestrion-webpack-plugin');
 
-    it('adds the plugin to the node server build when diagnostics-channel injection is enabled', async () => {
+    it('adds the plugin to the node server build by default', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeDefined();
@@ -697,7 +697,7 @@ describe('constructWebpackConfigFunction()', () => {
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: edgeBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
@@ -708,18 +708,18 @@ describe('constructWebpackConfigFunction()', () => {
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
     });
 
-    it('does not add the plugin when diagnostics-channel injection is not enabled', async () => {
+    it('does not add the plugin when build-time instrumentation is turned off', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
-        sentryBuildTimeOptions: {},
+        sentryBuildTimeOptions: { buildTimeInstrumentation: false },
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
@@ -727,12 +727,12 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   describe('orchestrion runtime externals', () => {
-    it('prepends an externals handler that resolves runtime packages to absolute paths when diagnostics-channel injection is enabled', async () => {
+    it('prepends an externals handler that resolves runtime packages to absolute paths', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
@@ -744,12 +744,12 @@ describe('constructWebpackConfigFunction()', () => {
       await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
     });
 
-    it('does not touch `externals` when diagnostics-channel injection is not enabled', async () => {
+    it('does not touch `externals` when build-time instrumentation is turned off', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
-        sentryBuildTimeOptions: {},
+        sentryBuildTimeOptions: { buildTimeInstrumentation: false },
       });
 
       expect(finalWebpackConfig.externals).toBeUndefined();
@@ -760,7 +760,7 @@ describe('constructWebpackConfigFunction()', () => {
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: edgeBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(finalWebpackConfig.externals).toBeUndefined();
