@@ -13,7 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
-import { debug } from '../../utils/debug-logger';
+import { consoleSandbox, debug } from '../../utils/debug-logger';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
@@ -201,7 +201,7 @@ export function captureStandaloneSpanWithStaticCallback(
     }
   });
 
-  const processedSpan = beforeSendSpan(spanJSON) || (showSpanDropWarning(), spanJSON);
+  const processedSpan = applyBeforeSendSpanCallback(spanJSON, beforeSendSpan);
 
   return spanJsonToSerializedStreamedSpan(processedSpan);
 }
@@ -209,11 +209,11 @@ export function captureStandaloneSpanWithStaticCallback(
 /**
  * Apply a user-provided beforeSendSpan callback to a span JSON.
  */
-export function applyBeforeSendSpanCallback(
-  span: StreamedSpanJSON,
-  beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): StreamedSpanJSON {
-  let modifedSpan: StreamedSpanJSON;
+export function applyBeforeSendSpanCallback<F extends StreamedSpanJSON | SpanJSON>(
+  span: F,
+  beforeSendSpan: (span: F) => F,
+): F {
+  let modifedSpan: F;
   try {
     modifedSpan = beforeSendSpan(span);
   } catch (error) {
@@ -223,10 +223,26 @@ export function applyBeforeSendSpanCallback(
     return span;
   }
 
-
   if (!modifedSpan) {
     showSpanDropWarning();
     return span;
   }
   return modifedSpan;
+}
+
+let hasShownSpanDropWarning = false;
+
+/**
+ * Logs a warning once if `beforeSendSpan` is used to drop spans.
+ */
+function showSpanDropWarning(): void {
+  if (!hasShownSpanDropWarning) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
+      );
+    });
+    hasShownSpanDropWarning = true;
+  }
 }
