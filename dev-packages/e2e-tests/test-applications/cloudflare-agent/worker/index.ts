@@ -74,8 +74,36 @@ class MyChatAgentBase extends AIChatAgent<Env> {
   }
 }
 
+// Not exported: the Workers runtime rejects any module export that isn't a handler/Durable Object.
+const MANUAL_CONVERSATION_ID = 'conv_manual_e2e';
+
+// Mirrors the docs recipe: the app keys conversations on its own id rather than the SDK-minted one.
+class MyManualChatAgentBase extends AIChatAgent<Env> {
+  @callable()
+  async runAiTurn(): Promise<string> {
+    Sentry.setConversationId(MANUAL_CONVERSATION_ID);
+
+    // Unlike onRequest/onChatMessage nothing consumes the returned stream here, so the gen_ai span
+    // only finishes if we drain it ourselves.
+    return streamWorkersAi().text();
+  }
+
+  async onRequest(): Promise<Response> {
+    Sentry.setConversationId(MANUAL_CONVERSATION_ID);
+
+    return streamWorkersAi();
+  }
+
+  async onChatMessage(): Promise<Response> {
+    Sentry.setConversationId(MANUAL_CONVERSATION_ID);
+
+    return streamWorkersAi();
+  }
+}
+
 export const MyAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyBaseAgent);
 export const MyChatAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyChatAgentBase);
+export const MyManualChatAgent = Sentry.instrumentAgentWithSentry(sentryOptions, MyManualChatAgentBase);
 
 export default Sentry.withSentry(sentryOptions, {
   async fetch(request: Request, env: Env): Promise<Response> {
