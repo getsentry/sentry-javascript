@@ -1,4 +1,4 @@
-import type { InstrumentedMethodRegistry } from '../ai/utils';
+import type { InstrumentedMethodRegistry } from '../core/utils';
 
 export const ANTHROPIC_AI_INTEGRATION_NAME = 'Anthropic_AI' as const;
 

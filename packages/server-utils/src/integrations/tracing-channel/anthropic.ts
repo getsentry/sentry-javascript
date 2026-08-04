@@ -1,19 +1,16 @@
 import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { AnthropicAiOptions, AnthropicAiResponse, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
+import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  addAnthropicRequestAttributes,
-  addAnthropicResponseAttributes,
   defineIntegration,
-  extractAnthropicRequestAttributes,
-  instrumentAsyncIterableStream,
-  instrumentMessageStream,
-  resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   startInactiveSpan,
 } from '@sentry/core';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/anthropic-ai';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../ai/anthropic-ai/streaming';
+import type { AnthropicAiOptions, AnthropicAiResponse } from '../../ai/anthropic-ai/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { anthropicAiModuleNames } from '../../orchestrion/config/anthropic-ai';
@@ -60,7 +57,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
       data => createGenAiSpan(data, operation, methodPath, options),
       {
         beforeSpanEnd: (span, data) => {
-          addAnthropicResponseAttributes(
+          addResponseAttributes(
             span,
             data.result as AnthropicAiResponse,
             resolveAIRecordingOptions(options).recordOutputs,
@@ -103,7 +100,7 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
-  const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
+  const attributes = extractRequestAttributes(args, methodPath, operation);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
@@ -114,7 +111,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addAnthropicRequestAttributes(span, params, enableTruncation);
+    addPrivateRequestAttributes(span, params, enableTruncation);
   }
 
   return span;

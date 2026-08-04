@@ -61,14 +61,6 @@ export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptio
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export {
-  instrumentAnthropicAiClient,
-  extractRequestAttributes as extractAnthropicRequestAttributes,
-  addPrivateRequestAttributes as addAnthropicRequestAttributes,
-  addResponseAttributes as addAnthropicResponseAttributes,
-} from './tracing/anthropic-ai';
-export { instrumentAsyncIterableStream, instrumentMessageStream } from './tracing/anthropic-ai/streaming';
-export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
-export {
   instrumentGoogleGenAIClient,
   extractRequestAttributes as extractGoogleGenAIRequestAttributes,
   addPrivateRequestAttributes as addGoogleGenAIRequestAttributes,
@@ -93,13 +85,6 @@ export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export { instrumentWorkersAiClient } from './tracing/workers-ai';
 export type { WorkersAiClient, WorkersAiOptions } from './tracing/workers-ai/types';
-export type {
-  AnthropicAiClient,
-  AnthropicAiOptions,
-  // eslint-disable-next-line typescript/no-deprecated
-  AnthropicAiInstrumentedMethod,
-  AnthropicAiResponse,
-} from './tracing/anthropic-ai/types';
 export type {
   GoogleGenAIClient,
   GoogleGenAIChat,

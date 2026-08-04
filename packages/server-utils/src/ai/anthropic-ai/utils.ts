@@ -1,10 +1,7 @@
-import { captureException } from '../../exports';
-import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types/span';
-import type { SpanStatusType } from '../../types/spanStatus';
+import { captureException, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
+import type { Span, SpanStatusType } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
-import { stringify } from '../../utils/string';
+import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**

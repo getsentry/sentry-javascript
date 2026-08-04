@@ -3,8 +3,8 @@ import {
   mapAnthropicErrorToStatusMessage,
   messagesFromParams,
   setMessagesAttribute,
-} from '../../../src/tracing/anthropic-ai/utils';
-import type { Span } from '../../../src/types/span';
+} from '../../../../src/ai/anthropic-ai/utils';
+import type { Span } from '@sentry/core';
 
 describe('anthropic-ai-utils', () => {
   describe('mapAnthropicErrorToStatusMessage', () => {
