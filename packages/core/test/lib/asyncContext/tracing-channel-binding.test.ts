@@ -10,6 +10,7 @@ import { Scope } from '../../../src/scope';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { _getSpanForScope } from '../../../src/utils/spanOnScope';
+import { addChildSpanToSpan } from '../../../src/utils/spanUtils';
 
 const FAKE_BINDING: TracingChannelBinding = {
   asyncLocalStorage: {},
@@ -144,14 +145,28 @@ describe('_INTERNAL_createTracingChannelBinding', () => {
     expect(store.isolationScope).toBe(isolationScope);
   });
 
-  it('does not set an ignored span as the active span', () => {
+  it('does not set an ignored child span as the active span', () => {
     const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
-    const ignoredSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+    const parentSpan = new SentrySpan({ name: 'parent' });
+    const ignoredChild = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+    // Attach the ignored span under a parent so it is a child (its root span is the parent, not itself).
+    addChildSpanToSpan(parentSpan, ignoredChild);
 
-    const store = binding.getStoreWithActiveSpan(ignoredSpan) as { scope: Scope; isolationScope: Scope };
+    const store = binding.getStoreWithActiveSpan(ignoredChild) as { scope: Scope; isolationScope: Scope };
 
-    // No span is emitted for an ignored span, so children/outgoing requests must propagate from the
-    // nearest emitted parent instead of the ignored placeholder.
+    // No span is emitted for an ignored child, so nested spans/outgoing requests must propagate from
+    // the nearest emitted parent instead of the ignored placeholder.
     expect(_getSpanForScope(store.scope)).toBeUndefined();
+  });
+
+  it('still sets an ignored root span as the active span so its subtree is dropped', () => {
+    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+    // A root ignored span (no parent) stays active, matching core `startSpan`, so its whole subtree is
+    // dropped rather than its children escaping and being emitted on their own.
+    const ignoredRoot = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+
+    const store = binding.getStoreWithActiveSpan(ignoredRoot) as { scope: Scope; isolationScope: Scope };
+
+    expect(_getSpanForScope(store.scope)).toBe(ignoredRoot);
   });
 });
