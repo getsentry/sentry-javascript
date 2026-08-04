@@ -10,3 +10,4 @@ export { instrumentGoogleGenAIClient } from './google-genai';
 export { instrumentWorkersAiClient } from './workers-ai';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './langchain';
 export { instrumentStateGraph, instrumentStateGraphCompile, instrumentCreateReactAgent } from './langgraph';
+export { addVercelAiProcessors } from './vercel-ai';

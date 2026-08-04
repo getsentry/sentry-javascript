@@ -56,7 +56,4 @@ export type {
 
 // AI instrumentation is only supported in server runtimes, so these exports are kept out of the browser entry to
 // avoid shipping the AI tracing code in browser bundles.
-export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
 export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
-export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
-export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
-import { stringify } from '../../../src/utils/string';
+import { getTruncatedJsonString } from '../../../../src/ai/core/utils';
+import { stringify } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
-import { requestMessagesFromPrompt } from '../../../src/tracing/vercel-ai/utils';
-import { AI_PROMPT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/vercel-ai/vercel-ai-attributes';
-import type { Span, SpanAttributes } from '../../../src/types/span';
+import { requestMessagesFromPrompt } from '../../../../src/ai/vercel-ai/utils';
+import { AI_PROMPT_MESSAGES_ATTRIBUTE } from '../../../../src/ai/vercel-ai/vercel-ai-attributes';
+import type { Span, SpanAttributes } from '@sentry/core';
 
 /**
  * Minimal span that records the attributes set on it, so we can assert on the

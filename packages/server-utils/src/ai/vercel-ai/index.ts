@@ -1,13 +1,16 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
-import type { Client } from '../../client';
-import { getClient } from '../../currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { shouldEnableTruncation } from '../ai/utils';
-import type { Event } from '../../types/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
-import { _INTERNAL_skipAiProviderWrapping } from '../../utils/ai/providerSkip';
-import { spanToJSON } from '../../utils/spanUtils';
+import {
+  _INTERNAL_skipAiProviderWrapping,
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  spanToJSON,
+} from '@sentry/core';
+import type { Client, Event, Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '@sentry/core';
+import { shouldEnableTruncation } from '../core/utils';
+import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -27,10 +30,9 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
-import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
@@ -63,8 +65,6 @@ import {
   AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
-
-const WORKERS_AI_INTEGRATION_NAME = 'WorkersAI';
 
 /**
  * Post-process spans emitted by the Vercel AI SDK.

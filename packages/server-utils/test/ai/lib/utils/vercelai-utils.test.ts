@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { convertUserInputToMessagesFormat } from '../../../src/tracing/vercel-ai/utils';
+import { convertUserInputToMessagesFormat } from '../../../../src/ai/vercel-ai/utils';
 
 describe('vercel-ai-utils', () => {
   describe('convertUserInputToMessagesFormat', () => {

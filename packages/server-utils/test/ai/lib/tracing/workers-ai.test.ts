@@ -10,13 +10,9 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _INTERNAL_clearAiProviderSkips,
-  addVercelAiProcessors,
-  Client,
-  createTransport,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  resolvedSyncPromise,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -25,29 +21,12 @@ import {
   spanToJSON,
   startSpan,
 } from '@sentry/core';
-import type { ClientOptions, DataCollection, Span } from '@sentry/core';
+import type { DataCollection, Span } from '@sentry/core';
+import { addVercelAiProcessors } from '../../../../src/ai/vercel-ai';
 import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const AI_OPERATION_ID_ATTRIBUTE = 'ai.operationId';
-
-function getDefaultTestClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
-  return {
-    integrations: [],
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
-    stackParser: () => [],
-    ...options,
-  } as ClientOptions;
-}
-
-class TestClient extends Client<any> {
-  public eventFromException(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-
-  public eventFromMessage(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-}
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
