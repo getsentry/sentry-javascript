@@ -2,7 +2,7 @@ import type { Envelope, Event } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 
-it('cacheClient: false - two consecutive invocations get different isolation scopes', async ({ signal }) => {
+it('two consecutive invocations get different isolation scopes', async ({ signal }) => {
   const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
 
   await runner.makeRequestAndWaitForEnvelope('get', '/scope?seed=1', (envelope: Envelope) => {
