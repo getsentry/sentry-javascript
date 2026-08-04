@@ -34,7 +34,6 @@ import {
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
-import { beforeEach } from 'node:test';
 
 describe('captureSpan', () => {
   // User attributes are gated with dataCollection.userInfo, but could me manually set on the scope (and we send it)
