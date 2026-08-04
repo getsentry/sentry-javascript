@@ -114,7 +114,8 @@ describe('browserSessionIntegration', () => {
     setupBrowserSession({ lifecycle: 'page' });
     expect(SentryCore.captureSession).not.toHaveBeenCalled();
 
-    window.dispatchEvent(new Event('pagehide'));
+    setVisibilityState('hidden');
+    window.dispatchEvent(new Event('visibilitychange'));
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
 
     // The idle fallback must not send the session a second time.
