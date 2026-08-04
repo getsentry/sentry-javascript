@@ -9,7 +9,7 @@ import { getMainCarrier } from '../../../src/carrier';
 import { Scope } from '../../../src/scope';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
-import { _getSpanForScope } from '../../../src/utils/spanOnScope';
+import { _getSpanForScope, _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { addChildSpanToSpan } from '../../../src/utils/spanUtils';
 
 const FAKE_BINDING: TracingChannelBinding = {
@@ -145,18 +145,22 @@ describe('_INTERNAL_createTracingChannelBinding', () => {
     expect(store.isolationScope).toBe(isolationScope);
   });
 
-  it('does not set an ignored child span as the active span', () => {
-    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+  it('keeps the emitted parent active for an ignored child span', () => {
     const parentSpan = new SentrySpan({ name: 'parent' });
+    // The parent is already the active span on the scope the binding forks from.
+    const parentScope = new Scope();
+    _setSpanForScope(parentScope, parentSpan);
+    const binding = _INTERNAL_createTracingChannelBinding({}, () => ({ scope: parentScope, isolationScope }));
+
     const ignoredChild = new SentryNonRecordingSpan({ dropReason: 'ignored' });
-    // Attach the ignored span under a parent so it is a child (its root span is the parent, not itself).
+    // Attach the ignored span under the parent so it is a child (its root span is the parent, not itself).
     addChildSpanToSpan(parentSpan, ignoredChild);
 
     const store = binding.getStoreWithActiveSpan(ignoredChild) as { scope: Scope; isolationScope: Scope };
 
-    // No span is emitted for an ignored child, so nested spans/outgoing requests must propagate from
-    // the nearest emitted parent instead of the ignored placeholder.
-    expect(_getSpanForScope(store.scope)).toBeUndefined();
+    // No span is emitted for an ignored child, so it must not become the active span; the emitted
+    // parent stays active so nested spans/outgoing requests keep propagating from it.
+    expect(_getSpanForScope(store.scope)).toBe(parentSpan);
   });
 
   it('still sets an ignored root span as the active span so its subtree is dropped', () => {
