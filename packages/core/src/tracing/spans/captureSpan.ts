@@ -1,6 +1,5 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
-import { DEBUG_BUILD } from '../../debug-build';
 import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
@@ -13,17 +12,15 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
-import { consoleSandbox, debug } from '../../utils/debug-logger';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
-  showSpanDropWarning,
   spanToJSON,
   spanToStreamedSpanJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
-import { isStaticBeforeSendSpanCallback } from './beforeSendSpan';
+import { applyBeforeSendSpanCallback, isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
@@ -204,45 +201,4 @@ export function captureStandaloneSpanWithStaticCallback(
   const processedSpan = applyBeforeSendSpanCallback(spanJSON, beforeSendSpan);
 
   return spanJsonToSerializedStreamedSpan(processedSpan);
-}
-
-/**
- * Apply a user-provided beforeSendSpan callback to a span JSON.
- */
-export function applyBeforeSendSpanCallback<F extends StreamedSpanJSON | SpanJSON>(
-  span: F,
-  beforeSendSpan: (span: F) => F,
-): F {
-  let modifedSpan: F;
-  try {
-    modifedSpan = beforeSendSpan(span);
-  } catch (error) {
-    // Spans are captured synchronously when they end, so a throwing callback would otherwise
-    // propagate into whatever user code ended the span.
-    DEBUG_BUILD && debug.error('The `beforeSendSpan` callback threw an error, sending the span unmodified:', error);
-    return span;
-  }
-
-  if (!modifedSpan) {
-    showSpanDropWarning();
-    return span;
-  }
-  return modifedSpan;
-}
-
-let hasShownSpanDropWarning = false;
-
-/**
- * Logs a warning once if `beforeSendSpan` is used to drop spans.
- */
-function showSpanDropWarning(): void {
-  if (!hasShownSpanDropWarning) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-    });
-    hasShownSpanDropWarning = true;
-  }
 }
