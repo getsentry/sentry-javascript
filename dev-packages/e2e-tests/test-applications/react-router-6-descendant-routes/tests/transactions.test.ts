@@ -293,6 +293,66 @@ test('resolves deep wildcard chain with three levels of nesting - pageload', asy
   });
 });
 
+test('does not mix param names across independent descendant routers', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const fooNavigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/foo/123'
+    );
+  });
+
+  const barNavigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/bar/456'
+    );
+  });
+
+  await page.goto(`/`);
+  await pageloadTxnPromise;
+
+  // Mount the first descendant router (`foo/*` -> `:fooId`), which populates the shared `allRoutes` set.
+  const [, fooNavigationTxn] = await Promise.all([page.locator('id=foo-navigation').click(), fooNavigationTxnPromise]);
+
+  expect((await page.innerHTML('#root')).includes('Foo')).toBe(true);
+  expect(fooNavigationTxn).toMatchObject({
+    transaction: '/foo/:fooId',
+    transaction_info: { source: 'route' },
+  });
+
+  // Return to the index so we can navigate into the second, unrelated descendant router client-side.
+  // A fresh page load would reset the module-level `allRoutes` and hide the bug.
+  await page.goBack();
+  await page.locator('id=bar-navigation').waitFor();
+
+  // Now mount the second descendant router (`bar/*` -> `:barId`). With the accumulation bug, the name
+  // comes out as the hybrid `/bar/:fooId`.
+  const [, barNavigationTxn] = await Promise.all([page.locator('id=bar-navigation').click(), barNavigationTxnPromise]);
+
+  expect((await page.innerHTML('#root')).includes('Bar')).toBe(true);
+  expect(barNavigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouter_v6',
+        data: {
+          'sentry.source': 'route',
+          'url.template': '/bar/:barId',
+          'url.path': '/bar/456',
+        },
+      },
+    },
+    transaction: '/bar/:barId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
 test('resolves deep wildcard chain with three levels of nesting - navigation', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
