@@ -55,10 +55,13 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     );
   }
 
-  // TODO: Cloudflare needs different wiring
-  if (mergedOptions.adapter !== 'cloudflare') {
-    sentryPlugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation }));
-  }
+  sentryPlugins.push(
+    sentryOrchestrionPlugin({
+      buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
+      // On Cloudflare, subscribers are wired via a build-time marker the SDK reads at runtime;
+      ...(mergedOptions.adapter === 'cloudflare' ? { injectChannelSubscribers: true } : {}),
+    }),
+  );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
