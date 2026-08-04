@@ -12,7 +12,7 @@ test('should create AI spans with correct attributes and error linking', async (
   );
 
   const errorEventPromise = waitForError('nextjs-15', async errorEvent => {
-    return errorEvent.exception?.values?.[0]?.value?.includes('Tool call failed');
+    return !!errorEvent.exception?.values?.[0]?.value?.includes('Tool call failed');
   });
 
   await page.goto('/ai-error-test');
