@@ -12,8 +12,6 @@ vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    browserPerformanceTimeOrigin: vi.fn(() => 0),
-    spanToJSON: vi.fn(),
   };
 });
 
@@ -26,7 +24,8 @@ vi.mock('../../src/metrics/web-vitals/lib/softNavs', () => ({
   getSoftNavigationEntry: vi.fn(),
 }));
 
-type SoftNavObserverCallback = (entries: Array<{ navigationId?: string; startTime: number }>) => void;
+type EventObserverCallback = (entries: Array<{ interactionId?: number }>) => void;
+type SoftNavObserverCallback = (entries: Array<{ interactionId?: number; navigationId?: string }>) => void;
 
 function createMockSpan(spanId: string): SentryCore.Span {
   const attributes: Record<string, unknown> = {};
@@ -40,78 +39,73 @@ function createMockSpan(spanId: string): SentryCore.Span {
   } as unknown as SentryCore.Span;
 }
 
-/** Grab the callback the module registered with `observe('soft-navigation', ...)`. */
-function getObserverCallback(): SoftNavObserverCallback {
+/** Grab the callback the module registered with `observe(<type>, ...)`. */
+function getObserverCallback(type: string): (entries: unknown[]) => void {
   const observeMock = vi.mocked(observeModule.observe);
-  const call = observeMock.mock.calls.find(c => c[0] === 'soft-navigation');
+  const call = observeMock.mock.calls.find(c => c[0] === type);
   if (!call) {
-    throw new Error('soft-navigation observer was not registered');
+    throw new Error(`${type} observer was not registered`);
   }
-  return call[1] as unknown as SoftNavObserverCallback;
+  return call[1] as unknown as (entries: unknown[]) => void;
 }
 
 describe('softNavCorrelation', () => {
   beforeEach(() => {
     _resetSoftNavCorrelation();
-    vi.mocked(SentryCore.spanToJSON).mockReset();
     vi.mocked(observeModule.observe).mockReset();
     vi.mocked(softNavsModule.softNavs).mockReturnValue(true as unknown as boolean);
     vi.mocked(softNavsModule.getSoftNavigationEntry).mockReset();
-    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(0);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('correlates a soft-nav entry to the navigation span with the closest start time', () => {
+  it('correlates a soft-nav entry to the navigation span sharing its interactionId', () => {
     const span = createMockSpan('nav-1');
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ start_timestamp: 10 } as ReturnType<
-      typeof SentryCore.spanToJSON
-    >);
-
     registerNavigationSpan(span, true);
 
-    // soft-nav entry arrives with startTime (ms) matching the span start (10s -> 10000ms)
-    const cb = getObserverCallback();
-    cb([{ navigationId: 'nav-id-1', startTime: 10_000 }]);
+    // The triggering interaction's event entry lands and attaches its interactionId to the span.
+    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 42 }]);
+
+    // The soft-nav entry arrives carrying the same interactionId.
+    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
+      { interactionId: 42, navigationId: 'nav-id-1' },
+    ]);
 
     expect(span.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 'nav-id-1');
     expect(getNavigationSpanForNavigationId('nav-id-1')).toBe(span);
   });
 
-  it('picks the closest span when multiple navigations are registered', () => {
+  it('joins each navigation to its own span by interactionId', () => {
     const spanA = createMockSpan('nav-a');
-    const spanB = createMockSpan('nav-b');
-    vi.mocked(SentryCore.spanToJSON)
-      .mockReturnValueOnce({ start_timestamp: 10 } as ReturnType<typeof SentryCore.spanToJSON>)
-      .mockReturnValueOnce({ start_timestamp: 20 } as ReturnType<typeof SentryCore.spanToJSON>);
-
     registerNavigationSpan(spanA, true);
-    registerNavigationSpan(spanB, true);
+    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 10 }]);
 
-    const cb = getObserverCallback();
-    cb([{ navigationId: 'id-b', startTime: 20_000 }]);
+    const spanB = createMockSpan('nav-b');
+    registerNavigationSpan(spanB, true);
+    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 20 }]);
+
+    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
+      { interactionId: 20, navigationId: 'id-b' },
+    ]);
 
     expect(spanB.setAttribute).toHaveBeenCalledWith('sentry.navigation_id', 'id-b');
     expect(spanA.setAttribute).not.toHaveBeenCalled();
     expect(getNavigationSpanForNavigationId('id-b')).toBe(spanB);
   });
 
-  it('does not correlate when no span is within the match tolerance', () => {
+  it('does not correlate when no span shares the entry interactionId', () => {
     const span = createMockSpan('nav-1');
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ start_timestamp: 10 } as ReturnType<
-      typeof SentryCore.spanToJSON
-    >);
-
     registerNavigationSpan(span, true);
+    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 1 }]);
 
-    const cb = getObserverCallback();
-    // entry start is 5s away from the only span (well beyond the 0.1s tolerance)
-    cb([{ navigationId: 'id-far', startTime: 15_000 }]);
+    (getObserverCallback('soft-navigation') as unknown as SoftNavObserverCallback)([
+      { interactionId: 999, navigationId: 'id-unmatched' },
+    ]);
 
     expect(span.setAttribute).not.toHaveBeenCalled();
-    expect(getNavigationSpanForNavigationId('id-far')).toBeUndefined();
+    expect(getNavigationSpanForNavigationId('id-unmatched')).toBeUndefined();
   });
 
   it('returns undefined for an unknown navigationId with no buffered entry', () => {
@@ -120,16 +114,15 @@ describe('softNavCorrelation', () => {
     expect(getNavigationSpanForNavigationId(undefined)).toBeUndefined();
   });
 
-  it('falls back to the buffered soft-navigation entry when the observer has not fired yet', () => {
+  it('joins via the buffered soft-navigation entry when the observer has not fired yet', () => {
     const span = createMockSpan('nav-1');
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ start_timestamp: 30 } as ReturnType<
-      typeof SentryCore.spanToJSON
-    >);
     registerNavigationSpan(span, true);
+    (getObserverCallback('event') as unknown as EventObserverCallback)([{ interactionId: 7 }]);
 
-    // observer never fires; instead the entry is available synchronously in the buffer
+    // The soft-nav observer never fires; the entry is available synchronously in the buffer with
+    // the same interactionId the span was registered against.
     vi.mocked(softNavsModule.getSoftNavigationEntry).mockReturnValue({
-      startTime: 30_000,
+      interactionId: 7,
       navigationId: 'id-buffered',
     } as unknown as ReturnType<typeof softNavsModule.getSoftNavigationEntry>);
 
@@ -140,9 +133,6 @@ describe('softNavCorrelation', () => {
   it('is a no-op when soft navs are not enabled', () => {
     vi.mocked(softNavsModule.softNavs).mockReturnValue(false as unknown as boolean);
     const span = createMockSpan('nav-1');
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ start_timestamp: 10 } as ReturnType<
-      typeof SentryCore.spanToJSON
-    >);
 
     registerNavigationSpan(span, false);
 

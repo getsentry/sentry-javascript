@@ -1,47 +1,45 @@
 import type { Span } from '@sentry/core';
-import { browserPerformanceTimeOrigin, debug, spanToJSON } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { msToSec } from './utils';
 import type { ReportOpts } from './web-vitals/types';
 import { observe } from './web-vitals/lib/observe';
 import { getSoftNavigationEntry, softNavs } from './web-vitals/lib/softNavs';
 
 /**
- * Best-effort correlation between Chrome Soft Navigation `navigationId`s and the Sentry
- * navigation spans they belong to.
+ * Correlation between Chrome Soft Navigation `navigationId`s and the Sentry navigation spans they
+ * belong to, keyed on the `interactionId` of the interaction that triggered the navigation.
  *
  * The navigation span is created synchronously on `pushState`/`popstate`, but the browser's
- * `soft-navigation` PerformanceEntry (which carries the `navigationId`) is emitted
- * asynchronously, after the confirming paint (~40ms later, sometimes more). So we cannot know
- * the `navigationId` at span-creation time.
+ * `soft-navigation` PerformanceEntry (which carries the `navigationId`) is emitted asynchronously,
+ * after the confirming paint. So we cannot know the `navigationId` at span-creation time.
  *
- * Instead we register each navigation span as it starts, then when the `soft-navigation` entry
- * arrives we match it back to the span by start time (the entry's `startTime` is pinned to the
- * navigation-start instant, within ~1-2ms) and remember the mapping so soft-nav web-vital spans
- * can look up their navigation span by `navigationId`.
+ * Both sides converge on the same causality token: the `interactionId` assigned by the Event Timing
+ * spec to the interaction that drove the navigation. The triggering interaction's
+ * `PerformanceEventTiming` entry and the resulting `soft-navigation` entry carry the same
+ * `interactionId`. We record navigation spans against the in-flight interaction, then join the
+ * soft-nav entry to its span by `interactionId` when it arrives. This is deterministic, no
+ * clock-window matching.
  *
  * This is inherently partial: navigations that don't meet the soft-nav heuristic (programmatic
- * navs, non-painting navs) produce no entry and therefore no correlation. Consumers must treat
- * a missing navigation span as expected, not exceptional.
+ * navs, non-painting navs) produce no entry and therefore no correlation. Consumers must treat a
+ * missing navigation span as expected, not exceptional.
  */
-
-// How close (in seconds) a soft-nav entry's start must be to a navigation span's start to be
-// considered the same navigation. Measured drift is ~1-2ms; we allow generous slack for router
-// and paint jitter while staying far below realistic inter-navigation spacing.
-const MATCH_TOLERANCE_SEC = 0.1;
 
 // Keep a small, bounded history. A page realistically only needs the most recent navigations to
 // still be correlatable; older ones have long since flushed.
 const MAX_TRACKED = 5;
 
-interface TrackedNavigationSpan {
-  span: Span;
-  startTimestamp: number;
-}
+// The most recent navigation span awaiting an `interactionId`. A navigation span is registered
+// synchronously while the triggering interaction is still in flight, before its
+// `PerformanceEventTiming` entry (and thus its `interactionId`) exists.
+let _pendingNavigationSpan: Span | undefined;
 
-const _navigationSpans: TrackedNavigationSpan[] = [];
+// interactionId -> the navigation span that interaction triggered.
+const _interactionIdToSpan = new Map<number, Span>();
+// navigationId -> navigation span, resolved once a soft-nav entry joins the two.
 const _navigationIdToSpan = new Map<string, Span>();
-let _observerStarted = false;
+
+let _observersStarted = false;
 
 /**
  * Register a navigation span so it can later be correlated to a soft-nav `navigationId`.
@@ -52,23 +50,15 @@ export function registerNavigationSpan(span: Span, reportSoftNavs?: boolean): vo
     return;
   }
 
-  const startTimestamp = spanToJSON(span).start_timestamp;
-  if (startTimestamp == null) {
-    return;
-  }
+  // The triggering interaction's `interactionId` is not available synchronously. Hold the span as
+  // pending; the `event` observer attaches the `interactionId` once the interaction's entry lands.
+  _pendingNavigationSpan = span;
 
-  _navigationSpans.push({ span, startTimestamp });
-  if (_navigationSpans.length > MAX_TRACKED) {
-    _navigationSpans.shift();
-  }
-
-  _startObserver();
+  _startObservers();
 }
 
 /**
- * Look up the navigation span a soft-nav `navigationId` belongs to, if we managed to correlate
- * one. Falls back to matching the buffered soft-navigation entry by start time in case the
- * observer hasn't fired yet for this entry.
+ * Look up the navigation span a soft-nav `navigationId` belongs to, if we managed to correlate one.
  */
 export function getNavigationSpanForNavigationId(navigationId: string | undefined): Span | undefined {
   if (!navigationId) {
@@ -80,9 +70,10 @@ export function getNavigationSpanForNavigationId(navigationId: string | undefine
     return known;
   }
 
+  // The soft-nav observer may not have fired yet for this entry; join it now via its interactionId.
   const entry = getSoftNavigationEntry(navigationId);
-  if (entry) {
-    return _matchEntryToNavigationSpan(entry.startTime, navigationId);
+  if (entry?.interactionId) {
+    return _joinEntryToSpan(entry.interactionId, navigationId);
   }
 
   return undefined;
@@ -90,25 +81,41 @@ export function getNavigationSpanForNavigationId(navigationId: string | undefine
 
 /** Exposed for tests. Resets all correlation state. */
 export function _resetSoftNavCorrelation(): void {
-  _navigationSpans.length = 0;
+  _pendingNavigationSpan = undefined;
+  _interactionIdToSpan.clear();
   _navigationIdToSpan.clear();
-  _observerStarted = false;
+  _observersStarted = false;
 }
 
-function _startObserver(): void {
-  if (_observerStarted) {
+function _startObservers(): void {
+  if (_observersStarted) {
     return;
   }
-  _observerStarted = true;
+  _observersStarted = true;
 
-  // When a soft-navigation entry lands, correlate it to the navigation span it belongs to.
+  // Attach the in-flight interaction's `interactionId` to the pending navigation span. The event
+  // that triggered the navigation and the soft-nav entry share this id, so it is our join key.
+  // `durationThreshold: 0` is required so fast interactions (below the 104ms default) are still
+  // observed, otherwise their `interactionId` never arrives and the join fails.
+  const attachInteraction = (entries: PerformanceEventTiming[]): void => {
+    for (const entry of entries) {
+      if (entry.interactionId && _pendingNavigationSpan) {
+        _rememberInteraction(entry.interactionId, _pendingNavigationSpan);
+        _pendingNavigationSpan = undefined;
+      }
+    }
+  };
+  observe('event', attachInteraction, { durationThreshold: 0 });
+  observe('first-input', attachInteraction);
+
+  // When a soft-navigation entry lands, join it to the span its interaction triggered.
   const opts: ReportOpts = { reportSoftNavs: true };
   observe(
     'soft-navigation',
     entries => {
       for (const entry of entries) {
-        if (entry.navigationId) {
-          _matchEntryToNavigationSpan(entry.startTime, entry.navigationId);
+        if (entry.interactionId && entry.navigationId) {
+          _joinEntryToSpan(entry.interactionId, entry.navigationId);
         }
       }
     },
@@ -116,33 +123,31 @@ function _startObserver(): void {
   );
 }
 
-/**
- * Match a soft-nav entry (by its start time, in ms relative to timeOrigin) to the closest
- * registered navigation span, stamp the `navigationId` onto that span, and cache the mapping.
- */
-function _matchEntryToNavigationSpan(entryStartTimeMs: number, navigationId: string): Span | undefined {
-  const timeOrigin = browserPerformanceTimeOrigin() || 0;
-  const entryStartTimestamp = msToSec(timeOrigin + entryStartTimeMs);
-
-  let best: TrackedNavigationSpan | undefined;
-  let bestDiff = MATCH_TOLERANCE_SEC;
-  for (const tracked of _navigationSpans) {
-    const diff = Math.abs(tracked.startTimestamp - entryStartTimestamp);
-    if (diff <= bestDiff) {
-      bestDiff = diff;
-      best = tracked;
+function _rememberInteraction(interactionId: number, span: Span): void {
+  _interactionIdToSpan.set(interactionId, span);
+  if (_interactionIdToSpan.size > MAX_TRACKED) {
+    const oldest = _interactionIdToSpan.keys().next().value;
+    if (oldest !== undefined) {
+      _interactionIdToSpan.delete(oldest);
     }
   }
+}
 
-  if (!best) {
-    DEBUG_BUILD && debug.log(`[SoftNav] No navigation span matched navigationId ${navigationId}`);
+/**
+ * Join a soft-nav entry to the navigation span its interaction triggered, stamp the `navigationId`
+ * onto that span, and cache the mapping.
+ */
+function _joinEntryToSpan(interactionId: number, navigationId: string): Span | undefined {
+  const span = _interactionIdToSpan.get(interactionId);
+  if (!span) {
+    DEBUG_BUILD && debug.log(`[SoftNav] No navigation span for interactionId ${interactionId} (navigationId ${navigationId})`);
     return undefined;
   }
 
-  DEBUG_BUILD && debug.log(`[SoftNav] Correlated navigationId ${navigationId} to navigation span (diff=${bestDiff}s)`);
+  DEBUG_BUILD && debug.log(`[SoftNav] Correlated navigationId ${navigationId} to navigation span via interactionId ${interactionId}`);
 
-  best.span.setAttribute('sentry.navigation_id', navigationId);
-  _navigationIdToSpan.set(navigationId, best.span);
+  span.setAttribute('sentry.navigation_id', navigationId);
+  _navigationIdToSpan.set(navigationId, span);
   if (_navigationIdToSpan.size > MAX_TRACKED) {
     const oldest = _navigationIdToSpan.keys().next().value;
     if (oldest !== undefined) {
@@ -150,5 +155,5 @@ function _matchEntryToNavigationSpan(entryStartTimeMs: number, navigationId: str
     }
   }
 
-  return best.span;
+  return span;
 }
