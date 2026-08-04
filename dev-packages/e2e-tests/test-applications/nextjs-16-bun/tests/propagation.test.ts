@@ -18,12 +18,8 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }
   expect(inboundTransaction.contexts?.trace?.trace_id).toStrictEqual(expect.any(String));
   expect(inboundTransaction.contexts?.trace?.trace_id).toBe(outboundTransaction.contexts?.trace?.trace_id);
 
-  // Although we have a fetch http.client span, we propagate through Next.js and AppRouteRouteHandlers.runHandler
-  // as that is the active span at that time - not ideal, but it's the best we can do.
   const httpClientSpan = outboundTransaction.spans?.find(
-    span =>
-      span.data?.['next.span_type'] === 'AppRouteRouteHandlers.runHandler' &&
-      span.data?.['next.route'] === '/propagation/test-outgoing-fetch',
+    span => span.op === 'http.client' && span.data?.['sentry.origin'] === 'auto.http.fetch',
   );
 
   expect(httpClientSpan).toBeDefined();
