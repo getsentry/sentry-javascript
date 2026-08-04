@@ -6,7 +6,7 @@ import {
 } from '@sentry/core/browser';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient, spanStreamingIntegration } from '../../src';
+import { BrowserClient, spanStreamingIntegration, withStaticSpan } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 // Mock SpanBuffer as a class that can be instantiated
@@ -40,62 +40,60 @@ describe('spanStreamingIntegration', () => {
     expect(integration.setup).toBeDefined();
   });
 
-  it.each(['static', 'somethingElse'])(
-    'logs a warning if traceLifecycle is not set to "stream" but to %s',
-    traceLifecycle => {
-      const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-      const client = new BrowserClient({
-        ...getDefaultBrowserClientOptions(),
-        dsn: 'https://username@domain/123',
-        integrations: [spanStreamingIntegration()],
-        // @ts-expect-error - we want to test the warning for invalid traceLifecycle values
-        traceLifecycle,
-      });
-
-      SentryCore.setCurrentClient(client);
-      client.init();
-
-      expect(debugSpy).toHaveBeenCalledWith(
-        'SpanStreaming integration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
-      );
-      debugSpy.mockRestore();
-
-      expect(client.getOptions().traceLifecycle).toBe('static');
-    },
-  );
-
-  it('falls back to static trace lifecycle if beforeSendSpan is not compatible with span streaming', () => {
-    const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+  it('does not set up span streaming if traceLifecycle is "static"', () => {
+    const debugSpy = vi.spyOn(debug, 'log').mockImplementation(() => {});
     const client = new BrowserClient({
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'stream',
-      beforeSendSpan: (span: Span) => span,
+      traceLifecycle: 'static',
+      tracesSampleRate: 1,
     });
 
     SentryCore.setCurrentClient(client);
     client.init();
 
-    expect(debugSpy).toHaveBeenCalledWith(
-      'SpanStreaming integration requires a beforeSendSpan callback using `withStreamedSpan`! Falling back to static trace lifecycle.',
-    );
+    expect(debugSpy).toHaveBeenCalledWith('[SpanStreaming] `traceLifecycle` is "static", skipping setup.');
     debugSpy.mockRestore();
 
-    expect(client.getOptions().traceLifecycle).toBe('static');
+    expect(MockSpanBuffer).not.toHaveBeenCalled();
+
+    // Without the hooks registered, ending a span must not enqueue anything
+    client.emit('afterSpanEnd', new SentryCore.SentrySpan({ name: 'test', sampled: true }));
+    expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
   });
 
-  it('does nothing if traceLifecycle set to "stream"', () => {
+  it.each([
+    ['explicitly set to "stream"', 'stream' as const],
+    ['left unset', undefined],
+  ])('sets up span streaming if traceLifecycle is %s', (_, traceLifecycle) => {
     const client = new BrowserClient({
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'stream',
+      traceLifecycle,
     });
 
     SentryCore.setCurrentClient(client);
     client.init();
 
+    expect(MockSpanBuffer).toHaveBeenCalledTimes(1);
+    expect(client.getOptions().traceLifecycle).toBe('stream');
+  });
+
+  it('still sets up span streaming if beforeSendSpan is wrapped with withStaticSpan', () => {
+    const client = new BrowserClient({
+      ...getDefaultBrowserClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
+      beforeSendSpan: withStaticSpan(span => span),
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    expect(MockSpanBuffer).toHaveBeenCalledTimes(1);
     expect(client.getOptions().traceLifecycle).toBe('stream');
   });
 

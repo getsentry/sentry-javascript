@@ -105,6 +105,8 @@ export {
   growthbookIntegration,
   logger,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
