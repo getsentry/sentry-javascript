@@ -9,11 +9,11 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   tracePropagationTargets: ['http://localhost:3030/propagation/test-outgoing-fetch/check'],
-integrations: [
+  integrations: [
     // Bun does not emit the `node:http` diagnostics channel the Node SDK uses to isolate incoming
     // requests, so each request would otherwise share one trace. Next.js emits its own server spans,
     // hence `spans: false` — this only isolates the request and resets its trace.
-    bunHttpServerIntegration({ spans: false })
+    bunHttpServerIntegration({ spans: false }),
     // Adding bun-specific integration here
     fetchIntegration(),
   ],
