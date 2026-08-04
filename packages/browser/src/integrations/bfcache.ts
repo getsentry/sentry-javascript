@@ -4,7 +4,7 @@ import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
-const INTEGRATION_NAME = 'BFCacheMetrics';
+const INTEGRATION_NAME = 'BFCache';
 
 type BFCacheOutcome = 'hit' | 'miss';
 
@@ -41,7 +41,7 @@ interface CollectedReason {
 /**
  * Captures bfcache hit/miss counters and Chromium notRestoredReasons when available.
  */
-export const bfcacheMetricsIntegration = defineIntegration((options: Partial<BFCacheIntegrationOptions> = {}) => {
+export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheIntegrationOptions> = {}) => {
   const maxReasons = _resolveMaxReasons(options.maxReasons);
 
   return {

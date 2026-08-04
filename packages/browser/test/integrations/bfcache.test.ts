@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { debug } from '@sentry/core/browser';
 import { _collectNotRestoredReasons, _resolveMaxReasons } from '../../src/integrations/bfcache';
 
-describe('bfcacheMetricsIntegration', () => {
+describe('bfcacheIntegration', () => {
   describe('_resolveMaxReasons', () => {
     afterEach(() => {
       vi.restoreAllMocks();

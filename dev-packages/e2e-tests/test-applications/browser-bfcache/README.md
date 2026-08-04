@@ -1,6 +1,6 @@
 # browser-bfcache
 
-Exercises `bfcacheMetricsIntegration` against a **real** browser back/forward cache, covering hits,
+Exercises `bfcacheIntegration` against a **real** browser back/forward cache, covering hits,
 misses, and the real `notRestoredReasons` the browser reports (Chromium-only, and this app is
 Chromium). Deliberately bfcache-ineligible pages are produced via `?botch=<case>` (see `src/main.ts`).
 
