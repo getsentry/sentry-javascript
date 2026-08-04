@@ -2,11 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ request }) => {
-  // The `orchestrion:mysql:query` channel is injected into the bundled `mysql` package at build
-  // time by `@sentry/astro`, which — because this app uses the Cloudflare Workers adapter — also
-  // registers the subscriber factory on the global marker that `@sentry/cloudflare` reads in the
-  // `withSentry` wrap. The query below therefore produces a `db` span on the request's http.server
-  // transaction, with no OTel require-hook (which wouldn't work in workerd).
   const transactionPromise = waitForTransaction('astro-6-cf-workers', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
@@ -31,10 +26,6 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
 });
 
 test('a nested query lands on the same transaction (async context restored)', async ({ request }) => {
-  // The second query runs inside the first query's callback — i.e. across mysql's async
-  // socket-callback dispatch. Both spans appearing on the SAME http.server transaction proves the
-  // channel subscriber restored the parent span across that async boundary (otherwise the nested
-  // query would start its own trace and never join this transaction).
   const transactionPromise = waitForTransaction('astro-6-cf-workers', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
