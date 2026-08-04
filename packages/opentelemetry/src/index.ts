@@ -7,8 +7,6 @@ export { applyOtelSpanData } from './applyOtelSpanData';
 export { backfillStreamedSpanDataFromOtel } from './utils/backfillStreamedSpanData';
 export { SentryTracerProvider } from './tracerProvider';
 
-export { getSentryResource } from './resource';
-
 export { type AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
