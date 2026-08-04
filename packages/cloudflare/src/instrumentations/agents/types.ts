@@ -19,6 +19,8 @@ export interface AgentInternals {
    * does not, so its presence discriminates a chat agent.
    */
   onChatMessage?: (...args: unknown[]) => unknown;
+  /** HTTP request handler; the router sends every non-WebSocket request here. */
+  onRequest?: (...args: unknown[]) => unknown;
   /** The user's Agent class (used by the SDK for the observability event `agent` field). */
   _ParentClass?: { name?: string };
   /** The Agent instance name, which in the Agents model identifies the conversation/thread. */

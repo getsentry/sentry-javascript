@@ -25,6 +25,8 @@ function assertGenAiStreamingSpan(spans: Array<Record<string, any>> | undefined)
       'gen_ai.usage.input_tokens': 15,
       'gen_ai.usage.output_tokens': 8,
       'gen_ai.usage.total_tokens': 23,
+      // Both agents are addressed as `.../test`, so the instance name is the conversation id.
+      'gen_ai.conversation.id': 'test',
     }),
   );
 }
