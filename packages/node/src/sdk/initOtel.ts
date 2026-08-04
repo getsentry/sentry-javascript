@@ -75,7 +75,7 @@ export function initOpenTelemetry(client: NodeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = setupOtel(client);
+  const provider = setupOtel();
   client.traceProvider = provider;
 }
 
@@ -139,7 +139,7 @@ export function setupSpanDataBackfill(client: NodeClient): void {
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient): SentryTracerProvider | undefined {
+export function setupOtel(): SentryTracerProvider | undefined {
   const provider = new SentryTracerProvider();
 
   if (!registerGlobalTracerProvider(provider)) {
@@ -151,8 +151,6 @@ export function setupOtel(client: NodeClient): SentryTracerProvider | undefined 
   }
 
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  setupSpanDataBackfill(client);
 
   return provider;
 }
