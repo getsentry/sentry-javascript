@@ -1133,8 +1133,8 @@ describe('browserTracingIntegration', () => {
 
       expect(dynamicSamplingContext).toBeDefined();
       // Continuing a trace without an incoming Sentry DSC does not populate a new one, but the
-      // `sample_rand` is still propagated so downstream sampling decisions stay consistent.
-      expect(dynamicSamplingContext).toStrictEqual({ sample_rand: expect.stringMatching(/^0(\.\d+)?$/) });
+      // scope's `sample_rand` is still propagated so downstream sampling decisions stay consistent.
+      expect(dynamicSamplingContext).toStrictEqual({ sample_rand: propagationContext.sampleRand.toString() });
 
       // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');

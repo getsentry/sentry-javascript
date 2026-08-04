@@ -1,6 +1,7 @@
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
+  getCapturedScopesOnSpan,
   getRootSpan,
   getSpanDescendants,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -265,9 +266,11 @@ describe('sentryHandle', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
-      // Continuing a trace without incoming baggage does not populate a new DSC, but the `sample_rand`
-      // is still propagated so downstream sampling decisions stay consistent across the trace.
-      expect(envelopeHeaders!.trace).toEqual({ sample_rand: expect.stringMatching(/^0(\.\d+)?$/) });
+      // Continuing a trace without incoming baggage does not populate a new DSC, but the scope's
+      // `sample_rand` is still propagated so downstream sampling decisions stay consistent. Assert it
+      // matches the scope value rather than just any number, so a freshly-minted rand would fail.
+      const scopeSampleRand = getCapturedScopesOnSpan(_span!).scope!.getPropagationContext().sampleRand;
+      expect(envelopeHeaders!.trace).toEqual({ sample_rand: scopeSampleRand.toString() });
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
