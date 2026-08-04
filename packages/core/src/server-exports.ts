@@ -53,7 +53,3 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
-
-// AI instrumentation is only supported in server runtimes, so these exports are kept out of the browser entry to
-// avoid shipping the AI tracing code in browser bundles.
-export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';

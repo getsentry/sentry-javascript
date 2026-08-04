@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { truncateGenAiMessages, truncateGenAiStringInput } from '../../../src/tracing/ai/messageTruncation';
-import { getTruncatedJsonString } from '../../../src/tracing/ai/utils';
+import { truncateGenAiMessages, truncateGenAiStringInput } from '../../../../src/ai/core/messageTruncation';
+import { getTruncatedJsonString } from '../../../../src/ai/core/utils';
 
 describe('message truncation utilities', () => {
   describe('truncateGenAiMessages', () => {
