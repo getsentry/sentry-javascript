@@ -193,7 +193,7 @@ describe('inferSpanData', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       {
-        op: 'message',
+        op: 'queue',
       },
     ],
     [
@@ -203,7 +203,7 @@ describe('inferSpanData', () => {
         [MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       {
-        op: 'message',
+        op: 'queue',
       },
     ],
     [
@@ -214,7 +214,7 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       {
-        op: 'message',
+        op: 'queue',
       },
     ],
     [
@@ -225,7 +225,7 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       {
-        op: 'message',
+        op: 'queue',
       },
     ],
     [

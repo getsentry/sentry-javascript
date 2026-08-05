@@ -22,10 +22,12 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
+import { MESSAGING_QUEUE_PROCESS_SPAN_OP, MESSAGING_QUEUE_PUBLISH_SPAN_OP } from '@sentry/conventions/op';
 import { amqplibModuleNames } from '../../orchestrion/config/amqplib';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -462,8 +464,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
-    op: 'message',
     attributes: {
+      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
@@ -500,8 +502,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLike): Span {
   return startInactiveSpan({
     name: `${queue} process`,
-    op: 'message',
     attributes: {
+      [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
       [SENTRY_KIND]: 'consumer',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),

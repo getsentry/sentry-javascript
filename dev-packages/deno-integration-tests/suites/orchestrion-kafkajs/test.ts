@@ -41,8 +41,8 @@ Deno.test('kafkajs instrumentation: orchestrion:kafkajs:send_batch channel produ
     "'parent' transaction",
   );
 
-  const kafkaSpan = parent.spans?.find(s => s.op === 'message');
-  assertExists(kafkaSpan, `expected a message child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const kafkaSpan = parent.spans?.find(s => s.op === 'queue.publish');
+  assertExists(kafkaSpan, `expected a queue.publish child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(kafkaSpan!.description, 'send my-topic');
   assertEquals(kafkaSpan!.data?.['messaging.system'], 'kafka');
   assertEquals(kafkaSpan!.data?.['messaging.destination.name'], 'my-topic');
