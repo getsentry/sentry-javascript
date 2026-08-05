@@ -16,10 +16,12 @@ import {
   URL_QUERY,
 } from '@sentry/conventions/attributes';
 import {
+  GENERAL_FUNCTION_SPAN_OP,
   MESSAGING_QUEUE_PROCESS_SPAN_OP,
   MESSAGING_QUEUE_PUBLISH_SPAN_OP,
   MESSAGING_QUEUE_RECEIVE_SPAN_OP,
   MESSAGING_QUEUE_SPAN_OP,
+  WEB_SERVER_HTTP_SERVER_SPAN_OP,
 } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
@@ -81,15 +83,30 @@ export function inferSpanData(attributes: SpanAttributes): SpanDescription {
   }
 
   // If faas.trigger exists then this is a function as a service span.
-  // eslint-disable-next-line typescript/no-deprecated
   const faasTrigger = attributes[FAAS_TRIGGER];
   if (faasTrigger) {
     return {
-      op: faasTrigger.toString(),
+      op: getFaasOp(faasTrigger),
     };
   }
 
   return { op: undefined };
+}
+
+/**
+ * Maps an OTel `faas.trigger` to a registered span op. `http` triggers are inbound HTTP requests and
+ * `pubsub` triggers process queued messages; everything else (`timer`, `datasource`, `other`, or any
+ * non-conformant value) is a plain function invocation.
+ */
+function getFaasOp(trigger: unknown): string {
+  switch (trigger) {
+    case 'http':
+      return WEB_SERVER_HTTP_SERVER_SPAN_OP;
+    case 'pubsub':
+      return MESSAGING_QUEUE_PROCESS_SPAN_OP;
+    default:
+      return GENERAL_FUNCTION_SPAN_OP;
+  }
 }
 
 /**
