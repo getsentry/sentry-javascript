@@ -82,14 +82,11 @@ export function externalizedModulesWarning(externalizedModules: string[]): strin
  * visible to the runtime).
  */
 export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
-  const subscribeInjection = options.injectChannelSubscribers ? subscribeInjectionOptions() : undefined;
-
-  const instrumentations = [
-    ...SENTRY_INSTRUMENTATIONS,
-    ...(options.instrumentations || []),
-    ...(subscribeInjection?.instrumentations || []),
-  ];
-  const customTransforms = { ...options.customTransforms, ...subscribeInjection?.customTransforms };
+  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])];
+  const customTransforms = {
+    ...options.customTransforms,
+    ...(options.injectChannelSubscribers ? subscribeInjectionOptions().customTransforms : undefined),
+  };
 
   if (options.shouldInjectDiagnostics === false) {
     return {

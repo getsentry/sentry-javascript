@@ -148,6 +148,10 @@ export interface CodeTransformerPluginOptions {
    *
    * A single transform can serve many configs — each invocation can branch on
    * `state.module.name` or `state.channelName` to tell the sites apart.
+   *
+   * An entry named after a built-in transform (e.g. `tracingChannelImport`) overrides it wherever
+   * the transformer dispatches it, including internal calls; the originals stay reachable on
+   * `state.transforms.defaults` so an override can chain the default behaviour.
    */
   customTransforms?: Record<string, CustomTransform>;
   /**

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // `parse`/`validate`/`execute` are top-level named `function` declarations in graphql's compiled
 // files, stable across the supported majors, so `functionName` matches. `execute` returns
@@ -29,5 +29,3 @@ export const graphqlChannels = {
 } as const;
 
 export const graphqlModuleNames = getModuleNames(graphqlConfig);
-
-export const graphqlSubscribeInjection = toSubscribeInjections(graphqlConfig);

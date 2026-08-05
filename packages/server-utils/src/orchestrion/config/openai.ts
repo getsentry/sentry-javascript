@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 export const openaiConfig = [
   // OpenAI chat completions. `Completions.create` returns a thenable `APIPromise` with no callback arg,
@@ -38,5 +38,3 @@ export const openaiChannels = {
   OPENAI_CHAT: 'orchestrion:openai:chat',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
 } as const;
-
-export const openaiSubscribeInjection = toSubscribeInjections(openaiConfig);
