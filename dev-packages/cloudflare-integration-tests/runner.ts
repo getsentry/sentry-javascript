@@ -72,11 +72,20 @@ function builtFromSource(builtConfigPath: string, sourceConfigPath: string): boo
   }
 }
 
+type RetryOptions = { maxRetries?: number; retryDelayMs?: number };
+
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
 // The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
 // several seconds on a loaded CI runner — hence a generous default.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
+//
+// Requests expected to fail must disable retries (`maxRetries: 1`), because their 500 or connection
+// reset is indistinguishable from a transient startup failure and retrying only repeats the exception.
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  { maxRetries = 25, retryDelayMs = 200 }: RetryOptions = {},
+): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
@@ -429,7 +438,7 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetchWithRetry(url, { headers, method, body });
+            const res = await fetchWithRetry(url, { headers, method, body }, expectError ? { maxRetries: 1 } : {});
 
             if (!res.ok) {
               if (!expectError) {
