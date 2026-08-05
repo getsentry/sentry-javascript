@@ -56,26 +56,28 @@ describe('instrumentDurableObjectWithSentry', () => {
       .fn()
       .mockReturnValueOnce({
         orgId: 1,
-        instrumentPrototypeMethods: true,
+        enableRpcTracePropagation: true,
       })
       .mockReturnValueOnce({
         orgId: 2,
-        instrumentPrototypeMethods: true,
+        enableRpcTracePropagation: true,
       });
     const testClass = class {
       method() {}
     };
+    // RPC spans are only created when Sentry RPC metadata is present on the call
+    const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
     const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
     ]);
-    instance1.method();
+    instance1.method(rpcMeta);
 
     const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
     ]);
-    instance2.method();
+    instance2.method(rpcMeta);
 
     expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
@@ -113,28 +115,6 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
-  it('does not create RPC spans without metadata when both RPC options are set', () => {
-    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-
-    const testClass = class {
-      rpcMethod() {
-        return 'result';
-      }
-    };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({
-        enableRpcTracePropagation: true,
-        instrumentPrototypeMethods: true,
-      }),
-      testClass as any,
-    );
-    const obj = Reflect.construct(instrumented, []);
-
-    expect(obj.rpcMethod()).toBe('result');
-    expect(startSpanSpy).not.toHaveBeenCalled();
-  });
-
   it('does not create RPC spans without metadata when enableRpcTracePropagation is true', () => {
     const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
@@ -147,7 +127,6 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instrumented = instrumentDurableObjectWithSentry(
       vi.fn().mockReturnValue({
         enableRpcTracePropagation: true,
-        instrumentPrototypeMethods: false,
       }),
       testClass as any,
     );
@@ -155,25 +134,6 @@ describe('instrumentDurableObjectWithSentry', () => {
 
     expect(obj.rpcMethod()).toBe('result');
     expect(startSpanSpy).not.toHaveBeenCalled();
-  });
-
-  it('creates RPC spans without metadata when using deprecated instrumentPrototypeMethods', () => {
-    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan').mockImplementation((_, callback) => callback({} as any));
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-
-    const testClass = class {
-      rpcMethod() {
-        return 'result';
-      }
-    };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
-      testClass as any,
-    );
-    const obj = Reflect.construct(instrumented, []);
-
-    expect(obj.rpcMethod()).toBe('result');
-    expect(startSpanSpy).toHaveBeenCalled();
   });
 
   it('Binds prototype methods to original object when enableRpcTracePropagation is true', () => {
@@ -293,7 +253,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(getInstrumented(obj.alarm)).toBeTruthy();
   });
 
-  it('Does not instrument RPC methods when instrumentPrototypeMethods is not set', () => {
+  it('Does not instrument RPC methods when enableRpcTracePropagation is not set', () => {
     const testClass = class {
       rpcMethod() {
         return 'result';
@@ -307,123 +267,28 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('result');
   });
 
-  describe('instrumentPrototypeMethods option', () => {
-    it('instruments all RPC methods when option is true', () => {
-      const testClass = class {
-        rpcMethodOne() {
-          return 'one';
-        }
-        rpcMethodTwo() {
-          return 'two';
-        }
-      };
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
-        testClass as any,
-      );
-      const obj = Reflect.construct(instrumented, []);
+  it('does not wrap Object.prototype methods as RPC methods', () => {
+    const testClass = class {
+      rpcMethod() {
+        return 'rpc-result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
 
-      // RPC methods (prototype methods) are wrapped via Proxy - verify they are callable and cached
-      expect(typeof obj.rpcMethodOne).toBe('function');
-      expect(typeof obj.rpcMethodTwo).toBe('function');
-      expect(obj.rpcMethodOne).toBe(obj.rpcMethodOne); // Cached wrapper
-      expect(obj.rpcMethodTwo).toBe(obj.rpcMethodTwo); // Cached wrapper
-      expect(obj.rpcMethodOne()).toBe('one');
-      expect(obj.rpcMethodTwo()).toBe('two');
-    });
+    // Object.prototype methods should NOT be wrapped with Sentry tracing.
+    // They are bound to the original object but still work correctly.
+    expect(obj.toString()).toBe('[object Object]');
+    expect(obj.hasOwnProperty('rpcMethod')).toBe(false); // It's on prototype, not own
+    // valueOf returns the original object, not the proxy
+    expect(obj.valueOf()).not.toBe(obj);
 
-    it('instruments only specified methods when option is array', () => {
-      const testClass = class {
-        methodOne() {
-          return 'one';
-        }
-        methodTwo() {
-          return 'two';
-        }
-        methodThree() {
-          return 'three';
-        }
-      };
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ instrumentPrototypeMethods: ['methodOne', 'methodThree'] }),
-        testClass as any,
-      );
-      const obj = Reflect.construct(instrumented, []);
-
-      // methodOne and methodThree should be wrapped — i.e. they should NOT be
-      // identical to the underlying prototype method.
-      expect(obj.methodOne).not.toBe(testClass.prototype.methodOne);
-      expect(obj.methodThree).not.toBe(testClass.prototype.methodThree);
-
-      // methodTwo is not in the allow-list — it's bound but not wrapped with Sentry tracing.
-      // All methods should still be callable and behave correctly.
-      expect(obj.methodOne()).toBe('one');
-      expect(obj.methodTwo()).toBe('two');
-      expect(obj.methodThree()).toBe('three');
-    });
-
-    it('does not instrument any RPC methods when option is empty array', () => {
-      const testClass = class {
-        methodOne() {
-          return 'one';
-        }
-        methodTwo() {
-          return 'two';
-        }
-      };
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ instrumentPrototypeMethods: [] }),
-        testClass as any,
-      );
-      const obj = Reflect.construct(instrumented, []);
-
-      // Empty array means no methods are allowed → none should be wrapped.
-      expect(obj.methodOne).toBe(testClass.prototype.methodOne);
-      expect(obj.methodTwo).toBe(testClass.prototype.methodTwo);
-      expect(obj.methodOne()).toBe('one');
-      expect(obj.methodTwo()).toBe('two');
-    });
-
-    it('does not instrument RPC methods when option is false', () => {
-      const testClass = class {
-        rpcMethod() {
-          return 'result';
-        }
-      };
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ instrumentPrototypeMethods: false }),
-        testClass as any,
-      );
-      const obj = Reflect.construct(instrumented, []);
-
-      // RPC method should not be wrapped
-      expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
-      expect(obj.rpcMethod()).toBe('result');
-    });
-
-    it('does not wrap Object.prototype methods as RPC methods', () => {
-      const testClass = class {
-        rpcMethod() {
-          return 'rpc-result';
-        }
-      };
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-        testClass as any,
-      );
-      const obj = Reflect.construct(instrumented, []);
-
-      // Object.prototype methods should NOT be wrapped with Sentry tracing.
-      // They are bound to the original object but still work correctly.
-      expect(obj.toString()).toBe('[object Object]');
-      expect(obj.hasOwnProperty('rpcMethod')).toBe(false); // It's on prototype, not own
-      // valueOf returns the original object, not the proxy
-      expect(obj.valueOf()).not.toBe(obj);
-
-      // Meanwhile, actual RPC methods SHOULD be wrapped (not equal to prototype method)
-      expect(obj.rpcMethod).not.toBe(testClass.prototype.rpcMethod);
-      expect(obj.rpcMethod()).toBe('rpc-result');
-    });
+    // Meanwhile, actual RPC methods SHOULD be wrapped (not equal to prototype method)
+    expect(obj.rpcMethod).not.toBe(testClass.prototype.rpcMethod);
+    expect(obj.rpcMethod()).toBe('rpc-result');
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {

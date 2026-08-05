@@ -265,16 +265,22 @@ export function createRunner(...paths: string[]) {
           return;
         }
 
-        // Check per-request waiters first (FIFO order)
+        // Resolve per-request waiters first, matching in any order so a request
+        // expecting multiple envelopes isn't sensitive to their arrival order.
         if (envelopeWaiters.length > 0) {
-          const waiter = envelopeWaiters.shift()!;
-          try {
-            assertEnvelopeMatches(waiter.expected, envelope);
-            waiter.resolve();
-          } catch (e) {
-            waiter.reject(e);
+          const waiterIndex = envelopeWaiters.findIndex(waiter => {
+            try {
+              assertEnvelopeMatches(waiter.expected, envelope);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+
+          if (waiterIndex >= 0) {
+            envelopeWaiters.splice(waiterIndex, 1)[0]!.resolve();
+            return;
           }
-          return;
         }
 
         try {
