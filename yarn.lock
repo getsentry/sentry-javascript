@@ -7499,10 +7499,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.16.0.tgz#3b58d15714cf44dca1518496c00749eec5525009"
   integrity sha512-fO9PLmHdVURcSPUpWCItWAtgKiMwGdJHbovoSEyLplX5sxs2ugvI4CBPTrkkgqhObnZOD0CnWBKDzSVQYBKEyQ==
 
-"@sentry/node-cpu-profiler@^2.4.2":
-  version "2.4.2"
-  resolved "https://registry.yarnpkg.com/@sentry/node-cpu-profiler/-/node-cpu-profiler-2.4.2.tgz#d0ba01370545297d015df1497daf7f81e27f2ab5"
-  integrity sha512-E6q+eE/sTpiofzW9jFKAx6ZQaDAoZDnsaLA/nRlkiK+K2X4k+hSyKhhLfw8PJlejB8edk7uxJF57r5JoRnyaPA==
+"@sentry/node-cpu-profiler@^2.4.3":
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/@sentry/node-cpu-profiler/-/node-cpu-profiler-2.4.3.tgz#1119aa07fb34672435fea3e386ade7dfe73fdf34"
+  integrity sha512-18g/yJKRUk4PNcnZYEPyT2nS+9UoFcTRrIrct1DbpfI7k//RtQ+8araZrR0WH5MT8xoiLCm67GEX/RcxDsI0iQ==
   dependencies:
     detect-libc "^2.0.3"
     node-abi "^3.73.0"
