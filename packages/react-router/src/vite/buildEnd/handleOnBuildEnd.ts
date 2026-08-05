@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
-import SentryCli from '@sentry/cli';
+import { createSentrySDK } from 'sentry';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
@@ -26,7 +26,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   const {
     authToken,
-    headers,
     org,
     project,
     release,
@@ -46,18 +45,17 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     },
   };
 
-  const cliInstance = new SentryCli(null, {
-    authToken,
-    headers,
+  const sentry = createSentrySDK({
+    token: authToken,
     org,
-    project,
     url: sentryUrl,
+    project,
   });
 
   // check if release should be created
   if (release?.name) {
     try {
-      await cliInstance.releases.new(release.name);
+      await sentry.release.create({ orgVersion: release.name });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);
@@ -72,10 +70,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
     // inject debugIds
     try {
-      await cliInstance.execute(
-        ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
-        debug ? 'rejectOnError' : false,
-      );
+      await sentry.sourcemap.inject({ directory: reactRouterConfig.buildDirectory });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
@@ -84,13 +79,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     if (!uploadDisabled) {
       // upload sourcemaps
       try {
-        await cliInstance.releases.uploadSourceMaps(release?.name || 'undefined', {
-          include: [
-            {
-              paths: [reactRouterConfig.buildDirectory],
-            },
-          ],
-          live: 'rejectOnError',
+        await sentry.sourcemap.upload({
+          directory: reactRouterConfig.buildDirectory,
+          release: release?.name || 'undefined',
         });
       } catch (error) {
         // eslint-disable-next-line no-console

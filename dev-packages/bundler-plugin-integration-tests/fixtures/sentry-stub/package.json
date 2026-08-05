@@ -1,0 +1,18 @@
+{
+  "name": "sentry",
+  "version": "0.39.0",
+  "private": true,
+  "description": "Recording stub of the Sentry CLI used by the bundler-plugin integration tests. Records every SDK call to sentry-cli-mock.json instead of talking to Sentry.",
+  "main": "./index.cjs",
+  "types": "./index.d.cts",
+  "exports": {
+    ".": {
+      "types": "./index.d.cts",
+      "require": "./index.cjs",
+      "default": "./index.cjs"
+    }
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}

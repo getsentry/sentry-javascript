@@ -111,12 +111,12 @@
   },
   "dependencies": {
     "@babel/core": "^7.18.5",
-    "@sentry/cli": "^2.58.6",
     "@sentry/core": "10.67.0",
     "dotenv": "^17.4.2",
     "find-up": "^5.0.0",
     "glob": "^13.0.6",
     "magic-string": "~0.30.8",
+    "sentry": "^0.43.0",
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
