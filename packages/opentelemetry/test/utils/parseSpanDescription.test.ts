@@ -229,12 +229,30 @@ describe('inferSpanData', () => {
       },
     ],
     [
-      'works with faas trigger',
+      'works with http faas trigger',
+      {
+        [FAAS_TRIGGER]: 'http',
+      },
+      {
+        op: 'http.server',
+      },
+    ],
+    [
+      'works with pubsub faas trigger',
+      {
+        [FAAS_TRIGGER]: 'pubsub',
+      },
+      {
+        op: 'queue.process',
+      },
+    ],
+    [
+      'falls back to function op for unknown faas trigger',
       {
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       {
-        op: 'test-faas-trigger',
+        op: 'function',
       },
     ],
     [
@@ -244,7 +262,7 @@ describe('inferSpanData', () => {
         [FAAS_TRIGGER]: 'test-faas-trigger',
       },
       {
-        op: 'test-faas-trigger',
+        op: 'function',
       },
     ],
     [
@@ -255,7 +273,7 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       {
-        op: 'test-faas-trigger',
+        op: 'function',
       },
     ],
     [
@@ -266,7 +284,7 @@ describe('inferSpanData', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       {
-        op: 'test-faas-trigger',
+        op: 'function',
       },
     ],
   ] as const)('%s', (_, attributes, expected) => {
