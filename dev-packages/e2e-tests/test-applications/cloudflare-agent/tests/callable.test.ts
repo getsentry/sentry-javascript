@@ -67,9 +67,9 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
   });
 
   // greet() touches 6 storage keys: 2 user ops + 3 framework-internal keys (cf_, __ps_, /) that
-  // must be filtered + 1 allowlisted cf_ key. Spans carry no key attribute, so filtering can only
-  // be verified by count — exactly these 3 storage spans (in execution order) should survive, and
-  // any framework-internal span leaking through shows up as an extra entry here.
+  // must be filtered + 1 allowlisted cf_ key. Exactly these 3 storage spans (in execution order)
+  // should survive — any framework-internal span leaking through shows up as an extra entry here.
+  // Each span carries the touched keys (db.query.text) and the calling method (the @callable() greet).
   const storageTransaction = await storageTransactionPromise;
 
   const storageSpans = (storageTransaction.spans ?? []).filter(
@@ -83,6 +83,8 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
         'db.system.name': 'cloudflare.durable_object.storage',
         'sentry.op': 'db',
         'sentry.origin': 'auto.db.cloudflare.durable_object',
+        'code.function.name': 'greet',
+        'db.query.text': 'put test',
       },
       description: 'durable_object_storage_put',
       op: 'db',
@@ -99,6 +101,8 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
         'db.system.name': 'cloudflare.durable_object.storage',
         'sentry.op': 'db',
         'sentry.origin': 'auto.db.cloudflare.durable_object',
+        'code.function.name': 'greet',
+        'db.query.text': 'get test',
       },
       description: 'durable_object_storage_get',
       op: 'db',
@@ -115,6 +119,8 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
         'db.system.name': 'cloudflare.durable_object.storage',
         'sentry.op': 'db',
         'sentry.origin': 'auto.db.cloudflare.durable_object',
+        'code.function.name': 'greet',
+        'db.query.text': 'get cf_user_key',
       },
       description: 'durable_object_storage_get',
       op: 'db',

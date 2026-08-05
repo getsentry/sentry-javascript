@@ -36,6 +36,7 @@ it('instruments sync KV operations on Durable Object storage', async ({ signal }
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'put',
+              'db.query.text': 'put test-key',
             }),
           }),
           expect.objectContaining({
@@ -45,6 +46,7 @@ it('instruments sync KV operations on Durable Object storage', async ({ signal }
             data: expect.objectContaining({
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'get',
+              'db.query.text': 'get test-key',
             }),
           }),
           expect.objectContaining({
@@ -63,10 +65,17 @@ it('instruments sync KV operations on Durable Object storage', async ({ signal }
             data: expect.objectContaining({
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'delete',
+              'db.query.text': 'delete test-key',
             }),
           }),
         ]),
       );
+
+      // The calling context is the Durable Object's fetch() handler (an http.server span), which
+      // declares no function name — spans must not be attributed to the request route.
+      for (const span of spans) {
+        expect(span.data).not.toHaveProperty('code.function.name');
+      }
     })
     .expect(flushMarkerMatcher)
     .start(signal);

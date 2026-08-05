@@ -69,6 +69,11 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
           }),
         ]),
       );
+      // The calling context is the Durable Object's fetch() handler (an http.server span), which
+      // declares no function name — spans must not be attributed to the request route.
+      for (const span of sqlSpans) {
+        expect(span.data).not.toHaveProperty('code.function.name');
+      }
     })
     .expect(flushMarkerMatcher)
     .unordered()

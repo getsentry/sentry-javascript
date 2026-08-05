@@ -1,7 +1,9 @@
 import type { DurableObjectStorage, SyncKvStorage, SqlStorage } from '@cloudflare/workers-types';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import { getClient, isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
-import { getStorageKeys, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
+import { getCallingMethodName } from '../utils/callingMethod';
+import { getStorageKeys, getStorageKeySpanAttributes, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
 import { storeSpanContext } from '../utils/traceLinks';
 import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
 import { instrumentSqlStorage } from './instrumentSqlStorage';
@@ -67,6 +69,10 @@ export function instrumentDurableObjectStorage(
           return (original as (...a: unknown[]) => unknown).apply(target, args);
         }
 
+        // The enclosing span is the operation that triggered this storage call (e.g. the Durable
+        // Object method span) — surface its name so the span shows who triggered it.
+        const callingMethod = getCallingMethodName();
+
         return startSpan(
           {
             // Use underscore naming to match Cloudflare's native instrumentation (e.g., "durable_object_storage_get")
@@ -76,6 +82,8 @@ export function instrumentDurableObjectStorage(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
               'db.system.name': 'cloudflare.durable_object.storage',
               'db.operation.name': methodName,
+              [CODE_FUNCTION_NAME]: callingMethod,
+              ...getStorageKeySpanAttributes(methodName, keys),
             },
           },
           () => {

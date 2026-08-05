@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getStorageKeys, targetsCloudflareInternalKey } from '../../src/utils/internalStorageKey';
+import {
+  getStorageKeys,
+  getStorageKeySpanAttributes,
+  targetsCloudflareInternalKey,
+} from '../../src/utils/internalStorageKey';
 
 describe('targetsCloudflareInternalKey', () => {
   it('matches cf_-prefixed keys', () => {
@@ -88,5 +92,39 @@ describe('getStorageKeys', () => {
 
   it('returns undefined for unknown methods', () => {
     expect(getStorageKeys('deleteAll', [])).toBeUndefined();
+  });
+});
+
+describe('getStorageKeySpanAttributes', () => {
+  it('builds a redis-style statement from the method and keys', () => {
+    expect(getStorageKeySpanAttributes('get', ['myKey'])).toEqual({
+      'db.query.text': 'get myKey',
+    });
+  });
+
+  it('joins multiple keys into the statement and sets the batch size', () => {
+    expect(getStorageKeySpanAttributes('get', ['key1', 'key2', 'key3'])).toEqual({
+      'db.query.text': 'get key1 key2 key3',
+      'db.operation.batch.size': 3,
+    });
+  });
+
+  it('omits the batch size for single-key operations', () => {
+    expect(getStorageKeySpanAttributes('put', ['myKey'])).toEqual({
+      'db.query.text': 'put myKey',
+    });
+  });
+
+  it('caps the listed keys and summarizes the rest, keeping the full batch size', () => {
+    const keys = Array.from({ length: 128 }, (_, i) => `key${i}`);
+    expect(getStorageKeySpanAttributes('get', keys)).toEqual({
+      'db.query.text': 'get key0 key1 key2 key3 key4 key5 key6 key7 key8 key9 [118 more keys]',
+      'db.operation.batch.size': 128,
+    });
+  });
+
+  it('returns no attributes for undefined or empty keys', () => {
+    expect(getStorageKeySpanAttributes('list', undefined)).toEqual({});
+    expect(getStorageKeySpanAttributes('get', [])).toEqual({});
   });
 });

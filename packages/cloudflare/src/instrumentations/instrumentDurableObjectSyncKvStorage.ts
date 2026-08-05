@@ -1,5 +1,8 @@
 import type { SyncKvStorage } from '@cloudflare/workers-types';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { getCallingMethodName } from '../utils/callingMethod';
+import { getStorageKeys, getStorageKeySpanAttributes } from '../utils/internalStorageKey';
 
 const SYNC_KV_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list'] as const;
 
@@ -21,6 +24,10 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
       }
 
       return function (this: unknown, ...args: unknown[]) {
+        // The enclosing span is the operation that triggered this storage call (e.g. the Durable
+        // Object method span) — surface its name so the span shows who triggered it.
+        const callingMethod = getCallingMethodName();
+
         return startSpan(
           {
             name: `durable_object_storage_kv_${methodName}`,
@@ -31,6 +38,8 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
               // https://github.com/cloudflare/workerd/blob/6b8b11787e2b2a800ab0edd0690bfab3857b0529/src/workerd/api/sync-kv.c%2B%2B#L19
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': methodName,
+              [CODE_FUNCTION_NAME]: callingMethod,
+              ...getStorageKeySpanAttributes(methodName, getStorageKeys(methodName, args)),
             },
           },
           () => {

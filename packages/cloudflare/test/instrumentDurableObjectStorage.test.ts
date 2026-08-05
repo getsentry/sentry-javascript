@@ -33,6 +33,7 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
+            'db.query.text': 'get myKey',
           },
         },
         expect.any(Function),
@@ -54,6 +55,8 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
+            'db.query.text': 'get key1 key2 key3',
+            'db.operation.batch.size': 3,
           },
         },
         expect.any(Function),
@@ -77,6 +80,7 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
+            'db.query.text': 'put myKey',
           },
         },
         expect.any(Function),
@@ -98,6 +102,8 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
+            'db.query.text': 'put key1 key2',
+            'db.operation.batch.size': 2,
           },
         },
         expect.any(Function),
@@ -121,6 +127,7 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
+            'db.query.text': 'delete myKey',
           },
         },
         expect.any(Function),
@@ -142,6 +149,8 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
+            'db.query.text': 'delete key1 key2',
+            'db.operation.batch.size': 2,
           },
         },
         expect.any(Function),
@@ -169,6 +178,79 @@ describe('instrumentDurableObjectStorage', () => {
         },
         expect.any(Function),
       );
+    });
+
+    it('instruments list with a prefix', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.list({ prefix: 'users_' });
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_list',
+          op: 'db',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
+            'db.operation.name': 'list',
+            'db.query.text': 'list users_',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('calling method attribution', () => {
+    it('adds code.function.name from the enclosing active span', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({} as any);
+      vi.spyOn(sentryCore, 'spanToJSON').mockReturnValue({ data: { 'code.function.name': 'greet' } } as any);
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.get('myKey');
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_get',
+          op: 'db',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
+            'db.operation.name': 'get',
+            'code.function.name': 'greet',
+            'db.query.text': 'get myKey',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('omits code.function.name when there is no active span', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.get('myKey');
+
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes as Record<string, unknown>;
+      expect(attributes).toHaveProperty('code.function.name', undefined);
+    });
+
+    it('omits code.function.name when the enclosing span declares no function name (DO fetch handler)', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({} as any);
+      vi.spyOn(sentryCore, 'spanToJSON').mockReturnValue({ description: 'GET /do/path', op: 'http.server' } as any);
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.get('myKey');
+
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes as Record<string, unknown>;
+      expect(attributes).toHaveProperty('code.function.name', undefined);
     });
   });
 
@@ -439,6 +521,7 @@ describe('instrumentDurableObjectStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
+            'db.query.text': 'get myKey',
           },
         },
         expect.any(Function),

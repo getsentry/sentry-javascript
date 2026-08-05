@@ -1,3 +1,4 @@
+import { DB_OPERATION_BATCH_SIZE, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
 import { stringMatchesSomePattern } from '@sentry/core';
 
 /**
@@ -75,4 +76,33 @@ export function getStorageKeys(methodName: string, args: unknown[]): string[] | 
   }
 
   return undefined;
+}
+
+// Batch calls (get/delete with keys[], put with an entries object) accept up to ~128 keys; the
+// statement caps the listed keys and summarizes the rest, mirroring the redis statement
+// serializer's `[N other arguments]` suffix.
+const MAX_KEYS_IN_STATEMENT = 10;
+
+/**
+ * Builds the span attributes describing which keys a Durable Object storage call targets,
+ * mirroring the redis instrumentation's `<command> <args>` statement format:
+ * - `db.query.text` — the method followed by the affected keys (e.g. `get myKey`), capped at
+ *   {@link MAX_KEYS_IN_STATEMENT} keys with a `[N more keys]` suffix
+ * - `db.operation.batch.size` — only for actual batch operations targeting multiple keys
+ *
+ * Returns no attributes when the keys can't be determined from the arguments (e.g. `list()`
+ * without a prefix) — mirroring how such calls are treated for internal-key filtering.
+ */
+export function getStorageKeySpanAttributes(methodName: string, keys: string[] | undefined): Record<string, unknown> {
+  if (!keys || keys.length === 0) {
+    return {};
+  }
+
+  const listedKeys = keys.slice(0, MAX_KEYS_IN_STATEMENT);
+  const suffix = keys.length > MAX_KEYS_IN_STATEMENT ? ` [${keys.length - MAX_KEYS_IN_STATEMENT} more keys]` : '';
+
+  return {
+    [DB_QUERY_TEXT]: `${methodName} ${listedKeys.join(' ')}${suffix}`,
+    [DB_OPERATION_BATCH_SIZE]: keys.length > 1 ? keys.length : undefined,
+  };
 }

@@ -8,6 +8,33 @@ describe('instrumentSqlStorage', () => {
     vi.restoreAllMocks();
   });
 
+  it('adds code.function.name from the enclosing active span', () => {
+    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({} as any);
+    vi.spyOn(sentryCore, 'spanToJSON').mockReturnValue({ data: { 'code.function.name': 'greet' } } as any);
+    const mockSql = createMockSqlStorage();
+    const instrumented = instrumentSqlStorage(mockSql);
+
+    instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        op: 'db.query',
+        name: 'SELECT users',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'exec',
+          'db.query.text': 'SELECT * FROM users WHERE id = ?',
+          'db.query.summary': 'SELECT users',
+          'cloudflare.durable_object.query.bindings': 1,
+          'code.function.name': 'greet',
+        },
+      },
+      expect.any(Function),
+    );
+  });
+
   it('instruments exec with summary as span name and sanitized query as db.query.text', () => {
     const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
     const mockSql = createMockSqlStorage();

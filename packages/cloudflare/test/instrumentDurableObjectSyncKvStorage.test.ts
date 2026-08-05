@@ -24,6 +24,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
+            'db.query.text': 'get myKey',
           },
         },
         expect.any(Function),
@@ -67,6 +68,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'put',
+            'db.query.text': 'put myKey',
           },
         },
         expect.any(Function),
@@ -99,6 +101,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'delete',
+            'db.query.text': 'delete myKey',
           },
         },
         expect.any(Function),
@@ -132,6 +135,28 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'list',
+          },
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('instruments list with a prefix', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const mockKv = createMockSyncKv();
+      const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
+
+      instrumented.list({ prefix: 'user:' });
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_kv_list',
+          op: 'db',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare-durable-object-sql',
+            'db.operation.name': 'list',
+            'db.query.text': 'list user:',
           },
         },
         expect.any(Function),
@@ -183,6 +208,33 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       expect(() => instrumented.get('myKey')).toThrow('Storage error');
+    });
+  });
+
+  describe('calling method attribution', () => {
+    it('adds code.function.name from the enclosing active span', () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({} as any);
+      vi.spyOn(sentryCore, 'spanToJSON').mockReturnValue({ data: { 'code.function.name': 'greet' } } as any);
+      const mockKv = createMockSyncKv();
+      const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
+
+      instrumented.get('myKey');
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_kv_get',
+          op: 'db',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare-durable-object-sql',
+            'db.operation.name': 'get',
+            'code.function.name': 'greet',
+            'db.query.text': 'get myKey',
+          },
+        },
+        expect.any(Function),
+      );
     });
   });
 });

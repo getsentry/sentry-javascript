@@ -1,4 +1,5 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import type { SerializedTraceData } from '@sentry/core';
 import {
   isObjectLike,
@@ -187,12 +188,11 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               }
             }
 
-            const attributes = wrapperOptions.spanOp
-              ? {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-                }
-              : {};
+            const attributes = {
+              [CODE_FUNCTION_NAME]: methodName,
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+            };
 
             const executeSpan = (): unknown => {
               return startSpan({ name: methodName, attributes }, span => {

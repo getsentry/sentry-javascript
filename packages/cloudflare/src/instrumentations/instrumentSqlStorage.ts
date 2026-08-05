@@ -1,4 +1,5 @@
 import type { SqlStorage } from '@cloudflare/workers-types';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
@@ -7,6 +8,7 @@ import {
   startSpan,
 } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
+import { getCallingMethodName } from '../utils/callingMethod';
 import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 /**
@@ -38,6 +40,10 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
         }
 
+        // The enclosing span is the operation that triggered this query (e.g. the Durable Object
+        // method span) — surface its name so the span shows who triggered it.
+        const callingMethod = getCallingMethodName();
+
         return startSpan(
           {
             op: 'db.query',
@@ -49,6 +55,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
               'db.query.text': sanitizedQuery,
               'db.query.summary': querySummary,
               'cloudflare.durable_object.query.bindings': bindings.length,
+              [CODE_FUNCTION_NAME]: callingMethod,
             },
           },
           () => (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args),
