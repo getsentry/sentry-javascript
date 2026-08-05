@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
-import { instrumentDurableObjectWithSentry } from '../src';
+import { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from '../src';
 import { getInstrumented } from '../src/instrument';
 import { resetSdk } from './testUtils';
 
@@ -139,7 +139,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(startSpanSpy).not.toHaveBeenCalled();
   });
 
-  it('Binds prototype methods to original object when enableRpcTracePropagation is true', () => {
+  it('Invokes prototype methods with the instance as receiver when enableRpcTracePropagation is true', () => {
     const testClass = class {
       method() {
         return this;
@@ -151,10 +151,11 @@ describe('instrumentDurableObjectWithSentry', () => {
     );
     const obj = Reflect.construct(instrumented, []);
 
-    // Method should be callable and return the original object (not the proxy)
+    // The instance is not proxied, so the receiver is the instance itself — this is what keeps
+    // native private fields working (#23040)
     const result = obj.method();
-    expect(result).not.toBe(obj); // result is original object, obj is proxy
-    expect(typeof result.method).toBe('function'); // original object still has method
+    expect(result).toBe(obj);
+    expect(typeof result.method).toBe('function');
 
     // Methods should be cached (same reference on repeated access)
     expect(obj.method).toBe(obj.method);
@@ -271,7 +272,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('rpc');
   });
 
-  it('preserves constructor identity on the proxy', () => {
+  it('preserves constructor identity', () => {
     const testClass = class MyDO {
       rpcMethod() {
         return 'result';
@@ -336,6 +337,9 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'rpc-result';
       }
     };
+    // Capture the original before construction wraps the prototype
+    const originalRpcMethod = testClass.prototype.rpcMethod;
+
     const instrumented = instrumentDurableObjectWithSentry(
       vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
       testClass as any,
@@ -343,15 +347,217 @@ describe('instrumentDurableObjectWithSentry', () => {
     const obj = Reflect.construct(instrumented, []);
 
     // Object.prototype methods should NOT be wrapped with Sentry tracing.
-    // They are bound to the original object but still work correctly.
     expect(obj.toString()).toBe('[object Object]');
     expect(obj.hasOwnProperty('rpcMethod')).toBe(false); // It's on prototype, not own
-    // valueOf returns the original object, not the proxy
-    expect(obj.valueOf()).not.toBe(obj);
+    // The instance is not proxied, so valueOf returns the instance itself
+    expect(obj.valueOf()).toBe(obj);
 
-    // Meanwhile, actual RPC methods SHOULD be wrapped (not equal to prototype method)
-    expect(obj.rpcMethod).not.toBe(testClass.prototype.rpcMethod);
+    // Meanwhile, actual RPC methods SHOULD be wrapped on the prototype
+    expect(obj.rpcMethod).not.toBe(originalRpcMethod);
     expect(obj.rpcMethod()).toBe('rpc-result');
+  });
+
+  // Frameworks that dispatch methods themselves (the `agents` `@callable()` registry, for example)
+  // install their own function during construction and resolve the dispatch through that exact
+  // function instance. Replacing it makes the framework no longer recognize the method, so those
+  // methods must keep the function the framework installed.
+  describe('framework-managed methods', () => {
+    it('does not wrap methods a framework replaced during construction, but wraps the rest', () => {
+      const frameworkDispatch = new WeakSet<object>();
+
+      class FrameworkLike {
+        constructor() {
+          const original = FrameworkLike.prototype.greet;
+
+          if (!frameworkDispatch.has(original)) {
+            const dispatched = function (this: FrameworkLike, name: string): string {
+              return original.call(this, name);
+            };
+            frameworkDispatch.add(dispatched);
+            FrameworkLike.prototype.greet = dispatched;
+          }
+        }
+
+        greet(name: string): string {
+          return `Hello, ${name}!`;
+        }
+
+        fetchData(): string {
+          return 'data';
+        }
+      }
+
+      const originalFetchData = FrameworkLike.prototype.fetchData;
+
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+        FrameworkLike as any,
+      );
+      const obj = Reflect.construct(instrumented, []) as FrameworkLike;
+
+      // Left as the framework installed it, so its identity-keyed dispatch keeps resolving
+      expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
+      expect(obj.greet('World')).toBe('Hello, World!');
+
+      // Every other RPC method is still wrapped on the prototype
+      expect(FrameworkLike.prototype.fetchData).not.toBe(originalFetchData);
+      expect(obj.fetchData()).toBe('data');
+    });
+
+    it('keeps excluding a framework-managed method for instances constructed later', () => {
+      const frameworkDispatch = new WeakSet<object>();
+
+      class FrameworkLike {
+        constructor() {
+          const original = FrameworkLike.prototype.greet;
+
+          // Frameworks typically install their dispatch once, for the first instance
+          if (!frameworkDispatch.has(original)) {
+            const dispatched = function (this: FrameworkLike, name: string): string {
+              return original.call(this, name);
+            };
+            frameworkDispatch.add(dispatched);
+            FrameworkLike.prototype.greet = dispatched;
+          }
+        }
+
+        greet(name: string): string {
+          return `Hello, ${name}!`;
+        }
+      }
+
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+        FrameworkLike as any,
+      );
+
+      Reflect.construct(instrumented, []);
+      const second = Reflect.construct(instrumented, []) as FrameworkLike;
+
+      expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
+      expect(second.greet('World')).toBe('Hello, World!');
+    });
+  });
+
+  // The wrapper replaces a method on a class the user owns, so it has to keep the parts of the
+  // function that are observable from the outside.
+  it('preserves the name and arity of the methods it wraps', () => {
+    const testClass = class {
+      rpcMethod(_a: string, _b: number): string {
+        return 'rpc-result';
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    Reflect.construct(instrumented, []);
+
+    expect(testClass.prototype.rpcMethod.name).toBe('rpcMethod');
+    expect(testClass.prototype.rpcMethod.length).toBe(2);
+  });
+
+  // The runtime rejects these before any property lookup (`isReservedName` in workerd's
+  // `worker-rpc.c++`), so wrapping them would mutate the user's class for no tracing.
+  it('leaves methods the runtime never dispatches over RPC untouched', () => {
+    const testClass = class {
+      connect(): string {
+        return 'connect';
+      }
+      dup(): string {
+        return 'dup';
+      }
+      webSocketClose(): string {
+        return 'closed';
+      }
+      rpcMethod(): string {
+        return 'rpc-result';
+      }
+    };
+
+    const originals = {
+      connect: testClass.prototype.connect,
+      dup: testClass.prototype.dup,
+      webSocketClose: testClass.prototype.webSocketClose,
+      rpcMethod: testClass.prototype.rpcMethod,
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+    Reflect.construct(instrumented, []);
+
+    expect(testClass.prototype.connect).toBe(originals.connect);
+    expect(testClass.prototype.dup).toBe(originals.dup);
+    expect(testClass.prototype.webSocketClose).toBe(originals.webSocketClose);
+
+    // A regular RPC method is still wrapped
+    expect(testClass.prototype.rpcMethod).not.toBe(originals.rpcMethod);
+  });
+
+  // Regression for #23040 — workerd's native RPC dispatch (Durable Object facets, the Agents
+  // SDK bootstrap calling `setName()` via `getAgentByName`/`subAgent`) resolves the method on
+  // the prototype and invokes it with the stored Durable Object instance as the receiver. When
+  // the instrumented constructor returned a Proxy of the instance, native private field access
+  // failed because a Proxy never carries the target's private brand.
+  describe('native private fields', () => {
+    it('invokes prototype RPC methods with the instance as receiver so native private fields work', () => {
+      class PartyServerLike {
+        #name?: string;
+
+        setName(name: string): void {
+          this.#name = name;
+        }
+
+        getName(): string | undefined {
+          return this.#name;
+        }
+      }
+
+      const instrumented = instrumentAgentWithSentry(
+        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+        PartyServerLike as any,
+      );
+      const obj = Reflect.construct(instrumented, []) as PartyServerLike;
+
+      // This is how native RPC invokes the method: resolved on the prototype, called with the
+      // instance as `this` — not fetched through a property access on the instance.
+      const prototypeSetName = Object.getPrototypeOf(obj).setName as PartyServerLike['setName'];
+      expect(() => Reflect.apply(prototypeSetName, obj, ['agent-1'])).not.toThrow();
+      expect(obj.getName()).toBe('agent-1');
+    });
+
+    it('preserves the instance receiver on the traced RPC path so native private fields work', () => {
+      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan').mockImplementation((_, callback) => callback({} as any));
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+      class WithSecret {
+        #secret = 42;
+
+        getSecret(): number {
+          return this.#secret;
+        }
+      }
+
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+        WithSecret as any,
+      );
+      const obj = Reflect.construct(instrumented, []) as WithSecret;
+
+      const rpcMeta = {
+        __sentry_rpc_meta__: {
+          'sentry-trace': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1',
+          baggage: '',
+        },
+      };
+
+      const prototypeGetSecret = Object.getPrototypeOf(obj).getSecret as WithSecret['getSecret'];
+      expect(Reflect.apply(prototypeGetSecret, obj, [rpcMeta])).toBe(42);
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
