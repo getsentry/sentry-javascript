@@ -177,10 +177,10 @@ function _init(
   // emits spans via core `startSpan`; there is just no OTel provider or propagator behind them.
   let asyncLocalStorageLookup: ReturnType<typeof setOpenTelemetryContextAsyncContextStrategy> | undefined;
   if (clientOptions.skipOpenTelemetrySetup) {
-    // The ALS store already is the `{ scope, isolationScope }` object, so no key path is needed to
-    // reach it (unlike the OTel context strategy, where it is nested under the OTel context).
+    // The ALS store already is the `{ scope, isolationScope }` object, so no `stateLookup` key path is
+    // needed to reach it (unlike the OTel context strategy, where it is nested under the OTel context).
     const asyncLocalStorage = setAsyncLocalStorageAsyncContextStrategy();
-    asyncLocalStorageLookup = { asyncLocalStorage, stateLookup: [] };
+    asyncLocalStorageLookup = { asyncLocalStorage };
   } else {
     asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
   }

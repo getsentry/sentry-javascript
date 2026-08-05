@@ -32,10 +32,10 @@ export type AsyncLocalStorageLookup = {
   asyncLocalStorage: AsyncLocalStorage<unknown>;
   /**
    * Key path traversed through the store to reach the `{ scope, isolationScope }` object, for native
-   * threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Empty when the
-   * store already is that object.
+   * threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted when the
+   * store already is that object (e.g. the pure AsyncLocalStorage strategy).
    */
-  stateLookup: Array<string | symbol>;
+  stateLookup?: Array<string | symbol>;
 };
 type ListenerFn = (...args: unknown[]) => unknown;
 
