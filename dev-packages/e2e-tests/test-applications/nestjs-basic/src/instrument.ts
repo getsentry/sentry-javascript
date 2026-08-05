@@ -10,4 +10,7 @@ Sentry.init({
     // We expect the app to send a lot of events in a short time
     bufferSize: 1000,
   },
+  // Opt into the Sentry OpenTelemetry tracer provider in the "(tracer provider)" e2e variant.
+  // Leaving it `undefined` otherwise keeps the SDK's default (no provider).
+  skipOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? false : undefined,
 });

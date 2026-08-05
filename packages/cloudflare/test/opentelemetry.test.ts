@@ -48,6 +48,7 @@ describe('opentelemetry compatibility', () => {
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
+      skipOpenTelemetrySetup: false,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -109,6 +110,7 @@ describe('opentelemetry compatibility', () => {
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
+      skipOpenTelemetrySetup: false,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -153,6 +155,7 @@ describe('opentelemetry compatibility', () => {
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
+      skipOpenTelemetrySetup: false,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -181,6 +184,7 @@ describe('opentelemetry compatibility', () => {
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
+      skipOpenTelemetrySetup: false,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
