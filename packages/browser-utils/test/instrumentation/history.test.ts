@@ -1,7 +1,7 @@
 import * as instrumentHandlersModule from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/types';
-import { instrumentHistory } from './../../src/instrument/history';
+import { instrumentHistory } from './../../src/instrumentation/history';
 
 describe('instrumentHistory', () => {
   const originalHistory = WINDOW.history;

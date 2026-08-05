@@ -1,16 +1,16 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
-import * as inpModule from '../../src/metrics/inp';
-import * as instrument from '../../src/metrics/instrument';
-import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
+import * as inpModule from '../../src/web-vitals/inp';
+import * as instrument from '../../src/instrumentation/performanceObserver';
+import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
 import {
   _emitWebVitalSpan,
   _sendClsSpan,
   _sendInpSpan,
   _sendLcpSpan,
   trackInpAsSpan,
-} from '../../src/metrics/webVitalSpans';
+} from '../../src/web-vitals/spans';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');

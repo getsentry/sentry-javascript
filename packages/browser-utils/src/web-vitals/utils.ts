@@ -1,5 +1,7 @@
 /*
- * Copyright 2020 Google LLC
+ * Portions of this file are derived from Google's web-vitals library.
+ *
+ * Copyright 2020-2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +16,67 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
-import { getActivationStart } from './getActivationStart';
-import { addPageListener, removePageListener } from './globalListeners';
+import { WINDOW } from '../types';
+
+/**
+ * web-vitals 5.1.0 switched listeners to be added on the window rather than the document.
+ * Instead of having to check for window/document every time we add a listener, we can use this function.
+ */
+export function addPageListener(type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) {
+  if (WINDOW.document) {
+    WINDOW.addEventListener(type, listener, options);
+  }
+}
+
+/**
+ * web-vitals 5.1.0 switched listeners to be removed from the window rather than the document.
+ * Instead of having to check for window/document every time we remove a listener, we can use this function.
+ */
+export function removePageListener(type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) {
+  if (WINDOW.document) {
+    WINDOW.removeEventListener(type, listener, options);
+  }
+}
+
+// sentry-specific change:
+// add optional param to not check for responseStart (see comment below)
+export const getNavigationEntry = (checkResponseStart = true): PerformanceNavigationTiming | void => {
+  const navigationEntry = WINDOW.performance?.getEntriesByType?.('navigation')[0];
+  // Check to ensure the `responseStart` property is present and valid.
+  // In some cases a zero value is reported by the browser (for
+  // privacy/security reasons), and in other cases (bugs) the value is
+  // negative or is larger than the current page time. Ignore these cases:
+  // - https://github.com/GoogleChrome/web-vitals/issues/137
+  // - https://github.com/GoogleChrome/web-vitals/issues/162
+  // - https://github.com/GoogleChrome/web-vitals/issues/275
+  if (
+    // sentry-specific change:
+    // We don't want to check for responseStart for our own use of `getNavigationEntry`
+    !checkResponseStart ||
+    (navigationEntry && navigationEntry.responseStart > 0 && navigationEntry.responseStart < performance.now())
+  ) {
+    return navigationEntry;
+  }
+};
+
+export const getActivationStart = (): number => {
+  const navEntry = getNavigationEntry();
+  return navEntry?.activationStart ?? 0;
+};
+
+export interface OnHiddenCallback {
+  (event: Event): void;
+}
+
+export const onHidden = (cb: OnHiddenCallback) => {
+  const onHiddenCallback = (event: Event) => {
+    if (WINDOW.document?.visibilityState === 'hidden') {
+      cb(event);
+    }
+  };
+
+  addPageListener('visibilitychange', onHiddenCallback, { capture: true });
+};
 
 let firstHiddenTime = -1;
 const onHiddenFunctions: Set<() => void> = new Set();
@@ -95,4 +155,34 @@ export const getVisibilityWatcher = () => {
       onHiddenFunctions.add(cb);
     },
   };
+};
+
+/**
+ * Runs the passed callback during the next idle period, or immediately
+ * if the browser's visibility state is (or becomes) hidden.
+ */
+export const whenIdleOrHidden = (cb: () => void) => {
+  const rIC = WINDOW.requestIdleCallback || WINDOW.setTimeout;
+
+  // If the document is hidden, run the callback immediately, otherwise
+  // race an idle callback with the next `visibilitychange` event.
+  if (WINDOW.document?.visibilityState === 'hidden') {
+    cb();
+  } else {
+    // Ensure the callback only runs once, whichever of the two racers wins.
+    let called = false;
+    const runOnce = () => {
+      if (!called) {
+        cb();
+        called = true;
+      }
+    };
+    addPageListener('visibilitychange', runOnce, { once: true, capture: true });
+    rIC(() => {
+      runOnce();
+      // Remove the above event listener since no longer required.
+      // See: https://github.com/GoogleChrome/web-vitals/issues/622
+      removePageListener('visibilitychange', runOnce, { capture: true });
+    });
+  }
 };

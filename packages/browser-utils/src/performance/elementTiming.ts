@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/core';
 import { browserPerformanceTimeOrigin, defineIntegration, metrics } from '@sentry/core';
-import { addPerformanceInstrumentationHandler } from './instrument';
+import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
 import { getBrowserPerformanceAPI } from './utils';
 
 // ElementTiming interface based on the W3C spec

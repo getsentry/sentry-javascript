@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidLcpMetric, MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
+import { isValidLcpMetric, MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
 
 describe('isValidLcpMetric', () => {
   it('returns true for plausible lcp values', () => {
