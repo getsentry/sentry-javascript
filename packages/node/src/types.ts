@@ -16,9 +16,9 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
    *
    * When `false`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
    * global OpenTelemetry tracer provider, so spans created through `@opentelemetry/api` become Sentry
-   * spans. This is the default for the Next.js and SvelteKit SDKs. If you run your own tracer provider
-   * (e.g. a `NodeTracerProvider` feeding the `SentrySpanProcessor`), keep this `true` so the SDK does
-   * not register a competing provider.
+   * spans. This is the default for the Next.js and SvelteKit SDKs. If you run your own tracer provider,
+   * keep this `true` so the SDK does not register a competing provider; note the SDK no longer feeds
+   * spans into a user-owned provider, so those spans stay in your OpenTelemetry pipeline.
    *
    * @default true
    */

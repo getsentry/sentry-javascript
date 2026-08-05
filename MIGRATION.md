@@ -92,7 +92,7 @@ Sentry.init({
 });
 ```
 
-Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider (e.g. a `NodeTracerProvider` feeding the `SentrySpanProcessor`), keep `skipOpenTelemetrySetup: true` so Sentry does not try to register a competing provider.
+Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider, keep `skipOpenTelemetrySetup: true` so Sentry does not register a competing provider. The SDK no longer ships a `SentrySpanProcessor` or other components to route your OpenTelemetry spans into Sentry, so spans from your own provider stay in your OpenTelemetry pipeline and are not sent to Sentry.
 
 In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
 
