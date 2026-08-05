@@ -48,7 +48,7 @@ Deno.test('langchain instrumentation: orchestrion @langchain/openai:embedQuery c
   const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.embeddings');
   assertExists(aiSpan, `expected a gen_ai.embeddings child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(aiSpan!.description, 'embeddings text-embedding-3-small');
-  assertEquals(aiSpan!.data?.['gen_ai.system'], 'openai');
+  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'openai');
   assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'embeddings');
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'text-embedding-3-small');
   assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.langchain');

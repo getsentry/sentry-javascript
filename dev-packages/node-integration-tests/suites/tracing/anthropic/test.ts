@@ -2,6 +2,7 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -12,7 +13,6 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -177,7 +177,7 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
               '[{"role":"user","content":"What is the capital of France?"}]',
             );
-            expect(completionSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
@@ -273,7 +273,7 @@ describe('Anthropic integration', () => {
             expect(modelsSpan!.status).toBe('ok');
             expect(modelsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('models');
             expect(modelsSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
-            expect(modelsSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(modelsSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(modelsSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             expect(modelsSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('claude-3-haiku-20240307');
             expect(modelsSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
@@ -325,7 +325,7 @@ describe('Anthropic integration', () => {
               span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["end_turn"]',
             );
             expect(detailedStreamSpan).toBeDefined();
-            expect(detailedStreamSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(detailedStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(detailedStreamSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(detailedStreamSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             expect(detailedStreamSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
@@ -339,7 +339,7 @@ describe('Anthropic integration', () => {
             expect(messagesStreamSpan).toBeDefined();
             expect(messagesStreamSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(messagesStreamSpan!.status).toBe('ok');
-            expect(messagesStreamSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(messagesStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(messagesStreamSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(messagesStreamSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             expect(messagesStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -622,7 +622,7 @@ describe('Anthropic integration', () => {
               expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(truncatedSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(truncatedSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+              expect(truncatedSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
               expect(truncatedSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
 
               const smallMessageSpan = container.items.find(
@@ -634,7 +634,7 @@ describe('Anthropic integration', () => {
               expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(smallMessageSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(smallMessageSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+              expect(smallMessageSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
               expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             },
           })
@@ -684,7 +684,7 @@ describe('Anthropic integration', () => {
               expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(firstSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+              expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
               expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             },
           })

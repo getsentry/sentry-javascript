@@ -10,6 +10,7 @@ import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROMPT,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -21,7 +22,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
@@ -54,7 +54,7 @@ export function extractRequestAttributes(
   operationName: string,
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM]: 'anthropic',
+    [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };

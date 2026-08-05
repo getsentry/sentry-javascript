@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -11,7 +12,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -51,7 +51,7 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
             expect(sonnetSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(sonnetSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
@@ -67,7 +67,7 @@ describe('LangChain integration', () => {
             expect(opusSpan!.status).toBe('ok');
             expect(opusSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(opusSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(opusSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(opusSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-opus-20240229');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.9);
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.95);
@@ -81,7 +81,7 @@ describe('LangChain integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
           },
         })
@@ -128,7 +128,7 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.status).toBe('ok');
             expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(sonnetSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
@@ -144,7 +144,7 @@ describe('LangChain integration', () => {
             const opusSpan = container.items.find(span => span.name === 'chat claude-3-opus-20240229');
             expect(opusSpan).toBeDefined();
             expect(opusSpan!.status).toBe('ok');
-            expect(opusSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(opusSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-opus-20240229');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.9);
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.95);
@@ -158,7 +158,7 @@ describe('LangChain integration', () => {
             const errorSpan = container.items.find(span => span.name === 'chat error-model');
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
             expect(errorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
@@ -183,7 +183,7 @@ describe('LangChain integration', () => {
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
@@ -375,7 +375,7 @@ describe('LangChain integration', () => {
               expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
               expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-              expect(span.attributes[GEN_AI_SYSTEM].value).toBe('openai');
+              expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-3-small');
               expect(span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE].value).toBe(1536);
             }
@@ -384,7 +384,7 @@ describe('LangChain integration', () => {
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('openai');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
           },
         })
         .start()

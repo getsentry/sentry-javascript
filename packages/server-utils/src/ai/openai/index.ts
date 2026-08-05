@@ -14,9 +14,9 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
@@ -61,7 +61,7 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
  */
 export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM]: 'openai',
+    [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
