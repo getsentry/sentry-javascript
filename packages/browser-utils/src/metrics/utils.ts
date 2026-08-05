@@ -1,7 +1,7 @@
 import type { Client, SentrySpan, Span, SpanTimeInput, StartSpanOptions } from '@sentry/core';
 import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
-import { onHidden } from './web-vitals/lib/onHidden';
+import { onHidden } from './web-vitals-helpers/onHidden';
 
 export type WebVitalReportEvent = 'pagehide' | 'navigation';
 

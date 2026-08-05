@@ -788,6 +788,10 @@ export function getMetaContent(metaName: string): string | undefined {
 
 /** Returns the description of a server timing entry */
 export function getServerTiming(name: string): string | undefined {
+  // The cast is required for the declaration build (`build:types`), which resolves
+  // `getEntriesByType('navigation')` to `PerformanceEntry[]` (no `serverTiming`). It only reads as
+  // "unnecessary" to the type-aware linter, which runs with web-vitals' global augmentation applied.
+  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;

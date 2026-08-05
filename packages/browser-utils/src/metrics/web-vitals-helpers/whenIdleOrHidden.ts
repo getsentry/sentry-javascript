@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types.js';
-import { addPageListener, removePageListener } from './globalListeners.js';
-import { runOnce } from './runOnce.js';
+import { WINDOW } from '../../types';
+import { addPageListener, removePageListener } from './globalListeners';
+import { runOnce } from './runOnce';
 
 /**
  * Runs the passed callback during the next idle period, or immediately
