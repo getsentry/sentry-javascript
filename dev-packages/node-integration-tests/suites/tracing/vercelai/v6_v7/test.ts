@@ -15,7 +15,6 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -277,7 +276,6 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolExecutionSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_NAME]?.value).toBe('getWeather');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
-              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_TYPE]?.value).toBe('function');
             },
           })
           .start()
@@ -444,7 +442,6 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME]?.value).toBe('getWeather');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
-              expect(toolSpan.attributes[GEN_AI_TOOL_TYPE]?.value).toBe('function');
 
               const finalGenerateContentSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["stop"]',

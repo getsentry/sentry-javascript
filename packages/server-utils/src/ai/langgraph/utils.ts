@@ -18,7 +18,6 @@ import {
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -84,7 +83,6 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
           [GEN_AI_OPERATION_NAME]: 'execute_tool',
           [GEN_AI_TOOL_NAME]: toolName,
-          [GEN_AI_TOOL_TYPE]: 'function',
         };
 
         // Read agent name from LangChain's propagated config metadata at call time,
