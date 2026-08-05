@@ -432,6 +432,7 @@ Affected SDKs: All SDKs.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
+- The `gen_ai.tool.input` span attribute was renamed to `gen_ai.tool.call.arguments` across all AI integrations.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.

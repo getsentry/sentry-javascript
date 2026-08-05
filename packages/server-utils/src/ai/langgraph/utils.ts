@@ -14,8 +14,8 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
@@ -109,7 +109,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
           if (options.recordInputs) {
             const toolArgs = 'args' in input && typeof input.args === 'object' ? input.args : input;
             try {
-              spanAttributes[GEN_AI_TOOL_INPUT] = JSON.stringify(toolArgs);
+              spanAttributes[GEN_AI_TOOL_CALL_ARGUMENTS] = JSON.stringify(toolArgs);
             } catch {
               // skip if not serializable
             }
