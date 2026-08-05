@@ -16,7 +16,7 @@ import type {
 // Map entryType -> function to normalize data for event
 const ENTRY_TYPES: Record<
   string,
-  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
+  (entry: AllPerformanceEntry, timeOrigin: number) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
   // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
@@ -69,6 +69,26 @@ export function webVitalHandler(
 }
 
 /**
+ * The time origin that was in effect when an entry was observed.
+ *
+ * Entries are buffered raw and only converted to wall clock time on flush, which can be minutes later (and across a
+ * clock drift correction) for a long-running session. Converting them against the origin that was in effect when they
+ * were observed keeps their timestamps correct, whereas the origin at flush time would retroactively shift every
+ * buffered entry by the drift.
+ */
+const ENTRY_TIME_ORIGINS = new WeakMap<AllPerformanceEntry, number>();
+
+/**
+ * Records the current time origin for an observed performance entry, so it can be converted to wall clock time later.
+ */
+export function rememberEntryTimeOrigin(entry: AllPerformanceEntry): void {
+  const timeOrigin = correctedPerformanceTimeOrigin();
+  if (timeOrigin !== undefined) {
+    ENTRY_TIME_ORIGINS.set(entry, timeOrigin);
+  }
+}
+
+/**
  * Create replay performance entries from the browser performance entries.
  */
 export function createPerformanceEntries(
@@ -83,19 +103,24 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
     return null;
   }
 
-  return entryType(entry);
+  return entryType(entry, getEntryTimeOrigin(entry));
 }
 
-function getAbsoluteTime(time: number): number {
-  // correctedPerformanceTimeOrigin can be undefined if `performance` or
-  // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((correctedPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
+function getEntryTimeOrigin(entry: AllPerformanceEntry): number {
+  // The stamp is missing for entries that were not routed through `rememberEntryTimeOrigin` (e.g. web vitals, which
+  // convert eagerly). correctedPerformanceTimeOrigin can be undefined if `performance` or `performance.now` doesn't
+  // exist, but this is already checked by this integration.
+  return ENTRY_TIME_ORIGINS.get(entry) ?? correctedPerformanceTimeOrigin() ?? WINDOW.performance.timeOrigin;
 }
 
-function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
+function getAbsoluteTime(time: number, timeOrigin: number): number {
+  return (timeOrigin + time) / 1000;
+}
+
+function createPaintEntry(entry: PerformancePaintTiming, timeOrigin: number): ReplayPerformanceEntry<PaintData> {
   const { duration, entryType, name, startTime } = entry;
 
-  const start = getAbsoluteTime(startTime);
+  const start = getAbsoluteTime(startTime, timeOrigin);
   return {
     type: entryType,
     name,
@@ -105,7 +130,10 @@ function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry
   };
 }
 
-function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+function createNavigationEntry(
+  entry: PerformanceNavigationTiming,
+  timeOrigin: number,
+): ReplayPerformanceEntry<NavigationData> | null {
   const {
     entryType,
     name,
@@ -131,8 +159,8 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
 
   return {
     type: `${entryType}.${type}`,
-    start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(domComplete),
+    start: getAbsoluteTime(startTime, timeOrigin),
+    end: getAbsoluteTime(domComplete, timeOrigin),
     name,
     data: {
       size: transferSize,
@@ -152,6 +180,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
 
 function createResourceEntry(
   entry: ExperimentalPerformanceResourceTiming,
+  timeOrigin: number,
 ): ReplayPerformanceEntry<ResourceData> | null {
   const {
     entryType,
@@ -172,8 +201,8 @@ function createResourceEntry(
 
   return {
     type: `${entryType}.${initiatorType}`,
-    start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(responseEnd),
+    start: getAbsoluteTime(startTime, timeOrigin),
+    end: getAbsoluteTime(responseEnd, timeOrigin),
     name,
     data: {
       size: transferSize,
@@ -245,7 +274,8 @@ function getWebVital(
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(value);
+  // Web vitals are converted as they are reported rather than buffered raw, so the current origin is the right one.
+  const end = getAbsoluteTime(value, correctedPerformanceTimeOrigin() ?? WINDOW.performance.timeOrigin);
 
   return {
     type: 'web-vital',
