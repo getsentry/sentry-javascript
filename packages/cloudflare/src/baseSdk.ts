@@ -3,10 +3,10 @@ import {
   consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -52,9 +52,7 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
     ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),

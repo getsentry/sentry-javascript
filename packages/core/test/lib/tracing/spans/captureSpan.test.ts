@@ -324,7 +324,7 @@ describe('captureSpan', () => {
         release: '1.0.0',
         environment: 'staging',
         integrations: [
-          { name: 'InboundFilters', setupOnce: () => {} },
+          { name: 'EventFilters', setupOnce: () => {} },
           { name: 'BrowserTracing', setupOnce: () => {} },
         ],
         _metadata: {
@@ -369,7 +369,7 @@ describe('captureSpan', () => {
         [SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
-          value: ['InboundFilters', 'BrowserTracing'],
+          value: ['EventFilters', 'BrowserTracing'],
         },
       },
       _segmentSpan: span,
@@ -381,7 +381,7 @@ describe('captureSpan', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         tracesSampleRate: 1,
-        integrations: [{ name: 'InboundFilters', setupOnce: () => {} }],
+        integrations: [{ name: 'EventFilters', setupOnce: () => {} }],
       }),
     );
     client.init();

@@ -821,6 +821,24 @@ import { inboundFiltersIntegration } from '@sentry/browser';
 import { eventFiltersIntegration } from '@sentry/browser';
 ```
 
+All SDKs now also set up `eventFiltersIntegration` instead of `inboundFiltersIntegration` as a default
+integration, so the integration reports itself as `EventFilters` (e.g. in the `sdk.integrations` payload of
+events). If you disable the integration by its previous name, update the reference:
+
+```js
+// before
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'InboundFilters'),
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'EventFilters'),
+});
+```
+
+The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('InboundFilters')`.
+
 ### `instrumentLangGraph` renamed to `instrumentStateGraph`
 
 Affected SDKs: SDKs with LangGraph instrumentation.

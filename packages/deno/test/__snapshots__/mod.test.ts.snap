@@ -47,7 +47,7 @@ snapshot[`captureMessage 1`] = `
   platform: "javascript",
   sdk: {
     integrations: [
-      "InboundFilters",
+      "EventFilters",
       "RequestData",
       "FunctionToString",
       "LinkedErrors",
@@ -152,7 +152,7 @@ snapshot[`captureMessage twice 1`] = `
   platform: "javascript",
   sdk: {
     integrations: [
-      "InboundFilters",
+      "EventFilters",
       "RequestData",
       "FunctionToString",
       "LinkedErrors",
@@ -264,7 +264,7 @@ snapshot[`captureMessage twice 2`] = `
   platform: "javascript",
   sdk: {
     integrations: [
-      "InboundFilters",
+      "EventFilters",
       "RequestData",
       "FunctionToString",
       "LinkedErrors",

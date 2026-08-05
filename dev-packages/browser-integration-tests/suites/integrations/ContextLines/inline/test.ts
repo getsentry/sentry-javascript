@@ -7,8 +7,8 @@ sentryTest(
   async ({ getLocalTestUrl, page, browserName }) => {
     if (browserName === 'webkit') {
       // The error we're throwing in this test is thrown as "Script error." in Webkit.
-      // We filter "Script error." out by default in `InboundFilters`.
-      // I don't think there's much value to disable InboundFilters defaults for this test,
+      // We filter "Script error." out by default in `EventFilters`.
+      // I don't think there's much value to disable EventFilters defaults for this test,
       // given that most of our users won't do that either.
       // Let's skip it instead for Webkit.
       sentryTest.skip();
