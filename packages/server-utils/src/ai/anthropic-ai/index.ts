@@ -25,12 +25,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import {
-  resolveAIRecordingOptions,
-  setTokenUsageAttributes,
-  shouldEnableTruncation,
-  wrapPromiseWithMethods,
-} from '../core/utils';
+import { resolveAIRecordingOptions, setTokenUsageAttributes, wrapPromiseWithMethods } from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
@@ -88,13 +83,9 @@ export function extractRequestAttributes(
  * Add private request attributes to spans.
  * This is only recorded if recordInputs is true.
  */
-export function addPrivateRequestAttributes(
-  span: Span,
-  params: Record<string, unknown>,
-  enableTruncation: boolean,
-): void {
+export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages, enableTruncation);
+  setMessagesAttribute(span, messages);
 
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT]: JSON.stringify(params.prompt) });
@@ -225,7 +216,7 @@ function handleStreamingRequest<T extends unknown[], R>(
       originalResult = target.apply(invocationThis, args) as Promise<R>;
 
       if (options.recordInputs && params) {
-        addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+        addPrivateRequestAttributes(span, params);
       }
 
       return (async () => {
@@ -247,7 +238,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     return startSpanManual(spanConfig, span => {
       try {
         if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+          addPrivateRequestAttributes(span, params);
         }
         // The helper synchronously delegates to `create`; suppress that one internal call so it
         // does not produce a duplicate child span (see the dedup gate in `instrumentMethod`).
@@ -326,7 +317,7 @@ function instrumentMethod<T extends unknown[], R>(
           originalResult = target.apply(invocationThis, args) as Promise<R>;
 
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+            addPrivateRequestAttributes(span, params);
           }
 
           return originalResult.then(

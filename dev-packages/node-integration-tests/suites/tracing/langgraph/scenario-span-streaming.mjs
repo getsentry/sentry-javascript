@@ -29,7 +29,6 @@ async function run() {
       .addEdge('agent', END)
       .compile({ name: 'weather_assistant' });
 
-    // Single long message so truncation must crop it
     const longContent = 'A'.repeat(50_000);
     await graph.invoke({
       messages: [{ role: 'user', content: longContent }],

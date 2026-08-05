@@ -9,7 +9,6 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Client, Event, Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '@sentry/core';
-import { shouldEnableTruncation } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -96,13 +95,7 @@ function onVercelAiSpanStart(span: Span): void {
     _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
   }
 
-  const client = getClient();
-  const integration = client?.getIntegrationByName('VercelAI') as
-    | { options?: { enableTruncation?: boolean } }
-    | undefined;
-  const enableTruncation = shouldEnableTruncation(integration?.options?.enableTruncation);
-
-  processGenerateSpan(span, name, attributes, enableTruncation);
+  processGenerateSpan(span, name, attributes);
 }
 
 function vercelAiEventProcessor(event: Event): Event {
@@ -434,7 +427,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   }
 }
 
-function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes, enableTruncation: boolean): void {
+function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
@@ -446,7 +439,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
-  requestMessagesFromPrompt(span, attributes, enableTruncation);
+  requestMessagesFromPrompt(span, attributes);
 
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL, attributes[AI_MODEL_ID_ATTRIBUTE]);

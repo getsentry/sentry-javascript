@@ -34,7 +34,6 @@ async function run() {
       httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
     });
 
-    // Long content that would normally be truncated
     const longContent = 'A'.repeat(50_000);
     await client.models.generateContent({
       model: 'gemini-1.5-flash',

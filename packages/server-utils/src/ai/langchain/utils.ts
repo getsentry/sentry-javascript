@@ -27,7 +27,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../core/mediaStripping';
-import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
+import { extractSystemInstructions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -277,7 +277,6 @@ export function extractLLMRequestAttributes(
   llm: LangChainSerialized,
   prompts: string[],
   recordInputs: boolean,
-  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
@@ -288,11 +287,7 @@ export function extractLLMRequestAttributes(
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
     const messages = prompts.map(p => ({ role: 'user', content: p }));
-    setIfDefined(
-      attrs,
-      GEN_AI_INPUT_MESSAGES,
-      enableTruncation ? getTruncatedJsonString(messages) : stringify(messages),
-    );
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES, stringify(messages));
   }
 
   return attrs;
@@ -311,7 +306,6 @@ export function extractChatModelRequestAttributes(
   llm: LangChainSerialized,
   langChainMessages: LangChainMessage[][],
   recordInputs: boolean,
-  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
@@ -329,11 +323,7 @@ export function extractChatModelRequestAttributes(
       setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
-    setIfDefined(
-      attrs,
-      GEN_AI_INPUT_MESSAGES,
-      enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-    );
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
   }
 
   return attrs;

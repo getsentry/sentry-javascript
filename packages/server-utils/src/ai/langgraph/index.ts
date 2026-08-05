@@ -18,12 +18,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../core/gen-ai-attributes';
-import {
-  extractSystemInstructions,
-  getTruncatedJsonString,
-  resolveAIRecordingOptions,
-  shouldEnableTruncation,
-} from '../core/utils';
+import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
@@ -174,11 +169,8 @@ export function instrumentCompiledGraphInvoke(
                 span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
               }
 
-              const enableTruncation = shouldEnableTruncation(options.enableTruncation);
               span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES]: enableTruncation
-                  ? getTruncatedJsonString(filteredMessages)
-                  : stringify(filteredMessages),
+                [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
               });
             }
 

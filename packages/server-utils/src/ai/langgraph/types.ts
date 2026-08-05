@@ -7,11 +7,6 @@ export interface LangGraphOptions {
    * Enable or disable output recording.
    */
   recordOutputs?: boolean;
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
 }
 
 /**

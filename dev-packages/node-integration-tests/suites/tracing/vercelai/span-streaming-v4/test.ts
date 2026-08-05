@@ -18,7 +18,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -299,50 +299,6 @@ describe('Vercel AI integration (streaming v4)', () => {
   createEsmAndCjsTests(__dirname, 'scenario-error-in-tool.mjs', 'instrument.mjs', (createRunner, test) => {
     test('normalizes error status in streaming mode', async () => {
       await createRunner().ignore('event').expect({ span: EXPECTED_SPANS_ERROR_IN_TOOL }).start().completed();
-    });
-  });
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-truncation.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
-            );
-            expect(chatSpan).toBeDefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-truncation.mjs', 'instrument-with-truncation.mjs', (createRunner, test) => {
-    test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            // With explicit enableTruncation: true, content should be truncated despite streaming.
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                '[{"role":"user","content":"AAAA',
-              ),
-            );
-            expect(chatSpan).toBeDefined();
-            expect(
-              (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-            ).toBeLessThan(streamingLongContent.length);
-          },
-        })
-        .start()
-        .completed();
     });
   });
 });

@@ -195,3 +195,78 @@ export function stripInlineMediaFromSingleMessage(part: ContentMedia): ContentMe
   }
   return strip;
 }
+
+/**
+ * Message with the OpenAI/Anthropic `content: [...]` array format.
+ */
+type ContentArrayMessage = {
+  [key: string]: unknown;
+  content: unknown[];
+};
+
+/**
+ * Message with the Google GenAI `parts: [...]` format.
+ */
+type PartsMessage = {
+  [key: string]: unknown;
+  parts: unknown[];
+};
+
+/**
+ * Check if a message has the OpenAI/Anthropic content array format.
+ */
+function isContentArrayMessage(message: unknown): message is ContentArrayMessage {
+  return message !== null && typeof message === 'object' && 'content' in message && Array.isArray(message.content);
+}
+
+/**
+ * Check if a message has the Google GenAI parts format.
+ */
+function isPartsMessage(message: unknown): message is PartsMessage {
+  return (
+    message !== null &&
+    typeof message === 'object' &&
+    'parts' in message &&
+    Array.isArray((message as PartsMessage).parts) &&
+    (message as PartsMessage).parts.length > 0
+  );
+}
+
+/**
+ * Strip inline media from an array of messages, returning a new array.
+ *
+ * This does NOT mutate the input, because the actual API/client still needs the real media.
+ * Recurses into OpenAI/Anthropic `content: [...]` arrays and Google GenAI `parts: [...]`, replacing
+ * inline binary/base64 data with a placeholder while preserving all other structure.
+ */
+export function stripInlineMediaFromMessages(messages: unknown[]): unknown[] {
+  return messages.map(message => {
+    let newMessage: Record<string, unknown> | undefined = undefined;
+    if (!!message && typeof message === 'object') {
+      if (isContentArrayMessage(message)) {
+        newMessage = {
+          ...message,
+          content: stripInlineMediaFromMessages(message.content),
+        };
+      } else if ('content' in message && isContentMedia(message.content)) {
+        newMessage = {
+          ...message,
+          content: stripInlineMediaFromSingleMessage(message.content),
+        };
+      }
+      if (isPartsMessage(message)) {
+        newMessage = {
+          // might have to strip content AND parts
+          ...(newMessage ?? message),
+          parts: stripInlineMediaFromMessages(message.parts),
+        };
+      }
+      if (isContentMedia(newMessage)) {
+        newMessage = stripInlineMediaFromSingleMessage(newMessage);
+      } else if (isContentMedia(message)) {
+        newMessage = stripInlineMediaFromSingleMessage(message);
+      }
+    }
+    return newMessage ?? message;
+  });
+}

@@ -7,7 +7,6 @@ import {
   startSpan,
   startSpanManual,
   handleCallbackErrors,
-  stringify,
 } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -35,9 +34,8 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getTruncatedJsonString,
+  getGenAiMessagesJsonString,
   resolveAIRecordingOptions,
-  shouldEnableTruncation,
 } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -143,12 +141,7 @@ export function extractRequestAttributes(
  * This is only recorded if recordInputs is true.
  * Handles different parameter formats for different Google GenAI methods.
  */
-export function addPrivateRequestAttributes(
-  span: Span,
-  params: Record<string, unknown>,
-  operationName: string,
-  enableTruncation: boolean,
-): void {
+export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
   if (operationName === 'embeddings') {
     const contents = params.contents;
     if (contents != null) {
@@ -193,9 +186,7 @@ export function addPrivateRequestAttributes(
     }
 
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES]: enableTruncation
-        ? getTruncatedJsonString(filteredMessages)
-        : stringify(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES]: getGenAiMessagesJsonString(filteredMessages),
     });
   }
 }
@@ -296,12 +287,7 @@ function instrumentMethod<T extends unknown[], R>(
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                addPrivateRequestAttributes(
-                  span,
-                  params,
-                  operationName,
-                  shouldEnableTruncation(options.enableTruncation),
-                );
+                addPrivateRequestAttributes(span, params, operationName);
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -329,7 +315,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
+            addPrivateRequestAttributes(span, params, operationName);
           }
 
           return handleCallbackErrors(

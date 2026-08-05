@@ -19,8 +19,7 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../core/utils';
-import { stringify } from '@sentry/core';
+import { extractSystemInstructions, getGenAiMessagesJsonString, setTokenUsageAttributes } from '../core/utils';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
@@ -88,12 +87,7 @@ export function extractRequestAttributes(
  * Record the request inputs (messages/prompt/embeddings input) on the span.
  * Only called when `recordInputs` is enabled.
  */
-export function addRequestAttributes(
-  span: Span,
-  inputs: unknown,
-  operationName: string,
-  enableTruncation: boolean,
-): void {
+export function addRequestAttributes(span: Span, inputs: unknown, operationName: string): void {
   if (!inputs || typeof inputs !== 'object') {
     return;
   }
@@ -123,10 +117,7 @@ export function addRequestAttributes(
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
-  span.setAttribute(
-    GEN_AI_INPUT_MESSAGES,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-  );
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, getGenAiMessagesJsonString(filteredMessages));
 }
 
 /**

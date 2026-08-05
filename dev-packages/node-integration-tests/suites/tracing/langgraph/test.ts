@@ -235,51 +235,14 @@ describe('LangGraph integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'langgraph-test' } })
-          .expect({
-            span: container => {
-              const expectedMessages = JSON.stringify([
-                { role: 'user', content: longContent },
-                { role: 'assistant', content: 'Some reply' },
-                { role: 'user', content: 'Follow-up question' },
-              ]);
-
-              expect(container.items).toHaveLength(1);
-              const invokeAgentSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedMessages,
-              );
-
-              expect(invokeAgentSpan).toBeDefined();
-              expect(invokeAgentSpan!.name).toBe('invoke_agent weather_assistant');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
   createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+    test('records full gen_ai input messages when span streaming is enabled', async () => {
+      const longContent = 'A'.repeat(50_000);
       await createRunner()
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
+            const chatSpan = container.items.find(s =>
+              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
             );
             expect(chatSpan).toBeDefined();
           },
@@ -288,35 +251,6 @@ describe('LangGraph integration', () => {
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                  '[{"role":"user","content":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 
   // createReactAgent tests.
   // Spans are asserted order-independently: the span-array order is not a protocol guarantee (Sentry

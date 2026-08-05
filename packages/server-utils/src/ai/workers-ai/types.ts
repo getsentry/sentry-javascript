@@ -1,12 +1,6 @@
 import type { AIRecordingOptions } from '../core/utils';
 
-export interface WorkersAiOptions extends AIRecordingOptions {
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-}
+export interface WorkersAiOptions extends AIRecordingOptions {}
 
 /**
  * Minimal shape of the Cloudflare Workers AI binding (`env.AI`).

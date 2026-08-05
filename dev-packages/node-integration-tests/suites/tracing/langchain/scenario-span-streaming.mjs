@@ -39,7 +39,6 @@ async function run() {
       },
     });
 
-    // Single long message so truncation must crop it
     const longContent = 'A'.repeat(50_000);
     await model.invoke([{ role: 'user', content: longContent }]);
   });
