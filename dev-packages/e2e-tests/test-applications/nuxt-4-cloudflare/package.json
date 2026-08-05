@@ -1,0 +1,28 @@
+{
+  "name": "nuxt-4-cloudflare",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030 --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "mysql": "2.18.1",
+    "nuxt": "^4.1.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "wrangler": "^4.72.0"
+  },
+  "volta": {
+    "node": "22.20.0",
+    "extends": "../../package.json"
+  }
+}

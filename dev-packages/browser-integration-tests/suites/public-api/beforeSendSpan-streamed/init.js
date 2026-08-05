@@ -4,9 +4,9 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration(), Sentry.spanStreamingIntegration()],
+  integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1,
-  beforeSendSpan: Sentry.withStreamedSpan(span => {
+  beforeSendSpan: span => {
     if (span.attributes['sentry.op'] === 'pageload') {
       span.name = 'customPageloadSpanName';
       span.links = [
@@ -24,5 +24,5 @@ Sentry.init({
       span.status = 'something';
     }
     return span;
-  }),
+  },
 });

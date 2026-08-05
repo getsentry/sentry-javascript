@@ -2,7 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
-import type { EventProcessor } from '@sentry/core';
+import type { EventProcessor, TransactionSource } from '@sentry/core';
 import {
   applySdkMetadata,
   debug,
@@ -10,6 +10,7 @@ import {
   getGlobalScope,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
@@ -265,6 +266,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
       };
       enhanceHandleRequestRootSpan(mutableRootSpan);
       enhanceMiddlewareRootSpan(mutableRootSpan);
+
+      // The enhancers rewrite the source on the trace-context attributes, but `transaction_info.source` was
+      // snapshotted at span end and isn't kept in sync. Mirror it here so backfilled routes (e.g. pages-router
+      // API handlers, whose root span carries no `http.route` at end) report `route` instead of `custom`.
+      const source = event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+      if (typeof source === 'string') {
+        event.transaction_info = { ...event.transaction_info, source: source as TransactionSource };
+      }
     }
 
     setUrlProcessingMetadata(event);

@@ -19,7 +19,10 @@ import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
-import { spanStreamingIntegration } from './integrations/spanstreaming';
+import {
+  spanStreamingIntegration,
+  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
+} from './integrations/spanstreaming';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
@@ -116,9 +119,10 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  options.traceLifecycle ??= 'stream';
-
-  if (options.traceLifecycle === 'stream' && !integrations.some(integration => integration.name === 'SpanStreaming')) {
+  if (
+    options.traceLifecycle !== 'static' &&
+    !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
+  ) {
     integrations.push(spanStreamingIntegration());
   }
 

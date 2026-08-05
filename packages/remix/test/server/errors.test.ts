@@ -9,7 +9,10 @@ vi.mock('../../src/utils/utils', () => ({
 import { storeFormDataKeys } from '../../src/utils/utils';
 import { errorHandleDataFunction } from '../../src/server/errors';
 
-function createMockClient(httpBodies: string[] = []): Client {
+function createMockClient(
+  captureActionFormDataKeys: Record<string, string | boolean> | undefined,
+  httpBodies: string[] = [],
+): Client {
   return {
     getDataCollectionOptions: () => ({
       userInfo: false,
@@ -23,9 +26,7 @@ function createMockClient(httpBodies: string[] = []): Client {
       stackFrameVariables: true,
       frameContextLines: 5,
     }),
-    getOptions: () => ({
-      captureActionFormDataKeys: { username: true },
-    }),
+    getOptions: () => ({ captureActionFormDataKeys }),
   } as unknown as Client;
 }
 
@@ -38,8 +39,8 @@ describe('errorHandleDataFunction', () => {
     vi.restoreAllMocks();
   });
 
-  it('captures form data when httpBodies includes incomingRequest', async () => {
-    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient(['incomingRequest']));
+  it('captures the configured keys when captureActionFormDataKeys is set', async () => {
+    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient({ username: true }, ['incomingRequest']));
     vi.spyOn(core, 'handleCallbackErrors').mockImplementation(async fn => fn());
 
     const mockSpan = { setAttribute: vi.fn() } as any;
@@ -48,11 +49,37 @@ describe('errorHandleDataFunction', () => {
 
     await errorHandleDataFunction.call(null, origFn, 'action', mockArgs, mockSpan);
 
-    expect(storeFormDataKeys).toHaveBeenCalledWith(mockArgs, mockSpan, { username: true });
+    expect(storeFormDataKeys).toHaveBeenCalledWith(mockArgs, mockSpan, { keys: { username: true } });
   });
 
-  it('does NOT capture form data when httpBodies is empty', async () => {
-    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient([]));
+  it('captures the configured keys even when httpBodies excludes incomingRequest', async () => {
+    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient({ username: true }, []));
+    vi.spyOn(core, 'handleCallbackErrors').mockImplementation(async fn => fn());
+
+    const mockSpan = { setAttribute: vi.fn() } as any;
+    const mockArgs = { request: new Request('http://localhost', { method: 'POST' }) } as any;
+    const origFn = vi.fn().mockResolvedValue(new Response());
+
+    await errorHandleDataFunction.call(null, origFn, 'action', mockArgs, mockSpan);
+
+    expect(storeFormDataKeys).toHaveBeenCalledWith(mockArgs, mockSpan, { keys: { username: true } });
+  });
+
+  it('captures all fields when only httpBodies opts in', async () => {
+    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient(undefined, ['incomingRequest']));
+    vi.spyOn(core, 'handleCallbackErrors').mockImplementation(async fn => fn());
+
+    const mockSpan = { setAttribute: vi.fn() } as any;
+    const mockArgs = { request: new Request('http://localhost', { method: 'POST' }) } as any;
+    const origFn = vi.fn().mockResolvedValue(new Response());
+
+    await errorHandleDataFunction.call(null, origFn, 'action', mockArgs, mockSpan);
+
+    expect(storeFormDataKeys).toHaveBeenCalledWith(mockArgs, mockSpan, { keys: undefined });
+  });
+
+  it('does NOT capture form data when neither option opts in', async () => {
+    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient(undefined, []));
     vi.spyOn(core, 'handleCallbackErrors').mockImplementation(async fn => fn());
 
     const mockSpan = { setAttribute: vi.fn() } as any;
@@ -65,7 +92,7 @@ describe('errorHandleDataFunction', () => {
   });
 
   it('does NOT capture form data for loader functions', async () => {
-    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient(['incomingRequest']));
+    vi.spyOn(core, 'getClient').mockReturnValue(createMockClient({ username: true }, ['incomingRequest']));
     vi.spyOn(core, 'handleCallbackErrors').mockImplementation(async fn => fn());
 
     const mockSpan = { setAttribute: vi.fn() } as any;

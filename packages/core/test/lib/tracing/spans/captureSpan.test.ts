@@ -15,8 +15,8 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
   startInactiveSpan,
   startSpan,
+  withStaticSpan,
   withScope,
-  withStreamedSpan,
 } from '../../../../src';
 import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
@@ -471,8 +471,8 @@ describe('captureSpan', () => {
   });
 
   describe('beforeSendSpan', () => {
-    it('applies beforeSendSpan if it is a span streaming compatible callback', () => {
-      const beforeSendSpan = withStreamedSpan(vi.fn(span => span));
+    it('applies a default beforeSendSpan callback', () => {
+      const beforeSendSpan = vi.fn(span => span);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -480,6 +480,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -492,8 +493,8 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
     });
 
-    it("doesn't apply beforeSendSpan if it is not a span streaming compatible callback", () => {
-      const beforeSendSpan = vi.fn(span => span);
+    it("doesn't apply beforeSendSpan if it is marked as static", () => {
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -515,8 +516,7 @@ describe('captureSpan', () => {
 
     it('logs a warning if the beforeSendSpan callback returns null', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-      // @ts-expect-error - the types dissallow returning null but this is javascript, so we need to test it
-      const beforeSendSpan = withStreamedSpan(() => null);
+      const beforeSendSpan = vi.fn(() => null as unknown as StreamedSpanJSON);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -524,6 +524,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );

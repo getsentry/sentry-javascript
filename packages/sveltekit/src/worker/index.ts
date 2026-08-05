@@ -50,6 +50,7 @@ export {
   lastEventId,
   linkedErrorsIntegration,
   logger,
+  metrics,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
@@ -83,6 +84,8 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   supabaseIntegration,
   instrumentSupabaseClient,
