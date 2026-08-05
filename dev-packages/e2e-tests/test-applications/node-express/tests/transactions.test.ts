@@ -57,6 +57,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     status_code: 200,
   });
 
+  // In the "(tracer provider)" variant the SDK registers the Sentry OpenTelemetry tracer provider,
+  // which adds the `otel` resource context to transactions. It is absent in the default no-provider run.
+  if (process.env.E2E_TEST_OTEL_SETUP === 'true') {
+    expect(transactionEvent.contexts?.otel).toBeDefined();
+  }
+
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: 'GET /test-transaction',

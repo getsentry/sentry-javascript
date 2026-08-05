@@ -11,6 +11,12 @@ test('sends a server action transaction on pageload', async ({ page }) => {
 
   const transaction = await transactionPromise;
 
+  // In the "(tracer provider)" variant the SDK registers the Sentry OpenTelemetry tracer provider,
+  // which adds the `otel` resource context to transactions. It is absent in the default no-provider run.
+  if (process.env.E2E_TEST_OTEL_SETUP === 'true') {
+    expect(transaction.contexts?.otel).toBeDefined();
+  }
+
   expect(transaction.contexts.trace).toEqual(
     expect.objectContaining({
       data: expect.objectContaining({
