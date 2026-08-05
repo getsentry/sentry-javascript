@@ -58,7 +58,7 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
 } from './sdk';
-export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
+export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
 export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
