@@ -75,7 +75,7 @@ export function initOpenTelemetry(client: NodeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = setupOtel(client);
+  const provider = setupOtel();
   client.traceProvider = provider;
 }
 
@@ -120,8 +120,26 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
   });
 }
 
+/**
+ * Backfill Sentry span data (op, source, name, status) from OpenTelemetry semantic attributes.
+ *
+ * Channel-based instrumentation stamps OTel semantic attributes on native Sentry spans but leaves the
+ * Sentry-convention fields (e.g. `sentry.op`) to be inferred. On the OTel SDK provider that inference
+ * runs in the span processor/exporter; here it runs via client hooks so it happens whether or not a
+ * Sentry tracer provider is set up.
+ */
+export function setupSpanDataBackfill(client: NodeClient): void {
+  client.on('spanEnd', span => {
+    applyOtelSpanData(span, { finalizeStatus: true });
+  });
+
+  if (hasSpanStreamingEnabled(client)) {
+    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
+  }
+}
+
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient): SentryTracerProvider | undefined {
+export function setupOtel(): SentryTracerProvider | undefined {
   const provider = new SentryTracerProvider();
 
   if (!registerGlobalTracerProvider(provider)) {
@@ -133,14 +151,6 @@ export function setupOtel(client: NodeClient): SentryTracerProvider | undefined 
   }
 
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  client.on('spanEnd', span => {
-    applyOtelSpanData(span, { finalizeStatus: true });
-  });
-
-  if (hasSpanStreamingEnabled(client)) {
-    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
-  }
 
   return provider;
 }

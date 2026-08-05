@@ -16,8 +16,11 @@ type ScopeStore = { scope: Scope; isolationScope: Scope };
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage.
+ *
+ * Returns the underlying `AsyncLocalStorage` whose store is the `{ scope, isolationScope }` object, so
+ * callers (e.g. `@sentry/node-native`) can read scope out of it from a native thread.
  */
-export function setAsyncLocalStorageAsyncContextStrategy(): void {
+export function setAsyncLocalStorageAsyncContextStrategy(): AsyncLocalStorage<ScopeStore> {
   // Re-use the AsyncLocalStorage of an already-installed strategy, if any. Otherwise a repeated
   // setup (e.g. a second `Sentry.init()`) would swap in a new store while integrations that captured
   // the previous one (via `getTracingChannelBinding().asyncLocalStorage`) keep reading the old one,
@@ -101,4 +104,6 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     getIsolationScope: () => getScopes().isolationScope,
     getTracingChannelBinding: () => _INTERNAL_createTracingChannelBinding(asyncStorage, getScopes),
   });
+
+  return asyncStorage;
 }
