@@ -1,4 +1,4 @@
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { correctedPerformanceTimeOrigin } from '@sentry/core';
 import { record } from '@sentry/rrweb';
 import { WINDOW } from '../constants';
 import type {
@@ -87,9 +87,9 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
 }
 
 function getAbsoluteTime(time: number): number {
-  // browserPerformanceTimeOrigin can be undefined if `performance` or
+  // correctedPerformanceTimeOrigin can be undefined if `performance` or
   // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((browserPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
+  return ((correctedPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {

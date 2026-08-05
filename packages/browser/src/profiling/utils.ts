@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
+  correctedPerformanceTimeOrigin,
   debug,
   getClient,
   getDebugImagesForResources,
@@ -148,7 +148,7 @@ function convertToContinuousProfile(input: {
   }
 
   // Align timestamps to SDK time origin to match span/event timelines
-  const perfOrigin = browserPerformanceTimeOrigin();
+  const perfOrigin = correctedPerformanceTimeOrigin();
   const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
   const adjustForOriginChange = origin - (perfOrigin || origin);
 

@@ -9,11 +9,17 @@ async function getFreshPerformanceTimeOrigin() {
 
 let freshImportCounter = 0;
 
-async function getFreshTimestampInSeconds(): Promise<() => number> {
+async function getFreshTimeModule(): Promise<{
+  timestampInSeconds: () => number;
+  correctedPerformanceTimeOrigin: () => number | undefined;
+}> {
   // A counter rather than `Date.now()`: these tests run under fake timers, which freeze the wall clock and would
   // otherwise hand out a cached module.
-  const timeModule = await import(`../../../src/utils/time?update=${freshImportCounter++}`);
-  return timeModule.timestampInSeconds;
+  return import(`../../../src/utils/time?update=${freshImportCounter++}`);
+}
+
+async function getFreshTimestampInSeconds(): Promise<() => number> {
+  return (await getFreshTimeModule()).timestampInSeconds;
 }
 
 const RELIABLE_THRESHOLD_MS = 300_000;
@@ -177,6 +183,75 @@ describe('timestampInSeconds', () => {
     timeSincePageloadMs += 1_000;
     expect(timestampInSeconds()).toBeGreaterThan(afterStep);
     expect(before).toBeGreaterThan(afterStep);
+  });
+});
+
+describe('correctedPerformanceTimeOrigin', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('returns `performance.timeOrigin` while the clocks agree', async () => {
+    const currentTimeMs = 1767778040866;
+    const timeSincePageloadMs = 1_000;
+    const timeOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', { timeOrigin, now: () => timeSincePageloadMs });
+
+    const { correctedPerformanceTimeOrigin } = await getFreshTimeModule();
+
+    expect(correctedPerformanceTimeOrigin()).toBe(timeOrigin);
+  });
+
+  it('returns the corrected origin after clock drift, without a prior `timestampInSeconds` call', async () => {
+    const currentTimeMs = 1767778040866;
+    const timeSincePageloadMs = 1_000;
+    const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', {
+      timeOrigin: currentTimeMs - timeSincePageloadMs,
+      now: () => timeSincePageloadMs,
+    });
+
+    const { correctedPerformanceTimeOrigin } = await getFreshTimeModule();
+
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
+
+    expect(correctedPerformanceTimeOrigin()).toBe(currentTimeMs + sleepDurationMs - timeSincePageloadMs);
+  });
+
+  it('stays on the same timeline as `timestampInSeconds`', async () => {
+    const currentTimeMs = 1767778040866;
+    const timeSincePageloadMs = 1_000;
+    const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', {
+      timeOrigin: currentTimeMs - timeSincePageloadMs,
+      now: () => timeSincePageloadMs,
+    });
+
+    const { correctedPerformanceTimeOrigin, timestampInSeconds } = await getFreshTimeModule();
+
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
+
+    // Converting the current `performance.now()` against the origin must yield the same wall clock time that
+    // `timestampInSeconds` reports, otherwise perf entries and spans land on diverging timelines.
+    expect((correctedPerformanceTimeOrigin() as number) + timeSincePageloadMs).toBe(timestampInSeconds() * 1000);
+  });
+
+  it('returns `undefined` if the performance API is unavailable', async () => {
+    vi.stubGlobal('performance', undefined);
+
+    const { correctedPerformanceTimeOrigin } = await getFreshTimeModule();
+
+    expect(correctedPerformanceTimeOrigin()).toBeUndefined();
   });
 });
 

@@ -32,6 +32,12 @@ export function dateTimestampInSeconds(): number {
 }
 
 /**
+ * The time origin `timestampInSeconds` currently maps the monotonic clock against, kept in sync with the corrections it
+ * applies. `undefined` until the first `timestampInSeconds` call, and whenever the Performance API is unavailable.
+ */
+let _correctedTimeOrigin: number | undefined;
+
+/**
  * Returns a wrapper around the native Performance API browser implementation, or undefined for browsers that do not
  * support the API.
  *
@@ -47,7 +53,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
 
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
-  let timeOrigin = performance.timeOrigin;
+  let timeOrigin = (_correctedTimeOrigin = performance.timeOrigin);
 
   return () => {
     return withRandomSafeContext(() => {
@@ -66,7 +72,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
       // See: https://github.com/mdn/content/issues/4713
       // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
       if (Math.abs(timeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
-        timeOrigin = dateNow - performanceNow;
+        timeOrigin = _correctedTimeOrigin = dateNow - performanceNow;
       }
 
       return (timeOrigin + performanceNow) / ONE_SECOND_IN_MS;
@@ -75,6 +81,20 @@ function createUnixTimestampInSecondsFunc(): () => number {
 }
 
 let _cachedTimestampInSeconds: (() => number) | undefined;
+
+/**
+ * Returns the time origin (in milliseconds since the UNIX epoch) that {@link timestampInSeconds} currently maps
+ * `performance.now()` against, including any correction it has applied for clock drift.
+ *
+ * Use this over {@link browserPerformanceTimeOrigin} when converting a `PerformanceEntry`'s monotonic `startTime` to
+ * wall clock time at the moment the entry is observed, so the result shares a timeline with span and event timestamps.
+ * Returns `undefined` if the Performance API is unavailable, in which case monotonic timestamps cannot be converted.
+ */
+export function correctedPerformanceTimeOrigin(): number | undefined {
+  // The origin is only populated once `timestampInSeconds` has resolved which clock source to use.
+  timestampInSeconds();
+  return _correctedTimeOrigin;
+}
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the

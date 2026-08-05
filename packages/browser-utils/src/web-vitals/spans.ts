@@ -2,6 +2,7 @@
 import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  correctedPerformanceTimeOrigin,
   debug,
   getActiveSpan,
   getClient,
@@ -409,8 +410,10 @@ export function _sendInpSpan(
   // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
   // is still worth reporting. It just has no element or interaction type to describe, and is placed
   // at the start of the navigation it belongs to rather than at the interaction.
+  // INP reports on pagehide, potentially hours after the origin cached at init, so the corrected origin is used to stay
+  // on the same timeline as span and event timestamps.
   const startTime = msToSec(
-    (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
+    (correctedPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
   );
   const duration = msToSec(inpValue);
   // An INP without an entry has no interaction type to report. It still has to land inside the
