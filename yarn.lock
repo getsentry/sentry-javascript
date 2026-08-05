@@ -6160,7 +6160,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.1.tgz#c1b0346de336ba55af2d5a7970882037baedec05"
   integrity sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==
 
-"@opentelemetry/core@2.9.0", "@opentelemetry/core@^2.9.0":
+"@opentelemetry/core@2.9.0":
   version "2.9.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-2.9.0.tgz#49de86106f86255b471b2ff035ef1003a851b252"
   integrity sha512-m2nckMT80NnmjTYSPjJQObBJ+8dgkoajEOUbznL8AHZ3T3yHRk2P7gI1PhEBc1+lOnrYE9UWrWHqJDsmqjmNbw==

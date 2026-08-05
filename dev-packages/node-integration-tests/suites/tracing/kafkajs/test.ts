@@ -53,13 +53,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(producer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.publish',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'sentry.kind': 'producer',
-                  'sentry.op': 'message',
+                  'sentry.op': 'queue.publish',
                   'sentry.origin': producerOrigin,
                 }),
               }),
@@ -67,13 +67,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(consumer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.process',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'sentry.kind': 'consumer',
-                  'sentry.op': 'message',
+                  'sentry.op': 'queue.process',
                   'sentry.origin': consumerOrigin,
                 }),
               }),
@@ -93,13 +93,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
             expect(transaction.transaction).toBe('send invalid topic name');
             expect(transaction.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.publish',
                 status: 'internal_error',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
                   'sentry.kind': 'producer',
-                  'sentry.op': 'message',
+                  'sentry.op': 'queue.publish',
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),
