@@ -487,7 +487,7 @@ function patchModelMethod(
         provider: model.provider,
         modelId: model.modelId,
         // v4 nests the tool list under `mode.tools` (the `LanguageModelV1` call shape); v5+ passes a
-        // top-level `tools` array. Reading both keeps `available_tools` populated on the model-call span.
+        // top-level `tools` array. Reading both keeps `tool.definitions` populated on the model-call span.
         tools: callArgs.tools ?? (isObjectLike(callArgs.mode) ? callArgs.mode.tools : undefined),
         messages: callArgs.prompt,
         // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on

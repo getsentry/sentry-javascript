@@ -4,7 +4,6 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
@@ -12,6 +11,7 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -106,7 +106,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: 'gpt-4',
             });
-            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -165,7 +165,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -225,7 +225,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 'gpt-4',
             });
             expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(responsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -284,7 +284,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -358,7 +358,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
             });
-            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -429,7 +429,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
             });
-            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -497,7 +497,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
             });
-            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(responsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
@@ -564,7 +564,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
             });
-            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toEqual({
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });

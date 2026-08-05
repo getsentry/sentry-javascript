@@ -10,8 +10,8 @@ import {
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
   GEN_AI_TOOL_OUTPUT,
@@ -145,7 +145,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       const toolDefsJson = extractToolDefinitions(extraParams);
       if (toolDefsJson) {
-        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = toolDefsJson;
+        attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }
 
       const modelName = attributes[GEN_AI_REQUEST_MODEL];

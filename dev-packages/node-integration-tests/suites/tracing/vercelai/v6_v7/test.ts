@@ -6,11 +6,11 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
@@ -132,13 +132,13 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const toolGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] !== undefined,
+                  span.attributes[GEN_AI_TOOL_DEFINITIONS] !== undefined,
               )!;
               expect(toolGenerateContentSpan).toBeDefined();
               expect(toolGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(toolGenerateContentSpan.status).toBe('ok');
               expect(toolGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
-              expect(toolGenerateContentSpan.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toBeDefined();
+              expect(toolGenerateContentSpan.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeDefined();
               expect(toolGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
 
               const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather')!;

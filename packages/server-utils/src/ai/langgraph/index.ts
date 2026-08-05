@@ -13,9 +13,9 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
@@ -157,7 +157,7 @@ export function instrumentCompiledGraphInvoke(
             // Extract available tools from the graph instance
             const tools = extractToolsFromCompiledGraph(graphInstance);
             if (tools) {
-              span.setAttribute(GEN_AI_REQUEST_AVAILABLE_TOOLS, JSON.stringify(tools));
+              span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
             // Parse input messages
