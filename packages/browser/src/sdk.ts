@@ -2,9 +2,9 @@ import type { Client, Integration, Options } from '@sentry/core/browser';
 import {
   conversationIdIntegration,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
-  inboundFiltersIntegration,
   initAndBind,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
@@ -19,7 +19,10 @@ import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
-import { spanStreamingIntegration } from './integrations/spanstreaming';
+import {
+  spanStreamingIntegration,
+  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
+} from './integrations/spanstreaming';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
@@ -32,9 +35,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
   return [
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     browserApiErrorsIntegration(),
@@ -116,9 +117,10 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  options.traceLifecycle ??= 'stream';
-
-  if (options.traceLifecycle === 'stream' && !integrations.some(integration => integration.name === 'SpanStreaming')) {
+  if (
+    options.traceLifecycle !== 'static' &&
+    !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
+  ) {
     integrations.push(spanStreamingIntegration());
   }
 

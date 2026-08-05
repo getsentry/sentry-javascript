@@ -1,6 +1,6 @@
 import type { Context, Span as OpenTelemetrySpan, SpanOptions, Tracer } from '@opentelemetry/api';
 import { context, isSpanContextValid, trace } from '@opentelemetry/api';
-import { isTracingSuppressed } from '@opentelemetry/core';
+import { isTracingSuppressed } from './utils/suppressTracing';
 import {
   _INTERNAL_safeMathRandom,
   _INTERNAL_setSpanForScope,

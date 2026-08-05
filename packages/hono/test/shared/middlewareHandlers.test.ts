@@ -75,6 +75,7 @@ describe('responseHandler', () => {
 
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
 
@@ -90,6 +91,7 @@ describe('responseHandler', () => {
 
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
 
@@ -126,6 +128,7 @@ describe('responseHandler', () => {
 
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
 
@@ -167,6 +170,7 @@ describe('responseHandler', () => {
 
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
   });
@@ -185,6 +189,7 @@ describe('responseHandler', () => {
       expect(shouldHandleError).toHaveBeenCalledWith(error);
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
 
@@ -212,6 +217,7 @@ describe('responseHandler', () => {
 
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: error,
       });
     });
 

@@ -24,6 +24,9 @@ describe('Bun HTTP Server Integration', () => {
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       tracesSampleRate: 1.0,
+      // Avoid propagating the test harness's own trace to the server under test, so the
+      // isolation tests below actually test per-request isolation rather than header continuation.
+      tracePropagationTargets: [],
       // Avoid sending anything to Sentry
       transport: () => ({ send: async () => ({}), flush: async () => true }),
     });

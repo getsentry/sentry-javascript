@@ -1,7 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
 import type { Event } from '../types/event';
-import type { IntegrationFn } from '../types/integration';
 import type { StackFrame } from '../types/stackframe';
 import { debug } from '../utils/debug-logger';
 import { getPossibleEventMessages } from '../utils/eventUtils';
@@ -66,29 +65,6 @@ export const eventFiltersIntegration = defineIntegration((options: Partial<Event
     },
   };
 });
-
-/**
- * An integration that filters out events (errors and transactions) based on:
- *
- * - (Errors) A curated list of known low-value or irrelevant errors (see {@link DEFAULT_IGNORE_ERRORS})
- * - (Errors) A list of error messages or urls/filenames passed in via
- *   - Top level Sentry.init options (`ignoreErrors`, `denyUrls`, `allowUrls`)
- *   - The same options passed to the integration directly via @param options
- * - (Transactions/Spans) A list of root span (transaction) names passed in via
- *   - Top level Sentry.init option (`ignoreTransactions`)
- *   - The same option passed to the integration directly via @param options
- *
- * Events filtered by this integration will not be sent to Sentry.
- *
- * @deprecated this integration was renamed and will be removed in a future major version.
- * Use `eventFiltersIntegration` instead.
- */
-export const inboundFiltersIntegration = defineIntegration(((options: Partial<EventFiltersOptions> = {}) => {
-  return {
-    ...eventFiltersIntegration(options),
-    name: 'InboundFilters' as const,
-  };
-}) satisfies IntegrationFn);
 
 function _mergeOptions(
   internalOptions: Partial<EventFiltersOptions> = {},

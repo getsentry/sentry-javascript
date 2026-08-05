@@ -5,11 +5,11 @@ import {
   conversationIdIntegration,
   debug,
   envToBool,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   hasSpansEnabled,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
@@ -48,9 +48,7 @@ import { initOpenTelemetry } from './initOtel';
 function getBaseDefaultIntegrations(): Integration[] {
   return [
     // Common
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),

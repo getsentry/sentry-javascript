@@ -1,16 +1,12 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
-import { context } from '@opentelemetry/api';
-import type { RPCMetadata } from '@opentelemetry/core';
-import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_CLIENT_IP,
   HTTP_FLAVOR,
   HTTP_HOST,
   HTTP_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_ROUTE,
   HTTP_SCHEME,
   HTTP_STATUS_CODE,
   HTTP_TARGET,
@@ -41,7 +37,6 @@ import type {
 } from '@sentry/core';
 import {
   debug,
-  getIsolationScope,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
@@ -209,51 +204,36 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
-          const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
-
           return withActiveSpan(span, () => {
-            // TODO(v11): Get rid of RPC metadata here
-            return context.with(setRPCMetadata(context.active(), rpcMetadata), () => {
-              bindScopeToEmitter(request);
-              bindScopeToEmitter(response);
+            bindScopeToEmitter(request);
+            bindScopeToEmitter(response);
 
-              // Ensure we only end the span once
-              // E.g. error can be emitted before close is emitted
-              let isEnded = false;
-              function endSpan(status: SpanStatus): void {
-                if (isEnded) {
-                  return;
-                }
-
-                isEnded = true;
-
-                const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
-                span.setAttributes(newAttributes);
-                span.setStatus(status);
-
-                // Once the route is resolved, upgrade the name/source from the raw URL to the parameterized route.
-                const route = newAttributes[HTTP_ROUTE];
-                if (route) {
-                  const name = `${request.method?.toUpperCase() || 'GET'} ${route}`;
-                  span.updateName(name);
-                  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-                  getIsolationScope().setTransactionName(name);
-                }
-
-                span.end();
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
               }
 
-              response.on('close', () => {
-                endSpan(getSpanStatusFromHttpCode(response.statusCode));
-              });
-              response.on(errorMonitor, () => {
-                const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-                // Ensure we def. have an error status here
-                endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-              });
+              isEnded = true;
 
-              return next();
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              span.setAttributes(newAttributes);
+              span.setStatus(status);
+              span.end();
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
             });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
+
+            return next();
           });
         };
 
@@ -414,7 +394,6 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
-  rpcMetadata?: RPCMetadata,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -442,12 +421,6 @@ function getIncomingRequestAttributesOnResponse(
   // eslint-disable-next-line typescript/no-deprecated
   newAttributes[HTTP_STATUS_CODE] = statusCode;
   newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
-
-  if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
-    const routeName = rpcMetadata.route;
-    newAttributes[HTTP_ROUTE] = routeName;
-    newAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
-  }
 
   return newAttributes;
 }

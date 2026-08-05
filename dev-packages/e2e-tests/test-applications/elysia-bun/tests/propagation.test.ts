@@ -13,12 +13,12 @@ test('Includes sentry-trace and baggage in response headers', async ({ baseURL }
   expect(baggage).toContain('sentry-trace_id=');
 });
 
-// Bun's native fetch does not emit undici diagnostics channels,
-// so the nativeNodeFetchIntegration cannot inject sentry-trace/baggage headers.
-// These tests document the desired behavior and will pass once Bun adds support
-// for undici diagnostics channels or an alternative propagation mechanism is added.
+// Bun's native fetch does not emit undici diagnostics channels, so the
+// nativeNodeFetchIntegration cannot see these requests. `@sentry/bun`'s
+// `fetchIntegration` instead patches the global `fetch` (like Cloudflare), which
+// is what creates the spans and injects sentry-trace/baggage headers below.
 
-test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
+test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = randomUUID();
 
   const inboundTransactionPromise = waitForTransaction('elysia-bun', transactionEvent => {
@@ -64,7 +64,7 @@ test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) =
   expect(inboundTransaction.contexts?.trace?.trace_id).toBe(traceId);
 });
 
-test.fixme('Propagates trace for outgoing fetch to external allowed URL', async ({ baseURL }) => {
+test('Propagates trace for outgoing fetch to external allowed URL', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('elysia-bun', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&

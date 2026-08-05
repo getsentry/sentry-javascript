@@ -21,6 +21,8 @@ export declare function init(options: Options | clientSdk.BrowserOptions | NodeO
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
+export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
+// oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];

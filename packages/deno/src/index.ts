@@ -69,8 +69,6 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
@@ -97,6 +95,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,

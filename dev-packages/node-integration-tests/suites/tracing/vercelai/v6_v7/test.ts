@@ -21,7 +21,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 import { isOrchestrionEnabled } from '../../../../utils';
 

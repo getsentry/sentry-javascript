@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { parseFetchArgs } from '../../../src/instrument/fetch';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { addFetchInstrumentationHandler, parseFetchArgs } from '../../../src/instrument/fetch';
+import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
+import * as isBrowserModule from '../../../src/utils/isBrowser';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 describe('instrument > parseFetchArgs', () => {
   it.each([
@@ -51,5 +54,35 @@ describe('instrument > parseFetchArgs', () => {
 
       expect(actual).toEqual(expected);
     });
+  });
+});
+
+describe('instrument > addFetchInstrumentationHandler', () => {
+  const globalWithFetch = GLOBAL_OBJ as typeof GLOBAL_OBJ & { fetch?: (...args: unknown[]) => unknown };
+
+  afterEach(() => {
+    resetInstrumentationHandlers();
+    vi.restoreAllMocks();
+  });
+
+  it('preserves non-standard own properties on the global fetch (e.g. Bun `fetch.preconnect`)', () => {
+    // Non-browser runtime so we skip the native-fetch check and always patch
+    vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(false);
+
+    const preconnect = vi.fn();
+    const originalFetch = vi.fn(() => Promise.resolve(new Response()));
+    (originalFetch as unknown as { preconnect: unknown }).preconnect = preconnect;
+    globalWithFetch.fetch = originalFetch as unknown as typeof globalWithFetch.fetch;
+
+    try {
+      addFetchInstrumentationHandler(() => {});
+
+      // fetch was actually wrapped ...
+      expect(globalWithFetch.fetch).not.toBe(originalFetch);
+      // ... and the non-standard own property was carried over onto the wrapper
+      expect((globalWithFetch.fetch as unknown as { preconnect: unknown }).preconnect).toBe(preconnect);
+    } finally {
+      globalWithFetch.fetch = originalFetch as unknown as typeof globalWithFetch.fetch;
+    }
   });
 });

@@ -9,7 +9,9 @@ import { type AgentInternals, setAgentConversationId } from './types';
  *
  * `agents` installs `onRequest` as an own property in the `Agent` constructor (as it does
  * `onMessage`), and we instrument after construction, so wrapping the own property is what the
- * router ends up calling.
+ * router ends up calling. That own property is already `async`, and partyserver's `fetch` awaits it,
+ * so returning a promise from this wrapper — to get the conversation id onto the scope before the
+ * request handler creates any span — keeps the existing contract.
  */
 export function instrumentAgentRequestConversation(obj: AgentInternals): void {
   const original = obj.onRequest;
@@ -19,8 +21,8 @@ export function instrumentAgentRequestConversation(obj: AgentInternals): void {
   }
 
   obj.onRequest = new Proxy(original, {
-    apply(target, thisArg: AgentInternals, args: unknown[]): unknown {
-      setAgentConversationId(thisArg);
+    async apply(target, thisArg: AgentInternals, args: unknown[]): Promise<unknown> {
+      await setAgentConversationId(thisArg);
 
       return Reflect.apply(target, thisArg, args);
     },

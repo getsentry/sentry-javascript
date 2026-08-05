@@ -7,6 +7,7 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   HTTP_TARGET,
+  MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   SENTRY_KIND,
@@ -14,6 +15,12 @@ import {
   URL_FULL,
   URL_QUERY,
 } from '@sentry/conventions/attributes';
+import {
+  MESSAGING_QUEUE_PROCESS_SPAN_OP,
+  MESSAGING_QUEUE_PUBLISH_SPAN_OP,
+  MESSAGING_QUEUE_RECEIVE_SPAN_OP,
+  MESSAGING_QUEUE_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getSanitizedUrlString,
@@ -65,11 +72,11 @@ export function inferSpanData(attributes: SpanAttributes): SpanDescription {
   }
 
   // If messaging.system exists then this is a messaging system span.
-  // eslint-disable-next-line typescript/no-deprecated
+  // Derive the queue op from the messaging operation type.
   const messagingSystem = attributes[MESSAGING_SYSTEM];
   if (messagingSystem) {
     return {
-      op: 'message',
+      op: getMessagingOp(attributes[MESSAGING_OPERATION_TYPE]),
     };
   }
 
@@ -83,6 +90,25 @@ export function inferSpanData(attributes: SpanAttributes): SpanDescription {
   }
 
   return { op: undefined };
+}
+
+/**
+ * Maps an OTel `messaging.operation.type` to the corresponding `queue.*` span op. `send` is the
+ * pre-1.0 spelling of `publish`; both map to `queue.publish`. Unknown or missing types fall back to
+ * the generic `queue` op.
+ */
+function getMessagingOp(operationType: unknown): string {
+  switch (operationType) {
+    case 'publish':
+    case 'send':
+      return MESSAGING_QUEUE_PUBLISH_SPAN_OP;
+    case 'receive':
+      return MESSAGING_QUEUE_RECEIVE_SPAN_OP;
+    case 'process':
+      return MESSAGING_QUEUE_PROCESS_SPAN_OP;
+    default:
+      return MESSAGING_QUEUE_SPAN_OP;
+  }
 }
 
 /**
