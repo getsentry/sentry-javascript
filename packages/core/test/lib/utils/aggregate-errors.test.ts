@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import { describe, expect, test } from 'vitest';
 import type { ExtendedError } from '../../../src/types/error';
 import type { Event, EventHint } from '../../../src/types/event';
@@ -113,6 +114,24 @@ describe('applyAggregateErrorsToEvent()', () => {
         ],
       },
     });
+  });
+
+  test('recursively walks errors created in another realm', () => {
+    const originalException = runInNewContext(
+      `new AggregateError([new Error('Aggregate child')], 'Root Error', { cause: new Error('Cause') })`,
+    ) as ExtendedError;
+    expect(originalException).not.toBeInstanceOf(Error);
+
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, originalException)] } };
+    const eventHint: EventHint = { originalException };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+
+    expect(event.exception?.values?.map(exception => exception.value)).toStrictEqual([
+      'Aggregate child',
+      'Cause',
+      'Root Error',
+    ]);
   });
 
   test('should not modify event if there are no attached errors', () => {

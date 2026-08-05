@@ -2,7 +2,7 @@ import type { ExtendedError } from '../types/error';
 import type { Event, EventHint } from '../types/event';
 import type { Exception } from '../types/exception';
 import type { StackParser } from '../types/stacktrace';
-import { isInstanceOf } from './is';
+import { isError } from './is';
 
 /**
  * Creates exceptions inside `event.exception.values` for errors that are nested on properties based on the `key` parameter.
@@ -15,7 +15,7 @@ export function applyAggregateErrorsToEvent(
   event: Event,
   hint?: EventHint,
 ): void {
-  if (!event.exception?.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+  if (!event.exception?.values || !hint || !isError(hint.originalException)) {
     return;
   }
 
@@ -55,7 +55,7 @@ function aggregateExceptionsFromError(
   let newExceptions = [...prevExceptions];
 
   // Recursively call this function in order to walk down a chain of errors
-  if (isInstanceOf(error[key], Error)) {
+  if (isError(error[key])) {
     applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
     const newException = exceptionFromErrorImplementation(parser, error[key] as Error);
     const newExceptionId = newExceptions.length;
@@ -76,7 +76,7 @@ function aggregateExceptionsFromError(
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError
   if (isExceptionGroup(error)) {
     error.errors.forEach((childError, i) => {
-      if (isInstanceOf(childError, Error)) {
+      if (isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
         const newException = exceptionFromErrorImplementation(parser, childError as Error);
         const newExceptionId = newExceptions.length;
