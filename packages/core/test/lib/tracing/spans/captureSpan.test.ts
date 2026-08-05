@@ -794,4 +794,104 @@ describe('applyScopeToSegmentSpan integration', () => {
     expect(serializedChild?.is_segment).toBe(false);
     expect(serializedChild?.attributes).not.toHaveProperty('http.response.status_code');
   });
+
+  describe('dataCollection.urlQueryParams', () => {
+    function captureUrlSpan(
+      attributes: Record<string, string>,
+      dataCollection?: { urlQueryParams?: boolean | { allow: string[] } | { deny: string[] } },
+    ): Record<string, { value: unknown }> | undefined {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          ...(dataCollection ? { dataCollection } : {}),
+        }),
+      );
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes });
+        span.end();
+        return span;
+      });
+
+      return captureSpan(span, client).attributes as Record<string, { value: unknown }> | undefined;
+    }
+
+    it('filters sensitive query params in `url.full` and `url.query` by default', () => {
+      const attributes = captureUrlSpan({
+        'url.full': 'https://example.com/api/users?token=abc123&q=a%20b%26c&page=5',
+        'url.query': 'token=abc123&q=a%20b%26c&page=5',
+        'url.path': '/api/users',
+      });
+
+      expect(attributes?.['url.full']?.value).toBe('https://example.com/api/users?token=[Filtered]&q=a%20b%26c&page=5');
+      expect(attributes?.['url.query']?.value).toBe('token=[Filtered]&q=a%20b%26c&page=5');
+    });
+
+    it('leaves `url.path` and the span name untouched', () => {
+      const attributes = captureUrlSpan({
+        'url.full': 'https://example.com/api/users?token=abc123',
+        'url.path': '/api/users',
+      });
+
+      expect(attributes?.['url.path']?.value).toBe('/api/users');
+    });
+
+    it('removes query data entirely when collection is off', () => {
+      const attributes = captureUrlSpan(
+        {
+          'url.full': 'https://example.com/api/users?token=abc123&page=5',
+          'url.query': 'token=abc123&page=5',
+        },
+        { urlQueryParams: false },
+      );
+
+      expect(attributes?.['url.full']?.value).toBe('https://example.com/api/users');
+      expect(attributes?.['url.query']).toBeUndefined();
+    });
+
+    it('honors allowList mode', () => {
+      const attributes = captureUrlSpan(
+        { 'url.query': 'page=1&ref=x&sort=name' },
+        { urlQueryParams: { allow: ['page', 'sort'] } },
+      );
+
+      expect(attributes?.['url.query']?.value).toBe('page=1&ref=[Filtered]&sort=name');
+    });
+
+    it('honors extra deny terms', () => {
+      const attributes = captureUrlSpan(
+        { 'url.query': 'page=1&utm_source=email' },
+        { urlQueryParams: { deny: ['utm'] } },
+      );
+
+      expect(attributes?.['url.query']?.value).toBe('page=1&utm_source=[Filtered]');
+    });
+
+    it('filters attributes set by instrumentation that runs after the span starts', () => {
+      const attributes = captureUrlSpan({ 'url.full': 'https://example.com/s?session=abc&ok=1' });
+
+      expect(attributes?.['url.full']?.value).toBe('https://example.com/s?session=[Filtered]&ok=1');
+    });
+
+    it('filters URL attributes stored as attribute objects', () => {
+      const attributes = captureUrlSpan({
+        'url.full': { value: 'https://example.com/s?token=abc&ok=1', type: 'string' },
+        'url.query': { value: 'token=abc&ok=1', type: 'string' },
+      } as unknown as Record<string, string>);
+
+      expect(attributes?.['url.full']?.value).toBe('https://example.com/s?token=[Filtered]&ok=1');
+      expect(attributes?.['url.query']?.value).toBe('token=[Filtered]&ok=1');
+    });
+
+    it('removes an attribute-object `url.query` when collection is off', () => {
+      const attributes = captureUrlSpan(
+        { 'url.query': { value: 'token=abc', type: 'string' } } as unknown as Record<string, string>,
+        { urlQueryParams: false },
+      );
+
+      expect(attributes?.['url.query']).toBeUndefined();
+    });
+  });
 });

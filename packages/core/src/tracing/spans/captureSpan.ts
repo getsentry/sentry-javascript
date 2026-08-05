@@ -12,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
+import { filterUrlSpanAttributes } from '../../utils/data-collection/filterUrlSpanAttributes';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
@@ -74,6 +75,9 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   // This allows hook subscribers to mutate the span JSON
   // This also invokes the `processSpan` hook of all integrations
   client.emit('processSpan', spanJSON);
+
+  // Runs after the hooks above so that URL attributes set by integrations are filtered too
+  filterUrlSpanAttributes(spanJSON, client.getDataCollectionOptions().urlQueryParams);
 
   const { beforeSendSpan, traceLifecycle } = client.getOptions();
   const processedSpan =
