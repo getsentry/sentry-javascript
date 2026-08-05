@@ -54,7 +54,7 @@ export function getFinalConfigObject(
 
   maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion);
   maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion);
-  maybeAddOutputFileTracingIncludes(incomingUserNextConfigObject, nextMajor);
+  maybeAddOutputFileTracingIncludes(incomingUserNextConfigObject, nextJsVersion);
   warnIfMissingOnRouterTransitionStartHook(userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);

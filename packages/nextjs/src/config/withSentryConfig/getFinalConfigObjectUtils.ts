@@ -274,12 +274,27 @@ export function getNextMajor(nextJsVersion: string | undefined): number | undefi
  * the build environment. (https://github.com/vercel/nft/issues/603,
  * https://github.com/getsentry/sentry-javascript/issues/23034)
  *
+ * Only applied on Next.js >= 14.1: before that, `collectBuildTraces` receives
+ * `Object.entries(pageInfos)` of a `Map` (i.e. an empty array), so its "edge routes have no trace
+ * files" guard never matches and any include glob matching a pages-router edge route crashes the
+ * build with ENOENT on the route's missing `.nft.json` (fixed by
+ * https://github.com/vercel/next.js/pull/59157, released in 14.1.0).
+ *
  * Note: this mutates `incomingUserNextConfigObject`.
  */
 export function maybeAddOutputFileTracingIncludes(
   incomingUserNextConfigObject: NextConfigObject,
-  nextMajor: number | undefined,
+  nextJsVersion: string | undefined,
 ): void {
+  if (!nextJsVersion) {
+    return;
+  }
+
+  const { major, minor } = parseSemver(nextJsVersion);
+  if (major === undefined || minor === undefined || major < 14 || (major === 14 && minor < 1)) {
+    return;
+  }
+
   let meriyahDistDir: string;
   try {
     // Resolve through the dependency chain (@sentry/nextjs -> @sentry/server-utils -> meriyah) so
@@ -301,7 +316,7 @@ export function maybeAddOutputFileTracingIncludes(
     '/*': [...new Set([...(existing?.['/*'] ?? []), ...meriyahIncludes])],
   });
 
-  if (nextMajor && nextMajor >= 15) {
+  if (major >= 15) {
     incomingUserNextConfigObject.outputFileTracingIncludes = mergeIncludes(
       incomingUserNextConfigObject.outputFileTracingIncludes,
     );

@@ -163,12 +163,39 @@ describe('withSentryConfig', () => {
       expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
     });
 
-    it('adds meriyah files to experimental.outputFileTracingIncludes for Next.js < 15', () => {
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
+    it('adds meriyah files to experimental.outputFileTracingIncludes for Next.js 14.1 - 15', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.1.0');
       const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig, outputFileTracingIncludes: undefined });
 
       expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
       expect(finalConfig.experimental?.outputFileTracingIncludes?.['/*']).toEqual(expectedMeriyahIncludes);
+    });
+
+    it.each(['13.5.11', '14.0.4'])(
+      'does not add outputFileTracingIncludes for Next.js %s (edge-route trace collection bug, vercel/next.js#59157)',
+      version => {
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue(version);
+        const finalConfig = materializeFinalNextConfig({
+          ...exportedNextConfig,
+          outputFileTracingIncludes: undefined,
+          experimental: {},
+        });
+
+        expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
+        expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
+      },
+    );
+
+    it('does not add outputFileTracingIncludes when the Next.js version cannot be determined', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      const finalConfig = materializeFinalNextConfig({
+        ...exportedNextConfig,
+        outputFileTracingIncludes: undefined,
+        experimental: {},
+      });
+
+      expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
+      expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
     });
 
     it('preserves existing outputFileTracingIncludes entries', () => {
