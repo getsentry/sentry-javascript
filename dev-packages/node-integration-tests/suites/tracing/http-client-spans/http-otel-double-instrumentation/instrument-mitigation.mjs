@@ -7,6 +7,8 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  // The user-owned OTel HttpInstrumentation's spans reach Sentry through the tracer provider.
+  skipOpenTelemetrySetup: false,
   integrations: [
     // Disable Sentry's span creation so that OTel HttpInstrumentation
     // is the only source of http.client spans. Breadcrumbs and

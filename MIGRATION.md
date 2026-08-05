@@ -82,6 +82,31 @@ Only `@sentry/nextjs` and `@sentry/sveltekit` still set up an OpenTelemetry comp
 
 This means you can run your own OpenTelemetry setup cleanly alongside Sentry without having Sentry spans leak into your pipeline anymore. Your OpenTelemetry setup will no longer be required to use Sentry components for exporting, context management and trace propagation.
 
+This behavior is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11. It now defaults to `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs, and `@sentry/cloudflare`) and to `false` for `@sentry/nextjs` and `@sentry/sveltekit`. When `true`, the SDK skips the tracer provider and isolates scopes with a native AsyncLocalStorage strategy; it still emits its own spans, but spans you create through `@opentelemetry/api` are not captured. Set it to `false` to have Sentry register its own `SentryTracerProvider` as the global OpenTelemetry tracer provider, so those `@opentelemetry/api` spans become Sentry spans:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  // Register Sentry's OpenTelemetry tracer provider so spans created via `@opentelemetry/api` are captured
+  skipOpenTelemetrySetup: false,
+});
+```
+
+Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider, keep `skipOpenTelemetrySetup: true` so Sentry does not register a competing provider. The SDK no longer ships a `SentrySpanProcessor` or other components to route your OpenTelemetry spans into Sentry, so spans from your own provider stay in your OpenTelemetry pipeline and are not sent to Sentry.
+
+In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    // Let your own OpenTelemetry HttpInstrumentation own HTTP & fetch spans
+    Sentry.httpIntegration({ spans: false }),
+    Sentry.nativeNodeFetchIntegration({ spans: false }),
+  ],
+});
+```
+
 With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only remaining package we abide by. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
 
 For most users, day-to-day tracing is **unchanged**.
@@ -430,6 +455,12 @@ Affected SDKs: All SDKs.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
+- The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
+- The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
+- The `gen_ai.tool.input` span attribute was renamed to `gen_ai.tool.call.arguments` across all AI integrations.
+- The `gen_ai.tool.output` span attribute was renamed to `gen_ai.tool.call.result` across all AI integrations.
+- The Vercel AI token attributes `gen_ai.usage.input_tokens.cached`, `gen_ai.usage.input_tokens.cache_write`, and `gen_ai.usage.output_tokens.reasoning` were renamed to `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, and `gen_ai.usage.reasoning.output_tokens`.
+- The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
@@ -820,6 +851,24 @@ import { inboundFiltersIntegration } from '@sentry/browser';
 // after
 import { eventFiltersIntegration } from '@sentry/browser';
 ```
+
+All SDKs now also set up `eventFiltersIntegration` instead of `inboundFiltersIntegration` as a default
+integration, so the integration reports itself as `EventFilters` (e.g. in the `sdk.integrations` payload of
+events). If you disable the integration by its previous name, update the reference:
+
+```js
+// before
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'InboundFilters'),
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'EventFilters'),
+});
+```
+
+The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('InboundFilters')`.
 
 ### `instrumentLangGraph` renamed to `instrumentStateGraph`
 

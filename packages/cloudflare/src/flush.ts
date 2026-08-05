@@ -35,7 +35,7 @@ const flushLockRegistries = new WeakMap<ExecutionContext['waitUntil'], FlushLock
  *
  * By using the original waitUntil for flush operations, we bypass this issue.
  */
-export function getOriginalWaitUntil(context: ExecutionContextCompat): ExecutionContext['waitUntil'] | undefined {
+export function getOriginalWaitUntil(context: ExecutionContextCompat): ExecutionContext['waitUntil'] {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const currentWaitUntil = context.waitUntil;
   const original = flushLockRegistries.get(currentWaitUntil)?.originalWaitUntil;

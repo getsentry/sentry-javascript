@@ -14,11 +14,10 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -84,7 +83,6 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
           [GEN_AI_OPERATION_NAME]: 'execute_tool',
           [GEN_AI_TOOL_NAME]: toolName,
-          [GEN_AI_TOOL_TYPE]: 'function',
         };
 
         // Read agent name from LangChain's propagated config metadata at call time,
@@ -109,7 +107,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
           if (options.recordInputs) {
             const toolArgs = 'args' in input && typeof input.args === 'object' ? input.args : input;
             try {
-              spanAttributes[GEN_AI_TOOL_INPUT] = JSON.stringify(toolArgs);
+              spanAttributes[GEN_AI_TOOL_CALL_ARGUMENTS] = JSON.stringify(toolArgs);
             } catch {
               // skip if not serializable
             }
@@ -133,7 +131,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
                   const content =
                     resultObj && typeof resultObj === 'object' && 'content' in resultObj ? resultObj.content : result;
                   span.setAttribute(
-                    GEN_AI_TOOL_OUTPUT,
+                    GEN_AI_TOOL_CALL_RESULT,
                     typeof content === 'string' ? content : JSON.stringify(content),
                   );
                 } catch {

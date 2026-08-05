@@ -5,20 +5,20 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -132,13 +132,13 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               const toolGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] !== undefined,
+                  span.attributes[GEN_AI_TOOL_DEFINITIONS] !== undefined,
               )!;
               expect(toolGenerateContentSpan).toBeDefined();
               expect(toolGenerateContentSpan.name).toBe('generate_content mock-model-id');
               expect(toolGenerateContentSpan.status).toBe('ok');
               expect(toolGenerateContentSpan.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
-              expect(toolGenerateContentSpan.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toBeDefined();
+              expect(toolGenerateContentSpan.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeDefined();
               expect(toolGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
 
               const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather')!;
@@ -150,8 +150,8 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_DESCRIPTION]?.value).toBe(
                 'Get the current weather for a location',
               );
-              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_INPUT]).toBeDefined();
-              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_OUTPUT]).toBeDefined();
+              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]).toBeDefined();
+              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeDefined();
             },
           })
           .start()
@@ -213,7 +213,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(firstGenerateContentSpan.attributes['vercel.ai.operationId']?.value).toBe(
                 'ai.generateText.doGenerate',
               );
-              expect(firstGenerateContentSpan.attributes[GEN_AI_SYSTEM]?.value).toBe('mock-provider');
+              expect(firstGenerateContentSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('mock-provider');
               expect(firstGenerateContentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
               expect(firstGenerateContentSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 
@@ -276,7 +276,6 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolExecutionSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_NAME]?.value).toBe('getWeather');
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
-              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_TYPE]?.value).toBe('function');
             },
           })
           .start()
@@ -443,7 +442,6 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               expect(toolSpan.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME]?.value).toBe('getWeather');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call-1');
-              expect(toolSpan.attributes[GEN_AI_TOOL_TYPE]?.value).toBe('function');
 
               const finalGenerateContentSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["stop"]',
@@ -793,8 +791,8 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               // Cache/reasoning token breakdown and conversation id are derived from the model's
               // `providerMetadata` — by the OTel processor on v6 and by the channel subscriber on v7,
               // both via the shared `getProviderMetadataAttributes` helper, so the shape is identical.
-              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED]?.value).toBe(5);
-              expect(generateContent.attributes['gen_ai.usage.output_tokens.reasoning']?.value).toBe(7);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
+              expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
               expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe('resp_abc123');
 
               const invokeAgent = container.items.find(

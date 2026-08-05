@@ -3,10 +3,10 @@ import {
   consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -52,9 +52,7 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
     ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),
@@ -96,6 +94,9 @@ export function initWithDefaultIntegrations(
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
+    // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
+    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
     flushLock,
   };
 
@@ -109,14 +110,9 @@ export function initWithDefaultIntegrations(
   }
   /*! rollup-include-development-only-end */
 
-  /**
-   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
-   */
-  if (!options.skipOpenTelemetrySetup) {
+  // Opt-in only: when `skipOpenTelemetrySetup` is `false`, set up a custom trace provider so spans
+  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
+  if (!clientOptions.skipOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
 

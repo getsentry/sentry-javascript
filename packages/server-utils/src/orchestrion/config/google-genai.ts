@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // `@google/genai` ships one bundled file per module format and the matcher compares `filePath` exactly,
 // so we list every file the `node` export condition resolves to across the supported range: `index.js`
@@ -41,5 +41,3 @@ export const googleGenAiChannels = {
   GOOGLE_GENAI_EMBED_CONTENT: 'orchestrion:@google/genai:embed-content',
   GOOGLE_GENAI_CHAT: 'orchestrion:@google/genai:chat',
 } as const;
-
-export const googleGenAiSubscribeInjection = toSubscribeInjections(googleGenAiConfig);

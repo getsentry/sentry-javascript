@@ -4,9 +4,9 @@ import {
   INSTRUMENTED_MODULE_NAMES,
   instrumentedModuleNames,
   SENTRY_INSTRUMENTATIONS,
-  SUBSCRIBE_INJECTIONS,
   withoutInstrumentedExternals,
 } from '../../src/orchestrion/config';
+import { CHANNEL_INTEGRATION_DEFINITIONS } from '../../src/orchestrion/config/channel-integration-definitions';
 
 describe('orchestrion config — scoped @hapi/hapi module', () => {
   it('includes the scoped @hapi/hapi name in INSTRUMENTED_MODULE_NAMES', () => {
@@ -21,17 +21,17 @@ describe('orchestrion config — scoped @hapi/hapi module', () => {
   });
 });
 
-describe('orchestrion config — subscribe injection coverage', () => {
-  // Every instrumented library must contribute a subscribe injection so bundler-only SDKs
-  // self-register its subscriber. A literal `.length` check is wrong: `toSubscribeInjections`
-  // dedupes by (module, versionRange, filePath), so one library with many channel configs
-  // (e.g. redis) collapses to fewer injections. The invariant that must hold is at the
-  // module-name level — the set of instrumented modules and the set of injected modules match.
-  it('has a subscribe injection for every instrumented module and vice versa', () => {
+describe('orchestrion config — channel-subscriber coverage', () => {
+  // The subscribe injection rides the real channel configs (the `tracingChannelImport`
+  // override only runs on instrumented files), so a subscriber definition whose module is
+  // not instrumented could never self-register — it has to be a config mistake.
+  it('only defines subscribers for instrumented modules', () => {
     const instrumentedModules = new Set(SENTRY_INSTRUMENTATIONS.map(i => i.module.name));
-    const injectedModules = new Set(SUBSCRIBE_INJECTIONS.map(i => i.module.name));
+    const missing = CHANNEL_INTEGRATION_DEFINITIONS.flatMap(d =>
+      d.modules.filter(moduleName => !instrumentedModules.has(moduleName)),
+    );
 
-    expect([...injectedModules].sort()).toEqual([...instrumentedModules].sort());
+    expect(missing).toEqual([]);
   });
 });
 

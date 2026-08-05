@@ -1,27 +1,21 @@
 /* eslint-disable max-lines */
-// `@sentry/conventions` marks several gen_ai attributes (e.g. `GEN_AI_SYSTEM`, `GEN_AI_TOOL_*`,
-// `GEN_AI_REQUEST_AVAILABLE_TOOLS`) as deprecated in favour of newer semconv names. We intentionally
-// keep emitting the current names so these spans match the OTel-based (v6) integration and what the
-// Sentry product consumes today; migrating to the new names is a separate, coordinated change.
-/* eslint-disable typescript-eslint/no-deprecated */
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_FUNCTION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
-  GEN_AI_TOOL_INPUT,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -84,7 +78,7 @@ const operationIdByCallId = new Map<string, { operationId: string; isStream: boo
 // onto the tool span here — without relying on the OTel `vercelAiEventProcessor`
 // (which isn't registered in channel/orchestrion mode). Cleared with the
 // operation. Only populated when inputs are recorded, matching the OTel path
-// (which sources descriptions from the recorded `available_tools`).
+// (which sources descriptions from the recorded `tool.definitions`).
 const toolDescriptionsByCallId = new Map<string, Map<string, string>>();
 
 // A streamed `streamText` operation's own channel result is always `undefined` (the SDK exposes the
@@ -373,14 +367,14 @@ export function createSpanFromMessage(
   const maxRetries = asNumber(event.maxRetries);
 
   // Harvest tool descriptions from the operation/model-call `tools` so tool spans can backfill them.
-  // Gated on `recordInputs` to match the OTel path, which only records `available_tools` then.
+  // Gated on `recordInputs` to match the OTel path, which only records `tool.definitions` then.
   if (recordInputs) {
     recordToolDescriptions(callId, event.tools);
   }
 
   const baseAttributes: Record<string, string | number | boolean> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    ...(provider ? { [GEN_AI_SYSTEM]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
+    ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
   };
@@ -466,7 +460,7 @@ function buildModelCallSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event) : {}),
-    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_REQUEST_AVAILABLE_TOOLS]: stringify(event.tools) } : {}),
+    ...(recordInputs && Array.isArray(event.tools) ? { [GEN_AI_TOOL_DEFINITIONS]: stringify(event.tools) } : {}),
   });
 }
 
@@ -481,11 +475,10 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan(GEN_AI_EXECUTE_TOOL_SPAN_OP, toolName, {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    [GEN_AI_TOOL_TYPE]: 'function',
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),
-    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_INPUT]: stringify(toolInput) } : {}),
+    ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
   });
 }
 
@@ -508,7 +501,7 @@ export function enrichSpanOnEnd(
 
   if (type === 'executeTool') {
     if (recordOutputs) {
-      span.setAttribute(GEN_AI_TOOL_OUTPUT, stringify(result.output ?? result));
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(result.output ?? result));
     }
     // From V5 on, tool errors are not rejected (so the `error` channel verb never fires) — they
     // surface as `tool-error` content on the resolved result. Mirror the OTel path by marking the

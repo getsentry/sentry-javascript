@@ -25,7 +25,7 @@ const DEFAULT_REPLAY_EVENT = {
   },
   sdk: {
     integrations: expect.arrayContaining([
-      'InboundFilters',
+      'EventFilters',
       'FunctionToString',
       'BrowserApiErrors',
       'Breadcrumbs',

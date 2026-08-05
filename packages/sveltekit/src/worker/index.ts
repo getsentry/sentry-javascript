@@ -43,8 +43,6 @@ export {
   getSpanStatusFromHttpCode,
   getTraceData,
   getTraceMetaTags,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   isInitialized,
   isEnabled,
   lastEventId,

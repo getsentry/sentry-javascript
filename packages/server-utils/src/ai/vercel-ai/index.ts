@@ -1,4 +1,3 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import {
   _INTERNAL_skipAiProviderWrapping,
@@ -16,17 +15,19 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
@@ -248,7 +249,7 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
 export function processVercelAiSpanAttributes(attributes: Record<string, unknown>): void {
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS);
-  renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED);
+  renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS);
 
   // Parent spans (ai.streamText, ai.streamObject, etc.) use inputTokens/outputTokens instead of promptTokens/completionTokens
   renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS);
@@ -268,10 +269,10 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   if (
     !inputTokensAreCacheInclusive &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS] === 'number' &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED] === 'number'
+    typeof attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] === 'number'
   ) {
     attributes[GEN_AI_USAGE_INPUT_TOKENS] =
-      attributes[GEN_AI_USAGE_INPUT_TOKENS] + attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED];
+      attributes[GEN_AI_USAGE_INPUT_TOKENS] + attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS];
   }
 
   // Compute total tokens from input + output (embeddings may only have input tokens)
@@ -309,13 +310,14 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   buildOutputMessages(attributes);
 
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
-  renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
+  renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, GEN_AI_TOOL_DEFINITIONS);
 
-  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT);
-  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT);
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_CALL_ARGUMENTS);
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_CALL_RESULT);
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL);
+  renameAttributeKey(attributes, 'gen_ai.system', GEN_AI_PROVIDER_NAME);
 
   // Map embedding input: ai.values → gen_ai.embeddings.input
   // Vercel AI SDK JSON-stringifies each value individually, so we parse each element back.
@@ -417,10 +419,6 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
     toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
-  // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
-  if (!attributes[GEN_AI_TOOL_TYPE]) {
-    span.setAttribute(GEN_AI_TOOL_TYPE, 'function');
-  }
   const toolName = attributes[GEN_AI_TOOL_NAME];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);
@@ -537,8 +535,8 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
   // OpenAI (v5 uses 'openai', v6 Azure Responses API uses 'azure')
   const openaiMetadata: OpenAiProviderMetadata | undefined = metadata.openai ?? metadata.azure;
   if (openaiMetadata) {
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, openaiMetadata.cachedPromptTokens);
-    setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, openaiMetadata.cachedPromptTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, openaiMetadata.reasoningTokens);
     setAttributeIfDefined(
       attributes,
       'gen_ai.usage.output_tokens.prediction_accepted',
@@ -555,24 +553,28 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
   if (metadata.anthropic) {
     const cachedInputTokens =
       metadata.anthropic.usage?.cache_read_input_tokens ?? metadata.anthropic.cacheReadInputTokens;
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, cachedInputTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cachedInputTokens);
 
     const cacheWriteInputTokens =
       metadata.anthropic.usage?.cache_creation_input_tokens ?? metadata.anthropic.cacheCreationInputTokens;
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE, cacheWriteInputTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWriteInputTokens);
   }
 
   if (metadata.bedrock?.usage) {
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, metadata.bedrock.usage.cacheReadInputTokens);
     setAttributeIfDefined(
       attributes,
-      GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE,
+      GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+      metadata.bedrock.usage.cacheReadInputTokens,
+    );
+    setAttributeIfDefined(
+      attributes,
+      GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
       metadata.bedrock.usage.cacheWriteInputTokens,
     );
   }
 
   if (metadata.deepseek) {
-    setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED, metadata.deepseek.promptCacheHitTokens);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, metadata.deepseek.promptCacheHitTokens);
     setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
   }
 

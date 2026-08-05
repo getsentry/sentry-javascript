@@ -5,16 +5,15 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -71,7 +70,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
               'ai.generateText.doGenerate',
             );
-            expect(firstGenerateContentSpan!.attributes[GEN_AI_SYSTEM].value).toBe('mock-provider');
+            expect(firstGenerateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('mock-provider');
             expect(firstGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
             expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 
@@ -133,7 +132,6 @@ describe('Vercel AI integration (v4)', () => {
             expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
-            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_TYPE].value).toBe('function');
           },
         })
         .start()
@@ -223,13 +221,13 @@ describe('Vercel AI integration (v4)', () => {
             const toolGenerateContentSpan = container.items.find(
               span =>
                 span.name === 'generate_content mock-model-id' &&
-                getStringAttributeValue(span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value)?.includes('getWeather'),
+                getStringAttributeValue(span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value)?.includes('getWeather'),
             );
             expect(toolGenerateContentSpan).toBeDefined();
             expect(toolGenerateContentSpan!.name).toBe('generate_content mock-model-id');
             expect(toolGenerateContentSpan!.status).toBe('ok');
             expect(toolGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(toolGenerateContentSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS].value).toContain('getWeather');
+            expect(toolGenerateContentSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('getWeather');
             expect(toolGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
 
             const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather');
@@ -241,8 +239,8 @@ describe('Vercel AI integration (v4)', () => {
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_DESCRIPTION].value).toBe(
               'Get the current weather for a location',
             );
-            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_INPUT]).toBeDefined();
-            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_OUTPUT]).toBeDefined();
+            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]).toBeDefined();
+            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeDefined();
           },
         })
         .start()
@@ -618,7 +616,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject.doGenerate');
             expect(generateContentSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
             expect(generateContentSpan!.attributes['gen_ai.operation.name'].value).toBe('generate_content');
-            expect(generateContentSpan!.attributes['gen_ai.system'].value).toBe('mock-provider');
+            expect(generateContentSpan!.attributes['gen_ai.provider.name'].value).toBe('mock-provider');
             expect(generateContentSpan!.attributes['gen_ai.request.model'].value).toBe('mock-model-id');
             expect(generateContentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
             expect(generateContentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);

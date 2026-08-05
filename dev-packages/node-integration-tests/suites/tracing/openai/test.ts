@@ -5,6 +5,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_FINISH_REASONS,
@@ -12,7 +13,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -57,7 +57,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -112,7 +112,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
+            expect(responsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
             expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
@@ -162,7 +162,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -189,7 +189,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -252,7 +252,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -312,7 +312,7 @@ describe('OpenAI integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -357,7 +357,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(chatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -424,7 +424,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(responsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({ type: 'string', value: 'openai' });
+            expect(responsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
             expect(responsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-3.5-turbo',
@@ -482,7 +482,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(nonStreamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -513,7 +513,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(streamingChatCompletionSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -588,7 +588,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(streamingResponsesSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -660,7 +660,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: '[{"role":"user","content":"This will fail"}]',
             });
-            expect(streamingErrorSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(streamingErrorSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -756,7 +756,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -801,7 +801,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -830,7 +830,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -887,7 +887,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(singleEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -938,7 +938,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(errorEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -971,7 +971,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(multiEmbeddingSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -1022,7 +1022,7 @@ describe('OpenAI integration', () => {
                   [GEN_AI_OPERATION_NAME]: 'chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
-                  [GEN_AI_SYSTEM]: 'openai',
+                  [GEN_AI_PROVIDER_NAME]: 'openai',
                   [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                   [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
                   [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
@@ -1064,7 +1064,7 @@ describe('OpenAI integration', () => {
                   [GEN_AI_OPERATION_NAME]: 'chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
-                  [GEN_AI_SYSTEM]: 'openai',
+                  [GEN_AI_PROVIDER_NAME]: 'openai',
                   [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                   [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
                   [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
@@ -1115,7 +1115,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(conversationCreateSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(conversationCreateSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -1144,7 +1144,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(conversationResponseSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(conversationResponseSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -1187,7 +1187,7 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(previousResponseSpan!.attributes[GEN_AI_SYSTEM]).toEqual({
+            expect(previousResponseSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
               type: 'string',
               value: 'openai',
             });
@@ -1228,7 +1228,7 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'user_chat_session_abc123',
               });
-              expect(span!.attributes['gen_ai.system']).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
               expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
               expect(span!.attributes['gen_ai.operation.name']).toEqual({ type: 'string', value: 'chat' });
               expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
@@ -1261,7 +1261,7 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'conv_user1_session_abc',
               });
-              expect(span!.attributes['gen_ai.system']).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
               expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
               expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
             }
@@ -1293,7 +1293,7 @@ describe('OpenAI integration', () => {
                 type: 'string',
                 value: 'conv_user2_session_xyz',
               });
-              expect(span!.attributes['gen_ai.system']).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
               expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
               expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
             }

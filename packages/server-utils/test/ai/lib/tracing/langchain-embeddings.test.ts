@@ -4,8 +4,8 @@ import type * as SentryCore from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
-  GEN_AI_SYSTEM,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
@@ -66,7 +66,7 @@ describe('instrumentEmbeddingMethod', () => {
     expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
     expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME]).toBe('embeddings');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL]).toBe('text-embedding-3-small');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('openai');
+    expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('openai');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBe(1536);
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toBe('float');
     expect(original).toHaveBeenCalledWith('Hello world');
@@ -102,7 +102,7 @@ describe('instrumentEmbeddingMethod', () => {
     const wrapped = instrumentEmbeddingMethod(original);
 
     await wrapped.call({ constructor: { name: 'GoogleGenerativeAIEmbeddings' }, model: 'test' }, 'test');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('google_genai');
+    expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('google_genai');
   });
 
   it('handles missing instance properties gracefully', async () => {
@@ -113,7 +113,7 @@ describe('instrumentEmbeddingMethod', () => {
 
     expect(capturedSpanConfig!.name).toBe('embeddings unknown');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL]).toBe('unknown');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM]).toBe('langchain');
+    expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('langchain');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBeUndefined();
   });
 });

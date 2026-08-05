@@ -16,7 +16,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { extractSystemInstructions, getGenAiMessagesJsonString, setTokenUsageAttributes } from '../core/utils';
@@ -101,7 +101,7 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
       return;
     }
 
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof text === 'string' ? text : JSON.stringify(text));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(text, String));
     return;
   }
 
@@ -159,7 +159,7 @@ export function setOutputMessagesAttribute(
         type: 'tool_call',
         id: call.id,
         name,
-        arguments: typeof args === 'string' ? args : JSON.stringify(args ?? {}),
+        arguments: stringify(args ?? {}, String),
       });
     }
   }

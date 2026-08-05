@@ -3,7 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -14,8 +14,8 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -50,7 +50,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
-            expect(chatSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
@@ -61,7 +61,7 @@ describe('Google GenAI integration', () => {
             expect(generateContentSpan!.status).toBe('ok');
             expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
             expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-            expect(generateContentSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-flash');
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
@@ -75,7 +75,7 @@ describe('Google GenAI integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
             expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
           },
         })
@@ -103,7 +103,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(chatSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
@@ -182,7 +182,7 @@ describe('Google GenAI integration', () => {
             expect(container.items).toHaveLength(3);
             const nonStreamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING] === undefined,
             );
             expect(nonStreamingToolsSpan).toBeDefined();
@@ -198,7 +198,7 @@ describe('Google GenAI integration', () => {
 
             const streamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
             );
             expect(streamingToolsSpan).toBeDefined();
@@ -214,9 +214,7 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(10);
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(22);
 
-            const noToolsSpan = container.items.find(
-              span => span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] === undefined,
-            );
+            const noToolsSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_DEFINITIONS] === undefined);
             expect(noToolsSpan).toBeDefined();
             expect(noToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(noToolsSpan!.status).toBe('ok');
@@ -394,7 +392,7 @@ describe('Google GenAI integration', () => {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
               expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
-              expect(span.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+              expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-004');
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
             }
@@ -432,7 +430,7 @@ describe('Google GenAI integration', () => {
             expect(stringInputSpan!.name).toBe('embeddings text-embedding-004');
             expect(stringInputSpan!.status).toBe('ok');
             expect(stringInputSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-            expect(stringInputSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(stringInputSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
 
             const errorSpan = container.items.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'This will fail',

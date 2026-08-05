@@ -58,7 +58,7 @@ it('Tracing headers', async ({ signal }) => {
     )
     .start(signal);
 
-  await runner.makeRequest('get', '/');
+  await runner.makeRequest('get', '/', { expectError: true });
   await runner.completed();
   closeTestServer();
 });

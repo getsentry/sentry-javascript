@@ -2,9 +2,9 @@ import type { Client, Integration, Options } from '@sentry/core/browser';
 import {
   conversationIdIntegration,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
-  inboundFiltersIntegration,
   initAndBind,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
@@ -35,9 +35,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
   return [
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     browserApiErrorsIntegration(),

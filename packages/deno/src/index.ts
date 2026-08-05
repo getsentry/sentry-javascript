@@ -69,8 +69,6 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,

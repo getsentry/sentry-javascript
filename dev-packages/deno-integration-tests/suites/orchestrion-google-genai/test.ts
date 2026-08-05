@@ -53,7 +53,7 @@ Deno.test('google-genai instrumentation: orchestrion @google/genai:generate-cont
     `expected a gen_ai.generate_content child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
   );
   assertEquals(aiSpan!.description, 'generate_content gemini-1.5-flash');
-  assertEquals(aiSpan!.data?.['gen_ai.system'], 'google_genai');
+  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'google_genai');
   assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'generate_content');
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gemini-1.5-flash');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'gemini-1.5-flash-002');

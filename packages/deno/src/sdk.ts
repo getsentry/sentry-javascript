@@ -2,9 +2,9 @@ import type { Client, Integration, Options, ServerRuntimeClientOptions, StackPar
 import {
   createStackParser,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
-  inboundFiltersIntegration,
   initAndBind,
   linkedErrorsIntegration,
   nodeStackLineParser,
@@ -54,9 +54,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     requestDataIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),

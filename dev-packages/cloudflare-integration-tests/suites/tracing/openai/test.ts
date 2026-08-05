@@ -2,12 +2,12 @@ import { expect, it } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -42,7 +42,7 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
         attributes: {
           'sentry.origin': { value: 'auto.ai.openai', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'openai', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'openai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
