@@ -11,10 +11,10 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
   GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED,
@@ -151,7 +151,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
                 'Get the current weather for a location',
               );
               expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]).toBeDefined();
-              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_OUTPUT]).toBeDefined();
+              expect(toolExecutionSpan.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeDefined();
             },
           })
           .start()
