@@ -1,5 +1,4 @@
 import { HTTP_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { AnyFn } from './helpers';
@@ -44,7 +43,7 @@ export function getAppCreationSpanOptions(
 
 /**
  * Wrap the route-handler callback so each invocation opens the request-handler
- * (`function` op) span. Preserve the original `.name` and reflect-metadata so
+ * (`handler` op) span. Preserve the original `.name` and reflect-metadata so
  * NestJS reflection is unaffected.
  */
 export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn {
@@ -54,7 +53,8 @@ export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn
   const spanName = callback.name || 'anonymous nest handler';
   const attributes: SpanAttributes = {
     component: NESTJS_COMPONENT,
-    [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+    // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+    [SENTRY_OP]: 'handler',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
     [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
     [AttributeNames.CALLBACK]: callback.name,

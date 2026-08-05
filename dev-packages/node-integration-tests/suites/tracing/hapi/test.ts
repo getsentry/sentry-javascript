@@ -58,13 +58,13 @@ describe('hapi auto-instrumentation', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 description: 'GET /plugin-route',
-                op: 'function',
+                op: 'handler',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/plugin-route',
                   'hapi.type': 'plugin',
                   'hapi.plugin.name': 'testPlugin',
-                  'sentry.op': 'function',
+                  'sentry.op': 'handler',
                   'sentry.origin': origin,
                 }),
               }),

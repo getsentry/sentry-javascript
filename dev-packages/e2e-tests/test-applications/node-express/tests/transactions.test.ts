@@ -122,13 +122,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'function',
+      'sentry.op': 'handler',
       'http.route': '/test-transaction',
       'express.name': '/test-transaction',
       'express.type': 'request_handler',
     },
     description: '/test-transaction',
-    op: 'function',
+    op: 'handler',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -198,14 +198,14 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.express',
-      'sentry.op': 'function',
+      'sentry.op': 'handler',
       'http.route': '/test-exception/:id',
       'express.name': '/test-exception/:id',
       'express.type': 'request_handler',
       'error.type': 'Error',
     },
     description: '/test-exception/:id',
-    op: 'function',
+    op: 'handler',
     origin: 'auto.http.express',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

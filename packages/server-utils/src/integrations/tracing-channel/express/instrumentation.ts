@@ -1,6 +1,6 @@
 import type * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -225,7 +225,8 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
         type === 'middleware'
           ? WEB_SERVER_MIDDLEWARE_SPAN_OP
           : type === 'request_handler'
-            ? WEB_SERVER_FUNCTION_SPAN_OP
+            ? // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+              'handler'
             : `${type}.express`,
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,

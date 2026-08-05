@@ -28,7 +28,7 @@
  */
 
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, startSpanManual, withActiveSpan } from '../../tracing';
@@ -128,7 +128,8 @@ export function patchLayer(
         type === 'middleware'
           ? WEB_SERVER_MIDDLEWARE_SPAN_OP
           : type === 'request_handler'
-            ? WEB_SERVER_FUNCTION_SPAN_OP
+            ? // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+              'handler'
             : `${type}.express`,
     });
     if (actualMatchedRoute) {

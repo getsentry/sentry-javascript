@@ -41,7 +41,7 @@ describe('express tracing', () => {
                   'express.type': 'request_handler',
                 }),
                 description: '/test/express',
-                op: 'function',
+                op: 'handler',
                 origin: 'auto.http.express',
               }),
             ]),

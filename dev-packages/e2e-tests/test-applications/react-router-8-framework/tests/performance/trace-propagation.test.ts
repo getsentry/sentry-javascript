@@ -32,7 +32,7 @@ test.describe('Trace propagation', () => {
 
     expect(clientTx.contexts?.trace?.trace_id).toEqual(serverTx.contexts?.trace?.trace_id);
 
-    const requestHandlerSpan = serverTx.spans?.find(span => span.op === 'function');
+    const requestHandlerSpan = serverTx.spans?.find(span => span.op === 'handler');
 
     expect(requestHandlerSpan).toBeDefined();
     expect(clientTx.contexts?.trace?.parent_span_id).toBe(requestHandlerSpan?.span_id);

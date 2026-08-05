@@ -1,5 +1,5 @@
 import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -34,7 +34,8 @@ const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
   Parse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   Transform: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   BeforeHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  Handle: WEB_SERVER_FUNCTION_SPAN_OP,
+  // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+  Handle: 'handler',
   AfterHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   MapResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   AfterResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,

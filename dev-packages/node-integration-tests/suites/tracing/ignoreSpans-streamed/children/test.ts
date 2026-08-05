@@ -33,7 +33,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
               );
             const queryMiddlewareSpan = getSpan('query', 'middleware');
             const corsMiddlewareSpan = getSpan('corsMiddleware', 'middleware');
-            const requestHandlerSpan = getSpan('/test/express', 'function');
+            const requestHandlerSpan = getSpan('/test/express', 'handler');
             const httpServerSpan = getSpan('GET /test/express', 'http.server');
             const customSpan = getSpan('custom', 'custom');
             const customGrandchildSpan = getSpan('custom-grandchild', 'custom');

@@ -60,7 +60,7 @@ test('request_context + handler: a route transaction nests the nestjs spans', as
 
   // request_handler span: wraps the controller method itself.
   const handler = (transactionEvent.spans ?? []).find(
-    span => span.op === 'function' && span.description === 'testTransaction',
+    span => span.op === 'handler' && span.description === 'testTransaction',
   );
   expect(handler).toBeDefined();
 });
