@@ -6,11 +6,11 @@ import {
   createStackParser,
   debug,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
@@ -38,9 +38,7 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 export function getDefaultIntegrations(): Integration[] {
   return [
     dedupeIntegration(),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),

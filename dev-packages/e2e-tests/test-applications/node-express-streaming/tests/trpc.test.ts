@@ -5,7 +5,7 @@ import type { AppRouter } from '../src/app';
 
 test('Should record streamed span for trpc query', async ({ baseURL }) => {
   const trpcSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return span.name === 'trpc/getSomething' && getSpanOp(span) === 'rpc.server';
+    return span.name === 'trpc/getSomething' && getSpanOp(span) === 'rpc';
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -21,13 +21,13 @@ test('Should record streamed span for trpc query', async ({ baseURL }) => {
   const trpcSpan = await trpcSpanPromise;
   expect(trpcSpan).toBeDefined();
   expect(trpcSpan.name).toBe('trpc/getSomething');
-  expect(getSpanOp(trpcSpan)).toBe('rpc.server');
+  expect(getSpanOp(trpcSpan)).toBe('rpc');
   expect(trpcSpan.attributes['sentry.origin']?.value).toBe('auto.rpc.trpc');
 });
 
 test('Should record streamed span for trpc mutation', async ({ baseURL }) => {
   const trpcSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return span.name === 'trpc/createSomething' && getSpanOp(span) === 'rpc.server';
+    return span.name === 'trpc/createSomething' && getSpanOp(span) === 'rpc';
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -43,13 +43,13 @@ test('Should record streamed span for trpc mutation', async ({ baseURL }) => {
   const trpcSpan = await trpcSpanPromise;
   expect(trpcSpan).toBeDefined();
   expect(trpcSpan.name).toBe('trpc/createSomething');
-  expect(getSpanOp(trpcSpan)).toBe('rpc.server');
+  expect(getSpanOp(trpcSpan)).toBe('rpc');
   expect(trpcSpan.attributes['sentry.origin']?.value).toBe('auto.rpc.trpc');
 });
 
 test('Should record streamed span and error for a crashing trpc handler', async ({ baseURL }) => {
   const trpcSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return span.name === 'trpc/crashSomething' && getSpanOp(span) === 'rpc.server';
+    return span.name === 'trpc/crashSomething' && getSpanOp(span) === 'rpc';
   });
 
   const errorEventPromise = waitForError('node-express-streaming', errorEvent => {
@@ -83,7 +83,7 @@ test('Should record streamed span and error for a crashing trpc handler', async 
 
 test('Should record streamed span and error for a trpc handler that returns a status code', async ({ baseURL }) => {
   const trpcSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return span.name === 'trpc/badRequest' && getSpanOp(span) === 'rpc.server';
+    return span.name === 'trpc/badRequest' && getSpanOp(span) === 'rpc';
   });
 
   const errorEventPromise = waitForError('node-express-streaming', errorEvent => {

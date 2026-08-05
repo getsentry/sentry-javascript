@@ -31,7 +31,7 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
   expect(consoleMessages).toEqual(
     hasDebug
       ? [
-          'Sentry Logger [log]: Integration installed: InboundFilters',
+          'Sentry Logger [log]: Integration installed: EventFilters',
           'Sentry Logger [log]: Integration installed: FunctionToString',
           'Sentry Logger [log]: Integration installed: ConversationId',
           'Sentry Logger [log]: Integration installed: BrowserApiErrors',

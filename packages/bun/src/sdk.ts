@@ -2,9 +2,9 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  eventFiltersIntegration,
   functionToStringIntegration,
   hasSpansEnabled,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
@@ -69,9 +69,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   // Return a fresh array on each call so callers can safely mutate the result.
   return [
     // Common
-    // TODO(v11): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),

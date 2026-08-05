@@ -166,6 +166,29 @@ User IP address inference, which was previously gated on `sendDefaultPii`, is no
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
 
+#### Remix action form data
+
+`captureActionFormDataKeys` is an integration-level override, so it no longer requires
+`dataCollection.httpBodies` to also include `'incomingRequest'`:
+
+```js
+// v10 — both were required
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+  dataCollection: { httpBodies: ['incomingRequest'] },
+});
+
+// v11 — the option opts in on its own
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+});
+```
+
+If `captureActionFormDataKeys` is not set, all form fields are captured when
+`dataCollection.httpBodies` includes `'incomingRequest'` (the v11 default). Values whose field name
+looks sensitive (`password`, `token`, …) are replaced with `[Filtered]`, including explicitly
+allowlisted ones.
+
 ### Channel-based instrumentation is the default
 
 Affected SDKs: `@sentry/node` and all dependents.
@@ -797,6 +820,24 @@ import { inboundFiltersIntegration } from '@sentry/browser';
 // after
 import { eventFiltersIntegration } from '@sentry/browser';
 ```
+
+All SDKs now also set up `eventFiltersIntegration` instead of `inboundFiltersIntegration` as a default
+integration, so the integration reports itself as `EventFilters` (e.g. in the `sdk.integrations` payload of
+events). If you disable the integration by its previous name, update the reference:
+
+```js
+// before
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'InboundFilters'),
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'EventFilters'),
+});
+```
+
+The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('InboundFilters')`.
 
 ### `instrumentLangGraph` renamed to `instrumentStateGraph`
 

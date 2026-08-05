@@ -27,7 +27,7 @@ test('Records span for trpc query', async ({ baseURL }) => {
   expect(transaction.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'sentry.op': 'rpc.server',
+        'sentry.op': 'rpc',
         'sentry.origin': 'auto.rpc.trpc',
       }),
       description: `trpc/getSomething`,
@@ -59,7 +59,7 @@ test('Records transaction for trpc mutation', async ({ baseURL }) => {
   expect(transaction.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'sentry.op': 'rpc.server',
+        'sentry.op': 'rpc',
         'sentry.origin': 'auto.rpc.trpc',
       }),
       description: `trpc/createSomething`,

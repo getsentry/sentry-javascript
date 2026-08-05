@@ -144,8 +144,6 @@ export { spanKindToName } from './spanKind';
 export type { SpanKind, SpanKindNumber } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-// eslint-disable-next-line typescript/no-deprecated
-export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
