@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
+  stringify,
 } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
@@ -76,7 +77,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
 
   if (recordInputs && input != null) {
-    attributes[GEN_AI_EMBEDDINGS_INPUT] = typeof input === 'string' ? input : JSON.stringify(input);
+    attributes[GEN_AI_EMBEDDINGS_INPUT] = stringify(input, String);
   }
 
   return {
