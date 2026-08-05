@@ -1,6 +1,7 @@
 import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
+import { createRequire } from 'module';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import { createRouteManifest } from '../manifest/createRouteManifest';
@@ -259,6 +260,72 @@ export function getNextMajor(nextJsVersion: string | undefined): number | undefi
 
   const { major } = parseSemver(nextJsVersion);
   return major;
+}
+
+/**
+ * Forces `meriyah`'s runtime files into Next.js' output file tracing.
+ *
+ * `meriyah` (a runtime dependency of `@sentry/server-utils`) declares its ESM build behind the
+ * `module-sync` export condition. Whether `@vercel/nft` traces that condition's target depends on
+ * the Node.js version running the build and on the nft version the installed Next.js bundles, so
+ * the traced file set can miss the file Node actually resolves at runtime. `output: 'standalone'`
+ * builds (and Vercel deployments) then crash on boot with `ERR_MODULE_NOT_FOUND` for
+ * `meriyah/dist/meriyah.mjs`. Force-including both build outputs makes the trace independent of
+ * the build environment. (https://github.com/vercel/nft/issues/603,
+ * https://github.com/getsentry/sentry-javascript/issues/23034)
+ *
+ * Only applied on Next.js >= 14.1: before that, `collectBuildTraces` receives
+ * `Object.entries(pageInfos)` of a `Map` (i.e. an empty array), so its "edge routes have no trace
+ * files" guard never matches and any include glob matching a pages-router edge route crashes the
+ * build with ENOENT on the route's missing `.nft.json` (fixed by
+ * https://github.com/vercel/next.js/pull/59157, released in 14.1.0).
+ *
+ * Note: this mutates `incomingUserNextConfigObject`.
+ */
+export function maybeAddOutputFileTracingIncludes(
+  incomingUserNextConfigObject: NextConfigObject,
+  nextJsVersion: string | undefined,
+): void {
+  if (!nextJsVersion) {
+    return;
+  }
+
+  const { major, minor } = parseSemver(nextJsVersion);
+  if (major === undefined || minor === undefined || major < 14 || (major === 14 && minor < 1)) {
+    return;
+  }
+
+  let meriyahDistDir: string;
+  try {
+    // Resolve through the dependency chain (@sentry/nextjs -> @sentry/server-utils -> meriyah) so
+    // the resolved copy is the one the runtime hook actually loads, even with strict pnpm layouts.
+    const serverUtilsPkgPath = createRequire(`${__dirname}/`).resolve('@sentry/server-utils/package.json');
+    meriyahDistDir = path.dirname(createRequire(serverUtilsPkgPath).resolve('meriyah'));
+  } catch {
+    return;
+  }
+
+  // Include globs are resolved relative to the project directory; normalize to posix separators
+  // since both the glob matching and Turbopack's native implementation expect forward slashes.
+  const meriyahIncludes = ['meriyah.mjs', 'meriyah.cjs'].map(file =>
+    path.relative(process.cwd(), path.join(meriyahDistDir, file)).replace(/\\/g, '/'),
+  );
+
+  const mergeIncludes = (existing: Record<string, string[]> | undefined): Record<string, string[]> => ({
+    ...existing,
+    '/*': [...new Set([...(existing?.['/*'] ?? []), ...meriyahIncludes])],
+  });
+
+  if (major >= 15) {
+    incomingUserNextConfigObject.outputFileTracingIncludes = mergeIncludes(
+      incomingUserNextConfigObject.outputFileTracingIncludes,
+    );
+  } else {
+    incomingUserNextConfigObject.experimental = {
+      ...incomingUserNextConfigObject.experimental,
+      outputFileTracingIncludes: mergeIncludes(incomingUserNextConfigObject.experimental?.outputFileTracingIncludes),
+    };
+  }
 }
 
 /**

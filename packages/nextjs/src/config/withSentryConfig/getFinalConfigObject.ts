@@ -16,6 +16,7 @@ import {
 } from './getFinalConfigObjectBundlerUtils';
 import {
   getNextMajor,
+  maybeAddOutputFileTracingIncludes,
   maybeCreateRouteManifest,
   maybeGetVercelCronsConfig,
   maybeSetClientTraceMetadataOption,
@@ -53,6 +54,7 @@ export function getFinalConfigObject(
 
   maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion);
   maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion);
+  maybeAddOutputFileTracingIncludes(incomingUserNextConfigObject, nextJsVersion);
   warnIfMissingOnRouterTransitionStartHook(userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);

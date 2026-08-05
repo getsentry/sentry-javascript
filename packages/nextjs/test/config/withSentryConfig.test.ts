@@ -145,6 +145,75 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('output file tracing includes', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const expectedMeriyahIncludes = expect.arrayContaining([
+      expect.stringMatching(/meriyah\/dist\/meriyah\.mjs$/),
+      expect.stringMatching(/meriyah\/dist\/meriyah\.cjs$/),
+    ]);
+
+    it('adds meriyah files to outputFileTracingIncludes for Next.js 15+', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig, experimental: {} });
+
+      expect(finalConfig.outputFileTracingIncludes?.['/*']).toEqual(expectedMeriyahIncludes);
+      expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
+    });
+
+    it('adds meriyah files to experimental.outputFileTracingIncludes for Next.js 14.1 - 15', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.1.0');
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig, outputFileTracingIncludes: undefined });
+
+      expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
+      expect(finalConfig.experimental?.outputFileTracingIncludes?.['/*']).toEqual(expectedMeriyahIncludes);
+    });
+
+    it.each(['13.5.11', '14.0.4'])(
+      'does not add outputFileTracingIncludes for Next.js %s (edge-route trace collection bug, vercel/next.js#59157)',
+      version => {
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue(version);
+        const finalConfig = materializeFinalNextConfig({
+          ...exportedNextConfig,
+          outputFileTracingIncludes: undefined,
+          experimental: {},
+        });
+
+        expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
+        expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
+      },
+    );
+
+    it('does not add outputFileTracingIncludes when the Next.js version cannot be determined', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      const finalConfig = materializeFinalNextConfig({
+        ...exportedNextConfig,
+        outputFileTracingIncludes: undefined,
+        experimental: {},
+      });
+
+      expect(finalConfig.outputFileTracingIncludes).toBeUndefined();
+      expect(finalConfig.experimental?.outputFileTracingIncludes).toBeUndefined();
+    });
+
+    it('preserves existing outputFileTracingIncludes entries', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
+      const finalConfig = materializeFinalNextConfig({
+        ...exportedNextConfig,
+        outputFileTracingIncludes: {
+          '/*': ['./some-user-file.txt'],
+          '/api/other': ['./other-file.txt'],
+        },
+      });
+
+      expect(finalConfig.outputFileTracingIncludes?.['/*']).toEqual(expectedMeriyahIncludes);
+      expect(finalConfig.outputFileTracingIncludes?.['/*']).toEqual(expect.arrayContaining(['./some-user-file.txt']));
+      expect(finalConfig.outputFileTracingIncludes?.['/api/other']).toEqual(['./other-file.txt']);
+    });
+  });
+
   describe('webpack configuration behavior', () => {
     const originalTurbopack = process.env.TURBOPACK;
 
