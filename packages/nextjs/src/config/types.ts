@@ -47,12 +47,14 @@ export type NextConfigObject = {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
     serverComponentsExternalPackages?: string[]; // next < v15.0.0
+    outputFileTracingIncludes?: Record<string, string[]>; // next < v15.0.0
     sri?: { algorithm?: string };
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
+  outputFileTracingIncludes?: Record<string, string[]>; // next >= v15.0.0
   turbopack?: TurbopackOptions;
   compiler?: {
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
