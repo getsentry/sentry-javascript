@@ -1,5 +1,5 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
+import { suppressTracing } from '../src/utils/suppressTracing';
 import {
   getActiveSpan,
   getCapturedScopesOnSpan,

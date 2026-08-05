@@ -48,7 +48,7 @@ describe('setupOrchestrion', () => {
       externals: { inline: ['ioredis', 'custom-dependency'] },
     };
 
-    setupOrchestrion(mockNuxt as unknown as Nuxt);
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(mockSentryOrchestrionPlugin).toHaveBeenCalledOnce();
@@ -56,12 +56,46 @@ describe('setupOrchestrion', () => {
     expect(nitroConfig.externals.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
   });
 
+  it('injects channel subscribers on a Cloudflare preset even without a server config file', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt();
+    const nitroConfig = { preset: 'cloudflare_module' };
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, false);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    expect(mockSentryOrchestrionPlugin).toHaveBeenCalledWith({ injectChannelSubscribers: true });
+  });
+
+  it('does not inject channel subscribers on a non-Cloudflare preset', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt();
+    const nitroConfig = { preset: 'node-server' };
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    expect(mockSentryOrchestrionPlugin).toHaveBeenCalledWith({});
+  });
+
+  it('does not run without a server config file on a non-Cloudflare preset', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt();
+    const nitroConfig = { preset: 'node-server' };
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, false);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
+    expect(nitroConfig).toEqual({ preset: 'node-server' });
+  });
+
   it('initializes absent Nitro configuration', async () => {
     const { setupOrchestrion } = await import('../../src/vite/orchestrion');
     const mockNuxt = createMockNuxt();
     const nitroConfig = {};
 
-    setupOrchestrion(mockNuxt as unknown as Nuxt);
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(nitroConfig).toEqual({
@@ -75,7 +109,7 @@ describe('setupOrchestrion', () => {
     const mockNuxt = createMockNuxt();
     const nitroConfig = {};
 
-    setupOrchestrion(mockNuxt as unknown as Nuxt, false);
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true, false);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
@@ -87,7 +121,7 @@ describe('setupOrchestrion', () => {
     const mockNuxt = createMockNuxt({ _prepare: true });
     const nitroConfig = { rollupConfig: { plugins: [] } };
 
-    setupOrchestrion(mockNuxt as unknown as Nuxt);
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
