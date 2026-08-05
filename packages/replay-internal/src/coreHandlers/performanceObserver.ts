@@ -9,6 +9,7 @@ import {
   getCumulativeLayoutShift,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
+  rememberEntryTimeOrigin,
   webVitalHandler,
 } from '../util/createPerformanceEntries';
 
@@ -20,6 +21,9 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
   function addPerformanceEntry(entry: PerformanceEntry): void {
     // It is possible for entries to come up multiple times
     if (!replay.performanceEntries.includes(entry)) {
+      // Entries are converted to wall clock time on flush, which can be long after this point, so the time origin that
+      // is currently in effect has to be captured now.
+      rememberEntryTimeOrigin(entry);
       replay.performanceEntries.push(entry);
     }
   }
