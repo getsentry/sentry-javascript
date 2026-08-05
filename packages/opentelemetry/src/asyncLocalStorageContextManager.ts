@@ -31,11 +31,11 @@ import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScop
 export type AsyncLocalStorageLookup = {
   asyncLocalStorage: AsyncLocalStorage<unknown>;
   /**
-   * Key path traversed through the store to reach the `{ scope, isolationScope }` object, for native
-   * threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted when the
-   * store already is that object (e.g. the pure AsyncLocalStorage strategy).
+   * The OpenTelemetry context key under which the `{ scope, isolationScope }` object is stored, for
+   * native threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted
+   * for the pure AsyncLocalStorage strategy, whose store already is that object.
    */
-  stateLookup?: Array<string | symbol>;
+  contextSymbol?: symbol;
 };
 type ListenerFn = (...args: unknown[]) => unknown;
 
@@ -104,7 +104,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   public getAsyncLocalStorageLookup(): AsyncLocalStorageLookup {
     return {
       asyncLocalStorage: this._asyncLocalStorage,
-      stateLookup: ['_currentContext', SENTRY_SCOPES_CONTEXT_KEY],
+      contextSymbol: SENTRY_SCOPES_CONTEXT_KEY,
     };
   }
 

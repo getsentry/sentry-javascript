@@ -78,7 +78,11 @@ function startPolling(
   integrationOptions: Partial<ThreadBlockedIntegrationOptions>,
 ): IntegrationInternal | undefined {
   if (client.asyncLocalStorageLookup) {
-    const { asyncLocalStorage, stateLookup } = client.asyncLocalStorageLookup;
+    const { asyncLocalStorage, contextSymbol } = client.asyncLocalStorageLookup;
+    // With the OpenTelemetry context strategy, scopes live under `contextSymbol` on the OTel context
+    // (`store._currentContext[contextSymbol]`). The pure AsyncLocalStorage strategy omits it because
+    // its store already is the `{ scope, isolationScope }` object, so no traversal is needed.
+    const stateLookup = contextSymbol ? ['_currentContext', contextSymbol] : [];
     registerThread({ asyncLocalStorage, stateLookup });
   } else {
     registerThread();
