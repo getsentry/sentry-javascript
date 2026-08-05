@@ -60,7 +60,7 @@ test.describe('server - instrumentation API error capture', () => {
 
     // Find the loader span
     const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'code.function.name'?: string } }) => span.data?.['code.function.name'] === 'loader',
+      span => span.data?.['code.function.name'] === 'loader',
     );
 
     expect(loaderSpan).toMatchObject({
