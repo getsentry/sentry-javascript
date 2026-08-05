@@ -1,3 +1,5 @@
+import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
 import {
   debug,
   handleCallbackErrors,
@@ -37,8 +39,9 @@ function _wrapCloudEventFunction(
     return startSpanManual(
       {
         name: context.type || '<unknown>',
-        op: 'function.gcp.cloud_event',
         attributes: {
+          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [FAAS_TRIGGER]: 'cloud_event',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
