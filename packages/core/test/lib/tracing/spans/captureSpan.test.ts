@@ -796,10 +796,12 @@ describe('applyScopeToSegmentSpan integration', () => {
   });
 
   describe('dataCollection.urlQueryParams', () => {
+    const SPAN_NAME_PATH = '/api/users';
+
     function captureUrlSpan(
       attributes: Record<string, string>,
       dataCollection?: { urlQueryParams?: boolean | { allow: string[] } | { deny: string[] } },
-    ): Record<string, { value: unknown }> | undefined {
+    ) {
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://dsn@ingest.f00.f00/1',
@@ -810,16 +812,22 @@ describe('applyScopeToSegmentSpan integration', () => {
 
       const span = withScope(scope => {
         scope.setClient(client);
-        const span = startInactiveSpan({ name: 'my-span', attributes });
+        const span = startInactiveSpan({ name: `GET ${SPAN_NAME_PATH}`, attributes });
         span.end();
         return span;
       });
 
-      return captureSpan(span, client).attributes as Record<string, { value: unknown }> | undefined;
+      return captureSpan(span, client);
+    }
+
+    function captureUrlSpanAttributes(
+      ...args: Parameters<typeof captureUrlSpan>
+    ): Record<string, { value: unknown }> | undefined {
+      return captureUrlSpan(...args).attributes as Record<string, { value: unknown }> | undefined;
     }
 
     it('filters sensitive query params in `url.full` and `url.query` by default', () => {
-      const attributes = captureUrlSpan({
+      const attributes = captureUrlSpanAttributes({
         'url.full': 'https://example.com/api/users?token=abc123&q=a%20b%26c&page=5',
         'url.query': 'token=abc123&q=a%20b%26c&page=5',
         'url.path': '/api/users',
@@ -830,16 +838,19 @@ describe('applyScopeToSegmentSpan integration', () => {
     });
 
     it('leaves `url.path` and the span name untouched', () => {
-      const attributes = captureUrlSpan({
+      const serialized = captureUrlSpan({
         'url.full': 'https://example.com/api/users?token=abc123',
         'url.path': '/api/users',
       });
+      const attributes = serialized.attributes as Record<string, { value: unknown }> | undefined;
 
       expect(attributes?.['url.path']?.value).toBe('/api/users');
+      expect(serialized.name).toBe(`GET ${SPAN_NAME_PATH}`);
+      expect(attributes?.['sentry.segment.name']?.value).toBe(`GET ${SPAN_NAME_PATH}`);
     });
 
     it('removes query data entirely when collection is off', () => {
-      const attributes = captureUrlSpan(
+      const attributes = captureUrlSpanAttributes(
         {
           'url.full': 'https://example.com/api/users?token=abc123&page=5',
           'url.query': 'token=abc123&page=5',
@@ -852,7 +863,7 @@ describe('applyScopeToSegmentSpan integration', () => {
     });
 
     it('honors allowList mode', () => {
-      const attributes = captureUrlSpan(
+      const attributes = captureUrlSpanAttributes(
         { 'url.query': 'page=1&ref=x&sort=name' },
         { urlQueryParams: { allow: ['page', 'sort'] } },
       );
@@ -861,7 +872,7 @@ describe('applyScopeToSegmentSpan integration', () => {
     });
 
     it('honors extra deny terms', () => {
-      const attributes = captureUrlSpan(
+      const attributes = captureUrlSpanAttributes(
         { 'url.query': 'page=1&utm_source=email' },
         { urlQueryParams: { deny: ['utm'] } },
       );
@@ -869,14 +880,30 @@ describe('applyScopeToSegmentSpan integration', () => {
       expect(attributes?.['url.query']?.value).toBe('page=1&utm_source=[Filtered]');
     });
 
-    it('filters attributes set by instrumentation that runs after the span starts', () => {
-      const attributes = captureUrlSpan({ 'url.full': 'https://example.com/s?session=abc&ok=1' });
+    it('filters URL attributes set by a `processSpan` subscriber after the span ended', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: 'https://dsn@ingest.f00.f00/1', tracesSampleRate: 1 }),
+      );
+
+      // Mirrors `requestDataIntegration`, which sets `url.full` during `processSegmentSpan`
+      client.on('processSpan', spanJSON => {
+        safeSetSpanJSONAttributes(spanJSON, { 'url.full': 'https://example.com/s?session=abc&ok=1' });
+      });
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+        return span;
+      });
+
+      const attributes = captureSpan(span, client).attributes as Record<string, { value: unknown }> | undefined;
 
       expect(attributes?.['url.full']?.value).toBe('https://example.com/s?session=[Filtered]&ok=1');
     });
 
     it('filters URL attributes stored as attribute objects', () => {
-      const attributes = captureUrlSpan({
+      const attributes = captureUrlSpanAttributes({
         'url.full': { value: 'https://example.com/s?token=abc&ok=1', type: 'string' },
         'url.query': { value: 'token=abc&ok=1', type: 'string' },
       } as unknown as Record<string, string>);
@@ -886,7 +913,7 @@ describe('applyScopeToSegmentSpan integration', () => {
     });
 
     it('removes an attribute-object `url.query` when collection is off', () => {
-      const attributes = captureUrlSpan(
+      const attributes = captureUrlSpanAttributes(
         { 'url.query': { value: 'token=abc', type: 'string' } } as unknown as Record<string, string>,
         { urlQueryParams: false },
       );
