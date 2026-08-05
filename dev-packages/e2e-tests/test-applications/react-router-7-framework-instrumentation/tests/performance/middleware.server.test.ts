@@ -37,9 +37,7 @@ test.describe('server - instrumentation API middleware', () => {
     });
 
     // Find the middleware span
-    const middlewareSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'middleware',
-    );
+    const middlewareSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'middleware');
 
     expect(middlewareSpan).toBeDefined();
     expect(middlewareSpan).toMatchObject({
@@ -74,13 +72,9 @@ test.describe('server - instrumentation API middleware', () => {
 
     const transaction = await txPromise;
 
-    const middlewareSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'middleware',
-    );
+    const middlewareSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'middleware');
 
-    const loaderSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(middlewareSpan).toBeDefined();
     expect(loaderSpan).toBeDefined();
@@ -101,9 +95,7 @@ test.describe('server - instrumentation API middleware', () => {
     await expect(page.locator('#multi-middleware-title')).toBeVisible();
     await expect(page.locator('#multi-middleware-content')).toHaveText('This route has 3 middlewares');
 
-    const middlewareSpans = transaction?.spans?.filter(
-      span => span.data?.['code.function.name'] === 'middleware',
-    );
+    const middlewareSpans = transaction?.spans?.filter(span => span.data?.['code.function.name'] === 'middleware');
 
     expect(middlewareSpans).toHaveLength(3);
 

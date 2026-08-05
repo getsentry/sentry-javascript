@@ -41,9 +41,7 @@ test.describe('server - instrumentation API lazy loading', () => {
     });
 
     // Find the lazy span
-    const lazySpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'lazy',
-    );
+    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
 
     expect(lazySpan).toMatchObject({
       span_id: expect.any(String),
@@ -72,9 +70,7 @@ test.describe('server - instrumentation API lazy loading', () => {
     const transaction = await txPromise;
 
     // Find the loader span that runs after lazy loading
-    const loaderSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
@@ -99,13 +95,9 @@ test.describe('server - instrumentation API lazy loading', () => {
 
     const transaction = await txPromise;
 
-    const lazySpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'lazy',
-    );
+    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
 
-    const loaderSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(lazySpan).toBeDefined();
     expect(loaderSpan).toBeDefined();

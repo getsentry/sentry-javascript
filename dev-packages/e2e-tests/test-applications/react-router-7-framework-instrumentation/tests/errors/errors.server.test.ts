@@ -59,9 +59,7 @@ test.describe('server - instrumentation API error capture', () => {
     const transaction = await txPromise;
 
     // Find the loader span
-    const loaderSpan = transaction?.spans?.find(
-      span => span.data?.['code.function.name'] === 'loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(loaderSpan).toMatchObject({
       data: {
