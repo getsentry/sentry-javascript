@@ -139,11 +139,13 @@ function maybeAddOrchestrionRule(
     return rules;
   }
 
-  // The loader's transform splices an import of `@sentry/server-utils/orchestrion` into each
-  // instrumented module. Turbopack has no externals-function seam, and under isolated installs
-  // (pnpm) the bare specifier emitted inside a bundled package doesn't resolve from that
-  // package's location — so pass the helper's absolute on-disk path for the snippet to import.
-  const importSpecifier = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
+  // The loader's transform splices an import of the `@sentry/server-utils/orchestrion` helper into
+  // each instrumented module. Turbopack rejects absolute-path imports ("server relative imports are
+  // not implemented yet"), and under isolated installs (pnpm) the bare specifier emitted inside a
+  // bundled package doesn't resolve from that package's location — so pass the helper's absolute
+  // on-disk path and let the loader derive a per-file RELATIVE specifier, which Turbopack resolves
+  // from the importing file and bundles at build time.
+  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
@@ -155,7 +157,7 @@ function maybeAddOrchestrionRule(
           // Turbopack JSON-serializes loader options, so a RegExp `filePath` must be encoded first.
           options: {
             instrumentations: serializeInstrumentations(getSentryInstrumentations()) as unknown as JSONValue[],
-            ...(importSpecifier ? { importSpecifier } : {}),
+            ...(importHelperPath ? { importHelperPath } : {}),
           },
         },
       ],

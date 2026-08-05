@@ -20,7 +20,7 @@ vi.mock('@apm-js-collab/code-transformer-bundler-plugins/esbuild', () => ({
   default: () => ({ name: 'code-transformer', setup: vi.fn() }),
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/vite', () => ({
-  default: () => ({ name: 'code-transformer' }),
+  default: () => ({ name: 'code-transformer', transform: () => 'transformed' }),
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
   default: () => ({ apply: vi.fn() }),
@@ -138,6 +138,52 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(runConfigResolved(true)).not.toHaveBeenCalled();
     expect(runConfigResolved(['lodash'])).not.toHaveBeenCalled();
     expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
+  });
+
+  it('gates the transform on the ssr flag (Vite 5 ignores applyToEnvironment)', () => {
+    const plugin = vitePlugin();
+    const transform = plugin.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+
+    // Client-build transforms must be skipped: transformed modules in the
+    // client graph would import the subscriber factories, whose
+    // `node:diagnostics_channel` imports break against the browser shim.
+    expect(transform.call({}, 'code', 'id', { ssr: false })).toBeNull();
+    expect(transform.call({}, 'code', 'id', undefined)).toBeNull();
+    expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+  });
+
+  it('gates resolveId on the ssr flag and falls back to self-resolution', async () => {
+    const plugin = vitePlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts?: { ssr?: boolean },
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: false }),
+    ).resolves.toBeNull();
+    expect(resolve).not.toHaveBeenCalled();
+
+    // Normal resolution wins when it succeeds.
+    resolve.mockResolvedValueOnce({ id: '/resolved.js' });
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true }),
+    ).resolves.toEqual({
+      id: '/resolved.js',
+    });
+
+    // When it fails (pnpm isolation), fall back to this package's own resolution.
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true });
+    expect(typeof fallback).toBe('string');
+    expect(fallback).toContain('orchestrion');
   });
 });
 

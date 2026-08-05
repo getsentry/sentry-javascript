@@ -67,13 +67,26 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
   });
 
-  it('honors the importSpecifier option (Turbopack passes an absolute path)', () => {
+  it('honors a fixed importSpecifier option', () => {
     const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
       instrumentations,
-      importSpecifier: '/abs/path/to/orchestrion/index.js',
+      importSpecifier: 'my-custom-orchestrion-helper',
     });
 
-    expect(code).toContain('require("/abs/path/to/orchestrion/index.js")');
+    expect(code).toContain('require("my-custom-orchestrion-helper")');
+    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
+  });
+
+  it('derives a per-file relative specifier from importHelperPath (Turbopack)', () => {
+    // Turbopack rejects absolute-path imports and bare specifiers that don't
+    // resolve from the importing file, so the snippet must import relatively.
+    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/orchestrion/index.js');
+    const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
+      instrumentations,
+      importHelperPath,
+    });
+
+    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/orchestrion/index.js")');
     expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
   });
 

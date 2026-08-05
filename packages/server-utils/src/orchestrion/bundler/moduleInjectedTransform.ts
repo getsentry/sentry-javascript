@@ -77,7 +77,11 @@ function moduleInjectedSnippet(
  * `state.transforms.defaults`.
  */
 export function moduleInjectedTransforms(
-  importSpecifier: string = DEFAULT_IMPORT_SPECIFIER,
+  // A function is read per injected file — the webpack/Turbopack loader uses it
+  // to supply a per-file relative specifier (Turbopack supports neither
+  // absolute-path imports nor bare specifiers that don't resolve from the
+  // importing file's location).
+  importSpecifier?: string | (() => string | undefined),
 ): Record<string, CustomTransform> {
   const injectModuleInjected: CustomTransform = (state, program, parent, ancestry) => {
     const { moduleType, module, transforms } = state as {
@@ -100,8 +104,10 @@ export function moduleInjectedTransforms(
 
     injectedPrograms.add(node);
 
+    const specifier =
+      (typeof importSpecifier === 'function' ? importSpecifier() : importSpecifier) ?? DEFAULT_IMPORT_SPECIFIER;
     const exportName = subscriberExportForModule(moduleName);
-    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', importSpecifier), {
+    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', specifier), {
       module: moduleType === 'esm',
       next: true,
     }).body as ProgramNode['body'];
