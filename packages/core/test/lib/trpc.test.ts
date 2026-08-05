@@ -59,10 +59,14 @@ describe('trpcMiddleware', () => {
     expect(tracing.startSpanManual).toHaveBeenCalledWith(
       {
         name: 'trpc/test.procedure',
-        op: 'rpc.server',
         attributes: {
+          'sentry.op': 'rpc',
           'sentry.origin': 'auto.rpc.trpc',
           'sentry.source': 'route',
+          'rpc.system.name': 'trpc',
+          'rpc.method': 'test.procedure',
+          'trpc.procedure_path': 'test.procedure',
+          'trpc.procedure_type': 'query',
         },
         forceTransaction: false,
       },
