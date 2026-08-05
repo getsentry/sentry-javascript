@@ -19,9 +19,7 @@ type RenderEntry = {
   now: number;
 };
 
-interface RenderEntries {
-  [name: string]: RenderEntry;
-}
+export type RenderEntries = Map<string, RenderEntry>;
 
 /** This is global, so should only be run once in tests! */
 export function instrumentGlobalsForPerformance(config: {
@@ -127,25 +125,29 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
   });
 }
 
-function processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
+export function _processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
   const info = {
     payload,
     now: timestampInSeconds(),
   };
-  beforeEntries[payload.object] = info;
+  beforeEntries.set(payload.object, info);
 }
 
-function processComponentRenderAfter(
+export function _processComponentRenderAfter(
   payload: Payload,
   beforeEntries: RenderEntries,
   op: string,
   minComponentDuration: number,
 ): void {
-  const begin = beforeEntries[payload.object];
+  const begin = beforeEntries.get(payload.object);
 
   if (!begin) {
     return;
   }
+
+  // Remove the entry so the render payload (which references the component
+  // instance) is not retained forever in this module-scope map.
+  beforeEntries.delete(payload.object);
 
   const now = timestampInSeconds();
   const componentRenderDuration = now - begin.now;
@@ -174,27 +176,27 @@ function _instrumentComponents(config: {
 
   const minComponentDuration = minimumComponentRenderDuration ?? 2;
 
-  const beforeEntries = {} as RenderEntries;
-  const beforeComponentDefinitionEntries = {} as RenderEntries;
+  const beforeEntries: RenderEntries = new Map();
+  const beforeComponentDefinitionEntries: RenderEntries = new Map();
 
   function _subscribeToRenderEvents(): void {
     subscribe('render.component', {
       before(_name: string, _timestamp: number, payload: Payload) {
-        processComponentRenderBefore(payload, beforeEntries);
+        _processComponentRenderBefore(payload, beforeEntries);
       },
 
       after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-        processComponentRenderAfter(payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
+        _processComponentRenderAfter(payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
       },
     });
     if (enableComponentDefinitions) {
       subscribe('render.getComponentDefinition', {
         before(_name: string, _timestamp: number, payload: Payload) {
-          processComponentRenderBefore(payload, beforeComponentDefinitionEntries);
+          _processComponentRenderBefore(payload, beforeComponentDefinitionEntries);
         },
 
         after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, GENERAL_FUNCTION_SPAN_OP, 0);
+          _processComponentRenderAfter(payload, beforeComponentDefinitionEntries, GENERAL_FUNCTION_SPAN_OP, 0);
         },
       });
     }
