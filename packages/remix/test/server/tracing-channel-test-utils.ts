@@ -104,8 +104,8 @@ export function setupRemixInstrumentation(captureActionFormDataKeys?: Record<str
   installTestAsyncContextStrategy();
   vi.spyOn(SentryNode, 'getClient').mockReturnValue({
     getOptions: () => ({ captureActionFormDataKeys }),
-    getDataCollectionOptions: () => ({ httpBodies: captureActionFormDataKeys ? ['incomingRequest'] : [] }),
+    getDataCollectionOptions: () => ({ httpBodies: [] }),
   } as unknown as NodeClient);
 
-  instrumentRemix(captureActionFormDataKeys);
+  instrumentRemix(captureActionFormDataKeys ? { keys: captureActionFormDataKeys } : undefined);
 }
