@@ -139,11 +139,14 @@ const FORM = `
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .form__error-container {
   color: var(--error-color);
   fill: var(--error-color);
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .form__label {
