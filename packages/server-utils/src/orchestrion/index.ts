@@ -26,10 +26,10 @@ import { expressIntegration } from '../integrations/tracing-channel/express';
 import { firebaseIntegration } from '../integrations/tracing-channel/firebase';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
-// The runtime target of the subscribe-injection snippet: instrumented modules
-// import this to self-register their channel subscriber on the global marker
-// (used by bundler-only SDKs).
-export { registerOrchestrionChannelIntegration } from './registerChannelIntegration';
+// The runtime target of the snippet the bundler transform splices into every
+// instrumented module: records the module on the global marker (plus its
+// subscriber factory, when it has one) and emits the module-injected event.
+export { orchestrionModuleInjected } from './moduleInjected';
 // The `@nestjs/*` channel names live here alongside their transform config; the
 // listener that subscribes to them lives in `@sentry/nestjs`, which imports this.
 export { nestjsChannels } from './config/nestjs';

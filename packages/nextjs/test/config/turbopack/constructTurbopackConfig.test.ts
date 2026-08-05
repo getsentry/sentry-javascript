@@ -1337,6 +1337,25 @@ describe('orchestrion build-time instrumentation', () => {
     expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
   });
 
+  it('passes the helper module as an absolute-path importSpecifier', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+      loaders: Array<{ options: { importSpecifier?: string } }>;
+    };
+    const importSpecifier = rule.loaders[0]!.options.importSpecifier;
+
+    // Turbopack has no externals-function seam: the snippet's import must be an
+    // absolute path so it resolves under isolated installs (pnpm).
+    expect(importSpecifier).toBeDefined();
+    expect(path.isAbsolute(importSpecifier!)).toBe(true);
+    expect(importSpecifier).toContain('orchestrion');
+  });
+
   it('restricts the orchestrion rule to the node environment', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},

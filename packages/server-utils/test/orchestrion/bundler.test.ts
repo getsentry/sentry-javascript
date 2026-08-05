@@ -60,6 +60,7 @@ describe('sentryOrchestrionPlugin (esbuild)', () => {
     const build = {
       initialOptions: { external },
       onStart: (callback: () => OnStartResult) => onStartCallbacks.push(callback),
+      onResolve: vi.fn(),
     } as unknown as PluginBuild;
     void esbuildPlugin().setup(build);
     return onStartCallbacks.map(callback => callback());
@@ -210,36 +211,52 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   });
 });
 
-describe('orchestrionTransformOptions injectDiagnostics banner', () => {
-  // Evaluate the emitted boot-banner snippet against a fake global, mirroring
-  // what runs when a bundled app boots. The banner must record `.bundler` for
-  // detection AND fire the on-inject bridge for each transformed module
-  // (force-bundled modules never reach the runtime hook, so the bridge is the
-  // only thing that triggers their channel subscription).
-  function runBanner(transformedModules: string[], global: Record<string, unknown>): void {
+describe('orchestrionTransformOptions', () => {
+  it('always includes the module-injected tracingChannelImport override', () => {
     const opts = orchestrionTransformOptions({});
-    const banner = opts.injectDiagnostics?.({ transformedModules, failedModules: [] });
-    expect(typeof banner).toBe('string');
-    // `globalThis` inside the snippet resolves to the sandbox object we pass in.
-    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
-    new Function('globalThis', banner as string)(global);
-  }
 
-  it('records `.bundler` and fires the on-inject bridge for each module', () => {
-    const onInject = vi.fn();
-    const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { onInject } };
-
-    runBanner(['mysql', 'pg'], global);
-
-    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql', 'pg']);
-    expect(onInject.mock.calls.map(c => c[0])).toEqual(['mysql', 'pg']);
+    expect(typeof opts.customTransforms?.tracingChannelImport).toBe('function');
   });
 
-  it('is a guarded no-op for the bridge when none is installed (bundler-only runtimes)', () => {
-    const global: Record<string, unknown> = {};
+  it('keeps user custom transforms and lets the module-injected override win a name clash', () => {
+    const userTransform = vi.fn();
+    const clashing = vi.fn();
 
-    expect(() => runBanner(['mysql'], global)).not.toThrow();
-    // `.bundler` is still recorded so `init()` can drive subscription from it.
-    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+    const opts = orchestrionTransformOptions({
+      customTransforms: { myTransform: userTransform, tracingChannelImport: clashing },
+    });
+
+    expect(opts.customTransforms?.myTransform).toBe(userTransform);
+    expect(opts.customTransforms?.tracingChannelImport).not.toBe(clashing);
+  });
+
+  describe('marker banner', () => {
+    // Evaluate the emitted boot-banner snippet against a fake global, mirroring
+    // what runs when a bundled app boots. The banner only marks "the bundler
+    // plugin ran"; module names arrive per module via the injected snippets.
+    function runBanner(global: Record<string, unknown>): void {
+      const opts = orchestrionTransformOptions({});
+      const banner = opts.injectDiagnostics?.({ transformedModules: [], failedModules: [] });
+      expect(typeof banner).toBe('string');
+      // `globalThis` inside the snippet resolves to the sandbox object we pass in.
+      // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
+      new Function('globalThis', banner as string)(global);
+    }
+
+    it('marks the plugin as ran with an empty module list', () => {
+      const global: Record<string, unknown> = {};
+
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual([]);
+    });
+
+    it('never clobbers module names an injected snippet already recorded', () => {
+      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: ['mysql'] } };
+
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+    });
   });
 });

@@ -3,6 +3,7 @@ import * as path from 'path';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
+  resolveOrchestrionRuntimeRequest,
   serializeInstrumentations,
 } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
@@ -138,6 +139,12 @@ function maybeAddOrchestrionRule(
     return rules;
   }
 
+  // The loader's transform splices an import of `@sentry/server-utils/orchestrion` into each
+  // instrumented module. Turbopack has no externals-function seam, and under isolated installs
+  // (pnpm) the bare specifier emitted inside a bundled package doesn't resolve from that
+  // package's location — so pass the helper's absolute on-disk path for the snippet to import.
+  const importSpecifier = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
+
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
@@ -148,6 +155,7 @@ function maybeAddOrchestrionRule(
           // Turbopack JSON-serializes loader options, so a RegExp `filePath` must be encoded first.
           options: {
             instrumentations: serializeInstrumentations(getSentryInstrumentations()) as unknown as JSONValue[],
+            ...(importSpecifier ? { importSpecifier } : {}),
           },
         },
       ],

@@ -13,14 +13,11 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
-const orchestrionVite = vi.fn(
-  (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) => ({
-    name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
-  }),
-);
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
 vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
-  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) =>
-    orchestrionVite(options),
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
 
 // The cloudflare adapter path resolves `@sentry/cloudflare` via `createRequire` and calls
@@ -451,7 +448,7 @@ describe('sentryAstro integration', () => {
     });
   });
 
-  it('adds the orchestrion plugin with channel-subscriber injection for the cloudflare workers adapter', async () => {
+  it('adds the orchestrion plugin for the cloudflare workers adapter', async () => {
     const integration = sentryAstro({});
 
     const cloudflareConfig = { ...config, adapter: { name: '@astrojs/cloudflare' } } as AstroConfig;
@@ -466,7 +463,7 @@ describe('sentryAstro integration', () => {
     });
 
     // No wrangler config with `pages_build_output_dir` is present, so this resolves as Workers.
-    expect(orchestrionVite).toHaveBeenCalledWith(expect.objectContaining({ injectChannelSubscribers: true }));
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
