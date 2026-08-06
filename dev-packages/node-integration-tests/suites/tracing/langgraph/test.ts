@@ -235,16 +235,21 @@ describe('LangGraph integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('records full gen_ai input messages when span streaming is enabled', async () => {
-      const longContent = 'A'.repeat(50_000);
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('creates langgraph related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
           span: container => {
-            const chatSpan = container.items.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
+            const weatherTodaySpan = container.items.find(span =>
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
+                'What is the weather today?',
+              ),
             );
-            expect(chatSpan).toBeDefined();
+            expect(weatherTodaySpan).toBeDefined();
+            expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
+            expect(weatherTodaySpan!.status).toBe('ok');
+            expect(weatherTodaySpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(weatherTodaySpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
           },
         })
         .start()

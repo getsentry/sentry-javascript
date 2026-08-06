@@ -23,7 +23,6 @@ import {
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('OpenAI integration', () => {
@@ -1366,24 +1365,35 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('records full gen_ai input messages when span streaming is enabled', async () => {
-      const longContent = 'A'.repeat(50_000);
-      const longStringInput = 'B'.repeat(50_000);
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('creates openai related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
+            const chatCompletionSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
             );
-            expect(chatSpan).toBeDefined();
-
-            const responsesSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longStringInput),
-            );
-            expect(responsesSpan).toBeDefined();
+            expect(chatCompletionSpan).toBeDefined();
+            expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
+            expect(chatCompletionSpan!.status).toBe('ok');
+            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the capital of France?"}]',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
           },
         })
         .start()

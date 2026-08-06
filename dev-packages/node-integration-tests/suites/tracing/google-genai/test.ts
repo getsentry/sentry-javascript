@@ -21,7 +21,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { getStringAttributeValue } from '../../../utils';
 
 const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
@@ -456,16 +455,19 @@ describe('Google GenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('records full gen_ai input messages when span streaming is enabled', async () => {
-      const longContent = 'A'.repeat(50_000);
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
           span: container => {
-            const generateContentSpan = container.items.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
-            );
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
             expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-flash');
+            expect(generateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
         })
         .start()

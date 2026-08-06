@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -621,16 +621,25 @@ describe('Anthropic integration', () => {
     },
   );
 
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('records full gen_ai input messages when span streaming is enabled', async () => {
-      const longContent = 'A'.repeat(50_000);
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('creates anthropic related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
           span: container => {
-            const chatSpan = container.items.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
+            const completionSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
-            expect(chatSpan).toBeDefined();
+            expect(completionSpan).toBeDefined();
+            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
+            expect(completionSpan!.status).toBe('ok');
+            expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+            expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
+            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+              '[{"role":"user","content":"What is the capital of France?"}]',
+            );
+            expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
           },
         })
         .start()

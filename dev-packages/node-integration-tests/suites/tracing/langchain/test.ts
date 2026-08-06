@@ -22,7 +22,6 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
@@ -401,16 +400,19 @@ describe('LangChain integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('records full gen_ai input messages when span streaming is enabled', async () => {
-      const longContent = 'A'.repeat(50_000);
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('creates langchain related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
           span: container => {
-            const chatSpan = container.items.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(longContent),
-            );
-            expect(chatSpan).toBeDefined();
+            const sonnetSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
+            expect(sonnetSpan).toBeDefined();
+            expect(sonnetSpan!.status).toBe('ok');
+            expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
+            expect(sonnetSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
         })
         .start()
