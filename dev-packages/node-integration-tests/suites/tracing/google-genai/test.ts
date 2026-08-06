@@ -455,7 +455,7 @@ describe('Google GenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
         .expect({
