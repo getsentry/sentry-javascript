@@ -662,22 +662,22 @@ describe('_addNavigationSpans', () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.domContentLoadedEvent',
+            'sentry.op': 'browser.dom_content_loaded_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
-          op: 'browser.domContentLoadedEvent',
+          op: 'browser.dom_content_loaded_event',
           origin: 'auto.ui.browser.metrics',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.loadEvent',
+            'sentry.op': 'browser.load_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
-          op: 'browser.loadEvent',
+          op: 'browser.load_event',
           origin: 'auto.ui.browser.metrics',
           parent_span_id,
           trace_id,
@@ -695,11 +695,11 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.TLS/SSL',
+            'sentry.op': 'browser.tls_ssl',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
-          op: 'browser.TLS/SSL',
+          op: 'browser.tls_ssl',
           origin: 'auto.ui.browser.metrics',
           parent_span_id,
           trace_id,
@@ -717,11 +717,11 @@ describe('_addNavigationSpans', () => {
         }),
         expect.objectContaining({
           data: {
-            'sentry.op': 'browser.DNS',
+            'sentry.op': 'browser.dns',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
           description: 'https://santry.com/test',
-          op: 'browser.DNS',
+          op: 'browser.dns',
           origin: 'auto.ui.browser.metrics',
           parent_span_id,
           trace_id,

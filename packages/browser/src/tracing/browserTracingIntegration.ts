@@ -189,7 +189,7 @@ export interface BrowserTracingOptions {
    *
    * Default: []
    */
-  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+  ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
    * By default, the SDK will try to detect redirects and avoid creating separate spans for them.

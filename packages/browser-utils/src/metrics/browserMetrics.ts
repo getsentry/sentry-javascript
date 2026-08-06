@@ -131,7 +131,7 @@ export function startTrackingLongTasks(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long-task',
+        op: 'ui.long_task',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
@@ -190,7 +190,7 @@ export function startTrackingLongAnimationFrames(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long-animation-frame',
+        op: 'ui.long_animation_frame',
         attributes,
       });
     }
@@ -297,7 +297,7 @@ interface AddPerformanceEntriesOptions {
    *
    * Default: []
    */
-  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+  ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
    * Whether span streaming is enabled.
@@ -496,12 +496,14 @@ function _addPaintSpan(
  * exported only for tests
  */
 export function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
-  (['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'] as const).forEach(event => {
-    _addPerformanceNavigationTiming(span, entry, event, timeOrigin);
-  });
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'TLS/SSL');
+  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, 'unload_event');
+  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, 'redirect');
+  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, 'dom_content_loaded_event');
+  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, 'load_event');
+  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, 'connect');
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'tls_ssl');
   _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache');
-  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'DNS');
+  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'dns');
 
   _addRequest(span, entry, timeOrigin);
 }
