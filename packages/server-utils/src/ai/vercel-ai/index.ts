@@ -30,6 +30,7 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
@@ -449,7 +450,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (operationName) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `gen_ai.${operationName}`);
   } else if (name.startsWith('ai.stream')) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
+    // Unmapped streaming pipeline span: we can't classify it as a specific gen_ai operation,
+    // so use the generic `function` op.
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, GENERAL_FUNCTION_SPAN_OP);
   }
 
   // For invoke_agent pipeline spans, use 'invoke_agent' as the description

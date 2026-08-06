@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import type { TransactionEvent } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -27,16 +28,14 @@ describe('Anthropic integration', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE = {
-    transaction: 'main',
-  };
-
-  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
-    transaction: 'main',
-  };
-
-  const EXPECTED_TRANSACTION_WITH_OPTIONS = {
-    transaction: 'main',
+  // `models.retrieve` reports a generic `function` op (model retrieval is not an inference call), so it is
+  // delivered as a plain transaction span rather than extracted into the gen_ai span container.
+  const expectModelsSpanOnTransaction = (event: TransactionEvent): void => {
+    expect(event.transaction).toBe('main');
+    const modelsSpan = (event.spans ?? []).find(span => span.description === 'models claude-3-haiku-20240307');
+    expect(modelsSpan).toBeDefined();
+    expect(modelsSpan!.op).toBe('function');
+    expect(modelsSpan!.status).toBe('ok');
   };
 
   const EXPECTED_MODEL_ERROR = {
@@ -102,10 +101,10 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .expect({ transaction: expectModelsSpanOnTransaction })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(5);
+            expect(container.items).toHaveLength(4);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -125,11 +124,6 @@ describe('Anthropic integration', () => {
             );
             expect(tokenCountingSpan).toBeDefined();
             expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-
-            const modelsSpan = container.items.find(span => span.name === 'models claude-3-haiku-20240307');
-            expect(modelsSpan).toBeDefined();
-            expect(modelsSpan!.status).toBe('ok');
-            expect(modelsSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
 
             const streamingSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
@@ -157,10 +151,10 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
+        .expect({ transaction: expectModelsSpanOnTransaction })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(5);
+            expect(container.items).toHaveLength(4);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -200,11 +194,6 @@ describe('Anthropic integration', () => {
             expect(tokenCountingSpan!.status).toBe('ok');
             expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
-            const modelsSpan = container.items.find(span => span.name === 'models claude-3-haiku-20240307');
-            expect(modelsSpan).toBeDefined();
-            expect(modelsSpan!.status).toBe('ok');
-            expect(modelsSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
-
             // TODO: messages.stream() should produce its own distinct gen_ai span, but it
             // currently does not (pre-existing bug). Once fixed, add an additional indexed span assertion.
             const streamingSpan = container.items.find(
@@ -240,10 +229,23 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
+        .expect({
+          transaction: event => {
+            expect(event.transaction).toBe('main');
+            const modelsSpan = (event.spans ?? []).find(span => span.description === 'models claude-3-haiku-20240307');
+            expect(modelsSpan).toBeDefined();
+            expect(modelsSpan!.op).toBe('function');
+            expect(modelsSpan!.status).toBe('ok');
+            expect(modelsSpan!.data[GEN_AI_OPERATION_NAME]).toBe('models');
+            expect(modelsSpan!.data[GEN_AI_PROVIDER_NAME]).toBe('anthropic');
+            expect(modelsSpan!.data[GEN_AI_REQUEST_MODEL]).toBe('claude-3-haiku-20240307');
+            expect(modelsSpan!.data[GEN_AI_RESPONSE_ID]).toBe('claude-3-haiku-20240307');
+            expect(modelsSpan!.data[GEN_AI_RESPONSE_MODEL]).toBe('claude-3-haiku-20240307');
+          },
+        })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(5);
+            expect(container.items).toHaveLength(4);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -267,16 +269,6 @@ describe('Anthropic integration', () => {
             expect(tokenCountingSpan!.status).toBe('ok');
             expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(tokenCountingSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-
-            const modelsSpan = container.items.find(span => span.name === 'models claude-3-haiku-20240307');
-            expect(modelsSpan).toBeDefined();
-            expect(modelsSpan!.status).toBe('ok');
-            expect(modelsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('models');
-            expect(modelsSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
-            expect(modelsSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-            expect(modelsSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
 
             const streamingSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
@@ -556,30 +548,28 @@ describe('Anthropic integration', () => {
     });
   });
 
-  // Additional error scenarios - Tool errors and model retrieval errors
-  const EXPECTED_ERROR_SPANS = {
-    transaction: 'main',
-  };
-
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles tool errors and model retrieval errors correctly', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_ERROR_SPANS })
+        .expect({
+          transaction: event => {
+            expect(event.transaction).toBe('main');
+            const modelErrorSpan = (event.spans ?? []).find(span => span.description === 'models nonexistent-model');
+            expect(modelErrorSpan).toBeDefined();
+            expect(modelErrorSpan!.op).toBe('function');
+            expect(modelErrorSpan!.status).toBe('internal_error');
+            expect(modelErrorSpan!.data[GEN_AI_REQUEST_MODEL]).toBe('nonexistent-model');
+          },
+        })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(2);
             const invalidFormatSpan = container.items.find(span => span.name === 'chat invalid-format');
             expect(invalidFormatSpan).toBeDefined();
             expect(invalidFormatSpan!.status).toBe('error');
             expect(invalidFormatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('invalid-format');
             expect(invalidFormatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-
-            const modelErrorSpan = container.items.find(span => span.name === 'models nonexistent-model');
-            expect(modelErrorSpan).toBeDefined();
-            expect(modelErrorSpan!.status).toBe('error');
-            expect(modelErrorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('nonexistent-model');
-            expect(modelErrorSpan!.attributes['sentry.op'].value).toBe('gen_ai.models');
 
             const toolSuccessSpan = container.items.find(span => span.name === 'chat claude-3-haiku-20240307');
             expect(toolSuccessSpan).toBeDefined();

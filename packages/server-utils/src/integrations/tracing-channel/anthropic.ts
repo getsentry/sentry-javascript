@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../../ai/core/utils';
+import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../../ai/anthropic-ai/types';
@@ -105,7 +105,7 @@ function createGenAiSpan(
 
   const span = startInactiveSpan({
     name: `${operation} ${model}`,
-    op: `gen_ai.${operation}`,
+    op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });
 
