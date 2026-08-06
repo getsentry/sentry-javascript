@@ -23,6 +23,7 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getGenAiSpanOp,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
 } from '../core/utils';
@@ -146,7 +147,7 @@ function instrumentMethod<T extends unknown[], R>(
 
     const spanConfig = {
       name: `${operationName} ${model}`,
-      op: `gen_ai.${operationName}`,
+      op: getGenAiSpanOp(operationName),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
 

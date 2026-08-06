@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../../ai/core/utils';
+import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../../ai/openai';
 import { instrumentStream } from '../../ai/openai/streaming';
 import type { OpenAiOptions } from '../../ai/openai/types';
@@ -85,7 +85,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
 
   const span = startInactiveSpan({
     name: `${operation} ${model}`,
-    op: `gen_ai.${operation}`,
+    op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });
 

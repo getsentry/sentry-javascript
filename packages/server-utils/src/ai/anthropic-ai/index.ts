@@ -25,7 +25,12 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { resolveAIRecordingOptions, setTokenUsageAttributes, wrapPromiseWithMethods } from '../core/utils';
+import {
+  getGenAiSpanOp,
+  resolveAIRecordingOptions,
+  setTokenUsageAttributes,
+  wrapPromiseWithMethods,
+} from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
@@ -67,13 +72,11 @@ export function extractRequestAttributes(
     if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K] = params.top_k;
     if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
     if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
+  } else if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
+    // `models.retrieve(model-id)` / `models.get(model-id)` pass the model id as a positional arg
+    attributes[GEN_AI_REQUEST_MODEL] = args[0];
   } else {
-    if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
-      // models.retrieve(model-id) and models.get(model-id)
-      attributes[GEN_AI_REQUEST_MODEL] = args[0];
-    } else {
-      attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
-    }
+    attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
 
   return attributes;
@@ -204,7 +207,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model}`,
-    op: `gen_ai.${operationName}`,
+    op: getGenAiSpanOp(operationName),
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
 
@@ -310,7 +313,7 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpan(
         {
           name: `${operationName} ${model}`,
-          op: `gen_ai.${operationName}`,
+          op: getGenAiSpanOp(operationName),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {

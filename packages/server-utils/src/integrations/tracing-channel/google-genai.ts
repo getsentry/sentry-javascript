@@ -9,7 +9,7 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../../ai/core/utils';
+import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/google-genai';
 import { instrumentStream } from '../../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../../ai/google-genai/types';
@@ -109,7 +109,7 @@ function createGenAiSpan(
 
   const span = startInactiveSpan({
     name: `${operation} ${model}`,
-    op: `gen_ai.${operation}`,
+    op: getGenAiSpanOp(operation),
     attributes,
   });
 
