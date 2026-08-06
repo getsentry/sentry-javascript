@@ -1,12 +1,12 @@
 {
   "name": "solidstart-2",
   "version": "0.0.0",
-  "//": "In the build script, the instrument.server.ts file is copied to the .output/server dir. Ideally, this is done in the SDK.",
+  "//": "Sentry is initialized from server/plugins/sentry.ts, a Nitro plugin. Build-time instrumentation means there is no `--import` preload and nothing to copy into .output.",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .nitro .output",
-    "build": "vite build && cp src/instrument.server.ts .output/server/instrument.server.mjs",
+    "build": "vite build",
     "preview": "HOST=localhost PORT=3030 vite preview",
-    "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
+    "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
@@ -21,7 +21,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^1.0.0",
-    "@solidjs/start": "2.0.0-rc.6",
+    "@solidjs/start": "2.0.0",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/user-event": "^14.5.2",
