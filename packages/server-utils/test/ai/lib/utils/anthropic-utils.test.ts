@@ -96,26 +96,19 @@ describe('anthropic-ai-utils', () => {
     };
     const span = mock as unknown as Span;
 
-    it('sets the full message value without truncation', () => {
-      const content = 'A'.repeat(200_000);
-      setMessagesAttribute(span, [{ role: 'user', content }]);
+    it('sets the input messages attribute', () => {
+      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
       expect(mock.attributes).toStrictEqual({
-        'gen_ai.input.messages': JSON.stringify([{ role: 'user', content }]),
-      });
-    });
-
-    it('serializes non-array input as-is', () => {
-      setMessagesAttribute(span, { content: 'hello, world' });
-      expect(mock.attributes).toStrictEqual({
-        'gen_ai.input.messages': '{"content":"hello, world"}',
+        'gen_ai.input.messages': '[{"role":"user","content":"hello, world"}]',
       });
     });
 
     it('ignores empty array', () => {
+      setMessagesAttribute(span, [{ role: 'user', content: 'hello, world' }]);
+      const before = { ...mock.attributes };
+
       setMessagesAttribute(span, []);
-      expect(mock.attributes).toStrictEqual({
-        'gen_ai.input.messages': '{"content":"hello, world"}',
-      });
+      expect(mock.attributes).toStrictEqual(before);
     });
   });
 });

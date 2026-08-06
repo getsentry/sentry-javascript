@@ -82,7 +82,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
-  // Store embeddings input on a separate attribute and do not truncate it
+  // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
 

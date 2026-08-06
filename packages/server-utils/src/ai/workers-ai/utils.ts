@@ -93,7 +93,7 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
   const params = inputs as WorkersAiInput;
 
-  // Store embeddings input on a separate attribute and do not truncate it
+  // Store embeddings input on a separate attribute
   if (operationName === 'embeddings') {
     const text = params.text;
 

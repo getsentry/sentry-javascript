@@ -5,7 +5,7 @@ import { extractSystemInstructions } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
- * Set the input messages attribute, extracting system instructions before truncation.
+ * Set the input messages attribute, extracting system instructions into their own attribute.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {
   if (Array.isArray(messages) && messages.length === 0) {

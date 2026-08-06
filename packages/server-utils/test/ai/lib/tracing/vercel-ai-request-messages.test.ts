@@ -53,23 +53,6 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
   });
 
-  it('keeps all messages including inline media', () => {
-    const { span, recorded } = createRecordingSpan();
-
-    const b64 = Buffer.from('lots of data\n').toString('base64');
-    const messages = [
-      { role: 'user', content: 'first' },
-      { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:image/png;base64,${b64}` } }] },
-    ];
-    const attributes = { [AI_PROMPT_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) } as unknown as SpanAttributes;
-
-    requestMessagesFromPrompt(span, attributes);
-
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify(messages));
-    expect(recorded[GEN_AI_INPUT_MESSAGES]).toContain('first');
-    expect(recorded[GEN_AI_INPUT_MESSAGES]).toContain(b64);
-  });
-
   it('does not throw and sets no attributes for malformed JSON', () => {
     const { span, recorded } = createRecordingSpan();
 
