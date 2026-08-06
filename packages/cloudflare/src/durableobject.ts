@@ -274,8 +274,8 @@ export function finalizeWithRpcInstrumentation<T extends object>(
   context: InstrumentedDurableObjectContext,
   excludedMethods?: ReadonlySet<string>,
 ): T {
-  // Skip RPC instrumentation if not enabled
-  if (!options.enableRpcTracePropagation) {
+  // Skip RPC instrumentation only when explicitly opted out (enabled by default)
+  if (options.enableRpcTracePropagation === false) {
     return obj;
   }
 

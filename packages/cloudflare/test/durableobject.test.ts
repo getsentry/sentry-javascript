@@ -317,7 +317,24 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(getInstrumented(obj.alarm)).toBeTruthy();
   });
 
-  it('Does not instrument RPC methods when enableRpcTracePropagation is not set', () => {
+  it('Does not instrument RPC methods when enableRpcTracePropagation is false', () => {
+    const testClass = class {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: false }),
+      testClass as any,
+    );
+    const obj = Reflect.construct(instrumented, []);
+
+    // RPC method should not be wrapped
+    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
+    expect(obj.rpcMethod()).toBe('result');
+  });
+
+  it('instruments RPC methods by default when enableRpcTracePropagation is not set', () => {
     const testClass = class {
       rpcMethod() {
         return 'result';
@@ -326,8 +343,8 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
-    // RPC method should not be wrapped
-    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
+    // RPC method should be wrapped on the prototype by default
+    expect(getInstrumented(obj.rpcMethod)).toBeTruthy();
     expect(obj.rpcMethod()).toBe('result');
   });
 

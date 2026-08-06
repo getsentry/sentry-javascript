@@ -200,9 +200,10 @@ interface BaseCloudflareOptions {
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
    *
-   * **Important:** This option should be enabled on **both sides** for full trace propagation.
+   * **Important:** This option is enabled by default. Set it to `false` to opt out, e.g. if you
+   * do not want trace context to leave your Worker via RPC calls.
    *
-   * @default false
+   * @default true
    * @example
    * ```ts
    * // Worker side (caller)
