@@ -54,9 +54,9 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
       }
 
       function onPageShow(event: PageTransitionEvent) {
-        const transactionName = _getTransactionName();
+        const routeName = _getSegmentName();
         if (event.persisted) {
-          _captureBFCacheNavigation('hit', undefined, transactionName);
+          _captureBFCacheNavigation('hit', undefined, routeName);
           return;
         }
 
@@ -69,19 +69,19 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
         }
 
         const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
-        _captureBFCacheNavigation('miss', reasons.length, transactionName);
+        _captureBFCacheNavigation('miss', reasons.length, routeName);
 
         // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
         if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
           metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
             unit: 'millisecond',
             attributes: {
-              [SENTRY_SEGMENT_NAME]: transactionName,
+              [SENTRY_SEGMENT_NAME]: routeName,
             },
           });
         }
 
-        reasons.forEach(r => _captureBFCacheReason(r, transactionName));
+        reasons.forEach(r => _captureBFCacheReason(r, routeName));
       }
 
       // Listener should stay active because the event can trigger for an initial show before the bfcache entry coming into the second one.
@@ -95,13 +95,13 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
 /**
  * Captures a bf navigation as a metric and records the outcome and reason count.
  */
-function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number, transactionName?: string): void {
+function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number, routeName?: string): void {
   metrics.count('browser.bfcache.navigation', 1, {
     attributes: {
       // TODO: use convention constants
       'browser.bfcache.outcome': outcome,
       'browser.bfcache.not_restored_reason_count': reasonCount,
-      [SENTRY_SEGMENT_NAME]: transactionName,
+      [SENTRY_SEGMENT_NAME]: routeName,
     },
   });
 }
@@ -109,18 +109,25 @@ function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number
 /**
  * Maps a collected reason to a metric and captures/sends it.
  */
-function _captureBFCacheReason({ reason, frame }: CollectedReason, transactionName?: string) {
+function _captureBFCacheReason({ reason, frame }: CollectedReason, routeName?: string) {
   metrics.count('browser.bfcache.not_restored', 1, {
     attributes: {
       // TODO: use convention constants
       'browser.bfcache.reason': reason,
       'browser.bfcache.frame': frame,
-      [SENTRY_SEGMENT_NAME]: transactionName,
+      [SENTRY_SEGMENT_NAME]: routeName,
     },
   });
 }
 
-function _getTransactionName(): string | undefined {
+/**
+ * The segment name for a bfcache navigation, read from the scope rather than any span.
+ *
+ * A hit restore is silent to tracing (no pageload span), but the frozen scope still holds the last
+ * transaction name a downstream SDK (Vue/React/etc.) set before the freeze, so we reuse that. On a miss the
+ * page reloads with a fresh scope, so this is the new pageload name. Falls back to the raw pathname when unset.
+ */
+function _getSegmentName(): string | undefined {
   return getCurrentScope().getScopeData().transactionName || WINDOW.location?.pathname;
 }
 
