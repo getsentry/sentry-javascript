@@ -235,6 +235,86 @@ test('reports a child-frame reason when an ineligible iframe blocks the top page
   expect(attr(childReason, 'browser.bfcache.frame')).toBe('child');
 });
 
+// A bfcache freeze keeps the JS heap intact, so the parameterized route a routing integration set before
+// navigating away is still on the scope at restore time. That's what lets the hit carry a low-cardinality
+// segment name without any span running on the restore.
+test('a hit carries the parameterized route that was on the scope before the freeze', async ({ page }) => {
+  const hitPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'hit'));
+
+  await page.goto('/');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+  // Stand in for a routing integration stamping a parameterized route on the scope.
+  await page.evaluate(() => {
+    (
+      window as unknown as { Sentry: { getCurrentScope(): { setTransactionName(n: string): void } } }
+    ).Sentry.getCurrentScope().setTransactionName('/users/:id');
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
+    timeout: 5000,
+  });
+
+  const hit = await hitPromise;
+  expect(attr(hit, 'sentry.segment.name')).toBe('/users/:id');
+});
+
+// Without a routing integration the scope has no transaction name, so the segment name falls back to
+// `location.pathname` (page 1 is served at '/'). This matches how browserTracing names an unrouted pageload.
+test('a hit falls back to the raw pathname when no route is on the scope', async ({ page }) => {
+  const hitPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'hit'));
+
+  await page.goto('/');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
+    timeout: 5000,
+  });
+
+  const hit = await hitPromise;
+  expect(attr(hit, 'sentry.segment.name')).toBe('/');
+});
+
+// A miss is a full reload, so `pageshow` fires with a fresh scope before any route resolves. A route set
+// before the freeze cannot survive it, so the miss falls back to the reloaded page's raw pathname ('/').
+test('a miss reload does not carry a pre-freeze route', async ({ page }) => {
+  const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
+
+  await page.goto('/?botch=unload');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+  await page.evaluate(() => {
+    (
+      window as unknown as { Sentry: { getCurrentScope(): { setTransactionName(n: string): void } } }
+    ).Sentry.getCurrentScope().setTransactionName('/users/:id');
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(
+    () =>
+      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type ===
+      'back_forward',
+    { timeout: 5000 },
+  );
+
+  const miss = await missPromise;
+  expect(attr(miss, 'sentry.segment.name')).toBe('/');
+});
+
 test('does not treat an ordinary forward navigation as a restore', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
