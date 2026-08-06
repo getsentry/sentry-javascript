@@ -47,7 +47,7 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
   return {
     name: INTEGRATION_NAME,
 
-    setup() {
+    setupOnce() {
       if (!WINDOW.addEventListener || !WINDOW.performance?.getEntriesByType) {
         DEBUG_BUILD && debug.log('[BFCache] Browser APIs unavailable, skipping instrumentation.');
         return;
@@ -86,7 +86,7 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
 
       // Listener should stay active because the event can trigger for an initial show before the bfcache entry coming into the second one.
       // This can be platform-dependent so we need to skip as many events till we get to the one containing the entry.
-      // So we can't have { once } or a cleanup logic here, which is fine because this is setup only once.
+      // So we can't have { once } or a cleanup logic here, which is fine because `setupOnce` registers it a single time regardless of how many clients are created.
       WINDOW.addEventListener('pageshow', onPageShow, true);
     },
   };
