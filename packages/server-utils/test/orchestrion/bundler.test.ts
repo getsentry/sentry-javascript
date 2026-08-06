@@ -113,6 +113,53 @@ describe('sentryOrchestrionWebpackPlugin', () => {
     expect(runApply(() => undefined)).toHaveLength(0);
     expect(runApply(undefined)).toHaveLength(0);
   });
+
+  describe('snippet resolve alias', () => {
+    // The snippet's `@sentry/server-utils/orchestrion` import is emitted inside
+    // transformed node_modules files, where it doesn't resolve under isolated
+    // installs (pnpm) — the plugin maps it to this package's own resolution.
+    function applyWithResolve(resolve: unknown): { alias?: unknown } {
+      const options = { externals: undefined, resolve } as { resolve?: { alias?: unknown } };
+      const compiler = {
+        options,
+        hooks: { thisCompilation: { tap: vi.fn() } },
+        webpack: { WebpackError: Error },
+      } as unknown as Compiler;
+      sentryOrchestrionWebpackPlugin().apply(compiler);
+      return options.resolve ?? {};
+    }
+
+    it('adds an exact-match alias to object-form (and absent) alias config', () => {
+      const { alias } = applyWithResolve(undefined);
+      const target = (alias as Record<string, string>)['@sentry/server-utils/orchestrion$'];
+
+      expect(target).toBeDefined();
+      expect(isAbsolute(target!)).toBe(true);
+    });
+
+    it('appends an onlyModule entry to array-form alias config', () => {
+      const existing = { name: 'other', alias: '/other' };
+      const { alias } = applyWithResolve({ alias: [existing] });
+
+      expect(alias).toEqual([
+        existing,
+        {
+          name: '@sentry/server-utils/orchestrion',
+          alias: expect.stringMatching(/orchestrion/),
+          onlyModule: true,
+        },
+      ]);
+    });
+
+    it('leaves an existing user alias for the specifier untouched', () => {
+      const { alias: objectAlias } = applyWithResolve({ alias: { '@sentry/server-utils/orchestrion': '/user' } });
+      expect(objectAlias).toEqual({ '@sentry/server-utils/orchestrion': '/user' });
+
+      const userEntry = { name: '@sentry/server-utils/orchestrion', alias: '/user' };
+      const { alias: arrayAlias } = applyWithResolve({ alias: [userEntry] });
+      expect(arrayAlias).toEqual([userEntry]);
+    });
+  });
 });
 
 describe('sentryOrchestrionPlugin (vite)', () => {

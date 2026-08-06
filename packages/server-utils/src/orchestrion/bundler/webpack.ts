@@ -47,25 +47,34 @@ function externalizedWebpackModules(externals: unknown, moduleNames: string[]): 
   );
 }
 
+const ORCHESTRION_HELPER_SPECIFIER = '@sentry/server-utils/orchestrion';
+
 // The injected module-injected snippet imports `@sentry/server-utils/orchestrion`
 // from INSIDE transformed `node_modules` files. Under isolated installs (pnpm)
 // that bare specifier doesn't resolve from an instrumented package's location,
-// so map it (exact-match, hence the `$`) to this package's own resolution.
-// Externals still win — webpack consults `externals` before resolving — so
-// setups that externalize the runtime (e.g. Next.js) are unaffected.
+// so map it — exact-match only (the `$` suffix / `onlyModule`) — to this
+// package's own resolution, in whichever alias form the config already uses.
+// A user's own alias for the specifier is left untouched, and externals still
+// win — webpack consults `externals` before resolving — so setups that
+// externalize the runtime (e.g. Next.js) are unaffected.
 function addOrchestrionResolveAlias(compiler: Compiler): void {
+  const resolved = resolveOrchestrionRuntimeRequest(ORCHESTRION_HELPER_SPECIFIER);
+  if (!resolved) {
+    return;
+  }
+
   const resolveOptions = (compiler.options.resolve ??= {});
   const alias = resolveOptions.alias;
   if (Array.isArray(alias)) {
+    if (!alias.some(entry => entry.name === ORCHESTRION_HELPER_SPECIFIER)) {
+      alias.push({ name: ORCHESTRION_HELPER_SPECIFIER, alias: resolved, onlyModule: true });
+    }
     return;
   }
 
   const aliasMap = (resolveOptions.alias = alias ?? {});
-  if (!('@sentry/server-utils/orchestrion$' in aliasMap)) {
-    const resolved = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
-    if (resolved) {
-      aliasMap['@sentry/server-utils/orchestrion$'] = resolved;
-    }
+  if (!(`${ORCHESTRION_HELPER_SPECIFIER}$` in aliasMap) && !(ORCHESTRION_HELPER_SPECIFIER in aliasMap)) {
+    aliasMap[`${ORCHESTRION_HELPER_SPECIFIER}$`] = resolved;
   }
 }
 
