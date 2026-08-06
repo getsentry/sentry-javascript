@@ -399,7 +399,8 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
  * - webSocketClose
  * - webSocketError
  *
- * To instrument RPC methods (prototype methods), enable the `enableRpcTracePropagation` option.
+ * RPC methods (prototype methods) are instrumented by default. Set `enableRpcTracePropagation`
+ * to `false` to opt out.
  *
  * @param optionsCallback Function that returns the options for the SDK initialization.
  * @param DurableObjectClass The Durable Object class to instrument.
@@ -478,7 +479,6 @@ export function instrumentDurableObjectWithSentry<
  *   env => ({
  *     dsn: env.SENTRY_DSN,
  *     tracesSampleRate: 1.0,
- *     enableRpcTracePropagation: true,
  *   }),
  *   MyAgentBase,
  * );

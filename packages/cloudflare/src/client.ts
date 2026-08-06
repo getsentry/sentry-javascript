@@ -206,28 +206,13 @@ interface BaseCloudflareOptions {
    * @default true
    * @example
    * ```ts
-   * // Worker side (caller)
+   * // Opt out of RPC trace propagation
    * export default Sentry.withSentry(
    *   (env) => ({
    *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
+   *     enableRpcTracePropagation: false,
    *   }),
    *   handler,
-   * );
-   *
-   * // Durable Object side (receiver)
-   * export const MyDO = Sentry.instrumentDurableObjectWithSentry(
-   *   (env) => ({
-   *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
-   *   }),
-   *   MyDOBase,
-   * );
-   *
-   * // WorkerEntrypoint side (receiver)
-   * export const MyEntrypoint = Sentry.withSentry(
-   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
-   *   MyEntrypointBase,
    * );
    * ```
    */
