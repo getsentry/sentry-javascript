@@ -59,11 +59,11 @@ export function isStaticBeforeSendSpanCallback(callback: unknown): callback is B
 /**
  * Apply a user-provided beforeSendSpan callback to a span JSON.
  */
-export function applyBeforeSendSpanCallback<F extends StreamedSpanJSON | SpanJSON>(
-  span: F,
-  beforeSendSpan: (span: F) => F,
-): F {
-  let modifedSpan: F;
+export function applyBeforeSendSpanCallback<T extends StreamedSpanJSON | SpanJSON>(
+  span: T,
+  beforeSendSpan: (span: T) => T,
+): T {
+  let modifedSpan: T;
   try {
     modifedSpan = beforeSendSpan(span);
   } catch (error) {
