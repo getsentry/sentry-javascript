@@ -1,12 +1,15 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentDurableObjectWithSentry } from '../src';
 import { getInstrumented } from '../src/instrument';
+import { resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectWithSentry', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   it('Generic functionality', () => {
@@ -155,6 +158,66 @@ describe('instrumentDurableObjectWithSentry', () => {
 
     // Methods should be cached (same reference on repeated access)
     expect(obj.method).toBe(obj.method);
+  });
+
+  // Hibernation-woken WebSocket messages and alarms arrive as their own invocations with no
+  // enclosing instrumented handler, so each must open a fresh isolation scope. The Durable Object
+  // instance outlives them, so a leak here would follow the isolate for its remaining lifetime.
+  it('Runtime-invoked built-in handlers each get their own isolation scope', async () => {
+    const events: Event[] = [];
+    const waits: Promise<unknown>[] = [];
+    const mockContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      }),
+    } as any;
+
+    const testClass = class {
+      webSocketMessage(_ws: unknown, message: string) {
+        if (message === 'seed') {
+          SentryCore.setTag('seeded_tag', 'from-seeding-message');
+          SentryCore.setUser({ id: 'user-from-seeding-message' });
+        }
+
+        SentryCore.captureMessage(message);
+      }
+
+      alarm() {
+        SentryCore.captureMessage('alarm');
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+        }),
+        testClass as any,
+      ),
+      [mockContext, {} as any],
+    );
+
+    await obj.webSocketMessage({}, 'seed');
+    await Promise.all(waits.splice(0));
+    await obj.webSocketMessage({}, 'probe');
+    await Promise.all(waits.splice(0));
+    await obj.alarm();
+    await Promise.all(waits);
+
+    // Guards the assertions below against passing vacuously.
+    expect(events[0]?.tags).toEqual(expect.objectContaining({ seeded_tag: 'from-seeding-message' }));
+    expect(events[0]?.user).toEqual({ id: 'user-from-seeding-message' });
+
+    expect(events[1]?.message).toBe('probe');
+    expect(events[1]?.tags?.seeded_tag).toBeUndefined();
+    expect(events[1]?.user).toBeUndefined();
+
+    expect(events[2]?.message).toBe('alarm');
+    expect(events[2]?.tags?.seeded_tag).toBeUndefined();
+    expect(events[2]?.user).toBeUndefined();
   });
 
   it('Built-in durable object methods are always instrumented', () => {
