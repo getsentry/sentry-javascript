@@ -9,7 +9,7 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/google-genai';
 import { instrumentStream } from '../../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../../ai/google-genai/types';
@@ -102,7 +102,6 @@ function createGenAiSpan(
   const params = args[0] as Record<string, unknown> | undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractRequestAttributes(operation, params, data.self);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
@@ -115,7 +114,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addPrivateRequestAttributes(span, params, operation, enableTruncation);
+    addPrivateRequestAttributes(span, params, operation);
   }
 
   return span;

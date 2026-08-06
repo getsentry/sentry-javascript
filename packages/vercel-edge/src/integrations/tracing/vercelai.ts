@@ -15,12 +15,6 @@ import { addVercelAiProcessors } from '@sentry/server-utils/no-diagnostic-channe
 const INTEGRATION_NAME = 'VercelAI' as const;
 
 interface VercelAiOptions {
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-
   // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
   // spans the AI SDK already emitted (no OTel patch or tracing channel in the edge runtime), so it
   // cannot decide whether inputs/outputs are recorded. Control this per call via

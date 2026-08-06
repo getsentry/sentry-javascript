@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../../ai/openai';
 import { instrumentStream } from '../../ai/openai/streaming';
 import type { OpenAiOptions } from '../../ai/openai/types';
@@ -78,7 +78,6 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const params = args[0] as Record<string, unknown> | undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractRequestAttributes(args, operation);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
@@ -91,7 +90,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   });
 
   if (recordInputs && params) {
-    addRequestAttributes(span, params, operation, enableTruncation);
+    addRequestAttributes(span, params, operation);
   }
 
   return span;

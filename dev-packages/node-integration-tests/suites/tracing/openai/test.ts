@@ -23,7 +23,6 @@ import {
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('OpenAI integration', () => {
@@ -724,61 +723,6 @@ describe('OpenAI integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const chatCompletionSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatCompletionSpan).toBeDefined();
-              expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
-                type: 'string',
-                value: 'chatcmpl-mock123',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
-                type: 'string',
-                value: JSON.stringify([
-                  { role: 'user', content: longContent },
-                  { role: 'assistant', content: 'Some reply' },
-                  { role: 'user', content: 'Follow-up question' },
-                ]),
-              });
-
-              const responsesSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
-              );
-              expect(responsesSpan).toBeDefined();
-              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
-                type: 'string',
-                value: 'resp_mock456',
-              });
-              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
-                type: 'string',
-                value: 'B'.repeat(50_000),
-              });
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
@@ -1141,146 +1085,6 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'truncation/scenario-message-truncation-completions.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const truncatedMessageSpan = container.items.find(span =>
-                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(
-                  /^\[\{"role":"user","content":"C+"\}\]$/,
-                ),
-              );
-              expect(truncatedMessageSpan).toBeDefined();
-              expect(truncatedMessageSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(truncatedMessageSpan!.status).toBe('ok');
-              expect(truncatedMessageSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'chat',
-              });
-              expect(truncatedMessageSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(truncatedMessageSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(truncatedMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(
-                /^\[\{"role":"user","content":"C+"\}\]$/,
-              );
-              expect(truncatedMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toMatch(
-                /^\[\{"type":"text","content":"A+"\}\]$/,
-              );
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES]?.value ===
-                  JSON.stringify([{ role: 'user', content: 'This is a small message that fits within the limit' }]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(smallMessageSpan!.status).toBe('ok');
-              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'chat',
-              });
-              expect(smallMessageSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(smallMessageSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(smallMessageSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
-                type: 'string',
-                value: JSON.stringify([
-                  { role: 'user', content: 'This is a small message that fits within the limit' },
-                ]),
-              });
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toMatch(
-                /^\[\{"type":"text","content":"A+"\}\]$/,
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'truncation/scenario-message-truncation-responses.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates string inputs when they exceed byte limit', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] long A-string input is truncated
-              expect(firstSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(firstSpan!.status).toBe('ok');
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-              expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-              expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(/^A+$/);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
   // Test for conversation ID support (Conversations API and previous_response_id)
   createEsmAndCjsTests(__dirname, 'scenario-conversation.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures conversation ID from Conversations API and previous_response_id', async () => {
@@ -1561,122 +1365,40 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-truncation.mjs', (createRunner, test) => {
-    test('redacts inline base64 image data in vision requests', async () => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('creates openai related spans with span streaming enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
-
-            // Both vision request spans should contain [Blob substitute]
-            for (const span of container.items) {
-              expect(span!.name).toBe('chat gpt-4o');
-              expect(span!.status).toBe('ok');
-              expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4o' });
-              expect(span!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('[Blob substitute]');
-            }
-          },
-        })
-        .start()
-        .completed();
-    });
-
-    test('preserves regular URLs in image_url (does not redact https links)', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(2);
-            const multipleImagesSpan = container.items.find(span =>
-              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
-                'https://example.com/image.png',
-              ),
+            const chatCompletionSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
             );
-            expect(multipleImagesSpan).toBeDefined();
-            expect(multipleImagesSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain(
-              'https://example.com/image.png',
-            );
+            expect(chatCompletionSpan).toBeDefined();
+            expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
+            expect(chatCompletionSpan!.status).toBe('ok');
+            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-3.5-turbo',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the capital of France?"}]',
+            });
+            expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
           },
         })
         .start()
         .completed();
     });
   });
-
-  const streamingLongContent = 'A'.repeat(50_000);
-  const streamingLongString = 'B'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
-            );
-            expect(chatSpan).toBeDefined();
-
-            const responsesSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongString),
-            );
-            expect(responsesSpan).toBeDefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              // Truncation keeps only the last message (50k 'A's) and crops it to the byte limit.
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                  '[{"role":"user","content":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-
-              // The responses API string input (50k 'B's) should also be truncated.
-              const responsesSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith('BBB'),
-              );
-              expect(responsesSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongString.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });

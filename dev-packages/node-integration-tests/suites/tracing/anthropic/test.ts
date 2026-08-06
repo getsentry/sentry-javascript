@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -594,108 +594,6 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const smallMsgValue = JSON.stringify([
-                { role: 'user', content: 'This is a small message that fits within the limit' },
-              ]);
-              const truncatedSpan = container.items.find(span =>
-                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(
-                  /^\[\{"role":"user","content":"C+"\}\]$/,
-                ),
-              );
-              expect(truncatedSpan).toBeDefined();
-              expect(truncatedSpan!.name).toBe('chat claude-3-haiku-20240307');
-              expect(truncatedSpan!.status).toBe('ok');
-              expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-              expect(truncatedSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(truncatedSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(truncatedSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-              expect(truncatedSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-
-              const smallMessageSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === smallMsgValue,
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('chat claude-3-haiku-20240307');
-              expect(smallMessageSpan!.status).toBe('ok');
-              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-              expect(smallMessageSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(smallMessageSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(smallMessageSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-              expect(smallMessageSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-media-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates media attachment, keeping all other details', async () => {
-        const expectedMediaMessages = JSON.stringify([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: 'image/png',
-                  data: '[Blob substitute]',
-                },
-              },
-            ],
-          },
-        ]);
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] messages.create with media attachment — image data replaced, other fields preserved
-              expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
-              expect(firstSpan!.status).toBe('ok');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(expectedMediaMessages);
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-              expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-              expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-              expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
@@ -723,95 +621,30 @@ describe('Anthropic integration', () => {
     },
   );
 
-  const longContent = 'A'.repeat(50_000);
-  const longStringInput = 'B'.repeat(50_000);
-
-  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
-    transaction: 'main',
-  };
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        const expectedAllMessages = JSON.stringify([
-          { role: 'user', content: longContent },
-          { role: 'assistant', content: 'Some reply' },
-          { role: 'user', content: 'Follow-up question' },
-        ]);
-        const expectedLongString = JSON.stringify([longStringInput]);
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const conversationSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedAllMessages,
-              );
-              expect(conversationSpan).toBeDefined();
-
-              const longStringSpan = container.items.find(
-                span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedLongString,
-              );
-              expect(longStringSpan).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('creates anthropic related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
+            const completionSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
-            expect(chatSpan).toBeDefined();
+            expect(completionSpan).toBeDefined();
+            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
+            expect(completionSpan!.status).toBe('ok');
+            expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+            expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
+            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+              '[{"role":"user","content":"What is the capital of France?"}]',
+            );
+            expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
           },
         })
         .start()
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                  '[{"role":"user","content":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });
