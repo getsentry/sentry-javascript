@@ -327,7 +327,7 @@ describe('descriptionForHttpMethod', () => {
         [SENTRY_KIND]: 'client' as const,
       },
       {
-        op: 'http.client.prefetch',
+        op: 'http.client',
         data: {
           'url.full': 'https://www.example.com/my-path',
         },
