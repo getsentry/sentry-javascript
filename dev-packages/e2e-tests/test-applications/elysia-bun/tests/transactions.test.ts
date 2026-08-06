@@ -132,7 +132,7 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'Handle',
-      op: 'request_handler.elysia',
+      op: 'handler',
       origin: 'auto.http.elysia',
     }),
   );

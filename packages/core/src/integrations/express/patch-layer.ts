@@ -124,7 +124,13 @@ export function patchLayer(
     const type = metadata.attributes[ATTR_EXPRESS_TYPE];
     const attributes: SpanAttributes = Object.assign(metadata.attributes, {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.express',
-      [SENTRY_OP]: type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${type}.express`,
+      [SENTRY_OP]:
+        type === 'middleware'
+          ? WEB_SERVER_MIDDLEWARE_SPAN_OP
+          : type === 'request_handler'
+            ? // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+              'handler'
+            : `${type}.express`,
     });
     if (actualMatchedRoute) {
       attributes[ATTR_HTTP_ROUTE] = actualMatchedRoute;

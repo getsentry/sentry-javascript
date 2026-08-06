@@ -26,10 +26,10 @@ describe('fastify auto-instrumentation', () => {
                   }),
                 }),
                 expect.objectContaining({
-                  op: 'request_handler.fastify',
+                  op: 'handler',
                   origin: 'auto.http.otel.fastify',
                   data: expect.objectContaining({
-                    'sentry.op': 'request_handler.fastify',
+                    'sentry.op': 'handler',
                     'sentry.origin': 'auto.http.otel.fastify',
                   }),
                 }),

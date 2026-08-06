@@ -221,7 +221,13 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [SENTRY_OP]: type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${type}.express`,
+      [SENTRY_OP]:
+        type === 'middleware'
+          ? WEB_SERVER_MIDDLEWARE_SPAN_OP
+          : type === 'request_handler'
+            ? // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+              'handler'
+            : `${type}.express`,
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
       ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),

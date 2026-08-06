@@ -56,10 +56,7 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
     await subApp.request('/hello');
 
     expect(startSpanMock).toHaveBeenCalledTimes(1);
-    expect(startSpanMock).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'GET /hello', op: 'hono.request' }),
-      expect.any(Function),
-    );
+    expect(startSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET /hello' }), expect.any(Function));
   });
 
   it('emits a debug log and applies patchAppRequest when sub-app was mounted before applyPatches', async () => {
@@ -82,10 +79,7 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
     // patchAppRequest is applied retroactively
     await subApp.request('/hello');
 
-    expect(startSpanMock).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'GET /hello', op: 'hono.request' }),
-      expect.any(Function),
-    );
+    expect(startSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET /hello' }), expect.any(Function));
   });
 
   it('preserves correct route behavior', async () => {

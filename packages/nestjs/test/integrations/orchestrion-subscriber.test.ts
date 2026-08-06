@@ -278,7 +278,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
 
     expect(handlerSpanJson).toBeDefined();
     expect(handlerSpanJson!.description).toBe('getCats');
-    expect(handlerSpanJson!.op).toBe('handler.nestjs');
+    expect(handlerSpanJson!.op).toBe('handler');
     expect(handlerSpanJson!.origin).toBe('auto.http.nestjs');
     expect(handlerSpanJson!.data).toMatchObject({
       component: '@nestjs/core',

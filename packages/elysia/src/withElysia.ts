@@ -34,7 +34,8 @@ const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
   Parse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   Transform: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   BeforeHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  Handle: 'request_handler.elysia',
+  // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+  Handle: 'handler',
   AfterHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   MapResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
   AfterResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,

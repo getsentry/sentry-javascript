@@ -51,7 +51,7 @@ const run = async () => {
     },
   });
 
-  // Route registered via a plugin produces a `plugin.hapi` span.
+  // Route registered via a plugin produces a `function` op span.
   await server.register({
     name: 'testPlugin',
     version: '1.0.0',

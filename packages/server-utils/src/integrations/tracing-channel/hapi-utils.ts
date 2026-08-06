@@ -2,12 +2,14 @@
  * OTel-free, `@hapi/*`-free port of the span-building helpers and handler/ext
  * wrap logic from the vendored `@opentelemetry/instrumentation-hapi`
  * (upstream @opentelemetry/instrumentation-hapi@0.64.0). Span output (names,
- * ops, origins, attributes) is kept byte-identical to that instrumentation;
+ * origins, attributes) is kept close to that instrumentation — except the
+ * plugin-route op, which is normalized to the cross-framework `handler` op;
  * span creation goes through the `@sentry/core` API and the OTel active-span
  * guard is replaced with `getActiveSpan()`.
  */
 
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type {
   LifecycleMethod,
   PatchableExtMethod,
@@ -104,12 +106,15 @@ export const getExtMetadata = (
 };
 
 function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unknown {
+  const hapiType = metadata.attributes[AttributeNames.HAPI_TYPE];
+  // TODO(conventions): Replace `'handler'` with the `handler` span op constant once it is released in `@sentry/conventions`.
+  const op = hapiType === HapiLayerType.PLUGIN ? 'handler' : `${hapiType}.hapi`;
   return startSpan(
     {
       name: metadata.name,
-      op: `${metadata.attributes[AttributeNames.HAPI_TYPE]}.hapi`,
       attributes: {
         ...metadata.attributes,
+        [SENTRY_OP]: op,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.hapi',
       },
     },
