@@ -23,7 +23,6 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getGenAiMessagesJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
 } from '../core/utils';
@@ -122,7 +121,7 @@ export function addRequestAttributes(span: Span, params: Record<string, unknown>
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
-  span.setAttribute(GEN_AI_INPUT_MESSAGES, getGenAiMessagesJsonString(filteredMessages));
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
 }
 
 /**

@@ -15,7 +15,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { stripInlineMediaFromMessages } from './mediaStripping';
 
 export interface AIRecordingOptions {
   recordInputs?: boolean;
@@ -168,27 +167,6 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   span.end();
 }
 
-/**
- * Serialize a string, an array of messages, or an object to a JSON string for span attributes,
- * stripping inline media (base64 blobs, data URIs, etc.) from message arrays so large binary
- * payloads never end up in span attributes.
- *
- * @param value - The value to serialize
- * @returns The JSON string
- */
-export function getGenAiMessagesJsonString<T>(value: T | T[]): string {
-  if (typeof value === 'string') {
-    // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
-    return value;
-  }
-  // Media stripping recurses the value and `JSON.stringify` can throw on circular refs or
-  // non-serializable values (e.g. BigInt); never let that crash instrumentation.
-  try {
-    return JSON.stringify(Array.isArray(value) ? stripInlineMediaFromMessages(value) : value);
-  } catch {
-    return '[unserializable]';
-  }
-}
 
 /**
  * Extract system instructions from messages array.

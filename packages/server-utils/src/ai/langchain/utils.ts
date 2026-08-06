@@ -26,7 +26,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { isContentMedia, stripInlineMediaFromSingleMessage } from '../core/mediaStripping';
 import { extractSystemInstructions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
@@ -53,38 +52,6 @@ const setNumberIfDefined = (
   const n = Number(value);
   if (!Number.isNaN(n)) target[key] = n;
 };
-
-/**
- * Converts message content to a string, stripping inline media (base64 images, audio, etc.)
- * from multimodal content before stringification so downstream media stripping can't miss it.
- *
- * @example
- * // String content passes through unchanged:
- * normalizeContent("Hello") // => "Hello"
- *
- * // Multimodal array content — media is replaced with "[Blob substitute]" before JSON.stringify:
- * normalizeContent([
- *   { type: "text", text: "What color?" },
- *   { type: "image_url", image_url: { url: "data:image/png;base64,iVBOR..." } }
- * ])
- * // => '[{"type":"text","text":"What color?"},{"type":"image_url","image_url":{"url":"[Blob substitute]"}}]'
- *
- * // Without this, stringification would JSON.stringify the raw array and the base64 blob
- * // would end up in span attributes, since downstream stripping only works on objects.
- */
-function normalizeContent(v: unknown): string | undefined {
-  if (Array.isArray(v)) {
-    try {
-      const stripped = v.map(part =>
-        part && typeof part === 'object' && isContentMedia(part) ? stripInlineMediaFromSingleMessage(part) : part,
-      );
-      return JSON.stringify(stripped);
-    } catch {
-      return String(v);
-    }
-  }
-  return stringify(v, String);
-}
 
 /**
  * Normalizes a single role token to our canonical set.
@@ -149,7 +116,7 @@ export function normalizeLangChainMessages(
       const messageType = maybeGetType.call(message);
       return {
         role: normalizeMessageRole(messageType),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -162,7 +129,7 @@ export function normalizeLangChainMessages(
 
       return {
         role: normalizeMessageRole(role),
-        content: normalizeContent(message.kwargs?.content),
+        content: stringify(message.kwargs?.content, String),
       };
     }
 
@@ -171,7 +138,7 @@ export function normalizeLangChainMessages(
       const role = String(message.type).toLowerCase();
       return {
         role: normalizeMessageRole(role),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -180,7 +147,7 @@ export function normalizeLangChainMessages(
     if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -190,14 +157,14 @@ export function normalizeLangChainMessages(
     if (ctor && ctor !== 'Object') {
       return {
         role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
     // 6) Fallback: treat as user text
     return {
       role: 'user',
-      content: normalizeContent(message.content),
+      content: stringify(message.content, String),
     };
   });
 }

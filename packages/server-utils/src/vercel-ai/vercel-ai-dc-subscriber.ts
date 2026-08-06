@@ -38,7 +38,6 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { getProviderMetadataAttributes } from '../ai/vercel-ai';
-import { getGenAiMessagesJsonString } from '../ai/core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from '../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
@@ -726,7 +725,7 @@ function buildInputMessageAttributes(event: Record<string, unknown>): Record<str
   // simpler `prompt` field is used.
   const messages = event.messages ?? event.prompt;
   if (messages !== undefined) {
-    attributes[GEN_AI_INPUT_MESSAGES] = getGenAiMessagesJsonString(messages);
+    attributes[GEN_AI_INPUT_MESSAGES] = stringify(messages);
   }
 
   return attributes;

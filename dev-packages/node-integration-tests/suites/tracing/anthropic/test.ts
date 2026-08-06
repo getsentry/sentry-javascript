@@ -592,55 +592,6 @@ describe('Anthropic integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-media-stripping.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('strips media attachment, keeping all other messages and details', async () => {
-      const expectedMediaMessages = JSON.stringify([
-        {
-          role: 'user',
-          content: 'what number is this?',
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/png',
-                data: '[Blob substitute]',
-              },
-            },
-          ],
-        },
-      ]);
-      await createRunner()
-        .ignore('event')
-        .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(1);
-            const [firstSpan] = container.items;
-
-            // messages.create with media attachment — image data replaced, all other messages/fields preserved
-            expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(expectedMediaMessages);
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-            expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
   createEsmAndCjsTests(
     __dirname,
     'scenario-system-instructions.mjs',

@@ -19,7 +19,7 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, getGenAiMessagesJsonString, setTokenUsageAttributes } from '../core/utils';
+import { extractSystemInstructions, setTokenUsageAttributes } from '../core/utils';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
@@ -117,7 +117,7 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
-  span.setAttribute(GEN_AI_INPUT_MESSAGES, getGenAiMessagesJsonString(filteredMessages));
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
 }
 
 /**

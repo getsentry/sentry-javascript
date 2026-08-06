@@ -1,7 +1,7 @@
-import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
+import { captureException, SPAN_STATUS_ERROR, stringify } from '@sentry/core';
 import type { Span, SpanStatusType } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getGenAiMessagesJsonString } from '../core/utils';
+import { extractSystemInstructions } from '../core/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
@@ -21,7 +21,7 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
   }
 
   span.setAttributes({
-    [GEN_AI_INPUT_MESSAGES]: getGenAiMessagesJsonString(filteredMessages),
+    [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
   });
 }
 

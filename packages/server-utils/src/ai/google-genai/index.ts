@@ -35,7 +35,6 @@ import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getGenAiMessagesJsonString,
   resolveAIRecordingOptions,
 } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
@@ -187,7 +186,7 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     }
 
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES]: getGenAiMessagesJsonString(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
     });
   }
 }

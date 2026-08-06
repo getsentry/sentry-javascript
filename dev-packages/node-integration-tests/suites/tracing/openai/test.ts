@@ -1366,60 +1366,6 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('redacts inline base64 image data in vision requests', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(2);
-
-            // Both vision request spans should contain [Blob substitute]
-            for (const span of container.items) {
-              expect(span!.name).toBe('chat gpt-4o');
-              expect(span!.status).toBe('ok');
-              expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4o' });
-              expect(span!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('[Blob substitute]');
-            }
-          },
-        })
-        .start()
-        .completed();
-    });
-
-    test('preserves regular URLs in image_url (does not redact https links)', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(2);
-            const multipleImagesSpan = container.items.find(span =>
-              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
-                'https://example.com/image.png',
-              ),
-            );
-            expect(multipleImagesSpan).toBeDefined();
-            expect(multipleImagesSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain(
-              'https://example.com/image.png',
-            );
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
   createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
     test('records full gen_ai input messages when span streaming is enabled', async () => {
       const longContent = 'A'.repeat(50_000);

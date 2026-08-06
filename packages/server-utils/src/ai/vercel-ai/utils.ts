@@ -1,4 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
+import { stringify } from '@sentry/core';
 import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -9,7 +10,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getGenAiMessagesJsonString } from '../core/utils';
+import { extractSystemInstructions } from '../core/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -239,7 +240,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
       }
 
-      const messagesJson = getGenAiMessagesJsonString(filteredMessages);
+      const messagesJson = stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
@@ -259,7 +260,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
         }
 
-        const messagesJson = getGenAiMessagesJsonString(filteredMessages);
+        const messagesJson = stringify(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

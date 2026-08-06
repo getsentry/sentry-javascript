@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getGenAiMessagesJsonString } from '../../../../src/ai/core/utils';
+import { stringify } from '@sentry/core';
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_SYSTEM_INSTRUCTIONS } from '@sentry/conventions/attributes';
 import { requestMessagesFromPrompt } from '../../../../src/ai/vercel-ai/utils';
 import { AI_PROMPT_MESSAGES_ATTRIBUTE } from '../../../../src/ai/vercel-ai/vercel-ai-attributes';
@@ -31,8 +31,8 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     requestMessagesFromPrompt(span, attributes);
 
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getGenAiMessagesJsonString(messages));
-    expect(recorded[GEN_AI_INPUT_MESSAGES]).toBe(getGenAiMessagesJsonString(messages));
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify(messages));
+    expect(recorded[GEN_AI_INPUT_MESSAGES]).toBe(stringify(messages));
     expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
   });
 
@@ -49,13 +49,11 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     expect(recorded[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe(JSON.stringify([{ type: 'text', content: 'be nice' }]));
     // System message removed; output is just the remainder.
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(
-      getGenAiMessagesJsonString([{ role: 'user', content: 'hello' }]),
-    );
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify([{ role: 'user', content: 'hello' }]));
     expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).not.toBe(original);
   });
 
-  it('keeps all messages and strips inline media', () => {
+  it('keeps all messages including inline media', () => {
     const { span, recorded } = createRecordingSpan();
 
     const b64 = Buffer.from('lots of data\n').toString('base64');
@@ -67,10 +65,9 @@ describe('requestMessagesFromPrompt (ai.prompt.messages string branch)', () => {
 
     requestMessagesFromPrompt(span, attributes);
 
-    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(getGenAiMessagesJsonString(messages));
+    expect(recorded[AI_PROMPT_MESSAGES_ATTRIBUTE]).toBe(stringify(messages));
     expect(recorded[GEN_AI_INPUT_MESSAGES]).toContain('first');
-    expect(recorded[GEN_AI_INPUT_MESSAGES]).toContain('[Blob substitute]');
-    expect(recorded[GEN_AI_INPUT_MESSAGES]).not.toContain(b64);
+    expect(recorded[GEN_AI_INPUT_MESSAGES]).toContain(b64);
   });
 
   it('does not throw and sets no attributes for malformed JSON', () => {
