@@ -89,7 +89,17 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // diagnostics_channel calls never get injected. Vite merges array
       // `noExternal` entries with the user's config, so we don't overwrite
       // their additions.
-      return { ssr: { noExternal: instrumentedModuleNames(options.instrumentations) } };
+      //
+      // `@sentry/server-utils` must be bundled too: the module-injected snippet
+      // `require()`s it from inside transformed CJS deps, and when the package
+      // stays external, Vite 5's CommonJS interop (`esmExternals: false`)
+      // rewrites that require into a DEFAULT import of our named-exports-only
+      // ESM entry — a link-time crash at server startup. Bundling sidesteps
+      // external ESM/CJS interop on both Vite majors, and the ESM barrel
+      // tree-shakes to just the helper and the factories actually referenced.
+      return {
+        ssr: { noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'] },
+      };
     },
     configResolved(config: ResolvedConfig): void {
       // Explicit `ssr.external` string entries take priority over `noExternal`

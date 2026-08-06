@@ -140,6 +140,17 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
   });
 
+  it('force-bundles the orchestrion helper package alongside instrumented modules', () => {
+    const plugin = vitePlugin();
+    const config = (plugin.config as () => { ssr: { noExternal: string[] } })();
+
+    // Left external, Vite 5's CommonJS interop turns the snippet's `require`
+    // into a default import of the named-exports-only ESM entry — a link-time
+    // crash at server startup.
+    expect(config.ssr.noExternal).toContain('@sentry/server-utils');
+    expect(config.ssr.noExternal).toContain('mysql');
+  });
+
   it('gates the transform on the ssr flag (Vite 5 ignores applyToEnvironment)', () => {
     const plugin = vitePlugin();
     const transform = plugin.transform as (
