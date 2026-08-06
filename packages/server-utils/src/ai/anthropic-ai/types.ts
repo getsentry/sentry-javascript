@@ -1,15 +1,5 @@
+import type { GenAiOptions } from '../core/utils';
 import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
-
-export interface AnthropicAiOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-}
 
 export type Message = {
   role: 'user' | 'assistant';
@@ -81,7 +71,7 @@ export interface AnthropicAiClient {
  */
 export interface AnthropicAiIntegration {
   name: string;
-  options: AnthropicAiOptions;
+  options: GenAiOptions;
 }
 
 /**

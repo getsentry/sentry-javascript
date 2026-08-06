@@ -37,6 +37,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
+import type { GenAiOptions } from '../ai/core/utils';
 import { getProviderMetadataAttributes } from '../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -196,12 +197,6 @@ export interface VercelAiChannelMessage {
  */
 export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
-/** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
-export interface VercelAiChannelOptions {
-  recordInputs?: boolean;
-  recordOutputs?: boolean;
-}
-
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
  * available in `ai` >= 7) and emit fully-formed `gen_ai.*` spans directly — no OpenTelemetry span
@@ -216,7 +211,7 @@ export interface VercelAiChannelOptions {
  */
 export function subscribeVercelAiTracingChannel(
   tracingChannel: VercelAiTracingChannelFactory,
-  options: VercelAiChannelOptions = {},
+  options: GenAiOptions = {},
 ): void {
   bindTracingChannelToSpan(
     tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL),
@@ -243,7 +238,7 @@ export function subscribeVercelAiTracingChannel(
  */
 function deferStreamedModelCallEnd(
   data: VercelAiChannelMessage,
-  options: VercelAiChannelOptions,
+  options: GenAiOptions,
   end: (error?: unknown) => void,
 ): boolean {
   if (data.type !== 'languageModelCall' || !isObjectLike(data.result)) {
@@ -349,7 +344,7 @@ function addTokensToSpan(span: Span, attribute: string, value: number | undefine
  */
 export function createSpanFromMessage(
   data: VercelAiChannelMessage,
-  channelOptions: VercelAiChannelOptions,
+  channelOptions: GenAiOptions,
 ): Span | undefined {
   const { type, event } = data;
 
@@ -489,7 +484,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
 export function enrichSpanOnEnd(
   span: Span,
   data: VercelAiChannelMessage,
-  channelOptions: VercelAiChannelOptions,
+  channelOptions: GenAiOptions,
 ): void {
   const { type, result } = data;
   if (!isObjectLike(result)) {
@@ -677,7 +672,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
 
 function getRecordingOptions(
   event: Record<string, unknown>,
-  channelOptions: VercelAiChannelOptions,
+  channelOptions: GenAiOptions,
 ): {
   recordInputs: boolean;
   recordOutputs: boolean;

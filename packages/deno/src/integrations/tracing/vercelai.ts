@@ -7,10 +7,10 @@ import { defineIntegration, extendIntegration } from '@sentry/core';
 import {
   addVercelAiProcessors,
   vercelAiIntegration as serverUtilsVercelAiIntegration,
-  type VercelAiOptions,
+  type GenAiOptions,
 } from '@sentry/server-utils';
 
-const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
+const _vercelAIIntegration = ((options: GenAiOptions = {}) => {
   const inner = serverUtilsVercelAiIntegration(options);
 
   return extendIntegration(inner, {

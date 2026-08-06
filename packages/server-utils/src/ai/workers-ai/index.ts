@@ -6,10 +6,10 @@ import {
   startSpanManual,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
-import type { WorkersAiOptions } from './types';
 import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
 
 // Adapted from /server-utils/src/vercel-ai/util.ts
@@ -29,7 +29,7 @@ function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
 function instrumentRun(
   originalRun: (...args: unknown[]) => Promise<unknown>,
   context: unknown,
-  options: WorkersAiOptions & Required<Pick<WorkersAiOptions, 'recordInputs' | 'recordOutputs'>>,
+  options: Required<GenAiOptions>,
 ): (...args: unknown[]) => Promise<unknown> {
   return function instrumentedRun(...args: unknown[]): Promise<unknown> {
     // When another integration (e.g. Vercel AI via `workers-ai-provider`) is driving this binding,
@@ -124,7 +124,7 @@ function instrumentRun(
  * const result = await ai.run('@cf/meta/llama-3.1-8b-instruct', { prompt: 'Hello' });
  * ```
  */
-export function instrumentWorkersAiClient<T extends object>(client: T, options?: WorkersAiOptions): T {
+export function instrumentWorkersAiClient<T extends object>(client: T, options?: GenAiOptions): T {
   const resolvedOptions = resolveAIRecordingOptions(options);
 
   const instrumented = new Proxy(client, {

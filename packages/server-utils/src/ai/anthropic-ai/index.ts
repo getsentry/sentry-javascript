@@ -25,6 +25,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import {
   getGenAiSpanOp,
   resolveAIRecordingOptions,
@@ -33,7 +34,7 @@ import {
 } from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
-import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
+import type { AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
 // Set only while a streaming helper (e.g. `messages.stream()`) synchronously delegates to the
@@ -200,7 +201,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   operationName: string,
   methodPath: string,
   params: Record<string, unknown> | undefined,
-  options: AnthropicAiOptions,
+  options: GenAiOptions,
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
 ): R | Promise<R> {
@@ -267,7 +268,7 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: AnthropicAiOptions,
+  options: GenAiOptions,
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
@@ -360,7 +361,7 @@ function instrumentMethod<T extends unknown[], R>(
  * `instanceof` checks behave exactly as on an uninstrumented client, and non-instrumented
  * methods are left untouched.
  */
-function instrumentClientInPlace<T extends object>(client: T, options: AnthropicAiOptions): T {
+function instrumentClientInPlace<T extends object>(client: T, options: GenAiOptions): T {
   for (const methodPath of Object.keys(ANTHROPIC_METHOD_REGISTRY) as Array<keyof typeof ANTHROPIC_METHOD_REGISTRY>) {
     const segments = methodPath.split('.');
     const methodName = segments.pop() as string;
@@ -402,6 +403,6 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
  * @param options - Optional configuration for recording inputs and outputs
  * @returns The instrumented client with the same type as the input
  */
-export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
+export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: GenAiOptions): T {
   return instrumentClientInPlace(anthropicAiClient, resolveAIRecordingOptions(options));
 }

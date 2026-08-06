@@ -32,10 +32,11 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import { buildMethodPath, extractSystemInstructions, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
-import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
+import type { Candidate, ContentPart, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
 import { contentUnionToMessages } from './utils';
 
@@ -260,7 +261,7 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: GoogleGenAIOptions,
+  options: GenAiOptions,
 ): (...args: T) => R | Promise<R> {
   const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
@@ -339,7 +340,7 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for Google GenAI client instrumentation
  * Recursively instruments methods and handles special cases like chats.create
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: GenAiOptions): T {
   return new Proxy(target, {
     get: (t, prop, receiver) => {
       const value = Reflect.get(t, prop, receiver);
@@ -406,6 +407,6 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * const response = await chat.sendMessage({ message: 'Hello' });
  * ```
  */
-export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GoogleGenAIOptions): T {
+export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GenAiOptions): T {
   return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

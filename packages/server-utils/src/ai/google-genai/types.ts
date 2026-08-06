@@ -1,16 +1,5 @@
 import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
 
-export interface GoogleGenAIOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-}
-
 /**
  * Google GenAI Content Part
  * @see https://ai.google.dev/api/rest/v1/Content#Part

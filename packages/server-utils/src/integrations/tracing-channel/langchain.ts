@@ -6,7 +6,7 @@ import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../ai/google-genai/constants';
 import { createLangChainCallbackHandler } from '../../ai/langchain';
 import { LANGCHAIN_INTEGRATION_NAME } from '../../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../../ai/langchain/embeddings';
-import type { LangChainOptions } from '../../ai/langchain/types';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { _INTERNAL_mergeLangChainCallbackHandler } from '../../ai/langchain/utils';
 import { OPENAI_INTEGRATION_NAME } from '../../ai/openai/constants';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -42,7 +42,7 @@ function markProvidersSkipped(): void {
   _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
 }
 
-const _langChainIntegration = ((options: LangChainOptions = {}) => {
+const _langChainIntegration = ((options: GenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -60,7 +60,7 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentChatModels(options: LangChainOptions): void {
+function instrumentChatModels(options: GenAiOptions): void {
   // One stateful handler tracks spans across the whole run tree, just like the OTel path.
   const sentryHandler = createLangChainCallbackHandler(options);
 
@@ -90,7 +90,7 @@ function instrumentChatModels(options: LangChainOptions): void {
 }
 
 // Embeddings don't use the callback system. Wrap the method in its own span
-function instrumentEmbeddings(options: LangChainOptions): void {
+function instrumentEmbeddings(options: GenAiOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
@@ -100,7 +100,7 @@ function instrumentEmbeddings(options: LangChainOptions): void {
   }
 }
 
-function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChainOptions): Span {
+function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: GenAiOptions): Span {
   // `embedQuery`/`embedDocuments` call the provider SDK internally, so skip that SDK's own
   // instrumentation before its channel fires (the producer runs at the embeddings channel's `start`).
   markProvidersSkipped();

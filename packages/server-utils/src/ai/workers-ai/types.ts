@@ -1,7 +1,3 @@
-import type { AIRecordingOptions } from '../core/utils';
-
-export interface WorkersAiOptions extends AIRecordingOptions {}
-
 /**
  * Minimal shape of the Cloudflare Workers AI binding (`env.AI`).
  * We only rely on the `run` method, everything else is passed through untouched.

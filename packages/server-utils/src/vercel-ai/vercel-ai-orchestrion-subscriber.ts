@@ -8,6 +8,7 @@ import {
   SPAN_STATUS_ERROR,
   withActiveSpan,
 } from '@sentry/core';
+import type { GenAiOptions } from '../ai/core/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
@@ -19,7 +20,6 @@ import {
   enrichSpanOnEnd,
   streamedResultToChannelResult,
   type VercelAiChannelMessage,
-  type VercelAiChannelOptions,
   type VercelAiTracingChannelFactory,
 } from './vercel-ai-dc-subscriber';
 import { asString, isReadableStream, tapModelCallStream } from './util';
@@ -142,7 +142,7 @@ let subscribed = false;
  */
 export function subscribeVercelAiOrchestrionChannels(
   tracingChannel: VercelAiTracingChannelFactory,
-  options: VercelAiChannelOptions = {},
+  options: GenAiOptions = {},
 ): void {
   if (subscribed) {
     return;
@@ -220,7 +220,7 @@ function bindOperation(
   tracingChannel: VercelAiTracingChannelFactory,
   channelName: string,
   build: MessageBuilder,
-  options: VercelAiChannelOptions,
+  options: GenAiOptions,
 ): void {
   const channel = tracingChannel<OrchestrionContext>(channelName);
 
@@ -396,7 +396,7 @@ function suppressNativeTelemetry(callOptions: Record<string, unknown>, telemetry
 function subscribeResolveLanguageModel(
   tracingChannel: VercelAiTracingChannelFactory,
   channelName: string,
-  options: VercelAiChannelOptions,
+  options: GenAiOptions,
 ): void {
   tracingChannel<OrchestrionContext>(channelName).subscribe({
     end(rawCtx) {
@@ -451,7 +451,7 @@ function resolveModelCallParent(): Span | undefined {
  * `languageModelCall` span. Shared by the v5/v6 `resolveLanguageModel` path and the v4 path (which
  * patches the passed model at the operation start, as v4 has no `resolveLanguageModel`).
  */
-function patchModelMethods(model: PatchableModel, options: VercelAiChannelOptions): void {
+function patchModelMethods(model: PatchableModel, options: GenAiOptions): void {
   if (model[PATCHED]) {
     return;
   }
@@ -463,7 +463,7 @@ function patchModelMethods(model: PatchableModel, options: VercelAiChannelOption
 function patchModelMethod(
   model: PatchableModel,
   method: 'doGenerate' | 'doStream',
-  options: VercelAiChannelOptions,
+  options: GenAiOptions,
 ): void {
   const original = model[method];
   if (typeof original !== 'function') {
@@ -568,7 +568,7 @@ function patchModelMethod(
  * (before the call runs) is picked up. Tools without an `execute` (client-side tools) are skipped,
  * matching `executeTools`.
  */
-function patchOperationTools(tools: Record<string, unknown>, options: VercelAiChannelOptions): void {
+function patchOperationTools(tools: Record<string, unknown>, options: GenAiOptions): void {
   // This runs inside the channel `start` transform (no upstream try/catch), so a throw here would break
   // the user's `ai` call. Instrumentation must never do that — degrade to no tool span instead.
   try {
@@ -586,7 +586,7 @@ function patchToolExecute(
   toolName: string,
   tool: PatchableTool,
   tools: Record<string, unknown>,
-  options: VercelAiChannelOptions,
+  options: GenAiOptions,
 ): void {
   const original = tool.execute;
   if (typeof original !== 'function' || tool[TOOL_PATCHED]) {

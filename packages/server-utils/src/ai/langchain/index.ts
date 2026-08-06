@@ -16,13 +16,13 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
 } from '@sentry/conventions/attributes';
+import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
   LangChainLLMResult,
   LangChainMessage,
-  LangChainOptions,
   LangChainSerialized,
 } from './types';
 import {
@@ -40,7 +40,7 @@ import {
  *
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
-export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
+export function createLangChainCallbackHandler(options: GenAiOptions = {}): LangChainCallbackHandler {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
   // Internal state - single instance tracks all spans

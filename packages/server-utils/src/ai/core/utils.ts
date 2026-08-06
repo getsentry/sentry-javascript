@@ -17,8 +17,16 @@ import {
 } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 
-export interface AIRecordingOptions {
+export interface GenAiOptions {
+  /**
+   * Record input messages/prompts on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.inputs` setting; an explicit value here takes precedence.
+   */
   recordInputs?: boolean;
+  /**
+   * Record output text/responses on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.outputs` setting; an explicit value here takes precedence.
+   */
   recordOutputs?: boolean;
 }
 
@@ -60,13 +68,13 @@ export function getGenAiSpanOp(operationName: string): string {
  * Resolves AI recording options by falling back to the client's `dataCollection.genAI` settings.
  * Precedence: explicit option > dataCollection.genAI > true (genAI data collected by default)
  */
-export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
+export function resolveAIRecordingOptions<T extends GenAiOptions>(options?: T): T & Required<GenAiOptions> {
   const genAI = getClient()?.getDataCollectionOptions().genAI;
   return {
     ...options,
     recordInputs: options?.recordInputs ?? genAI?.inputs ?? true,
     recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? true,
-  } as T & Required<AIRecordingOptions>;
+  } as T & Required<GenAiOptions>;
 }
 
 /**

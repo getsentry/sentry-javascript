@@ -1,11 +1,12 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { resolveAIRecordingOptions } from '../../ai/core/utils';
 import { createLangChainCallbackHandler } from '../../ai/langchain';
 import { instrumentCompiledGraphInvoke } from '../../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../../ai/langgraph/constants';
-import type { CompiledGraph, LangGraphOptions } from '../../ai/langgraph/types';
+import type { CompiledGraph } from '../../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -30,7 +31,7 @@ interface CreateReactAgentChannelContext {
 // nested graph so its `invoke` is wrapped once (by the createReactAgent handler), not twice.
 let insideCreateReactAgent = false;
 
-const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
+const _langGraphIntegration = ((options: GenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -43,7 +44,7 @@ const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentLanggraph(options: LangGraphOptions): void {
+function instrumentLanggraph(options: GenAiOptions): void {
   const resolvedOptions = resolveAIRecordingOptions(options);
   const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
 
@@ -105,7 +106,7 @@ function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown>
 function wrapCompiledGraphInvoke(
   graph: unknown,
   compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
+  options: GenAiOptions,
   llm: ReturnType<typeof extractLLMFromParams>,
   sentryHandler: unknown,
 ): void {

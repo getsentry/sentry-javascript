@@ -7,10 +7,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../ai/anthropic-ai/streaming';
-import type { AnthropicAiOptions, AnthropicAiResponse } from '../../ai/anthropic-ai/types';
+import type { AnthropicAiResponse } from '../../ai/anthropic-ai/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { anthropicAiModuleNames } from '../../orchestrion/config/anthropic-ai';
@@ -41,7 +42,7 @@ interface AnthropicChannelContext {
   result?: unknown;
 }
 
-const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
+const _anthropicIntegration = ((options: GenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -50,7 +51,7 @@ const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentAnthropic(options: AnthropicAiOptions): void {
+function instrumentAnthropic(options: GenAiOptions): void {
   for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
@@ -77,7 +78,7 @@ function createGenAiSpan(
   data: AnthropicChannelContext,
   operation: string,
   methodPath: string,
-  options: AnthropicAiOptions,
+  options: GenAiOptions,
 ): Span | undefined {
   const args = data.arguments ?? [];
 
@@ -139,7 +140,7 @@ function wrapStreamResult(
   span: Span,
   data: AnthropicChannelContext,
   stream: StreamMode,
-  options: AnthropicAiOptions,
+  options: GenAiOptions,
 ): boolean {
   const { recordOutputs } = resolveAIRecordingOptions(options);
   const result = data.result;

@@ -17,9 +17,9 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
 } from '../core/gen-ai-attributes';
+import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type { LangChainOptions } from './types';
 
 /**
  * Infers the AI provider system name from the embedding class instance.
@@ -70,7 +70,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
 export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   instance: unknown,
   input: unknown,
-  options: LangChainOptions = {},
+  options: GenAiOptions = {},
 ): { name: string; op: string; attributes: Record<string, SpanAttributeValue> } {
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
@@ -94,7 +94,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
  */
 export function instrumentEmbeddingMethod(
   originalMethod: (...args: unknown[]) => Promise<unknown>,
-  options: LangChainOptions = {},
+  options: GenAiOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
@@ -128,7 +128,7 @@ export function instrumentEmbeddingMethod(
  * await embeddings.embedDocuments(['doc1', 'doc2']);
  * ```
  */
-export function instrumentLangChainEmbeddings<T extends object>(instance: T, options?: LangChainOptions): T {
+export function instrumentLangChainEmbeddings<T extends object>(instance: T, options?: GenAiOptions): T {
   const embeddingsInstance = instance as Record<string, unknown>;
 
   if (typeof embeddingsInstance.embedQuery === 'function') {

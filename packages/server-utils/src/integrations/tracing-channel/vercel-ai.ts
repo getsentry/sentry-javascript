@@ -1,12 +1,11 @@
 import type { Client, IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { vercelAiIntegration as baseVercelAiIntegration } from '../../vercel-ai';
 import * as dc from 'node:diagnostics_channel';
 import { vercelAiModuleNames } from '../../orchestrion/config/vercel-ai';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { subscribeVercelAiOrchestrionChannels } from '../../vercel-ai/vercel-ai-orchestrion-subscriber';
-
-type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 
 // In channel-based (orchestrion) mode we emit our own `gen_ai.*` spans from the
 // diagnostics channels. The `ai` SDK would otherwise emit its own native
@@ -16,7 +15,7 @@ type VercelAiOptions = Parameters<typeof baseVercelAiIntegration>[0];
 // `experimental_telemetry.isEnabled` to `false`, so `ai` falls back to its
 // internal no-op tracer and never creates the native spans in the first place.
 // See `subscribeVercelAiOrchestrionChannels`.
-const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
+const _vercelAiIntegration = ((options: GenAiOptions = {}) => {
   const parentIntegration = baseVercelAiIntegration(options);
 
   // The native `ai:telemetry` half is the base integration's own `setupOnce`; the
@@ -29,7 +28,7 @@ const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   });
 }) satisfies IntegrationFn;
 
-function instrumentVercelAiOrchestrion(options: VercelAiOptions): void {
+function instrumentVercelAiOrchestrion(options: GenAiOptions): void {
   subscribeVercelAiOrchestrionChannels(dc.tracingChannel, options);
 }
 

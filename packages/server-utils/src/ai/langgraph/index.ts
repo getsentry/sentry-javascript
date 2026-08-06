@@ -18,12 +18,13 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../core/gen-ai-attributes';
+import type { GenAiOptions } from '../core/utils';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
-import type { CompiledGraph, LangGraphOptions } from './types';
+import type { CompiledGraph } from './types';
 import {
   extractAgentNameFromParams,
   extractLLMFromParams,
@@ -43,7 +44,7 @@ const SENTRY_PATCHED = '__sentry_patched__';
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
-  options: LangGraphOptions,
+  options: GenAiOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
@@ -91,7 +92,7 @@ export function instrumentCompiledGraphInvoke(
   originalInvoke: (...args: unknown[]) => Promise<unknown>,
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
+  options: GenAiOptions,
   llm?: BaseChatModel | null,
   sentryCallbackHandler?: unknown,
 ): (...args: unknown[]) => Promise<unknown> {
@@ -203,7 +204,7 @@ export function instrumentCompiledGraphInvoke(
  */
 export function instrumentCreateReactAgent(
   originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
-  options?: LangGraphOptions,
+  options?: GenAiOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCreateReactAgent, SENTRY_PATCHED)) {
     return originalCreateReactAgent;
@@ -284,7 +285,7 @@ export function instrumentCreateReactAgent(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentStateGraph<T extends { compile: (...args: any[]) => any }>(
   stateGraph: T,
-  options?: LangGraphOptions,
+  options?: GenAiOptions,
 ): T {
   stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, resolveAIRecordingOptions(options));
 

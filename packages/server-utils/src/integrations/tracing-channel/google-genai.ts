@@ -9,10 +9,11 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/google-genai';
 import { instrumentStream } from '../../ai/google-genai/streaming';
-import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../../ai/google-genai/types';
+import type { GoogleGenAIResponse } from '../../ai/google-genai/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { googleGenAiModuleNames } from '../../orchestrion/config/google-genai';
@@ -39,7 +40,7 @@ interface GoogleGenAIChannelContext {
   result?: unknown;
 }
 
-const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
+const _googleGenAIIntegration = ((options: GenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -48,7 +49,7 @@ const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
+function instrumentGoogleGenai(options: GenAiOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<GoogleGenAIChannelContext>(channel),
@@ -77,7 +78,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
 function createGenAiSpan(
   data: GoogleGenAIChannelContext,
   operation: string,
-  options: GoogleGenAIOptions,
+  options: GenAiOptions,
 ): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
@@ -131,7 +132,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentStream` ends the
  * span when iteration finishes.
  */
-function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: GoogleGenAIOptions): boolean {
+function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: GenAiOptions): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;

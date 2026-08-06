@@ -26,7 +26,8 @@ import { GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE 
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
-import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
+import type { GenAiOptions } from '../core/utils';
+import type { CompiledGraph, LangGraphTool } from './types';
 
 /**
  * Extract LLM model object from createReactAgent params
@@ -59,7 +60,7 @@ export function extractAgentNameFromParams(args: unknown[]): string | null {
  *
  * Wraps each tool's invoke() method in place. A marker prevents double-wrapping.
  */
-export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, agentName?: string): unknown[] {
+export function wrapToolsWithSpans(tools: unknown[], options: GenAiOptions, agentName?: string): unknown[] {
   const SENTRY_WRAPPED = '__sentry_tool_wrapped__';
 
   for (const tool of tools) {

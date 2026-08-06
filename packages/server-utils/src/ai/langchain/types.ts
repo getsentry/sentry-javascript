@@ -1,19 +1,4 @@
-/**
- * Options for LangChain integration
- */
-export interface LangChainOptions {
-  /**
-   * Whether to record input messages/prompts
-   * @default false (respects `dataCollection.genAI.inputs`)
-   */
-  recordInputs?: boolean;
-
-  /**
-   * Whether to record output text and responses
-   * @default false (respects `dataCollection.genAI.outputs`)
-   */
-  recordOutputs?: boolean;
-}
+import type { GenAiOptions } from '../core/utils';
 
 /**
  * LangChain Serialized type (compatible with @langchain/core)
@@ -107,7 +92,7 @@ export interface LangChainLLMResult {
  */
 export interface LangChainIntegration {
   name: string;
-  options: LangChainOptions;
+  options: GenAiOptions;
 }
 
 /**

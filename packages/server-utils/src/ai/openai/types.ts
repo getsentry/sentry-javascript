@@ -1,3 +1,4 @@
+import type { GenAiOptions } from '../core/utils';
 import type { OPENAI_METHOD_REGISTRY } from './constants';
 
 /**
@@ -12,17 +13,6 @@ export type AttributeValue =
   | Array<null | undefined | string>
   | Array<null | undefined | number>
   | Array<null | undefined | boolean>;
-
-export interface OpenAiOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-}
 
 export interface OpenAiClient {
   responses?: {
@@ -357,7 +347,7 @@ export interface OpenAIStream<T> extends AsyncIterable<T> {
  */
 export interface OpenAiIntegration {
   name: string;
-  options: OpenAiOptions;
+  options: GenAiOptions;
 }
 
 /**

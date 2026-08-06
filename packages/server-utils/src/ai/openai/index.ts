@@ -20,6 +20,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
@@ -29,7 +30,7 @@ import {
 } from '../core/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
-import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import type { ChatCompletionChunk, OpenAIStream, ResponseStreamingEvent } from './types';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
@@ -135,7 +136,7 @@ function instrumentMethod<T extends unknown[], R>(
   methodPath: string,
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
-  options: OpenAiOptions,
+  options: GenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
@@ -224,7 +225,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for OpenAI client instrumentation
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: GenAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -260,6 +261,6 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Instrument an OpenAI client with Sentry tracing
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
-export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
+export function instrumentOpenAiClient<T extends object>(client: T, options?: GenAiOptions): T {
   return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

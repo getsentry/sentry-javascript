@@ -6,10 +6,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
+import type { GenAiOptions } from '../../ai/core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../../ai/openai';
 import { instrumentStream } from '../../ai/openai/streaming';
-import type { OpenAiOptions } from '../../ai/openai/types';
 import { addResponseAttributes } from '../../ai/openai/utils';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -38,7 +38,7 @@ interface OpenAiChatChannelContext {
   result?: unknown;
 }
 
-const _openaiIntegration = ((options: OpenAiOptions = {}) => {
+const _openaiIntegration = ((options: GenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -47,7 +47,7 @@ const _openaiIntegration = ((options: OpenAiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentOpenai(options: OpenAiOptions): void {
+function instrumentOpenai(options: GenAiOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<OpenAiChatChannelContext>(channel),
@@ -67,7 +67,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
  * Build the span for an instrumented `create` call.
  * Returning `undefined` opts the payload out so no span is opened.
  */
-function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
+function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, options: GenAiOptions): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
@@ -111,7 +111,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
-function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: OpenAiOptions): boolean {
+function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: GenAiOptions): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;
