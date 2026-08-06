@@ -53,7 +53,7 @@ Deno.test('vercel-ai instrumentation: orchestrion:ai:generateText channel produc
     `expected a gen_ai.invoke_agent child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
   );
   assertEquals(aiSpan!.description, 'invoke_agent');
-  assertEquals(aiSpan!.data?.['gen_ai.system'], 'openai');
+  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'openai');
   assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'invoke_agent');
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gpt-4o');
   assertEquals(aiSpan!.data?.['vercel.ai.operationId'], 'ai.generateText');

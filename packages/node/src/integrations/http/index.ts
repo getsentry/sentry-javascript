@@ -32,7 +32,7 @@ interface HttpOptions {
    * This will ensure that the default HttpInstrumentation from OpenTelemetry is not setup,
    * only the Sentry-specific instrumentation for request isolation is applied.
    *
-   * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
+   * Defaults to `true` when tracing is enabled.
    */
   spans?: boolean;
 
@@ -55,8 +55,8 @@ interface HttpOptions {
    * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
    *
    * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
-   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
-   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's HttpInstrumentation.
+   * (if `breadcrumbs` is enabled). This is useful when you run your own OpenTelemetry `HttpInstrumentation` and
+   * want to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry.
    *
    * @default `true`
    */
@@ -153,10 +153,6 @@ interface HttpOptions {
     ) => void;
   };
 }
-
-export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
-  id: `${INTEGRATION_NAME}.sentry`,
-});
 
 /**
  * The http integration instruments Node's internal http and https modules.

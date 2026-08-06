@@ -109,6 +109,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
     expect(getName()).toBe('GET /posts/[slug]');
     expect(span.attributes[HTTP_ROUTE]).toBe('/posts/[slug]');
+    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
   });
 
   it('does not apply the backfill for the special GET /_app transaction', () => {

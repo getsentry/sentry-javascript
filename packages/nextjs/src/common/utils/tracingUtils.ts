@@ -1,20 +1,7 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
-import {
-  isObjectLike,
-  debug,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  GLOBAL_OBJ,
-  Scope,
-  spanToJSON,
-  startNewTrace,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
 
@@ -65,68 +52,6 @@ export function commonObjectToIsolationScope(commonObject: unknown): Scope {
     }
   } else {
     return new Scope();
-  }
-}
-
-interface AsyncLocalStorage<T> {
-  getStore(): T | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
-}
-
-let nextjsEscapedAsyncStorage: AsyncLocalStorage<true>;
-
-/**
- * Will mark the execution context of the callback as "escaped" from Next.js internal tracing by unsetting the active
- * span and propagation context. When an execution passes through this function multiple times, it is a noop after the
- * first time.
- */
-export function escapeNextjsTracing<T>(cb: () => T): T {
-  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as { AsyncLocalStorage?: new () => AsyncLocalStorage<true> })
-    .AsyncLocalStorage;
-
-  if (!MaybeGlobalAsyncLocalStorage) {
-    DEBUG_BUILD &&
-      debug.warn(
-        "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
-      );
-    return cb();
-  }
-
-  if (!nextjsEscapedAsyncStorage) {
-    nextjsEscapedAsyncStorage = new MaybeGlobalAsyncLocalStorage();
-  }
-
-  if (nextjsEscapedAsyncStorage.getStore()) {
-    return cb();
-  } else {
-    return startNewTrace(() => {
-      return nextjsEscapedAsyncStorage.run(true, () => {
-        return cb();
-      });
-    });
-  }
-}
-
-/**
- * Ideally this function never lands in the develop branch.
- *
- * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
- */
-export function dropNextjsRootContext(): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
-  // mutate their spans with Sentry-internal attributes like `sentry.drop_transaction`
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
-    return;
-  }
-
-  const nextJsOwnedSpan = getActiveSpan();
-  if (nextJsOwnedSpan) {
-    const rootSpan = getRootSpan(nextJsOwnedSpan);
-    const rootSpanAttributes = spanToJSON(rootSpan).data;
-    if (rootSpanAttributes?.['next.span_type']) {
-      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
-    }
   }
 }
 

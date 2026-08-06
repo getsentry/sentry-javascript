@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { defaultPiiToCollectionOptions } from '../../../../src/utils/data-collection/defaultPiiToCollectionOptions';
 import { resolveDataCollectionOptions } from '../../../../src/utils/data-collection/resolveDataCollectionOptions';
 
 describe('resolveDataCollectionOptions', () => {
@@ -24,17 +23,6 @@ describe('resolveDataCollectionOptions', () => {
     it('returns spec defaults when dataCollection is explicitly set to empty object', () => {
       expect(resolveDataCollectionOptions({ dataCollection: {} })).toEqual(SPEC_DEFAULTS);
     });
-
-    it('ignores sendDefaultPii when dataCollection is set', () => {
-      expect(resolveDataCollectionOptions({ dataCollection: {}, sendDefaultPii: false })).toEqual(SPEC_DEFAULTS);
-    });
-
-    it.each([true, false])(
-      'uses the legacy bridge when sendDefaultPii is %s and dataCollection is absent',
-      sendDefaultPii => {
-        expect(resolveDataCollectionOptions({ sendDefaultPii })).toEqual(defaultPiiToCollectionOptions(sendDefaultPii));
-      },
-    );
   });
 
   describe('dataCollection options', () => {

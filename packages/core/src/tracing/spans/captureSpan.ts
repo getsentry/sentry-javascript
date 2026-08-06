@@ -21,7 +21,7 @@ import {
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
-import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
@@ -75,9 +75,12 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   // This also invokes the `processSpan` hook of all integrations
   client.emit('processSpan', spanJSON);
 
-  const { beforeSendSpan } = client.getOptions();
+  const { beforeSendSpan, traceLifecycle } = client.getOptions();
   const processedSpan =
-    beforeSendSpan && isStreamedBeforeSendSpanCallback(beforeSendSpan)
+    // check for traceLifecycle here because in static lifecycle,
+    // captureSpan is called for INP spans. If an unmigrated beforeSendSpan
+    // callback is run on these spans, it will throw an error.
+    traceLifecycle !== 'static' && beforeSendSpan && !isStaticBeforeSendSpanCallback(beforeSendSpan)
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 

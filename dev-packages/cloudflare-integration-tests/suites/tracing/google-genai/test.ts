@@ -4,12 +4,12 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_TEXT,
-  GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -46,7 +46,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-pro', type: 'string' },
           // collect LLM input and outputs (default true)
@@ -70,7 +70,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.generate_content', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'generate_content', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-flash', type: 'string' },
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
@@ -99,7 +99,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
         attributes: {
           'sentry.origin': { value: 'auto.ai.google_genai', type: 'string' },
           'sentry.op': { value: 'gen_ai.embeddings', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'google_genai', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'embeddings', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'text-embedding-004', type: 'string' },
           [GEN_AI_EMBEDDINGS_INPUT]: { value: 'Hello world', type: 'string' },

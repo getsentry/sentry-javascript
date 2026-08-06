@@ -3,20 +3,19 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
-  GEN_AI_SYSTEM,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
 
@@ -72,7 +71,7 @@ describe('Vercel AI integration (v5)', () => {
               expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
                 'ai.generateText.doGenerate',
               );
-              expect(firstGenerateContentSpan!.attributes[GEN_AI_SYSTEM].value).toBe('mock-provider');
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('mock-provider');
               expect(firstGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
               expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
 
@@ -129,7 +128,6 @@ describe('Vercel AI integration (v5)', () => {
               expect(toolExecutionSpan!.attributes['sentry.origin'].value).toBe(expectedOrigin);
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
-              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_TYPE].value).toBe('function');
             },
           })
           .start()
@@ -229,13 +227,13 @@ describe('Vercel AI integration (v5)', () => {
               const toolGenerateContentSpan = container.items.find(
                 span =>
                   span.name === 'generate_content mock-model-id' &&
-                  span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] !== undefined,
+                  span.attributes[GEN_AI_TOOL_DEFINITIONS] !== undefined,
               );
               expect(toolGenerateContentSpan).toBeDefined();
               expect(toolGenerateContentSpan!.name).toBe('generate_content mock-model-id');
               expect(toolGenerateContentSpan!.status).toBe('ok');
               expect(toolGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-              expect(toolGenerateContentSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]).toBeDefined();
+              expect(toolGenerateContentSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeDefined();
               expect(toolGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
 
               const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather');
@@ -247,8 +245,8 @@ describe('Vercel AI integration (v5)', () => {
               expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_DESCRIPTION].value).toBe(
                 'Get the current weather for a location',
               );
-              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_INPUT]).toBeDefined();
-              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_OUTPUT]).toBeDefined();
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]).toBeDefined();
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeDefined();
             },
           })
           .start()

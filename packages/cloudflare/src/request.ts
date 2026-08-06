@@ -2,7 +2,6 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import {
   captureException,
   continueTrace,
-  getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
@@ -81,7 +80,7 @@ export function wrapRequestHandlerWithInit(
     // to track pending tasks. If we use the instrumented version for flushAndDispose,
     // it acquires the lock, then flushAndDispose tries to wait for the same lock,
     // creating a deadlock.
-    const waitUntil = context ? getOriginalWaitUntil(context)?.bind(context) : undefined;
+    const waitUntil = context ? getOriginalWaitUntil(context).bind(context) : undefined;
     const errorMechanismType = getRequestErrorMechanismType(context);
 
     const client = initSdk({ ...options, ctx: context });
@@ -100,13 +99,12 @@ export function wrapRequestHandlerWithInit(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
-    Object.assign(
-      attributes,
-      httpHeadersToSpanAttributes(
-        winterCGHeadersToDict(request.headers),
-        getClient()?.getDataCollectionOptions() ?? false,
-      ),
-    );
+    if (client) {
+      Object.assign(
+        attributes,
+        httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
+      );
+    }
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 

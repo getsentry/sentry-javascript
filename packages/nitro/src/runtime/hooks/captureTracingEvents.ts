@@ -162,10 +162,13 @@ function setupSrvxTracingChannels(): void {
         method: data.request.method,
       });
 
-      const headerAttributes = httpHeadersToSpanAttributes(
-        Object.fromEntries(data.request.headers.entries()),
-        getClient()?.getDataCollectionOptions() ?? false,
-      );
+      const client = getClient();
+      const headerAttributes = client
+        ? httpHeadersToSpanAttributes(
+            Object.fromEntries(data.request.headers.entries()),
+            client.getDataCollectionOptions(),
+          )
+        : {};
 
       return startInactiveSpan({
         name: spanName,

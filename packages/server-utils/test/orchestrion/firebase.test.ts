@@ -107,9 +107,9 @@ describe('wrapFunctionsRegistration', () => {
     expect(startSpanManualSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'firebase.function.http.request',
-        op: 'function.firebase',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.firebase.functions',
+          'sentry.op': 'function.gcp',
           'faas.trigger': 'http.request',
           'faas.provider': 'firebase',
         }),

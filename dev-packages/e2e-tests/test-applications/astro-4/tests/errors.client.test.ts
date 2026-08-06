@@ -51,7 +51,7 @@ test.describe('client-side errors', () => {
       timestamp: expect.any(Number),
       sdk: {
         integrations: expect.arrayContaining([
-          'InboundFilters',
+          'EventFilters',
           'FunctionToString',
           'BrowserApiErrors',
           'Breadcrumbs',

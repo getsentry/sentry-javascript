@@ -8,6 +8,9 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   debug: true,
+  // This suite exercises coexistence with a user-owned OTel HttpInstrumentation whose spans reach
+  // Sentry through the tracer provider, so it must run with the provider enabled.
+  skipOpenTelemetrySetup: false,
 });
 
 // Simulate a user who independently sets up OTel HttpInstrumentation

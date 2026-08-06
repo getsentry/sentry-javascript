@@ -52,8 +52,6 @@ export {
   getTraceMetaTags,
   graphqlIntegration,
   hapiIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
@@ -136,6 +134,8 @@ export {
   vercelAIIntegration,
   metrics,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/node';
 

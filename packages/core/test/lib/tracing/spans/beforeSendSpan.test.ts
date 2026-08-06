@@ -1,26 +1,40 @@
 import { describe, expect, it, vi } from 'vitest';
-import { withStreamedSpan } from '../../../../src';
-import { isStreamedBeforeSendSpanCallback } from '../../../../src/tracing/spans/beforeSendSpan';
+import { withStaticSpan, withStreamedSpan } from '../../../../src';
+import { isStaticBeforeSendSpanCallback } from '../../../../src/tracing/spans/beforeSendSpan';
 
-describe('beforeSendSpan for span streaming', () => {
-  describe('withStreamedSpan', () => {
-    it('should be able to modify the span', () => {
+describe('beforeSendSpan callback formats', () => {
+  describe('withStaticSpan', () => {
+    it('marks the callback as static without making the marker enumerable', () => {
       const beforeSendSpan = vi.fn();
-      const wrapped = withStreamedSpan(beforeSendSpan);
-      expect(wrapped._streamed).toBe(true);
+      const wrapped = withStaticSpan(beforeSendSpan);
+
+      expect(wrapped._static).toBe(true);
+      expect(Object.keys(wrapped)).not.toContain('_static');
     });
   });
 
-  describe('isStreamedBeforeSendSpanCallback', () => {
-    it('returns true if the callback is wrapped with withStreamedSpan', () => {
+  describe('withStreamedSpan', () => {
+    it('returns the callback unchanged', () => {
       const beforeSendSpan = vi.fn();
-      const wrapped = withStreamedSpan(beforeSendSpan);
-      expect(isStreamedBeforeSendSpanCallback(wrapped)).toBe(true);
+
+      expect(withStreamedSpan(beforeSendSpan)).toBe(beforeSendSpan);
+      expect(Object.keys(beforeSendSpan)).not.toContain('_streamed');
+    });
+  });
+
+  describe('isStaticBeforeSendSpanCallback', () => {
+    it('returns true if the callback is wrapped with withStaticSpan', () => {
+      const wrapped = withStaticSpan(vi.fn());
+
+      expect(isStaticBeforeSendSpanCallback(wrapped)).toBe(true);
     });
 
-    it('returns false if the callback is not wrapped with withStreamedSpan', () => {
-      const beforeSendSpan = vi.fn();
-      expect(isStreamedBeforeSendSpanCallback(beforeSendSpan)).toBe(false);
+    it('returns false for an unwrapped callback', () => {
+      expect(isStaticBeforeSendSpanCallback(vi.fn())).toBe(false);
+    });
+
+    it('returns false if the callback is wrapped with withStreamedSpan', () => {
+      expect(isStaticBeforeSendSpanCallback(withStreamedSpan(vi.fn()))).toBe(false);
     });
   });
 });

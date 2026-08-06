@@ -16,7 +16,7 @@ test('Instruments google-genai automatically via orchestrion', async ({ baseURL 
   expect(generateSpan).toBeDefined();
   expect(generateSpan?.attributes['sentry.op']?.value).toBe('gen_ai.generate_content');
   expect(generateSpan?.attributes['sentry.origin']?.value).toBe('auto.ai.google_genai');
-  expect(generateSpan?.attributes['gen_ai.system']?.value).toBe('google_genai');
+  expect(generateSpan?.attributes['gen_ai.provider.name']?.value).toBe('google_genai');
   expect(generateSpan?.attributes['gen_ai.request.model']?.value).toBe('gemini-1.5-flash');
   expect(generateSpan?.attributes['gen_ai.usage.input_tokens']?.value).toBe(8);
   expect(generateSpan?.attributes['gen_ai.usage.output_tokens']?.value).toBe(12);

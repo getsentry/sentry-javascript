@@ -85,8 +85,11 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
-export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
-export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+export {
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
+  withStreamedSpan,
+} from './tracing/spans/beforeSendSpan';
 export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -141,8 +144,6 @@ export { spanKindToName } from './spanKind';
 export type { SpanKind, SpanKindNumber } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-// eslint-disable-next-line typescript/no-deprecated
-export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
@@ -466,7 +467,7 @@ export type {
   SerializedStreamedSpanContainer,
   StreamedSpanJSON,
 } from './types/span';
-export type { SpanStatus } from './types/spanStatus';
+export type { SpanStatus, SpanStatusType } from './types/spanStatus';
 export type { Log, LogSeverityLevel } from './types/log';
 export type { SpanLink } from './types/link';
 export type {

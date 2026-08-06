@@ -10,10 +10,8 @@ import {
   resolvedSyncPromise,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { WORKERS_AI_INTEGRATION_NAME } from '../../src/ai/workers-ai/constants';
 import { createSpanFromMessage } from '../../src/vercel-ai/vercel-ai-dc-subscriber';
-
-// Must match `WORKERS_AI_INTEGRATION_NAME` in core's `tracing/workers-ai/constants`.
-const WORKERS_AI_INTEGRATION_NAME = 'WorkersAI';
 
 class TestClient extends Client<any> {
   public eventFromException(): PromiseLike<any> {

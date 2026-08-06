@@ -16,7 +16,13 @@ import {
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
   SENTRY_KIND,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import {
+  MESSAGING_QUEUE_PROCESS_SPAN_OP,
+  MESSAGING_QUEUE_PUBLISH_SPAN_OP,
+  MESSAGING_QUEUE_RECEIVE_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
@@ -99,13 +105,14 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
   // The batch "receive" span is named `poll`; per-message spans use the operation type verbatim.
   const operationName = operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? 'poll' : operationType;
 
+  const isBatchReceive = operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE;
+
   return startInactiveSpan({
     name: `${operationName} ${topic}`,
-    // todo(v11): Use https://getsentry.github.io/sentry-conventions/ops/#messaging
-    op: 'message',
     links,
     attributes: {
-      [SENTRY_KIND]: operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? 'client' : 'consumer',
+      [SENTRY_OP]: isBatchReceive ? MESSAGING_QUEUE_RECEIVE_SPAN_OP : MESSAGING_QUEUE_PROCESS_SPAN_OP,
+      [SENTRY_KIND]: isBatchReceive ? 'client' : 'consumer',
       ...attributes,
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
@@ -125,8 +132,8 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
-    op: 'message',
     attributes: {
+      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
       [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,

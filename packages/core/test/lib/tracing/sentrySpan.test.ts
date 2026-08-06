@@ -14,6 +14,7 @@ import {
   markSpanForOtelSourceInference,
   spanSourceWasExplicitlySet,
 } from '../../../src/tracing/utils';
+import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
@@ -272,7 +273,7 @@ describe('SentrySpan', () => {
     });
 
     test('sends the span if `beforeSendSpan` does not modify the span', () => {
-      const beforeSendSpan = vi.fn(span => span);
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -295,11 +296,11 @@ describe('SentrySpan', () => {
       expect(mockSend).toHaveBeenCalled();
     });
 
-    test('runs a non-streamed `beforeSendSpan` for standalone spans', () => {
+    test('runs a static `beforeSendSpan` for standalone spans', () => {
       // A standalone span is sent as a v2 streamed span, but a user opting out of span streaming still
       // writes `beforeSendSpan` in the v1 `SpanJSON` format. We scrub the span in its v1 shape before
       // converting it forward to v2, so the callback runs and its changes are applied.
-      const beforeSendSpan = vi.fn((span: SpanJSON) => ({ ...span, description: 'scrubbed' }));
+      const beforeSendSpan = withStaticSpan(vi.fn((span: SpanJSON) => ({ ...span, description: 'scrubbed' })));
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -334,14 +335,16 @@ describe('SentrySpan', () => {
       expect(spanItem[1].items[0]!.name).toBe('scrubbed');
     });
 
-    test('does not apply scope attributes to standalone spans with a non-streamed `beforeSendSpan`', () => {
+    test('does not apply scope attributes to standalone spans with a static `beforeSendSpan`', () => {
       // Scope attributes can hold `{ unit, value }` objects, unexpected for a static callback, so they
       // are not applied to the standalone (INP) span, just as they are not applied to transactions.
       const seen: SpanJSON['data'][] = [];
-      const beforeSendSpan = vi.fn((span: SpanJSON) => {
-        seen.push({ ...span.data });
-        return span;
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn((span: SpanJSON) => {
+          seen.push({ ...span.data });
+          return span;
+        }),
+      );
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
