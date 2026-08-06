@@ -17,6 +17,7 @@ import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
@@ -334,14 +335,13 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
     attributes[GEN_AI_EMBEDDINGS_INPUT] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
   }
 
+  if (Array.isArray(attributes[GEN_AI_RESPONSE_FINISH_REASONS])) {
+    attributes[GEN_AI_RESPONSE_FINISH_REASONS] = JSON.stringify(attributes[GEN_AI_RESPONSE_FINISH_REASONS]);
+  }
+
   addProviderMetadataToAttributes(attributes);
 
   for (const key of Object.keys(attributes)) {
-    // JSON-stringify any array-valued attributes so they survive v2 span serialization.
-    // Can be removed once span streaming supports arrays natively.
-    if (Array.isArray(attributes[key])) {
-      attributes[key] = JSON.stringify(attributes[key]);
-    }
     // Change attributes namespaced with `ai.X` to `vercel.ai.X`
     if (key.startsWith('ai.')) {
       renameAttributeKey(attributes, key, `vercel.${key}`);
