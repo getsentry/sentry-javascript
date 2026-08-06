@@ -167,7 +167,7 @@ test('captures correct spans for navigation', async ({ page }) => {
     },
   });
 
-  const transitionSpans = spans.filter(span => span.op === 'ui.ember.transition');
+  const transitionSpans = spans.filter(span => span.op === 'router');
   const beforeModelSpans = spans.filter(
     span => span.op === 'function' && span.data?.['code.function.name'] === 'beforeModel',
   );
@@ -189,11 +189,11 @@ test('captures correct spans for navigation', async ({ page }) => {
 
   expect(transitionSpans[0]).toEqual({
     data: {
-      'sentry.op': 'ui.ember.transition',
+      'sentry.op': 'router',
       'sentry.origin': 'auto.ui.ember',
     },
     description: 'route:tracing -> route:slow-loading-route.index',
-    op: 'ui.ember.transition',
+    op: 'router',
     origin: 'auto.ui.ember',
     status: 'ok',
     parent_span_id: spanId,

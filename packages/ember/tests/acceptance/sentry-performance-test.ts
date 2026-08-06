@@ -15,7 +15,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
 
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
-      spans: ['ui.ember.transition | route:undefined -> route:tracing', 'ui.render | component:test-section'],
+      spans: ['router | route:undefined -> route:tracing', 'ui.render | component:test-section'],
       transaction: 'route:tracing',
       attributes: {
         fromRoute: undefined,
@@ -32,7 +32,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactionCount(assert, 2);
     assertSentryTransactions(assert, 1, {
       spans: [
-        'ui.ember.transition | route:tracing -> route:slow-loading-route.index',
+        'router | route:tracing -> route:slow-loading-route.index',
         'function:beforeModel | slow-loading-route',
         'function:model | slow-loading-route',
         'function:afterModel | slow-loading-route',
@@ -59,7 +59,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
       spans: [
-        'ui.ember.transition | route:undefined -> route:with-loading.index',
+        'router | route:undefined -> route:with-loading.index',
         'function:beforeModel | with-loading.index',
         'function:model | with-loading.index',
         'function:afterModel | with-loading.index',
@@ -82,7 +82,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
       spans: [
-        'ui.ember.transition | route:undefined -> route:with-error.index',
+        'router | route:undefined -> route:with-error.index',
         'function:beforeModel | with-error.index',
         'function:model | with-error.index',
       ],

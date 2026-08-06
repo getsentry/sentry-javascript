@@ -10,7 +10,7 @@ import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -231,9 +231,9 @@ describe('browserTracingIntegration', () => {
     );
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-      op: 'ui.sveltekit.routing',
       name: 'SvelteKit Route Change',
       attributes: {
+        [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         'sentry.sveltekit.navigation.from': '/users',
         'sentry.sveltekit.navigation.to': '/users/[id]',
@@ -309,9 +309,9 @@ describe('browserTracingIntegration', () => {
       );
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        op: 'ui.sveltekit.routing',
         name: 'SvelteKit Route Change',
         attributes: {
+          [SENTRY_OP]: 'router',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
           'sentry.sveltekit.navigation.from': '/users/[id]',
           'sentry.sveltekit.navigation.to': '/users/[id]',
