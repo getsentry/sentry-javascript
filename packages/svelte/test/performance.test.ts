@@ -53,11 +53,11 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![0]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.init',
+        'sentry.op': 'ui.mount',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
-      op: 'ui.svelte.init',
+      op: 'ui.mount',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
       span_id: initSpanId,
@@ -94,11 +94,11 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![0]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.init',
+        'sentry.op': 'ui.mount',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
-      op: 'ui.svelte.init',
+      op: 'ui.mount',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
       span_id: initSpanId,
@@ -110,11 +110,11 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![1]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.update',
+        'sentry.op': 'ui.update',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
-      op: 'ui.svelte.update',
+      op: 'ui.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -126,11 +126,11 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![2]).toEqual({
       data: {
-        'sentry.op': 'ui.svelte.update',
+        'sentry.op': 'ui.update',
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
-      op: 'ui.svelte.update',
+      op: 'ui.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -154,7 +154,7 @@ describe('Sentry.trackComponent()', () => {
     const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(1);
 
-    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
+    expect(transaction.spans![0]?.op).toEqual('ui.mount');
   });
 
   it('only creates update spans if trackInit is deactivated', async () => {
@@ -170,7 +170,7 @@ describe('Sentry.trackComponent()', () => {
     const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(1);
 
-    expect(transaction.spans![0]?.op).toEqual('ui.svelte.update');
+    expect(transaction.spans![0]?.op).toEqual('ui.update');
   });
 
   it('creates no spans if trackInit and trackUpdates are deactivated', async () => {
@@ -241,7 +241,7 @@ describe('Sentry.trackComponent()', () => {
     // One update span is triggered by the initial rendering, but the second one is not captured
     expect(transaction.spans).toHaveLength(2);
 
-    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
-    expect(transaction.spans![1]?.op).toEqual('ui.svelte.update');
+    expect(transaction.spans![0]?.op).toEqual('ui.mount');
+    expect(transaction.spans![1]?.op).toEqual('ui.update');
   });
 });

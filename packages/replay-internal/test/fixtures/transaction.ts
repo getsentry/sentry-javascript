@@ -28,7 +28,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       // {{{
       {
         description: '<LoadingIndicator>',
-        op: 'ui.react.mount',
+        op: 'ui.mount',
         parent_span_id: 'b44b173b1c74a782',
         span_id: '9ea106e8efbce4a0',
         start_timestamp: 1668184224.4743,
@@ -37,7 +37,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       },
       {
         description: '<App>',
-        op: 'ui.react.update',
+        op: 'ui.update',
         parent_span_id: 'b44b173b1c74a782',
         span_id: 'b4c7b421761d903a',
         start_timestamp: 1668184224.4843998,
