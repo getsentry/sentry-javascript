@@ -20,6 +20,8 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1",
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
@@ -31,6 +33,13 @@
     "node": "22.20.0"
   },
   "sentryTest": {
+    "variants": [
+      {
+        "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
+        "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
+        "label": "nuxt-4 (tracer provider)"
+      }
+    ],
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",

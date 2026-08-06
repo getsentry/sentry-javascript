@@ -21,7 +21,6 @@ Sentry.init({
   tunnel: 'http://localhost:3031/',
   traceLifecycle: 'stream',
   tracesSampleRate: 1,
-  dataCollection: { userInfo: true },
 });
 
 const port = 3030;

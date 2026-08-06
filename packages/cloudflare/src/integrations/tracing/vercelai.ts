@@ -9,31 +9,18 @@
  */
 
 import type { IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-
-const INTEGRATION_NAME = 'VercelAI';
-
-interface VercelAiOptions {
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-
-  // `recordInputs`/`recordOutputs` are intentionally omitted: this entrypoint only post-processes
-  // spans the AI SDK already emitted, so it cannot decide whether inputs/outputs are recorded.
-  // Control this per call via `experimental_telemetry.recordInputs`/`recordOutputs`, or use the
-  // `@sentry/cloudflare/nodejs_compat` entrypoint for integration-level control on ai >= 7.
-}
+import { defineIntegration, extendIntegration } from '@sentry/core';
+import { addVercelAiProcessors, vercelAiIntegration, type VercelAiOptions } from '@sentry/server-utils';
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
-  return {
-    name: INTEGRATION_NAME,
+  const inner = vercelAiIntegration(options);
+
+  return extendIntegration(inner, {
     options,
     setup(client) {
       addVercelAiProcessors(client);
     },
-  };
+  });
 }) satisfies IntegrationFn;
 
 /**

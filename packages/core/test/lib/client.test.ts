@@ -11,6 +11,7 @@ import {
   setCurrentClient,
   SyncPromise,
   withMonitor,
+  withStaticSpan,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
 import * as logsInternalModule from '../../src/logs/internal';
@@ -94,6 +95,167 @@ describe('Client', () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
       consoleWarnSpy.mockRestore();
     });
+
+    test('warns that a streamed beforeSendSpan is ignored with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'static', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: wrap it with `Sentry.withStaticSpan` to use it with `traceLifecycle: "static"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('warns that a static beforeSendSpan is ignored with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'stream',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('reports the normalized traceLifecycle when warning about an unknown value', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+          traceLifecycle: 'somethingElse',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a streamed beforeSendSpan with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a static beforeSendSpan with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'static',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('init() / transaction option warnings', () => {
+    test('warns about transaction options ignored by span streaming', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`beforeSendTransaction` and `ignoreTransactions` are ignored with `traceLifecycle: 'stream'` (enabled by default).",
+        ),
+      );
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when the client is disabled because no DSN was provided', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when the client is disabled via `enabled: false`', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enabled: false,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('warns without a DSN when Spotlight is enabled, since spans are still sent', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [{ name: 'SpotlightBrowser' }],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when an integration falls back to the static trace lifecycle during setup', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [
+          {
+            name: 'FallsBackToStatic',
+            setup: client => {
+              client.getOptions().traceLifecycle = 'static';
+            },
+          },
+        ],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('getOptions()', () => {
@@ -123,6 +285,15 @@ describe('Client', () => {
       const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static' }));
 
       expect(client.getOptions().traceLifecycle).toBe('static');
+    });
+
+    test('normalizes an unknown traceLifecycle to stream', () => {
+      const client = new TestClient(
+        // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+        getDefaultTestClientOptions({ traceLifecycle: 'somethingElse' }),
+      );
+
+      expect(client.getOptions().traceLifecycle).toBe('stream');
     });
   });
 
@@ -1093,7 +1264,7 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
       expect.assertions(3);
 
-      const beforeSendSpan = vi.fn(span => span);
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1312,14 +1483,16 @@ describe('Client', () => {
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
-      const beforeSendSpan = vi.fn((span: SpanJSON) => {
-        return {
-          ...span,
-          data: {
-            modified: 'true',
-          },
-        };
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn((span: SpanJSON) => {
+          return {
+            ...span,
+            data: {
+              modified: 'true',
+            },
+          };
+        }),
+      );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1427,10 +1600,12 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses the modified spans', () => {
       expect.assertions(4);
 
-      const beforeSendSpan = vi.fn(span => {
-        span.data = { version: 'bravo' };
-        return span;
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(span => {
+          span.data = { version: 'bravo' };
+          return span;
+        }),
+      );
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1509,7 +1684,7 @@ describe('Client', () => {
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
+      const beforeSendSpan = withStaticSpan(vi.fn(() => null as unknown as SpanJSON));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 

@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
+import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { getClient, NodeClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
@@ -200,28 +201,40 @@ describe('init()', () => {
   });
 
   describe('OpenTelemetry', () => {
-    it('sets up OpenTelemetry by default', () => {
+    it('does not set up a tracer provider by default', () => {
       init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeDefined();
-    });
-
-    it('allows to opt-out of OpenTelemetry setup', () => {
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).not.toBeDefined();
     });
 
-    it('uses the minimal Sentry trace provider by default', () => {
+    it('uses the AsyncLocalStorage context strategy by default', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
       init({ dsn: PUBLIC_DSN });
+
+      expect(alsStrategySpy).toHaveBeenCalledTimes(1);
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+    });
+
+    it('allows to opt-in to OpenTelemetry setup', () => {
+      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
 
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
+    });
+
+    it('uses the OpenTelemetry context strategy when opting in', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
+      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+
+      expect(otelStrategySpy).toHaveBeenCalledTimes(1);
+      expect(alsStrategySpy).not.toHaveBeenCalled();
     });
 
     it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
@@ -237,7 +250,7 @@ describe('init()', () => {
         propagation: propagator,
       };
 
-      init({ dsn: PUBLIC_DSN });
+      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
 
       const registry = global[OTEL_API_GLOBAL_KEY];
 
@@ -253,7 +266,7 @@ describe('init()', () => {
       const existingRegistry = { version: '0.0.1', trace: existingProvider };
       global[OTEL_API_GLOBAL_KEY] = existingRegistry;
 
-      init({ dsn: PUBLIC_DSN });
+      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
 
       const client = getClient<NodeClient>();
 

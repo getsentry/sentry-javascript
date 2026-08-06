@@ -18,8 +18,8 @@ test.describe('Cache Instrumentation', () => {
 
     const transaction = await transactionPromise;
 
-    const findSpansByOp = (op: string) => {
-      return transaction.spans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === op) || [];
+    const findSpansByMethod = (method: string) => {
+      return transaction.spans?.filter(span => span.data?.['db.operation.name'] === method) || [];
     };
 
     const allCacheSpans = transaction.spans?.filter(
@@ -28,7 +28,7 @@ test.describe('Cache Instrumentation', () => {
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
     // getItem spans for cachedFunction - should have both cache miss and cache hit
-    const getItemSpans = findSpansByOp('cache.get_item');
+    const getItemSpans = findSpansByMethod('getItem');
     expect(getItemSpans.length).toBeGreaterThan(0);
 
     // Find cache miss (first call to getCachedUser('123'))
@@ -40,7 +40,7 @@ test.describe('Cache Instrumentation', () => {
     );
     expect(cacheMissSpan).toBeDefined();
     expect(cacheMissSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
       'db.operation.name': 'getItem',
@@ -55,14 +55,14 @@ test.describe('Cache Instrumentation', () => {
     );
     expect(cacheHitSpan).toBeDefined();
     expect(cacheHitSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'getItem',
     });
 
     // setItem spans for cachedFunction - when cache miss occurs, value is set
-    const setItemSpans = findSpansByOp('cache.set_item');
+    const setItemSpans = findSpansByMethod('setItem');
     expect(setItemSpans.length).toBeGreaterThan(0);
 
     const cacheSetSpan = setItemSpans.find(
@@ -72,7 +72,7 @@ test.describe('Cache Instrumentation', () => {
     );
     expect(cacheSetSpan).toBeDefined();
     expect(cacheSetSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
       'db.operation.name': 'setItem',
     });
@@ -120,12 +120,8 @@ test.describe('Cache Instrumentation', () => {
     );
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
-    const allGetItemSpans = allCacheSpans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.get_item',
-    );
-    const allSetItemSpans = allCacheSpans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.set_item',
-    );
+    const allGetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.get');
+    const allSetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.put');
 
     expect(allGetItemSpans?.length).toBeGreaterThan(0);
     expect(allSetItemSpans?.length).toBeGreaterThan(0);

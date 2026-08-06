@@ -68,7 +68,7 @@ export function Error(obj?: Event): any {
       'plan.max_members': 'null',
       'plan.total_members': '15',
       'plan.tier': 'am1',
-      'timeOrigin.mode': 'navigationStart',
+      'timeOrigin.mode': 'timeOrigin',
     }, // }}}
     user: {
       ip_address: '0.0.0.0',

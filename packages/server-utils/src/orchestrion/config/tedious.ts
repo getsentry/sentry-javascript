@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 const MODULE_NAME = 'tedious';
 
@@ -21,6 +21,8 @@ export const tediousConfig: InstrumentationConfig[] = METHODS.map(methodName => 
   functionQuery: { className: 'Connection', methodName, kind: 'Sync' },
 }));
 
+export const tediousModuleNames = getModuleNames(tediousConfig);
+
 export const tediousChannels = {
   TEDIOUS_CONNECT: 'orchestrion:tedious:connect',
   TEDIOUS_EXEC_SQL: 'orchestrion:tedious:execSql',
@@ -30,5 +32,3 @@ export const tediousChannels = {
   TEDIOUS_PREPARE: 'orchestrion:tedious:prepare',
   TEDIOUS_EXECUTE: 'orchestrion:tedious:execute',
 } as const;
-
-export const tediousSubscribeInjection = toSubscribeInjections(tediousConfig);

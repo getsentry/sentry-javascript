@@ -15,10 +15,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
 
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
-      spans: [
-        'ui.ember.transition | route:undefined -> route:tracing',
-        'ui.ember.component.render | component:test-section',
-      ],
+      spans: ['ui.ember.transition | route:undefined -> route:tracing', 'ui.render | component:test-section'],
       transaction: 'route:tracing',
       attributes: {
         fromRoute: undefined,
@@ -36,16 +33,16 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactions(assert, 1, {
       spans: [
         'ui.ember.transition | route:tracing -> route:slow-loading-route.index',
-        'ui.ember.route.before_model | slow-loading-route',
-        'ui.ember.route.model | slow-loading-route',
-        'ui.ember.route.after_model | slow-loading-route',
-        'ui.ember.route.before_model | slow-loading-route.index',
-        'ui.ember.route.model | slow-loading-route.index',
-        'ui.ember.route.after_model | slow-loading-route.index',
-        'ui.ember.route.setup_controller | slow-loading-route',
-        'ui.ember.route.setup_controller | slow-loading-route.index',
-        'ui.ember.component.render | component:slow-loading-list',
-        'ui.ember.component.render | component:slow-loading-list',
+        'function:beforeModel | slow-loading-route',
+        'function:model | slow-loading-route',
+        'function:afterModel | slow-loading-route',
+        'function:beforeModel | slow-loading-route.index',
+        'function:model | slow-loading-route.index',
+        'function:afterModel | slow-loading-route.index',
+        'function:setupController | slow-loading-route',
+        'function:setupController | slow-loading-route.index',
+        'ui.render | component:slow-loading-list',
+        'ui.render | component:slow-loading-list',
       ],
       transaction: 'route:slow-loading-route.index',
       durationCheck: duration => duration > SLOW_TRANSITION_WAIT,
@@ -63,10 +60,10 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactions(assert, 0, {
       spans: [
         'ui.ember.transition | route:undefined -> route:with-loading.index',
-        'ui.ember.route.before_model | with-loading.index',
-        'ui.ember.route.model | with-loading.index',
-        'ui.ember.route.after_model | with-loading.index',
-        'ui.ember.route.setup_controller | with-loading.index',
+        'function:beforeModel | with-loading.index',
+        'function:model | with-loading.index',
+        'function:afterModel | with-loading.index',
+        'function:setupController | with-loading.index',
       ],
       transaction: 'route:with-loading.index',
       attributes: {
@@ -86,8 +83,8 @@ module('Acceptance | Sentry Performance', function (hooks) {
     assertSentryTransactions(assert, 0, {
       spans: [
         'ui.ember.transition | route:undefined -> route:with-error.index',
-        'ui.ember.route.before_model | with-error.index',
-        'ui.ember.route.model | with-error.index',
+        'function:beforeModel | with-error.index',
+        'function:model | with-error.index',
       ],
       transaction: 'route:with-error.index',
       attributes: {

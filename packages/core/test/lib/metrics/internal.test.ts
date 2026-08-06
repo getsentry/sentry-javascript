@@ -22,7 +22,7 @@ describe('_INTERNAL_captureMetric', () => {
   });
 
   it('captures and sends metrics', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, dataCollection: { userInfo: false } });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -253,11 +253,10 @@ describe('_INTERNAL_captureMetric', () => {
     expect(buffer?.[0]?.name).toBe('trigger.flush');
   });
 
-  it('includes ingest_settings with auto when dataCollection.userInfo is true', () => {
+  it('includes ingest_settings with auto by default', () => {
     vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(true);
 
-    // TODO(v11) Remove `dataCollection` as the defaults should be applied without explicitly adding the option
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, dataCollection: {} });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -272,10 +271,10 @@ describe('_INTERNAL_captureMetric', () => {
     expect(envelopeItemPayload.ingest_settings).toEqual({ infer_ip: 'auto', infer_user_agent: 'auto' });
   });
 
-  it('includes ingest_settings with never when dataCollection is not set (sendDefaultPii bridge defaults to userInfo: false)', () => {
+  it('includes ingest_settings with never when dataCollection.userInfo is false', () => {
     vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(true);
 
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, dataCollection: { userInfo: false } });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);

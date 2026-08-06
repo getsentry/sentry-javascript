@@ -14,6 +14,7 @@ import {
   markSpanForOtelSourceInference,
   spanSourceWasExplicitlySet,
 } from '../../../src/tracing/utils';
+import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { SpanJSON } from '../../../src/types/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
@@ -272,7 +273,7 @@ describe('SentrySpan', () => {
     });
 
     test('sends the span if `beforeSendSpan` does not modify the span', () => {
-      const beforeSendSpan = vi.fn(span => span);
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -295,10 +296,11 @@ describe('SentrySpan', () => {
       expect(mockSend).toHaveBeenCalled();
     });
 
-    test('ignores a non-streamed `beforeSendSpan` for standalone spans', () => {
-      // Standalone spans are sent as v2 streamed spans, which only honor a `beforeSendSpan` wrapped
-      // with `withStreamedSpan`. A plain callback is ignored, so the span is sent unmodified.
-      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
+    test('runs a static `beforeSendSpan` for standalone spans', () => {
+      // A standalone span is sent as a v2 streamed span, but a user opting out of span streaming still
+      // writes `beforeSendSpan` in the v1 `SpanJSON` format. We scrub the span in its v1 shape before
+      // converting it forward to v2, so the callback runs and its changes are applied.
+      const beforeSendSpan = withStaticSpan(vi.fn((span: SpanJSON) => ({ ...span, description: 'scrubbed' })));
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -309,6 +311,10 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const envelopes: Envelope[] = [];
+      client.on('beforeEnvelope', envelope => {
+        envelopes.push(envelope);
+      });
       // @ts-expect-error Accessing private transport API
       const mockSend = vi.spyOn(client._transport, 'send');
       const span = new SentrySpan({
@@ -320,9 +326,45 @@ describe('SentrySpan', () => {
       });
       span.end();
 
-      expect(beforeSendSpan).not.toHaveBeenCalled();
+      expect(beforeSendSpan).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalled();
       expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+
+      const spanItem = envelopes[0]?.[1][0] as [{ type: string }, { items: Array<{ name: string }> }];
+      expect(spanItem[0].type).toBe('span');
+      expect(spanItem[1].items[0]!.name).toBe('scrubbed');
+    });
+
+    test('does not apply scope attributes to standalone spans with a static `beforeSendSpan`', () => {
+      // Scope attributes can hold `{ unit, value }` objects, unexpected for a static callback, so they
+      // are not applied to the standalone (INP) span, just as they are not applied to transactions.
+      const seen: SpanJSON['data'][] = [];
+      const beforeSendSpan = withStaticSpan(
+        vi.fn((span: SpanJSON) => {
+          seen.push({ ...span.data });
+          return span;
+        }),
+      );
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+      getCurrentScope().setAttribute('my.scope.attr', 'from-scope');
+
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+
+      expect(seen[0]!['my.scope.attr']).toBeUndefined();
     });
 
     test('sends a standalone span on its own and excludes it from the parent transaction', async () => {

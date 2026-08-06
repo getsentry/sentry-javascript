@@ -21,6 +21,7 @@ it('Only sends one error event when withSentry is called twice', async ({ signal
             ],
           },
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'GET',
             url: expect.any(String),

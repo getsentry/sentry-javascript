@@ -63,7 +63,7 @@ sentryTest(
         { content_type: 'application/vnd.sentry.items.span.v2+json', item_count: 4, type: 'span' },
         {
           version: 2,
-          ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
+          ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
           items: expect.any(Array),
         },
       ],

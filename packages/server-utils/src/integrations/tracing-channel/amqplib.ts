@@ -3,7 +3,6 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,
-  debug,
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -11,7 +10,6 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
 // eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
 import {
@@ -24,11 +22,14 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { DEBUG_BUILD } from '../../debug-build';
+import { MESSAGING_QUEUE_PROCESS_SPAN_OP, MESSAGING_QUEUE_PUBLISH_SPAN_OP } from '@sentry/conventions/op';
+import { amqplibModuleNames } from '../../orchestrion/config/amqplib';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
@@ -157,35 +158,23 @@ interface AmqpConnectContext {
 
 const NOOP = (): void => {};
 
-// Guards against subscribing to the amqplib channels more than once in a process. Core dedupes
-// `setupOnce` by integration *name*, which is not enough here: the Deno SDK wraps this integration
-// under a different name (`DenoAmqplib`) via `extendIntegration`, so adding both would otherwise run
-// the subscribe logic twice and emit duplicate spans for every operation.
-let subscribed = false;
-
 const _amqplibIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19 so do nothing in that case.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      DEBUG_BUILD && debug.log('[orchestrion:amqplib] subscribing to amqplib tracing channels');
-
-      waitForTracingChannelBinding(() => {
-        subscribeConnect();
-        subscribePublish();
-        subscribeConfirmPublish();
-        subscribeConsume();
-        subscribeDispatch();
-        subscribeSettle();
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, amqplibModuleNames, instrumentAmqplib, []);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentAmqplib(): void {
+  subscribeConnect();
+  subscribePublish();
+  subscribeConfirmPublish();
+  subscribeConsume();
+  subscribeDispatch();
+  subscribeSettle();
+}
 
 /**
  * Producer span for `Channel.prototype.publish`. Creates a PRODUCER span, injects the trace headers
@@ -475,8 +464,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
-    op: 'message',
     attributes: {
+      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
@@ -513,8 +502,8 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLike): Span {
   return startInactiveSpan({
     name: `${queue} process`,
-    op: 'message',
     attributes: {
+      [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
       [SENTRY_KIND]: 'consumer',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),

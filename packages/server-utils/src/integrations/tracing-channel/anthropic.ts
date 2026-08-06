@@ -1,24 +1,20 @@
 import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { AnthropicAiOptions, AnthropicAiResponse, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
+import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  addAnthropicRequestAttributes,
-  addAnthropicResponseAttributes,
-  debug,
   defineIntegration,
-  extractAnthropicRequestAttributes,
-  instrumentAsyncIterableStream,
-  instrumentMessageStream,
-  resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/anthropic-ai';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../ai/anthropic-ai/streaming';
+import type { AnthropicAiOptions, AnthropicAiResponse } from '../../ai/anthropic-ai/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { anthropicAiModuleNames } from '../../orchestrion/config/anthropic-ai';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
 // integration is deduplicated out of the default set.
@@ -45,42 +41,33 @@ interface AnthropicChannelContext {
   result?: unknown;
 }
 
-let subscribed = false;
-
 const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // tracingChannel is unavailable before Node 18.19 and prevent double-subscribe
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      // `bindTracingChannelToSpan` needs the async-context binding that `initOpenTelemetry()` registers
-      // after `setupOnce` runs, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
-          DEBUG_BUILD && debug.log(`[orchestrion:anthropic] subscribing to channel "${channel}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-            data => createGenAiSpan(data, operation, methodPath, options),
-            {
-              beforeSpanEnd: (span, data) => {
-                addAnthropicResponseAttributes(
-                  span,
-                  data.result as AnthropicAiResponse,
-                  resolveAIRecordingOptions(options).recordOutputs,
-                );
-              },
-              deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
-            },
-          );
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, anthropicAiModuleNames, instrumentAnthropic, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentAnthropic(options: AnthropicAiOptions): void {
+  for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
+      data => createGenAiSpan(data, operation, methodPath, options),
+      {
+        beforeSpanEnd: (span, data) => {
+          addResponseAttributes(
+            span,
+            data.result as AnthropicAiResponse,
+            resolveAIRecordingOptions(options).recordOutputs,
+          );
+        },
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
+      },
+    );
+  }
+}
 
 /**
  * Build the span for an instrumented call.
@@ -113,7 +100,7 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
-  const attributes = extractAnthropicRequestAttributes(args, methodPath, operation);
+  const attributes = extractRequestAttributes(args, methodPath, operation);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
@@ -124,7 +111,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addAnthropicRequestAttributes(span, params, enableTruncation);
+    addPrivateRequestAttributes(span, params, enableTruncation);
   }
 
   return span;

@@ -23,6 +23,7 @@ describe('Integration | Transactions', () => {
       tracesSampleRate: 1,
       beforeSendTransaction,
       release: '8.0.0',
+      skipOpenTelemetrySetup: false,
     });
 
     const client = Sentry.getClient()!;
@@ -71,17 +72,6 @@ describe('Integration | Transactions', () => {
       { message: 'test breadcrumb 2', timestamp: 123456 },
       { message: 'test breadcrumb 3', timestamp: 123456 },
     ]);
-
-    expect(transaction.contexts?.otel).toEqual({
-      resource: {
-        'service.name': 'node',
-        'service.namespace': 'sentry',
-        'service.version': expect.any(String),
-        'telemetry.sdk.language': 'nodejs',
-        'telemetry.sdk.name': 'opentelemetry',
-        'telemetry.sdk.version': expect.any(String),
-      },
-    });
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
@@ -309,7 +299,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
     const beforeSendTransaction = vi.fn(() => null);
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, skipOpenTelemetrySetup: false });
 
     const client = Sentry.getClient<Sentry.NodeClient>();
 
@@ -457,7 +447,7 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
+    mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction, skipOpenTelemetrySetup: false });
 
     const client = Sentry.getClient()!;
 

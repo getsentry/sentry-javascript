@@ -12,9 +12,9 @@ test('Creates middleware spans for requests', async ({ request }) => {
 
   const transactionEvent = await transactionEventPromise;
 
-  // h3 middleware spans have origin auto.http.nitro.h3 and op middleware.nitro
+  // h3 middleware spans have origin auto.http.nitro.h3 and op middleware
   const h3MiddlewareSpans = transactionEvent.spans?.filter(
-    span => span.origin === 'auto.http.nitro.h3' && span.op === 'middleware.nitro',
+    span => span.origin === 'auto.http.nitro.h3' && span.op === 'middleware',
   );
   expect(h3MiddlewareSpans?.length).toBeGreaterThanOrEqual(1);
 });

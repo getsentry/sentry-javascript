@@ -49,8 +49,8 @@ describe('requestData-streamed', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-with-datacollection.mjs', (createRunner, test) => {
-    test('applies request data attributes when using dataCollection config', async () => {
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('applies request data attributes by default', async () => {
       const runner = createRunner()
         .expect({
           span: container => {

@@ -1,6 +1,5 @@
 import type { Client } from '../../../../src/client';
 import { vi } from 'vitest';
-import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 /**
  * Creates a mock Sentry client with getDataCollectionOptions for use in MCP server tests.
@@ -26,14 +25,6 @@ export function createMockClient(userInfo = true, genAI?: { inputs: boolean; out
     getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
     emit: vi.fn(),
   } as unknown as Client;
-}
-
-/**
- * Creates a real TestClient configured with the legacy sendDefaultPii flag.
- * Use this in tests that verify the sendDefaultPii → dataCollection bridge still works.
- */
-export function createTestClientWithSendDefaultPii(sendDefaultPii: boolean): Client {
-  return new TestClient(getDefaultTestClientOptions({ dsn: 'https://key@sentry.io/1', sendDefaultPii }));
 }
 
 /**

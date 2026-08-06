@@ -83,7 +83,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
   const _options = {
     sessions: options.sessions ?? true,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? 60_000,
-    maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
+    maxRequestBodySize: options.maxRequestBodySize,
     // Server spans are created by `httpServerSpansIntegration` via the
     // `httpServerRequest` client event + `_startSpanCallback`, not by the
     // core subscription helper. Explicitly opt out so the helper does not

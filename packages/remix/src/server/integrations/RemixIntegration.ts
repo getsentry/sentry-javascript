@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getClient } from '@sentry/core';
 import { instrumentRemix } from './tracing-channel';
-import type { RemixOptions } from '../../utils/remixOptions';
+import { resolveFormDataCapture } from '../../utils/formData';
 
 const INTEGRATION_NAME = 'Remix' as const;
 
@@ -9,13 +9,7 @@ const _remixIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const client = getClient();
-      const options = client?.getOptions() as RemixOptions | undefined;
-      const actionFormDataAttributes = client?.getDataCollectionOptions().httpBodies.includes('incomingRequest')
-        ? options?.captureActionFormDataKeys
-        : undefined;
-
-      instrumentRemix(actionFormDataAttributes);
+      instrumentRemix(resolveFormDataCapture(getClient()));
     },
   };
 }) satisfies IntegrationFn;

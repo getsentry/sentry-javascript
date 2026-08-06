@@ -22,13 +22,16 @@
     "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test",
     "test:assert:tunnel-object": "E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test"
   },
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
-    "@tanstack/react-start": "^1.136.0",
-    "@tanstack/react-router": "^1.136.0",
+    "@tanstack/react-start": "1.168.35",
+    "@tanstack/react-router": "1.170.18",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "nitro": "latest || *"
+    "nitro": "latest || *",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

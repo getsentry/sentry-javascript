@@ -24,7 +24,6 @@ Sentry.init({
   debug: !!Deno.env.get('DEBUG'),
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1,
-  dataCollection: { userInfo: true },
 });
 
 const port = 3030;

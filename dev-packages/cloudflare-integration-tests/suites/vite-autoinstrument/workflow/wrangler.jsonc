@@ -5,7 +5,7 @@
   // the auto-instrument transform runs) and the runner serves the built output.
   "main": "index.ts",
   "compatibility_date": "2025-06-17",
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
   "workflows": [
     {
       "name": "my-workflow",

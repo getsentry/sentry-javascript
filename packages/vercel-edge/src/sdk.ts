@@ -1,23 +1,22 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import type { Client, Integration, Options } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
   createStackParser,
   debug,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
-  getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
@@ -35,14 +34,11 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-/** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
-  // todo(v11): remove options parameter
+/** Get the default integrations for the Vercel Edge SDK. */
+export function getDefaultIntegrations(): Integration[] {
   return [
     dedupeIntegration(),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),
@@ -60,7 +56,7 @@ export function init(options: VercelEdgeOptions = {}): Client {
   scope.update(options.initialScope);
 
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
+    options.defaultIntegrations = getDefaultIntegrations();
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
@@ -115,7 +111,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = new SentryTracerProvider({ resource: getSentryResource('edge') });
+  const provider = new SentryTracerProvider();
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());

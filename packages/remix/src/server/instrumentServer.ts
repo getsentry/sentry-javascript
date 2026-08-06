@@ -332,7 +332,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
     }
 
     return withIsolationScope(async isolationScope => {
-      const clientOptions = getClient()?.getOptions();
+      const client = getClient();
 
       let normalizedRequest: RequestEventData = {};
 
@@ -364,7 +364,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
 
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
-      if (!clientOptions || !hasSpansEnabled(clientOptions)) {
+      if (!client || !hasSpansEnabled(client.getOptions())) {
         return origRequestHandler.call(this, request, loadContext);
       }
 
@@ -394,7 +394,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   }),
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
-                    getClient()?.getDataCollectionOptions(),
+                    client.getDataCollectionOptions(),
                   ),
                 },
               },

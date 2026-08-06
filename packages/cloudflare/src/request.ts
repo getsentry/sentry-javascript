@@ -2,7 +2,6 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import {
   captureException,
   continueTrace,
-  getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
@@ -13,11 +12,11 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { captureIncomingRequestBody } from './integrations/httpServer';
-import type { CloudflareOptions } from './client';
+import { initBaseSdk } from './baseSdk';
+import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
-import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
 
 function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
@@ -42,12 +41,35 @@ interface RequestHandlerWrapperOptions {
   captureErrors?: boolean;
 }
 
+type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
+
 /**
- * Wraps a cloudflare request handler in Sentry instrumentation
+ * Wraps a cloudflare request handler in Sentry instrumentation.
+ *
+ * The client is set up with the default integrations that work without the `nodejs_compat`
+ * compatibility flag, so that this also works on runtimes that cannot enable it (e.g. Shopify
+ * Oxygen). On a runtime that has `nodejs_compat`, pass `defaultIntegrations:
+ * getDefaultIntegrations(options)` in `options` to get the full set instead.
  */
 export function wrapRequestHandler(
   wrapperOptions: RequestHandlerWrapperOptions,
   handler: (...args: unknown[]) => Response | Promise<Response>,
+): Promise<Response> {
+  return wrapRequestHandlerWithInit(wrapperOptions, handler, initBaseSdk);
+}
+
+/**
+ * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
+ *
+ * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
+ * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ *
+ * @internal
+ */
+export function wrapRequestHandlerWithInit(
+  wrapperOptions: RequestHandlerWrapperOptions,
+  handler: (...args: unknown[]) => Response | Promise<Response>,
+  initSdk: InitSdk,
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
     const { options, request, captureErrors = true } = wrapperOptions;
@@ -58,10 +80,10 @@ export function wrapRequestHandler(
     // to track pending tasks. If we use the instrumented version for flushAndDispose,
     // it acquires the lock, then flushAndDispose tries to wait for the same lock,
     // creating a deadlock.
-    const waitUntil = context ? getOriginalWaitUntil(context)?.bind(context) : undefined;
+    const waitUntil = context ? getOriginalWaitUntil(context).bind(context) : undefined;
     const errorMechanismType = getRequestErrorMechanismType(context);
 
-    const client = init({ ...options, ctx: context });
+    const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
@@ -77,13 +99,12 @@ export function wrapRequestHandler(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
-    Object.assign(
-      attributes,
-      httpHeadersToSpanAttributes(
-        winterCGHeadersToDict(request.headers),
-        getClient()?.getDataCollectionOptions() ?? false,
-      ),
-    );
+    if (client) {
+      Object.assign(
+        attributes,
+        httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
+      );
+    }
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 

@@ -48,6 +48,7 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
     transaction: 'GET /agents/my-agent/user-123',
     type: 'transaction',
     request: {
+      cookies: {},
       headers: expect.any(Object),
       method: 'GET',
       url: expect.stringContaining('/agents/my-agent/user-123'),
@@ -57,6 +58,9 @@ test('@callable() methods work correctly with Sentry instrumentAgentWithSentry',
     platform: 'javascript',
     event_id: expect.stringMatching(/[a-f0-9]{32}/),
     environment: expect.any(String),
+    user: {
+      ip_address: '127.0.0.1',
+    },
     release: expect.any(String),
     sdk: {
       integrations: expect.any(Array),
@@ -181,8 +185,7 @@ test('creates an rpc span named after the @callable() method', async ({ page, ba
       description: 'greet',
       origin: 'auto.faas.cloudflare.agents',
       data: expect.objectContaining({
-        'cloudflare.agent.class': 'MyBaseAgent',
-        'cloudflare.agent.name': 'user-123',
+        'gen_ai.agent.name': 'MyBaseAgent',
       }),
     }),
   );

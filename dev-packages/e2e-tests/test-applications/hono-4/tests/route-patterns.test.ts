@@ -26,7 +26,7 @@ test.describe('HTTP methods', () => {
       expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
 
       const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+      const middlewareSpans = spans.filter(s => s.op === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
@@ -48,7 +48,7 @@ test.describe('route registration styles', () => {
       expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
 
       const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+      const middlewareSpans = spans.filter(s => s.op === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
@@ -70,7 +70,7 @@ test.describe('route registration styles', () => {
       expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
 
       const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+      const middlewareSpans = spans.filter(s => s.op === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
@@ -142,6 +142,6 @@ test('async handler sends transaction', async ({ baseURL }) => {
   expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
 
   const spans = transaction.spans || [];
-  const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+  const middlewareSpans = spans.filter(s => s.op === 'middleware');
   expect(middlewareSpans).toEqual([]);
 });

@@ -31,8 +31,8 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
               container.items.find(
                 item => item.name === name && item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === op,
               );
-            const queryMiddlewareSpan = getSpan('query', 'middleware.express');
-            const corsMiddlewareSpan = getSpan('corsMiddleware', 'middleware.express');
+            const queryMiddlewareSpan = getSpan('query', 'middleware');
+            const corsMiddlewareSpan = getSpan('corsMiddleware', 'middleware');
             const requestHandlerSpan = getSpan('/test/express', 'request_handler.express');
             const httpServerSpan = getSpan('GET /test/express', 'http.server');
             const customSpan = getSpan('custom', 'custom');

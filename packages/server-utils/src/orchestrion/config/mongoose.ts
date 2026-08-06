@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // mongoose >= 9.7.0 publishes via its own `node:diagnostics_channel` tracing channels (handled by
 // `subscribeMongooseDiagnosticChannels`), so this transform is gated to `< 9.7.0` to avoid emitting
@@ -106,6 +106,8 @@ export const mongooseConfig = [
   })),
 ] satisfies InstrumentationConfig[];
 
+export const mongooseModuleNames = getModuleNames(mongooseConfig);
+
 export const mongooseChannels = {
   MONGOOSE_QUERY_EXEC: 'orchestrion:mongoose:query_exec',
   MONGOOSE_AGGREGATE_EXEC: 'orchestrion:mongoose:aggregate_exec',
@@ -125,5 +127,3 @@ export const mongooseChannels = {
 export const MONGOOSE_CONTEXT_CAPTURE_CHANNELS: string[] = CONTEXT_CAPTURE_QUERY_METHODS.map(
   methodName => `orchestrion:mongoose:ctx_${methodName}`,
 );
-
-export const mongooseSubscribeInjection = toSubscribeInjections(mongooseConfig);

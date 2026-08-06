@@ -6,11 +6,11 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -31,20 +31,11 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(2);
             expect(container.items.map(span => span.name).sort()).toEqual([
-              'create_agent weather_assistant',
               'invoke_agent weather_assistant',
               'invoke_agent weather_assistant',
             ]);
-
-            const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
-            expect(createAgentSpan).toBeDefined();
-            expect(createAgentSpan!.status).toBe('ok');
-            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(createAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('create_agent');
-            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
 
             const invokeAgentSpans = container.items.filter(span => span.name === 'invoke_agent weather_assistant');
             expect(invokeAgentSpans).toHaveLength(2);
@@ -70,11 +61,7 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
-            expect(createAgentSpan).toBeDefined();
-            expect(createAgentSpan!.status).toBe('ok');
-            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(container.items).toHaveLength(2);
 
             const weatherTodaySpan = container.items.find(span =>
               getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
@@ -110,25 +97,17 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-tools-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(2);
             expect(container.items.map(span => span.name).sort()).toEqual([
-              'create_agent tool_agent',
-              'create_agent tool_calling_agent',
               'invoke_agent tool_agent',
               'invoke_agent tool_calling_agent',
             ]);
-
-            const toolAgentSpan = container.items.find(span => span.name === 'create_agent tool_agent');
-            expect(toolAgentSpan).toBeDefined();
-            expect(toolAgentSpan!.status).toBe('ok');
-            expect(toolAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(toolAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('tool_agent');
 
             const toolAgentInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_agent');
             expect(toolAgentInvokeSpan).toBeDefined();
             expect(toolAgentInvokeSpan!.status).toBe('ok');
             expect(toolAgentInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(toolAgentInvokeSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS].value).toContain('get_weather');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather?');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toContain(
@@ -137,12 +116,6 @@ describe('LangGraph integration', () => {
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(25);
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
-
-            const toolCallingAgentSpan = container.items.find(span => span.name === 'create_agent tool_calling_agent');
-            expect(toolCallingAgentSpan).toBeDefined();
-            expect(toolCallingAgentSpan!.status).toBe('ok');
-            expect(toolCallingAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(toolCallingAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('tool_calling_agent');
 
             const toolCallingInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_calling_agent');
             expect(toolCallingInvokeSpan).toBeDefined();
@@ -170,11 +143,7 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-thread-id-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const createAgentSpan = container.items.find(span => span.name === 'create_agent thread_test_agent');
-            expect(createAgentSpan).toBeDefined();
-            expect(createAgentSpan!.status).toBe('ok');
-            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(container.items).toHaveLength(3);
 
             const firstThreadSpan = container.items.find(
               span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'thread_abc123_session_1',
@@ -215,7 +184,7 @@ describe('LangGraph integration', () => {
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              expect(container.items).toHaveLength(2);
+              expect(container.items).toHaveLength(1);
               const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent test-agent');
 
               expect(invokeAgentSpan).toBeDefined();
@@ -247,12 +216,7 @@ describe('LangGraph integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const createAgentSpan = container.items.find(span => span.name === 'create_agent resume_agent');
-            expect(createAgentSpan).toBeDefined();
-            expect(createAgentSpan!.status).toBe('ok');
-            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
+            expect(container.items).toHaveLength(2);
 
             const invokeAgentSpan = container.items.find(
               span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resume-thread-1',
@@ -290,7 +254,7 @@ describe('LangGraph integration', () => {
                 { role: 'user', content: 'Follow-up question' },
               ]);
 
-              expect(container.items).toHaveLength(2);
+              expect(container.items).toHaveLength(1);
               const invokeAgentSpan = container.items.find(
                 span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === expectedMessages,
               );
@@ -433,7 +397,6 @@ describe('LangGraph integration', () => {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
                   [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'add' }),
-                  'gen_ai.tool.type': expect.objectContaining({ value: 'function' }),
                 }),
               }),
             );
@@ -445,7 +408,6 @@ describe('LangGraph integration', () => {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
                   [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'multiply' }),
-                  'gen_ai.tool.type': expect.objectContaining({ value: 'function' }),
                 }),
               }),
             );

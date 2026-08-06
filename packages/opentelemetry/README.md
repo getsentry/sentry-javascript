@@ -27,8 +27,6 @@ yarn add @sentry/opentelemetry
 Note that `@sentry/opentelemetry` depends on the following peer dependencies:
 
 - `@opentelemetry/api` version `1.0.0` or greater
-- `@opentelemetry/core` version `1.0.0` or greater
-  `@opentelemetry/sdk-node`.
 
 ## Usage
 
@@ -74,7 +72,6 @@ function setupSentry() {
 
   // Initialize the provider
   trace.setGlobalTracerProvider(provider);
-  propagation.setGlobalPropagator(new SentryPropagator());
   context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
 
   setOpenTelemetryContextAsyncContextStrategy();

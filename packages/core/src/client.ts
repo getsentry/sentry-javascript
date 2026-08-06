@@ -11,7 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
-import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
@@ -39,7 +39,7 @@ import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
-import { debug } from './utils/debug-logger';
+import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
@@ -54,6 +54,7 @@ import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span
 import { showSpanDropWarning } from './utils/spanUtils';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -233,7 +234,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = { attachStacktrace: true, traceLifecycle: 'stream', ...options };
+    // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
+    // is always one of the two known values for the rest of the SDK.
+    this._options = {
+      attachStacktrace: true,
+      ...options,
+      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
+    };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -247,6 +254,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
+    }
+
+    const { beforeSendSpan, traceLifecycle } = this._options;
+    // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
+    // so a mismatch means it is silently never called.
+    if (
+      DEBUG_BUILD &&
+      beforeSendSpan &&
+      isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
+    ) {
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          `Ignoring \`beforeSendSpan\`: ${
+            traceLifecycle === 'static' ? 'wrap it with' : 'remove'
+          } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
+        );
+      });
     }
 
     if (this._dsn) {
@@ -507,6 +532,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
     ) {
       this._setupIntegrations();
+
+      maybeWarnAboutIgnoredTransactionOptions(this._options);
     }
   }
 
@@ -932,6 +959,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
+   * A hook that is called when an orchestrion-instrumented module is injected at
+   * runtime (by the `--import` module hook). Channel-based integrations use it to
+   * subscribe their diagnostics-channel listeners lazily, only once the module
+   * they instrument is actually loaded. Receives the injected module name.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'orchestrion.module-runtime-injected', callback: (moduleName: string) => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -1194,6 +1231,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for stopping the UI Profiler.
    */
   public emit(hook: 'stopUIProfiler'): void;
+
+  /**
+   * Emit a hook when an orchestrion-instrumented module is injected at runtime.
+   */
+  public emit(hook: 'orchestrion.module-runtime-injected', moduleName: string): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -1653,8 +1695,13 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
-  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+  const {
+    beforeSend,
+    ignoreSpans,
+    // oxlint-disable-next-line typescript/no-deprecated
+    beforeSendTransaction,
+  } = options;
+  const beforeSendSpan = isStaticBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;
 

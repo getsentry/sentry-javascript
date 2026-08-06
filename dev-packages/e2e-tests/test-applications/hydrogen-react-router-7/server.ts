@@ -9,7 +9,7 @@ import {
 import { type AppLoadContext, createRequestHandler, getStorefrontHeaders } from '@shopify/remix-oxygen';
 import { CART_QUERY_FRAGMENT } from '~/lib/fragments';
 import { AppSession } from '~/lib/session';
-import { wrapRequestHandler } from '@sentry/cloudflare';
+import { wrapRequestHandler } from '@sentry/cloudflare/request';
 // Virtual entry point for the app
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error

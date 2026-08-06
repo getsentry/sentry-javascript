@@ -258,6 +258,12 @@ class ContinuousProfiler {
    * Starts trace lifecycle profiling. Profiling will remain active as long as there is an active span.
    */
   private _startTraceLifecycleProfiling(): void {
+    if (!this._sampled) {
+      DEBUG_BUILD &&
+        debug.log('[Profiling] Profile session not sampled, trace lifecycle profiling will not be started.');
+      return;
+    }
+
     if (!this._client) {
       DEBUG_BUILD &&
         debug.log(
@@ -541,8 +547,7 @@ class ContinuousProfiler {
       return;
     }
 
-    const traceId =
-      getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
+    const traceId = getCurrentScope().getPropagationContext().traceId;
     const chunk = this._initializeChunk(traceId);
 
     CpuProfilerBindings.startProfiling(chunk.id);

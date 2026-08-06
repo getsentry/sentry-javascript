@@ -5,17 +5,18 @@ import {
   conversationIdIntegration,
   debug,
   envToBool,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   hasSpansEnabled,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy, setupEventContextTrace } from '@sentry/opentelemetry';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
@@ -40,7 +41,7 @@ import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry } from './initOtel';
+import { initOpenTelemetry, setupSpanDataBackfill } from './initOtel';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -48,9 +49,7 @@ import { initOpenTelemetry } from './initOtel';
 function getBaseDefaultIntegrations(): Integration[] {
   return [
     // Common
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
@@ -157,10 +156,10 @@ function _init(
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // Channel-based (orchestrion diagnostics-channel) instrumentation is the default. Gated on span
-  // recording: the channel integrations only produce spans, so with tracing off there are no
-  // subscribers and injecting the module hooks would be pointless work. Install the hooks as early
-  // as possible, before the app imports its instrumented modules.
+  // Gate channel-based (orchestrion diagnostics-channel) instrumentation on span recording: the
+  // channel integrations only produce spans, so with tracing off there are no subscribers and
+  // injecting the module hooks would be pointless work. Install the hooks as early as possible,
+  // before the app imports its instrumented modules.
   const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
   if (useChannelInjection) {
     registerDiagnosticsChannelInjection();
@@ -171,7 +170,18 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  const asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+  // When Sentry does not own an OpenTelemetry tracer provider, scope isolation runs on a pure
+  // AsyncLocalStorage strategy instead of the OpenTelemetry context strategy. Instrumentation still
+  // emits spans via core `startSpan`; there is just no OTel provider or propagator behind them.
+  let asyncLocalStorageLookup: ReturnType<typeof setOpenTelemetryContextAsyncContextStrategy> | undefined;
+  if (clientOptions.skipOpenTelemetrySetup) {
+    // The ALS store already is the `{ scope, isolationScope }` object, so no `contextSymbol` is needed
+    // to reach it (unlike the OTel context strategy, where it is nested under the OTel context).
+    const asyncLocalStorage = setAsyncLocalStorageAsyncContextStrategy();
+    asyncLocalStorageLookup = { asyncLocalStorage };
+  } else {
+    asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+  }
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
@@ -202,8 +212,6 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  setupEventContextTrace(client);
-
   // Ensure we flush events when vercel functions are ended
   // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
   if (process.env.VERCEL) {
@@ -213,8 +221,16 @@ function _init(
     });
   }
 
-  // Add Node SDK specific OpenTelemetry setup
+  // Channel-based instrumentation emits spans via core `startSpan` in every mode, so always backfill
+  // the Sentry-convention span data (e.g. `sentry.op`) the OTel provider pipeline would otherwise
+  // derive. It is idempotent, so it is a no-op for spans the provider already enriches.
+  setupSpanDataBackfill(client);
+
+  // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the
+  // OpenTelemetry context, so it only belongs here: without a Sentry tracer provider a foreign OTel
+  // span could otherwise override the Sentry trace on error events.
   if (!clientOptions.skipOpenTelemetrySetup) {
+    setupEventContextTrace(client);
     initOpenTelemetry(client);
   }
 
@@ -249,6 +265,9 @@ function getClientOptions(
     tracesSampleRate,
     spotlight,
     traceLifecycle,
+    // Most Node-based SDKs default to running without a Sentry OpenTelemetry tracer provider. SDKs
+    // that need OTel spans surfaced in Sentry (nextjs, sveltekit) opt back in by passing `false`.
+    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 

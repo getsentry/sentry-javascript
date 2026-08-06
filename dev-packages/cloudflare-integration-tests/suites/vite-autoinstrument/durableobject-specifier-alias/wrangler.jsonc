@@ -5,7 +5,7 @@
   // the auto-instrument transform runs) and the runner serves the built output.
   "main": "index.ts",
   "compatibility_date": "2025-06-17",
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
     // The binding references the *exported* alias (`Counter`), while the class
     // is declared locally as `CounterImpl` and exported via `export { ... as Counter }`.

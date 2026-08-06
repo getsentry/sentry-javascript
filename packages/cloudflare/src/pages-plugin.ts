@@ -1,7 +1,8 @@
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
-import { wrapRequestHandler } from './request';
+import { wrapRequestHandlerWithInit } from './request';
+import { init } from './sdk';
 
 /**
  * Plugin middleware for Cloudflare Pages.
@@ -57,6 +58,10 @@ export function sentryPagesPlugin<
     // A Pages `EventPluginContext` is not a Workers `ExecutionContext`, but `wrapRequestHandler` only
     // uses `waitUntil` and a `'storage' in context` check, both of which this satisfies.
     const executionContext = { ...context, props: {} } as unknown as ExecutionContextCompat;
-    return wrapRequestHandler({ options, request: context.request, context: executionContext }, () => context.next());
+    return wrapRequestHandlerWithInit(
+      { options, request: context.request, context: executionContext },
+      () => context.next(),
+      init,
+    );
   };
 }

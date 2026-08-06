@@ -21,6 +21,9 @@ function assertGenAiStreamingSpan(span: SerializedStreamedSpan): void {
   expect(span.attributes['gen_ai.usage.input_tokens']?.value).toBe(15);
   expect(span.attributes['gen_ai.usage.output_tokens']?.value).toBe(8);
   expect(span.attributes['gen_ai.usage.total_tokens']?.value).toBe(23);
+  // The conversation id is minted by the SDK and persisted per agent instance, not derived from the
+  // instance name, so only its shape is stable: `uuid4()` without dashes.
+  expect(span.attributes['gen_ai.conversation.id']?.value).toMatch(/^[0-9a-f]{32}$/);
 }
 
 test('captures Workers AI streaming output when driven via an Agent', async ({ request, baseURL }) => {

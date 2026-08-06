@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 export const openaiConfig = [
   // OpenAI chat completions. `Completions.create` returns a thenable `APIPromise` with no callback arg,
@@ -30,11 +30,11 @@ export const openaiConfig = [
   })),
 ] satisfies InstrumentationConfig[];
 
+export const openaiModuleNames = getModuleNames(openaiConfig);
+
 export const openaiChannels = {
   // Chat completions, the responses API, and the conversations API all report a `chat` operation with
   // identical span handling, so they share one channel.
   OPENAI_CHAT: 'orchestrion:openai:chat',
   OPENAI_EMBEDDINGS: 'orchestrion:openai:embeddings',
 } as const;
-
-export const openaiSubscribeInjection = toSubscribeInjections(openaiConfig);

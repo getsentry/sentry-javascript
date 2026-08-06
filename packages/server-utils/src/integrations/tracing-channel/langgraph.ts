@@ -1,22 +1,16 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { CompiledGraph, IntegrationFn, LangGraphOptions } from '@sentry/core';
-import {
-  _INTERNAL_getLangGraphCreateAgentSpanOptions,
-  createLangChainCallbackHandler,
-  debug,
-  defineIntegration,
-  extractAgentNameFromParams,
-  extractLLMFromParams,
-  instrumentCompiledGraphInvoke,
-  LANGGRAPH_INTEGRATION_NAME,
-  resolveAIRecordingOptions,
-  startInactiveSpan,
-  waitForTracingChannelBinding,
-  wrapToolsWithSpans,
-} from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
+import { resolveAIRecordingOptions } from '../../ai/core/utils';
+import { createLangChainCallbackHandler } from '../../ai/langchain';
+import { instrumentCompiledGraphInvoke } from '../../ai/langgraph';
+import { LANGGRAPH_INTEGRATION_NAME } from '../../ai/langgraph/constants';
+import type { CompiledGraph, LangGraphOptions } from '../../ai/langgraph/types';
+import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { langgraphModuleNames } from '../../orchestrion/config/langgraph';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Same name as the OTel integration by design, so the OTel 'LangGraph' integration is
 // deduplicated out of the default set.
@@ -32,93 +26,71 @@ interface CreateReactAgentChannelContext {
   result?: unknown;
 }
 
-let subscribed = false;
-
-// `createReactAgent` compiles a `StateGraph` internally; suppress the `create_agent` span for that
-// nested compile so a react agent gets a single `invoke_agent` span, matching the OTel path.
+// `createReactAgent` compiles a `StateGraph` internally. When set, the compile subscriber skips that
+// nested graph so its `invoke` is wrapped once (by the createReactAgent handler), not twice.
 let insideCreateReactAgent = false;
 
 const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19, and a second `init()` would double-subscribe.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      const resolvedOptions = resolveAIRecordingOptions(options);
-      const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
-
-      // `bindTracingChannelToSpan` needs the async-context binding that `initOpenTelemetry()` registers
-      // after `setupOnce` runs, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        // StateGraph.compile → `create_agent` span, then wrap the returned graph's `invoke`.
-        DEBUG_BUILD &&
-          debug.log(`[orchestrion:langgraph] subscribing to channel "${CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE}"`);
-        bindTracingChannelToSpan(
-          diagnosticsChannel.tracingChannel<CompileChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE),
-          data => {
-            if (insideCreateReactAgent) {
-              return undefined;
-            }
-            const compileOptions = getFirstArgObject(data.arguments);
-            const name = typeof compileOptions?.name === 'string' ? compileOptions.name : undefined;
-
-            return startInactiveSpan(_INTERNAL_getLangGraphCreateAgentSpanOptions(name));
-          },
-          {
-            beforeSpanEnd: (_span, data) => {
-              wrapCompiledGraphInvoke(
-                data.result,
-                getFirstArgObject(data.arguments) ?? {},
-                resolvedOptions,
-                null,
-                sentryHandler,
-              );
-            },
-          },
-        );
-
-        // createReactAgent has no `create_agent` span of its own; it only wraps tools and the returned
-        // graph's `invoke`. Tools are wrapped at `start` (before the agent runs), invoke at `end`.
-        DEBUG_BUILD &&
-          debug.log(`[orchestrion:langgraph] subscribing to channel "${CHANNELS.LANGGRAPH_CREATE_REACT_AGENT}"`);
-        const reactAgentChannel = diagnosticsChannel.tracingChannel<CreateReactAgentChannelContext>(
-          CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
-        );
-        reactAgentChannel.start.subscribe(message => {
-          // `createReactAgent` runs synchronously and compiles a `StateGraph` internally, so the flag
-          // must be on for the duration and off by `end`. It's set here (never in a branch that can
-          // throw) and cleared in both `end` and `error`, so it can neither stick on across calls nor
-          // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
-          insideCreateReactAgent = true;
-          try {
-            const { arguments: args } = message as CreateReactAgentChannelContext;
-            const params = getFirstArgObject(args);
-            if (params && Array.isArray(params.tools) && params.tools.length > 0) {
-              wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
-            }
-          } catch (error) {
-            DEBUG_BUILD && debug.error('[orchestrion:langgraph] failed to wrap createReactAgent tools', error);
-          }
-        });
-        reactAgentChannel.end.subscribe(message => {
-          insideCreateReactAgent = false;
-          const { arguments: args, result } = message as CreateReactAgentChannelContext;
-          const agentName = extractAgentNameFromParams(args) ?? undefined;
-          const compileOptions = agentName ? { name: agentName } : {};
-          wrapCompiledGraphInvoke(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
-        });
-        // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
-        reactAgentChannel.error.subscribe(() => {
-          insideCreateReactAgent = false;
-        });
+    setup(client) {
+      // Nothing here opens a span at subscribe time, so a missing async-context
+      // binding must never defer the subscription.
+      invokeOrchestrionInstrumentation(client, langgraphModuleNames, instrumentLanggraph, [options], {
+        requiresTracingChannelBinding: false,
       });
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentLanggraph(options: LangGraphOptions): void {
+  const resolvedOptions = resolveAIRecordingOptions(options);
+  const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
+
+  // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` at `end`.
+  diagnosticsChannel
+    .tracingChannel<CompileChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
+    .end.subscribe(message => {
+      if (insideCreateReactAgent) {
+        return;
+      }
+      const { arguments: args, result } = message as CompileChannelContext;
+      wrapCompiledGraphInvoke(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
+    });
+
+  // createReactAgent only wraps tools and the returned graph's `invoke`. Tools are wrapped at
+  // `start` (before the agent runs), invoke at `end`.
+  const reactAgentChannel = diagnosticsChannel.tracingChannel<CreateReactAgentChannelContext>(
+    CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
+  );
+  reactAgentChannel.start.subscribe(message => {
+    // `createReactAgent` runs synchronously and compiles a `StateGraph` internally, so the flag
+    // must be on for the duration and off by `end`. It's set here (never in a branch that can
+    // throw) and cleared in both `end` and `error`, so it can neither stick on across calls nor
+    // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
+    insideCreateReactAgent = true;
+    try {
+      const { arguments: args } = message as CreateReactAgentChannelContext;
+      const params = getFirstArgObject(args);
+      if (params && Array.isArray(params.tools) && params.tools.length > 0) {
+        wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
+      }
+    } catch (error) {
+      DEBUG_BUILD && debug.error('[orchestrion:langgraph] failed to wrap createReactAgent tools', error);
+    }
+  });
+  reactAgentChannel.end.subscribe(message => {
+    insideCreateReactAgent = false;
+    const { arguments: args, result } = message as CreateReactAgentChannelContext;
+    const agentName = extractAgentNameFromParams(args) ?? undefined;
+    const compileOptions = agentName ? { name: agentName } : {};
+    wrapCompiledGraphInvoke(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
+  });
+  // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
+  reactAgentChannel.error.subscribe(() => {
+    insideCreateReactAgent = false;
+  });
+}
 
 function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown> | undefined {
   const first = (args ?? [])[0];

@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["suites/**/*.ts", "*.ts"],
+  "include": ["suites/**/*.ts", "*.ts", "suites/**/*.mts"],
 
   // `suites/prisma` imports a Prisma-generated client (`./generated`) that only exists after codegen,
   // so it can't be type-checked as part of the static suite check.

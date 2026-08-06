@@ -3,9 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/client';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
-test('Should record transactions for MCP handlers using @modelcontextprotocol/sdk v2 (register* API)', async ({
-  baseURL,
-}) => {
+test('records transactions for stable MCP SDK v2 handlers using the register API', async ({ baseURL }) => {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
 
   const client = new Client({

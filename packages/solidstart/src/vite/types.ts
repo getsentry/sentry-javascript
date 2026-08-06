@@ -127,6 +127,15 @@ export type SentrySolidStartPluginOptions = {
   debug?: boolean;
 
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+
+  /**
    * The path to your `instrument.server.ts|js` file.
    * e.g. `./src/instrument.server.ts`
    *

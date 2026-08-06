@@ -82,14 +82,11 @@ export function externalizedModulesWarning(externalizedModules: string[]): strin
  * visible to the runtime).
  */
 export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
-  const subscribeInjection = options.injectChannelSubscribers ? subscribeInjectionOptions() : undefined;
-
-  const instrumentations = [
-    ...SENTRY_INSTRUMENTATIONS,
-    ...(options.instrumentations || []),
-    ...(subscribeInjection?.instrumentations || []),
-  ];
-  const customTransforms = { ...options.customTransforms, ...subscribeInjection?.customTransforms };
+  const instrumentations = [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])];
+  const customTransforms = {
+    ...options.customTransforms,
+    ...(options.injectChannelSubscribers ? subscribeInjectionOptions().customTransforms : undefined),
+  };
 
   if (options.shouldInjectDiagnostics === false) {
     return {
@@ -102,7 +99,23 @@ export function orchestrionTransformOptions(options: PluginOptions): CodeTransfo
     instrumentations,
     customTransforms,
     injectDiagnostics: (diag: { transformedModules: string[]; failedModules: string[] }) => {
-      return `(globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{}).bundler=${JSON.stringify(diag.transformedModules)};`;
+      // Record the transformed modules for detection AND fire the on-inject
+      // bridge for each, so channel integrations subscribe. These modules are
+      // bundled, so the runtime module hook never sees them. The bridge
+      // (installed by `registerDiagnosticsChannelInjection`) re-emits the
+      // `orchestrion.module-runtime-injected` event the subscription waits on.
+      // When the bridge isn't installed (bundler-only runtimes, or the banner
+      // runs before `init()`), the guarded call is a no-op and the recorded
+      // `.bundler` list still drives subscription at `init()`.
+      const modules = JSON.stringify(diag.transformedModules);
+      return (
+        '(function(){' +
+        'var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};' +
+        `var m=${modules};` +
+        'g.bundler=m;' +
+        "if(typeof g.onInject==='function')m.forEach(function(n){g.onInject(n);});" +
+        '})();'
+      );
     },
   };
 }

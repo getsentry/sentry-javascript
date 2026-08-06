@@ -37,7 +37,7 @@ test.fixme('should create AI spans with correct attributes', async ({ page }) =>
   expect(aiGenerateSpans.length).toBeGreaterThanOrEqual(1);
   expect(toolCallSpans.length).toBeGreaterThanOrEqual(0);
 
-  // First AI call - should have telemetry enabled and record inputs/outputs (dataCollection: { userInfo: true })
+  // First AI call - should have telemetry enabled and record inputs/outputs by default
   /* const firstPipelineSpan = aiPipelineSpans[0];
   expect(firstPipelineSpan?.attributes['vercel.ai.model.id']?.value).toBe('mock-model-id');
   expect(firstPipelineSpan?.attributes['vercel.ai.model.provider']?.value).toBe('mock-provider');

@@ -22,9 +22,6 @@ test('creates an rpc span for a @callable() invocation on an AIChatAgent', async
       op: 'rpc',
       description: 'greet',
       origin: 'auto.faas.cloudflare.agents',
-      data: expect.objectContaining({
-        'cloudflare.agent.name': AGENT_INSTANCE,
-      }),
     }),
   );
 });

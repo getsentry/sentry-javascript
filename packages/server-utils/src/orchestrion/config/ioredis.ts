@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 export const ioredisConfig = [
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)
@@ -27,9 +27,9 @@ export const ioredisConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const ioredisModuleNames = getModuleNames(ioredisConfig);
+
 export const ioredisChannels = {
   IOREDIS_COMMAND: 'orchestrion:ioredis:command',
   IOREDIS_CONNECT: 'orchestrion:ioredis:connect',
 } as const;
-
-export const ioredisSubscribeInjection = toSubscribeInjections(ioredisConfig);

@@ -46,8 +46,8 @@ Deno.test('express instrumentation: orchestrion:express:handle channel produces 
     "'parent' transaction",
   );
 
-  const expressSpan = parent.spans?.find(s => s.op === 'middleware.express');
-  assertExists(expressSpan, `expected a middleware.express span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const expressSpan = parent.spans?.find(s => s.op === 'middleware');
+  assertExists(expressSpan, `expected an express middleware span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(expressSpan!.description, 'myMiddleware');
   assertEquals(expressSpan!.data?.['express.name'], 'myMiddleware');
   assertEquals(expressSpan!.data?.['express.type'], 'middleware');

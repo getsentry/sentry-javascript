@@ -658,8 +658,7 @@ function log(...args: unknown[]): void {
 /**
  * Extracts the preloaded module paths from Node flags, accepting both the
  * two-element form (`--import foo`, e.g. `withInstrument`) and the single-element
- * form (`--import=foo`, e.g. `withFlags('--import=@sentry/node/init')` in
- * `suites/no-code/test.ts`).
+ * form (`--import=foo`, e.g. `withFlags('--import=./instrument.mjs')`).
  */
 function getPreloadPaths(flags: readonly string[]): string[] {
   const paths: string[] = [];
@@ -692,9 +691,8 @@ function getPreloadPaths(flags: readonly string[]): string[] {
  *
  * The flag name is no longer a usable signal, since CJS instrument files are preloaded
  * with `--import` too (`--require` re-runs the preload on Node's module loader thread).
- * The extension is: `.mjs` and extensionless package specifiers such as
- * `@sentry/node/init` resolve as ESM, while `.cjs`, `.js` and `.ts` are all CommonJS
- * here because the test package sets no `"type"`.
+ * The extension is: `.mjs` and extensionless package specifiers resolve as ESM, while
+ * `.cjs`, `.js` and `.ts` are all CommonJS here because the test package sets no `"type"`.
  *
  * The CJS loader stays on `--require`: any `--import` makes Node resolve the entry point
  * through the ESM loader, which rejects the `.ts` scenarios that `tsx/cjs` handles. Unlike

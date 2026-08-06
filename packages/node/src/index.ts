@@ -30,7 +30,16 @@ export {
   vercelAiIntegration as vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
-export { prismaIntegration } from '@sentry/server-utils';
+export {
+  prismaIntegration,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentStateGraphCompile,
+} from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
@@ -49,7 +58,7 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
 } from './sdk';
-export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
+export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
 export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
@@ -72,8 +81,6 @@ export {
   withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   addEventProcessor,
@@ -133,9 +140,6 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentOpenAiClient,
-  instrumentAnthropicAiClient,
-  instrumentGoogleGenAIClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
@@ -143,10 +147,6 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
-  instrumentStateGraph,
-  instrumentStateGraphCompile,
 } from '@sentry/core';
 
 export type {
@@ -174,7 +174,12 @@ export type {
   CaptureContext,
 } from '@sentry/core';
 
-export { metrics, withStreamedSpan } from '@sentry/core';
+export {
+  metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
+  withStreamedSpan,
+} from '@sentry/core';
 export * as logger from './logs/exports';
 
 export { childProcessIntegration } from './integrations/childProcess';
@@ -203,7 +208,6 @@ export { createGetModuleFromFilename } from './utils/module';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';
-export { generateInstrumentOnce } from './otel/instrument';
 export { NodeClient } from './sdk/client';
 // eslint-disable-next-line typescript/no-deprecated
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';

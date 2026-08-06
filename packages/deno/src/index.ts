@@ -69,8 +69,6 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
@@ -97,6 +95,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,
@@ -107,6 +107,7 @@ export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
+export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 export { denoRedisIntegration } from './integrations/redis';

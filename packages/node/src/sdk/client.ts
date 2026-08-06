@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -11,11 +11,7 @@ import {
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
-import {
-  type AsyncLocalStorageLookup,
-  getTraceContextForScope,
-  type SentryTracerProvider,
-} from '@sentry/opentelemetry';
+import { type AsyncLocalStorageLookup, type SentryTracerProvider } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -169,16 +165,5 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
     _INTERNAL_clearAiProviderSkips();
     super._setupIntegrations();
-  }
-
-  /** Custom implementation for OTEL, so we can handle scope-span linking. */
-  protected _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    return getTraceContextForScope(this, scope);
   }
 }

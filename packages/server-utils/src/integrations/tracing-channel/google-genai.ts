@@ -1,25 +1,22 @@
 import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { GoogleGenAIOptions, GoogleGenAIResponse, IntegrationFn, Span } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  addGoogleGenAIRequestAttributes,
-  addGoogleGenAIResponseAttributes,
-  debug,
   defineIntegration,
-  extractGoogleGenAIRequestAttributes,
   getActiveSpan,
-  instrumentGoogleGenAIStream,
-  resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   spanToJSON,
   startInactiveSpan,
-  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/google-genai';
+import { instrumentStream } from '../../ai/google-genai/streaming';
+import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../../ai/google-genai/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { googleGenAiModuleNames } from '../../orchestrion/config/google-genai';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 // Same name as the OTel integration by design, so the OTel 'Google_GenAI'
 // integration is deduplicated out of the default set.
@@ -42,45 +39,36 @@ interface GoogleGenAIChannelContext {
   result?: unknown;
 }
 
-let subscribed = false;
-
 const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      // `tracingChannel` is unavailable before Node 18.19, and a second `init()` would double-subscribe.
-      if (!diagnosticsChannel.tracingChannel || subscribed) {
-        return;
-      }
-      subscribed = true;
-
-      // `bindTracingChannelToSpan` needs the async-context binding that `initOpenTelemetry()` registers
-      // after `setupOnce` runs, so wait for it before subscribing.
-      waitForTracingChannelBinding(() => {
-        for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
-          DEBUG_BUILD && debug.log(`[orchestrion:google-genai] subscribing to channel "${channel}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<GoogleGenAIChannelContext>(channel),
-            data => createGenAiSpan(data, operation, options),
-            {
-              beforeSpanEnd: (span, data) => {
-                // Embeddings responses carry no content attributes.
-                if (operation !== 'embeddings') {
-                  addGoogleGenAIResponseAttributes(
-                    span,
-                    data.result as GoogleGenAIResponse,
-                    resolveAIRecordingOptions(options).recordOutputs,
-                  );
-                }
-              },
-              deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
-            },
-          );
-        }
-      });
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, googleGenAiModuleNames, instrumentGoogleGenai, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
+  for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<GoogleGenAIChannelContext>(channel),
+      data => createGenAiSpan(data, operation, options),
+      {
+        beforeSpanEnd: (span, data) => {
+          // Embeddings responses carry no content attributes.
+          if (operation !== 'embeddings') {
+            addResponseAttributes(
+              span,
+              data.result as GoogleGenAIResponse,
+              resolveAIRecordingOptions(options).recordOutputs,
+            );
+          }
+        },
+        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+      },
+    );
+  }
+}
 
 /**
  * Build the span for an instrumented call.
@@ -116,7 +104,7 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
-  const attributes = extractGoogleGenAIRequestAttributes(operation, params, data.self);
+  const attributes = extractRequestAttributes(operation, params, data.self);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
@@ -127,7 +115,7 @@ function createGenAiSpan(
   });
 
   if (recordInputs && params) {
-    addGoogleGenAIRequestAttributes(span, params, operation, enableTruncation);
+    addPrivateRequestAttributes(span, params, operation, enableTruncation);
   }
 
   return span;
@@ -141,7 +129,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
 
 /**
  * Only the streaming methods (`generateContentStream`/`sendMessageStream`) resolve to an async iterable.
- * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentGoogleGenAIStream` ends the
+ * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentStream` ends the
  * span when iteration finishes.
  */
 function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: GoogleGenAIOptions): boolean {
@@ -152,7 +140,7 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: 
 
   const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentGoogleGenAIStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;

@@ -82,6 +82,31 @@ Only `@sentry/nextjs` and `@sentry/sveltekit` still set up an OpenTelemetry comp
 
 This means you can run your own OpenTelemetry setup cleanly alongside Sentry without having Sentry spans leak into your pipeline anymore. Your OpenTelemetry setup will no longer be required to use Sentry components for exporting, context management and trace propagation.
 
+This behavior is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11. It now defaults to `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs, and `@sentry/cloudflare`) and to `false` for `@sentry/nextjs` and `@sentry/sveltekit`. When `true`, the SDK skips the tracer provider and isolates scopes with a native AsyncLocalStorage strategy; it still emits its own spans, but spans you create through `@opentelemetry/api` are not captured. Set it to `false` to have Sentry register its own `SentryTracerProvider` as the global OpenTelemetry tracer provider, so those `@opentelemetry/api` spans become Sentry spans:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  // Register Sentry's OpenTelemetry tracer provider so spans created via `@opentelemetry/api` are captured
+  skipOpenTelemetrySetup: false,
+});
+```
+
+Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider, keep `skipOpenTelemetrySetup: true` so Sentry does not register a competing provider. The SDK no longer ships a `SentrySpanProcessor` or other components to route your OpenTelemetry spans into Sentry, so spans from your own provider stay in your OpenTelemetry pipeline and are not sent to Sentry.
+
+In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    // Let your own OpenTelemetry HttpInstrumentation own HTTP & fetch spans
+    Sentry.httpIntegration({ spans: false }),
+    Sentry.nativeNodeFetchIntegration({ spans: false }),
+  ],
+});
+```
+
 With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only remaining package we abide by. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
 
 For most users, day-to-day tracing is **unchanged**.
@@ -91,6 +116,103 @@ For most users, day-to-day tracing is **unchanged**.
 
 > **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
 > (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
+
+### `sendDefaultPii` is replaced by `dataCollection`
+
+Affected SDKs: All SDKs.
+
+> **Heads up — this is a behavior change, not just a renamed option.**
+> In v10, leaving `sendDefaultPii` unset behaved like `sendDefaultPii: false` (restrictive).
+> In v11, leaving `dataCollection` unset collects the categories below **by default**.
+> Review this before upgrading if you'd rather not collect HTTP request data, database queries, or GenAI inputs/outputs.
+
+We've replaced `sendDefaultPii` with `dataCollection`, which controls each category of collected data individually. The default is now more permissive than in v10.
+
+| Category              | v10 default (`sendDefaultPii` off) | v11 default          |
+| --------------------- | ---------------------------------- | -------------------- |
+| `userInfo`            | `false`                            | `true`               |
+| `cookies`             | not collected                      | `true`               |
+| `httpHeaders`         | request + response, PII scrubbed   | request + response   |
+| `httpBodies`          | not collected (size only)          | all request/response |
+| `urlQueryParams`      | `true`                             | `true`               |
+| `genAI`               | inputs + outputs not collected     | inputs + outputs     |
+| `databaseQueryData`   | `false`                            | `true`               |
+| `stackFrameVariables` | `true`                             | `true`               |
+| `frameContextLines`   | `7`                                | `5`                  |
+
+> Sentry's built-in sensitive-data filtering still applies. Review your data-scrubbing config for categories that may contain sensitive values — especially request/response bodies.
+
+#### If you previously set `sendDefaultPii: true`
+
+The v11 default matches this, so just remove the option:
+
+```js
+// v10
+Sentry.init({ sendDefaultPii: true });
+
+// v11 — same behavior is now the default
+Sentry.init({});
+```
+
+#### If you want to keep the v10 default behavior
+
+Set the baseline explicitly. **Don't leave `dataCollection` unset** — that now enables broader collection.
+
+```js
+// v11 — preserves the v10 default
+Sentry.init({
+  dataCollection: {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    httpBodies: [],
+    urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    genAI: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    graphQL: { document: false, variables: false },
+  },
+});
+```
+
+Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
+`true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
+
+See the [`dataCollection` docs](https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection) for the full option list.
+
+#### RequestData
+
+The `requestDataIntegration`'s `include` options remain an integration-level override. An explicit `false`
+prevents that category from being attached, while an explicit `true` enables it even when the corresponding
+`dataCollection` category is disabled. For cookies, headers, and query parameters, any configured `allow` or
+`deny` filtering continues to apply: When `include` enables a category which `dataCollection` disabled, the
+default sensitive-value denylist is applied.
+
+User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
+`dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
+`dataCollection.userInfo: false` for data collected by that integration.
+
+#### Remix action form data
+
+`captureActionFormDataKeys` is an integration-level override, so it no longer requires
+`dataCollection.httpBodies` to also include `'incomingRequest'`:
+
+```js
+// v10 — both were required
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+  dataCollection: { httpBodies: ['incomingRequest'] },
+});
+
+// v11 — the option opts in on its own
+Sentry.init({
+  captureActionFormDataKeys: { username: true },
+});
+```
+
+If `captureActionFormDataKeys` is not set, all form fields are captured when
+`dataCollection.httpBodies` includes `'incomingRequest'` (the v11 default). Values whose field name
+looks sensitive (`password`, `token`, …) are replaced with `[Filtered]`, including explicitly
+allowlisted ones.
 
 ### Channel-based instrumentation is the default
 
@@ -114,21 +236,165 @@ node --require ./instrument.js app.js
 node --import ./instrument.js app.js
 ```
 
-The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
-
 ### Span streaming is now the default
 
 Affected SDKs: All SDKs.
 
-Each span is sent to Sentry the moment it finishes instead of being buffered until the root span completes. This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
+Spans are now sent to Sentry in small batches instead of being buffered until the root span completes.
+This means spans are no longer bound by the 1000-span per transaction limit and their individual payload-size limits have been increased.
 
-The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration. `beforeSendTransaction` and `ignoreTransactions` will **no-op**. Users who cannot migrate yet can opt into the previous transaction-based static model.
+The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration.
+The `beforeSendTransaction` and `ignoreTransactions` options will **no-op**.
+If you cannot migrate to span streaming yet, you can opt into the previous transaction-based static model.
 
-> **TODO(v11):** The migration path for span streaming is still being defined. Document:
->
-> - the concrete before/after for `beforeSendSpan` and `ignoreSpans`,
-> - the exact replacement for `beforeSendTransaction` / `ignoreTransactions`,
-> - how to opt back into the transaction-based model (option name + example).
+#### `beforeSendSpan` receives the streamed span format
+
+Your `beforeSendSpan` callback now receives a `StreamedSpanJSON` object and is invoked as each span finishes, rather than for all spans of a transaction right before that transaction is sent. As in v10, it is invoked for the root span as well as for child spans.
+
+The payload fields were renamed:
+
+| Before (`SpanJSON`) | After (`StreamedSpanJSON`)     |
+| ------------------- | ------------------------------ |
+| `description`       | `name`                         |
+| `data`              | `attributes`                   |
+| `op`                | `attributes['sentry.op']`      |
+| `timestamp`         | `end_timestamp`                |
+| `status` (`string`) | `status` (`'ok'` or `'error'`) |
+
+The `status` field, now only contains two statuses: `'ok'` and `'error'`.
+Streamed spans always have a status (while status was optional on transaction-based spans).
+Previously more fine-grained error statuses are now mapped to `'error'`.
+Additional error information may be set via span attributes (e.g. `sentry.status.message`).
+
+```js
+// Before
+Sentry.init({
+  beforeSendSpan: span => {
+    if (span.op === 'db.query') {
+      span.description = scrub(span.description);
+      span.data['db.statement'] = scrub(span.data['db.statement']);
+    }
+    return span;
+  },
+});
+
+// After
+Sentry.init({
+  beforeSendSpan: span => {
+    if (span.attributes?.['sentry.op'] === 'db.query') {
+      span.name = scrub(span.name);
+      span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
+    }
+    return span;
+  },
+});
+```
+
+Returning `null` to drop a span was already disallowed in v9 and remains a no-op. Use `ignoreSpans` to filter spans.
+
+If you cannot migrate the callback yet, opt out of span streaming and wrap `beforeSendSpan` with `Sentry.withStaticSpan()`:
+
+```js
+Sentry.init({
+  traceLifecycle: 'static',
+  beforeSendSpan: Sentry.withStaticSpan(span => {
+    span.description = scrub(span.description);
+    return span;
+  }),
+});
+```
+
+A `beforeSendSpan` callback that does not match the configured `traceLifecycle` is **never invoked** — an unwrapped callback is ignored in `'static'` mode, and a `withStaticSpan`-wrapped callback is ignored in `'stream'` mode. Enable debug logging to surface a warning about the mismatch. Previously, an incompatible callback silently downgraded the SDK to the static lifecycle instead.
+
+The `withStreamedSpan()` helper is now a no-op, since streamed payloads are the default. It is deprecated and will be removed in v12. You can remove the wrapper:
+
+```js
+// Before
+beforeSendSpan: Sentry.withStreamedSpan(span => span);
+
+// After
+beforeSendSpan: span => span;
+```
+
+The internal `isStreamedBeforeSendSpanCallback()` function from `@sentry/core` was removed.
+
+#### Replacing `beforeSendTransaction`
+
+`beforeSendTransaction` no-ops because no transaction events are produced.
+For **scrubbing and data modification**, move the logic to `beforeSendSpan` and guard on `is_segment` to target what used to be the transaction
+For **dropping** a transaction or child spans, use `ignoreSpans` (see below). The `beforeSendSpan` callback cannot drop spans.
+
+```js
+// Before
+Sentry.init({
+  beforeSendTransaction: event => {
+    if (event.transaction === 'GET /health') {
+      return null;
+    }
+    event.transaction = scrubIds(event.transaction);
+    return event;
+  },
+});
+
+// After
+Sentry.init({
+  ignoreSpans: [
+    'GET /health'
+  ]
+  beforeSendSpan: span => {
+    if (span.is_segment) {
+      span.name = scrubIds(span.name);
+    }
+    return span;
+  },
+});
+```
+
+Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
+
+#### Replacing `ignoreTransactions` with `ignoreSpans`
+
+`ignoreTransactions` no-ops. Use `ignoreSpans` to match the segment span instead: when a segment span is ignored, all of its child spans are dropped with it, which is equivalent to dropping the whole transaction.
+
+```js
+// Before
+Sentry.init({
+  ignoreTransactions: ['GET /health'],
+});
+
+// After
+Sentry.init({
+  ignoreSpans: ['GET /health'],
+});
+```
+
+`ignoreSpans` matches on the span `name` (formerly `description`). Because it applies to every span rather than just to root spans, consider narrowing the filter with the object form so that child spans sharing a name are not dropped as collateral:
+
+```js
+Sentry.init({
+  ignoreSpans: [{ name: 'GET /health', attributes: { 'sentry.op': 'http.server' } }],
+});
+```
+
+`ignoreSpans` itself is unchanged in shape, but it now takes effect when a span **starts** rather than when the transaction is sent. Matched spans are never recorded at all, which means a matched non-segment span's children are re-parented to its parent instead of being dropped.
+
+#### Opting out of span streaming
+
+To keep the previous transaction-based model, set `traceLifecycle: 'static'`:
+
+```js
+Sentry.init({
+  traceLifecycle: 'static',
+
+  // `beforeSendSpan` MUST be wrapped with Sentry.withStaticSpan:
+  beforeSendSpan: Sentry.withStaticSpan(span => {
+    span.description = scrub(span.description);
+    return span;
+  }),
+});
+```
+
+In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
 
 ### Logs are enabled by default
 
@@ -143,71 +409,6 @@ Sentry.init({
   enableLogs: false,
 });
 ```
-
-### `sendDefaultPii` is replaced by `dataCollection`
-
-Affected SDKs: All SDKs.
-
-The `sendDefaultPii` option was **removed** and replaced by a more granular `dataCollection` option that controls each category of collected data individually.
-
-The **default behaviour is now more permissive**. In v10, with neither `sendDefaultPii` nor `dataCollection` set, the SDK behaved like `sendDefaultPii: false`. In v11, the `dataCollection` defaults apply out of the box:
-
-| Category              | v10 default (no `sendDefaultPii`) | v11 default          |
-| --------------------- | --------------------------------- | -------------------- |
-| `userInfo`            | `false`                           | `true`               |
-| `cookies`             | sensitive keys denied             | `true`               |
-| `httpHeaders`         | sensitive keys denied             | request + response   |
-| `httpBodies`          | none (`[]`)                       | all request/response |
-| `urlQueryParams`      | sensitive keys denied             | `true`               |
-| `genAI`               | inputs/outputs off                | inputs + outputs on  |
-| `stackFrameVariables` | `true`                            | `true`               |
-| `frameContextLines`   | `5`                               | `5`                  |
-
-> Sensitive values (keys, tokens, auth headers, etc.) are always filtered out regardless of these settings.
-
-Migration:
-
-```js
-// before (v10) — collect the default set of PII
-Sentry.init({
-  sendDefaultPii: true,
-});
-
-// after (v11) — this is now the default; you can remove the option entirely,
-// or opt into specific categories explicitly:
-Sentry.init({
-  dataCollection: {
-    userInfo: true,
-    cookies: true,
-    httpHeaders: { request: true, response: true },
-    urlQueryParams: true,
-    genAI: { inputs: true, outputs: true },
-  },
-});
-```
-
-If you previously relied on the restrictive default (`sendDefaultPii: false` or unset) and want to
-keep collecting as little data as possible, you now need to opt out explicitly:
-
-```js
-// after (v11) — restrict data collection to the v10-like minimum
-Sentry.init({
-  dataCollection: {
-    userInfo: false,
-    cookies: false,
-    httpHeaders: { request: false, response: false },
-    httpBodies: [],
-    urlQueryParams: false,
-    genAI: { inputs: false, outputs: false },
-  },
-});
-```
-
-Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
-`true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
-
-User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
-`dataCollection.userInfo`.
 
 ### Browser sessions use `unhandled` instead of `crashed`
 
@@ -252,9 +453,21 @@ Affected SDKs: All SDKs.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
+- The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
+- The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
+- The `gen_ai.tool.input` span attribute was renamed to `gen_ai.tool.call.arguments` across all AI integrations.
+- The `gen_ai.tool.output` span attribute was renamed to `gen_ai.tool.call.result` across all AI integrations.
+- The Vercel AI token attributes `gen_ai.usage.input_tokens.cached`, `gen_ai.usage.input_tokens.cache_write`, and `gen_ai.usage.output_tokens.reasoning` were renamed to `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, and `gen_ai.usage.reasoning.output_tokens`.
+- The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+
+### LangGraph no longer emits `create_agent` spans
+
+Affected SDKs: All server-side SDKs.
+
+The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
 ### `thirdPartyErrorFilterIntegration` filters internal frames by default
 
@@ -304,6 +517,7 @@ Affected SDKs: `@sentry/cloudflare`.
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
+- The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
 - The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
 
@@ -396,6 +610,16 @@ Sentry.init({
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
 - The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
 - The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
+- The `generateInstrumentOnce` export was removed (from `@sentry/node` and the framework SDKs that re-exported it). It wrapped OpenTelemetry's `registerInstrumentations` and is no longer needed now that instrumentation is channel-based.
+- The `@sentry/node/init` and `@sentry/node/preload` entry points were removed. Create your own instrument file that calls `Sentry.init()` and preload it with `node --import ./instrument.mjs app.js` instead.
+- The `preloadOpenTelemetry()` function was removed. All instrumentation is now channel-based via `orchestrion` and is set up when the instrumented module loads, so preloading is no longer needed.
+- The `@sentry/node/loader` entry point was removed. Use `node --import @sentry/node/import` instead.
+- (Astro) The `@sentry/astro/loader` entry point was removed. Use `node --import @sentry/astro/import` instead.
+- (AWS Lambda) The `@sentry/aws-serverless/loader` entry point was removed. Use `node --import @sentry/aws-serverless/import` instead.
+- (Google Cloud) The `@sentry/google-cloud-serverless/loader` entry point was removed. Use `node --import @sentry/google-cloud-serverless/import` instead.
+- (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
+- (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
+- (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
 - (Fastify) The deprecated `setShouldHandleError` method was removed.
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
@@ -455,10 +679,11 @@ Sentry.init({
 
 ### `@sentry/opentelemetry`
 
-- `SentryPropagator` was removed. It is no longer needed now that Sentry does not manage OpenTelemetry trace propagation by default.
+- `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
 - `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
-- OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events.
+- `getSentryResource` was removed.
+- OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
 
 ### `@sentry/core` span attributes
 
@@ -470,6 +695,11 @@ Sentry.init({
 - The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute was removed.
 - (Vercel AI) The internal JSON-stringify workaround for array span attributes was removed.
 - AI integrations are no longer available in the browser SDK. They remain available in the server-side SDKs.
+- The AI instrumentation code moved out of `@sentry/core` into `@sentry/server-utils`. If you imported any AI helper **directly from `@sentry/core`**, import it from `@sentry/server-utils` instead (or keep importing it from your platform SDK, e.g. `@sentry/node`, if it re-exported that helper before — platform SDK availability is unchanged from v10). Affected helpers: `instrumentOpenAiClient`, `instrumentAnthropicAiClient`, `instrumentGoogleGenAIClient`, `instrumentWorkersAiClient`, `createLangChainCallbackHandler`, `instrumentLangChainEmbeddings`, `instrumentStateGraph`, `instrumentStateGraphCompile`, `instrumentCreateReactAgent`, `addVercelAiProcessors`.
+- The following low-level AI exports are no longer part of the public API (they were provider-instrumentation internals exported from `@sentry/core`):
+  - Attribute/stream/util helpers: `extractOpenAiRequestAttributes`, `addOpenAiRequestAttributes`, `addOpenAiResponseAttributes`, `extractOpenAiRequestParameters`, `instrumentOpenAiStream`, `extractAnthropicRequestAttributes`, `addAnthropicRequestAttributes`, `addAnthropicResponseAttributes`, `instrumentAsyncIterableStream`, `instrumentMessageStream`, `extractGoogleGenAIRequestAttributes`, `addGoogleGenAIRequestAttributes`, `addGoogleGenAIResponseAttributes`, `instrumentGoogleGenAIStream`, `getProviderMetadataAttributes`, `getTruncatedJsonString`, `shouldEnableTruncation`, `resolveAIRecordingOptions`, `wrapToolsWithSpans`, `extractLLMFromParams`, `extractAgentNameFromParams`, `instrumentCompiledGraphInvoke`.
+  - Integration-name constants: `OPENAI_INTEGRATION_NAME`, `ANTHROPIC_AI_INTEGRATION_NAME`, `GOOGLE_GENAI_INTEGRATION_NAME`, `LANGCHAIN_INTEGRATION_NAME`, `LANGGRAPH_INTEGRATION_NAME`.
+  - Types: `OpenAiClient`, `OpenAiOptions`, `InstrumentedMethod`, `AnthropicAiClient`, `AnthropicAiOptions`, `AnthropicAiResponse`, `AnthropicAiInstrumentedMethod`, `GoogleGenAIClient`, `GoogleGenAIChat`, `GoogleGenAIOptions`, `GoogleGenAIResponse`, `GoogleGenAIInstrumentedMethod`, `GoogleGenAIIstrumentedMethod`, `WorkersAiClient`, `WorkersAiOptions`, `LangChainOptions`, `LangChainIntegration`, `LangGraphOptions`, `LangGraphIntegration`, `CompiledGraph`.
 
 ### `@sentry/react-router`
 
@@ -501,6 +731,72 @@ Remove these options from your `next.config.js` / `next.config.ts`.
 ### Meta-framework build options
 
 The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+
+### `@sentry/nuxt`
+
+The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    // before
+    sourceMapsUploadOptions: {
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      url: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./dist/**/*'],
+      },
+    },
+
+    // after
+    org: 'my-org',
+    project: 'my-project',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sentryUrl: 'https://my-sentry.example.com',
+    sourcemaps: {
+      assets: ['./dist/**/*'],
+    },
+  },
+});
+```
+
+### `@sentry/sveltekit`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentrySvelteKit()`. Move its fields to the root level of the `sentrySvelteKit()` options. Note that `url` was renamed to `sentryUrl`.
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  plugins: [
+    sentrySvelteKit({
+      // before
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        url: 'https://my-sentry.example.com',
+        sourcemaps: {
+          assets: ['./build/**/*'],
+        },
+      },
+
+      // after
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sentryUrl: 'https://my-sentry.example.com',
+      sourcemaps: {
+        assets: ['./build/**/*'],
+      },
+    }),
+    sveltekit(),
+  ],
+});
+```
 
 ## 4. Package Removals
 
@@ -555,6 +851,24 @@ import { inboundFiltersIntegration } from '@sentry/browser';
 // after
 import { eventFiltersIntegration } from '@sentry/browser';
 ```
+
+All SDKs now also set up `eventFiltersIntegration` instead of `inboundFiltersIntegration` as a default
+integration, so the integration reports itself as `EventFilters` (e.g. in the `sdk.integrations` payload of
+events). If you disable the integration by its previous name, update the reference:
+
+```js
+// before
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'InboundFilters'),
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'EventFilters'),
+});
+```
+
+The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('InboundFilters')`.
 
 ### `instrumentLangGraph` renamed to `instrumentStateGraph`
 

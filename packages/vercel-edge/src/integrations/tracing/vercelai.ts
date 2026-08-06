@@ -9,7 +9,8 @@
  */
 
 import type { IntegrationFn } from '@sentry/core';
-import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import { addVercelAiProcessors } from '@sentry/server-utils/no-diagnostic-channels';
 
 const INTEGRATION_NAME = 'VercelAI' as const;
 

@@ -67,11 +67,11 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         'koa.name': 'bodyParser',
         'code.function.name': 'bodyParser',
         'koa.type': 'middleware',
-        'sentry.op': 'middleware.koa',
+        'sentry.op': 'middleware',
         'sentry.origin': 'auto.http.koa',
       },
       description: 'bodyParser',
-      op: 'middleware.koa',
+      op: 'middleware',
       origin: 'auto.http.koa',
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -86,9 +86,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         'code.function.name': 'middleware',
         'koa.type': 'middleware',
         'sentry.origin': 'auto.http.koa',
-        'sentry.op': 'middleware.koa',
+        'sentry.op': 'middleware',
       },
-      op: 'middleware.koa',
+      op: 'middleware',
       origin: 'auto.http.koa',
       description: 'middleware',
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -179,5 +179,5 @@ test('Captures request metadata', async ({ baseURL }) => {
     }),
   });
 
-  expect(transactionEvent.user).toEqual(undefined);
+  expect(transactionEvent.user).toEqual({ ip_address: '::1' });
 });
