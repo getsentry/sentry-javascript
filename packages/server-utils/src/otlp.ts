@@ -51,6 +51,27 @@ export const otlpIntegration = defineIntegration(_otlpIntegration);
  * `OTLPTraceExporter` with.
  *
  * Returns `undefined` if the DSN cannot be parsed.
+ *
+ * @example
+ *
+ * ```javascript
+ * import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+ * import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+ * import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+ *
+ * const provider = new NodeTracerProvider({
+ *   spanProcessors: [
+ *     new BatchSpanProcessor(new OTLPTraceExporter(Sentry.getOtlpTracesEndpoint('__DSN__'))),
+ *   ],
+ * });
+ *
+ * provider.register();
+ *
+ * Sentry.init({
+ *   dsn: '__DSN__',
+ *   integrations: [Sentry.otlpIntegration()],
+ * });
+ * ```
  */
 export function getOtlpTracesEndpoint(dsn: string): { url: string; headers: Record<string, string> } | undefined {
   const parsedDsn = dsnFromString(dsn);
