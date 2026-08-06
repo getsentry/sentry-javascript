@@ -42,8 +42,8 @@ Deno.test('hapi instrumentation: orchestrion:@hapi/hapi:route channel wraps the 
     "'parent' transaction",
   );
 
-  const hapiSpan = parent.spans?.find(s => s.op === 'router.hapi');
-  assertExists(hapiSpan, `expected a router.hapi span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
+  const hapiSpan = parent.spans?.find(s => s.op === 'router');
+  assertExists(hapiSpan, `expected a router span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(hapiSpan!.description, 'GET /hello');
   assertEquals(hapiSpan!.data?.['hapi.type'], 'router');
   assertEquals(hapiSpan!.data?.['http.route'], '/hello');

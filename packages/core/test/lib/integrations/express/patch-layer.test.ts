@@ -493,7 +493,7 @@ describe('patchLayer', () => {
         data: {
           'express.name': '/c',
           'express.type': 'router',
-          'sentry.op': 'router.express',
+          'sentry.op': 'router',
           'sentry.origin': 'auto.http.express',
         },
         description: '/c',

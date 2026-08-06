@@ -180,7 +180,8 @@ function patchLayer(
         name,
         attributes: {
           ...metadata.attributes,
-          [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${layerType}.koa`,
+          // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
+          [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? WEB_SERVER_MIDDLEWARE_SPAN_OP : 'router',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
       },
