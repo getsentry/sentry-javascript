@@ -23,6 +23,8 @@ import {
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
+import type { FormDataCapture } from '../../utils/formData';
+import { applyFormDataAttributes } from '../../utils/formData';
 
 const ORIGIN = 'auto.http.remix';
 
@@ -191,7 +193,7 @@ function subscribeCallRouteLoader(): void {
   );
 }
 
-function subscribeCallRouteAction(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
+function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined): void {
   bindTracingChannelToSpan<ActionChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION),
     data => {
@@ -201,7 +203,7 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
       // delay the action promise, so reading only after it settles would race the parent
       // `requestHandler` span flushing the transaction. Reading here means the promise is (virtually
       // always) already resolved by `asyncEnd`, so ending the span costs a single microtask.
-      if (actionFormDataAttributes && params.request) {
+      if (formDataCapture && params.request) {
         const formData = params.request.clone().formData();
         // Attach a handler so an unconsumed rejection (e.g. the action errored) isn't unhandled.
         formData.catch(() => undefined);
@@ -226,12 +228,12 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
       // capture isn't configured, let the helper end the span normally.
       deferSpanEnd: ({ span, data, end }) => {
         const formData = data._sentryFormData;
-        if (!actionFormDataAttributes || !formData || 'error' in data) {
+        if (!formDataCapture || !formData || 'error' in data) {
           return false;
         }
 
         formData
-          .then(resolved => applyFormDataAttributes(span, resolved, actionFormDataAttributes))
+          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture, 'formData.'))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)
@@ -243,21 +245,7 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
   );
 }
 
-function applyFormDataAttributes(
-  span: Span,
-  formData: FormData,
-  actionFormDataAttributes: Record<string, string | boolean>,
-): void {
-  formData.forEach((value, key) => {
-    const mapped = actionFormDataAttributes[key];
-    if (mapped && typeof value === 'string') {
-      const keyName = mapped === true ? key : mapped;
-      span.setAttribute(`formData.${keyName}`, value);
-    }
-  });
-}
-
-export function instrumentRemix(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
+export function instrumentRemix(formDataCapture: FormDataCapture | undefined): void {
   // `tracingChannel` is unavailable before Node 18.19, so do nothing in that case.
   if (!diagnosticsChannel.tracingChannel) {
     return;
@@ -267,8 +255,8 @@ export function instrumentRemix(actionFormDataAttributes: Record<string, string 
     subscribeRequestHandler();
     subscribeMatchServerRoutes();
     subscribeCallRouteLoader();
-    // Always instrument actions; `actionFormDataAttributes` only gates the optional form-data
+    // Always instrument actions; `formDataCapture` only gates the optional form-data
     // attribute extraction, not whether ACTION spans are created.
-    subscribeCallRouteAction(actionFormDataAttributes);
+    subscribeCallRouteAction(formDataCapture);
   });
 }

@@ -47,14 +47,14 @@ describe('subscribe-injection transform option', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('adds Program injection configs and the custom transform only when opted in', () => {
+  it('registers the tracingChannelImport override only when opted in', () => {
     const off = orchestrionTransformOptions({});
     expect(off.customTransforms).toEqual({});
-    expect(off.instrumentations.some(i => i.astQuery === 'Program' && i.transform)).toBe(false);
 
     const on = orchestrionTransformOptions({ injectChannelSubscribers: true });
-    expect(Object.keys(on.customTransforms || {})).toContain('sentrySubscribeOrchestrionChannel');
-    expect(on.instrumentations.some(i => i.astQuery === 'Program' && i.transform)).toBe(true);
+    expect(Object.keys(on.customTransforms || {})).toContain('tracingChannelImport');
+    // The override rides the real channel configs — opting in adds no extra ones.
+    expect(on.instrumentations).toEqual(off.instrumentations);
   });
 
   it('injects a CJS marker-push importing only that package factory, after "use strict"', () => {

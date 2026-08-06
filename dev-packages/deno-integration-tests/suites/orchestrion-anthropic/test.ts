@@ -51,7 +51,7 @@ Deno.test('anthropic instrumentation: orchestrion @anthropic-ai/sdk:chat channel
   const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.chat');
   assertExists(aiSpan, `expected a gen_ai.chat child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(aiSpan!.description, 'chat claude-3-5-sonnet-latest');
-  assertEquals(aiSpan!.data?.['gen_ai.system'], 'anthropic');
+  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'anthropic');
   assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'chat');
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'claude-3-5-sonnet-latest');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'claude-3-5-sonnet-20241022');

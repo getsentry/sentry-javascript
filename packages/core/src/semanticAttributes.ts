@@ -74,7 +74,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
  * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
-/** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
+/** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
 /** The user ID */

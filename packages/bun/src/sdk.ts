@@ -2,9 +2,9 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  eventFiltersIntegration,
   functionToStringIntegration,
   hasSpansEnabled,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
@@ -16,7 +16,6 @@ import {
   httpIntegration,
   init as initNode,
   modulesIntegration,
-  nativeNodeFetchIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -24,6 +23,7 @@ import {
 } from '@sentry/node';
 import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
+import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
@@ -69,16 +69,14 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   // Return a fresh array on each call so callers can safely mutate the result.
   return [
     // Common
-    // TODO(v11): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
+    fetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),

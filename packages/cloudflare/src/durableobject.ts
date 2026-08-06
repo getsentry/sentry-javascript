@@ -10,7 +10,6 @@ import { wrapRequestHandlerWithInit } from './request';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { extractRpcMeta } from './utils/rpcMeta';
-import { getEffectiveRpcPropagation } from './utils/rpcOptions';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
 
@@ -161,26 +160,10 @@ export function finalizeWithRpcInstrumentation<T extends object>(
   options: CloudflareOptions,
   context: InstrumentedDurableObjectContext,
 ): T {
-  // Get effective RPC propagation setting (handles deprecation of instrumentPrototypeMethods)
-  const rpcPropagation = getEffectiveRpcPropagation(options);
-
   // Skip RPC instrumentation if not enabled
-  if (!rpcPropagation) {
+  if (!options.enableRpcTracePropagation) {
     return obj;
   }
-
-  // If `instrumentPrototypeMethods` was passed as an array (deprecated),
-  // only the listed method names should be instrumented.
-  // eslint-disable-next-line typescript/no-deprecated
-  const instrumentPrototypeMethods = Array.isArray(options.instrumentPrototypeMethods)
-    ? // eslint-disable-next-line typescript/no-deprecated
-      options.instrumentPrototypeMethods
-    : undefined;
-  const allowSet = instrumentPrototypeMethods ? new Set(instrumentPrototypeMethods) : null;
-
-  // When using the deprecated `instrumentPrototypeMethods` option, always create spans.
-  // When using the new `enableRpcTracePropagation`, only create spans when RPC metadata is present.
-  const alwaysTrace = options.enableRpcTracePropagation === undefined;
 
   // Return a Proxy that binds all methods to the original object and creates spans
   // for RPC calls that have Sentry trace context propagated.
@@ -204,11 +187,7 @@ export function finalizeWithRpcInstrumentation<T extends object>(
 
       const boundMethod = (value as UncheckedMethod).bind(proxyTarget);
 
-      if (
-        prop in Object.prototype ||
-        Object.prototype.hasOwnProperty.call(proxyTarget, prop) ||
-        (allowSet && !allowSet.has(prop))
-      ) {
+      if (prop in Object.prototype || Object.prototype.hasOwnProperty.call(proxyTarget, prop)) {
         methodCache.set(prop, boundMethod);
 
         return boundMethod;
@@ -221,14 +200,6 @@ export function finalizeWithRpcInstrumentation<T extends object>(
         undefined,
         true,
       );
-
-      // For deprecated `instrumentPrototypeMethods`, always trace.
-      // For new `enableRpcTracePropagation`, only trace when RPC metadata is present.
-      if (alwaysTrace) {
-        methodCache.set(prop, tracedMethod);
-
-        return tracedMethod;
-      }
 
       // Wrapper that checks for Sentry RPC metadata at call time
       const wrappedMethod = ((...args: unknown[]) => {

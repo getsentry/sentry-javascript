@@ -23,7 +23,7 @@ function assertBedrockSpans(transaction: TransactionEvent): void {
       status: 'ok',
       data: expect.objectContaining({
         'sentry.origin': ORIGIN,
-        'gen_ai.system': 'aws.bedrock',
+        'gen_ai.provider.name': 'aws.bedrock',
         'gen_ai.operation.name': 'chat',
         'gen_ai.request.model': MODEL_ID,
         'gen_ai.request.max_tokens': 100,
@@ -43,7 +43,7 @@ function assertBedrockSpans(transaction: TransactionEvent): void {
       status: 'ok',
       data: expect.objectContaining({
         'sentry.origin': ORIGIN,
-        'gen_ai.system': 'aws.bedrock',
+        'gen_ai.provider.name': 'aws.bedrock',
         'gen_ai.request.model': MODEL_ID,
         'gen_ai.request.max_tokens': 100,
         'gen_ai.request.temperature': 0.5,

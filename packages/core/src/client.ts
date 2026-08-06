@@ -11,7 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
-import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
@@ -39,7 +39,7 @@ import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
-import { debug } from './utils/debug-logger';
+import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
@@ -234,7 +234,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = { attachStacktrace: true, traceLifecycle: 'stream', ...options };
+    // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
+    // is always one of the two known values for the rest of the SDK.
+    this._options = {
+      attachStacktrace: true,
+      ...options,
+      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
+    };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -248,6 +254,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
+    }
+
+    const { beforeSendSpan, traceLifecycle } = this._options;
+    // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
+    // so a mismatch means it is silently never called.
+    if (
+      DEBUG_BUILD &&
+      beforeSendSpan &&
+      isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
+    ) {
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          `Ignoring \`beforeSendSpan\`: ${
+            traceLifecycle === 'static' ? 'wrap it with' : 'remove'
+          } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
+        );
+      });
     }
 
     if (this._dsn) {
@@ -1677,7 +1701,7 @@ function processBeforeSend(
     // oxlint-disable-next-line typescript/no-deprecated
     beforeSendTransaction,
   } = options;
-  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+  const beforeSendSpan = isStaticBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;
 

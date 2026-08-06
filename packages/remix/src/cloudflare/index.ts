@@ -96,8 +96,6 @@ export {
   getSpanDescendants,
   continueTrace,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
@@ -117,6 +115,8 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';

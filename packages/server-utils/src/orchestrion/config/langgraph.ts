@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // `@langchain/langgraph` ships dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file. `StateGraph.compile`
@@ -35,5 +35,3 @@ export const langgraphChannels = {
   LANGGRAPH_STATE_GRAPH_COMPILE: 'orchestrion:@langchain/langgraph:stateGraphCompile',
   LANGGRAPH_CREATE_REACT_AGENT: 'orchestrion:@langchain/langgraph:createReactAgent',
 } as const;
-
-export const langgraphSubscribeInjection = toSubscribeInjections(langgraphConfig);

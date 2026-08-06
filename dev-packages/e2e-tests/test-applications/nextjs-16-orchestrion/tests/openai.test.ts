@@ -16,7 +16,7 @@ test('Instruments openai automatically via orchestrion', async ({ baseURL }) => 
   expect(chatSpan).toBeDefined();
   expect(chatSpan?.attributes['sentry.op']?.value).toBe('gen_ai.chat');
   expect(chatSpan?.attributes['sentry.origin']?.value).toBe('auto.ai.openai');
-  expect(chatSpan?.attributes['gen_ai.system']?.value).toBe('openai');
+  expect(chatSpan?.attributes['gen_ai.provider.name']?.value).toBe('openai');
   expect(chatSpan?.attributes['gen_ai.request.model']?.value).toBe('gpt-3.5-turbo');
   expect(chatSpan?.attributes['gen_ai.usage.input_tokens']?.value).toBe(10);
   expect(chatSpan?.attributes['gen_ai.usage.output_tokens']?.value).toBe(15);

@@ -6,12 +6,10 @@ import type { NodeClient } from './client';
 import {
   applyOtelSpanData,
   backfillStreamedSpanDataFromOtel,
-  getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
-import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 
 // The global registry of @opentelemetry/api 1.x, shared across all copies of the package
 const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
@@ -76,54 +74,31 @@ export function initOpenTelemetry(client: NodeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = setupOtel(client);
+  const provider = setupOtel();
   client.traceProvider = provider;
 }
 
-interface NodePreloadOptions {
-  debug?: boolean;
-  integrations?: string[];
-}
-
 /**
- * Preload OpenTelemetry for Node.
- * This can be used to preload instrumentation early, but set up Sentry later.
- * By preloading the OTEL instrumentation wrapping still happens early enough that everything works.
+ * Backfill Sentry span data (op, source, name, status) from OpenTelemetry semantic attributes.
+ *
+ * Channel-based instrumentation stamps OTel semantic attributes on native Sentry spans but leaves the
+ * Sentry-convention fields (e.g. `sentry.op`) to be inferred. On the OTel SDK provider that inference
+ * runs in the span processor/exporter; here it runs via client hooks so it happens whether or not a
+ * Sentry tracer provider is set up.
  */
-export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
-  const { debug } = options;
-
-  if (debug) {
-    coreDebug.enable();
-  }
-
-  // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
-  getPreloadMethods(options.integrations).forEach(fn => {
-    fn();
-
-    if (debug) {
-      coreDebug.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
-    }
+export function setupSpanDataBackfill(client: NodeClient): void {
+  client.on('spanEnd', span => {
+    applyOtelSpanData(span, { finalizeStatus: true });
   });
-}
 
-function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: string })[] {
-  const instruments = getOpenTelemetryInstrumentationToPreload();
-
-  if (!integrationNames) {
-    return instruments;
+  if (hasSpanStreamingEnabled(client)) {
+    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
   }
-
-  // We match exact matches of instrumentation, but also match prefixes, e.g. "Fastify.v5" will match "Fastify"
-  return instruments.filter(instrumentation => {
-    const id = instrumentation.id;
-    return integrationNames.some(integrationName => id === integrationName || id.startsWith(`${integrationName}.`));
-  });
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient): SentryTracerProvider | undefined {
-  const provider = new SentryTracerProvider({ resource: getSentryResource('node') });
+export function setupOtel(): SentryTracerProvider | undefined {
+  const provider = new SentryTracerProvider();
 
   if (!registerGlobalTracerProvider(provider)) {
     DEBUG_BUILD &&
@@ -134,28 +109,6 @@ export function setupOtel(client: NodeClient): SentryTracerProvider | undefined 
   }
 
   propagation.setGlobalPropagator(new SentryPropagator());
-
-  client.on('spanEnd', span => {
-    applyOtelSpanData(span, { finalizeStatus: true });
-  });
-
-  if (hasSpanStreamingEnabled(client)) {
-    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
-  }
-
-  client.on('preprocessEvent', event => {
-    if (event.type !== 'transaction') {
-      return;
-    }
-
-    event.contexts = {
-      ...event.contexts,
-      otel: {
-        resource: provider.resource?.attributes,
-        ...event.contexts?.otel,
-      },
-    };
-  });
 
   return provider;
 }

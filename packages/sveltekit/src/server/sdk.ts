@@ -19,6 +19,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const opts = {
     defaultIntegrations,
+    // SvelteKit emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
+    // provider (unlike most Node-based SDKs). A user-provided value still overrides this via `...options`.
+    skipOpenTelemetrySetup: false,
     ...options,
   };
 

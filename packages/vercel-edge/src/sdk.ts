@@ -6,18 +6,17 @@ import {
   createStackParser,
   debug,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
-  getSentryResource,
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
@@ -39,9 +38,7 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 export function getDefaultIntegrations(): Integration[] {
   return [
     dedupeIntegration(),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     linkedErrorsIntegration(),
@@ -114,7 +111,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     setupOpenTelemetryLogger();
   }
 
-  const provider = new SentryTracerProvider({ resource: getSentryResource('edge') });
+  const provider = new SentryTracerProvider();
 
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());

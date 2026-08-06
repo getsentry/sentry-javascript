@@ -4,10 +4,9 @@ import { loggingTransport } from '@sentry-internal/node-integration-tests';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1.0,
-  traceLifecycle: 'stream',
   transport: loggingTransport,
   release: '1.0.0',
-  beforeSendSpan: Sentry.withStreamedSpan(span => {
+  beforeSendSpan: span => {
     if (span.name === 'test-child-span') {
       span.name = 'customChildSpanName';
       if (!span.attributes) {
@@ -27,7 +26,7 @@ Sentry.init({
       ];
     }
     return span;
-  }),
+  },
 });
 
 Sentry.startSpan({ name: 'test-span', op: 'test' }, () => {

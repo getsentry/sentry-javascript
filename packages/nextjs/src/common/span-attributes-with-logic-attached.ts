@@ -6,3 +6,5 @@ export const TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION = 'sentry.drop_transaction
 export const TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL = 'sentry.sentry_trace_backfill';
 
 export const TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL = 'sentry.route_backfill';
+
+export const ATTR_NEXT_PAGES_API_ROUTE_TYPE = 'executing api route (pages)';

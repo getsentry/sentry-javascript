@@ -25,17 +25,33 @@ describe('remixIntegration', () => {
     vi.restoreAllMocks();
   });
 
-  it('passes the opted-in form-data keys through to the channel instrumentation', () => {
+  it('passes the configured form-data keys through to the channel instrumentation', () => {
     mockClient({ username: true }, ['incomingRequest']);
 
     remixIntegration().setupOnce?.();
 
-    expect(instrumentRemix).toHaveBeenCalledWith({ username: true });
+    expect(instrumentRemix).toHaveBeenCalledWith({ keys: { username: true } });
   });
 
-  it('passes undefined attributes when form-data capture is not opted into', () => {
-    // `httpBodies` without `incomingRequest` means capture is off, regardless of the configured keys.
+  it('passes the configured keys through even when `httpBodies` excludes `incomingRequest`', () => {
+    // `captureActionFormDataKeys` is an integration-level option, so it wins over `dataCollection`.
     mockClient({ username: true }, []);
+
+    remixIntegration().setupOnce?.();
+
+    expect(instrumentRemix).toHaveBeenCalledWith({ keys: { username: true } });
+  });
+
+  it('captures all fields when only `httpBodies` opts in', () => {
+    mockClient(undefined, ['incomingRequest']);
+
+    remixIntegration().setupOnce?.();
+
+    expect(instrumentRemix).toHaveBeenCalledWith({ keys: undefined });
+  });
+
+  it('captures nothing when neither option opts in', () => {
+    mockClient(undefined, []);
 
     remixIntegration().setupOnce?.();
 
