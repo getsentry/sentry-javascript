@@ -276,7 +276,7 @@ function instrumentTtfb(): StopListening {
   );
 }
 
-function instrumentInp(): void {
+function instrumentInp(): StopListening {
   return onINP(
     withoutBfcache(metric => {
       triggerHandlers('inp', {
