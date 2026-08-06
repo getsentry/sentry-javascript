@@ -36,6 +36,31 @@ module.exports = [
     },
   },
   {
+    name: '@sentry/browser - with treeshaking flags tracing without tracing',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init'),
+    gzip: true,
+    limit: '32 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+          __RRWEB_EXCLUDE_IFRAME__: true,
+          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+          __SENTRY_TRACING__: false,
+        }),
+      );
+
+      config.optimization.minimize = true;
+
+      return config;
+    },
+  },
+  {
     name: '@sentry/browser (incl. Tracing)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),

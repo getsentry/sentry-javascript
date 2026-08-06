@@ -28,6 +28,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
   serverName?: string;
 }
 
+declare const __SENTRY_TRACING__: boolean;
+
 /**
  * The Sentry Server Runtime Client SDK.
  */
@@ -47,6 +49,7 @@ export class ServerRuntimeClient<
     // is required to flush spans. We add it here so the individual server SDKs don't have to.
     // A user-provided `spanStreamingIntegration` always takes precedence over the one we add.
     if (
+      (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
       options.traceLifecycle !== 'static' &&
       !options.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
     ) {
