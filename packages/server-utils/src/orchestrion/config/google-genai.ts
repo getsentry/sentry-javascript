@@ -18,7 +18,7 @@ export const googleGenAiConfig = [
     })),
   ),
   // `embedContent` is a real class method in v1 but a constructor-assigned arrow in v2; the
-  // `className`/`methodName` selector matches both shapes. The `Chat` methods stay real class methods.
+  // `className`/`methodName` selector matches both shapes.
   ...NODE_DIST_FILES.map(filePath => ({
     channelName: 'embed-content',
     module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
