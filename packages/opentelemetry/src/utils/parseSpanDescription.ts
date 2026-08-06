@@ -21,7 +21,9 @@ import {
   MESSAGING_QUEUE_PUBLISH_SPAN_OP,
   MESSAGING_QUEUE_RECEIVE_SPAN_OP,
   MESSAGING_QUEUE_SPAN_OP,
+  WEB_SERVER_HTTP_CLIENT_SPAN_OP,
   WEB_SERVER_HTTP_SERVER_SPAN_OP,
+  WEB_SERVER_HTTP_SPAN_OP,
 } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
@@ -163,27 +165,19 @@ function descriptionForDbSystem(attributes: Attributes): SpanDescription {
 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(attributes: Attributes): SpanDescription {
-  const opParts = ['http'];
   const kind = attributes[SENTRY_KIND];
 
-  switch (kind) {
-    case 'client':
-      opParts.push('client');
-      break;
-    case 'server':
-      opParts.push('server');
-      break;
-  }
-
-  // Spans for HTTP requests we have determined to be prefetch requests will have a `.prefetch` postfix in the op
-  if (attributes['sentry.http.prefetch']) {
-    opParts.push('prefetch');
-  }
+  const op =
+    kind === 'client'
+      ? WEB_SERVER_HTTP_CLIENT_SPAN_OP
+      : kind === 'server'
+        ? WEB_SERVER_HTTP_SERVER_SPAN_OP
+        : WEB_SERVER_HTTP_SPAN_OP;
 
   const { urlPath, url, query, fragment } = getSanitizedUrl(attributes);
 
   if (!urlPath) {
-    return { op: opParts.join('.') };
+    return { op };
   }
 
   const data: Record<string, string> = {};
@@ -201,7 +195,7 @@ export function descriptionForHttpMethod(attributes: Attributes): SpanDescriptio
   }
 
   return {
-    op: opParts.join('.'),
+    op,
     data,
   };
 }
