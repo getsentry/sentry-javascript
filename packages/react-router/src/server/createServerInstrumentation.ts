@@ -6,7 +6,7 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
@@ -210,7 +210,7 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
                 [CODE_FUNCTION_NAME]: 'middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,

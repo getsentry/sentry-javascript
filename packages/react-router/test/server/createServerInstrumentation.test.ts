@@ -366,7 +366,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function',
+          'sentry.op': 'middleware',
           'code.function.name': 'middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
@@ -398,7 +398,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware authMiddleware',
         attributes: expect.objectContaining({
-          'sentry.op': 'function',
+          'sentry.op': 'middleware',
           'code.function.name': 'middleware',
           'react_router.route.id': 'routes/protected',
           'http.route': '/protected',

@@ -608,7 +608,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function',
+          'sentry.op': 'middleware',
           'code.function.name': 'clientMiddleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',

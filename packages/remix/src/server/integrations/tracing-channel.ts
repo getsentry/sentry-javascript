@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
-  CODE_FUNCTION,
+  CODE_FUNCTION_NAME,
   HTTP_METHOD,
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
@@ -147,7 +147,7 @@ function subscribeRequestHandler(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
-          [CODE_FUNCTION]: 'requestHandler',
+          [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,
         },
       });
@@ -182,7 +182,7 @@ function subscribeCallRouteLoader(): void {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
-          [CODE_FUNCTION]: 'loader',
+          [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -216,7 +216,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
-          [CODE_FUNCTION]: 'action',
+          [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },

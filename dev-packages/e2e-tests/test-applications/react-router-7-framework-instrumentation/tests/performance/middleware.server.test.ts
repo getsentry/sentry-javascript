@@ -45,7 +45,7 @@ test.describe('server - instrumentation API middleware', () => {
       trace_id: expect.any(String),
       data: expect.objectContaining({
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function',
+        'sentry.op': 'middleware',
         'code.function.name': 'middleware',
         'react_router.route.id': 'routes/performance/with-middleware',
         'http.route': '/performance/with-middleware',
@@ -54,7 +54,7 @@ test.describe('server - instrumentation API middleware', () => {
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      op: 'function',
+      op: 'middleware',
       origin: 'auto.function.react_router.instrumentation_api',
     });
 

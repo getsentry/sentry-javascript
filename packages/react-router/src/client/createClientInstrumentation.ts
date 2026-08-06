@@ -25,7 +25,7 @@ import {
   updateNavigationSpanUrlFromLocation,
 } from './utils';
 import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { GENERAL_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -318,7 +318,7 @@ export function createSentryClientInstrumentation(
             {
               name: `middleware ${routeId}`,
               attributes: {
-                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
                 [CODE_FUNCTION_NAME]: 'clientMiddleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
