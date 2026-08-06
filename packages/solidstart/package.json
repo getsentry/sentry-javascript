@@ -94,7 +94,6 @@
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
-    "nitro": "^3.0.260610-beta",
     "solid-js": "^1.9.11",
     "vinxi": "^0.5.11",
     "vite": "^6.4.3",
