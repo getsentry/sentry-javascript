@@ -321,7 +321,12 @@ function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObs
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
       const po = new PerformanceObserver(list => {
-        triggerHandlers(type, { entries: list.getEntries() });
+        // Delay by a microtask to work around a bug in Safari where the
+        // callback is invoked synchronously rather than in a separate task.
+        // See: https://github.com/GoogleChrome/web-vitals/issues/277
+        void Promise.resolve().then(() => {
+          triggerHandlers(type, { entries: list.getEntries() });
+        });
       });
       po.observe(options);
     }
