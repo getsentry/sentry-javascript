@@ -25,9 +25,13 @@ const _otlpIntegration = (() => {
 /**
  * Connects Sentry to an existing OpenTelemetry setup.
  *
- * Errors and logs captured by Sentry are attached to the OpenTelemetry span that is active when they
- * happen, so they show up on the same trace as the spans your OpenTelemetry SDK exports. Outgoing
- * request propagation is left to your OpenTelemetry propagator.
+ * Everything Sentry sends that carries trace information (errors, logs, metrics and check-ins) is
+ * attached to the OpenTelemetry span that is active when it happens, so it shows up on the same
+ * trace as the spans your OpenTelemetry SDK exports. Outgoing request propagation is left to your
+ * OpenTelemetry propagator.
+ *
+ * An active Sentry span still takes precedence, so this only changes what happens when Sentry has no
+ * span of its own, which is the usual setup when OpenTelemetry owns tracing.
  *
  * This does not export any spans. Configure your own span exporter and point it at Sentry using
  * {@link getOtlpTracesEndpoint}.

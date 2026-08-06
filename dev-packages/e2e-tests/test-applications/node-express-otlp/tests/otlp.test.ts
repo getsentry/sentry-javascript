@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForEnvelopeItem, waitForError, waitForMetric } from '@sentry-internal/test-utils';
+import type { SerializedLogContainer } from '@sentry/core';
 
 interface ExportedTrace {
   traceId: string;
@@ -25,14 +26,17 @@ async function waitForExportedTrace(baseURL: string, traceId: string): Promise<E
   throw new Error(`Trace ${traceId} was never exported over OTLP`);
 }
 
-test('attaches the active OpenTelemetry trace to Sentry errors', async ({ baseURL }) => {
+async function triggerTelemetry(baseURL: string, id: string): Promise<{ traceId: string; spanId: string }> {
+  const response = await fetch(`${baseURL}/test-telemetry/${id}`);
+  return (await response.json()) as { traceId: string; spanId: string };
+}
+
+test('attaches the active OpenTelemetry trace to errors', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express-otlp', event => {
     return event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
-  const response = await fetch(`${baseURL}/test-error/123`);
-  const { traceId, spanId } = (await response.json()) as { traceId: string; spanId: string };
-
+  const { traceId, spanId } = await triggerTelemetry(baseURL as string, '123');
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent.contexts?.trace).toEqual({
@@ -41,9 +45,34 @@ test('attaches the active OpenTelemetry trace to Sentry errors', async ({ baseUR
   });
 });
 
+test('attaches the active OpenTelemetry trace to logs', async ({ baseURL }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('node-express-otlp', envelope => {
+    return (
+      envelope[0].type === 'log' &&
+      (envelope[1] as SerializedLogContainer).items.some(item => item.body === 'This is a log with id 234')
+    );
+  });
+
+  const { traceId } = await triggerTelemetry(baseURL as string, '234');
+  const logEnvelope = await logEnvelopePromise;
+
+  const log = (logEnvelope[1] as SerializedLogContainer).items.find(item => item.body === 'This is a log with id 234');
+  expect(log?.trace_id).toBe(traceId);
+});
+
+test('attaches the active OpenTelemetry trace to metrics', async ({ baseURL }) => {
+  const metricPromise = waitForMetric('node-express-otlp', metric => {
+    return metric.name === 'otlp.test.count' && metric.attributes?.id?.value === '345';
+  });
+
+  const { traceId } = await triggerTelemetry(baseURL as string, '345');
+  const metric = await metricPromise;
+
+  expect(metric.trace_id).toBe(traceId);
+});
+
 test('exports spans over OTLP with the DSN-derived auth header', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/test-error/456`);
-  const { traceId, spanId } = (await response.json()) as { traceId: string; spanId: string };
+  const { traceId, spanId } = await triggerTelemetry(baseURL as string, '456');
 
   const exportedTrace = await waitForExportedTrace(baseURL as string, traceId);
 

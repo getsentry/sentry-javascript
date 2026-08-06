@@ -73,11 +73,15 @@ otlpReceiver.listen(otlpReceiverPort);
 const app = express();
 const tracer = trace.getTracer('node-express-otlp');
 
-app.get('/test-error/:id', (req, res) => {
-  tracer.startActiveSpan('test-error-handler', span => {
+app.get('/test-telemetry/:id', (req, res) => {
+  tracer.startActiveSpan('test-telemetry-handler', span => {
     const { traceId, spanId } = span.spanContext();
+    const { id } = req.params;
 
-    Sentry.captureException(new Error(`This is an exception with id ${req.params.id}`));
+    Sentry.logger.info(`This is a log with id ${id}`);
+    Sentry.metrics.count('otlp.test.count', 1, { attributes: { id } });
+    Sentry.captureException(new Error(`This is an exception with id ${id}`));
+
     span.end();
 
     res.json({ traceId, spanId });
