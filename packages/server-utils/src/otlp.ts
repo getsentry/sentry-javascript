@@ -1,0 +1,59 @@
+import { trace } from '@opentelemetry/api';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, dsnFromString, SENTRY_API_VERSION, registerExternalPropagationContext } from '@sentry/core';
+
+const INTEGRATION_NAME = 'Otlp' as const;
+
+const _otlpIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+
+    setup(): void {
+      registerExternalPropagationContext(() => {
+        const activeSpan = trace.getActiveSpan();
+        if (!activeSpan) {
+          return undefined;
+        }
+
+        const { traceId, spanId } = activeSpan.spanContext();
+        return { traceId, spanId };
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Connects Sentry to an existing OpenTelemetry setup.
+ *
+ * Errors and logs captured by Sentry are attached to the OpenTelemetry span that is active when they
+ * happen, so they show up on the same trace as the spans your OpenTelemetry SDK exports. Outgoing
+ * request propagation is left to your OpenTelemetry propagator.
+ *
+ * This does not export any spans. Configure your own span exporter and point it at Sentry using
+ * {@link getOtlpTracesEndpoint}.
+ */
+export const otlpIntegration = defineIntegration(_otlpIntegration);
+
+/**
+ * Builds the URL and auth headers for Sentry's OTLP traces endpoint, to configure an
+ * `OTLPTraceExporter` with.
+ *
+ * Returns `undefined` if the DSN cannot be parsed.
+ */
+export function getOtlpTracesEndpoint(dsn: string): { url: string; headers: Record<string, string> } | undefined {
+  const parsedDsn = dsnFromString(dsn);
+  if (!parsedDsn) {
+    return undefined;
+  }
+
+  const { protocol, host, port, path, projectId, publicKey } = parsedDsn;
+  const basePath = path ? `/${path}` : '';
+  const portSuffix = port ? `:${port}` : '';
+
+  return {
+    url: `${protocol}://${host}${portSuffix}${basePath}/api/${projectId}/integration/otlp/v1/traces/`,
+    headers: {
+      'X-Sentry-Auth': `Sentry sentry_version=${SENTRY_API_VERSION}, sentry_key=${publicKey}`,
+    },
+  };
+}

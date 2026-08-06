@@ -122,6 +122,8 @@ export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,

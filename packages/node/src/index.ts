@@ -31,6 +31,8 @@ export {
 } from '@sentry/server-utils/orchestrion';
 export { redisIntegration } from './integrations/tracing/redis';
 export {
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,

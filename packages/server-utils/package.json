@@ -102,6 +102,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.67.0"
   },
