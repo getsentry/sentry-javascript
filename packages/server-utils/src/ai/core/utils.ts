@@ -167,7 +167,6 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   span.end();
 }
 
-
 /**
  * Extract system instructions from messages array.
  * Finds the first system message and formats it according to OpenTelemetry semantic conventions.

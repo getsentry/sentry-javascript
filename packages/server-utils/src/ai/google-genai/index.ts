@@ -32,11 +32,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import {
-  buildMethodPath,
-  extractSystemInstructions,
-  resolveAIRecordingOptions,
-} from '../core/utils';
+import { buildMethodPath, extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
