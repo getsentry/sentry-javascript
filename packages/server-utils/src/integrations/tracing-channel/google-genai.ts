@@ -75,11 +75,7 @@ function instrumentGoogleGenai(options: GenAiOptions): void {
  * Build the span for an instrumented call.
  * Returning `undefined` opts the payload out so no span is opened.
  */
-function createGenAiSpan(
-  data: GoogleGenAIChannelContext,
-  operation: string,
-  options: GenAiOptions,
-): Span | undefined {
+function createGenAiSpan(data: GoogleGenAIChannelContext, operation: string, options: GenAiOptions): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {

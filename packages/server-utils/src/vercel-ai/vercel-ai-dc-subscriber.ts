@@ -342,10 +342,7 @@ function addTokensToSpan(span: Span, attribute: string, value: number | undefine
  * invoke_agent span, matching the OTel-based output), so we reuse the active span and mark the
  * payload to skip ending it.
  */
-export function createSpanFromMessage(
-  data: VercelAiChannelMessage,
-  channelOptions: GenAiOptions,
-): Span | undefined {
+export function createSpanFromMessage(data: VercelAiChannelMessage, channelOptions: GenAiOptions): Span | undefined {
   const { type, event } = data;
 
   if (type === 'step' || !event || typeof event !== 'object') {
@@ -481,11 +478,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
  * Everything here is guarded: when a field is missing or the shape differs across `ai` versions,
  * we simply don't set the attribute rather than emit a malformed span.
  */
-export function enrichSpanOnEnd(
-  span: Span,
-  data: VercelAiChannelMessage,
-  channelOptions: GenAiOptions,
-): void {
+export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage, channelOptions: GenAiOptions): void {
   const { type, result } = data;
   if (!isObjectLike(result)) {
     return;

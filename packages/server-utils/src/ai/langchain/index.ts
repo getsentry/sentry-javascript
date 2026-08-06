@@ -19,12 +19,7 @@ import {
 import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type {
-  LangChainCallbackHandler,
-  LangChainLLMResult,
-  LangChainMessage,
-  LangChainSerialized,
-} from './types';
+import type { LangChainCallbackHandler, LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 import {
   extractChatModelRequestAttributes,
   extractLLMRequestAttributes,

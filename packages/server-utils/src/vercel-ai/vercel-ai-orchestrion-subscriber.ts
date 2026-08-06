@@ -460,11 +460,7 @@ function patchModelMethods(model: PatchableModel, options: GenAiOptions): void {
   patchModelMethod(model, 'doStream', options);
 }
 
-function patchModelMethod(
-  model: PatchableModel,
-  method: 'doGenerate' | 'doStream',
-  options: GenAiOptions,
-): void {
+function patchModelMethod(model: PatchableModel, method: 'doGenerate' | 'doStream', options: GenAiOptions): void {
   const original = model[method];
   if (typeof original !== 'function') {
     return;
