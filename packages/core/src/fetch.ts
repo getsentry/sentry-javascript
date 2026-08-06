@@ -10,6 +10,7 @@ import type { HandlerDataFetch } from './types/instrument';
 import type { ResponseHookInfo } from './types/request';
 import type { Span, SpanAttributes, SpanOrigin } from './types/span';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
@@ -388,7 +389,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [URL_FULL]: stripDataUrlContent(url),
+    [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url)),
     type: 'fetch',
     // oxlint-disable-next-line typescript/no-deprecated
     [HTTP_METHOD]: method,
@@ -397,10 +398,10 @@ function getFetchSpanAttributes(
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes[URL_FULL] = stripDataUrlContent(parsedUrl.href);
+      attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href));
       attributes[SERVER_ADDRESS] = parsedUrl.host;
     }
-    attributes[URL_QUERY] = getUrlQuery(parsedUrl.search);
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search));
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
   }
   return attributes;

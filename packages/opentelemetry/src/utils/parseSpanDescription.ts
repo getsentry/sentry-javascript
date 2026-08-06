@@ -34,6 +34,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   stripUrlQueryAndFragment,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 
 interface SpanDescription {
@@ -189,9 +191,9 @@ export function descriptionForHttpMethod(attributes: Attributes): SpanDescriptio
   const data: Record<string, string> = {};
 
   if (url) {
-    data[URL_FULL] = url;
+    data[URL_FULL] = filterCollectedUrl(url);
   }
-  const urlQuery = getUrlQuery(query);
+  const urlQuery = filterCollectedUrlQuery(getUrlQuery(query));
   if (urlQuery) {
     data[URL_QUERY] = urlQuery;
   }

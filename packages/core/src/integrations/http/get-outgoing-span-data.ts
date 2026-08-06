@@ -1,5 +1,6 @@
 import type { Span, SpanAttributes } from '../../types/span';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -36,7 +37,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       [SENTRY_KIND]: 'client',
-      [URL_FULL]: url,
+      [URL_FULL]: filterCollectedUrl(url),
       /* eslint-disable typescript/no-deprecated */
       [HTTP_METHOD]: request.method,
       [HTTP_TARGET]: request.path || '/',

@@ -10,6 +10,7 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 
@@ -63,7 +64,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
             [HTTP_REQUEST_METHOD]: httpMethod,
             [SERVER_ADDRESS]: getServerAddress(this.apiEndpoint),
-            [URL_FULL]: reqOpts.uri,
+            [URL_FULL]: filterCollectedUrl(reqOpts.uri),
           },
         })
       : new SentryNonRecordingSpan();

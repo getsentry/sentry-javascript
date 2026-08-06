@@ -16,6 +16,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { SpanAttributes } from '../types/span';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -208,11 +209,11 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (urlObject) {
     // Relative URLs have no meaningful `href`, so fall back to the sanitized path.
-    attributes[URL_FULL] = isURLObjectRelative(urlObject)
-      ? getSanitizedUrlStringFromUrlObject(urlObject)
-      : urlObject.href;
+    attributes[URL_FULL] = filterCollectedUrl(
+      isURLObjectRelative(urlObject) ? getSanitizedUrlStringFromUrlObject(urlObject) : urlObject.href,
+    );
 
-    attributes[URL_QUERY] = getUrlQuery(urlObject.search);
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(urlObject.search));
     attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;

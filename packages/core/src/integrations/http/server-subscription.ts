@@ -41,6 +41,7 @@ import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
 import { URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -298,7 +299,7 @@ function buildServerSpanWrap(
             'net.peer.port': remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            [URL_FULL]: fullUrl,
+            [URL_FULL]: filterCollectedUrl(fullUrl),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
             'http.method': method,
             'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,

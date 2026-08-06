@@ -1,7 +1,7 @@
 import { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
-  _INTERNAL_filterQueryParams,
+  filterCollectedUrlQuery,
   addBreadcrumb,
   getActiveSpan,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -256,15 +256,11 @@ function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData
     const url = getAbsoluteUrl(request.origin, request.path);
     const parsedUrl = parseUrl(url);
 
-    // Breadcrumbs never reach the span pipeline, so this is the only place the query gets filtered.
-    const query = getUrlQuery(parsedUrl.search);
-    const urlQueryParams = getClient()?.getDataCollectionOptions().urlQueryParams ?? true;
-
     return {
       url: getSanitizedUrlString(parsedUrl),
       // eslint-disable-next-line typescript/no-deprecated
       [HTTP_METHOD]: request.method || 'GET',
-      [URL_QUERY]: query && _INTERNAL_filterQueryParams(query, urlQueryParams),
+      [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search)),
       [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
     };
   } catch {

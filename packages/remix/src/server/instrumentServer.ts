@@ -34,6 +34,7 @@ import {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
@@ -133,7 +134,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             onlyIfParent: true,
             attributes: {
               method: request.method,
-              [URL_FULL]: request.url,
+              [URL_FULL]: filterCollectedUrl(request.url),
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
             },
@@ -386,7 +387,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                  [URL_FULL]: url.href,
+                  [URL_FULL]: filterCollectedUrl(url.href),
                   [URL_PATH]: url.pathname,
                   method: request.method,
                   ...(source === 'route' && {
