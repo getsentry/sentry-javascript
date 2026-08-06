@@ -121,9 +121,7 @@ const nextConfig = {
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
-  /* ... */
-});
+module.exports = withSentryConfig(nextConfig, {/* ... */});
 ```
 
 [webpack](https://webpack.js.org/configuration/externals/#externals)
