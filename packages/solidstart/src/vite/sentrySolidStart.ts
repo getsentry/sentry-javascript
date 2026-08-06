@@ -62,28 +62,12 @@ export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[
 type ViteConfigWithNitro = UserConfig & { nitro?: Record<string, unknown> };
 
 /**
- * `setupSentryNitroModule` pushes onto `modules` and assigns into `experimental`, so those two need
- * copies of their own: a plain spread would mutate the user's config, and re-register the Sentry
- * module on every `config` call.
- */
-function copyNitroConfig(userNitro: Record<string, unknown> | undefined): Record<string, unknown> {
-  const copy: Record<string, unknown> = { ...userNitro };
-
-  if (Array.isArray(copy.modules)) {
-    copy.modules = [...copy.modules];
-  }
-
-  if (copy.experimental && typeof copy.experimental === 'object') {
-    copy.experimental = { ...copy.experimental };
-  }
-
-  return copy;
-}
-
-/**
  * Delivers everything only Nitro can reach — server source maps, runtime hooks, the
- * `sourcemapMinify` opt-out — through Vite's `nitro` key, which Nitro merges with `defu`. The user's
- * config is passed in so an explicit `nitro.sourcemap: false` survives.
+ * `sourcemapMinify` opt-out — through Vite's `nitro` key.
+ *
+ * `setupSentryNitroModule` is handed only the keys it reads, never the user's whole config, so what
+ * comes back is purely Sentry's additions. Vite concatenates arrays when merging a `config` return
+ * value, so echoing the user's own `modules`/`plugins` back would duplicate every entry.
  *
  * `enforce: 'pre'` is load-bearing: Nitro creates its instance inside its own `config` hook, so a
  * normal-priority hook sorting after it would be read too late and silently ignored.
@@ -93,8 +77,16 @@ function makeSentryNitroPlugin(options: SentrySolidStartOptions): Plugin {
     name: 'sentry-solidstart-nitro',
     enforce: 'pre',
     config(userConfig: ViteConfigWithNitro) {
+      const userNitro = userConfig.nitro;
+
       return {
-        nitro: setupSentryNitroModule(copyNitroConfig(userConfig.nitro), options) as Record<string, unknown>,
+        nitro: setupSentryNitroModule(
+          // `sourcemap` decides whether Sentry enables its own; `tracingChannel` is left as the user set it.
+          { sourcemap: userNitro?.sourcemap, tracingChannel: userNitro?.tracingChannel } as Parameters<
+            typeof setupSentryNitroModule
+          >[0],
+          options,
+        ) as Record<string, unknown>,
       } as Omit<UserConfig, 'plugins'>;
     },
   };

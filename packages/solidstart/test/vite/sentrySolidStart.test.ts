@@ -1,4 +1,8 @@
+// @vitest-environment node
+// Build-time plugin code, no DOM. `vite`'s runtime exports pull in esbuild, which cannot run under
+// jsdom's `TextEncoder`.
 import type { Plugin, UserConfig } from 'vite';
+import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
 
@@ -119,19 +123,27 @@ describe('sentrySolidStart()', () => {
       expect(contributed?.nitro).toMatchObject({ sourcemap: false });
     });
 
-    it('preserves unrelated nitro options the user set', () => {
-      const contributed = callConfigHook(getNitroPlugin(sentrySolidStart()), { nitro: { preset: 'node-server' } });
+    // Vite concatenates arrays when merging a `config` return value, so echoing the user's own
+    // entries back duplicates every one of them.
+    it("does not duplicate the user's nitro arrays once Vite merges the result", () => {
+      const userConfig: ViteConfigWithNitro = {
+        nitro: { modules: [{ name: 'user-module' }], plugins: ['./server/plugins/user.ts'] },
+      };
 
-      expect(contributed?.nitro).toMatchObject({ preset: 'node-server' });
+      const merged = mergeConfig(userConfig, callConfigHook(getNitroPlugin(sentrySolidStart()), userConfig) ?? {});
+
+      expect((merged as ViteConfigWithNitro).nitro).toMatchObject({
+        modules: [{ name: 'user-module' }, expect.objectContaining({ name: 'sentry' })],
+        plugins: ['./server/plugins/user.ts'],
+      });
     });
 
-    it("appends to the user's existing nitro modules rather than replacing them", () => {
-      const userModule = { name: 'user-module' };
-      const contributed = callConfigHook(getNitroPlugin(sentrySolidStart()), { nitro: { modules: [userModule] } });
+    it('preserves unrelated nitro options the user set', () => {
+      const userConfig: ViteConfigWithNitro = { nitro: { preset: 'node-server' } };
 
-      expect(contributed?.nitro).toMatchObject({
-        modules: [userModule, expect.objectContaining({ name: 'sentry' })],
-      });
+      const merged = mergeConfig(userConfig, callConfigHook(getNitroPlugin(sentrySolidStart()), userConfig) ?? {});
+
+      expect((merged as ViteConfigWithNitro).nitro).toMatchObject({ preset: 'node-server' });
     });
 
     it('does not mutate the config object it is handed', () => {
