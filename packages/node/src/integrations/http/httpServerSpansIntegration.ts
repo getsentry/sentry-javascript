@@ -186,7 +186,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
               [HTTP_METHOD]: normalizedRequest.method,
-              [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              [HTTP_TARGET]: filterCollectedUrl(
+                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              ),
               [HTTP_HOST]: host,
               [NET_HOST_NAME]: hostname,
               [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,

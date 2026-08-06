@@ -40,7 +40,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       [URL_FULL]: filterCollectedUrl(url),
       /* eslint-disable typescript/no-deprecated */
       [HTTP_METHOD]: request.method,
-      [HTTP_TARGET]: request.path || '/',
+      [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
       [NET_PEER_NAME]: request.host,
       [HTTP_HOST]: request.getHeader('host') as string | undefined,
       /* eslint-enable typescript/no-deprecated */

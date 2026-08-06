@@ -302,7 +302,9 @@ function buildServerSpanWrap(
             [URL_FULL]: filterCollectedUrl(fullUrl),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
             'http.method': method,
-            'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+            'http.target': filterCollectedUrl(
+              urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+            ),
             'http.host': host,
             'net.host.name': hostname,
             'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
