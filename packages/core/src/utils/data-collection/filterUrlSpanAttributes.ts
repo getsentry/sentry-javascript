@@ -1,4 +1,5 @@
 import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import type { RawAttributes } from '../../attributes';
 import { isAttributeObject } from '../../attributes';
 import type { CollectBehavior } from '../../types/datacollection';
 import type { StreamedSpanJSON } from '../../types/span';
@@ -8,10 +9,12 @@ import { filterUrlQuery } from './filterUrlQuery';
 /**
  * Applies `dataCollection.urlQueryParams` to the URL attributes of a span.
  *
- * This is the safety net for the ~50 places across the SDKs that set `url.full` / `url.query`: filtering
- * centrally means an integration cannot leak a query string by forgetting to gate its own write, and it
- * covers attributes set by users too. Instrumentation on hot paths additionally filters at write time,
- * which is harmless because filtering is idempotent.
+ * Filtering centrally rather than at each write site means an
+ * integration cannot leak a query string by forgetting to gate its own write.
+ *
+ * The trade-off is that this cannot tell an SDK-set attribute from one a user set themselves, so a
+ * `url.full` set via `span.setAttribute()` is filtered as well, even though `dataCollection` is only
+ * meant to gate automatically collected data.
  *
  * `url.path` and the span name are deliberately untouched — per spec they never carry a query string.
  */
@@ -27,11 +30,11 @@ export function filterUrlSpanAttributes(spanJSON: StreamedSpanJSON, behavior: Co
 
 /**
  * Applies `map` to a string attribute, which may be stored either as a bare string or wrapped in an
- * attribute object (`{ value, type }`) — both shapes are valid on a span. Removes the attribute when
- * `map` returns `undefined`.
+ * attribute object (`{ value, type }`) — both shapes are valid on a span. Clears the attribute when
+ * `map` returns `undefined`; serialization drops `undefined` values.
  */
 function mapStringAttribute(
-  attributes: NonNullable<StreamedSpanJSON['attributes']>,
+  attributes: RawAttributes<Record<string, unknown>>,
   key: string,
   map: (value: string) => string | undefined,
 ): void {
@@ -46,8 +49,7 @@ function mapStringAttribute(
   const mapped = map(value);
 
   if (mapped === undefined) {
-    // oxlint-disable-next-line typescript/no-dynamic-delete -- the keys passed here are string constants
-    delete attributes[key];
+    attributes[key] = undefined;
   } else if (isWrapped) {
     attributes[key] = { ...rawValue, value: mapped };
   } else {
