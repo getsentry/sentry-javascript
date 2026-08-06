@@ -94,6 +94,7 @@ export function responseHandler(
     if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
       getClient()?.captureException(context.error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+        originalException: context.error,
       });
     }
   }

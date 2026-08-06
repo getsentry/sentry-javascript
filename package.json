@@ -94,7 +94,6 @@
     "packages/svelte",
     "packages/sveltekit",
     "packages/tanstackstart-react",
-    "packages/types",
     "packages/typescript",
     "packages/vercel-edge",
     "packages/vue",

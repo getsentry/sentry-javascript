@@ -1,6 +1,4 @@
 import * as SentryCore from '@sentry/core';
-import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
@@ -45,48 +43,49 @@ describe('wrapApiHandlerWithSentry', () => {
     await wrappedFunction();
   });
 
-  it('adds normalized request URL and route attributes to the active root span', async () => {
-    const rootSpan = {
-      updateName: vi.fn(),
-      setAttributes: vi.fn(),
-    };
-    vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValueOnce({} as any);
-    vi.spyOn(SentryCore, 'getRootSpan').mockReturnValueOnce(rootSpan as any);
-    vi.spyOn(SentryCore, 'spanToJSON').mockReturnValueOnce({ data: {} } as any);
-    const origFunction = vi.fn(() => new Response());
-    const parameterizedRoute = '/user/[userId]/post/[postId]';
-    const wrappedFunction = wrapApiHandlerWithSentry(origFunction, parameterizedRoute);
-
-    await wrappedFunction(new Request('https://dogs.are.great/user/123/post/456?good=true'));
-
-    expect(rootSpan.updateName).toHaveBeenCalledWith(`POST ${parameterizedRoute}`);
-    expect(rootSpan.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [URL_FULL]: 'https://dogs.are.great/user/123/post/456?good=true',
-      [URL_PATH]: '/user/123/post/456',
-      [HTTP_ROUTE]: parameterizedRoute,
-    });
-  });
-
-  it('replaces a concrete root span route with the parameterized route', async () => {
-    const rootSpan = {
-      updateName: vi.fn(),
-      setAttributes: vi.fn(),
-    };
-    vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValueOnce({} as any);
-    vi.spyOn(SentryCore, 'getRootSpan').mockReturnValueOnce(rootSpan as any);
-    vi.spyOn(SentryCore, 'spanToJSON').mockReturnValueOnce({
-      data: { [HTTP_ROUTE]: '/user/123/post/456' },
-    } as any);
+  it('sets the parameterized transaction name on the isolation scope for requests', async () => {
+    const setTransactionName = vi.fn();
+    const setSDKProcessingMetadata = vi.fn();
+    vi.spyOn(SentryCore, 'withIsolationScope').mockImplementation((cb: any) =>
+      cb({ setTransactionName, setSDKProcessingMetadata }),
+    );
     const parameterizedRoute = '/user/[userId]/post/[postId]';
     const wrappedFunction = wrapApiHandlerWithSentry(() => new Response(), parameterizedRoute);
 
-    await wrappedFunction(new Request('https://dogs.are.great/user/123/post/456'));
+    await wrappedFunction(new Request('https://dogs.are.great/user/123/post/456?good=true'));
 
-    expect(rootSpan.setAttributes).toHaveBeenCalledWith(
+    expect(setTransactionName).toHaveBeenCalledWith(`POST ${parameterizedRoute}`);
+    expect(setSDKProcessingMetadata).toHaveBeenCalled();
+  });
+
+  it('sets a handler transaction name on the isolation scope for non-request args', async () => {
+    const setTransactionName = vi.fn();
+    vi.spyOn(SentryCore, 'withIsolationScope').mockImplementation((cb: any) =>
+      cb({ setTransactionName, setSDKProcessingMetadata: vi.fn() }),
+    );
+    const parameterizedRoute = '/user/[userId]/post/[postId]';
+    const wrappedFunction = wrapApiHandlerWithSentry(() => new Response(), parameterizedRoute);
+
+    await wrappedFunction({ some: 'arg' } as any);
+
+    expect(setTransactionName).toHaveBeenCalledWith(`handler (${parameterizedRoute})`);
+  });
+
+  it('captures and rethrows errors thrown by the handler', async () => {
+    const captureException = vi.spyOn(SentryCore, 'captureException').mockReturnValue('');
+    vi.spyOn(SentryCore, 'withIsolationScope').mockImplementation((cb: any) =>
+      cb({ setTransactionName: vi.fn(), setSDKProcessingMetadata: vi.fn() }),
+    );
+    const error = new Error('Edge Route Error');
+    const wrappedFunction = wrapApiHandlerWithSentry(() => {
+      throw error;
+    }, '/user/[userId]');
+
+    await expect(wrappedFunction(new Request('https://dogs.are.great/user/123'))).rejects.toThrow('Edge Route Error');
+    expect(captureException).toHaveBeenCalledWith(
+      error,
       expect.objectContaining({
-        [HTTP_ROUTE]: parameterizedRoute,
+        mechanism: { type: 'auto.function.nextjs.wrap_api_handler', handled: false },
       }),
     );
   });

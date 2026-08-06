@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { runInNewContext } from 'node:vm';
 import { addNonEnumerableProperty } from '@sentry/core/browser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultStackParser } from '../src';
@@ -138,6 +139,22 @@ describe('eventFromUnknownInput', () => {
         },
       },
     });
+  });
+
+  it('handles object with error prop created in another realm', () => {
+    const error = runInNewContext(`new Error('Some error')`) as Error;
+    expect(error).not.toBeInstanceOf(Error);
+
+    const event = eventFromUnknownInput(defaultStackParser, {
+      err: error,
+    });
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'Some error',
+      }),
+    );
   });
 
   it('handles class with error prop', () => {

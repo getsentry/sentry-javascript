@@ -1,8 +1,6 @@
 import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
-import { SUBSCRIBE_INJECTIONS } from '../config';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';
-import { SUBSCRIBE_TRANSFORM_NAME } from '../config/subscribe-injection';
 import type { PluginOptions } from './options';
 
 // Tracks Program nodes we already injected into, so a package with several
@@ -38,22 +36,33 @@ function subscribeSnippet(exportName: string, esm: boolean): string {
 }
 
 /**
- * The custom transform registered under {@link SUBSCRIBE_TRANSFORM_NAME}. It is
- * invoked with the matched `Program` node and mutates it in place, splicing the
- * marker-push snippet in after any `'use strict'` directive.
+ * Override for orchestrion's built-in `tracingChannelImport` transform, which
+ * runs (via `tracingChannelDeclaration`) for every file that gets a channel
+ * wrapped — the one hook that reaches every instrumented module without any
+ * extra instrumentation configs. It chains the default (which splices the
+ * `diagnostics_channel` import and bails when it is already present), then
+ * splices the marker-push snippet in after any `'use strict'` directive.
  *
- * `state` carries the matched config spread with `{ moduleType }`; the config's
- * `channelName` carries the package name (see `toSubscribeInjections`), which
- * maps to the subscriber's export name.
+ * Invoked once per wrapped channel, so the `WeakSet` keeps the snippet to one
+ * per file. Requires `@apm-js-collab/code-transformer` >= 0.18.1, where
+ * built-ins dispatch through the override map and expose the originals on
+ * `state.transforms.defaults`.
  */
-const injectSubscribe: CustomTransform = (state, program) => {
+const injectSubscribe: CustomTransform = (state, program, parent, ancestry) => {
+  const { moduleType, module, transforms } = state as {
+    moduleType?: string;
+    module?: { name?: string };
+    transforms: { defaults: { tracingChannelImport: CustomTransform } };
+  };
+
+  transforms.defaults.tracingChannelImport(state, program, parent, ancestry);
+
   const node = program as ProgramNode;
   if (injectedPrograms.has(node)) {
     return;
   }
 
-  const { moduleType, channelName } = state as { moduleType?: string; channelName?: string };
-  const exportName = channelName ? subscriberExportForModule(channelName) : undefined;
+  const exportName = module?.name ? subscriberExportForModule(module.name) : undefined;
   if (!exportName) {
     return;
   }
@@ -70,18 +79,17 @@ const injectSubscribe: CustomTransform = (state, program) => {
 };
 
 /**
- * The `instrumentations` + `customTransforms` a bundler plugin passes to
+ * The `customTransforms` a bundler plugin passes to
  * {@link orchestrionTransformOptions} to enable the marker-push subscribe
  * injection used by bundler-only SDKs (e.g. `@sentry/cloudflare`).
  *
- * The `SUBSCRIBE_INJECTIONS` configs ride alongside the real channel-publishing
- * configs, and `injectSubscribe` runs on each matched module, so every
- * transformed package self-registers its subscriber on the global marker
- * without a runtime module hook.
+ * Overriding the built-in `tracingChannelImport` transform makes
+ * `injectSubscribe` run on every instrumented module, so every transformed
+ * package self-registers its subscriber on the global marker without a runtime
+ * module hook — and without a parallel set of injection configs.
  */
-export function subscribeInjectionOptions(): Pick<PluginOptions, 'instrumentations' | 'customTransforms'> {
+export function subscribeInjectionOptions(): Pick<PluginOptions, 'customTransforms'> {
   return {
-    instrumentations: SUBSCRIBE_INJECTIONS,
-    customTransforms: { [SUBSCRIBE_TRANSFORM_NAME]: injectSubscribe },
+    customTransforms: { tracingChannelImport: injectSubscribe },
   };
 }

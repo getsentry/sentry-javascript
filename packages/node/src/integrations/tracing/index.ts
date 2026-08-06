@@ -24,7 +24,6 @@ import {
   tediousIntegration,
   vercelAiIntegration,
 } from '@sentry/server-utils/orchestrion';
-import { instrumentSentryHttp } from '../http';
 import { fastifyIntegration } from './fastify';
 import { redisIntegration } from './redis';
 
@@ -60,12 +59,4 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     postgresJsIntegration(),
     firebaseIntegration(),
   ];
-}
-
-/**
- * Get a list of methods to instrument OTEL, when preload instrumentation.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
-  return [instrumentSentryHttp];
 }

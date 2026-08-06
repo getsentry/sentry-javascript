@@ -100,7 +100,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       deviceMemory: '8 GB',
       hardwareConcurrency: '10',
       sentry_reportAllChanges: false,
-      'timeOrigin.mode': 'navigationStart',
+      'timeOrigin.mode': 'timeOrigin',
     },
     transaction: '/organizations/:orgId/replays/:replaySlug/',
     type: 'transaction' as const,

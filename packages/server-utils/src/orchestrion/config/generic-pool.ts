@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // Two shapes of `acquire`, both publishing to the same `orchestrion:generic-pool:acquire` channel:
 // - v3+: `class Pool { acquire(priority) }` returns a promise, so `kind: 'Auto'` resolves to `wrapPromise`.
@@ -24,5 +24,3 @@ export const genericPoolModuleNames = getModuleNames(genericPoolConfig);
 export const genericPoolChannels = {
   GENERIC_POOL_ACQUIRE: 'orchestrion:generic-pool:acquire',
 } as const;
-
-export const genericPoolSubscribeInjection = toSubscribeInjections(genericPoolConfig);

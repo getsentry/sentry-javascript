@@ -1,0 +1,35 @@
+{
+  "name": "react-router-sourcemaps",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8.3.0",
+    "@react-router/node": "^8.3.0",
+    "@react-router/serve": "^8.3.0",
+    "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
+    "isbot": "^5.1.17"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@types/node": "^20",
+    "@react-router/dev": "^8.3.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "tsx": "^4.23.0",
+    "typescript": "^5.6.3",
+    "vite": "^7.3.2"
+  },
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & SENTRY_URL=http://localhost:3032 react-router build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm tsx assert-build.ts"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 export const hapiConfig = [
   // hapi's `route`/`ext` live on an anonymous class (`internals.Server = class {}`),
@@ -24,5 +24,3 @@ export const hapiChannels = {
   HAPI_ROUTE: 'orchestrion:@hapi/hapi:route',
   HAPI_EXT: 'orchestrion:@hapi/hapi:ext',
 } as const;
-
-export const hapiSubscribeInjection = toSubscribeInjections(hapiConfig);

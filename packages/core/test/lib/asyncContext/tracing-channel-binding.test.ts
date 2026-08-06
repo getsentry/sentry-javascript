@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAsyncContextStrategy, setAsyncContextStrategy } from '../../../src/asyncContext';
-import { waitForTracingChannelBinding } from '../../../src/asyncContext/tracing-channel-binding';
+import {
+  _INTERNAL_createTracingChannelBinding,
+  waitForTracingChannelBinding,
+} from '../../../src/asyncContext/tracing-channel-binding';
 import type { TracingChannelBinding } from '../../../src/asyncContext/types';
 import { getMainCarrier } from '../../../src/carrier';
+import { Scope } from '../../../src/scope';
+import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import { SentrySpan } from '../../../src/tracing/sentrySpan';
+import { _getSpanForScope, _setSpanForScope } from '../../../src/utils/spanOnScope';
+import { addChildSpanToSpan } from '../../../src/utils/spanUtils';
 
 const FAKE_BINDING: TracingChannelBinding = {
   asyncLocalStorage: {},
@@ -119,5 +127,50 @@ describe('waitForTracingChannelBinding', () => {
     waitForTracingChannelBinding(callback, 0);
 
     expect(callback).not.toHaveBeenCalled();
+  });
+});
+
+describe('_INTERNAL_createTracingChannelBinding', () => {
+  const scope = new Scope();
+  const isolationScope = new Scope();
+  const getScopes = (): { scope: Scope; isolationScope: Scope } => ({ scope, isolationScope });
+
+  it('sets a normal span as the active span on the store scope', () => {
+    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+    const span = new SentrySpan({ name: 'test' });
+
+    const store = binding.getStoreWithActiveSpan(span) as { scope: Scope; isolationScope: Scope };
+
+    expect(_getSpanForScope(store.scope)).toBe(span);
+    expect(store.isolationScope).toBe(isolationScope);
+  });
+
+  it('keeps the emitted parent active for an ignored child span', () => {
+    const parentSpan = new SentrySpan({ name: 'parent' });
+    // The parent is already the active span on the scope the binding forks from.
+    const parentScope = new Scope();
+    _setSpanForScope(parentScope, parentSpan);
+    const binding = _INTERNAL_createTracingChannelBinding({}, () => ({ scope: parentScope, isolationScope }));
+
+    const ignoredChild = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+    // Attach the ignored span under the parent so it is a child (its root span is the parent, not itself).
+    addChildSpanToSpan(parentSpan, ignoredChild);
+
+    const store = binding.getStoreWithActiveSpan(ignoredChild) as { scope: Scope; isolationScope: Scope };
+
+    // No span is emitted for an ignored child, so it must not become the active span; the emitted
+    // parent stays active so nested spans/outgoing requests keep propagating from it.
+    expect(_getSpanForScope(store.scope)).toBe(parentSpan);
+  });
+
+  it('still sets an ignored root span as the active span so its subtree is dropped', () => {
+    const binding = _INTERNAL_createTracingChannelBinding({}, getScopes);
+    // A root ignored span (no parent) stays active, matching core `startSpan`, so its whole subtree is
+    // dropped rather than its children escaping and being emitted on their own.
+    const ignoredRoot = new SentryNonRecordingSpan({ dropReason: 'ignored' });
+
+    const store = binding.getStoreWithActiveSpan(ignoredRoot) as { scope: Scope; isolationScope: Scope };
+
+    expect(_getSpanForScope(store.scope)).toBe(ignoredRoot);
   });
 });

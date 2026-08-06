@@ -1,17 +1,16 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, OpenAiOptions, Span, SpanAttributeValue } from '@sentry/core';
+import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  addOpenAiRequestAttributes,
-  addOpenAiResponseAttributes,
   defineIntegration,
-  extractOpenAiRequestAttributes,
-  instrumentOpenAiStream,
-  resolveAIRecordingOptions,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  shouldEnableTruncation,
   startInactiveSpan,
 } from '@sentry/core';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { addRequestAttributes, extractRequestAttributes } from '../../ai/openai';
+import { instrumentStream } from '../../ai/openai/streaming';
+import type { OpenAiOptions } from '../../ai/openai/types';
+import { addResponseAttributes } from '../../ai/openai/utils';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { openaiModuleNames } from '../../orchestrion/config/openai';
@@ -55,7 +54,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
-          addOpenAiResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
         },
         // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
         deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
@@ -81,7 +80,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const { recordInputs } = resolveAIRecordingOptions(options);
   const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
-  const attributes = extractOpenAiRequestAttributes(args, operation);
+  const attributes = extractRequestAttributes(args, operation);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
   const model = (params?.model as string) || 'unknown';
 
@@ -92,7 +91,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   });
 
   if (recordInputs && params) {
-    addOpenAiRequestAttributes(span, params, operation, enableTruncation);
+    addRequestAttributes(span, params, operation, enableTruncation);
   }
 
   return span;
@@ -108,9 +107,9 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * For a streaming `create({ stream: true })` the result is a `Stream` the caller consumes later. We can't
  * swap what `create` returns, but the `Stream` in `data.result` is the same instance the caller holds and
  * `asyncEnd` fires before the caller iterates — so we patch its async iterator in place to run through
- * `instrumentOpenAiStream`, which accumulates the streamed attributes and ends the span when iteration finishes.
+ * `instrumentStream`, which accumulates the streamed attributes and ends the span when iteration finishes.
  * Only a streaming call resolves to an async-iterable, so that check alone distinguishes it. Returns `true`
- * to hand span-ending ownership to `instrumentOpenAiStream`; `false` for non-streaming/errored results, which end
+ * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
 function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: OpenAiOptions): boolean {
@@ -121,7 +120,7 @@ function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: O
 
   const { recordOutputs } = resolveAIRecordingOptions(options);
   const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentOpenAiStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
+  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
   result[Symbol.asyncIterator] = () => instrumented;
 
   return true;
