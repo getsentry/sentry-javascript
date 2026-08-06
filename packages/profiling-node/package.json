@@ -22,9 +22,6 @@
       }
     }
   },
-  "bin": {
-    "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
-  },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
@@ -33,8 +30,7 @@
   },
   "files": [
     "/build",
-    "package.json",
-    "/scripts/prune-profiler-binaries.js"
+    "package.json"
   ],
   "scripts": {
     "clean": "rm -rf build",
