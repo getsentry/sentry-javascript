@@ -7,7 +7,6 @@ import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
 const mockStartInactiveSpan = vi.fn((spanArgs: StartSpanOptions) => ({ ...spanArgs }));
@@ -75,8 +74,8 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
-        op: REACT_MOUNT_OP,
         attributes: {
+          'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.component_name': 'unknown',
         },
@@ -96,9 +95,9 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
-        op: REACT_RENDER_OP,
         startTime: undefined,
         attributes: {
+          'sentry.op': 'ui.render',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.component_name': 'unknown',
         },
@@ -130,13 +129,13 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(2);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         attributes: {
+          'sentry.op': 'ui.update',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.react.changed_props': ['num'],
           'ui.component_name': 'unknown',
         },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
-        op: REACT_UPDATE_OP,
         startTime: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(2);
@@ -145,13 +144,13 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(3);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         attributes: {
+          'sentry.op': 'ui.update',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.react.changed_props': ['num'],
           'ui.component_name': 'unknown',
         },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
-        op: REACT_UPDATE_OP,
         startTime: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(3);
@@ -190,8 +189,8 @@ describe('useProfiler()', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: '<Example>',
         onlyIfParent: true,
-        op: REACT_MOUNT_OP,
         attributes: {
+          'sentry.op': 'ui.mount',
           'ui.component_name': 'Example',
           'sentry.origin': 'auto.ui.react.profiler',
         },
@@ -217,8 +216,8 @@ describe('useProfiler()', () => {
         expect.objectContaining({
           name: '<Example>',
           onlyIfParent: true,
-          op: REACT_RENDER_OP,
           attributes: {
+            'sentry.op': 'ui.render',
             'sentry.origin': 'auto.ui.react.profiler',
             'ui.component_name': 'Example',
           },

@@ -1,8 +1,9 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
 import * as React from 'react';
-import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
@@ -49,8 +50,9 @@ class Profiler extends React.Component<ProfilerProps> {
     this._mountSpan = startInactiveSpan({
       name: `<${name}>`,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
+        // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
+        [SENTRY_OP]: 'ui.mount',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
         'ui.component_name': name,
       },
@@ -78,9 +80,10 @@ class Profiler extends React.Component<ProfilerProps> {
           return startInactiveSpan({
             name: `<${this.props.name}>`,
             onlyIfParent: true,
-            op: REACT_UPDATE_OP,
             startTime: now,
             attributes: {
+              // TODO(conventions): Replace `'ui.update'` with the `ui.update` span op constant once it is released in `@sentry/conventions`.
+              [SENTRY_OP]: 'ui.update',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
               'ui.component_name': this.props.name,
               'ui.react.changed_props': changedProps,
@@ -112,9 +115,9 @@ class Profiler extends React.Component<ProfilerProps> {
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
           name: `<${name}>`,
-          op: REACT_RENDER_OP,
           startTime,
           attributes: {
+            [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
             'ui.component_name': name,
           },
@@ -194,8 +197,9 @@ function useProfiler(
     return startInactiveSpan({
       name: `<${name}>`,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
+        // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
+        [SENTRY_OP]: 'ui.mount',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
         'ui.component_name': name,
       },
@@ -215,9 +219,9 @@ function useProfiler(
         const renderSpan = startInactiveSpan({
           name: `<${name}>`,
           onlyIfParent: true,
-          op: REACT_RENDER_OP,
           startTime,
           attributes: {
+            [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
             'ui.component_name': name,
           },
