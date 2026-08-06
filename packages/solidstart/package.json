@@ -37,6 +37,10 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
+      },
+      "default": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
       }
     },
     "./solidrouter": {
@@ -50,15 +54,25 @@
         "types": "./solidrouter.d.ts",
         "import": "./build/esm/solidrouter.server.js",
         "require": "./build/cjs/solidrouter.server.js"
+      },
+      "default": {
+        "types": "./solidrouter.d.ts",
+        "import": "./build/esm/solidrouter.server.js",
+        "require": "./build/cjs/solidrouter.server.js"
       }
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
-    "@solidjs/start": "^1.0.0"
+    "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0 || ^1.0.0",
+    "@solidjs/start": "^1.0.0 || ^2.0.0"
   },
   "peerDependenciesMeta": {
     "@solidjs/router": {
@@ -67,11 +81,11 @@
   },
   "dependencies": {
     "@sentry/core": "10.67.0",
+    "@sentry/nitro": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/solid": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
-    "@sentry/server-utils": "10.67.0",
     "@sentry/conventions": "0.16.0"
   },
   "devDependencies": {
@@ -80,6 +94,7 @@
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
+    "nitro": "^3.0.260610-beta",
     "solid-js": "^1.9.11",
     "vinxi": "^0.5.11",
     "vite": "^6.4.3",
