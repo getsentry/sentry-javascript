@@ -162,7 +162,8 @@ test('Records action and loader spans on a parameterized action route', async ({
   const transaction = await transactionPromise;
 
   const actionSpan = transaction.spans?.find(
-    s => s.data?.['code.function.name'] === 'action' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
+    s =>
+      s.data?.['code.function.name'] === 'action' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
   );
   expect(actionSpan).toBeDefined();
   expect(actionSpan?.op).toBe('function');
@@ -174,7 +175,8 @@ test('Records action and loader spans on a parameterized action route', async ({
   expect(rootLoaderSpan).toBeDefined();
 
   const routeLoaderSpan = transaction.spans?.find(
-    s => s.data?.['code.function.name'] === 'loader' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
+    s =>
+      s.data?.['code.function.name'] === 'loader' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
   );
   expect(routeLoaderSpan).toBeDefined();
 
@@ -193,7 +195,9 @@ test('Records loader spans on a deferred loader response', async ({ page }) => {
   expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
   expect(
     transaction.spans?.some(
-      s => s.data?.['code.function.name'] === 'loader' && s.data?.['match.route.id'] === 'routes/loader-defer-response.$id',
+      s =>
+        s.data?.['code.function.name'] === 'loader' &&
+        s.data?.['match.route.id'] === 'routes/loader-defer-response.$id',
     ),
   ).toBe(true);
 });
@@ -265,7 +269,9 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
 
-  const loaderSpan = httpServerTransaction?.spans?.find(span => span.data && span.data['code.function.name'] === 'loader');
+  const loaderSpan = httpServerTransaction?.spans?.find(
+    span => span.data && span.data['code.function.name'] === 'loader',
+  );
   const loaderSpanId = loaderSpan?.span_id;
   const loaderParentSpanId = loaderSpan?.parent_span_id;
 
