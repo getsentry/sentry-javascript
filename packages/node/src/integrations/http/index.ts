@@ -154,10 +154,6 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
-  id: `${INTEGRATION_NAME}.sentry`,
-});
-
 /**
  * The http integration instruments Node's internal http and https modules.
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.

@@ -18,7 +18,6 @@ const NODE_EXPORTS_IGNORE = [
   'setOpenTelemetryContextAsyncContextStrategy',
   'getDefaultIntegrationsWithoutPerformance',
   'initWithoutDefaultIntegrations',
-  'preloadOpenTelemetry',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
   // not exported by bun

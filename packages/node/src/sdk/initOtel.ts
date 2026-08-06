@@ -10,7 +10,6 @@ import {
   SentryTracerProvider,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
-import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 
 // The global registry of @opentelemetry/api 1.x, shared across all copies of the package
 const OTEL_API_GLOBAL_KEY = Symbol.for('opentelemetry.js.api.1');
@@ -77,47 +76,6 @@ export function initOpenTelemetry(client: NodeClient): void {
 
   const provider = setupOtel();
   client.traceProvider = provider;
-}
-
-interface NodePreloadOptions {
-  debug?: boolean;
-  integrations?: string[];
-}
-
-/**
- * Preload OpenTelemetry for Node.
- * This can be used to preload instrumentation early, but set up Sentry later.
- * By preloading the OTEL instrumentation wrapping still happens early enough that everything works.
- */
-export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
-  const { debug } = options;
-
-  if (debug) {
-    coreDebug.enable();
-  }
-
-  // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
-  getPreloadMethods(options.integrations).forEach(fn => {
-    fn();
-
-    if (debug) {
-      coreDebug.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
-    }
-  });
-}
-
-function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: string })[] {
-  const instruments = getOpenTelemetryInstrumentationToPreload();
-
-  if (!integrationNames) {
-    return instruments;
-  }
-
-  // We match exact matches of instrumentation, but also match prefixes, e.g. "Fastify.v5" will match "Fastify"
-  return instruments.filter(instrumentation => {
-    const id = instrumentation.id;
-    return integrationNames.some(integrationName => id === integrationName || id.startsWith(`${integrationName}.`));
-  });
 }
 
 /**

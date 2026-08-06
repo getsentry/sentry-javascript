@@ -236,8 +236,6 @@ node --require ./instrument.js app.js
 node --import ./instrument.js app.js
 ```
 
-The same applies to the no-code entry points, e.g. `node --import=@sentry/node/init app.js` and `node --import @sentry/node/preload app.js`.
-
 ### Span streaming is now the default
 
 Affected SDKs: All SDKs.
@@ -613,6 +611,8 @@ Sentry.init({
 - The `registerEsmLoaderHooks` option was removed. All instrumentation is now channel-based (via `@sentry/server-utils`), so the SDK no longer registers `import-in-the-middle` ESM loader hooks and the option no longer had any effect.
 - The deprecated `SentryHttpInstrumentation` and `SentryNodeFetchInstrumentation` exports were removed. Use `instrumentHttpOutgoingRequests()` and the `nativeNodeFetchIntegration` respectively.
 - The `generateInstrumentOnce` export was removed (from `@sentry/node` and the framework SDKs that re-exported it). It wrapped OpenTelemetry's `registerInstrumentations` and is no longer needed now that instrumentation is channel-based.
+- The `@sentry/node/init` and `@sentry/node/preload` entry points were removed. Create your own instrument file that calls `Sentry.init()` and preload it with `node --import ./instrument.mjs app.js` instead.
+- The `preloadOpenTelemetry()` function was removed. All instrumentation is now channel-based via `orchestrion` and is set up when the instrumented module loads, so preloading is no longer needed.
 - The `@sentry/node/loader` entry point was removed. Use `node --import @sentry/node/import` instead.
 - (Astro) The `@sentry/astro/loader` entry point was removed. Use `node --import @sentry/astro/import` instead.
 - (AWS Lambda) The `@sentry/aws-serverless/loader` entry point was removed. Use `node --import @sentry/aws-serverless/import` instead.

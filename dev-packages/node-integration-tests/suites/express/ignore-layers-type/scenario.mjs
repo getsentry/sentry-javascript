@@ -6,7 +6,7 @@ import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-int
 const app = express();
 
 // cors() would normally create a 'middleware' type span, but the
-// ignoreLayersType: ['middleware'] option set via Sentry.init() suppresses it.
+// ignoreLayersType: ['middleware'] option suppresses it.
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
