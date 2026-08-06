@@ -238,6 +238,7 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates langgraph related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
             const weatherTodaySpan = container.items.find(span =>

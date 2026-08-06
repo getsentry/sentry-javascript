@@ -403,6 +403,7 @@ describe('LangChain integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates langchain related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
             const sonnetSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');

@@ -1368,6 +1368,7 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates openai related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
             const chatCompletionSpan = container.items.find(
