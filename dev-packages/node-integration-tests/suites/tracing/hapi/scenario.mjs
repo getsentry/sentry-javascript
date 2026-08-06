@@ -64,7 +64,7 @@ const run = async () => {
     },
   });
 
-  // Server extension produces a `server.ext.hapi` span.
+  // Server extension produces a `middleware` span.
   server.ext('onPreResponse', (request, h) => h.continue);
 
   await Sentry.setupHapiErrorHandler(server);

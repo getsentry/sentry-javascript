@@ -45,6 +45,8 @@ import {
   ATTR_EXPRESS_TYPE,
   ATTR_EXPRESS_NAME,
   ExpressLayerType_ROUTER,
+  ExpressLayerType_MIDDLEWARE,
+  ExpressLayerType_REQUEST_HANDLER,
 } from './types';
 import {
   asErrorAndMessage,
@@ -57,6 +59,13 @@ import { getIsolationScope } from '../../currentScopes';
 import { getDefaultIsolationScope } from '../../defaultScopes';
 import { getOriginalFunction, markFunctionWrapped } from '../../utils/object';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
+
+// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
+const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
+  [ExpressLayerType_MIDDLEWARE]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  [ExpressLayerType_REQUEST_HANDLER]: 'handler',
+  [ExpressLayerType_ROUTER]: 'router',
+};
 
 export type ExpressPatchLayerOptions = Pick<
   ExpressIntegrationOptions,
@@ -124,13 +133,7 @@ export function patchLayer(
     const type = metadata.attributes[ATTR_EXPRESS_TYPE];
     const attributes: SpanAttributes = Object.assign(metadata.attributes, {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.express',
-      [SENTRY_OP]:
-        type === 'middleware'
-          ? WEB_SERVER_MIDDLEWARE_SPAN_OP
-          : type === 'request_handler'
-            ? // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
-              'handler'
-            : `${type}.express`,
+      [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],
     });
     if (actualMatchedRoute) {
       attributes[ATTR_HTTP_ROUTE] = actualMatchedRoute;

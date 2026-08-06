@@ -3,13 +3,15 @@
  * wrap logic from the vendored `@opentelemetry/instrumentation-hapi`
  * (upstream @opentelemetry/instrumentation-hapi@0.64.0). Span output (names,
  * origins, attributes) is kept close to that instrumentation — except the
- * plugin-route op, which is normalized to the cross-framework `handler` op;
- * span creation goes through the `@sentry/core` API and the OTel active-span
- * guard is replaced with `getActiveSpan()`.
+ * span ops, which are normalized to cross-framework ops (`handler` for plugin
+ * routes, `router` for routes, `middleware` for server extensions); span
+ * creation goes through the `@sentry/core` API and the OTel active-span guard
+ * is replaced with `getActiveSpan()`.
  */
 
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type {
   LifecycleMethod,
   PatchableExtMethod,
@@ -105,10 +107,16 @@ export const getExtMetadata = (
   };
 };
 
+// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
+const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
+  [HapiLayerType.PLUGIN]: 'handler',
+  [HapiLayerType.ROUTER]: 'router',
+  [HapiLayerType.EXT]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+};
+
 function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unknown {
   const hapiType = metadata.attributes[AttributeNames.HAPI_TYPE];
-  // TODO(conventions): Replace `'handler'` with the `handler` span op constant once it is released in `@sentry/conventions`.
-  const op = hapiType === HapiLayerType.PLUGIN ? 'handler' : `${hapiType}.hapi`;
+  const op = hapiType ? HAPI_TYPE_TO_SPAN_OP[hapiType] : undefined;
   return startSpan(
     {
       name: metadata.name,
