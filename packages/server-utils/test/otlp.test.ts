@@ -1,5 +1,5 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import { context, INVALID_SPAN_CONTEXT, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   getCurrentScope,
@@ -100,6 +100,20 @@ describe('otlpIntegration', () => {
       trace_id: OTEL_TRACE_ID,
       span_id: OTEL_SPAN_ID,
     });
+  });
+
+  it('ignores an active span with an invalid span context', async () => {
+    const client = setupClientWithOtlpIntegration();
+    getCurrentScope().setPropagationContext({ traceId: 'cccccccccccccccccccccccccccccccc', sampleRand: 0.5 });
+
+    // OpenTelemetry hands out a span wrapping `INVALID_SPAN_CONTEXT` when tracing is suppressed, or
+    // when a span is started before a tracer provider is registered.
+    context.with(trace.setSpan(context.active(), trace.wrapSpanContext(INVALID_SPAN_CONTEXT)), () => {
+      client.captureException(new Error('boom'));
+    });
+    await client.flush();
+
+    expect(client.event?.contexts?.trace?.trace_id).toBe('cccccccccccccccccccccccccccccccc');
   });
 
   it('falls back to the Sentry propagation context when no OpenTelemetry span is active', async () => {

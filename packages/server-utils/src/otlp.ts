@@ -1,4 +1,4 @@
-import { trace } from '@opentelemetry/api';
+import { isSpanContextValid, trace } from '@opentelemetry/api';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, dsnFromString, SENTRY_API_VERSION, registerExternalPropagationContext } from '@sentry/core';
 
@@ -15,7 +15,15 @@ const _otlpIntegration = (() => {
           return undefined;
         }
 
-        const { traceId, spanId } = activeSpan.spanContext();
+        // OpenTelemetry hands out a span wrapping `INVALID_SPAN_CONTEXT` when tracing is suppressed,
+        // or when a span is started before a tracer provider is registered. Its ids are all zeroes,
+        // so fall back to the Sentry scope rather than stamping that onto everything we send.
+        const spanContext = activeSpan.spanContext();
+        if (!isSpanContextValid(spanContext)) {
+          return undefined;
+        }
+
+        const { traceId, spanId } = spanContext;
         return { traceId, spanId };
       });
     },
