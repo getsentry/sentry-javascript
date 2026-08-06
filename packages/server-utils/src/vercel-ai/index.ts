@@ -2,7 +2,13 @@ import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } f
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import * as dc from 'node:diagnostics_channel';
 
-export interface VercelAiOptions {
+/**
+ * Recording options shared by all AI integrations.
+ *
+ * In v11 every AI integration accepts this single type; prefer it over the
+ * per-integration option types.
+ */
+export interface GenAiOptions {
   /**
    * Enable or disable input recording. Enabled if `dataCollection.genAI.inputs` (or the deprecated `sendDefaultPii` option) is `true`
    * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
@@ -16,14 +22,23 @@ export interface VercelAiOptions {
    * Integration-level options take precedence over global `dataCollection` config.
    */
   recordOutputs?: boolean;
+}
 
+/**
+ * @deprecated Use {@link GenAiOptions} instead. This type will be removed in v11.
+ * Note that `enableTruncation` is also removed in v11 (gen_ai input truncation no longer exists).
+ */
+export interface VercelAiOptions extends GenAiOptions {
   /**
    * Enable or disable truncation of recorded input messages.
    * Defaults to `true`.
+   *
+   * @deprecated gen_ai input truncation is removed in v11; this option no longer has an effect there.
    */
   enableTruncation?: boolean;
 }
 
+// oxlint-disable-next-line typescript/no-deprecated
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   return {
     name: 'VercelAI' as const,

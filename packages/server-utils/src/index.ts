@@ -28,7 +28,12 @@ export type {
   TracingChannelPayloadWithSpan,
 } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion';
-export { vercelAiIntegration, type VercelAiOptions } from './vercel-ai';
+export {
+  vercelAiIntegration,
+  type GenAiOptions,
+  // oxlint-disable-next-line typescript/no-deprecated
+  type VercelAiOptions,
+} from './vercel-ai';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
