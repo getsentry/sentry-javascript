@@ -154,7 +154,7 @@ Sentry instruments many of the same libraries OpenTelemetry does (Express, Postg
 
 Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
 
-If you do want Sentry spans alongside your own, drop the integrations that overlap. HTTP and fetch are the exception: keep those two and turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking.
+If you do want Sentry spans alongside your own, keep `traceSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
 
 ```js
 Sentry.init({
