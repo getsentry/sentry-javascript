@@ -7,6 +7,7 @@ import {
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
+  performanceTimeToSeconds,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   timestampInSeconds,
@@ -297,12 +298,13 @@ export function _sendClsSpan(
 ): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
-  const performanceTimeOrigin = browserPerformanceTimeOrigin();
   // A CLS of 0 has no shift to place the span at. It is reported when the navigation it was
   // measured on is already over - the next soft navigation, or pagehide - so the current time would
   // land it outside that navigation, on the route that follows it.
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
-  const startTime = performanceTimeOrigin ? msToSec(performanceTimeOrigin + offset) : timestampInSeconds();
+  // Layout shifts can happen at any point in the page's life, but are only reported on pagehide, so the entry is
+  // converted against the time origin that was in effect when the shift happened.
+  const startTime = performanceTimeToSeconds(offset) ?? timestampInSeconds();
   const firstSourceNode = entry?.sources[0]?.node;
   const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
   const componentName = firstSourceNode ? getComponentName(firstSourceNode) : null;
@@ -345,7 +347,9 @@ export function _sendClsSpan(
  */
 export function trackInpAsSpan(client: Client, perNavigation = false): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !browserPerformanceTimeOrigin()) {
+  // `performanceTimeToSeconds` is what the entries are converted with, so it also decides whether they can be converted
+  // at all — `browserPerformanceTimeOrigin` has a `Date.now()` fallback that it does not share.
+  if (!performance || performanceTimeToSeconds(0) === undefined) {
     return;
   }
 
@@ -409,9 +413,9 @@ export function _sendInpSpan(
   // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
   // is still worth reporting. It just has no element or interaction type to describe, and is placed
   // at the start of the navigation it belongs to rather than at the interaction.
-  const startTime = msToSec(
-    (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
-  );
+  // INP reports on pagehide, potentially long after the interaction itself, so the entry is converted against the time
+  // origin that was in effect when it happened rather than the one in effect now.
+  const startTime = performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0) as number;
   const duration = msToSec(inpValue);
   // An INP without an entry has no interaction type to report. It still has to land inside the
   // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations

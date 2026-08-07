@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
 import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
   getClient,
   getDebugImagesForResources,
   GLOBAL_OBJ,
+  performanceTimeToSeconds,
   uuid4,
 } from '@sentry/core';
 import type { BrowserOptions } from '../client';
@@ -147,10 +147,8 @@ function convertToContinuousProfile(input: {
     stacks[i] = list;
   }
 
-  // Align timestamps to SDK time origin to match span/event timelines
-  const perfOrigin = browserPerformanceTimeOrigin();
-  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
-  const adjustForOriginChange = origin - (perfOrigin || origin);
+  // Only used if the SDK cannot convert monotonic times at all, i.e. when the Performance API is unavailable.
+  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : 0;
 
   const samples: ContinuousThreadCpuProfile['samples'] = [];
   for (let i = 0; i < input.samples.length; i++) {
@@ -158,8 +156,9 @@ function convertToContinuousProfile(input: {
     if (!sample) {
       continue;
     }
-    // Convert ms to seconds epoch-based timestamp
-    const timestampSeconds = (origin + (sample.timestamp - adjustForOriginChange)) / 1000;
+    // Sample timestamps are `performance.timeOrigin`-relative, so they are converted the same way as any other
+    // monotonic time to keep the profile on the span and event timeline.
+    const timestampSeconds = performanceTimeToSeconds(sample.timestamp) ?? (origin + sample.timestamp) / 1000;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
       thread_id: PROFILER_THREAD_ID_STRING,
