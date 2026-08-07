@@ -117,13 +117,11 @@ Sentry.init({
 
 Sentry registers a minimal OpenTelemetry-compatible tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
 
-This is what `@sentry/nextjs` and `@sentry/sveltekit` do by default, because those frameworks emit OpenTelemetry spans that would otherwise be lost.
-
 Everything goes to Sentry and only to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter, no OTLP output, and no way to fan spans out to another backend. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, own the OpenTelemetry setup yourself, and add `otlpIntegration()`:
+Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
