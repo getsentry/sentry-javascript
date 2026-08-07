@@ -94,7 +94,7 @@ function instrumentMethod(
     true,
   );
 
-  if (!options.enableRpcTracePropagation) {
+  if (options.enableRpcTracePropagation === false) {
     return captureMethod;
   }
 

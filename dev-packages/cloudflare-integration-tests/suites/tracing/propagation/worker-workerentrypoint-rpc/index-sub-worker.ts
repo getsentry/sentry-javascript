@@ -62,6 +62,7 @@ export const NoPropagationEntrypoint = Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
+    enableRpcTracePropagation: false,
     transportOptions: { fetch: fetch.bind(globalThis) },
   }),
   MySubWorkerEntrypointBase,
