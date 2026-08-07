@@ -22,6 +22,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     browserPerformanceTimeOrigin: vi.fn(),
+    performanceTimeToSeconds: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
     getClient: vi.fn(),
@@ -497,6 +498,7 @@ describe('_sendClsSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
@@ -590,6 +592,7 @@ describe('_sendClsSpan', () => {
 
   it('falls back to the current time when there is no performance time origin', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(undefined);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockReturnValue(undefined);
 
     _sendClsSpan(0, undefined);
 
@@ -612,6 +615,7 @@ describe('_sendInpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
@@ -664,6 +668,29 @@ describe('_sendInpSpan', () => {
     );
 
     // endTime = startTime + duration = 1.5 + 120/1000 = 1.62
+    expect(mockSpan.end).toHaveBeenCalledWith(1.62);
+  });
+
+  it('times the span against the origin the interaction happened under, not the one in effect at report time', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
+    // INP reports on pagehide. If the device slept in between, the SDK has since re-derived its time origin, but the
+    // interaction itself still belongs to the timeline it happened on.
+    const sleepDurationMs = 3_600_000;
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000 + sleepDurationMs);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time =>
+      time < 500 ? (1000 + sleepDurationMs + time) / 1000 : (1000 + time) / 1000,
+    );
+
+    _sendInpSpan(120, {
+      name: 'pointerdown',
+      startTime: 500,
+      duration: 120,
+      interactionId: 1,
+      target: { tagName: 'button' },
+    } as any);
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 1.5 }));
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
@@ -792,6 +819,7 @@ describe('trackInpAsSpan', () => {
 
   beforeEach(() => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
@@ -890,6 +918,7 @@ describe('soft navigation web vitals', () => {
       supportedEntryTypes: ['largest-contentful-paint', 'layout-shift', 'soft-navigation'],
     });
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockImplementation(
