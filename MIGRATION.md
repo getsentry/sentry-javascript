@@ -92,7 +92,7 @@ There are three ways to run the two together, and which one you want depends on 
 
 ##### 1. Sentry only
 
-This is the default for every server-side SDK except `@sentry/nextjs` and `@sentry/sveltekit`. Nothing to configure:
+The default, and what most users want. Tracing works out of the box:
 
 ```js
 Sentry.init({
@@ -101,9 +101,7 @@ Sentry.init({
 });
 ```
 
-The SDK emits native Sentry spans and never registers an OpenTelemetry tracer provider or propagator. Scope isolation uses `AsyncLocalStorage` directly.
-
-Spans created through `@opentelemetry/api` are **ignored**. If a library you depend on emits OpenTelemetry spans and you want them in Sentry, use setup 2.
+If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
