@@ -211,7 +211,7 @@ export function createSentryClientInstrumentation(
               navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
             captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-              'http.url': toPath,
+              'http.url': filterCollectedUrl(toPath),
             });
           }
           return;

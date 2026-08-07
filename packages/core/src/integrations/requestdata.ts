@@ -9,6 +9,7 @@ import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
+import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { httpHeadersToSpanAttributes } from '../utils/request';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
@@ -118,6 +119,9 @@ function addNormalizedRequestDataToEvent(
   if (requestData.query_string) {
     requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
+  if (requestData.url) {
+    requestData.url = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
+  }
 
   event.request = {
     ...event.request,
@@ -146,7 +150,7 @@ function addNormalizedRequestDataToSpan(
   const attributes: Record<string, unknown> = {};
 
   if (requestData.url) {
-    attributes[URL_FULL] = requestData.url;
+    attributes[URL_FULL] = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
   }
 
   if (requestData.method) {
