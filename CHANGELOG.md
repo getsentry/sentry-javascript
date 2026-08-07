@@ -4,15 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, and @davidmurdoch. Thank you for your contributions!
+## 11.0.0-alpha.0
 
-- feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
-  - `DenoAmqplib` => `Amqplib`
-  - `DenoKoa` => `Koa`
-  - `DenoMongodb` => `Mongodb`
-  - `DenoMongoose` => `Mongoose`
-  - `DenoMysql` => `Mysql`
-  - `DenoPostgres` => `Postgres`
+This is an alpha release of the upcoming major release of version 11.
+This release does not yet entail a comprehensive changelog as version 11 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `11.0.0-alpha.0`](https://github.com/getsentry/sentry-javascript/blob/11.0.0-alpha.0/MIGRATION.md#upgrading-from-10x-to-11x).
+
+Please note that the migration guide is work in progress and subject to change.
 
 ## 10.67.0
 
