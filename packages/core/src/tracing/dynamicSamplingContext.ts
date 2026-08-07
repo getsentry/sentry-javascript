@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient } from '../currentScopes';
+import { getClient, getExternalPropagationContext } from '../currentScopes';
 import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
@@ -63,7 +63,18 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 /**
  * Get the dynamic sampling context for the currently active scopes.
  */
-export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+export function getDynamicSamplingContextFromScope(
+  client: Client,
+  scope: Scope,
+): Partial<DynamicSamplingContext> | undefined {
+  // While an external propagation context is active (e.g. the OTLP integration riding along on an
+  // OpenTelemetry span), the SDK is not the head of the trace and has no transaction semantics to
+  // describe it with, so there is no sampling context to send. The scope's own DSC would name a
+  // different trace than the one stamped on the event, so send none at all. Matches sentry-python.
+  if (getExternalPropagationContext()) {
+    return undefined;
+  }
+
   const propagationContext = scope.getPropagationContext();
   return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 }

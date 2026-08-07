@@ -1,6 +1,7 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { context, INVALID_SPAN_CONTEXT, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Envelope } from '@sentry/core';
 import {
   getCurrentScope,
   getGlobalScope,
@@ -75,6 +76,23 @@ function setupClientWithOtlpIntegration(): TestClient {
   return client;
 }
 
+/** Captures the envelopes the client actually sends, so their headers can be asserted on. */
+function setupClientCapturingEnvelopes(): { client: TestClient; envelopes: Envelope[] } {
+  const envelopes: Envelope[] = [];
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: DSN,
+      integrations: [otlpIntegration()],
+      stackParser: () => [],
+      enableSend: true,
+    }),
+  );
+  client.on('beforeEnvelope', envelope => envelopes.push(envelope));
+  setCurrentClient(client);
+  client.init();
+  return { client, envelopes };
+}
+
 describe('otlpIntegration', () => {
   beforeEach(() => {
     getCurrentScope().clear();
@@ -100,6 +118,33 @@ describe('otlpIntegration', () => {
       trace_id: OTEL_TRACE_ID,
       span_id: OTEL_SPAN_ID,
     });
+  });
+
+  it('sends no envelope trace header while riding along on an OpenTelemetry span', async () => {
+    const { client, envelopes } = setupClientCapturingEnvelopes();
+    getCurrentScope().setPropagationContext({ traceId: 'cccccccccccccccccccccccccccccccc', sampleRand: 0.5 });
+
+    withActiveOtelSpan(() => {
+      client.captureException(new Error('boom'));
+    });
+    await client.flush();
+
+    // The scope's DSC would name a different trace than the event, and we have no transaction
+    // semantics to describe the OpenTelemetry one with, so no sampling context is sent at all.
+    const [envelopeHeaders] = envelopes[0] ?? [];
+    expect(envelopeHeaders).toBeDefined();
+    expect(envelopeHeaders?.trace).toBeUndefined();
+  });
+
+  it('still sends an envelope trace header when no OpenTelemetry span is active', async () => {
+    const { client, envelopes } = setupClientCapturingEnvelopes();
+    getCurrentScope().setPropagationContext({ traceId: 'cccccccccccccccccccccccccccccccc', sampleRand: 0.5 });
+
+    client.captureException(new Error('boom'));
+    await client.flush();
+
+    const [envelopeHeaders] = envelopes[0] ?? [];
+    expect(envelopeHeaders?.trace).toMatchObject({ trace_id: 'cccccccccccccccccccccccccccccccc' });
   });
 
   it('ignores an active span with an invalid span context', async () => {

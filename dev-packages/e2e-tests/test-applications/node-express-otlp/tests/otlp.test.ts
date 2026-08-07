@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForEnvelopeItem, waitForError, waitForMetric } from '@sentry-internal/test-utils';
+import { waitForEnvelopeItem, waitForError, waitForMetric, waitForRequest } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
 interface ExportedTrace {
@@ -43,6 +43,25 @@ test('attaches the active OpenTelemetry trace to errors', async ({ baseURL }) =>
     trace_id: traceId,
     span_id: spanId,
   });
+});
+
+test('sends no envelope trace header while riding along on an OpenTelemetry span', async ({ baseURL }) => {
+  const envelopePromise = waitForRequest('node-express-otlp', ({ envelope }) => {
+    const [, items] = envelope;
+    return items.some(
+      item =>
+        (item[1] as { exception?: { values?: { value?: string }[] } })?.exception?.values?.[0]?.value ===
+        'This is an exception with id 567',
+    );
+  });
+
+  await triggerTelemetry(baseURL as string, '567');
+  const { envelope } = await envelopePromise;
+  const [envelopeHeaders] = envelope;
+
+  // The Sentry scope's sampling context describes a different trace than the OpenTelemetry one the
+  // event is stamped with, so no `trace` header is sent rather than one naming the wrong trace.
+  expect((envelopeHeaders as { trace?: unknown }).trace).toBeUndefined();
 });
 
 test('attaches the active OpenTelemetry trace to logs', async ({ baseURL }) => {
