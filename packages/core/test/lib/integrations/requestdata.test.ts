@@ -974,6 +974,24 @@ describe('requestDataIntegration processSegmentSpan', () => {
     });
   });
 
+  it('filters sensitive query params in `url.full` on the segment span', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com/api/users?token=secret&page=1',
+      method: 'GET',
+      query_string: 'token=secret&page=1',
+    });
+
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
+
+    expect(span.attributes).toMatchObject({
+      'url.full': 'https://example.com/api/users?token=[Filtered]&page=1',
+      'url.query': 'token=[Filtered]&page=1',
+    });
+  });
+
   it('handles query_string in object format', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();

@@ -300,6 +300,34 @@ describe('createSentryClientInstrumentation', () => {
     );
   });
 
+  // `navigate('/x?token=y')` is app-supplied, so the query has to go through `dataCollection.urlQueryParams`.
+  it('filters sensitive query params in the `url.full` reported for a failed navigate', async () => {
+    const mockError = new Error('Navigate failed');
+    const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
+    const mockInstrument = vi.fn();
+
+    (core.getClient as any).mockReturnValue({});
+    (globalThis as any).location = {
+      href: 'https://example.com/home',
+      origin: 'https://example.com',
+      pathname: '/home',
+    };
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.navigate(mockCallNavigate, { currentUrl: '/home', to: '/search?token=secret&page=1' });
+
+    expect(core.captureException).toHaveBeenCalledWith(mockError, {
+      mechanism: {
+        type: 'react_router.navigate',
+        handled: false,
+        data: { 'url.full': '/search?token=[Filtered]&page=1' },
+      },
+    });
+  });
+
   it('should capture errors when captureErrors is true (default)', async () => {
     const mockError = new Error('Test error');
     // React Router returns an error result, not a rejection
