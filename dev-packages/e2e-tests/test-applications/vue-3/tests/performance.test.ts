@@ -163,54 +163,54 @@ test('sends a lifecycle span for each tracked components', async ({ page }) => {
       // enabled by default
       expect.objectContaining({
         data: {
-          'sentry.op': 'ui.vue.render',
+          'sentry.op': 'ui.render',
           'sentry.origin': 'auto.ui.vue',
         },
         description: 'Application Render',
-        op: 'ui.vue.render',
+        op: 'ui.render',
         origin: 'auto.ui.vue',
       }),
       // enabled by default
       expect.objectContaining({
         data: {
-          'sentry.op': 'ui.vue.mount',
+          'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.vue',
         },
         description: 'Vue <Root>',
-        op: 'ui.vue.mount',
+        op: 'ui.mount',
         origin: 'auto.ui.vue',
       }),
 
       // without `<>`
       expect.objectContaining({
         data: {
-          'sentry.op': 'ui.vue.mount',
+          'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.vue',
         },
         description: 'Vue <ComponentMainView>',
-        op: 'ui.vue.mount',
+        op: 'ui.mount',
         origin: 'auto.ui.vue',
       }),
 
       // with `<>`
       expect.objectContaining({
         data: {
-          'sentry.op': 'ui.vue.mount',
+          'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.vue',
         },
         description: 'Vue <ComponentOneView>',
-        op: 'ui.vue.mount',
+        op: 'ui.mount',
         origin: 'auto.ui.vue',
       }),
 
       // not tracked
       expect.not.objectContaining({
         data: {
-          'sentry.op': 'ui.vue.mount',
+          'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.vue',
         },
         description: 'Vue <ComponentTwoView>',
-        op: 'ui.vue.mount',
+        op: 'ui.mount',
         origin: 'auto.ui.vue',
       }),
     ]),

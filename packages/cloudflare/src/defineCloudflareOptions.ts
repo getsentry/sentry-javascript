@@ -1,5 +1,5 @@
-import type { env as cloudflareEnv } from 'cloudflare:workers';
 import type { CloudflareOptions } from './client';
+import type { DefaultEnv } from './types';
 
 /**
  * Define the Sentry options for a Cloudflare Worker in a dedicated module.
@@ -35,7 +35,7 @@ import type { CloudflareOptions } from './client';
  * export default defineCloudflareOptions({ tracesSampleRate: 1.0 });
  * ```
  */
-export function defineCloudflareOptions<Env = typeof cloudflareEnv>(
+export function defineCloudflareOptions<Env = DefaultEnv>(
   optionsOrCallback: CloudflareOptions | ((env: Env) => CloudflareOptions | undefined),
 ): (env: Env) => CloudflareOptions | undefined {
   if (typeof optionsOrCallback === 'function') {

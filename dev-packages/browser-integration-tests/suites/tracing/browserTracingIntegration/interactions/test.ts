@@ -33,7 +33,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   expect(eventData.platform).toBe('javascript');
   expect(eventData.type).toBe('transaction');
 
-  const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+  const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long_animation_frame'));
   expect(spans).toHaveLength(1);
 
   const interactionSpan = spans![0];
@@ -64,7 +64,7 @@ sentryTest(
       await page.waitForTimeout(1000);
       await page.locator('[data-test-id=interaction-button]').click();
       const envelope = await envelopePromise;
-      const spans = envelope[0].spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+      const spans = envelope[0].spans?.filter(span => !span.op?.startsWith('ui.long_animation_frame'));
       expect(spans).toHaveLength(1);
     }
   },
@@ -91,7 +91,7 @@ sentryTest(
     const envelopes = await envelopePromise;
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
-    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long_animation_frame'));
     expect(spans).toHaveLength(1);
 
     const interactionSpan = spans![0];
@@ -122,7 +122,7 @@ sentryTest(
     expect(envelopes).toHaveLength(1);
 
     const eventData = envelopes[0];
-    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long_animation_frame'));
     expect(spans).toHaveLength(1);
 
     const interactionSpan = spans![0];

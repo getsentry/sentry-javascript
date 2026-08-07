@@ -51,7 +51,7 @@ Deno.test('openai instrumentation: orchestrion:openai:chat channel produces a ne
   const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.chat');
   assertExists(aiSpan, `expected a gen_ai.chat child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(aiSpan!.description, 'chat gpt-4o');
-  assertEquals(aiSpan!.data?.['gen_ai.system'], 'openai');
+  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'openai');
   assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'chat');
   assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gpt-4o');
   assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'gpt-4o-2024-08-06');

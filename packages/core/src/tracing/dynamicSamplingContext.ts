@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient } from '../currentScopes';
+import { getClient, getExternalPropagationContext } from '../currentScopes';
 import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
@@ -63,7 +63,18 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 /**
  * Get the dynamic sampling context for the currently active scopes.
  */
-export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+export function getDynamicSamplingContextFromScope(
+  client: Client,
+  scope: Scope,
+): Partial<DynamicSamplingContext> | undefined {
+  // While an external propagation context is active (e.g. the OTLP integration riding along on an
+  // OpenTelemetry span), the SDK lacks most of the DSC information, like sampled, sample_rate,
+  // sample_rand and transaction. The scope's own DSC would also name a different trace than the one
+  // stamped on the event, so send none at all. Matches sentry-python.
+  if (getExternalPropagationContext()) {
+    return undefined;
+  }
+
   const propagationContext = scope.getPropagationContext();
   return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 }
@@ -120,8 +131,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const isIgnoredRoot = isNonRecordingRoot && rootSpan.dropReason === 'ignored';
   if (isNonRecordingRoot && (!hasSpansEnabled(client.getOptions()) || isIgnoredRoot)) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
-    if (capturedScope) {
-      const dsc = { ...getDynamicSamplingContextFromScope(client, capturedScope) };
+    // The scope yields no DSC while an external propagation context is active. We do have a Sentry
+    // span here though, so we are head of *its* trace: fall through and derive the DSC from the span
+    // rather than emitting an empty one.
+    const scopeDsc = capturedScope && getDynamicSamplingContextFromScope(client, capturedScope);
+    if (scopeDsc) {
+      const dsc = { ...scopeDsc };
       if (isIgnoredRoot) {
         dsc.sampled = 'false';
       }

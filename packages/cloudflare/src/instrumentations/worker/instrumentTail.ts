@@ -1,4 +1,5 @@
-import type { ExportedHandler, TraceItem } from '@cloudflare/workers-types';
+import type { TraceItem } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
@@ -37,8 +38,7 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
 /**
  * Instruments a tail handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerTail<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

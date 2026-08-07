@@ -93,15 +93,10 @@ Reference: [#20710](https://github.com/getsentry/sentry-javascript/pull/20710)
    - [ ] `@sentry-internal/node-native-stacktrace` in `packages/node-native/package.json`
    - [ ] Run `yarn install` to update `yarn.lock`
 
-3. Register the new ABI in the profiling pruner. In
-   `packages/profiling-node/scripts/prune-profiler-binaries.js`:
-   - [ ] Add the Node major to ABI mapping to the `NODE_TO_ABI` object (e.g. `26: '147'`).
-   - [ ] Add the corresponding `else if (NODE.startsWith('26'))` branch.
-
-4. Allow the new major in the profiling integration, in `packages/profiling-node/src/integration.ts`:
+3. Allow the new major in the profiling integration, in `packages/profiling-node/src/integration.ts`:
    - [ ] Add the version number to the `if (![16, 18, 20, 22, 24, 26].includes(NODE_MAJOR))` guard
    - [ ] Add the version to the supported-versions list in the `console.warn` message below the guard (the string that reads `...prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22, 24.`)
 
-5. Handle deprecation warnings. Each new Node version tends to deprecate APIs the SDK (or its dependencies) still use, which can break tests that assert on clean stderr or console output.
+4. Handle deprecation warnings. Each new Node version tends to deprecate APIs the SDK (or its dependencies) still use, which can break tests that assert on clean stderr or console output.
 
-6. Fix version-specific test failures, some integrations or test dependencies may not yet work on the new version.
+5. Fix version-specific test failures, some integrations or test dependencies may not yet work on the new version.

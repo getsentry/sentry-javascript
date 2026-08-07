@@ -234,46 +234,8 @@ require('esbuild').build({
 
 Once you run `node esbuild.serverless.js` esbuild wil bundle and output the files to ./dist folder, but note that all of
 the binaries will be copied. This is wasteful as you will likely only need one of these libraries to be available during
-runtime.
-
-> **Deprecation notice:** This script will be removed in the next major version. If you depend on it, please comment on
-> [this issue](https://github.com/getsentry/sentry-javascript/issues/20567).
-
-To prune the other libraries, profiling-node ships with a small utility script that helps you prune unused binaries:
-
-```bash
-npx --package=@sentry/profiling-node sentry-prune-profiler-binaries
-```
-
-Use `--help` to see a list of available options or `--dry-run` if you want it to log the binaries that would have been
-deleted.
-
-Example of only preserving a binary to run node16 on linux x64 musl.
-
-```bash
-npx --package=@sentry/profiling-node sentry-prune-profiler-binaries --target_dir_path=./dist --target_platform=linux --target_node=16 --target_stdlib=musl --target_arch=x64
-```
-
-Which will output something like
-
-```
-Sentry: pruned ./dist/sentry_cpu_profiler-darwin-x64-108-IFGH3SUR.node (90.41 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-darwin-x64-93-Q7KBVHSP.node (74.16 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-glibc-108-NXSISRTB.node (52.17 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-glibc-83-OEQT5HUK.node (52.08 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-glibc-93-IIXXW2PN.node (52.06 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-musl-108-DSILNYHA.node (48.46 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-musl-83-4CNOBNC3.node (48.37 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-arm64-musl-93-JA5PKNWQ.node (48.38 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-x64-glibc-108-NXSISRTB.node (52.17 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-x64-glibc-83-OEQT5HUK.node (52.08 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-x64-glibc-93-IIXXW2PN.node (52.06 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-x64-musl-108-CX7SL27U.node (51.50 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-linux-x64-musl-83-YD7ZQK2E.node (51.53 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-win32-x64-108-P7V3URQV.node (181.50 KiB)
-Sentry: pruned ./dist/sentry_cpu_profiler-win32-x64-93-3PKQDSGE.node (181.50 KiB)
-✅ Sentry: pruned 15 binaries, saved 1.06 MiB in total.
-```
+runtime. Since the binaries follow the `sentry_cpu_profiler-<platform>-<arch>-<stdlib>-<abi>.node` naming scheme, you can
+delete the ones that do not match your target runtime as part of your build step to reduce the deployment size.
 
 ### Environment flags
 

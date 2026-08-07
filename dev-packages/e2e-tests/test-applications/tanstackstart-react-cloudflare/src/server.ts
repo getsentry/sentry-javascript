@@ -10,6 +10,5 @@ export default Sentry.withSentry(
     tracesSampleRate: 1.0,
     environment: 'qa',
   }),
-  // @ts-expect-error - handler is not typed as a Cloudflare handler
   wrapFetchWithSentry(handler),
 );

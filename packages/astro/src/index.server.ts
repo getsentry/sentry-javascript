@@ -98,6 +98,8 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   processSessionIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,

@@ -2,13 +2,13 @@ import { expect, it } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
-  GEN_AI_SYSTEM,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -42,7 +42,7 @@ it('traces a basic message creation request with the anthropic SDK', async ({ si
         attributes: {
           'sentry.origin': { value: 'auto.ai.anthropic', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM]: { value: 'anthropic', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'anthropic', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'claude-3-haiku-20240307', type: 'string' },
           [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },

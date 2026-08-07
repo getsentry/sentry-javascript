@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../../ai/core/utils';
+import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../../ai/anthropic-ai/types';
@@ -98,7 +98,6 @@ function createGenAiSpan(
   const params = typeof args[0] === 'object' && args[0] !== null ? (args[0] as Record<string, unknown>) : undefined;
 
   const { recordInputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   const attributes = extractRequestAttributes(args, methodPath, operation);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
@@ -106,12 +105,12 @@ function createGenAiSpan(
 
   const span = startInactiveSpan({
     name: `${operation} ${model}`,
-    op: `gen_ai.${operation}`,
+    op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });
 
   if (recordInputs && params) {
-    addPrivateRequestAttributes(span, params, enableTruncation);
+    addPrivateRequestAttributes(span, params);
   }
 
   return span;

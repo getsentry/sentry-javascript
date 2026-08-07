@@ -3,14 +3,14 @@ import { stringify } from '@sentry/core';
 import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
+import { extractSystemInstructions } from '../core/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -69,14 +69,14 @@ export function applyAccumulatedTokens(
 }
 
 /**
- * Builds a map of tool name -> description from all spans with available_tools.
+ * Builds a map of tool name -> description from all spans with tool definitions.
  * This avoids O(n²) iteration and repeated JSON parsing.
  */
 function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
   const toolDescriptions = new Map<string, string>();
 
   for (const span of spans) {
-    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS];
+    const availableTools = span.data[GEN_AI_TOOL_DEFINITIONS];
     if (typeof availableTools !== 'string') {
       continue;
     }
@@ -99,7 +99,7 @@ function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
  * Applies tool descriptions and accumulated tokens to spans in a single pass.
  *
  * - For `gen_ai.execute_tool` spans: looks up tool description from
- *   `gen_ai.request.available_tools` on sibling spans
+ *   `gen_ai.tool.definitions` on sibling spans
  * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
  */
 export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {
@@ -221,7 +221,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
  * Generate a request.messages JSON array from the prompt field in the
  * invoke_agent op
  */
-export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES] &&
@@ -240,7 +240,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
       }
 
-      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
+      const messagesJson = stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
@@ -260,16 +260,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
         }
 
-        // `extractSystemInstructions` returns the original array reference unchanged when no
-        // system message is extracted. When truncation is also disabled, re-serializing would
-        // reproduce the SDK's own input string, so we reuse it instead of allocating a second
-        // full-size copy of the payload (matters for large prompts in memory-constrained runtimes).
-        const messagesJson =
-          !enableTruncation && filteredMessages === messages
-            ? originalMessagesJson
-            : enableTruncation
-              ? getTruncatedJsonString(filteredMessages)
-              : stringify(filteredMessages);
+        const messagesJson = stringify(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

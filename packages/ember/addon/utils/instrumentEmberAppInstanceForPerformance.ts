@@ -14,7 +14,7 @@ import {
 import type { Client, Span } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 type TransitionWithIntent = Transition & { intent?: { url?: string } };
 
@@ -200,9 +200,10 @@ function _instrumentEmberRouter(
 
     transitionSpan = startInactiveSpan({
       attributes: {
+        // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
+        [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
       },
-      op: 'ui.ember.transition',
       name: `route:${fromRoute} -> route:${toRoute}`,
       onlyIfParent: true,
     });

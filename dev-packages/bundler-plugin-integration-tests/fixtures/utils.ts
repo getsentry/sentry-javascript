@@ -81,10 +81,10 @@ export function readAllFiles(
             .replace(/"duration":[\d.]+/g, '"duration":DURATION')
             .replace(/"start_timestamp":[\d.]+/g, '"start_timestamp":START_TIMESTAMP')
             .replace(/"timestamp":[\d.]+/g, '"timestamp":TIMESTAMP')
-            .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"')
+            .replace(/"release":"[\d.]+(?:-[\w.]+)?"/g, '"release":"PLUGIN_VERSION"')
             // Normalize the Sentry SDK version (from the bundled-out, now-external `@sentry/core`).
             // It tracks the live monorepo version and would otherwise rot this snapshot on every release.
-            .replace(/"version":"[\d.]+"/g, '"version":"SDK_VERSION"')
+            .replace(/"version":"[\d.]+(?:-[\w.]+)?"/g, '"version":"SDK_VERSION"')
             .replace(/"sample_rand":"\d.?\d*"/g, '"sample_rand":"SAMPLE_RAND"');
         } else {
           // Normalize Windows line endings for cross-platform snapshots

@@ -14,14 +14,14 @@ test('Sends an app_creation transaction', async () => {
     contexts: { trace: { op?: string; origin?: string; data?: Record<string, unknown> } };
   };
 
-  expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
+  expect(transaction.contexts.trace.op).toBe('function');
   expect(transaction.contexts.trace.origin).toBe('auto.http.nestjs');
   expect(transaction.contexts.trace.data).toEqual(
     expect.objectContaining({
       component: '@nestjs/core',
       'nestjs.type': 'app_creation',
       'nestjs.module': 'AppModule',
-      'sentry.op': 'app_creation.nestjs',
+      'sentry.op': 'function',
       'sentry.origin': 'auto.http.nestjs',
     }),
   );
@@ -88,9 +88,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'express.type': 'request_handler',
             'http.route': '/test-transaction',
             'sentry.origin': 'auto.http.express',
-            'sentry.op': 'request_handler.express',
+            'sentry.op': 'handler',
           },
-          op: 'request_handler.express',
+          op: 'handler',
           description: '/test-transaction',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -131,7 +131,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'handler.nestjs',
+            'sentry.op': 'handler',
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'handler',
@@ -143,7 +143,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           timestamp: expect.any(Number),
           status: 'ok',
           origin: 'auto.http.nestjs',
-          op: 'handler.nestjs',
+          op: 'handler',
         },
       ]),
       transaction: 'GET /test-transaction',

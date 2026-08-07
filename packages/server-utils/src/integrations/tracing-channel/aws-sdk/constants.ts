@@ -19,4 +19,5 @@ export const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
 
 // Bedrock (gen_ai) attribute values (not keys, so not covered by conventions)
 export const GEN_AI_OPERATION_NAME_VALUE_CHAT = 'chat';
+export const GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT = 'generate_content';
 export const GEN_AI_SYSTEM_VALUE_AWS_BEDROCK = 'aws.bedrock';

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
@@ -75,5 +75,3 @@ export const expressChannels = {
   EXPRESS_REGISTER: 'orchestrion:express:register',
   ROUTER_REGISTER: 'orchestrion:router:register',
 } as const;
-
-export const expressSubscribeInjection = toSubscribeInjections(expressConfig);

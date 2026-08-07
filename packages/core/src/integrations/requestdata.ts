@@ -11,6 +11,7 @@ import { parseCookie } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
+import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
@@ -138,6 +139,9 @@ function addNormalizedRequestDataToEvent(
   if (requestData.query_string) {
     requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
+  if (requestData.url) {
+    requestData.url = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
+  }
 
   event.request = {
     ...event.request,
@@ -166,7 +170,7 @@ function addNormalizedRequestDataToSpan(
   const attributes: Record<string, unknown> = {};
 
   if (requestData.url) {
-    attributes[URL_FULL] = requestData.url;
+    attributes[URL_FULL] = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
   }
 
   if (requestData.method) {

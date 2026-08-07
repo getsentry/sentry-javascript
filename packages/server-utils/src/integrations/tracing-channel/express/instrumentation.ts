@@ -42,6 +42,13 @@ const ORIGIN = 'auto.http.express';
 const ATTR_EXPRESS_NAME = 'express.name';
 const ATTR_EXPRESS_TYPE = 'express.type';
 
+// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
+const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
+  middleware: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  request_handler: 'handler',
+  router: 'router',
+};
+
 const NOOP = (): void => {};
 
 let _isInstrumented = false;
@@ -221,7 +228,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [SENTRY_OP]: type === 'middleware' ? WEB_SERVER_MIDDLEWARE_SPAN_OP : `${type}.express`,
+      [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
       ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),

@@ -43,7 +43,8 @@ const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
 const ORIGIN = 'auto.http.otel.fastify';
 const HOOK_OP = WEB_SERVER_MIDDLEWARE_SPAN_OP;
-const REQUEST_HANDLER_OP = 'request_handler.fastify';
+// TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
+const REQUEST_HANDLER_OP = 'handler';
 
 const FASTIFY_HOOKS = [
   'onRequest',
@@ -182,6 +183,7 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
 
   const attributes: Record<string, string> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_OP]: REQUEST_HANDLER_OP,
     [ATTRIBUTE_FASTIFY_ROOT]: PACKAGE_NAME,
     [HTTP_REQUEST_METHOD]: request.method,
     [URL_PATH]: request.url,
@@ -196,7 +198,6 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
 
   const requestSpan = startInactiveSpan({
     name: route != null ? `${request.method} ${route}` : 'request',
-    op: REQUEST_HANDLER_OP,
     attributes,
   });
   request[kRequestSpan] = requestSpan;

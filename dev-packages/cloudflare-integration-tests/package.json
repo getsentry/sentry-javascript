@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
-    "lint:types": "tsc --noEmit",
+    "lint:types": "tsc --noEmit && tsc --noEmit -p suites/types/tsconfig.v4.json && tsc --noEmit -p suites/types/tsconfig.v5.json && tsc --noEmit -p suites/types/typegen/tsconfig.v4.json && tsc --noEmit -p suites/types/typegen/tsconfig.v5.json",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
   },
@@ -25,12 +25,13 @@
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
     "@sentry/hono": "10.67.0",
-    "hono": "^4.12.27",
+    "hono": "^4.12.34",
     "openai": "5.18.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.34.0",
     "@cloudflare/workers-types": "^4.20260426.0",
+    "@cloudflare/workers-types-v5": "npm:@cloudflare/workers-types@5.20260710.1",
     "@sentry-internal/test-utils": "10.67.0",
     "@sentry/conventions": "0.16.0",
     "eslint-plugin-regexp": "^3.1.0",

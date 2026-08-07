@@ -1,0 +1,15 @@
+{
+  "name": "durable-object-scope-test",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "SCOPE_DO", "class_name": "ScopeDurableObject" }],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ScopeDurableObject"],
+    },
+  ],
+}

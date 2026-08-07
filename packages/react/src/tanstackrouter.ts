@@ -6,6 +6,7 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core/browser';
+import { filterCollectedUrl } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -182,7 +183,7 @@ function locationToSpanUrlAttributes(
 
   return {
     [URL_PATH]: location.pathname,
-    [URL_FULL]: absoluteUrl,
+    [URL_FULL]: filterCollectedUrl(absoluteUrl),
   };
 }
 

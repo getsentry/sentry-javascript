@@ -1,6 +1,7 @@
 import { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
+  filterCollectedUrlQuery,
   addBreadcrumb,
   getActiveSpan,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -259,7 +260,7 @@ function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData
       url: getSanitizedUrlString(parsedUrl),
       // eslint-disable-next-line typescript/no-deprecated
       [HTTP_METHOD]: request.method || 'GET',
-      [URL_QUERY]: getUrlQuery(parsedUrl.search),
+      [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search)),
       [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
     };
   } catch {

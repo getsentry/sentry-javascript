@@ -1684,7 +1684,9 @@ describe('Client', () => {
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = withStaticSpan(vi.fn(() => null as unknown as SpanJSON));
+      // @ts-expect-error - intentionally violating the type signature here
+      const beforeSendSpan = withStaticSpan(vi.fn(() => null));
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1722,6 +1724,57 @@ describe('Client', () => {
         '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
       consoleWarnSpy.mockRestore();
+    });
+
+    test("doesn't throw if the `beforeSendSpan` callback throws", () => {
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error').mockImplementation(() => undefined);
+      const error = new Error('beforeSendSpan is broken');
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(() => {
+          throw error;
+        }),
+      );
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan, debug: true });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+        ],
+      };
+
+      expect(() => client.captureEvent(transaction)).not.toThrow();
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
+
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toHaveLength(2);
+      expect(client['_outcomes']).toEqual({});
+
+      expect(debugErrorSpy).toHaveBeenCalledTimes(3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+        error,
+      );
+      debugErrorSpy.mockRestore();
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {

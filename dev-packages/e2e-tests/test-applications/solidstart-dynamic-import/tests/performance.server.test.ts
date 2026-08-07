@@ -20,7 +20,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
       expect.objectContaining({
         description: 'getPrefecture',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         },
@@ -45,7 +45,7 @@ test('sends a server action transaction on client navigation', async ({ page }) 
       expect.objectContaining({
         description: 'getPrefecture',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         },

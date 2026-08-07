@@ -54,8 +54,8 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
-          'code.function': 'action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'http.method': 'POST',
         }),
       }),

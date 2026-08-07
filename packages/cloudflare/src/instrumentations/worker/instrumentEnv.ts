@@ -12,7 +12,6 @@ import {
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
-import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
@@ -44,8 +43,6 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
   if (!env || typeof env !== 'object') {
     return env;
   }
-
-  const rpcPropagation = options ? getEffectiveRpcPropagation(options) : false;
 
   return new Proxy(env, {
     get(target, prop, receiver) {
@@ -94,7 +91,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
-      if (!rpcPropagation) {
+      if (options?.enableRpcTracePropagation === false) {
         return item;
       }
 

@@ -1,5 +1,5 @@
 import type { InstrumentationConfig } from '..';
-import { getModuleNames, toSubscribeInjections } from './subscribe-injection';
+import { getModuleNames } from './module-names';
 
 // `@google/genai` ships one bundled file per module format and the matcher compares `filePath` exactly,
 // so we list every file the `node` export condition resolves to across the supported range: `index.js`
@@ -13,14 +13,15 @@ export const googleGenAiConfig = [
   ...NODE_DIST_FILES.flatMap(filePath =>
     (['generateContent', 'generateContentStream'] as const).map(expressionName => ({
       channelName: 'generate-content',
-      module: { name: '@google/genai', versionRange: '>=0.10.0 <2', filePath },
+      module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
       functionQuery: { expressionName, kind: 'Auto' as const },
     })),
   ),
-  // `embedContent` and the `Chat` methods are real class methods.
+  // `embedContent` is a real class method in v1 but a constructor-assigned arrow in v2; the
+  // `className`/`methodName` selector matches both shapes.
   ...NODE_DIST_FILES.map(filePath => ({
     channelName: 'embed-content',
-    module: { name: '@google/genai', versionRange: '>=0.10.0 <2', filePath },
+    module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
     functionQuery: { className: 'Models', methodName: 'embedContent', kind: 'Auto' as const },
   })),
   // `sendMessage`/`sendMessageStream` internally delegate to `Models.generateContent(Stream)`; the
@@ -28,7 +29,7 @@ export const googleGenAiConfig = [
   ...NODE_DIST_FILES.flatMap(filePath =>
     (['sendMessage', 'sendMessageStream'] as const).map(methodName => ({
       channelName: 'chat',
-      module: { name: '@google/genai', versionRange: '>=0.10.0 <2', filePath },
+      module: { name: '@google/genai', versionRange: '>=0.10.0 <3', filePath },
       functionQuery: { className: 'Chat', methodName, kind: 'Auto' as const },
     })),
   ),
@@ -41,5 +42,3 @@ export const googleGenAiChannels = {
   GOOGLE_GENAI_EMBED_CONTENT: 'orchestrion:@google/genai:embed-content',
   GOOGLE_GENAI_CHAT: 'orchestrion:@google/genai:chat',
 } as const;
-
-export const googleGenAiSubscribeInjection = toSubscribeInjections(googleGenAiConfig);

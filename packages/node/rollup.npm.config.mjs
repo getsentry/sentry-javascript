@@ -23,8 +23,6 @@ export default [
     makeBaseNPMConfig({
       entrypoints: [
         'src/index.ts',
-        'src/init.ts',
-        'src/preload.ts',
         // Combined Sentry bundler plugins + orchestrion code transform, exposed
         // via the `@sentry/node/{vite,rollup,webpack,esbuild}` subpath exports.
         'src/bundler-plugin/vite.ts',

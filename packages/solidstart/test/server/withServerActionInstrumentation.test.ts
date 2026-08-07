@@ -102,10 +102,10 @@ describe('withServerActionInstrumentation', () => {
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function.server_action',
+        op: 'function',
         description: 'getPrefecture',
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),
@@ -148,6 +148,47 @@ describe('withServerActionInstrumentation', () => {
     expect(mockGetActiveSpan).to.toHaveBeenCalledTimes(2);
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  });
+
+  // `@sentry/node`'s HTTP spans only carry `url.path`, so gating on `http.target` alone silently
+  // skipped the rename.
+  it('sets a server action name on the active span when the path is on `url.path`', async () => {
+    const span = new SentryCore.SentrySpan({
+      attributes: {
+        'url.path': '/_server',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+      },
+    });
+    mockGetActiveSpan.mockReturnValue(span);
+    const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');
+
+    const getPrefecture = async function load() {
+      return withServerActionInstrumentation('getPrefecture', () => {
+        return { prefecture: 'Kagoshima' };
+      });
+    };
+
+    await getPrefecture();
+
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  });
+
+  it('does not set a server action name if the active span had a non `/_server` `url.path`', async () => {
+    const span = new SentryCore.SentrySpan();
+    span.setAttribute('url.path', '/users/5');
+    mockGetActiveSpan.mockReturnValue(span);
+    const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');
+
+    const getPrefecture = async function load() {
+      return withServerActionInstrumentation('getPrefecture', () => {
+        return { prefecture: 'Kagoshima' };
+      });
+    };
+
+    await getPrefecture();
+
+    expect(mockSpanSetAttribute).not.toHaveBeenCalledWith('http.route', 'getPrefecture');
   });
 
   it('does not set a server action name if the active span had a non `/_server` target', async () => {

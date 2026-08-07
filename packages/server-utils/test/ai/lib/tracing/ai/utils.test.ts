@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '@sentry/core';
-import {
-  resolveAIRecordingOptions,
-  shouldEnableTruncation,
-  wrapPromiseWithMethods,
-} from '../../../../../src/ai/core/utils';
+import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../../src/ai/core/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
@@ -62,51 +58,6 @@ describe('resolveAIRecordingOptions', () => {
       recordInputs: false,
       recordOutputs: false,
     });
-  });
-});
-
-describe('shouldEnableTruncation', () => {
-  beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
-    getCurrentScope().setClient(undefined);
-  });
-
-  afterEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
-  });
-
-  function setupClient(options: Parameters<typeof getDefaultTestClientOptions>[0] = {}): void {
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ...options }));
-    setCurrentClient(client);
-    client.init();
-  }
-
-  it('defaults to true when no client is set', () => {
-    expect(shouldEnableTruncation(undefined)).toBe(true);
-  });
-
-  it('defaults to false with a default client', () => {
-    setupClient();
-    expect(shouldEnableTruncation(undefined)).toBe(false);
-  });
-
-  it('defaults to false when span streaming is enabled (traceLifecycle: stream)', () => {
-    setupClient({ traceLifecycle: 'stream' });
-    expect(shouldEnableTruncation(undefined)).toBe(false);
-  });
-
-  it('explicit enableTruncation: true overrides the default', () => {
-    setupClient();
-    expect(shouldEnableTruncation(true)).toBe(true);
-  });
-
-  it('explicit enableTruncation: false overrides the default', () => {
-    setupClient();
-    expect(shouldEnableTruncation(false)).toBe(false);
   });
 });
 

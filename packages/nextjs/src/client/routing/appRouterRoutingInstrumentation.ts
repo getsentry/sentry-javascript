@@ -5,6 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  filterCollectedUrl,
 } from '@sentry/core';
 import {
   startBrowserTracingNavigationSpan,
@@ -26,7 +27,7 @@ function stripTrailingSlash(pathname: string): string {
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
     [URL_PATH]: urlPath,
-    [URL_FULL]: getAbsoluteUrl(urlOrPath),
+    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(urlOrPath)),
   });
 }
 

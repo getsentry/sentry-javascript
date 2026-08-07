@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+
+  // The shared type tests in this folder run once per supported `@cloudflare/workers-types`
+  // major (see `./tsconfig.v5.json` for v5). The env inference machinery reads generic
+  // defaults off `ExportedHandler`, `WorkerEntrypoint`, `DurableObject` and
+  // `WorkflowEntrypoint`, so a change to any of those between majors has to fail here
+  // rather than in a user's project.
+  "include": ["./*.ts"],
+
+  // The extended config hands this whole folder to these per-version programs by excluding
+  // it; the inherited exclude must be cleared here or no inputs remain.
+  "exclude": [],
+
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types"]
+  }
+}

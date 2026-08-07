@@ -135,7 +135,6 @@ describe('workers-ai utils', () => {
           ],
         },
         'chat',
-        false,
       );
 
       expect(attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe(
@@ -147,7 +146,7 @@ describe('workers-ai utils', () => {
     it('records the prompt string directly', () => {
       const { span, attributes } = createMockSpan();
 
-      addRequestAttributes(span, { prompt: 'Hello world' }, 'chat', false);
+      addRequestAttributes(span, { prompt: 'Hello world' }, 'chat');
 
       expect(attributes[GEN_AI_INPUT_MESSAGES]).toBe('Hello world');
     });
@@ -155,7 +154,7 @@ describe('workers-ai utils', () => {
     it('records embeddings input on a dedicated attribute', () => {
       const { span, attributes } = createMockSpan();
 
-      addRequestAttributes(span, { text: ['embed a', 'embed b'] }, 'embeddings', false);
+      addRequestAttributes(span, { text: ['embed a', 'embed b'] }, 'embeddings');
 
       expect(attributes).toEqual({ [GEN_AI_EMBEDDINGS_INPUT]: JSON.stringify(['embed a', 'embed b']) });
     });
@@ -163,7 +162,7 @@ describe('workers-ai utils', () => {
     it('records nothing for an empty messages array', () => {
       const { span, attributes } = createMockSpan();
 
-      addRequestAttributes(span, { messages: [] }, 'chat', false);
+      addRequestAttributes(span, { messages: [] }, 'chat');
 
       expect(attributes).toEqual({});
     });
@@ -171,7 +170,7 @@ describe('workers-ai utils', () => {
     it('records nothing for empty embeddings input', () => {
       const { span, attributes } = createMockSpan();
 
-      addRequestAttributes(span, { text: '' }, 'embeddings', false);
+      addRequestAttributes(span, { text: '' }, 'embeddings');
 
       expect(attributes).toEqual({});
     });
@@ -179,7 +178,7 @@ describe('workers-ai utils', () => {
     it('records nothing when inputs are missing', () => {
       const { span, attributes } = createMockSpan();
 
-      addRequestAttributes(span, undefined, 'chat', false);
+      addRequestAttributes(span, undefined, 'chat');
 
       expect(attributes).toEqual({});
     });

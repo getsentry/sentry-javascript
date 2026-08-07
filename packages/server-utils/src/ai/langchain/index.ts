@@ -1,4 +1,3 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import {
   captureException,
@@ -6,17 +5,18 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpanManual,
+  stringify,
 } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
-  GEN_AI_TOOL_INPUT,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
 } from '@sentry/conventions/attributes';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -42,7 +42,6 @@ import {
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
-  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
@@ -98,7 +97,6 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         prompts,
         recordInputs,
-        enableTruncation,
         invocationParams,
         metadata,
       );
@@ -138,14 +136,13 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         messages as LangChainMessage[][],
         recordInputs,
-        enableTruncation,
         invocationParams,
         metadata,
       );
 
       const toolDefsJson = extractToolDefinitions(extraParams);
       if (toolDefsJson) {
-        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = toolDefsJson;
+        attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }
 
       const modelName = attributes[GEN_AI_REQUEST_MODEL];
@@ -302,7 +299,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       };
 
       if (recordInputs) {
-        attributes[GEN_AI_TOOL_INPUT] = input;
+        attributes[GEN_AI_TOOL_CALL_ARGUMENTS] = input;
       }
 
       startSpanManual(
@@ -331,7 +328,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           const content =
             outputObj && typeof outputObj === 'object' && 'content' in outputObj ? outputObj.content : output;
           span.setAttributes({
-            [GEN_AI_TOOL_OUTPUT]: typeof content === 'string' ? content : JSON.stringify(content),
+            [GEN_AI_TOOL_CALL_RESULT]: stringify(content, String),
           });
         }
         exitSpan(runId);

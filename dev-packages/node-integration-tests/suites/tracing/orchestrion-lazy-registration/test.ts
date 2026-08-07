@@ -24,10 +24,10 @@ conditionalTest({ min: 20 })('orchestrion lazy channel registration', () => {
 
   // A force-bundled module (vite SSR / nextjs bundle-safe packages) is never
   // loaded through the runtime hook, so it can only trigger subscription via
-  // the bundler's boot banner → on-inject bridge. The scenario simulates that
-  // banner and asserts the channel subscribes without the module ever being
-  // loaded through the hook.
-  test('subscribes for a bundler-announced module via the on-inject bridge', async () => {
+  // the module-injected snippet the bundler transform splices into it. The
+  // scenario simulates that snippet and asserts the channel subscribes without
+  // the module ever being loaded through the hook.
+  test('subscribes for a bundler-announced module via the module-injected snippet', async () => {
     await createRunner(__dirname, 'scenario-bundler.mjs')
       .withInstrument(path.join(__dirname, 'instrument.mjs'))
       .ensureNoErrorOutput()

@@ -4,21 +4,19 @@ import {
   isObjectLike,
   captureException,
   continueTrace,
-  getClient,
   isThenable,
   type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startNewTrace as startNewTraceCore,
   startSpan,
-  withIsolationScope,
-  withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
+import { withInvocationIsolationScope } from './utils/invocationScope';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
 
@@ -111,11 +109,6 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             args = extracted.args;
             rpcMeta = extracted.rpcMeta;
           }
-
-          // For startNewTrace, always use withIsolationScope to ensure a fresh scope
-          // Otherwise, use existing client's scope or isolation scope
-          const currentClient = getClient();
-          const sentryWithScope = startNewTrace ? withIsolationScope : currentClient ? withScope : withIsolationScope;
 
           const wrappedFunction = (scope: Scope): unknown | Promise<unknown> => {
             // In certain situations, the passed context can become undefined.
@@ -241,7 +234,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             return executeSpan();
           };
 
-          return sentryWithScope(wrappedFunction);
+          return withInvocationIsolationScope(wrappedFunction);
         },
       }),
     noMark,

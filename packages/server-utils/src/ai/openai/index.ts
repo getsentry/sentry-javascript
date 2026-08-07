@@ -14,18 +14,17 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getTruncatedJsonString,
+  getGenAiSpanOp,
   resolveAIRecordingOptions,
-  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
@@ -61,7 +60,7 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
  */
 export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM]: 'openai',
+    [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
@@ -71,7 +70,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
     const availableTools = extractAvailableTools(params);
     if (availableTools) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] = availableTools;
+      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
     }
 
     Object.assign(attributes, extractRequestParameters(params));
@@ -83,13 +82,8 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-export function addRequestAttributes(
-  span: Span,
-  params: Record<string, unknown>,
-  operationName: string,
-  enableTruncation: boolean,
-): void {
-  // Store embeddings input on a separate attribute and do not truncate it
+export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
 
@@ -108,8 +102,7 @@ export function addRequestAttributes(
       return;
     }
 
-    // Store strings as-is, arrays/objects as JSON
-    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, typeof input === 'string' ? input : JSON.stringify(input));
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(input, String));
     return;
   }
 
@@ -129,10 +122,7 @@ export function addRequestAttributes(
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
   }
 
-  span.setAttribute(
-    GEN_AI_INPUT_MESSAGES,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-  );
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
 }
 
 /**
@@ -157,7 +147,7 @@ function instrumentMethod<T extends unknown[], R>(
 
     const spanConfig = {
       name: `${operationName} ${model}`,
-      op: `gen_ai.${operationName}`,
+      op: getGenAiSpanOp(operationName),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
 
@@ -168,7 +158,7 @@ function instrumentMethod<T extends unknown[], R>(
         originalResult = originalMethod.apply(context, args);
 
         if (options.recordInputs && params) {
-          addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
+          addRequestAttributes(span, params, operationName);
         }
 
         // Return async processing
@@ -206,7 +196,7 @@ function instrumentMethod<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args);
 
       if (options.recordInputs && params) {
-        addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
+        addRequestAttributes(span, params, operationName);
       }
 
       return originalResult.then(

@@ -32,16 +32,24 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    instrumentPrototypeMethods: true,
+    enableRpcTracePropagation: true,
   }),
   TestDurableObjectBase,
 );
 
-export default {
-  async fetch(_request: Request, env: Env): Promise<Response> {
-    const id: DurableObjectId = env.TEST_DURABLE_OBJECT.idFromName('test');
-    const stub = env.TEST_DURABLE_OBJECT.get(id) as unknown as TestDurableObjectBase;
-    const result = await stub.doWork();
-    return new Response(result);
-  },
-};
+export default Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
+    tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
+  }),
+  {
+    async fetch(_request: Request, env: Env): Promise<Response> {
+      const id: DurableObjectId = env.TEST_DURABLE_OBJECT.idFromName('test');
+      const stub = env.TEST_DURABLE_OBJECT.get(id) as unknown as TestDurableObjectBase;
+      const result = await stub.doWork();
+      return new Response(result);
+    },
+  } satisfies ExportedHandler<Env>,
+);

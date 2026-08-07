@@ -115,6 +115,8 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,

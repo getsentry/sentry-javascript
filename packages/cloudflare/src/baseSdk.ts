@@ -25,7 +25,7 @@ import { defaultStackParser } from './vendor/stacktrace';
 /**
  * Instantiate the channel-subscriber factories the `@sentry/cloudflare/vite`
  * plugin registered on the global marker. The plugin splices a small snippet
- * into each instrumented module that `.set`s its factory here (keyed by export
+ * into each instrumented module that `.set`s its factory here (keyed by module
  * name), so the marker holds one factory per package actually bundled.
  *
  * The marker is read directly instead of importing the factories, so a worker
@@ -94,6 +94,9 @@ export function initWithDefaultIntegrations(
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
+    // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
+    // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
+    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
     flushLock,
   };
 
@@ -107,18 +110,28 @@ export function initWithDefaultIntegrations(
   }
   /*! rollup-include-development-only-end */
 
-  /**
-   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
-   */
-  if (!options.skipOpenTelemetrySetup) {
+  // Opt-in only: when `skipOpenTelemetrySetup` is `false`, set up a custom trace provider so spans
+  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
+  if (!clientOptions.skipOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
 
-  return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+  const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+
+  // An instrumented module that first evaluates AFTER this init (e.g. a driver
+  // lazily required on first use) stores its subscriber factory on the global
+  // marker too late for the default-integrations snapshot above. Its injected
+  // snippet emits this event right after storing the factory, so install the
+  // integration on the live client here. `addIntegration` dedupes by
+  // integration name, so already-installed integrations are no-ops.
+  client.on('orchestrion.module-injected', moduleName => {
+    const factory = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
+    if (factory) {
+      client.addIntegration(factory());
+    }
+  });
+
+  return client;
 }
 
 /**

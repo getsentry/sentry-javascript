@@ -22,6 +22,10 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       rewriteFramesIntegration(),
       svelteKitSpansIntegration(),
     ],
+    // SvelteKit emits its own OpenTelemetry spans (Kit tracing), so — like the Node SvelteKit SDK — it
+    // defaults to registering the tracer provider instead of inheriting Cloudflare's no-provider default.
+    // A user-provided value still overrides this via `...options`.
+    skipOpenTelemetrySetup: false,
     ...options,
   };
 

@@ -4,7 +4,7 @@
  * channels injected into it — by the `exportName` it is published under from
  * `@sentry/server-utils/orchestrion`.
  *
- * Kept in a separate, factory-free module on purpose: the subscribe-injection
+ * Kept in a separate, factory-free module on purpose: the module-injected
  * transform (reachable from every orchestrion bundler plugin) reads this to
  * generate the tiny snippet it injects into each instrumented file, and must
  * not drag any subscriber code — or its `@sentry/core` span machinery — into
@@ -45,9 +45,4 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
 /** Look up the subscriber export name for an instrumented package, if any. */
 export function subscriberExportForModule(moduleName: string): string | undefined {
   return CHANNEL_INTEGRATION_DEFINITIONS.find(d => (d.modules as readonly string[]).includes(moduleName))?.exportName;
-}
-
-/** Look up the instrumented package names a subscriber export covers. */
-export function modulesForSubscriberExport(exportName: string): readonly string[] {
-  return CHANNEL_INTEGRATION_DEFINITIONS.find(d => d.exportName === exportName)?.modules ?? [];
 }

@@ -6,6 +6,7 @@ import {
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -17,7 +18,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
@@ -26,8 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { isContentMedia, stripInlineMediaFromSingleMessage } from '../core/mediaStripping';
-import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
+import { extractSystemInstructions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -53,38 +52,6 @@ const setNumberIfDefined = (
   const n = Number(value);
   if (!Number.isNaN(n)) target[key] = n;
 };
-
-/**
- * Converts message content to a string, stripping inline media (base64 images, audio, etc.)
- * from multimodal content before stringification so downstream media stripping can't miss it.
- *
- * @example
- * // String content passes through unchanged:
- * normalizeContent("Hello") // => "Hello"
- *
- * // Multimodal array content — media is replaced with "[Blob substitute]" before JSON.stringify:
- * normalizeContent([
- *   { type: "text", text: "What color?" },
- *   { type: "image_url", image_url: { url: "data:image/png;base64,iVBOR..." } }
- * ])
- * // => '[{"type":"text","text":"What color?"},{"type":"image_url","image_url":{"url":"[Blob substitute]"}}]'
- *
- * // Without this, stringification would JSON.stringify the raw array and the base64 blob
- * // would end up in span attributes, since downstream stripping only works on objects.
- */
-function normalizeContent(v: unknown): string | undefined {
-  if (Array.isArray(v)) {
-    try {
-      const stripped = v.map(part =>
-        part && typeof part === 'object' && isContentMedia(part) ? stripInlineMediaFromSingleMessage(part) : part,
-      );
-      return JSON.stringify(stripped);
-    } catch {
-      return String(v);
-    }
-  }
-  return stringify(v, String);
-}
 
 /**
  * Normalizes a single role token to our canonical set.
@@ -149,7 +116,7 @@ export function normalizeLangChainMessages(
       const messageType = maybeGetType.call(message);
       return {
         role: normalizeMessageRole(messageType),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -162,7 +129,7 @@ export function normalizeLangChainMessages(
 
       return {
         role: normalizeMessageRole(role),
-        content: normalizeContent(message.kwargs?.content),
+        content: stringify(message.kwargs?.content, String),
       };
     }
 
@@ -171,7 +138,7 @@ export function normalizeLangChainMessages(
       const role = String(message.type).toLowerCase();
       return {
         role: normalizeMessageRole(role),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -180,7 +147,7 @@ export function normalizeLangChainMessages(
     if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
@@ -190,14 +157,14 @@ export function normalizeLangChainMessages(
     if (ctor && ctor !== 'Object') {
       return {
         role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
-        content: normalizeContent(message.content),
+        content: stringify(message.content, String),
       };
     }
 
     // 6) Fallback: treat as user text
     return {
       role: 'user',
-      content: normalizeContent(message.content),
+      content: stringify(message.content, String),
     };
   });
 }
@@ -257,7 +224,7 @@ function baseRequestAttributes(
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
   return {
-    [GEN_AI_SYSTEM]: stringify(system ?? 'langchain', String),
+    [GEN_AI_PROVIDER_NAME]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME]: 'chat',
     [GEN_AI_REQUEST_MODEL]: stringify(modelName, String),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
@@ -277,7 +244,6 @@ export function extractLLMRequestAttributes(
   llm: LangChainSerialized,
   prompts: string[],
   recordInputs: boolean,
-  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
@@ -288,11 +254,7 @@ export function extractLLMRequestAttributes(
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
     const messages = prompts.map(p => ({ role: 'user', content: p }));
-    setIfDefined(
-      attrs,
-      GEN_AI_INPUT_MESSAGES,
-      enableTruncation ? getTruncatedJsonString(messages) : stringify(messages),
-    );
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES, stringify(messages));
   }
 
   return attrs;
@@ -311,7 +273,6 @@ export function extractChatModelRequestAttributes(
   llm: LangChainSerialized,
   langChainMessages: LangChainMessage[][],
   recordInputs: boolean,
-  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
@@ -329,11 +290,7 @@ export function extractChatModelRequestAttributes(
       setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
     }
 
-    setIfDefined(
-      attrs,
-      GEN_AI_INPUT_MESSAGES,
-      enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages),
-    );
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
   }
 
   return attrs;

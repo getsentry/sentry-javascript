@@ -1,16 +1,16 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
+  stringify,
 } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
-  GEN_AI_SYSTEM,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
@@ -50,7 +50,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
     [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',
   };
 
-  attributes[GEN_AI_SYSTEM] = inferSystemFromInstance(embeddingsInstance);
+  attributes[GEN_AI_PROVIDER_NAME] = inferSystemFromInstance(embeddingsInstance);
   if ('dimensions' in embeddingsInstance) {
     attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
   }
@@ -77,7 +77,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
 
   if (recordInputs && input != null) {
-    attributes[GEN_AI_EMBEDDINGS_INPUT] = typeof input === 'string' ? input : JSON.stringify(input);
+    attributes[GEN_AI_EMBEDDINGS_INPUT] = stringify(input, String);
   }
 
   return {

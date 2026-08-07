@@ -4,21 +4,20 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
-  GEN_AI_TOOL_INPUT,
   GEN_AI_TOOL_NAME,
-  GEN_AI_TOOL_OUTPUT,
-  GEN_AI_TOOL_TYPE,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
+import { isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -124,7 +123,6 @@ describe('Vercel AI integration (streaming v4)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: attr('call-1'),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
@@ -209,12 +207,12 @@ describe('Vercel AI integration (streaming v4)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
-      // Fifth span - tool call generate_content with available_tools
+      // Fifth span - tool call generate_content with tool definitions
       expect.objectContaining({
         name: 'generate_content mock-model-id',
         status: 'ok',
         attributes: expect.objectContaining({
-          [GEN_AI_REQUEST_AVAILABLE_TOOLS]: expect.objectContaining({
+          [GEN_AI_TOOL_DEFINITIONS]: expect.objectContaining({
             value: expect.stringContaining('getWeather'),
           }),
           [GEN_AI_REQUEST_MODEL]: attr('mock-model-id'),
@@ -233,10 +231,9 @@ describe('Vercel AI integration (streaming v4)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: attr('call-1'),
           [GEN_AI_TOOL_DESCRIPTION]: attr('Get the current weather for a location'),
-          [GEN_AI_TOOL_INPUT]: expect.objectContaining({ value: expect.any(String) }),
+          [GEN_AI_TOOL_CALL_ARGUMENTS]: expect.objectContaining({ value: expect.any(String) }),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
-          [GEN_AI_TOOL_OUTPUT]: expect.objectContaining({ value: expect.any(String) }),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
+          [GEN_AI_TOOL_CALL_RESULT]: expect.objectContaining({ value: expect.any(String) }),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
@@ -275,7 +272,6 @@ describe('Vercel AI integration (streaming v4)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: attr('call-1'),
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
-          [GEN_AI_TOOL_TYPE]: attr('function'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.execute_tool'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
@@ -299,50 +295,6 @@ describe('Vercel AI integration (streaming v4)', () => {
   createEsmAndCjsTests(__dirname, 'scenario-error-in-tool.mjs', 'instrument.mjs', (createRunner, test) => {
     test('normalizes error status in streaming mode', async () => {
       await createRunner().ignore('event').expect({ span: EXPECTED_SPANS_ERROR_IN_TOOL }).start().completed();
-    });
-  });
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-truncation.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
-            );
-            expect(chatSpan).toBeDefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-truncation.mjs', 'instrument-with-truncation.mjs', (createRunner, test) => {
-    test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            // With explicit enableTruncation: true, content should be truncated despite streaming.
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                '[{"role":"user","content":"AAAA',
-              ),
-            );
-            expect(chatSpan).toBeDefined();
-            expect(
-              (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-            ).toBeLessThan(streamingLongContent.length);
-          },
-        })
-        .start()
-        .completed();
     });
   });
 });

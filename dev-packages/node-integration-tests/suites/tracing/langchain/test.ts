@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -11,7 +12,6 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -22,7 +22,6 @@ import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { createEsmTests } from '../../../utils/runner/createEsmAndCjsTests';
 
@@ -51,7 +50,7 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
             expect(sonnetSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(sonnetSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
@@ -67,7 +66,7 @@ describe('LangChain integration', () => {
             expect(opusSpan!.status).toBe('ok');
             expect(opusSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(opusSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(opusSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(opusSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-opus-20240229');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.9);
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.95);
@@ -81,7 +80,7 @@ describe('LangChain integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
           },
         })
@@ -128,7 +127,7 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.status).toBe('ok');
             expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(sonnetSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
@@ -144,7 +143,7 @@ describe('LangChain integration', () => {
             const opusSpan = container.items.find(span => span.name === 'chat claude-3-opus-20240229');
             expect(opusSpan).toBeDefined();
             expect(opusSpan!.status).toBe('ok');
-            expect(opusSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(opusSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-opus-20240229');
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.9);
             expect(opusSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.95);
@@ -158,7 +157,7 @@ describe('LangChain integration', () => {
             const errorSpan = container.items.find(span => span.name === 'chat error-model');
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
             expect(errorSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
@@ -183,7 +182,7 @@ describe('LangChain integration', () => {
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM].value).toBe('anthropic');
+            expect(firstSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
@@ -198,55 +197,6 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(3);
-              // The string-input span has no system message (and therefore no system instructions),
-              // while the array-input span does — use that to distinguish the two truncated spans.
-              const truncatedContent = /^\[\{"role":"user","content":"C+"\}\]$/;
-              const stringInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS] === undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(truncatedContent),
-              );
-              expect(stringInputSpan).toBeDefined();
-              expect(stringInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(stringInputSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toMatch(truncatedContent);
-
-              const arrayInputSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS] !== undefined &&
-                  getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(truncatedContent),
-              );
-              expect(arrayInputSpan).toBeDefined();
-              expect(arrayInputSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(arrayInputSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeDefined();
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES]?.value ===
-                  JSON.stringify([{ role: 'user', content: 'This is a small message that fits within the limit' }]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(smallMessageSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 
   createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
     test('demonstrates timing issue with duplicate spans', async () => {
@@ -375,7 +325,7 @@ describe('LangChain integration', () => {
               expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
               expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-              expect(span.attributes[GEN_AI_SYSTEM].value).toBe('openai');
+              expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-3-small');
               expect(span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE].value).toBe(1536);
             }
@@ -384,7 +334,7 @@ describe('LangChain integration', () => {
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('openai');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
           },
         })
         .start()
@@ -450,85 +400,24 @@ describe('LangChain integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] chat with full (untruncated) input messages
-              expect(firstSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-                JSON.stringify([
-                  { role: 'user', content: longContent },
-                  { role: 'assistant', content: 'Some reply' },
-                  { role: 'user', content: 'Follow-up question' },
-                ]),
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('creates langchain related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
-            );
-            expect(chatSpan).toBeDefined();
+            const sonnetSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
+            expect(sonnetSpan).toBeDefined();
+            expect(sonnetSpan!.status).toBe('ok');
+            expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+            expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
+            expect(sonnetSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
         })
         .start()
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                  '[{"role":"user","content":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });

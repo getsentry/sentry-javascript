@@ -34,13 +34,13 @@ describe('koa auto-instrumentation', () => {
               // Router layer span (from `@koa/router`), carrying the matched route.
               expect.objectContaining({
                 description: '/',
-                op: 'router.koa',
+                op: 'router',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/',
                   'koa.type': 'router',
                   'koa.name': '/',
-                  'sentry.op': 'router.koa',
+                  'sentry.op': 'router',
                   'sentry.origin': origin,
                 }),
               }),
@@ -73,13 +73,13 @@ describe('koa auto-instrumentation', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 description: '/test-param/:id',
-                op: 'router.koa',
+                op: 'router',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/test-param/:id',
                   'koa.type': 'router',
                   'koa.name': '/test-param/:id',
-                  'sentry.op': 'router.koa',
+                  'sentry.op': 'router',
                   'sentry.origin': origin,
                 }),
               }),

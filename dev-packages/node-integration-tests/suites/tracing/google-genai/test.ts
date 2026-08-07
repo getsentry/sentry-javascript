@@ -3,7 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS,
+  GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
@@ -14,14 +14,13 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
-  GEN_AI_SYSTEM,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { getStringAttributeValue } from '../../../utils';
 
 const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
@@ -50,7 +49,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
-            expect(chatSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
@@ -61,7 +60,7 @@ describe('Google GenAI integration', () => {
             expect(generateContentSpan!.status).toBe('ok');
             expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
             expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-            expect(generateContentSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-flash');
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
             expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
@@ -75,7 +74,7 @@ describe('Google GenAI integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
             expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-            expect(errorSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
           },
         })
@@ -103,7 +102,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(chatSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
@@ -182,7 +181,7 @@ describe('Google GenAI integration', () => {
             expect(container.items).toHaveLength(3);
             const nonStreamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING] === undefined,
             );
             expect(nonStreamingToolsSpan).toBeDefined();
@@ -198,7 +197,7 @@ describe('Google GenAI integration', () => {
 
             const streamingToolsSpan = container.items.find(
               span =>
-                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_TOOL_DEFINITIONS]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
                 span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
             );
             expect(streamingToolsSpan).toBeDefined();
@@ -214,9 +213,7 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(10);
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(22);
 
-            const noToolsSpan = container.items.find(
-              span => span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS] === undefined,
-            );
+            const noToolsSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_DEFINITIONS] === undefined);
             expect(noToolsSpan).toBeDefined();
             expect(noToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(noToolsSpan!.status).toBe('ok');
@@ -346,50 +343,6 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation.mjs',
-    'instrument-with-truncation.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              const truncatedSpan = container.items.find(span =>
-                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.match(
-                  /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
-                ),
-              );
-              expect(truncatedSpan).toBeDefined();
-              expect(truncatedSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(truncatedSpan!.status).toBe('ok');
-              expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-
-              const smallMessageSpan = container.items.find(
-                span =>
-                  span.attributes[GEN_AI_INPUT_MESSAGES]?.value ===
-                  JSON.stringify([
-                    {
-                      role: 'user',
-                      parts: [{ text: 'This is a small message that fits within the limit' }],
-                    },
-                  ]),
-              );
-              expect(smallMessageSpan).toBeDefined();
-              expect(smallMessageSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(smallMessageSpan!.status).toBe('ok');
-              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
@@ -438,7 +391,7 @@ describe('Google GenAI integration', () => {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
               expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
-              expect(span.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+              expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-004');
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
             }
@@ -476,7 +429,7 @@ describe('Google GenAI integration', () => {
             expect(stringInputSpan!.name).toBe('embeddings text-embedding-004');
             expect(stringInputSpan!.status).toBe('ok');
             expect(stringInputSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-            expect(stringInputSpan!.attributes[GEN_AI_SYSTEM].value).toBe('google_genai');
+            expect(stringInputSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
 
             const errorSpan = container.items.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'This will fail',
@@ -502,86 +455,24 @@ describe('Google GenAI integration', () => {
     });
   });
 
-  const longContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-no-truncation.mjs',
-    (createRunner, test) => {
-      test('does not truncate input messages when enableTruncation is false', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
-
-              // [0] generate_content with full (non-truncated) input messages
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-                JSON.stringify([
-                  { role: 'user', parts: [{ text: longContent }] },
-                  { role: 'model', parts: [{ text: 'Some reply' }] },
-                  { role: 'user', parts: [{ text: 'Follow-up question' }] },
-                ]),
-              );
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  const streamingLongContent = 'A'.repeat(50_000);
-
-  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
-    test('automatically disables truncation when span streaming is enabled', async () => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           span: container => {
-            const spans = container.items;
-
-            const chatSpan = spans.find(s =>
-              getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(streamingLongContent),
-            );
-            expect(chatSpan).toBeDefined();
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-flash');
+            expect(generateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
           },
         })
         .start()
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-span-streaming.mjs',
-    'instrument-streaming-with-truncation.mjs',
-    (createRunner, test) => {
-      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
-
-              // With explicit enableTruncation: true, content should be truncated despite streaming.
-              // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
-              const chatSpan = spans.find(s =>
-                getStringAttributeValue(s.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.startsWith(
-                  '[{"role":"user","parts":[{"text":"AAAA',
-                ),
-              );
-              expect(chatSpan).toBeDefined();
-              expect(
-                (getStringAttributeValue(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES].value) ?? '').length,
-              ).toBeLessThan(streamingLongContent.length);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });

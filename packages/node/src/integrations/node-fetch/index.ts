@@ -24,7 +24,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 export const nativeNodeFetchIntegration = defineIntegration(_nativeNodeFetchIntegration);
 
 function _shouldInstrumentSpans(options: NodeFetchOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
-  // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
-  return options.spans ?? (!clientOptions.skipOpenTelemetrySetup && hasSpansEnabled(clientOptions));
+  // If `spans` is passed in, it takes precedence. Otherwise emit spans whenever tracing is enabled;
+  // fetch instrumentation is channel-based and does not depend on a Sentry OpenTelemetry tracer provider.
+  return options.spans ?? hasSpansEnabled(clientOptions);
 }
