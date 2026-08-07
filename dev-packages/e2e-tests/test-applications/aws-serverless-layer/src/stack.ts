@@ -39,7 +39,7 @@ export class LocalLambdaStack extends Stack {
       type: 'AWS::Serverless::LayerVersion',
       properties: {
         ContentUri: path.join(LAYER_DIR, layerZipFile),
-        CompatibleRuntimes: ['nodejs20.x', 'nodejs22.x'],
+        CompatibleRuntimes: ['nodejs20.x', 'nodejs22.x', 'nodejs24.x'],
         CompatibleArchitectures: [samLambdaArchitecture()],
       },
     });
