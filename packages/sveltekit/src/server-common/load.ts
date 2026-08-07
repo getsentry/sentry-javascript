@@ -109,7 +109,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
             attributes: {
               [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
               [CODE_FUNCTION_NAME]: 'load',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
             },

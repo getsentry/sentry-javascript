@@ -258,7 +258,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
         'code.function.name': 'load',
@@ -268,7 +268,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
       op: 'function',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      origin: 'auto.function.sveltekit',
+      origin: 'auto.function.sveltekit.server',
       status: 'ok',
     });
     expect(transaction.transaction).toEqual('/users/123');

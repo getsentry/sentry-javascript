@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
 } from '@sentry/core';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { RequestEvent } from '@sveltejs/kit';
 import { sendErrorToSentry } from './utils';
@@ -59,7 +59,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
               [CODE_FUNCTION_NAME]: httpMethod,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              'http.method': httpMethod,
+              [HTTP_REQUEST_METHOD]: httpMethod,
             },
             onlyIfParent: true,
           },
