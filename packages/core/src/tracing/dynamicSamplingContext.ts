@@ -68,9 +68,9 @@ export function getDynamicSamplingContextFromScope(
   scope: Scope,
 ): Partial<DynamicSamplingContext> | undefined {
   // While an external propagation context is active (e.g. the OTLP integration riding along on an
-  // OpenTelemetry span), the SDK is not the head of the trace and has no transaction semantics to
-  // describe it with, so there is no sampling context to send. The scope's own DSC would name a
-  // different trace than the one stamped on the event, so send none at all. Matches sentry-python.
+  // OpenTelemetry span), the SDK lacks most of the DSC information, like sampled, sample_rate,
+  // sample_rand and transaction. The scope's own DSC would also name a different trace than the one
+  // stamped on the event, so send none at all. Matches sentry-python.
   if (getExternalPropagationContext()) {
     return undefined;
   }
