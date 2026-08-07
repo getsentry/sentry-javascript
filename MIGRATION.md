@@ -326,9 +326,7 @@ Sentry.init({
 
 // After
 Sentry.init({
-  ignoreSpans: [
-    'GET /health'
-  ]
+  ignoreSpans: ['GET /health'],
   beforeSendSpan: span => {
     if (span.is_segment) {
       span.name = scrubIds(span.name);
