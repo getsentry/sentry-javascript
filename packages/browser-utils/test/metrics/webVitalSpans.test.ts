@@ -17,6 +17,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     browserPerformanceTimeOrigin: vi.fn(),
+    correctedPerformanceTimeOrigin: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
     getClient: vi.fn(),
@@ -475,6 +476,7 @@ describe('_sendInpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.correctedPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
@@ -592,6 +594,7 @@ describe('trackInpAsSpan', () => {
 
   beforeEach(() => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.correctedPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);

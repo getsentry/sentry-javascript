@@ -12,7 +12,7 @@ import type {
   ThreadCpuProfile,
 } from '@sentry/core/browser';
 import {
-  browserPerformanceTimeOrigin,
+  correctedPerformanceTimeOrigin,
   debug,
   DEFAULT_ENVIRONMENT,
   forEachEnvelopeItem,
@@ -339,7 +339,7 @@ function convertToContinuousProfile(input: {
   }
 
   // Align timestamps to SDK time origin to match span/event timelines
-  const perfOrigin = browserPerformanceTimeOrigin();
+  const perfOrigin = correctedPerformanceTimeOrigin();
   const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
   const adjustForOriginChange = origin - (perfOrigin || origin);
 
@@ -412,7 +412,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
   // the drift between the SDK selected value and our profile time origin.
-  const perfOrigin = browserPerformanceTimeOrigin();
+  const perfOrigin = correctedPerformanceTimeOrigin();
   const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
   const adjustForOriginChange = origin - (perfOrigin || origin);
 

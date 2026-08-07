@@ -1,6 +1,7 @@
 import type { Client, Integration, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  correctedPerformanceTimeOrigin,
   debug,
   getActiveSpan,
   getClient,
@@ -329,7 +330,9 @@ export function trackInpAsSpan(client: Client): void {
 export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, standalone = false): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  // INP reports on pagehide, potentially hours after the origin cached at init, so the corrected origin is used to stay
+  // on the same timeline as span and event timestamps.
+  const startTime = msToSec((correctedPerformanceTimeOrigin() as number) + entry.startTime);
   const duration = msToSec(inpValue);
   const interactionType = INP_ENTRY_MAP[entry.name];
 
