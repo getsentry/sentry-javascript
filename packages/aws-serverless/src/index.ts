@@ -116,6 +116,8 @@ export {
   postgresJsIntegration,
   processSessionIntegration,
   prismaIntegration,
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   childProcessIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
