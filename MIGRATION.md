@@ -125,7 +125,7 @@ Everything goes to Sentry and only to Sentry. This is not a general OpenTelemetr
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Turn Sentry tracing off, own the OpenTelemetry setup yourself, and add `otlpIntegration()`:
+Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, own the OpenTelemetry setup yourself, and add `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -145,6 +145,8 @@ Sentry.init({
   integrations: [Sentry.otlpIntegration()],
 });
 ```
+
+`skipOpenTelemetrySetup` already defaults to `true` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `false`, so you have to set it explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
 OpenTelemetry owns spans end to end. Sentry captures errors and logs, and `otlpIntegration()` attaches them to whatever OpenTelemetry span is active so they land on the same trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
