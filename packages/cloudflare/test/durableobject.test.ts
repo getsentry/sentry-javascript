@@ -371,6 +371,43 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('result');
   });
 
+  it('skips non-configurable prototype methods instead of failing construction', () => {
+    const testClass = class {
+      sealedMethod() {
+        return 'sealed-result';
+      }
+
+      rpcMethod() {
+        return 'rpc-result';
+      }
+    };
+    Object.defineProperty(testClass.prototype, 'sealedMethod', {
+      value: testClass.prototype.sealedMethod,
+      writable: false,
+      enumerable: false,
+      configurable: false,
+    });
+    const originalSealedMethod = testClass.prototype.sealedMethod;
+
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+
+    let obj: any;
+    expect(() => {
+      obj = Reflect.construct(instrumented, []);
+    }).not.toThrow();
+
+    // The non-configurable method keeps its original (unwrapped) implementation
+    expect(testClass.prototype.sealedMethod).toBe(originalSealedMethod);
+    expect(obj.sealedMethod()).toBe('sealed-result');
+
+    // Other methods on the same prototype are still wrapped
+    expect(getInstrumented(obj.rpcMethod)).toBeTruthy();
+    expect(obj.rpcMethod()).toBe('rpc-result');
+  });
+
   it('does not wrap Object.prototype methods as RPC methods', () => {
     const testClass = class {
       rpcMethod() {

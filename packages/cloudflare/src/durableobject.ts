@@ -353,7 +353,11 @@ function instrumentPrototypeRpcMethods(
       }
 
       const wrapped = createRpcPrototypeWrapper(methodName, descriptor.value as UncheckedMethod);
-      Object.defineProperty(prototype, methodName, { ...descriptor, value: wrapped });
+
+      try {
+        Object.defineProperty(prototype, methodName, { ...descriptor, value: wrapped });
+      } catch {}
+
       // Only the wrapper is marked, not the original method: `wrapMethodWithSentry` resolves
       // through the same global map and must not resolve the original to this wrapper,
       // which would recurse.
