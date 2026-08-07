@@ -463,6 +463,82 @@ Affected SDKs: All SDKs.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
 
+### Span operation (`op`) changes
+
+Affected SDKs: All SDKs.
+
+Span ops are now aligned to a smaller, framework-neutral, convention-backed set. The detail that used to live in the op (framework, library, method name, trigger, or lifecycle phase) is preserved in span attributes such as `code.function.name`, `sentry.origin`, `db.system.name`, `db.operation.name`, `faas.trigger`, and framework-specific attributes.
+
+These changes are not caught by TypeScript. If you filter, group, or alert on span ops — in dashboards, dynamic sampling rules, `ignoreSpans`, or `beforeSendSpan` — update them to the new ops below.
+
+**Backend HTTP, handlers, middleware & routers:**
+
+| Area                                                                       | Before                                                                                                                                                                                                                     | After         |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Request handlers (Express, Koa, Connect, Fastify, Hono, Elysia, NestJS, …) | `request_handler.<library>`, `handler.nestjs`, `hono.request`                                                                                                                                                              | `handler`     |
+| Hono `app.request()` in-process dispatch                                   | `hono.request`                                                                                                                                                                                                             | `http.server` |
+| Web-server middleware                                                      | `middleware.express`, `middleware.koa`, `middleware.hono`, `middleware.elysia`, `middleware.nestjs`, `middleware.nuxt`, `middleware.nitro`, `middleware.tanstackstart`, `hook.fastify`, `http.server.middleware` (Next.js) | `middleware`  |
+| Backend router layers                                                      | `router.express`, `router.koa`, `router.hapi`                                                                                                                                                                              | `router`      |
+| Hapi server extensions                                                     | `server.ext.hapi`                                                                                                                                                                                                          | `middleware`  |
+| NestJS setup & lifecycle handlers                                          | `app_creation.nestjs`, `request_context.nestjs`, `event.nestjs`                                                                                                                                                            | `function`    |
+
+**Framework functions:**
+
+| Area                                                                                                      | Before                                                                                                                                                                                              | After      |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Loaders, actions & server functions (Next.js, Remix, React Router, SvelteKit, SolidStart, TanStack Start) | `function.nextjs`, `function.sveltekit.load`, `function.react_router.loader`, `function.remix.document_request`, `loader.remix`, `action.remix`, `function.server_action`, `function.tanstackstart` | `function` |
+
+**Frontend & UI:**
+
+| Area                                     | Before                                                                                                                               | After                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Frontend routing                         | `ui.angular.routing`, `ui.sveltekit.routing`, `ui.ember.transition`                                                                  | `router`                                                 |
+| React, Vue & Svelte component lifecycles | `ui.react.mount`/`render`/`update`, `ui.svelte.init`/`update`, Vue `render`/`update`/`mount`/`create`/`activate`/`unmount`/`destroy` | `ui.mount`, `ui.render`, `ui.update`, `ui.unmount`       |
+| Angular tracing decorators               | `ui.angular.init` (`TraceDirective`/`TraceClass`), `ui.angular.<method>` (`TraceMethod`)                                             | `ui.mount`, `function`                                   |
+| Ember route hooks, runloop & components  | `ui.ember.route.<hook>`, `ui.ember.runloop.<queue>`, `ui.ember.component.render`/`definition`/`init`                                 | `function`, `ui.task`, `ui.render`/`function`/`ui.mount` |
+| Browser paint entries                    | `paint`                                                                                                                              | `browser.paint`                                          |
+
+**Databases, cache & messaging:**
+
+| Area                                  | Before                                                                                                                                              | After                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Redis commands / connect              | `db.redis`, `db.redis.connect`                                                                                                                      | `db.query`, `db`                                  |
+| Nuxt & Nitro storage (unstorage)      | `cache.has_item`, `cache.get_item`, `cache.get_items`, `cache.get_keys`, `cache.set_item`, `cache.set_items`, `cache.remove_item`, `cache.clear`, … | `cache.get`, `cache.put`, `cache.remove`          |
+| Kafka, AMQP & OTel-inferred messaging | `message`, `message.produce`, `message.consume`                                                                                                     | `queue.publish`, `queue.receive`, `queue.process` |
+
+**RPC & Gen AI:**
+
+| Area                                                     | Before                                      | After                                |
+| -------------------------------------------------------- | ------------------------------------------- | ------------------------------------ |
+| tRPC                                                     | `rpc.server`                                | `rpc`                                |
+| GCP gRPC calls                                           | `grpc.<service>`                            | `grpc`                               |
+| AWS Bedrock inference                                    | `rpc`                                       | `gen_ai.chat`, `gen_ai.invoke_model` |
+| Gen AI fallbacks & model metadata (Vercel AI, LangGraph) | `gen_ai.unknown`, `ai.run`, `gen_ai.models` | `function`                           |
+
+**FaaS, serverless & HTTP clients:**
+
+| Area                                           | Before                                                                | After                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| AWS Lambda functions                           | `function.aws.lambda`                                                 | `function.aws`                             |
+| GCP functions                                  | `function.gcp.http`, `function.gcp.event`, `function.gcp.cloud_event` | `function.gcp`                             |
+| Firebase functions                             | `http.request`                                                        | `function.gcp`                             |
+| Cloudflare cron, email & workflow steps        | `faas.cron`, `faas.email`, `function.step.do`                         | `function`                                 |
+| OTel-inferred FaaS spans (from `faas.trigger`) | arbitrary trigger strings used verbatim                               | `http.server`, `queue.process`, `function` |
+| GCP HTTP client                                | `http.client.<service>`                                               | `http.client`                              |
+| Prefetch HTTP requests                         | `http.client.prefetch`, `http.server.prefetch`                        | `http.client`, `http.server`               |
+
+**Casing normalized to snake_case:** Some `browser.*` and `ui.*` ops used inconsistent casing and are now aligned to snake_case:
+
+| Before                          | After                              |
+| ------------------------------- | ---------------------------------- |
+| `ui.long-task`                  | `ui.long_task`                     |
+| `ui.long-animation-frame`       | `ui.long_animation_frame`          |
+| `browser.unloadEvent`           | `browser.unload_event`             |
+| `browser.domContentLoadedEvent` | `browser.dom_content_loaded_event` |
+| `browser.loadEvent`             | `browser.load_event`               |
+| `browser.TLS/SSL`               | `browser.tls_ssl`                  |
+| `browser.DNS`                   | `browser.dns`                      |
+
 ### LangGraph no longer emits `create_agent` spans
 
 Affected SDKs: All server-side SDKs.
@@ -484,8 +560,6 @@ The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIn
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
-
-**Middleware span op changed to `middleware`:** Next.js middleware spans now use the `middleware` span op instead of `http.server.middleware`. If you filter or alert on the previous op (e.g. in dashboards or dynamic sampling rules), update it to `middleware`.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
