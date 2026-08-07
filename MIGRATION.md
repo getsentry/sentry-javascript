@@ -92,7 +92,7 @@ There are three ways to run the Sentry and OpenTelemetry SDKs together, and whic
 
 ##### 1. Sentry only
 
-The default, and what most users want. Tracing works out of the box:
+The default, and what you most likely want. Tracing works out of the box:
 
 ```js
 Sentry.init({
