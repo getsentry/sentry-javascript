@@ -169,9 +169,9 @@ Sentry.init({
 });
 ```
 
-##### The v10 bridge is gone
+##### Migrating custom OpenTelemetry setups
 
-If you previously wired Sentry into your own OpenTelemetry setup with `SentryContextManager`, `SentrySampler` and `SentrySpanProcessor`, that path no longer exists. Those components were removed, so there is no longer a way to route spans from your own provider into Sentry as Sentry spans. Export them over OTLP instead, as shown in setup 3.
+In v10, running your own OpenTelemetry setup meant registering Sentry's own components into it: `SentryContextManager`, `SentrySampler` and `SentrySpanProcessor`. Those were removed, so there is no longer a way to route spans from your own provider into Sentry as Sentry spans. Export them over OTLP instead, as shown in setup 3.
 
 #### Connecting Sentry to your OpenTelemetry traces
 
