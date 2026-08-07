@@ -45,20 +45,20 @@ describe('svelteKitSpansIntegration', () => {
     svelteKitSpansIntegration().preprocessEvent?.(event, {}, {});
 
     expect(event.spans).toHaveLength(1);
-    expect(event.spans?.[0]?.op).toBe('function.sveltekit.resolve');
+    expect(event.spans?.[0]?.op).toBe('function');
     expect(event.spans?.[0]?.origin).toBe('auto.http.sveltekit');
-    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function.sveltekit.resolve');
+    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
     expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
   });
 
   describe('_enhanceKitSpan', () => {
     it.each([
-      ['sveltekit.resolve', 'function.sveltekit.resolve', 'auto.http.sveltekit'],
-      ['sveltekit.load', 'function.sveltekit.load', 'auto.function.sveltekit.load'],
-      ['sveltekit.form_action', 'function.sveltekit.form_action', 'auto.function.sveltekit.action'],
-      ['sveltekit.remote.call', 'function.sveltekit.remote', 'auto.rpc.sveltekit.remote'],
-      ['sveltekit.handle.sequenced.0', 'function.sveltekit.handle', 'auto.function.sveltekit.handle'],
-      ['sveltekit.handle.sequenced.myHandler', 'function.sveltekit.handle', 'auto.function.sveltekit.handle'],
+      ['sveltekit.resolve', 'function', 'auto.http.sveltekit'],
+      ['sveltekit.load', 'function', 'auto.function.sveltekit.load'],
+      ['sveltekit.form_action', 'function', 'auto.function.sveltekit.action'],
+      ['sveltekit.remote.call', 'function', 'auto.rpc.sveltekit.remote'],
+      ['sveltekit.handle.sequenced.0', 'function', 'auto.function.sveltekit.handle'],
+      ['sveltekit.handle.sequenced.myHandler', 'function', 'auto.function.sveltekit.handle'],
     ])('enhances %s span with the correct op and origin', (spanName, op, origin) => {
       const span = {
         description: spanName,
@@ -191,12 +191,12 @@ describe('svelteKitSpansIntegration', () => {
     }
 
     it.each([
-      ['sveltekit.resolve', 'function.sveltekit.resolve', 'auto.http.sveltekit'],
-      ['sveltekit.load', 'function.sveltekit.load', 'auto.function.sveltekit.load'],
-      ['sveltekit.form_action', 'function.sveltekit.form_action', 'auto.function.sveltekit.action'],
-      ['sveltekit.remote.call', 'function.sveltekit.remote', 'auto.rpc.sveltekit.remote'],
-      ['sveltekit.handle.sequenced.0', 'function.sveltekit.handle', 'auto.function.sveltekit.handle'],
-      ['sveltekit.handle.sequenced.myHandler', 'function.sveltekit.handle', 'auto.function.sveltekit.handle'],
+      ['sveltekit.resolve', 'function', 'auto.http.sveltekit'],
+      ['sveltekit.load', 'function', 'auto.function.sveltekit.load'],
+      ['sveltekit.form_action', 'function', 'auto.function.sveltekit.action'],
+      ['sveltekit.remote.call', 'function', 'auto.rpc.sveltekit.remote'],
+      ['sveltekit.handle.sequenced.0', 'function', 'auto.function.sveltekit.handle'],
+      ['sveltekit.handle.sequenced.myHandler', 'function', 'auto.function.sveltekit.handle'],
     ])('enhances %s span with the correct op and origin', (spanName, op, origin) => {
       const span = makeStreamedSpan({ name: spanName, attributes: { someAttribute: 'someValue' } });
 

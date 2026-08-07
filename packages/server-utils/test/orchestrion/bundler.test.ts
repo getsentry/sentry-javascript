@@ -20,7 +20,7 @@ vi.mock('@apm-js-collab/code-transformer-bundler-plugins/esbuild', () => ({
   default: () => ({ name: 'code-transformer', setup: vi.fn() }),
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/vite', () => ({
-  default: () => ({ name: 'code-transformer' }),
+  default: () => ({ name: 'code-transformer', transform: () => 'transformed' }),
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
   default: () => ({ apply: vi.fn() }),
@@ -60,6 +60,7 @@ describe('sentryOrchestrionPlugin (esbuild)', () => {
     const build = {
       initialOptions: { external },
       onStart: (callback: () => OnStartResult) => onStartCallbacks.push(callback),
+      onResolve: vi.fn(),
     } as unknown as PluginBuild;
     void esbuildPlugin().setup(build);
     return onStartCallbacks.map(callback => callback());
@@ -112,6 +113,53 @@ describe('sentryOrchestrionWebpackPlugin', () => {
     expect(runApply(() => undefined)).toHaveLength(0);
     expect(runApply(undefined)).toHaveLength(0);
   });
+
+  describe('snippet resolve alias', () => {
+    // The snippet's `@sentry/server-utils/orchestrion` import is emitted inside
+    // transformed node_modules files, where it doesn't resolve under isolated
+    // installs (pnpm) — the plugin maps it to this package's own resolution.
+    function applyWithResolve(resolve: unknown): { alias?: unknown } {
+      const options = { externals: undefined, resolve } as { resolve?: { alias?: unknown } };
+      const compiler = {
+        options,
+        hooks: { thisCompilation: { tap: vi.fn() } },
+        webpack: { WebpackError: Error },
+      } as unknown as Compiler;
+      sentryOrchestrionWebpackPlugin().apply(compiler);
+      return options.resolve ?? {};
+    }
+
+    it('adds an exact-match alias to object-form (and absent) alias config', () => {
+      const { alias } = applyWithResolve(undefined);
+      const target = (alias as Record<string, string>)['@sentry/server-utils/orchestrion$'];
+
+      expect(target).toBeDefined();
+      expect(isAbsolute(target!)).toBe(true);
+    });
+
+    it('appends an onlyModule entry to array-form alias config', () => {
+      const existing = { name: 'other', alias: '/other' };
+      const { alias } = applyWithResolve({ alias: [existing] });
+
+      expect(alias).toEqual([
+        existing,
+        {
+          name: '@sentry/server-utils/orchestrion',
+          alias: expect.stringMatching(/orchestrion/),
+          onlyModule: true,
+        },
+      ]);
+    });
+
+    it('leaves an existing user alias for the specifier untouched', () => {
+      const { alias: objectAlias } = applyWithResolve({ alias: { '@sentry/server-utils/orchestrion': '/user' } });
+      expect(objectAlias).toEqual({ '@sentry/server-utils/orchestrion': '/user' });
+
+      const userEntry = { name: '@sentry/server-utils/orchestrion', alias: '/user' };
+      const { alias: arrayAlias } = applyWithResolve({ alias: [userEntry] });
+      expect(arrayAlias).toEqual([userEntry]);
+    });
+  });
 });
 
 describe('sentryOrchestrionPlugin (vite)', () => {
@@ -137,6 +185,63 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(runConfigResolved(true)).not.toHaveBeenCalled();
     expect(runConfigResolved(['lodash'])).not.toHaveBeenCalled();
     expect(runConfigResolved(undefined)).not.toHaveBeenCalled();
+  });
+
+  it('force-bundles the orchestrion helper package alongside instrumented modules', () => {
+    const plugin = vitePlugin();
+    const config = (plugin.config as () => { ssr: { noExternal: string[] } })();
+
+    // Left external, Vite 5's CommonJS interop turns the snippet's `require`
+    // into a default import of the named-exports-only ESM entry — a link-time
+    // crash at server startup.
+    expect(config.ssr.noExternal).toContain('@sentry/server-utils');
+    expect(config.ssr.noExternal).toContain('mysql');
+  });
+
+  it('gates the transform on the ssr flag (Vite 5 ignores applyToEnvironment)', () => {
+    const plugin = vitePlugin();
+    const transform = plugin.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+
+    // Client-build transforms must be skipped: transformed modules in the
+    // client graph would import the subscriber factories, whose
+    // `node:diagnostics_channel` imports break against the browser shim.
+    expect(transform.call({}, 'code', 'id', { ssr: false })).toBeNull();
+    expect(transform.call({}, 'code', 'id', undefined)).toBeNull();
+    expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+  });
+
+  it('gates resolveId on the ssr flag and falls back to self-resolution', async () => {
+    const plugin = vitePlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts?: { ssr?: boolean },
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: false }),
+    ).resolves.toBeNull();
+    expect(resolve).not.toHaveBeenCalled();
+
+    // Normal resolution wins when it succeeds.
+    resolve.mockResolvedValueOnce({ id: '/resolved.js' });
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true }),
+    ).resolves.toEqual({
+      id: '/resolved.js',
+    });
+
+    // When it fails (pnpm isolation), fall back to this package's own resolution.
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true });
+    expect(typeof fallback).toBe('string');
+    expect(fallback).toContain('orchestrion');
   });
 });
 
@@ -210,36 +315,52 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   });
 });
 
-describe('orchestrionTransformOptions injectDiagnostics banner', () => {
-  // Evaluate the emitted boot-banner snippet against a fake global, mirroring
-  // what runs when a bundled app boots. The banner must record `.bundler` for
-  // detection AND fire the on-inject bridge for each transformed module
-  // (force-bundled modules never reach the runtime hook, so the bridge is the
-  // only thing that triggers their channel subscription).
-  function runBanner(transformedModules: string[], global: Record<string, unknown>): void {
+describe('orchestrionTransformOptions', () => {
+  it('always includes the module-injected tracingChannelImport override', () => {
     const opts = orchestrionTransformOptions({});
-    const banner = opts.injectDiagnostics?.({ transformedModules, failedModules: [] });
-    expect(typeof banner).toBe('string');
-    // `globalThis` inside the snippet resolves to the sandbox object we pass in.
-    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
-    new Function('globalThis', banner as string)(global);
-  }
 
-  it('records `.bundler` and fires the on-inject bridge for each module', () => {
-    const onInject = vi.fn();
-    const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { onInject } };
-
-    runBanner(['mysql', 'pg'], global);
-
-    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql', 'pg']);
-    expect(onInject.mock.calls.map(c => c[0])).toEqual(['mysql', 'pg']);
+    expect(typeof opts.customTransforms?.tracingChannelImport).toBe('function');
   });
 
-  it('is a guarded no-op for the bridge when none is installed (bundler-only runtimes)', () => {
-    const global: Record<string, unknown> = {};
+  it('keeps user custom transforms and lets the module-injected override win a name clash', () => {
+    const userTransform = vi.fn();
+    const clashing = vi.fn();
 
-    expect(() => runBanner(['mysql'], global)).not.toThrow();
-    // `.bundler` is still recorded so `init()` can drive subscription from it.
-    expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+    const opts = orchestrionTransformOptions({
+      customTransforms: { myTransform: userTransform, tracingChannelImport: clashing },
+    });
+
+    expect(opts.customTransforms?.myTransform).toBe(userTransform);
+    expect(opts.customTransforms?.tracingChannelImport).not.toBe(clashing);
+  });
+
+  describe('marker banner', () => {
+    // Evaluate the emitted boot-banner snippet against a fake global, mirroring
+    // what runs when a bundled app boots. The banner only marks "the bundler
+    // plugin ran"; module names arrive per module via the injected snippets.
+    function runBanner(global: Record<string, unknown>): void {
+      const opts = orchestrionTransformOptions({});
+      const banner = opts.injectDiagnostics?.({ transformedModules: [], failedModules: [] });
+      expect(typeof banner).toBe('string');
+      // `globalThis` inside the snippet resolves to the sandbox object we pass in.
+      // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
+      new Function('globalThis', banner as string)(global);
+    }
+
+    it('marks the plugin as ran with an empty module list', () => {
+      const global: Record<string, unknown> = {};
+
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual([]);
+    });
+
+    it('never clobbers module names an injected snippet already recorded', () => {
+      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: ['mysql'] } };
+
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+    });
   });
 });

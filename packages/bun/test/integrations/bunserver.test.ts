@@ -1,16 +1,26 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { init } from '../../src';
+import type { BunOptions } from '../../src';
+import { getDefaultIntegrationsWithoutPerformance, init } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
-import type { DataCollection, Span } from '@sentry/core';
 
 describe('Bun Serve Integration', () => {
   const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
   const setAttributesSpy = spyOn(mockSpan, 'setAttributes');
   const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
   const startSpanSpy = spyOn(SentryCore, 'startSpan').mockImplementation((_opts, cb) => {
-    return cb(mockSpan as unknown as Span);
+    return cb(mockSpan as unknown as SentryCore.Span);
   });
+
+  const setupClient = (options?: BunOptions): void => {
+    init({
+      dsn: 'https://username@domain/123',
+      defaultIntegrations: false,
+      ...options,
+      transport: () =>
+        SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
+    });
+  };
 
   beforeAll(() => {
     instrumentBunServe();
@@ -20,12 +30,16 @@ describe('Bun Serve Integration', () => {
     startSpanSpy.mockClear();
     continueTraceSpy.mockClear();
     setAttributesSpy.mockClear();
+    // Header attributes are only collected while a client is active, so every test sets up its own instead of
+    // relying on one leaking in from whichever test file `bun test` happened to run first.
+    setupClient();
   });
 
   // Fun fact: Bun = 2 21 14 :)
   let port: number = 22114;
 
   afterEach(() => {
+    SentryCore.getCurrentScope().setClient(undefined);
     // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
     // previous test
     port += 1;
@@ -151,6 +165,7 @@ describe('Bun Serve Integration', () => {
   });
 
   test('includes HTTP request headers as span attributes', async () => {
+    setupClient({ defaultIntegrations: getDefaultIntegrationsWithoutPerformance() });
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Headers test!');
@@ -476,22 +491,8 @@ describe('Bun Serve Integration', () => {
   });
 
   describe('data collection', () => {
-    const setupClient = (dataCollection: DataCollection): void => {
-      init({
-        dsn: 'https://username@domain/123',
-        defaultIntegrations: false,
-        transport: () =>
-          SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
-        dataCollection,
-      });
-    };
-
-    afterEach(() => {
-      SentryCore.getCurrentScope().setClient(undefined);
-    });
-
     test('keeps PII request headers when dataCollection enables full header collection', async () => {
-      setupClient({ httpHeaders: { request: true, response: true } });
+      setupClient({ dataCollection: { httpHeaders: { request: true, response: true } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -514,7 +515,7 @@ describe('Bun Serve Integration', () => {
     test('filters request headers according to the dataCollection deny list', async () => {
       // Deny a header that is not part of the built-in sensitive snippets, so the assertion proves
       // the deny list is applied (the header would otherwise be collected by default).
-      setupClient({ httpHeaders: { request: { deny: ['x-internal'] } } });
+      setupClient({ dataCollection: { httpHeaders: { request: { deny: ['x-internal'] } } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -536,7 +537,7 @@ describe('Bun Serve Integration', () => {
     });
 
     test('filters always-sensitive request headers even when collection is permissive', async () => {
-      setupClient({ httpHeaders: { request: true } });
+      setupClient({ dataCollection: { httpHeaders: { request: true } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -557,7 +558,7 @@ describe('Bun Serve Integration', () => {
     });
 
     test('applies the dataCollection response header collection behavior', async () => {
-      setupClient({ httpHeaders: { response: { deny: ['x-internal'] } } });
+      setupClient({ dataCollection: { httpHeaders: { response: { deny: ['x-internal'] } } } });
 
       const server = Bun.serve({
         async fetch(_req) {

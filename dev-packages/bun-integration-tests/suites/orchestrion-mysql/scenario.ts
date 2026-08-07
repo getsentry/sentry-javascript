@@ -56,7 +56,7 @@ try {
   // ignore
 }
 
-const marker = (globalThis as { __SENTRY_ORCHESTRION__?: { runtime?: boolean; bundler?: boolean } })
+const marker = (globalThis as { __SENTRY_ORCHESTRION__?: { runtime?: string[]; bundler?: string[] } })
   .__SENTRY_ORCHESTRION__;
 
 setTimeout(() => {

@@ -53,8 +53,9 @@ describe('orchestrion pg instrumentation (Bun)', () => {
         expect(line).toContain('events=start');
         // with the expected SQL
         expect(line).toContain('statement=SELECT 1 AS solution');
-        // injected banner ran at bundle boot
-        expect(line).toContain('"bundler":true');
+        // the transformed module's injected snippet recorded it on the marker
+        // (pg-pool may be recorded alongside, in evaluation order)
+        expect(line).toMatch(/"bundler":\[[^\]]*"pg"/);
       } finally {
         if (outfile) {
           rmSync(dirname(outfile), { recursive: true, force: true });

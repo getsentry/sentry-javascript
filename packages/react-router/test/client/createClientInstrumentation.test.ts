@@ -213,7 +213,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Fetcher fetcher-1',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.fetcher',
+          'sentry.op': 'function',
+          'code.function.name': 'fetcher',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -252,7 +253,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_loader',
+          'sentry.op': 'function',
+          'code.function.name': 'clientLoader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -289,7 +291,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_action',
+          'sentry.op': 'function',
+          'code.function.name': 'clientAction',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -605,7 +608,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'clientMiddleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -638,7 +642,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_lazy',
+          'sentry.op': 'function',
+          'code.function.name': 'lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),

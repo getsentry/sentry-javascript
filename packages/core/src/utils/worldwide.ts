@@ -61,26 +61,22 @@ export type InternalGlobal = {
   __SENTRY_ORCHESTRION__?: {
     /** Empty array signifies runtime hooked */
     runtime?: string[];
-    /** Empty array signifies bundler plugin ran */
+    /**
+     * Module names recorded as each bundler-transformed module loads (the
+     * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
+     * entry banner ensures `[]` at boot, so a defined array — even empty —
+     * signifies the plugin ran.
+     */
     bundler?: string[];
     /**
-     * Channel-subscriber integration factories a bundler plugin's
-     * subscribe-injection stored here, keyed by export name (one per instrumented
-     * package actually bundled; the key dedupes packages split across several
-     * files). A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * Channel-subscriber integration factories stored by the snippet the
+     * bundler transform splices into each instrumented module, keyed by module
+     * name. A factory shared by several packages (e.g. pg/pg-pool) appears
+     * under several keys; integration-name deduplication collapses them at
+     * setup. A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;
-    /**
-     * Bridge installed at `init()` by `registerDiagnosticsChannelInjection`.
-     * The bundler's `injectDiagnostics` boot banner calls it for each
-     * transformed module, emitting the `orchestrion.module-runtime-injected`
-     * client event so channel integrations subscribe for force-bundled modules
-     * (which the runtime module hook never sees). Absent on bundler-only
-     * runtimes (e.g. `@sentry/cloudflare`), where the banner's call is a
-     * guarded no-op.
-     */
-    onInject?: (moduleName: string) => void;
   };
 } & Carrier;
 

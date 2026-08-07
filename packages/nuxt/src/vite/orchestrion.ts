@@ -26,9 +26,9 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       return;
     }
 
-    // On Cloudflare (workerd), subscribers are wired via a build-time marker that `@sentry/cloudflare`
-    // reads at runtime (through `sentryCloudflareNitroPlugin`); on Node they register at init. Nitro
-    // normalizes preset names, so match any `cloudflare*` spelling.
+    // On Cloudflare (workerd) the SDK is initialized through `sentryCloudflareNitroPlugin` (no
+    // server config file), so the transform must still run there — detected via the Nitro preset.
+    // Nitro normalizes preset names, so match any `cloudflare*` spelling.
     const isCloudflare = !!nitroConfig.preset?.replace(/-/g, '_').startsWith('cloudflare');
 
     if (!hasServerConfig && !isCloudflare) {
@@ -43,9 +43,7 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
     }
 
-    nitroConfig.rollupConfig.plugins.push(
-      sentryOrchestrionPlugin(isCloudflare ? { injectChannelSubscribers: true } : {}),
-    );
+    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}));
 
     const externals = (nitroConfig.externals ||= {});
     const inline = externals.inline;

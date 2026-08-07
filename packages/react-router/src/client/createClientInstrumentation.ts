@@ -14,6 +14,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
@@ -24,7 +25,8 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -127,7 +129,7 @@ export function createSentryClientInstrumentation(
             const result = await callNavigate();
             if (result.status === 'error' && result.error instanceof Error) {
               captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                [URL_FULL]: info.currentUrl,
+                [URL_FULL]: filterCollectedUrl(info.currentUrl),
               });
             }
             return;
@@ -174,7 +176,7 @@ export function createSentryClientInstrumentation(
                   navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 }
                 captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                  [URL_FULL]: WINDOW.location?.pathname || info.currentUrl,
+                  [URL_FULL]: WINDOW.location?.pathname || filterCollectedUrl(info.currentUrl),
                 });
               }
             } finally {
@@ -221,7 +223,8 @@ export function createSentryClientInstrumentation(
             {
               name: `Fetcher ${info.fetcherKey}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.fetcher',
+                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'fetcher',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -230,7 +233,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
-                  [URL_FULL]: info.href,
+                  [URL_FULL]: filterCollectedUrl(info.href),
                 });
               }
             },
@@ -255,7 +258,8 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_loader',
+                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'clientLoader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -281,7 +285,8 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_action',
+                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'clientAction',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -314,7 +319,8 @@ export function createSentryClientInstrumentation(
             {
               name: `middleware ${routeId}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_middleware',
+                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'clientMiddleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 'http.route': routePattern,
@@ -338,7 +344,8 @@ export function createSentryClientInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_lazy',
+                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

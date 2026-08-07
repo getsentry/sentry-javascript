@@ -1,6 +1,7 @@
 import { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../../breadcrumbs';
 import { getBreadcrumbLogLevelFromHttpStatusCode } from '../../utils/breadcrumb-log-level';
+import { filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 import { getSanitizedUrlString, getUrlFragment, getUrlQuery, parseUrl } from '../../utils/url';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
@@ -26,7 +27,7 @@ export function addOutgoingRequestBreadcrumb(
         url: getSanitizedUrlString(parsedUrl),
         // eslint-disable-next-line typescript/no-deprecated
         [HTTP_METHOD]: request.method || 'GET',
-        [URL_QUERY]: getUrlQuery(parsedUrl.search),
+        [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search)),
         [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
       },
       type: 'http',
