@@ -10,6 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
+export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureException,
@@ -98,8 +99,8 @@ export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   spanIsSampled,
   spanIsSentrySpan,
   spanToTraceContext,

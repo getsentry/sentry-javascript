@@ -54,7 +54,7 @@ describe('BrowserProfilingIntegration', () => {
 
     const currentTransaction = Sentry.getActiveSpan();
     expect(currentTransaction).toBeDefined();
-    expect(Sentry.spanToJSON(currentTransaction!).op).toBe('pageload');
+    expect(Sentry.spanToJSON(currentTransaction!).attributes['sentry.op']).toBe('pageload');
     currentTransaction?.end();
     await client!.flush(1000);
 

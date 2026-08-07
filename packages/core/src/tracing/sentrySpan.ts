@@ -36,7 +36,7 @@ import {
   getStatusMessage,
   getStreamedSpanLinks,
   spanTimeInputToSeconds,
-  spanToJSON,
+  spanToStaticSpanJSON,
   spanToTransactionTraceContext,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -315,7 +315,7 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal This method is purely for internal purposes and should not be used outside
    * of SDK code. If you need to get a JSON representation of a span,
-   * use `spanToStreamedSpanJSON(span)` instead.
+   * use `spanToJSON(span)` instead.
    */
   public getStreamedSpanJSON(): StreamedSpanJSON {
     return {
@@ -324,8 +324,7 @@ export class SentrySpan implements Span {
       trace_id: this._traceId,
       parent_span_id: this._parentSpanId,
       start_timestamp: this._startTime,
-      // just in case _endTime is not set, we use the start time (i.e. duration 0)
-      end_timestamp: this._endTime ?? this._startTime,
+      end_timestamp: this._endTime,
       is_segment: this === getRootSpan(this),
       status: getSimpleStatus(this._status),
       attributes: addStatusMessageAttribute(this._attributes, this._status),
@@ -436,7 +435,7 @@ export class SentrySpan implements Span {
    */
   private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
     // We can only convert finished spans
-    if (!isFullFinishedSpan(spanToJSON(this))) {
+    if (!isFullFinishedSpan(spanToStaticSpanJSON(this))) {
       return undefined;
     }
 
@@ -463,7 +462,7 @@ export class SentrySpan implements Span {
       if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
-      const spanJSON = spanToJSON(descendant);
+      const spanJSON = spanToStaticSpanJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
         continue;
       }

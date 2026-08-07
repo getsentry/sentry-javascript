@@ -71,9 +71,8 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'pageload',
-        description: '/',
-        data: expect.objectContaining({
+        name: '/',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -103,9 +102,8 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
     expect(spanStartMock).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'pageload',
-        description: '/',
-        data: expect.objectContaining({
+        name: '/',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -145,20 +143,20 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
       // Wait for the router transition to complete (Navigate redirects are async)
       await waitFor(() => {
-        const navSpan = spans.find(s => spanToJSON(s).op === 'navigation');
+        const navSpan = spans.find(s => spanToJSON(s).attributes['sentry.op'] === 'navigation');
         expect(navSpan).toBeDefined();
 
         const span = spanToJSON(navSpan!);
-        expect(span.description).toBe(parametrizedRoute);
-        expect(span.data).toMatchObject({
+        expect(span.name).toBe(parametrizedRoute);
+        expect(span.attributes).toMatchObject({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         });
 
         for (const [key, value] of Object.entries(expectedParams as Record<string, string>)) {
-          expect(span.data![`url.path.parameter.${key}`]).toBe(value);
-          expect(span.data![`params.${key}`]).toBe(value);
+          expect(span.attributes![`url.path.parameter.${key}`]).toBe(value);
+          expect(span.attributes![`params.${key}`]).toBe(value);
         }
       });
     },
@@ -185,9 +183,8 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
     expect(spanStartMock).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'navigation',
-        description: '/about',
-        data: expect.objectContaining({
+        name: '/about',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',

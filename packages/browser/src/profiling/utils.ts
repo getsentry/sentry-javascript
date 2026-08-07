@@ -27,6 +27,7 @@ import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 const MS_TO_NS = 1e6;
 
@@ -380,7 +381,7 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  *
  */
 export function isAutomatedPageLoadSpan(span: Span): boolean {
-  return spanToJSON(span).op === 'pageload';
+  return spanToJSON(span).attributes[SENTRY_OP] === 'pageload';
 }
 
 /**

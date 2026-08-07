@@ -1,4 +1,4 @@
-import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, SpanAttributes, SpanAttributeValue } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
@@ -34,7 +34,9 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
-        const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(idleSpan);
+        const { attributes, start_timestamp: parentStartTimestamp } = spanToJSON(idleSpan);
+        const parentOp = attributes[SENTRY_OP];
+
         if (parentOp !== 'pageload' && parentOp !== 'navigation') {
           return;
         }

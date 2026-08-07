@@ -102,9 +102,8 @@ describe('withServerActionInstrumentation', () => {
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function',
-        description: 'getPrefecture',
-        data: expect.objectContaining({
+        name: 'getPrefecture',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',

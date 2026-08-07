@@ -73,6 +73,7 @@ export function makeSpan(data: Record<string, unknown> = {}): Span {
     setAttribute: vi.fn(),
     updateName: vi.fn(),
     getSpanJSON: () => ({ data }),
+    getStreamedSpanJSON: () => ({ attributes: data }),
   } as unknown as Span;
 }
 

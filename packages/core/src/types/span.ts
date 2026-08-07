@@ -49,10 +49,11 @@ export interface StreamedSpanJSON {
   span_id: string;
   name: string;
   start_timestamp: number;
-  end_timestamp: number;
+  /** Only set once the span has ended. */
+  end_timestamp?: number;
   status: 'ok' | 'error';
   is_segment: boolean;
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
   links?: SpanLinkJSON<RawAttributes<Record<string, unknown>>>[];
 }
 
@@ -60,9 +61,11 @@ export interface StreamedSpanJSON {
  * Serialized span item.
  * This is the final, serialized span format that is sent to Sentry.
  * The intermediate representation is {@link StreamedSpanJSON}.
- * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
+ * Main differences: Attributes are converted to {@link Attributes}, thus including the `type`
+ * annotation, and `end_timestamp` is guaranteed to be set (we only ever send ended spans).
  */
-export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
+export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links' | 'end_timestamp'> & {
+  end_timestamp: number;
   attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };

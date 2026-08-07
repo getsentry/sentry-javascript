@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
+  SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
   SPAN_STATUS_ERROR,
@@ -25,8 +26,8 @@ import {
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   spanToTraceContext,
   streamedSpanJsonToSerializedSpan,
   TRACE_FLAG_NONE,
@@ -316,7 +317,7 @@ describe('spanToJSON', () => {
   describe('SentrySpan', () => {
     it('works with a simple span', () => {
       const span = new SentrySpan();
-      expect(spanToJSON(span)).toEqual({
+      expect(spanToStaticSpanJSON(span)).toEqual({
         span_id: span.spanContext().spanId,
         trace_id: span.spanContext().traceId,
         origin: 'manual',
@@ -343,7 +344,7 @@ describe('spanToJSON', () => {
       });
       span.setStatus({ code: SPAN_STATUS_OK });
 
-      expect(spanToJSON(span)).toEqual({
+      expect(spanToStaticSpanJSON(span)).toEqual({
         description: 'test name',
         op: 'test op',
         parent_span_id: '1234',
@@ -373,7 +374,7 @@ describe('spanToJSON', () => {
         status: { code: SPAN_STATUS_UNSET },
       });
 
-      expect(spanToJSON(span)).toEqual({
+      expect(spanToStaticSpanJSON(span)).toEqual({
         span_id: 'SPAN-1',
         trace_id: 'TRACE-1',
         start_timestamp: 123,
@@ -399,7 +400,7 @@ describe('spanToJSON', () => {
         status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
       });
 
-      expect(spanToJSON(span)).toEqual({
+      expect(spanToStaticSpanJSON(span)).toEqual({
         span_id: 'SPAN-1',
         trace_id: 'TRACE-1',
         start_timestamp: 123,
@@ -418,16 +419,16 @@ describe('spanToJSON', () => {
     });
   });
 
-  describe('spanToStreamedSpanJSON', () => {
+  describe('spanToJSON', () => {
     describe('SentrySpan', () => {
       it('converts a minimal span', () => {
         const span = new SentrySpan();
-        expect(spanToStreamedSpanJSON(span)).toEqual({
+        expect(spanToJSON(span)).toEqual({
           span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
           trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
           name: '',
           start_timestamp: expect.any(Number),
-          end_timestamp: expect.any(Number),
+          end_timestamp: undefined,
           status: 'ok',
           is_segment: true,
           attributes: {
@@ -467,7 +468,7 @@ describe('spanToJSON', () => {
         span.setStatus({ code: SPAN_STATUS_OK });
         span.setAttribute('attr4', [1, 2, 3]);
 
-        expect(spanToStreamedSpanJSON(span)).toEqual({
+        expect(spanToJSON(span)).toEqual({
           name: 'test name',
           parent_span_id: '1234',
           span_id: '5678',
@@ -500,7 +501,7 @@ describe('spanToJSON', () => {
         const span = new SentrySpan({ name: 'test name' });
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'Connection Refused' });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('error');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
       });
@@ -509,7 +510,7 @@ describe('spanToJSON', () => {
         const span = new SentrySpan({ name: 'test name' });
         span.setStatus({ code: SPAN_STATUS_OK });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('ok');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
@@ -518,7 +519,7 @@ describe('spanToJSON', () => {
         const span = new SentrySpan({ name: 'test name' });
         span.setStatus({ code: SPAN_STATUS_ERROR });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('error');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
@@ -527,7 +528,7 @@ describe('spanToJSON', () => {
         const span = new SentrySpan({ name: 'test name' });
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('ok');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
@@ -539,7 +540,7 @@ describe('spanToJSON', () => {
         });
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'Connection Refused' });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('explicit message');
       });
     });
@@ -555,12 +556,12 @@ describe('spanToJSON', () => {
           status: { code: SPAN_STATUS_UNSET },
         });
 
-        expect(spanToStreamedSpanJSON(span)).toEqual({
+        expect(spanToJSON(span)).toEqual({
           span_id: 'SPAN-1',
           trace_id: 'TRACE-1',
           parent_span_id: undefined,
           start_timestamp: 123,
-          end_timestamp: 0,
+          end_timestamp: undefined,
           name: 'test span',
           is_segment: true,
           status: 'ok',
@@ -597,7 +598,7 @@ describe('spanToJSON', () => {
           status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
         });
 
-        expect(spanToStreamedSpanJSON(span)).toEqual({
+        expect(spanToJSON(span)).toEqual({
           span_id: 'SPAN-1',
           trace_id: 'TRACE-1',
           parent_span_id: 'PARENT-1',
@@ -637,7 +638,7 @@ describe('spanToJSON', () => {
           status: { code: SPAN_STATUS_ERROR, message: 'Connection Refused' },
         });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('error');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
       });
@@ -653,7 +654,7 @@ describe('spanToJSON', () => {
           status: { code: SPAN_STATUS_UNSET },
         });
 
-        const json = spanToStreamedSpanJSON(span);
+        const json = spanToJSON(span);
         expect(json.status).toBe('ok');
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
@@ -731,7 +732,7 @@ describe('spanToJSON', () => {
       }),
     };
 
-    expect(spanToJSON(span as unknown as Span)).toEqual({
+    expect(spanToStaticSpanJSON(span as unknown as Span)).toEqual({
       status: 'ok',
       span_id: 'SPAN-1',
       trace_id: 'TRACE-1',
@@ -750,6 +751,38 @@ describe('spanIsSampled', () => {
   test('not sampled', () => {
     const span = new SentrySpan({ sampled: false });
     expect(spanIsSampled(span)).toBe(false);
+  });
+});
+
+// `end_timestamp` is what call sites use to tell an open span from an ended one, so it must stay
+// unset until the span actually ends — across all span implementations.
+describe('spanToJSON end_timestamp', () => {
+  test('SentrySpan', () => {
+    const span = new SentrySpan({ name: 'test' });
+    expect(spanToJSON(span).end_timestamp).toBeUndefined();
+
+    span.end();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
+  });
+
+  test('unsampled SentrySpan', () => {
+    const span = new SentrySpan({ name: 'test', sampled: false });
+    expect(spanToJSON(span).end_timestamp).toBeUndefined();
+
+    span.end();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
+  });
+
+  test('OpenTelemetry span', () => {
+    const openSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: [0, 0] });
+    expect(spanToJSON(openSpan).end_timestamp).toBeUndefined();
+
+    const endedSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: 456 });
+    expect(spanToJSON(endedSpan).end_timestamp).toBe(456);
+  });
+
+  test('SentryNonRecordingSpan', () => {
+    expect(spanToJSON(new SentryNonRecordingSpan()).end_timestamp).toBeUndefined();
   });
 });
 
@@ -784,7 +817,7 @@ describe('updateSpanName', () => {
   it('updates the span name and source', () => {
     const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
     updateSpanName(span, 'new-name');
-    const spanJSON = spanToJSON(span);
+    const spanJSON = spanToStaticSpanJSON(span);
     expect(spanJSON.description).toBe('new-name');
     expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });

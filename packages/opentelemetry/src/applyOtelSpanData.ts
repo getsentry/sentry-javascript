@@ -6,7 +6,7 @@ import {
   SPAN_STATUS_OK,
   isStatusErrorMessageValid,
 } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { RawAttributes, Span } from '@sentry/core';
 import { inferStatusFromAttributes } from './utils/mapStatus';
 
 /**
@@ -15,7 +15,7 @@ import { inferStatusFromAttributes } from './utils/mapStatus';
  */
 export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolean } = {}): void {
   const spanJSON = spanToJSON(span);
-  const attributes = spanJSON.data;
+  const attributes = spanJSON.attributes;
 
   if (options.finalizeStatus) {
     const client = getClient();
@@ -25,7 +25,7 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
 
 function applyOtelSpanStatus(
   span: Span,
-  attributes: SpanAttributes,
+  attributes: RawAttributes<Record<string, unknown>>,
   status: string,
   spanStreamingEnabled: boolean,
 ): void {

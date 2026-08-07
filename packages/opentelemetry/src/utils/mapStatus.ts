@@ -1,5 +1,5 @@
 import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE, RPC_GRPC_STATUS_CODE } from '@sentry/conventions/attributes';
-import type { SpanAttributes, SpanStatus } from '@sentry/core';
+import type { RawAttributes, SpanStatus } from '@sentry/core';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '@sentry/core';
 
 // canonicalCodesGrpcMap maps some GRPC codes to Sentry's span statuses. See description in grpc documentation.
@@ -22,7 +22,7 @@ const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
   '16': 'unauthenticated',
 } as const;
 
-export function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
+export function inferStatusFromAttributes(attributes: RawAttributes<Record<string, unknown>>): SpanStatus | undefined {
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
 
   // eslint-disable-next-line typescript/no-deprecated

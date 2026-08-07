@@ -1,6 +1,6 @@
+import type { RawAttributes } from '../attributes';
 import type { RequestEventData } from '../types/request';
 import type { WorkerLocation } from './misc';
-import type { SpanAttributes } from './span';
 
 /**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
@@ -38,7 +38,7 @@ export interface SamplingContext extends CustomSamplingContext {
   name: string;
 
   /** Initial attributes that have been passed to the span being sampled. */
-  attributes?: SpanAttributes;
+  attributes?: RawAttributes<Record<string, unknown>>;
 }
 
 /**

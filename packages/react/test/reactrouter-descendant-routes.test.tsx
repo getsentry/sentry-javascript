@@ -42,6 +42,9 @@ const mockRootSpan = {
   getSpanJSON() {
     return { op: 'pageload' };
   },
+  getStreamedSpanJSON() {
+    return { attributes: { 'sentry.op': 'pageload' } };
+  },
 };
 
 vi.mock('@sentry/browser', async requireActual => {

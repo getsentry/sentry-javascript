@@ -84,7 +84,7 @@ describe('Angular Tracing', () => {
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
-          data: expect.objectContaining({
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [URL_TEMPLATE]: route,
@@ -92,7 +92,7 @@ describe('Angular Tracing', () => {
             [URL_FULL]: expect.stringContaining('/users/123/'),
             [URL_PATH]: '/users/123/',
           }),
-          description: route,
+          name: route,
         }),
       );
     });
@@ -109,11 +109,11 @@ describe('Angular Tracing', () => {
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
-          data: {
+          attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'sample-source',
           },
-          description: 'initial-span-name',
+          name: 'initial-span-name',
         }),
       );
     });

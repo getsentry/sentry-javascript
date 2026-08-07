@@ -4,8 +4,8 @@ import {
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   spanToJSON,
-  spanToStreamedSpanJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpanManual,
@@ -31,26 +31,21 @@ describe('SentryTracerProvider', () => {
     });
 
     expect(spanToJSON(span as Span)).toEqual({
-      data: {
+      attributes: {
         'sentry.origin': 'manual',
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
         'sentry.source': 'custom',
       },
-      description: 'SELECT users',
-      origin: 'manual',
+      name: 'SELECT users',
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
       start_timestamp: expect.any(Number),
+      end_timestamp: undefined,
+      is_segment: true,
       status: 'ok',
-      timestamp: undefined,
       trace_id: span.spanContext().traceId,
-      profile_id: undefined,
-      exclusive_time: undefined,
-      measurements: undefined,
-      is_segment: undefined,
-      segment_id: undefined,
       links: undefined,
     });
   });
@@ -134,7 +129,7 @@ describe('SentryTracerProvider', () => {
 
     expect(json.trace_id).toBe('12312012123120121231201212312012');
     expect(json.parent_span_id).toBe('1121201211212012');
-    expect(json.data?.['sentry.kind']).toBe('server');
+    expect(json.attributes['sentry.kind']).toBe('server');
   });
 
   it('finalizes span statuses like the OpenTelemetry exporter', () => {
@@ -145,12 +140,16 @@ describe('SentryTracerProvider', () => {
     const httpErrorSpan = trace.getTracer('test').startSpan('http-error');
     httpErrorSpan.setAttribute('http.response.status_code', 500);
     applyOtelSpanData(httpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(httpErrorSpan as Span).status).toBe('internal_error');
+    expect(spanToJSON(httpErrorSpan as Span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(
+      'internal_error',
+    );
 
     const customErrorSpan = trace.getTracer('test').startSpan('custom-error');
     customErrorSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'This is a custom error' });
     applyOtelSpanData(customErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(customErrorSpan as Span).status).toBe('internal_error');
+    expect(spanToJSON(customErrorSpan as Span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(
+      'internal_error',
+    );
   });
 
   it('preserves an explicit OK status when finalizing', () => {
@@ -168,7 +167,7 @@ describe('SentryTracerProvider', () => {
 
     applyOtelSpanData(span as Span, { finalizeStatus: true });
 
-    expect(spanToJSON(span as Span).data?.['sentry.source']).toBe('custom');
+    expect(spanToJSON(span as Span).attributes['sentry.source']).toBe('custom');
   });
 
   it('preserves a non-canonical error status message under span streaming', () => {
@@ -181,7 +180,7 @@ describe('SentryTracerProvider', () => {
 
     applyOtelSpanData(span as Span, { finalizeStatus: true });
 
-    const streamed = spanToStreamedSpanJSON(span as Span);
+    const streamed = spanToJSON(span as Span);
     expect(streamed.status).toBe('error');
     expect(streamed.attributes?.['sentry.status.message']).toBe('Cannot enqueue Query after fatal error.');
   });

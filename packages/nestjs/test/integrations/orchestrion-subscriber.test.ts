@@ -146,17 +146,17 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
     const span = getSpan();
     expect(span).toBeDefined();
     const json = spanToJSON(span!);
-    expect(json.description).toBe('Create Nest App');
-    expect(json.op).toBe('function');
-    expect(json.origin).toBe('auto.http.nestjs');
-    expect(json.data).toMatchObject({
+    expect(json.name).toBe('Create Nest App');
+    expect(json.attributes['sentry.op']).toBe('function');
+    expect(json.attributes['sentry.origin']).toBe('auto.http.nestjs');
+    expect(json.attributes).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'app_creation',
       'nestjs.version': '10.4.1',
       'nestjs.module': 'AppModule',
     });
     // Span was ended on `asyncEnd`.
-    expect(json.timestamp).toBeDefined();
+    expect(json.end_timestamp).toBeDefined();
   });
 
   it('omits optional attributes when version/module are absent', async () => {
@@ -170,9 +170,9 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
     await channel.tracePromise(async () => ({ app: true }), { arguments: [] });
 
     const json = spanToJSON(getSpan()!);
-    expect(json.data['nestjs.version']).toBeUndefined();
-    expect(json.data['nestjs.module']).toBeUndefined();
-    expect(json.data['nestjs.type']).toBe('app_creation');
+    expect(json.attributes['nestjs.version']).toBeUndefined();
+    expect(json.attributes['nestjs.module']).toBeUndefined();
+    expect(json.attributes['nestjs.type']).toBe('app_creation');
   });
 });
 
@@ -240,10 +240,10 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     });
 
     expect(contextSpanJson).toBeDefined();
-    expect(contextSpanJson!.description).toBe('CatsController.getCats');
-    expect(contextSpanJson!.op).toBe('function');
-    expect(contextSpanJson!.origin).toBe('auto.http.nestjs');
-    expect(contextSpanJson!.data).toMatchObject({
+    expect(contextSpanJson!.name).toBe('CatsController.getCats');
+    expect(contextSpanJson!.attributes['sentry.op']).toBe('function');
+    expect(contextSpanJson!.attributes['sentry.origin']).toBe('auto.http.nestjs');
+    expect(contextSpanJson!.attributes).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'request_context',
       'nestjs.controller': 'CatsController',
@@ -277,10 +277,10 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     wrappedCallback.call(instance);
 
     expect(handlerSpanJson).toBeDefined();
-    expect(handlerSpanJson!.description).toBe('getCats');
-    expect(handlerSpanJson!.op).toBe('handler');
-    expect(handlerSpanJson!.origin).toBe('auto.http.nestjs');
-    expect(handlerSpanJson!.data).toMatchObject({
+    expect(handlerSpanJson!.name).toBe('getCats');
+    expect(handlerSpanJson!.attributes['sentry.op']).toBe('handler');
+    expect(handlerSpanJson!.attributes['sentry.origin']).toBe('auto.http.nestjs');
+    expect(handlerSpanJson!.attributes).toMatchObject({
       component: '@nestjs/core',
       'nestjs.type': 'handler',
       'nestjs.callback': 'getCats',
@@ -353,11 +353,11 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     expect(next).toHaveBeenCalledTimes(1);
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('LoggerMiddleware');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs');
+    expect(json.name).toBe('LoggerMiddleware');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs');
     // startSpanManual span ends when the proxied `next` is called.
-    expect(json.timestamp).toBeDefined();
+    expect(json.end_timestamp).toBeDefined();
   });
 
   it('guard: wraps `canActivate` in a span and preserves its return value', () => {
@@ -376,9 +376,9 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     expect(new AuthGuard().canActivate({ ctx: true })).toBe(true);
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('AuthGuard');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs.guard');
+    expect(json.name).toBe('AuthGuard');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.guard');
   });
 
   it('pipe: wraps `transform` in a span and preserves its return value', () => {
@@ -397,9 +397,9 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     expect(new ParseIntPipe().transform('42', { type: 'param' })).toBe(42);
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('ParseIntPipe');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs.pipe');
+    expect(json.name).toBe('ParseIntPipe');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.pipe');
   });
 
   it('interceptor: opens a before-span (ended at next.handle) and instruments the returned observable', () => {
@@ -431,11 +431,11 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(returned).toBe(observable);
 
     const beforeJson = spanToJSON(beforeSpan!);
-    expect(beforeJson.description).toBe('LoggingInterceptor');
-    expect(beforeJson.op).toBe('middleware');
-    expect(beforeJson.origin).toBe('auto.middleware.nestjs.interceptor');
+    expect(beforeJson.name).toBe('LoggingInterceptor');
+    expect(beforeJson.attributes['sentry.op']).toBe('middleware');
+    expect(beforeJson.attributes['sentry.origin']).toBe('auto.middleware.nestjs.interceptor');
     // before-span ends when `next.handle()` is called.
-    expect(beforeJson.timestamp).toBeDefined();
+    expect(beforeJson.end_timestamp).toBeDefined();
 
     // The returned observable was instrumented: subscribing registers an
     // after-span teardown (proving the after-span was created).
@@ -473,7 +473,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     expect(returned).toBe(observable);
     // before-span ended (when `next.handle()` ran, post-await)
-    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // after-span was created AND the observable instrumented despite the await
     returned.subscribe();
     expect(teardowns).toHaveLength(1);
@@ -509,7 +509,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(next.handle).not.toHaveBeenCalled();
     // before-span is closed even though `next.handle()` (which normally
     // ends it) never ran
-    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // no after-span, so the observable is left un-instrumented
     returned.subscribe();
     expect(teardowns).toHaveLength(0);
@@ -545,7 +545,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(next.handle).not.toHaveBeenCalled();
     // before-span is closed even though `next.handle()` (which normally
     // ends it) never ran
-    expect(spanToJSON(beforeSpan!).timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // no after-span, so the observable is left un-instrumented
     returned.subscribe();
     expect(teardowns).toHaveLength(0);
@@ -597,8 +597,8 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(returned).toBe(observable);
     // Each interceptor opened and ended its own distinct before-span.
     expect(outerBefore).not.toBe(innerBefore);
-    expect(spanToJSON(outerBefore!).timestamp).toBeDefined();
-    expect(spanToJSON(innerBefore!).timestamp).toBeDefined();
+    expect(spanToJSON(outerBefore!).end_timestamp).toBeDefined();
+    expect(spanToJSON(innerBefore!).end_timestamp).toBeDefined();
     // Exactly one "Interceptors - After Route" span was created for the
     // shared context.
     returned.subscribe();
@@ -658,9 +658,9 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     expect(ret).toBe('handled:boom');
 
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
+    expect(json.name).toBe('HttpExceptionFilter');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
   });
 
   it('does not open a span when exception or host is absent', () => {
@@ -713,9 +713,9 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     expect(ret).toBe('handled:boom');
 
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
+    expect(json.name).toBe('HttpExceptionFilter');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
   });
 
   it('still wraps `catch` when the @Catch channel fired first (dual @Injectable @Catch filter)', () => {
@@ -737,9 +737,9 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     expect(ret).toBe('handled:boom');
 
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('HttpExceptionFilter');
-    expect(json.op).toBe('middleware');
-    expect(json.origin).toBe('auto.middleware.nestjs.exception_filter');
+    expect(json.name).toBe('HttpExceptionFilter');
+    expect(json.attributes['sentry.op']).toBe('middleware');
+    expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
   });
 
   // A (contrived) class that is BOTH a guard (`canActivate`) and an
@@ -776,8 +776,8 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
       expect(new GuardAndFilter().canActivate({ ctx: true })).toBe(true);
       expect(new GuardAndFilter().catch('boom', { switchToHttp: () => ({}) })).toBe('handled:boom');
 
-      expect(spanToJSON(guardSpan!).origin).toBe('auto.middleware.nestjs.guard');
-      expect(spanToJSON(filterSpan!).origin).toBe('auto.middleware.nestjs.exception_filter');
+      expect(spanToJSON(guardSpan!).attributes['sentry.origin']).toBe('auto.middleware.nestjs.guard');
+      expect(spanToJSON(filterSpan!).attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
     });
   }
 });
@@ -871,9 +871,9 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     await (descriptor.value as AnyFn)();
 
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('event user.created');
-    expect(json.op).toBe('function');
-    expect(json.origin).toBe('auto.event.nestjs');
+    expect(json.name).toBe('event user.created');
+    expect(json.attributes['sentry.op']).toBe('function');
+    expect(json.attributes['sentry.origin']).toBe('auto.event.nestjs');
   });
 
   it('bullmq @Processor: patches `process` into a queue.process transaction (string queue name)', async () => {
@@ -901,10 +901,10 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     await new EmailProcessor().process({});
     const json = spanToJSON(spanInside!);
-    expect(json.description).toBe('emails process');
-    expect(json.op).toBe('queue.process');
-    expect(json.origin).toBe('auto.queue.nestjs.bullmq');
-    expect(json.data).toMatchObject({
+    expect(json.name).toBe('emails process');
+    expect(json.attributes['sentry.op']).toBe('queue.process');
+    expect(json.attributes['sentry.origin']).toBe('auto.queue.nestjs.bullmq');
+    expect(json.attributes).toMatchObject({
       'messaging.system': 'bullmq',
       'messaging.destination.name': 'emails',
     });
@@ -925,7 +925,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     }
     wrappedDecorator(ReportsProcessor);
     return new ReportsProcessor().process().then(() => {
-      expect(spanToJSON(spanInside!).description).toBe('reports process');
+      expect(spanToJSON(spanInside!).name).toBe('reports process');
     });
   });
 
@@ -990,7 +990,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     await (descriptor.value as AnyFn)();
 
-    expect(spanToJSON(spanInside!).description).toBe(expected);
+    expect(spanToJSON(spanInside!).name).toBe(expected);
   });
 
   it('bullmq @Processor: skips wrapping when the class is flagged __SENTRY_INTERNAL__', () => {

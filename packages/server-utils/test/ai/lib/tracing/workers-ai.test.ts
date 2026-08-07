@@ -18,7 +18,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
-  spanToJSON,
+  spanToStaticSpanJSON,
   startSpan,
 } from '@sentry/core';
 import type { DataCollection, Span } from '@sentry/core';
@@ -167,7 +167,7 @@ describe('instrumentWorkersAiClient', () => {
       });
 
       expect(endedSpans).toHaveLength(1);
-      expect(spanToJSON(endedSpans[0]!).data).toEqual(expected);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
     });
   });
 
@@ -183,7 +183,7 @@ describe('instrumentWorkersAiClient', () => {
       spans = [];
       const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
       client.on('spanEnd', span => {
-        spans.push(spanToJSON(span).description ?? '');
+        spans.push(spanToStaticSpanJSON(span).description ?? '');
       });
       setCurrentClient(client);
       addVercelAiProcessors(client);

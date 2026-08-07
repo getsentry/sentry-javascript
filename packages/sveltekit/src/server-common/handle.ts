@@ -168,10 +168,10 @@ async function instrumentHandle(
         // span name as early as possible (for dynamic sampling, et al.)
         // Other spans are enhanced in the `processKitSpans` integration.
         const spanJson = spanToJSON(kitRootSpan);
-        const kitRootSpanAttributes = spanJson.data;
-        const originalName = spanJson.description;
+        const kitRootSpanAttributes = spanJson.attributes;
+        const originalName = spanJson.name;
 
-        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE] as string | undefined;
         const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
@@ -182,8 +182,8 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? filterCollectedUrl(event.url.href),
-          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
+          [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
+          [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
           ...(routeName && {
             [HTTP_ROUTE]: routeName,
           }),

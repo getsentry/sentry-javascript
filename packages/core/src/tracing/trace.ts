@@ -24,7 +24,13 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToStaticSpanJSON,
+} from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -89,7 +95,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
         () => callback(activeSpan),
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-          const { status } = spanToJSON(activeSpan);
+          const { status } = spanToStaticSpanJSON(activeSpan);
           if (activeSpan.isRecording() && status === 'ok') {
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
@@ -155,7 +161,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
         () => callback(activeSpan, () => activeSpan.end()),
         () => {
           // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-          const { status } = spanToJSON(activeSpan);
+          const { status } = spanToStaticSpanJSON(activeSpan);
           if (activeSpan.isRecording() && status === 'ok') {
             activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }

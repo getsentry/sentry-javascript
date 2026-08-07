@@ -145,8 +145,8 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         }
       } else {
         // No matched route - update back-button navigations and set source to url
-        const { op, description } = spanToJSON(rootSpan);
-        if (op === 'navigation' && description === '-1') {
+        const { attributes, name: spanName } = spanToJSON(rootSpan);
+        if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'navigation' && spanName === '-1') {
           rootSpan.updateName(name);
         }
         rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url', ...urlAttributes });
