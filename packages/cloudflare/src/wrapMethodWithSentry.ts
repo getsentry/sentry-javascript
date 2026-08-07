@@ -234,7 +234,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             return executeSpan();
           };
 
-          return withInvocationIsolationScope(wrappedFunction);
+          return withInvocationIsolationScope(
+            wrappedFunction,
+            wrapperOptions.context as ExecutionContextCompat | undefined,
+          );
         },
       }),
     noMark,

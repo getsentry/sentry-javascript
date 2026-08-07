@@ -8,7 +8,7 @@ export interface CloudflareTransportOptions extends BaseTransportOptions {
   fetchOptions?: RequestInit;
 }
 
-const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+const DEFAULT_TRANSPORT_BUFFER_SIZE = 256;
 
 /**
  * This is a modified promise buffer that collects tasks until drain is called.

@@ -3,6 +3,7 @@ import { startSpan } from '@sentry/core';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
+import { resetSdk } from './testUtils';
 
 vi.mock('../src/instrumentations/worker/instrumentEnv', () => ({
   instrumentEnv: vi.fn((env: unknown) => env),
@@ -104,6 +105,7 @@ async function drainWaitUntilLikeCloudflareVitestPool(
 
 describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   beforeEach(() => {
+    resetSdk();
     vi.clearAllMocks();
   });
 
@@ -133,8 +135,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    // We flush after the step.do and at the end of the run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    // We flush after the step.do and at the end of the run, plus one
+    // waitUntil registration for the eagerly delivered envelope
+    // and one for the envelope send itself
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(4);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
     expect(mockTransport.send).toHaveBeenCalledWith([
@@ -379,8 +383,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    // We flush after the step.do and at the end of the run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    // We flush after the step.do and at the end of the run, plus one
+    // waitUntil registration for the eagerly delivered envelope
+    // and one for the envelope send itself
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(4);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
     expect(mockTransport.send).toHaveBeenCalledWith([
@@ -453,8 +459,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush for the failed attempt, one for the retry success, one at end of run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
+    // One flush for the failed attempt, one for the retry success, one at end of run,
+    // plus one waitUntil registration per eagerly delivered envelope
+    // and one per envelope send
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(7);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     // No error event (not final attempt), only failed transaction + successful retry transaction
     expect(mockTransport.send).toHaveBeenCalledTimes(2);
@@ -724,8 +732,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
     await workflow.run(event, mockStep);
 
-    // Flush after step.do and at end of run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    // Flush after step.do and at end of run, plus one
+    // waitUntil registration for the eagerly delivered envelope
+    // and one for the envelope send itself
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(4);
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
 
     const sendArg = mockTransport.send.mock.calls[0]![0];

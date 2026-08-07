@@ -79,12 +79,17 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
 export function initWithDefaultIntegrations(
   options: CloudflareOptions,
   getDefaultIntegrationsImpl: (options: CloudflareOptions) => Integration[],
+  { skipFlushLock = false }: { skipFlushLock?: boolean } = {},
 ): CloudflareClient | undefined {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
   }
 
-  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
+  // A cached client outlives any single invocation, so binding it to one
+  // invocation's flush lock would make later flushes wait on that invocation's
+  // waitUntil work forever. Eager delivery replaces the flush lock's purpose.
+  const invocationContext = options.ctx;
+  const flushLock = !skipFlushLock && invocationContext ? makeFlushLock(invocationContext) : undefined;
   delete options.ctx;
 
   const clientOptions: CloudflareClientOptions = {
@@ -93,6 +98,7 @@ export function initWithDefaultIntegrations(
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
     flushLock,
+    invocationContext,
   };
 
   /*! rollup-include-development-only */
