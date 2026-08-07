@@ -69,11 +69,11 @@ export function assertSentryTransactions(
 
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
-  // Also we ignore ui.long-task spans and ui.long-animation-frame, as they are brittle and may or may not appear
+  // Also we ignore ui.long_task spans and ui.long_animation_frame, as they are brittle and may or may not appear
   const filteredSpans = spans
     .filter(span => {
       const op = span.op;
-      return !isRunloopSpan(span) && !op?.startsWith('ui.long-task') && !op?.startsWith('ui.long-animation-frame');
+      return !isRunloopSpan(span) && !op?.startsWith('ui.long_task') && !op?.startsWith('ui.long_animation_frame');
     })
     .map(spanJson => {
       // Route hooks all share the `function` op, so the hook name is what distinguishes them

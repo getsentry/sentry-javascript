@@ -46,7 +46,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       },
       {
         description: 'Main UI thread blocked',
-        op: 'ui.long-task',
+        op: 'ui.long_task',
         parent_span_id: 'b44b173b1c74a782',
         span_id: '808967f15cae9251',
         start_timestamp: 1668184224.4343,
