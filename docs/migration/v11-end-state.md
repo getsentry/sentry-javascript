@@ -55,6 +55,12 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
+<!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
+
+### Sentry CLI v3
+
+The SDK and bundler plugins now use Sentry CLI v3. This is an internal change for most users. If you pin or invoke `@sentry/cli` directly, upgrade your usage to v3.
+
 ### AWS Lambda Layer Changes
 
 A new AWS Lambda Layer for version 11 will be published as `SentryNodeServerlessSDKv11`.
@@ -176,6 +182,9 @@ It does not set up a span exporter, span processor, or tracer provider. You keep
 An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
 
 If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
+
+> **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
+> (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
 
 ### `sendDefaultPii` is replaced by `dataCollection`
 
@@ -497,11 +506,19 @@ Two consequences to be aware of when upgrading:
 - **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
 - **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
+### `tracePropagationTargets` matching is now case-insensitive
+
+Affected SDKs: All SDKs.
+
+String and regular-expression matching for `tracePropagationTargets` is now case-insensitive.
+
 ### Span attribute changes
 
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+- `network.*` span attributes were aligned across SDKs.
+- Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -595,6 +612,18 @@ Affected SDKs: All server-side SDKs.
 
 The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
+### `thirdPartyErrorFilterIntegration` filters internal frames by default
+
+Affected SDKs: All SDKs.
+
+`ignoreSentryInternalFrames` is now the default behaviour for `thirdPartyErrorFilterIntegration`.
+
+### Console breadcrumbs handled by `consoleIntegration`
+
+Affected SDKs: `@sentry/browser` and `@sentry/deno` (and their dependents).
+
+The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIntegration` from `@sentry/core` to capture console breadcrumbs instead.
+
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
@@ -612,6 +641,8 @@ The SDK now requires the `nodejs_compat` compatibility flag instead of `nodejs_a
 
 ### Cloudflare: `wrapRequestHandler` moved to `@sentry/cloudflare/request`
 
+> **TODO(v11):** This needs to be clarified with #22367
+
 Affected SDKs: `@sentry/cloudflare`.
 
 `wrapRequestHandler` is no longer available from the main `@sentry/cloudflare` entry point. Import it from the dedicated subpath instead:
@@ -625,9 +656,32 @@ Affected SDKs: `@sentry/cloudflare`.
 
 ### `@sentry/core` / All SDKs
 
+- The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
+- The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableMetrics: true,
+    beforeSendMetric: metric => {
+      return metric;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableMetrics: true,
+  beforeSendMetric: metric => {
+    return metric;
+  },
+});
+```
+
 - The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
 
 ```js
@@ -644,6 +698,20 @@ Sentry.init({});
 // or, to opt out
 Sentry.init({
   enableLogs: false,
+});
+```
+
+- The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration({ trackFetchStreamPerformance: true })],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration(), Sentry.fetchStreamPerformanceIntegration()],
 });
 ```
 
@@ -693,6 +761,10 @@ Sentry.init({
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
 - (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
+- (Fastify) The deprecated `setShouldHandleError` method was removed.
+- (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
+- (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
+- (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
@@ -751,9 +823,14 @@ Sentry.init({
 ### `@sentry/opentelemetry`
 
 - `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
+- `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
+
+### `@sentry/core` span attributes
+
+- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### AI integrations
 
@@ -778,9 +855,25 @@ Sentry.init({
 
 - The `prune-profiler-binaries` script was removed.
 
+### `@sentry/nextjs`
+
+The following long-deprecated options in `withSentryConfig` / the `sentry` config were removed:
+
+- `unstable_sentryWebpackPluginOptions`
+- `autoInstrumentServerFunctions`
+- `autoInstrumentMiddleware`
+- `autoInstrumentAppDirectory`
+- `disableLogger`
+- `automaticVercelMonitors`
+- `disableManifestInjection`
+- `disableSentryWebpackConfig`
+- `turbopackApplicationKey`
+
+Remove these options from your `next.config.js` / `next.config.ts`.
+
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### `@sentry/nuxt`
 
@@ -879,6 +972,12 @@ import { init } from '@sentry/node';
 
 The utility `@sentry/tanstackstart` package was removed. Use the `@sentry/tanstackstart-react` package for your setup.
 
+### Metrics moved out of the base CDN bundle
+
+Affected SDKs: `@sentry/browser` (CDN bundles).
+
+Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.metrics` bundle.
+
 ## 5. Renames
 
 ### `InboundFilters` integration renamed to `EventFilters`
@@ -929,6 +1028,15 @@ import { instrumentLangGraph } from '@sentry/node';
 import { instrumentStateGraph } from '@sentry/node';
 ```
 
+### `childProcess` integration split into `childProcess` and `worker`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The `childProcessIntegration` was split into a `childProcessIntegration` (for `child_process`) and a separate `workerIntegration` (for `worker_threads`).
+
+> **TODO(v11):** Document how the two integrations are configured and what users who customized
+> `childProcessIntegration` need to change.
+
 ### Deno default integrations renamed to match the other SDKs
 
 Affected SDKs: `@sentry/deno`.
@@ -967,6 +1075,9 @@ The same applies when looking the integration up by name, e.g. via `client.getIn
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
+- Attribute typing and serialization were unified across the SDK.
+- The `SentrySpanArguments` interface and related dead code in `SentrySpan` were cleaned up.
+- `BrowserOptions` now supports the `TransportOptions` generic.
 - (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
 
 ```diff
