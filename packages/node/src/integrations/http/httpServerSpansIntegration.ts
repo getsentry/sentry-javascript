@@ -51,6 +51,8 @@ import {
   withActiveSpan,
   getUrlFragment,
   getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -177,14 +179,17 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
-              [URL_FULL]: fullUrl,
+              [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-              [URL_QUERY]: query,
+              [URL_QUERY]: filterCollectedUrlQuery(query, client),
               [URL_FRAGMENT]: fragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
               [HTTP_METHOD]: normalizedRequest.method,
-              [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              [HTTP_TARGET]: filterCollectedUrl(
+                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+                client,
+              ),
               [HTTP_HOST]: host,
               [NET_HOST_NAME]: hostname,
               [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,

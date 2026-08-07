@@ -15,7 +15,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -182,6 +184,8 @@ function getHttpSpanNameFromUrlObject(
  * @param spanOrigin - The origin of the span
  * @param request - The request object, see {@link PartialRequest}
  * @param routeName - The name of the route, must be low cardinality
+ * @param client - The client the span belongs to, used to resolve `dataCollection.urlQueryParams`.
+ * Falls back to the current scope's client when omitted, which is the wrong one in a multi-client setup.
  * @returns The span name and attributes for the HTTP operation
  */
 export function getHttpSpanDetailsFromUrlObject(
@@ -190,6 +194,7 @@ export function getHttpSpanDetailsFromUrlObject(
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
+  client?: Client,
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
@@ -208,11 +213,12 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (urlObject) {
     // Relative URLs have no meaningful `href`, so fall back to the sanitized path.
-    attributes[URL_FULL] = isURLObjectRelative(urlObject)
-      ? getSanitizedUrlStringFromUrlObject(urlObject)
-      : urlObject.href;
+    attributes[URL_FULL] = filterCollectedUrl(
+      isURLObjectRelative(urlObject) ? getSanitizedUrlStringFromUrlObject(urlObject) : urlObject.href,
+      client,
+    );
 
-    attributes[URL_QUERY] = getUrlQuery(urlObject.search);
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(urlObject.search), client);
     attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;

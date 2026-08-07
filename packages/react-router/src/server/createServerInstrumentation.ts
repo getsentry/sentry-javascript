@@ -19,6 +19,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
@@ -72,7 +73,7 @@ export function createSentryServerInstrumentation(
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-              [URL_FULL]: info.request.url,
+              [URL_FULL]: filterCollectedUrl(info.request.url),
               [URL_PATH]: pathname,
             });
 
@@ -99,7 +100,7 @@ export function createSentryServerInstrumentation(
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_PATH]: pathname,
-                  [URL_FULL]: info.request.url,
+                  [URL_FULL]: filterCollectedUrl(info.request.url),
                 },
               },
               async span => {

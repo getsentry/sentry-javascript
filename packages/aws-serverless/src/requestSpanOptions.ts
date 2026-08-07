@@ -28,7 +28,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { FAAS_FUNCTION_AWS_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, filterCollectedUrl } from '@sentry/core';
 import type { Context } from 'aws-lambda';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 
@@ -75,7 +75,7 @@ function extractOtherEventFields(event: unknown): SpanAttributes {
   const answer: SpanAttributes = {};
   const fullUrl = extractFullUrl(event as ApiGatewayLikeEvent);
   if (fullUrl) {
-    answer[URL_FULL] = fullUrl;
+    answer[URL_FULL] = filterCollectedUrl(fullUrl);
   }
   return answer;
 }

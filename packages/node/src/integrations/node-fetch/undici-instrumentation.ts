@@ -37,6 +37,8 @@ import {
   stripDataUrlContent,
   getUrlFragment,
   getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -216,9 +218,9 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     [SENTRY_KIND]: 'client',
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
-    [URL_FULL]: requestUrl.toString(),
+    [URL_FULL]: filterCollectedUrl(requestUrl.toString()),
     [URL_PATH]: requestUrl.pathname,
-    [URL_QUERY]: getUrlQuery(requestUrl.search),
+    [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
