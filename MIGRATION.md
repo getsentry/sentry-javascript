@@ -115,7 +115,7 @@ Sentry.init({
 });
 ```
 
-Sentry registers a minimal tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
+Sentry registers a minimal OpenTelemetry-compatible tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
 
 This is what `@sentry/nextjs` and `@sentry/sveltekit` do by default, because those frameworks emit OpenTelemetry spans that would otherwise be lost.
 
