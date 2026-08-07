@@ -90,7 +90,7 @@ For most users, day-to-day tracing is **unchanged**.
 
 There are three ways to run the two together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
 
-##### 1. Sentry only, OpenTelemetry ignored
+##### 1. Sentry only
 
 This is the default for every server-side SDK except `@sentry/nextjs` and `@sentry/sveltekit`. Nothing to configure:
 
