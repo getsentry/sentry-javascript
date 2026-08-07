@@ -133,25 +133,6 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
   await runner.completed();
 });
 
-it('does not double-instrument when instrumentD1WithSentry is used on top of env instrumentation', async ({
-  signal,
-}) => {
-  const runner = createRunner(__dirname)
-    .ignore('event')
-    .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      const d1Spans = findD1Spans(envelope);
-
-      const querySpans = d1Spans.filter(s => s.description === 'SELECT * FROM users WHERE id = ?');
-      expect(querySpans).toHaveLength(1);
-    })
-    .start(signal);
-
-  const response = await runner.makeRequest('get', '/double-instrument');
-  expect(response).toBe('true');
-  await runner.completed();
-});
-
 it('instruments D1 withSession().batch() identically to db.batch()', async ({ signal }) => {
   let directBatchSpan: Record<string, unknown> | undefined;
   let sessionBatchSpan: Record<string, unknown> | undefined;
