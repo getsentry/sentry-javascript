@@ -82,40 +82,46 @@ Only `@sentry/nextjs` and `@sentry/sveltekit` still set up an OpenTelemetry comp
 
 This means you can run your own OpenTelemetry setup cleanly alongside Sentry without having Sentry spans leak into your pipeline anymore. Your OpenTelemetry setup will no longer be required to use Sentry components for exporting, context management and trace propagation.
 
-This behavior is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11. It now defaults to `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs, and `@sentry/cloudflare`) and to `false` for `@sentry/nextjs` and `@sentry/sveltekit`. When `true`, the SDK skips the tracer provider and isolates scopes with a native AsyncLocalStorage strategy; it still emits its own spans, but spans you create through `@opentelemetry/api` are not captured. Set it to `false` to have Sentry register its own `SentryTracerProvider` as the global OpenTelemetry tracer provider, so those `@opentelemetry/api` spans become Sentry spans:
+With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only one remaining. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
+
+If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
+
+#### Choosing an OpenTelemetry setup
+
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
+
+##### 1. Sentry only
+
+The default, and what you most likely want. Tracing works out of the box:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
-  // Register Sentry's OpenTelemetry tracer provider so spans created via `@opentelemetry/api` are captured
+  tracesSampleRate: 1.0,
+});
+```
+
+If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
+
+##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
+
+Set `skipOpenTelemetrySetup: false`:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
   skipOpenTelemetrySetup: false,
 });
 ```
 
-Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider, keep `skipOpenTelemetrySetup: true` so Sentry does not register a competing provider. The SDK no longer ships a `SentrySpanProcessor` or other components to route your OpenTelemetry spans into Sentry, so spans from your own provider stay in your OpenTelemetry pipeline and are not sent to Sentry.
+Sentry registers a minimal OpenTelemetry-compatible tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
 
-In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
+Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter and no OTLP output. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
 
-```js
-Sentry.init({
-  dsn: '__DSN__',
-  integrations: [
-    // Let your own OpenTelemetry HttpInstrumentation own HTTP & fetch spans
-    Sentry.httpIntegration({ spans: false }),
-    Sentry.nativeNodeFetchIntegration({ spans: false }),
-  ],
-});
-```
+##### 3. Your own OpenTelemetry, Sentry linked to it
 
-With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only remaining package we abide by. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
-
-For most users, day-to-day tracing is **unchanged**.
-
-#### Connecting Sentry to your OpenTelemetry traces
-
-`Sentry.otlpIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import.
-
-It does not set up a span exporter, span processor, or tracer provider. You keep full ownership of your OpenTelemetry pipeline, and outgoing request propagation is left to your OpenTelemetry propagator. To send your spans to Sentry, point your own exporter at the URL and auth headers that `Sentry.getOtlpTracesEndpoint()` derives from your DSN:
+Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -131,27 +137,51 @@ provider.register();
 
 Sentry.init({
   dsn: '__DSN__',
+  // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
   integrations: [Sentry.otlpIntegration()],
 });
 ```
 
-An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
+`skipOpenTelemetrySetup` already defaults to `true` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `false`, so you have to set it explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
-If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown above, pointing it at your collector's URL if you route through one.
+OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
+
+Sentry does not touch your pipeline: no exporter, no span processor, no tracer provider, and outgoing trace propagation is left to your propagator. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces) for the details, including what changed if you used the v10 integration.
+
+##### Avoiding duplicate spans
+
+Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
+
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
+
+If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
 
 ```js
-// before
-import * as Sentry from '@sentry/node-core/light';
-import { otlpIntegration } from '@sentry/node-core/light/otlp';
-
-Sentry.init({ dsn: '__DSN__', integrations: [otlpIntegration()] });
-
-// after
-import * as Sentry from '@sentry/node';
-
-// set up your own tracer provider and exporter, then:
-Sentry.init({ dsn: '__DSN__', integrations: [Sentry.otlpIntegration()] });
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: integrations => [
+    // your own OpenTelemetry instrumentation already covers these
+    ...integrations.filter(integration => integration.name !== 'Postgres'),
+    Sentry.httpIntegration({ spans: false }),
+    Sentry.nativeNodeFetchIntegration({ spans: false }),
+  ],
+});
 ```
+
+##### Migrating custom OpenTelemetry setups
+
+In v10, running your own OpenTelemetry setup meant registering Sentry's own components into it: `SentryContextManager`, `SentrySampler` and `SentrySpanProcessor`. Those were removed, so there is no longer a way to route spans from your own provider into Sentry as Sentry spans. Export them over OTLP instead, as shown in setup 3.
+
+#### Connecting Sentry to your OpenTelemetry traces
+
+`Sentry.otlpIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
+
+It does not set up a span exporter, span processor, or tracer provider. You keep full ownership of your OpenTelemetry pipeline, and outgoing request propagation is left to your OpenTelemetry propagator. To send your spans to Sentry, point your own exporter at the URL and auth headers that `Sentry.getOtlpTracesEndpoint()` derives from your DSN.
+
+An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
+
+If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
 
 > **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
 > (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).

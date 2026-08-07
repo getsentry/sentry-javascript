@@ -177,9 +177,6 @@ An active Sentry span still takes precedence, so this only changes what happens 
 
 If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
 
-> **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
-> (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
-
 ### `sendDefaultPii` is replaced by `dataCollection`
 
 Affected SDKs: All SDKs.
