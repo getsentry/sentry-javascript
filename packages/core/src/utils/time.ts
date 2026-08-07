@@ -10,6 +10,14 @@ const ONE_SECOND_IN_MS = 1000;
 const CLOCK_DRIFT_THRESHOLD_MS = 300_000; // 5 minutes in milliseconds
 
 /**
+ * Upper bound on the number of drift corrections {@link performanceTimeToSeconds} remembers. A page has to survive that
+ * many separate clock jumps to reach it, so the cap only keeps a pathological clock from growing the list without
+ * bound. Once reached, the oldest segments are merged away, which at worst makes the very earliest monotonic
+ * timestamps convert against a later origin — the same result as not tracking segments at all.
+ */
+const MAX_TIME_ORIGIN_SEGMENTS = 30;
+
+/**
  * A partial definition of the [Performance Web API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Performance}
  * for accessing a high-resolution monotonic clock.
  */
@@ -32,6 +40,27 @@ export function dateTimestampInSeconds(): number {
 }
 
 /**
+ * A stretch of the monotonic clock's timeline and the wall clock time its zero maps to.
+ *
+ * The monotonic→wall mapping is piecewise: a drift correction replaces the origin from that point on, but leaves the
+ * mapping for everything that came before it intact. Keeping the superseded origins around lets a monotonic timestamp
+ * be converted against the origin that was in effect when the timestamp was taken, rather than the one in effect when
+ * the conversion happens to run.
+ */
+interface TimeOriginSegment {
+  /** The `performance.now()` value from which `origin` applies. */
+  from: number;
+  /** Milliseconds since the UNIX epoch that `performance.now() === 0` corresponds to. */
+  origin: number;
+}
+
+/**
+ * Time origins in effect over the lifetime of the page, oldest first. Empty until the first `timestampInSeconds` call,
+ * and whenever the Performance API is unavailable.
+ */
+let _timeOriginSegments: TimeOriginSegment[] = [];
+
+/**
  * Returns a wrapper around the native Performance API browser implementation, or undefined for browsers that do not
  * support the API.
  *
@@ -48,6 +77,8 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
   let timeOrigin = performance.timeOrigin;
+  _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
+  let isFirstCall = true;
 
   return () => {
     return withRandomSafeContext(() => {
@@ -67,7 +98,20 @@ function createUnixTimestampInSecondsFunc(): () => number {
       // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
       if (Math.abs(timeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
         timeOrigin = dateNow - performanceNow;
+        // The very first check runs before any timestamp has been handed out, so a `performance.timeOrigin` that was
+        // already unreliable at startup never applied to anything and is replaced outright. Later corrections only
+        // apply from the point they are detected at — an upper bound on where the drift actually happened, and as
+        // close as it can be pinned down without a second clock. Timestamps taken before that keep their old origin.
+        if (isFirstCall) {
+          _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
+        } else {
+          _timeOriginSegments.push({ from: performanceNow, origin: timeOrigin });
+          if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
+            _timeOriginSegments.shift();
+          }
+        }
       }
+      isFirstCall = false;
 
       return (timeOrigin + performanceNow) / ONE_SECOND_IN_MS;
     });
@@ -75,6 +119,35 @@ function createUnixTimestampInSecondsFunc(): () => number {
 }
 
 let _cachedTimestampInSeconds: (() => number) | undefined;
+
+/**
+ * Converts a monotonic time from the Performance API (a `PerformanceEntry`'s `startTime`, a profiler sample's
+ * `timestamp`, or any other `performance.now()`-relative value in milliseconds) to a wall clock timestamp in seconds
+ * since the UNIX epoch, on the same timeline as {@link timestampInSeconds}.
+ *
+ * Prefer this over combining a monotonic time with {@link browserPerformanceTimeOrigin} by hand: because the SDK
+ * re-derives its time origin when the monotonic and wall clocks drift apart, a single origin is only valid for part of
+ * the page's lifetime. This picks the origin that was in effect when the passed time was measured, so entries reported
+ * long after the fact (INP on pagehide, replay entries buffered until flush) do not get retroactively shifted by a
+ * drift that happened after they were recorded.
+ *
+ * Returns `undefined` if the Performance API is unavailable, in which case monotonic times cannot be converted at all.
+ */
+export function performanceTimeToSeconds(monotonicTimeInMs: number): number | undefined {
+  // Segments are only populated once `timestampInSeconds` has resolved which clock source to use.
+  timestampInSeconds();
+
+  let segment: TimeOriginSegment | undefined;
+  for (const candidate of _timeOriginSegments) {
+    // Times preceding the oldest retained segment fall back to it, which is the best guess available for them.
+    if (segment && candidate.from > monotonicTimeInMs) {
+      break;
+    }
+    segment = candidate;
+  }
+
+  return segment && (segment.origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
+}
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
