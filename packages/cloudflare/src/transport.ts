@@ -8,7 +8,7 @@ export interface CloudflareTransportOptions extends BaseTransportOptions {
   fetchOptions?: RequestInit;
 }
 
-const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+const DEFAULT_TRANSPORT_BUFFER_SIZE = 256;
 
 /**
  * This is a modified promise buffer that collects tasks until drain is called.
@@ -89,26 +89,28 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
     };
 
     return suppressTracing(() => {
-      return (options.fetch ?? fetch)(options.url, requestOptions).then(async response => {
-        // Consume the response body to satisfy Cloudflare Workers' fetch requirements.
-        // The runtime requires all fetch response bodies to be read or explicitly canceled
-        // to prevent connection stalls and potential deadlocks. We read the body as text
-        // even though we don't use the content, as Sentry's response information is in the headers.
-        // See: https://github.com/getsentry/sentry-javascript/issues/18534
-        try {
-          await response.text();
-        } catch {
-          // no-op
-        }
+      return (options.fetch ?? fetch)(options.url, requestOptions).then(
+        async response => {
+          // Consume the response body to satisfy Cloudflare Workers' fetch requirements.
+          // The runtime requires all fetch response bodies to be read or explicitly canceled
+          // to prevent connection stalls and potential deadlocks. We read the body as text
+          // even though we don't use the content, as Sentry's response information is in the headers.
+          // See: https://github.com/getsentry/sentry-javascript/issues/18534
+          try {
+            await response.text();
+          } catch {
+            // no-op
+          }
 
-        return {
-          statusCode: response.status,
-          headers: {
-            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-            'retry-after': response.headers.get('Retry-After'),
-          },
-        };
-      });
+          return {
+            statusCode: response.status,
+            headers: {
+              'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+              'retry-after': response.headers.get('Retry-After'),
+            },
+          };
+        },
+      );
     });
   }
 

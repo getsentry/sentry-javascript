@@ -1,5 +1,6 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { _clearGlobalClientCache } from '../src/clientCache';
 
 function resetGlobals(): void {
   getCurrentScope().clear();
@@ -18,4 +19,5 @@ function cleanupOtel(): void {
 export function resetSdk(): void {
   resetGlobals();
   cleanupOtel();
+  _clearGlobalClientCache();
 }

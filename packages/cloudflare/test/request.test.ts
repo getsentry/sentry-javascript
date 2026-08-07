@@ -10,6 +10,7 @@ import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { httpServerIntegration } from '../src/integrations/httpServer';
 import { wrapRequestHandler } from '../src/request';
+import { _clearGlobalClientCache, init } from '../src/sdk';
 
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -974,5 +975,197 @@ describe('flushAndDispose', () => {
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();
+  });
+});
+
+function createMockDOContext(): ExecutionContext {
+  return {
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
+    storage: {},
+  } as unknown as ExecutionContext;
+}
+
+describe('Durable Object (DO) context', () => {
+  test('DO handler registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+
+    // Send a body with a content-length so the response is treated as non-streaming
+    // and teardown runs at the handler boundary rather than on stream completion.
+    const result = await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+      () => new Response('test', { headers: { 'content-type': 'application/json' } }),
+    );
+
+    expect(result.status).toBe(200);
+    // Teardown is registered via waitUntil (a DurableObjectState.waitUntil exists
+    // for API compatibility and still runs the passed promise)
+    expect(waitUntilSpy).toHaveBeenCalled();
+  });
+
+  test('DO handler error path registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    try {
+      await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
+        throw new Error('test error');
+      });
+    } catch {
+      // Expected
+    }
+
+    // Teardown is registered via waitUntil on error too
+    expect(waitUntilSpy).toHaveBeenCalled();
+    // And flush runs as part of that teardown
+    expect(flushSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+  });
+
+  test('DO handler for OPTIONS registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    await wrapRequestHandler(
+      {
+        options: MOCK_OPTIONS,
+        request: new Request('https://example.com', { method: 'OPTIONS' }),
+        context,
+      },
+      () => new Response('', { status: 200 }),
+    );
+
+    expect(waitUntilSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+  });
+
+  test('DO handler for HEAD registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    await wrapRequestHandler(
+      {
+        options: MOCK_OPTIONS,
+        request: new Request('https://example.com', { method: 'HEAD' }),
+        context,
+      },
+      () => new Response('', { status: 200 }),
+    );
+
+    expect(waitUntilSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+  });
+
+  test('DO handler for streaming response registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        controller.close();
+      },
+    });
+
+    const result = await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+      () => new Response(stream),
+    );
+
+    await result.text();
+
+    // Teardown is registered via waitUntil
+    expect(waitUntilSpy).toHaveBeenCalled();
+    // And flush runs as part of that teardown
+    expect(flushSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+  });
+
+  test('DO handler for protocol upgrade (101) registers teardown via waitUntil', async () => {
+    const context = createMockDOContext();
+    const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+    const flushSpy = vi.spyOn(CloudflareClient.prototype, 'flush').mockResolvedValue(true);
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+
+    const mockWebSocketResponse = {
+      status: 101,
+      statusText: 'Switching Protocols',
+      headers: new Headers(),
+      body: null,
+      ok: false,
+      redirected: false,
+      type: 'basic' as ResponseType,
+      url: '',
+      clone: () => mockWebSocketResponse,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      blob: () => Promise.resolve(new Blob()),
+      formData: () => Promise.resolve(new FormData()),
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+      bodyUsed: false,
+      bytes: () => Promise.resolve(new Uint8Array()),
+    } as Response;
+
+    await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+      () => mockWebSocketResponse,
+    );
+
+    // Teardown is registered via waitUntil
+    expect(waitUntilSpy).toHaveBeenCalled();
+    // Flush runs as part of that teardown
+    expect(flushSpy).toHaveBeenCalled();
+    // Dispose should NOT be called for 101
+    expect(disposeSpy).not.toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+});
+
+describe('cached client (cacheClient)', () => {
+  beforeEach(() => {
+    _clearGlobalClientCache();
+  });
+
+  // `init()` resolves defaults into the options object it is given, so each call
+  // needs a fresh object to fingerprint identically — exactly like real callers,
+  // which build their options per invocation.
+  const makeOptions = (dsn?: string): CloudflareOptions => ({
+    dsn: dsn ?? MOCK_OPTIONS.dsn,
+    beforeSend() {
+      return null;
+    },
+  });
+
+  test('returns the same cached client for the same options', async () => {
+    const client1 = init(makeOptions());
+    const client2 = init(makeOptions());
+    expect(client2).toBe(client1);
+  });
+
+  test('returns the isolate client even when a later init uses a different DSN', async () => {
+    const client1 = init(makeOptions());
+    const client2 = init(makeOptions('https://other@dsn.ingest.sentry.io/9999'));
+    expect(client2).toBe(client1);
+  });
+
+  test('clears cache with _clearGlobalClientCache', async () => {
+    const client1 = init(makeOptions());
+    _clearGlobalClientCache();
+    const client2 = init(makeOptions());
+    expect(client2).not.toBe(client1);
   });
 });

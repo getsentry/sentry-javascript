@@ -218,5 +218,5 @@ export function wrapRequestHandlerWithInit(
         });
       },
     );
-  });
+  }, wrapperOptions.context);
 }

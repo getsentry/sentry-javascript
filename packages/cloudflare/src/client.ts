@@ -1,6 +1,8 @@
-import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
+import type { Client, ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
+  _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
   applySdkMetadata,
   debug,
   ServerRuntimeClient,
@@ -9,7 +11,9 @@ import {
 import { DEBUG_BUILD } from './debug-build';
 import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
+import { getOriginalWaitUntil } from './flush';
 import type { CloudflareTransportOptions } from './transport';
+import { getInvocationState } from './utils/invocationContext';
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -26,6 +30,26 @@ export class CloudflareClient extends ServerRuntimeClient {
   private _unsubscribeSpanStart: (() => void) | null = null;
   private _unsubscribeSpanEnd: (() => void) | null = null;
 
+  private _invocationContext: ExecutionContextCompat | undefined;
+
+  /**
+   * Whether this client is a cached, cross-invocation client (`cacheClient`).
+   * Cached clients are never disposed at an invocation boundary, so their spans/events
+   * are delivered eagerly instead of waiting for a per-invocation flush.
+   */
+  public readonly isCachedClient: boolean;
+
+  /**
+   * Points the client at the execution context of the invocation currently being
+   * served. Called on every invocation for cached clients, since they outlive any
+   * single invocation. Only a fallback: under concurrency the correct context is
+   * resolved from the invocation's async context instead (see
+   * `getInvocationState`), which this field cannot disambiguate.
+   */
+  public setExecutionContext(ctx: ExecutionContextCompat | undefined): void {
+    this._invocationContext = ctx;
+  }
+
   /**
    * Creates a new Cloudflare SDK instance.
    * @param options Configuration options for this SDK.
@@ -33,7 +57,7 @@ export class CloudflareClient extends ServerRuntimeClient {
   public constructor(options: CloudflareClientOptions) {
     applySdkMetadata(options, 'cloudflare');
     options._metadata = options._metadata || {};
-    const { flushLock, ...serverOptions } = options;
+    const { flushLock, invocationContext, ...serverOptions } = options;
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...serverOptions,
@@ -46,41 +70,80 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+    this._invocationContext = invocationContext;
+    this.isCachedClient = options.cacheClient === true;
 
-    // Track span lifecycle to know when to flush
-    this._unsubscribeSpanStart = this.on('spanStart', span => {
-      const spanId = span.spanContext().spanId;
-      DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
+    if (this.isCachedClient) {
+      this.on('afterEnvelope', () => {
+        const transport = this.getTransport();
+        if (!transport) {
+          return;
+        }
+        const invocationState = getInvocationState();
+        const flushTransport = (): PromiseLike<boolean> => transport.flush(2000);
+        const flushPromise = invocationState?.eagerFlushPromise
+          ? Promise.resolve(invocationState.eagerFlushPromise).then(flushTransport, flushTransport)
+          : flushTransport();
 
-      // Negatively sampled spans never emit spanEnd,
-      // so tracking them would cause _pendingSpans to grow unboundedly.
-      // We should fix the inconsistent behavior for NonRecordingSpans in the future but
-      // for now, we just ignore them.
-      if (!spanIsSampled(span)) {
-        return;
-      }
+        if (invocationState) {
+          invocationState.eagerFlushPromise = flushPromise;
+          void Promise.resolve(flushPromise).finally(() => {
+            if (invocationState.eagerFlushPromise === flushPromise) {
+              invocationState.eagerFlushPromise = undefined;
+            }
+          });
+        }
 
-      this._pendingSpans.add(spanId);
+        // Sends started outside a waitUntil task are suspended once the invocation's
+        // response goes out and never complete. Registering the drain with the
+        // invocation's waitUntil turns its fetches into tracked I/O that outlives
+        // the response.
+        this._registerWithInvocationWaitUntil(flushPromise);
+      });
+      this._setupEagerSpanDelivery();
+      this._setupEagerLogAndMetricDelivery();
+    }
 
-      if (!this._spanCompletionPromise) {
-        this._spanCompletionPromise = new Promise(resolve => {
-          this._resolveSpanCompletion = resolve;
-        });
-      }
-    });
+    // Track span lifecycle to know when to flush. Skipped for cached clients
+    // (`cacheClient`): they are never disposed, so spans that end after
+    // a flush are still delivered. Per-invocation clients are disposed right after
+    // the boundary flush, so the flush must wait for open spans to end — otherwise
+    // their transaction never gets emitted.
+    if (!this.isCachedClient) {
+      this._unsubscribeSpanStart = this.on('spanStart', span => {
+        const spanId = span.spanContext().spanId;
+        DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
 
-    this._unsubscribeSpanEnd = this.on('spanEnd', span => {
-      const spanId = span.spanContext().spanId;
-      DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
-      this._pendingSpans.delete(spanId);
+        // Negatively sampled spans never emit spanEnd,
+        // so tracking them would cause _pendingSpans to grow unboundedly.
+        // We should fix the inconsistent behavior for NonRecordingSpans in the future but
+        // for now, we just ignore them.
+        if (!spanIsSampled(span)) {
+          return;
+        }
 
-      // If no more pending spans, resolve the completion promise
-      if (this._pendingSpans.size === 0 && this._resolveSpanCompletion) {
-        DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, resolving promise');
-        this._resolveSpanCompletion();
-        this._resetSpanCompletionPromise();
-      }
-    });
+        this._pendingSpans.add(spanId);
+
+        if (!this._spanCompletionPromise) {
+          this._spanCompletionPromise = new Promise(resolve => {
+            this._resolveSpanCompletion = resolve;
+          });
+        }
+      });
+
+      this._unsubscribeSpanEnd = this.on('spanEnd', span => {
+        const spanId = span.spanContext().spanId;
+        DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
+        this._pendingSpans.delete(spanId);
+
+        // If no more pending spans, resolve the completion promise
+        if (this._pendingSpans.size === 0 && this._resolveSpanCompletion) {
+          DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, resolving promise');
+          this._resolveSpanCompletion();
+          this._resetSpanCompletionPromise();
+        }
+      });
+    }
   }
 
   /**
@@ -93,8 +156,34 @@ export class CloudflareClient extends ServerRuntimeClient {
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
    */
   public async flush(timeout?: number): Promise<boolean> {
+    // Mark this invocation as past its natural flush point: anything captured from
+    // now on (post-response waitUntil work, detached continuations) has no later
+    // flush to ride, so it is delivered eagerly (see _setupEagerSpanDelivery).
+    const invocationState = getInvocationState();
+    if (invocationState) {
+      invocationState.flushPointReached = true;
+    }
+
+    // Wait for user waitUntil-registered work to settle before draining, so events
+    // captured in that work are still in the buffer. Without this the final flush
+    // can drain (and the client be disposed) before background captures land.
     if (this._flushLock) {
       await this._flushLock.finalize();
+    }
+
+    // The eager log/metric drain is debounced to a microtask, so captured logs and
+    // metrics may not be envelopes yet. Draining only the transport would resolve
+    // while they are still buffer entries — and a resolving boundary flush lets the
+    // invocation end before their envelopes are ever created.
+    if (this.isCachedClient) {
+      _INTERNAL_flushLogsBuffer(this);
+      _INTERNAL_flushMetricsBuffer(this);
+    }
+
+    // Await only drains owned by this invocation. Concurrent invocations keep
+    // independent chains on their own isolation scopes.
+    if (invocationState?.eagerFlushPromise) {
+      await invocationState.eagerFlushPromise;
     }
 
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
@@ -163,6 +252,130 @@ export class CloudflareClient extends ServerRuntimeClient {
     this._pendingSpans.clear();
     this._spanCompletionPromise = null;
     this._resolveSpanCompletion = null;
+  }
+
+  /**
+   * Delivers spans that end after the invocation's flush point.
+   *
+   * Spans ending while the invocation is in flight batch in the span buffer and
+   * are drained by the boundary `flush()` — nothing to do here. Spans ending
+   * after it (in `waitUntil` work or detached continuations) have no later
+   * natural flush point, and the buffer's own 5s flush timer would fire outside
+   * any invocation, where the send can only be registered with a stale execution
+   * context (or none), and the runtime suspends it. Those traces are flushed
+   * directly — only their own bucket, never the whole buffer, so a fan-out of
+   * concurrent traces stays one envelope per trace.
+   *
+   * The flush point is per invocation. In Durable Objects it lands at RPC-method
+   * settle, so RPC spans (which end before it) keep batching one envelope per
+   * trace — flushing them per call would turn a fan-out trace into one envelope
+   * per RPC — while detached continuations inheriting that invocation's state
+   * flush eagerly.
+   */
+  private _setupEagerSpanDelivery(): void {
+    this.on('afterSpanEnd', span => {
+      const invocationState = getInvocationState();
+      // Only deliver spans that end after the invocation's flush point — spans
+      // ending before it batch in the buffer and are drained by the boundary
+      // flush. RPC sub-invocations in Durable Objects never reach a flush point,
+      // so their spans batch one envelope per trace here.
+      if (!invocationState?.flushPointReached || invocationState.spanFlushScheduled) {
+        return;
+      }
+      invocationState.spanFlushScheduled = true;
+      // The trace id must come from the span, not the current scope: `continueTrace`
+      // writes the propagation context to the *current* scope, so the forked
+      // isolation scope's propagation context carries a different trace id and
+      // flushing by it silently no-ops (measured: ~40% of post-flush traces lost).
+      const traceId = span.spanContext().traceId;
+      // Defer to a microtask: a synchronous flush here runs before the span
+      // streaming integration's own `afterSpanEnd` handler has added the
+      // triggering span to the buffer (it is registered after this one), so the
+      // tail span of the invocation would be left behind. The microtask still
+      // runs in the same async context, so the send stays attributed to this
+      // invocation.
+      queueMicrotask(() => {
+        invocationState.spanFlushScheduled = false;
+        this.emit('flushTraceSpans', traceId);
+      });
+    });
+  }
+
+  /**
+   * Turns log and metric captures into envelopes without waiting for a flush.
+   *
+   * Unlike events, logs and metrics batch client-side and only become an envelope when
+   * their buffer is drained. The idle drain timer is disabled for this runtime
+   * (`_flushInterval: 0`), and a cached client never reaches an invocation-boundary
+   * `flush()`, so without this a captured log or metric is never delivered at all.
+   *
+   * The buffers are drained directly rather than via `emit('flush')`, which would also
+   * flush an opt-in span buffer mid-invocation and fragment span segments. Draining is
+   * debounced to a microtask so a synchronous burst (e.g. a loop of `logger` calls)
+   * still produces a single envelope.
+   */
+  private _setupEagerLogAndMetricDelivery(): void {
+    let scheduled = false;
+    const scheduleDrain = (): void => {
+      if (scheduled) {
+        return;
+      }
+      scheduled = true;
+      queueMicrotask(() => {
+        scheduled = false;
+        _INTERNAL_flushLogsBuffer(this);
+        _INTERNAL_flushMetricsBuffer(this);
+      });
+    };
+
+    this.on('afterCaptureLog', scheduleDrain);
+    this.on('afterCaptureMetric', scheduleDrain);
+  }
+
+  /**
+   * Registers every envelope send as tracked I/O with the capturing invocation's
+   * `waitUntil`.
+   *
+   * The SDK never awaits `sendEnvelope()` promises, so an envelope's fetch can be
+   * pending-but-untracked when the invocation's tracked work settles — the runtime
+   * suspends it and the envelope is lost even though the send started while the
+   * invocation was still open. This is the dominant loss path for the last captures
+   * of an invocation (the root span, post-response `waitUntil` work).
+   */
+  public override sendEnvelope(envelope: Parameters<Client['sendEnvelope']>[0]): ReturnType<Client['sendEnvelope']> {
+    const sendPromise = super.sendEnvelope(envelope);
+    if (this.isCachedClient) {
+      this._registerWithInvocationWaitUntil(sendPromise);
+    }
+    return sendPromise;
+  }
+
+  /**
+   * Attaches a promise to the `waitUntil` of the invocation that owns the current
+   * async context. The invocation state identifies that invocation even under
+   * concurrency — the fallback field would point at whichever invocation last
+   * called `init()`, which is the wrong one when invocations overlap. In Durable
+   * Objects `waitUntil` is a no-op, so this degrades to the same fire-and-forget
+   * behavior as before there.
+   */
+  private _registerWithInvocationWaitUntil(promise: PromiseLike<unknown>): void {
+    const ctx = getInvocationState()?.ctx ?? this._invocationContext;
+    if (!ctx) {
+      return;
+    }
+    try {
+      // The registered promise must never reject — on Workers a rejected waitUntil
+      // promise marks the whole invocation as `outcome: exception`.
+      getOriginalWaitUntil(ctx)?.call(
+        ctx,
+        Promise.resolve(promise).then(
+          () => undefined,
+          () => undefined,
+        ),
+      );
+    } catch {
+      // The owning invocation already ended; the send races isolate teardown either way.
+    }
   }
 }
 
@@ -278,6 +491,24 @@ interface BaseCloudflareOptions {
    * IMPORTANT: Only set this option to `true` while developing, not in production!
    */
   spotlight?: boolean | string;
+
+  /**
+   * Cache the client and reuse it across invocations within the same isolate.
+   *
+   * The SDK creates one client per isolate and reuses it for all requests/DO
+   * handlers in that isolate. This avoids the per-invocation cost of
+   * constructing a new client.
+   *
+   * Since a cached client outlives any single invocation, delivery cannot rely
+   * on end-of-invocation flushes: captured events are flushed eagerly as they are
+   * captured, so data captured in detached/background work is still delivered.
+   *
+   * When disabled, a new client is created per invocation and disposed after the
+   * handler completes.
+   *
+   * @default true
+   */
+  cacheClient?: boolean;
 }
 
 /**
@@ -296,4 +527,5 @@ export interface CloudflareOptions extends Options<CloudflareTransportOptions>, 
  */
 export interface CloudflareClientOptions extends ClientOptions<CloudflareTransportOptions>, BaseCloudflareOptions {
   flushLock?: ReturnType<typeof makeFlushLock>;
+  invocationContext?: ExecutionContextCompat;
 }
