@@ -251,6 +251,12 @@ const RESERVED_RPC_METHOD_NAMES: ReadonlySet<string> = new Set([
 const rpcInstanceStates = new WeakMap<object, RpcInstanceState>();
 
 /**
+ * Prototypes whose RPC methods have been wrapped, so the walk in
+ * {@link instrumentPrototypeRpcMethods} runs once per class instead of on every construction.
+ */
+const rpcInstrumentedPrototypes = new WeakSet<object>();
+
+/**
  * Adds trace propagation to a constructed Durable Object's RPC methods.
  *
  * RPC methods are wrapped on the prototype because Cloudflare dispatches them with the Durable
@@ -313,10 +319,20 @@ function getRpcMethodDescriptor(
 }
 
 /**
- * Wraps eligible methods on the instance's prototype chain once per class.
+ * Wraps eligible methods on the instance's prototype chain once per class. Subsequent constructions
+ * of the same class skip the walk entirely, since the excluded-method set is also cached per class.
+ *
+ * Because the wrappers live on the prototype, the allow-list of the first constructed instance
+ * decides which methods carry a wrapper for every later instance of that class. This only affects
+ * the deprecated array form of `instrumentPrototypeMethods`, where differing options per instance
+ * of the same class were never a supported configuration.
  */
 function instrumentPrototypeRpcMethods(obj: object, excludedMethods?: ReadonlySet<string>): void {
   let prototype: object | null = Object.getPrototypeOf(obj);
+
+  if (!prototype || rpcInstrumentedPrototypes.has(prototype)) {
+    return;
+  }
 
   while (prototype && prototype !== Object.prototype) {
     for (const methodName of Object.getOwnPropertyNames(prototype)) {
@@ -336,6 +352,10 @@ function instrumentPrototypeRpcMethods(obj: object, excludedMethods?: ReadonlySe
 
     prototype = Object.getPrototypeOf(prototype);
   }
+
+  // Mark the outermost class prototype: the instance's own constructor's prototype is what
+  // identifies the class on later constructions.
+  rpcInstrumentedPrototypes.add(Object.getPrototypeOf(obj) as object);
 }
 
 /**

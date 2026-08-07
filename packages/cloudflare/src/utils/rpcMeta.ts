@@ -47,22 +47,14 @@ export function hasRpcMeta(args: unknown[]): boolean {
  * Extracts Sentry RPC metadata from the trailing argument of an args array.
  * Returns cleaned args (without meta) and the extracted trace data if found.
  */
-export function extractRpcMeta<T extends unknown[]>(
-  args: T,
-): {
-  args: T;
-  rpcMeta?: SerializedTraceData;
-} {
+export function extractRpcMeta<T extends unknown[]>(args: T): { args: T; rpcMeta?: SerializedTraceData } {
   if (args.length === 0) {
     return { args };
   }
 
   const last = args[args.length - 1];
   if (isSentryRpcMeta(last)) {
-    return {
-      args: args.slice(0, -1) as T,
-      rpcMeta: last.__sentry_rpc_meta__,
-    };
+    return { args: args.slice(0, -1) as T, rpcMeta: last.__sentry_rpc_meta__ };
   }
 
   return { args };

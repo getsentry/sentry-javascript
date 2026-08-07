@@ -74,7 +74,7 @@ describe('rpcMeta', () => {
 
   describe('extractRpcMeta', () => {
     it('extracts meta from trailing argument', () => {
-      const args = [
+      const args: unknown[] = [
         'arg1',
         42,
         {
@@ -85,56 +85,58 @@ describe('rpcMeta', () => {
         },
       ];
 
-      const result = extractRpcMeta(args);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(result.args).toEqual(['arg1', 42]);
-      expect(result.rpcMeta).toEqual({
+      expect(cleaned).toEqual(['arg1', 42]);
+      expect(rpcMeta).toEqual({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
       });
+      // Non-mutating: the input is untouched
+      expect(args).toHaveLength(3);
     });
 
     it('returns original args when no meta present', () => {
-      const args = ['arg1', { someKey: 'value' }];
+      const args: unknown[] = ['arg1', { someKey: 'value' }];
 
-      const result = extractRpcMeta(args);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(result.args).toEqual(['arg1', { someKey: 'value' }]);
-      expect(result.rpcMeta).toBeUndefined();
+      expect(cleaned).toBe(args);
+      expect(rpcMeta).toBeUndefined();
     });
 
     it('returns empty args unchanged', () => {
-      const result = extractRpcMeta([]);
+      const { args, rpcMeta } = extractRpcMeta([]);
 
-      expect(result.args).toEqual([]);
-      expect(result.rpcMeta).toBeUndefined();
+      expect(args).toEqual([]);
+      expect(rpcMeta).toBeUndefined();
     });
 
     it('does not extract if __sentry_rpc_meta__ value is not an object', () => {
-      const args = ['arg1', { __sentry_rpc_meta__: 'not-an-object' }];
+      const args: unknown[] = ['arg1', { __sentry_rpc_meta__: 'not-an-object' }];
 
-      const result = extractRpcMeta(args);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(result.args).toEqual(args);
-      expect(result.rpcMeta).toBeUndefined();
+      expect(cleaned).toBe(args);
+      expect(rpcMeta).toBeUndefined();
     });
 
     it('does not extract if __sentry_rpc_meta__ value is null', () => {
-      const args = ['arg1', { __sentry_rpc_meta__: null }];
+      const args: unknown[] = ['arg1', { __sentry_rpc_meta__: null }];
 
-      const result = extractRpcMeta(args);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(result.args).toEqual(args);
-      expect(result.rpcMeta).toBeUndefined();
+      expect(cleaned).toBe(args);
+      expect(rpcMeta).toBeUndefined();
     });
 
     it('handles meta with only trace (no baggage)', () => {
-      const args = [{ __sentry_rpc_meta__: { 'sentry-trace': 'abc-def-1' } }];
+      const args: unknown[] = [{ __sentry_rpc_meta__: { 'sentry-trace': 'abc-def-1' } }];
 
-      const result = extractRpcMeta(args);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(result.args).toEqual([]);
-      expect(result.rpcMeta).toEqual({ 'sentry-trace': 'abc-def-1' });
+      expect(cleaned).toEqual([]);
+      expect(rpcMeta).toEqual({ 'sentry-trace': 'abc-def-1' });
     });
 
     it('round-trips with appendRpcMeta', () => {
@@ -144,10 +146,10 @@ describe('rpcMeta', () => {
       });
 
       const originalArgs = ['hello', { data: true }, 42];
-      const withMeta = appendRpcMeta(originalArgs);
-      const { args, rpcMeta } = extractRpcMeta(withMeta);
+      const args = appendRpcMeta(originalArgs);
+      const { args: cleaned, rpcMeta } = extractRpcMeta(args);
 
-      expect(args).toEqual(originalArgs);
+      expect(cleaned).toEqual(originalArgs);
       expect(rpcMeta).toEqual({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',

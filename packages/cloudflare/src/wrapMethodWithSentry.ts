@@ -91,6 +91,19 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
   callback?: (...args: Parameters<T>) => void,
   noMark?: true,
 ): T {
+  const methodName = wrapperOptions.spanName || 'unknown';
+  const spanOptions = wrapperOptions.spanName
+    ? {
+        name: methodName,
+        attributes: wrapperOptions.spanOp
+          ? {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: wrapperOptions.origin,
+            }
+          : {},
+      }
+    : undefined;
+
   return ensureInstrumented(
     handler,
     original =>
@@ -137,8 +150,6 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             }
 
             const clientToDispose = scopeClient;
-            const methodName = wrapperOptions.spanName || 'unknown';
-
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
                 storeSpanContext(storage, methodName);
@@ -180,15 +191,8 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               }
             }
 
-            const attributes = wrapperOptions.spanOp
-              ? {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-                }
-              : {};
-
             const executeSpan = (): unknown => {
-              return startSpan({ name: methodName, attributes }, span => {
+              return startSpan(spanOptions!, span => {
                 if (startNewTrace && storage) {
                   const storedContext = getStoredSpanContext(storage, methodName);
 

@@ -348,6 +348,37 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('result');
   });
 
+  // The wrap walk runs once per class: later constructions of the same class must not re-read the
+  // prototype, which is the per-construction cost that made RPC propagation expensive to leave on.
+  it('walks the prototype chain only for the first construction of a class', () => {
+    const testClass = class {
+      rpcMethod() {
+        return 'rpc-result';
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+      testClass as any,
+    );
+
+    Reflect.construct(instrumented, []);
+    const wrappedRpcMethod = testClass.prototype.rpcMethod;
+    expect(getInstrumented(wrappedRpcMethod)).toBeTruthy();
+
+    // If the second construction walked the chain again, a method added after the first
+    // construction would get wrapped. It must not.
+    (testClass.prototype as any).lateMethod = function () {
+      return 'late';
+    };
+    const second = Reflect.construct(instrumented, []) as any;
+
+    expect(getInstrumented(testClass.prototype.lateMethod)).toBeFalsy();
+    expect(second.lateMethod()).toBe('late');
+    // And the already-wrapped method is still the same wrapper from the first construction.
+    expect(testClass.prototype.rpcMethod).toBe(wrappedRpcMethod);
+  });
+
   it('does not wrap Object.prototype methods as RPC methods', () => {
     const testClass = class {
       rpcMethod() {

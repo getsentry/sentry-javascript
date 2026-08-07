@@ -4,7 +4,7 @@ import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
 import type { DefaultEnv, ResolveEnv } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
-import { extractRpcMeta } from '../utils/rpcMeta';
+import { hasRpcMeta } from '../utils/rpcMeta';
 import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
 import { instrumentEnv } from './worker/instrumentEnv';
 import { instrumentWorkerEntrypointFetch } from './worker/instrumentFetch';
@@ -106,8 +106,7 @@ function instrumentMethod(
   );
 
   return (...args: unknown[]) => {
-    const { rpcMeta } = extractRpcMeta(args);
-    return rpcMeta ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
+    return hasRpcMeta(args) ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
   };
 }
 
