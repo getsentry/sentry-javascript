@@ -150,7 +150,7 @@ Sentry does not touch your pipeline: no exporter, no span processor, no tracer p
 
 ##### Avoiding duplicate spans
 
-Leaving `tracesSampleRate` unset is what keeps setup 3 clean. Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. With tracing off, Sentry's instrumentation stays installed and keeps doing request isolation, but emits no spans, so there is nothing to collide.
+Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `traceSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
 
 Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
 
