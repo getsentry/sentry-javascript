@@ -258,6 +258,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     debug.log(`I have ${Object.keys(ATTRIBUTE_METADATA).length} attributes I can assign`);
+    Object.keys(ATTRIBUTE_METADATA).forEach(attribute => {
+      debug.log(`Attribute: ${attribute}`);
+    });
 
     const { beforeSendSpan, traceLifecycle } = this._options;
     // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
