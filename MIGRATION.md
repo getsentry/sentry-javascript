@@ -105,7 +105,7 @@ The SDK emits native Sentry spans and never registers an OpenTelemetry tracer pr
 
 Spans created through `@opentelemetry/api` are **ignored**. If a library you depend on emits OpenTelemetry spans and you want them in Sentry, use setup 2.
 
-##### 2. Light OpenTelemetry mode, everything goes to Sentry
+##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
 Set `skipOpenTelemetrySetup: false`:
 
