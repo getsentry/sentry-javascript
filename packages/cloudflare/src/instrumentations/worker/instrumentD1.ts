@@ -214,23 +214,3 @@ function _instrumentD1(db: D1Database): D1Database {
 export function instrumentD1(db: D1Database): D1Database {
   return ensureInstrumented(db, _instrumentD1);
 }
-
-// todo(v11): Remove this export
-/**
- * Instruments Cloudflare D1 bindings with Sentry.
- *
- * @deprecated `withSentry()` automatically instruments all D1 bindings via `env`
- * so this function is not needed anymore. It will be removed in the next major version of the SDK.
- *
- * @example
- *
- * ```js
- * // env.DB is the D1 DB binding configured in your `wrangler.toml`
- * const db = instrumentD1WithSentry(env.DB);
- * // Now you can use the database as usual
- * await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
- * ```
- */
-export function instrumentD1WithSentry(db: D1Database): D1Database {
-  return instrumentD1(db);
-}

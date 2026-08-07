@@ -133,9 +133,6 @@ export {
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
 
-// eslint-disable-next-line typescript/no-deprecated
-export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
-
 export { instrumentWorkflowWithSentry } from './workflows';
 
 export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
