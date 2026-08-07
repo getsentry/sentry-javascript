@@ -88,7 +88,7 @@ If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
 
 #### Choosing an OpenTelemetry setup
 
-There are three ways to run the two together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
 
 ##### 1. Sentry only
 
@@ -117,7 +117,7 @@ Sentry.init({
 
 Sentry registers a minimal OpenTelemetry-compatible tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
 
-Everything goes to Sentry and only to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter, no OTLP output, and no way to fan spans out to another backend. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
+Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter and no OTLP output. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
