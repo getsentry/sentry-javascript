@@ -84,7 +84,7 @@ This means you can run your own OpenTelemetry setup cleanly alongside Sentry wit
 
 With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only one remaining. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
 
-For most users, day-to-day tracing is **unchanged**.
+If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
 
 #### Choosing an OpenTelemetry setup
 
