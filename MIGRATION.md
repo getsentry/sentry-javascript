@@ -430,8 +430,6 @@ Two consequences to be aware of when upgrading:
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-- `network.*` span attributes were aligned across SDKs.
-- Legacy database (`db.statement`, …) span attributes on the Redis instrumentation were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -588,14 +586,9 @@ Sentry.init({
 ### `@sentry/opentelemetry`
 
 - `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
-- `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
-
-### `@sentry/core` span attributes
-
-- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### AI integrations
 
@@ -789,9 +782,6 @@ Several default integrations were renamed to match the names used by the other S
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
-- Attribute typing and serialization were unified across the SDK.
-- The `SentrySpanArguments` interface and related dead code in `SentrySpan` were cleaned up.
-- `BrowserOptions` now supports the `TransportOptions` generic.
 - (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
 
 ```diff
