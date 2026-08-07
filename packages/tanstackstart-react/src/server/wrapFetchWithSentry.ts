@@ -1,10 +1,7 @@
 import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-} from '@sentry/node';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
@@ -146,15 +143,12 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
 
           // instrument server functions
           if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-            const op = 'function.tanstackstart';
-
             return await startSpan(
               {
-                op,
                 name: `${method} ${url.pathname}`,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+                  [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
                 },
               },
               async () => {

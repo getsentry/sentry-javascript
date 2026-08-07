@@ -17,6 +17,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/vue-router';
 
@@ -186,7 +187,7 @@ function locationToSpanUrlAttributes<R extends AnyRouter>(
 
   return {
     [URL_PATH]: location.pathname,
-    [URL_FULL]: absoluteUrl,
+    [URL_FULL]: filterCollectedUrl(absoluteUrl),
   };
 }
 

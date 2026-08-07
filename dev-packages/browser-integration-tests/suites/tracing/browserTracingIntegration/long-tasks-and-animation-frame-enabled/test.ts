@@ -29,7 +29,7 @@ sentryTest(
 
     const eventData = await promise;
 
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame'));
+    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame'));
 
     expect(uiSpans?.length).toBeGreaterThanOrEqual(1);
 
@@ -38,7 +38,7 @@ sentryTest(
     )!;
     expect(topLevelUISpan).toEqual(
       expect.objectContaining({
-        op: 'ui.long-animation-frame',
+        op: 'ui.long_animation_frame',
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
@@ -46,7 +46,7 @@ sentryTest(
           'browser.script.source_char_position': 0,
           'browser.script.invoker': 'https://sentry-test-site.example/path/to/script.js',
           'browser.script.invoker_type': 'classic-script',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long-animation-frame',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long_animation_frame',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),
@@ -85,7 +85,7 @@ sentryTest(
 
     const eventData = await promise;
 
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame')) || [];
+    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame')) || [];
 
     expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
@@ -93,14 +93,14 @@ sentryTest(
 
     expect(eventListenerUISpan).toEqual(
       expect.objectContaining({
-        op: 'ui.long-animation-frame',
+        op: 'ui.long_animation_frame',
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
           'browser.script.invoker': 'BUTTON#clickme.onclick',
           'browser.script.invoker_type': 'event-listener',
           'code.filepath': 'https://sentry-test-site.example/path/to/script.js',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long-animation-frame',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long_animation_frame',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),

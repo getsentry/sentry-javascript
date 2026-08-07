@@ -794,4 +794,42 @@ describe('applyScopeToSegmentSpan integration', () => {
     expect(serializedChild?.is_segment).toBe(false);
     expect(serializedChild?.attributes).not.toHaveProperty('http.response.status_code');
   });
+
+  // `dataCollection` only gates automatically collected data. URL attributes the SDK collects are
+  // filtered at their write sites (see `filterCollectedUrl`), so anything reaching a span here is
+  // either already filtered or was set by the user and must be left alone.
+  describe('dataCollection.urlQueryParams', () => {
+    function captureUserSetUrl(attributeValue: unknown, dataCollection?: object): unknown {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          ...(dataCollection ? { dataCollection } : {}),
+        }),
+      );
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.setAttribute('url.full', attributeValue as string);
+        span.end();
+        return span;
+      });
+
+      const attributes = captureSpan(span, client).attributes as Record<string, { value: unknown }> | undefined;
+      return attributes?.['url.full']?.value;
+    }
+
+    it('does not filter a `url.full` the user set themselves', () => {
+      expect(captureUserSetUrl('https://example.com/api?token=abc123&page=5')).toBe(
+        'https://example.com/api?token=abc123&page=5',
+      );
+    });
+
+    it('does not strip a user-set query even when collection is off', () => {
+      expect(captureUserSetUrl('https://example.com/api?token=abc123', { urlQueryParams: false })).toBe(
+        'https://example.com/api?token=abc123',
+      );
+    });
+  });
 });

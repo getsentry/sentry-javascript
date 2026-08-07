@@ -158,11 +158,16 @@ function setupSrvxTracingChannels(): void {
     dc.tracingChannel<SrvxRequestEvent>('srvx.request'),
     data => {
       const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
-      const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
-        method: data.request.method,
-      });
-
       const client = getClient();
+      const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(
+        parsedUrl,
+        'server',
+        'auto.http.nitro.srvx',
+        { method: data.request.method },
+        undefined,
+        client,
+      );
+
       const headerAttributes = client
         ? httpHeadersToSpanAttributes(
             Object.fromEntries(data.request.headers.entries()),

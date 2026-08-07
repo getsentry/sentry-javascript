@@ -267,7 +267,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.loader',
+          'sentry.op': 'function',
+          'code.function.name': 'loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -307,7 +308,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -364,7 +366,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -395,7 +398,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware authMiddleware',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'middleware',
           'react_router.route.id': 'routes/protected',
           'http.route': '/protected',
           'react_router.middleware.name': 'authMiddleware',
@@ -444,9 +448,7 @@ describe('createSentryServerInstrumentation', () => {
     await hooks.middleware(mockCallMiddleware, requestInfo);
 
     // Filter to only middleware spans
-    const middlewareSpans = startSpanCalls.filter(
-      opts => opts.attributes?.['sentry.op'] === 'function.react_router.middleware',
-    );
+    const middlewareSpans = startSpanCalls.filter(opts => opts.attributes?.['code.function.name'] === 'middleware');
 
     expect(middlewareSpans).toHaveLength(3);
     expect(middlewareSpans[0].attributes['react_router.middleware.index']).toBe(0);
@@ -477,7 +479,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.lazy',
+          'sentry.op': 'function',
+          'code.function.name': 'lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),

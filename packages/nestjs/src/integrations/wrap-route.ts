@@ -1,7 +1,7 @@
 import { HTTP_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, filterCollectedUrl } from '@sentry/core';
 import type { AnyFn } from './helpers';
 import { copyReflectMetadata, HTTP_ORIGIN, isWrapped, markWrapped } from './helpers';
 import { AttributeNames, NestType } from './enums';
@@ -98,7 +98,7 @@ export function wrapRequestContextHandler(
       [HTTP_ROUTE]: httpRoute || undefined,
       // oxlint-disable-next-line typescript/no-deprecated
       [HTTP_METHOD]: req.method || undefined,
-      [URL_FULL]: req.originalUrl || req.url || undefined,
+      [URL_FULL]: filterCollectedUrl(req.originalUrl || req.url || undefined),
     };
     return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));
   };

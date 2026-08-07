@@ -52,7 +52,7 @@ test('capture a distributed pageload trace', async ({ page }) => {
   const serverKitResolveSpan = serverTxnEvent.spans?.find(s => s.description === 'sveltekit.resolve');
   expect(serverKitResolveSpan).toMatchObject({
     description: 'sveltekit.resolve',
-    op: 'function.sveltekit.resolve',
+    op: 'function',
     origin: 'auto.http.sveltekit',
     status: 'ok',
   });

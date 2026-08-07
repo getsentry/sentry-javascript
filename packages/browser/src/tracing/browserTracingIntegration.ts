@@ -45,6 +45,7 @@ import {
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
@@ -189,7 +190,7 @@ export interface BrowserTracingOptions {
    *
    * Default: []
    */
-  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+  ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
 
   /**
    * By default, the SDK will try to detect redirects and avoid creating separate spans for them.
@@ -392,7 +393,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
     const attributes = {
       ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
-      ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: urlObject.href }),
+      ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,
     };
 
