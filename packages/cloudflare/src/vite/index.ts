@@ -80,7 +80,6 @@ export interface SentryCloudflareVitePluginOptions {
 export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOptions = {}): Array<{ name: string }> {
   return [
     sentryOrchestrionPlugin({
-      injectChannelSubscribers: true,
       buildTimeInstrumentation: options.buildTimeInstrumentation,
     }),
     ...(options._experimental?.autoInstrumentation

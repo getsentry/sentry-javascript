@@ -173,22 +173,13 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
         // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
         // build time, with no manual plugin setup. The plugin opts out internally when
-        // `buildTimeInstrumentation` is `false`.
-        if (sdkEnabled.server && !isCloudflare) {
+        // `buildTimeInstrumentation` is `false`. Cloudflare Pages is skipped: it gets no
+        // `withSentry` wrap, so nothing would read the marker the injected snippets write, and
+        // keeping the transform off avoids bundling dead subscriber code.
+        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers)) {
           updateConfig({
             vite: {
               plugins: [sentryOrchestrionPlugin({ buildTimeInstrumentation }) as VitePlugin],
-            },
-          });
-        } else if (sdkEnabled.server && isCloudflareWorkers) {
-          // On Cloudflare Workers, subscribers are wired via a build-time marker the SDK reads at
-          // runtime (through the `withSentry` wrap added below). Cloudflare Pages is skipped: it gets
-          // no `withSentry` wrap, so there'd be nothing to read the marker.
-          updateConfig({
-            vite: {
-              plugins: [
-                sentryOrchestrionPlugin({ buildTimeInstrumentation, injectChannelSubscribers: true }) as VitePlugin,
-              ],
             },
           });
         }

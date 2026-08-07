@@ -4,6 +4,7 @@ import { escapeStringForRegex } from '@sentry/core';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
+import { resolveOrchestrionRuntimeRequest } from './resolve';
 
 // esbuild `external` entries may contain `*` wildcards.
 function matchesEsbuildExternal(entry: string, moduleName: string): boolean {
@@ -49,6 +50,30 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       if (externalizedModules.length > 0) {
         build.onStart(() => ({ warnings: [{ text: externalizedModulesWarning(externalizedModules) }] }));
       }
+
+      // The module-injected snippet imports `@sentry/server-utils/orchestrion`
+      // from INSIDE transformed `node_modules` files. Under isolated installs
+      // (pnpm) that bare specifier doesn't resolve from an instrumented
+      // package's location, so try esbuild's own resolution first (the
+      // `pluginData` marker stops the recursion back into this callback) and
+      // fall back to this package's own resolution.
+      build.onResolve({ filter: /^@sentry\/server-utils\/orchestrion$/ }, async args => {
+        if (args.pluginData === 'sentry-orchestrion-resolving') {
+          return null;
+        }
+        const result = await build.resolve(args.path, {
+          resolveDir: args.resolveDir,
+          importer: args.importer,
+          kind: args.kind,
+          pluginData: 'sentry-orchestrion-resolving',
+        });
+        if (result.errors.length === 0) {
+          return result;
+        }
+        const fallback = resolveOrchestrionRuntimeRequest(args.path);
+        return fallback ? { path: fallback, errors: [] } : null;
+      });
+
       return setup(build);
     },
   };

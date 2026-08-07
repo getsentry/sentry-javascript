@@ -7,6 +7,7 @@ import {
   CHANNEL_INTEGRATION_DEFINITIONS,
   subscriberExportForModule,
 } from '../../src/orchestrion/config/channel-integration-definitions';
+import { moduleInjectedTransforms } from '../../src/orchestrion/bundler/moduleInjectedTransform';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 
 // The code transformer reads the instrumented package's version from its
@@ -34,31 +35,22 @@ describe('channel integration definitions', () => {
   });
 });
 
-describe('subscribe-injection transform option', () => {
+describe('module-injected transform', () => {
   let root: string;
 
   beforeAll(() => {
-    root = mkdtempSync(join(tmpdir(), 'orch-subscribe-'));
+    root = mkdtempSync(join(tmpdir(), 'orch-module-injected-'));
     makePackage(root, 'mysql', '2.18.1', 'commonjs');
     makePackage(root, 'pg', '8.11.0', 'module');
+    makePackage(root, 'my-lib', '1.0.0', 'commonjs');
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('registers the tracingChannelImport override only when opted in', () => {
-    const off = orchestrionTransformOptions({});
-    expect(off.customTransforms).toEqual({});
-
-    const on = orchestrionTransformOptions({ injectChannelSubscribers: true });
-    expect(Object.keys(on.customTransforms || {})).toContain('tracingChannelImport');
-    // The override rides the real channel configs — opting in adds no extra ones.
-    expect(on.instrumentations).toEqual(off.instrumentations);
-  });
-
-  it('injects a CJS marker-push importing only that package factory, after "use strict"', () => {
-    const t = createCodeTransformer(orchestrionTransformOptions({ injectChannelSubscribers: true }));
+  it('injects a CJS snippet importing only that package factory, after "use strict"', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
     const code =
       "'use strict';\nfunction Connection(){}\nConnection.prototype.query = function query(sql, cb){ return cb(); };\n";
     const result = t.transform(code, join(root, 'node_modules/mysql/lib/Connection.js'));
@@ -67,23 +59,22 @@ describe('subscribe-injection transform option', () => {
     expect(result!.code.split('\n')[0]).toContain("'use strict'");
     // Imports ONLY the mysql factory plus the generic helper, from a single require.
     expect(result!.code).toMatch(
-      /const\s*\{\s*mysqlIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
     );
-    // The helper stores the factory on the marker AND live-registers it on an existing client, so a
-    // module that loads AFTER `init()` (mysql loads its instrumented file lazily) still subscribes
-    // for the in-flight request instead of only the next `init()`.
-    expect(result!.code).toContain('registerOrchestrionChannelIntegration("mysqlIntegration", mysqlIntegration)');
+    // The helper is called with the REAL module name, so no reverse lookup is
+    // needed at runtime and the lazy-subscription event matches what channel
+    // integrations wait for.
+    expect(result!.code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
     // No separate @sentry/core import at the injection site — the helper owns that.
     expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.
-    expect(result!.code).not.toContain('pgChannelIntegration');
-    expect(result!.code).not.toContain('subscribeOrchestrionChannel');
+    expect(result!.code).not.toContain('postgresIntegration');
     // The real channel-publishing transform still ran alongside the injection.
     expect(result!.code).toContain('orchestrion:mysql:query');
   });
 
-  it('injects an ESM marker-push for an instrumented ESM module', () => {
-    const t = createCodeTransformer(orchestrionTransformOptions({ injectChannelSubscribers: true }));
+  it('injects an ESM snippet for an instrumented ESM module', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
     const result = t.transform(
       'export class Client { query(){} connect(){} }\n',
       join(root, 'node_modules/pg/lib/client.js'),
@@ -91,21 +82,59 @@ describe('subscribe-injection transform option', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*postgresIntegration,\s*registerOrchestrionChannelIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*orchestrionModuleInjected,\s*postgresIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
     );
     expect(result!.code).not.toContain('@sentry/core');
-    expect(result!.code).toContain('registerOrchestrionChannelIntegration("postgresIntegration", postgresIntegration)');
+    expect(result!.code).toContain('orchestrionModuleInjected("pg", postgresIntegration)');
   });
 
-  it('registers the factory at most once per file', () => {
-    const t = createCodeTransformer(orchestrionTransformOptions({ injectChannelSubscribers: true }));
+  it('injects a helper-only snippet for a module with no subscriber factory', () => {
+    // A custom instrumentation for a package outside CHANNEL_INTEGRATION_DEFINITIONS —
+    // the marker/event coverage the banner used to provide now comes from this snippet.
+    const t = createCodeTransformer(
+      orchestrionTransformOptions({
+        instrumentations: [
+          {
+            channelName: 'work',
+            module: { name: 'my-lib', versionRange: '>=1', filePath: 'lib/index.js' },
+            functionQuery: { functionName: 'doWork', kind: 'Sync' },
+          },
+        ],
+      }),
+    );
+    const result = t.transform('function doWork(){ return 1; }\n', join(root, 'node_modules/my-lib/lib/index.js'));
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(
+      /const\s*\{\s*orchestrionModuleInjected\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+    );
+    expect(result!.code).toContain('orchestrionModuleInjected("my-lib")');
+  });
+
+  it('injects at most once per file', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
     // `pg`'s `lib/client.js` is matched by both the `query` and `connect` configs.
     const result = t.transform(
       'export class Client { query(){} connect(){} }\n',
       join(root, 'node_modules/pg/lib/client.js'),
     );
 
-    const registrations = result!.code.match(/registerOrchestrionChannelIntegration\("postgresIntegration"/g) ?? [];
-    expect(registrations).toHaveLength(1);
+    const calls = result!.code.match(/orchestrionModuleInjected\("pg"/g) ?? [];
+    expect(calls).toHaveLength(1);
+  });
+
+  it('honors a custom import specifier (Turbopack passes an absolute path)', () => {
+    const t = createCodeTransformer({
+      ...orchestrionTransformOptions({}),
+      customTransforms: moduleInjectedTransforms('/abs/path/to/orchestrion/index.js'),
+    });
+    const result = t.transform(
+      "'use strict';\nfunction Connection(){}\nConnection.prototype.query = function query(sql, cb){ return cb(); };\n",
+      join(root, 'node_modules/mysql/lib/Connection.js'),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('require("/abs/path/to/orchestrion/index.js")');
+    expect(result!.code).not.toContain('require("@sentry/server-utils/orchestrion")');
   });
 });

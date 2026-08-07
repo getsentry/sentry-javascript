@@ -21,6 +21,9 @@ test.describe('Orchestrion build-time injection', () => {
 
   test('injects diagnostics-channel publishers into the server build', () => {
     expect(serverBundle).toContain('__SENTRY_ORCHESTRION__');
+    // Each transformed module carries the module-injected snippet that records it
+    // on the global marker (and registers its subscriber factory) when evaluated.
+    expect(serverBundle).toContain('orchestrionModuleInjected');
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:mysql:query["']\)/);
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:command["']\)/);
     expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:connect["']\)/);

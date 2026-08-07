@@ -1,6 +1,6 @@
 import http from 'node:http';
-import { getActiveSpan, getTraceData, spanToJSON } from '@sentry/core';
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
 async function startServer(handler: http.RequestListener): Promise<{ port: number; close: () => Promise<void> }> {
@@ -30,6 +30,10 @@ describe('Bun HTTP Server Integration', () => {
       // Avoid sending anything to Sentry
       transport: () => ({ send: async () => ({}), flush: async () => true }),
     });
+  });
+
+  afterAll(() => {
+    getCurrentScope().setClient(undefined);
   });
 
   test('creates an http.server span for incoming requests', async () => {
