@@ -6,7 +6,7 @@ import {
 } from '@sentry/core';
 import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
-import { HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, HTTP_TARGET, URL_PATH } from '@sentry/conventions/attributes';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 
 /**
@@ -27,8 +27,12 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
     // if the target is `/_server`, otherwise we'd overwrite pageloads on routes that use
     // server actions (which are more meaningful, e.g. a request to `GET /users/5` is more
     // meaningful than overwriting it with `GET doSomeFunctionCall`).
+    // `@sentry/node` HTTP spans only carry `url.path`; the deprecated `http.target` is kept as a
+    // fallback for instrumentation that still sets only that.
     // oxlint-disable-next-line typescript/no-deprecated
-    if (spanData && !spanData[HTTP_ROUTE] && spanData[HTTP_TARGET] === '/_server') {
+    const requestPath = spanData?.[URL_PATH] ?? spanData?.[HTTP_TARGET];
+
+    if (spanData && !spanData[HTTP_ROUTE] && requestPath === '/_server') {
       setHttpServerSpanRouteAttribute(serverActionName);
     }
   }
