@@ -299,11 +299,12 @@ function buildServerSpanWrap(
             'net.peer.port': remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            [URL_FULL]: filterCollectedUrl(fullUrl),
+            [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
             'http.method': method,
             'http.target': filterCollectedUrl(
               urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              client,
             ),
             'http.host': host,
             'net.host.name': hostname,

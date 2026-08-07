@@ -56,6 +56,35 @@ describe('filterCollectedUrl', () => {
       'https://example.com/api?token=[Filtered]&page=5',
     );
   });
+
+  // The scope's client is the wrong one in a multi-client setup, so an explicitly passed client wins.
+  it('prefers the passed client over the one on the scope', () => {
+    const passedClient = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        dataCollection: { urlQueryParams: false },
+      }),
+    );
+
+    const result = withUrlQueryParams(true, () =>
+      filterCollectedUrl('https://example.com/api?token=abc&page=5', passedClient),
+    );
+
+    expect(result).toBe('https://example.com/api');
+  });
+
+  it('passes the client through in `filterCollectedUrlQuery` too', () => {
+    const passedClient = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        dataCollection: { urlQueryParams: { allow: ['page'] } },
+      }),
+    );
+
+    const result = withUrlQueryParams(true, () => filterCollectedUrlQuery('page=1&ref=x', passedClient));
+
+    expect(result).toBe('page=1&ref=[Filtered]');
+  });
 });
 
 describe('filterCollectedUrlQuery', () => {

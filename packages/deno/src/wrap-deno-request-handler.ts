@@ -59,7 +59,14 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.deno', request);
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+      urlObject,
+      'server',
+      'auto.http.deno',
+      request,
+      undefined,
+      client,
+    );
 
     const contentLength = request.headers.get('content-length');
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
