@@ -49,7 +49,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.source': 'url',
-          'code.function': 'requestHandler',
+          'code.function.name': 'requestHandler',
           'http.method': 'GET',
           'url.full': 'http://localhost/users',
         }),
@@ -102,8 +102,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.remix',
-          'sentry.op': 'loader.remix',
-          'code.function': 'loader',
+          'sentry.op': 'function',
+          'code.function.name': 'loader',
           'http.method': 'GET',
           'url.full': 'http://localhost/users/123',
           'match.route.id': 'routes/users.$userId',
@@ -141,8 +141,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
-          'code.function': 'action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'http.method': 'POST',
         }),
       }),

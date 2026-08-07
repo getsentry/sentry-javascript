@@ -28,10 +28,10 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
     expect.arrayContaining([
       expect.objectContaining({
         description: 'GET /_serverFn/testLog',
-        op: 'function.tanstackstart',
+        op: 'function',
         origin: 'auto.function.tanstackstart.server',
         data: {
-          'sentry.op': 'function.tanstackstart',
+          'sentry.op': 'function',
           'sentry.origin': 'auto.function.tanstackstart.server',
           'sentry.source': 'route',
           'tanstackstart.function.id': expect.any(String),
@@ -68,10 +68,10 @@ test('Sends a server function transaction for a nested server function only if i
     expect.arrayContaining([
       expect.objectContaining({
         description: 'GET /_serverFn/testNestedLog',
-        op: 'function.tanstackstart',
+        op: 'function',
         origin: 'auto.function.tanstackstart.server',
         data: {
-          'sentry.op': 'function.tanstackstart',
+          'sentry.op': 'function',
           'sentry.origin': 'auto.function.tanstackstart.server',
           'sentry.source': 'route',
           'tanstackstart.function.id': expect.any(String),

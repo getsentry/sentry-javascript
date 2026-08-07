@@ -1,4 +1,5 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
@@ -109,7 +110,7 @@ export function maybeEnhanceServerComponentSpanName(
   activeSpan.setAttributes({
     'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
     'sentry.nextjs.ssr.function.route': route,
-    [SENTRY_OP]: 'function.nextjs',
+    [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   });
 }

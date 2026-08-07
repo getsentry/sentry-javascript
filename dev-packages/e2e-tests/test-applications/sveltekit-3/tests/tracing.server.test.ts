@@ -38,11 +38,11 @@ test('server pageload request span has nested request span for sub request', asy
       // initial resolve span:
       expect.objectContaining({
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.resolve',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           'http.route': '/server-load-fetch',
         }),
-        op: 'function.sveltekit.resolve',
+        op: 'function',
         description: 'sveltekit.resolve',
         origin: 'auto.http.sveltekit',
         status: 'ok',
@@ -52,10 +52,10 @@ test('server pageload request span has nested request span for sub request', asy
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.origin': 'auto.function.sveltekit.handle',
-          'sentry.op': 'function.sveltekit.handle',
+          'sentry.op': 'function',
         }),
         description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function.sveltekit.handle',
+        op: 'function',
         origin: 'auto.function.sveltekit.handle',
         status: 'ok',
       }),
@@ -64,14 +64,14 @@ test('server pageload request span has nested request span for sub request', asy
       expect.objectContaining({
         data: expect.objectContaining({
           'http.route': '/server-load-fetch',
-          'sentry.op': 'function.sveltekit.load',
+          'sentry.op': 'function',
           'sentry.origin': 'auto.function.sveltekit.load',
           'sveltekit.load.environment': 'server',
           'sveltekit.load.node_id': 'src/routes/server-load-fetch/+page.server.ts',
           'sveltekit.load.node_type': '+page.server',
         }),
         description: 'sveltekit.load',
-        op: 'function.sveltekit.load',
+        op: 'function',
         origin: 'auto.function.sveltekit.load',
         status: 'ok',
       }),
@@ -99,10 +99,10 @@ test('server pageload request span has nested request span for sub request', asy
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.origin': 'auto.function.sveltekit.handle',
-          'sentry.op': 'function.sveltekit.handle',
+          'sentry.op': 'function',
         }),
         description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function.sveltekit.handle',
+        op: 'function',
         origin: 'auto.function.sveltekit.handle',
         status: 'ok',
       }),
@@ -111,11 +111,11 @@ test('server pageload request span has nested request span for sub request', asy
       expect.objectContaining({
         data: expect.objectContaining({
           'http.route': '/api/users',
-          'sentry.op': 'function.sveltekit.resolve',
+          'sentry.op': 'function',
           'sentry.origin': 'auto.http.sveltekit',
         }),
         description: 'sveltekit.resolve',
-        op: 'function.sveltekit.resolve',
+        op: 'function',
         origin: 'auto.http.sveltekit',
         status: 'ok',
       }),
@@ -168,21 +168,21 @@ test.skip('server trace includes form action span', async ({ page }) => {
       // sequenced handler span
       expect.objectContaining({
         description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function.sveltekit.handle',
+        op: 'function',
         origin: 'auto.function.sveltekit.handle',
       }),
 
       // resolve span
       expect.objectContaining({
         description: 'sveltekit.resolve',
-        op: 'function.sveltekit.resolve',
+        op: 'function',
         origin: 'auto.http.sveltekit',
       }),
 
       // form action span
       expect.objectContaining({
         description: 'sveltekit.form_action',
-        op: 'function.sveltekit.form_action',
+        op: 'function',
         origin: 'auto.function.sveltekit.action',
         data: expect.objectContaining({
           'sveltekit.form_action.name': 'default',

@@ -1,4 +1,12 @@
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
@@ -130,7 +138,8 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
+                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -157,7 +166,8 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
+                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -200,7 +210,8 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
+                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 [HTTP_ROUTE]: routePattern,
@@ -226,7 +237,8 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.lazy',
+                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

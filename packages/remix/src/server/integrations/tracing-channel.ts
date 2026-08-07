@@ -14,14 +14,16 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
-  CODE_FUNCTION,
+  CODE_FUNCTION_NAME,
   HTTP_METHOD,
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
   URL_FULL,
   URL_PATH,
   SENTRY_KIND,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
@@ -145,7 +147,7 @@ function subscribeRequestHandler(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
-          [CODE_FUNCTION]: 'requestHandler',
+          [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,
         },
       });
@@ -179,8 +181,8 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'loader.remix',
-          [CODE_FUNCTION]: 'loader',
+          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -213,8 +215,8 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'action.remix',
-          [CODE_FUNCTION]: 'action',
+          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
