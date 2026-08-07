@@ -56,7 +56,7 @@ describe('setupOrchestrion', () => {
     expect(nitroConfig.externals.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
   });
 
-  it('injects channel subscribers on a Cloudflare preset even without a server config file', async () => {
+  it('adds the plugin on a Cloudflare preset even without a server config file', async () => {
     const { setupOrchestrion } = await import('../../src/vite/orchestrion');
     const mockNuxt = createMockNuxt();
     const nitroConfig = { preset: 'cloudflare_module' };
@@ -64,10 +64,10 @@ describe('setupOrchestrion', () => {
     setupOrchestrion(mockNuxt as unknown as Nuxt, false);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
-    expect(mockSentryOrchestrionPlugin).toHaveBeenCalledWith({ injectChannelSubscribers: true });
+    expect(mockSentryOrchestrionPlugin).toHaveBeenCalledWith({});
   });
 
-  it('does not inject channel subscribers on a non-Cloudflare preset', async () => {
+  it('adds the plugin on a non-Cloudflare preset when a server config exists', async () => {
     const { setupOrchestrion } = await import('../../src/vite/orchestrion');
     const mockNuxt = createMockNuxt();
     const nitroConfig = { preset: 'node-server' };

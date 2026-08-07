@@ -14,7 +14,7 @@ function installBinding(): void {
   } as unknown as AsyncContextStrategy);
 }
 
-// client that emits `orchestrion.module-runtime-injected`
+// client that emits `orchestrion.module-injected`
 function makeClient(): {
   on: (hook: string, cb: (moduleName: string) => void) => () => void;
   inject: (moduleName: string) => void;
