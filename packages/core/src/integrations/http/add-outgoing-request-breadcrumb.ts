@@ -1,5 +1,6 @@
 import { addBreadcrumb } from '../../breadcrumbs';
 import { getBreadcrumbLogLevelFromHttpStatusCode } from '../../utils/breadcrumb-log-level';
+import { filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 import { getSanitizedUrlString, parseUrl } from '../../utils/url';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
@@ -24,7 +25,7 @@ export function addOutgoingRequestBreadcrumb(
         status_code: statusCode,
         url: getSanitizedUrlString(parsedUrl),
         'http.method': request.method || 'GET',
-        ...(parsedUrl.search ? { 'http.query': parsedUrl.search } : {}),
+        ...(parsedUrl.search ? { 'http.query': filterCollectedUrlQuery(parsedUrl.search) } : {}),
         ...(parsedUrl.hash ? { 'http.fragment': parsedUrl.hash } : {}),
       },
       type: 'http',

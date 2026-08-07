@@ -11,6 +11,7 @@ import {
   setMeasurement,
   spanToJSON,
   stringMatchesSomePattern,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
@@ -775,7 +776,7 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  attributes[URL_FULL] = resourceUrl;
+  attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus

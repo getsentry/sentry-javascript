@@ -1,5 +1,6 @@
 import type { Span, SpanAttributes } from '../../types/span';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -27,9 +28,9 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       'otel.kind': 'CLIENT',
-      'http.url': url,
+      'http.url': filterCollectedUrl(url),
       'http.method': request.method,
-      'http.target': request.path || '/',
+      'http.target': filterCollectedUrl(request.path || '/'),
       'net.peer.name': request.host,
       'http.host': request.getHeader('host') as string | undefined,
       ...(userAgent ? { 'user_agent.original': userAgent as string } : {}),

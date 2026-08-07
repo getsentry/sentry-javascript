@@ -33,6 +33,8 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -220,9 +222,9 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const attributes: SpanAttributes = {
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
-    [URL_FULL]: requestUrl.toString(),
+    [URL_FULL]: filterCollectedUrl(requestUrl.toString()),
     [URL_PATH]: requestUrl.pathname,
-    [URL_QUERY]: requestUrl.search,
+    [URL_QUERY]: filterCollectedUrlQuery(requestUrl.search),
     [URL_SCHEME]: urlScheme,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
   };

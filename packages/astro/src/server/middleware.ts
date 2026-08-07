@@ -11,6 +11,8 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import {
   captureException,
@@ -219,7 +221,7 @@ async function instrumentRequestStartHttpServerSpan(
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
-            [URL_FULL]: ctx.url.href,
+            [URL_FULL]: filterCollectedUrl(ctx.url.href),
             [URL_PATH]: ctx.url.pathname,
             url: stripUrlQueryAndFragment(ctx.url.href),
             ...httpHeadersToSpanAttributes(
@@ -233,7 +235,7 @@ async function instrumentRequestStartHttpServerSpan(
           }
 
           if (ctx.url.search) {
-            attributes['http.query'] = ctx.url.search;
+            attributes['http.query'] = filterCollectedUrlQuery(ctx.url.search);
           }
 
           if (ctx.url.hash) {

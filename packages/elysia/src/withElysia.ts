@@ -16,6 +16,7 @@ import {
   updateSpanName,
   winterCGRequestToRequestData,
   withIsolationScope,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type { AnyElysia, Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
 
@@ -205,7 +206,7 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                    [URL_FULL]: request.url,
+                    [URL_FULL]: filterCollectedUrl(request.url),
                     [URL_PATH]: new URL(request.url).pathname,
                   },
                 },

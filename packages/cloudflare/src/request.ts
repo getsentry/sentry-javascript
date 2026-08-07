@@ -65,7 +65,14 @@ export function wrapRequestHandler(
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.cloudflare', request);
+    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+      urlObject,
+      'server',
+      'auto.http.cloudflare',
+      request,
+      undefined,
+      client,
+    );
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
