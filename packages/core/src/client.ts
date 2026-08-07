@@ -56,6 +56,7 @@ import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
+import { ATTRIBUTE_METADATA } from '@sentry/conventions';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -255,6 +256,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
     }
+
+    debug.log(`I have ${Object.keys(ATTRIBUTE_METADATA).length} attributes I can assign`);
 
     const { beforeSendSpan, traceLifecycle } = this._options;
     // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
