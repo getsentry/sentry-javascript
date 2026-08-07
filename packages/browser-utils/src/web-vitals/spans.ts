@@ -18,12 +18,17 @@ import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
-import type { InstrumentationHandlerCallback } from './instrument';
-import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
+import type { InstrumentationHandlerCallback } from '../instrumentation/performanceObserver';
+import {
+  addClsInstrumentationHandler,
+  addInpInstrumentationHandler,
+  addLcpInstrumentationHandler,
+} from '../instrumentation/performanceObserver';
 import { isValidLcpMetric } from './lcp';
-import type { WebVitalReportEvent } from './utils';
-import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
-import type { PerformanceEventTiming } from './instrument';
+import type { WebVitalReportEvent } from './reportEvents';
+import { listenForWebVitalReportEvents } from './reportEvents';
+import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
+import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
 
 // Locally-defined interfaces to avoid leaking bare global type references into the

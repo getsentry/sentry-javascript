@@ -1,8 +1,8 @@
 import type { Span } from '@sentry/core';
 import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { _addUserTimingSpan, userTimingIntegration } from '../../src/metrics/userTiming';
-import * as utils from '../../src/metrics/utils';
+import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
+import * as utils from '../../src/performance/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 describe('userTimingIntegration', () => {

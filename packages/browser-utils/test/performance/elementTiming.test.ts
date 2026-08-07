@@ -1,8 +1,8 @@
 import * as sentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { elementTimingIntegration, startTrackingElementTiming } from '../../src/metrics/elementTiming';
-import * as browserMetricsInstrumentation from '../../src/metrics/instrument';
-import * as browserMetricsUtils from '../../src/metrics/utils';
+import { elementTimingIntegration, startTrackingElementTiming } from '../../src/performance/elementTiming';
+import * as browserMetricsInstrumentation from '../../src/instrumentation/performanceObserver';
+import * as browserMetricsUtils from '../../src/performance/utils';
 
 describe('elementTimingIntegration', () => {
   const distributionSpy = vi.spyOn(sentryCore.metrics, 'distribution');

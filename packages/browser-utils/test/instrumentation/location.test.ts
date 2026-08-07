@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { getAbsoluteUrl } from '../../src/instrument/location';
+import { getAbsoluteUrl } from '../../src/instrumentation/location';
 
 describe('getAbsoluteUrl', () => {
   beforeEach(() => {

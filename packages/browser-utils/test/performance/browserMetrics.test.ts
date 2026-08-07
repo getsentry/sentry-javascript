@@ -10,13 +10,8 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  _addNavigationSpans,
-  _addResourceSpans,
-  _setResourceRequestAttributes,
-  addWebVitalsToSpan,
-  startTrackingWebVitals,
-} from '../../src/metrics/browserMetrics';
+import { _addNavigationSpans, _addResourceSpans, _setResourceRequestAttributes } from '../../src/performance/entries';
+import { addWebVitalsToSpan, startTrackingWebVitals } from '../../src/web-vitals/tracking';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 

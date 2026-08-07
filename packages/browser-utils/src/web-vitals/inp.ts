@@ -2,7 +2,7 @@ import type { Span } from '@sentry/core';
 import { getActiveSpan, getRootSpan, isBrowser } from '@sentry/core';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
-import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from './instrument';
+import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
 
 interface InteractionContext {
   span: Span | undefined;
