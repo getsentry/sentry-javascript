@@ -575,12 +575,12 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 
 **RPC & Gen AI:**
 
-| Area                                                     | Before                                      | After                                |
-| -------------------------------------------------------- | ------------------------------------------- | ------------------------------------ |
-| tRPC                                                     | `rpc.server`                                | `rpc`                                |
-| GCP gRPC calls                                           | `grpc.<service>`                            | `grpc`                               |
+| Area                                                     | Before                                      | After                                    |
+| -------------------------------------------------------- | ------------------------------------------- | ---------------------------------------- |
+| tRPC                                                     | `rpc.server`                                | `rpc`                                    |
+| GCP gRPC calls                                           | `grpc.<service>`                            | `grpc`                                   |
 | AWS Bedrock inference                                    | `rpc`                                       | `gen_ai.chat`, `gen_ai.generate_content` |
-| Gen AI fallbacks & model metadata (Vercel AI, LangGraph) | `gen_ai.unknown`, `ai.run`, `gen_ai.models` | `function`                           |
+| Gen AI fallbacks & model metadata (Vercel AI, LangGraph) | `gen_ai.unknown`, `ai.run`, `gen_ai.models` | `function`                               |
 
 **FaaS, serverless & HTTP clients:**
 
