@@ -1,10 +1,6 @@
 import { debug, getFunctionName } from '@sentry/core';
+import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
 import { DEBUG_BUILD } from '../debug-build';
-import { onCLS } from './web-vitals/getCLS';
-import { onINP } from './web-vitals/getINP';
-import { onLCP } from './web-vitals/getLCP';
-import { observe } from './web-vitals/lib/observe';
-import { onTTFB } from './web-vitals/onTTFB';
 
 type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
@@ -47,6 +43,10 @@ export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
   scripts: PerformanceScriptTiming[];
 }
 
+// Locally-defined to match web-vitals' `Metric` shape without importing it: web-vitals' type
+// entrypoint carries a `declare global` block that references DOM globals not present in every
+// TypeScript lib version (e.g. `NavigationType`), which leaks into and breaks consumers on older
+// TS. Keeping this local keeps web-vitals' global augmentations out of our published types.
 interface Metric {
   /**
    * The name of the metric (in acronym form).
@@ -89,13 +89,20 @@ interface Metric {
   entries: PerformanceEntry[];
 
   /**
-   * The type of navigation
+   * The type of navigation.
    *
    * Navigation Timing API (or `undefined` if the browser doesn't
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender' | 'restore';
+  navigationType:
+    | 'navigate'
+    | 'reload'
+    | 'back-forward'
+    | 'back-forward-cache'
+    | 'prerender'
+    | 'restore'
+    | 'soft-navigation';
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
@@ -213,14 +220,31 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   }
 }
 
+/**
+ * Wraps a metric callback so that metrics reported after a back/forward-cache restore are ignored.
+ *
+ * web-vitals re-reports each metric after a bfcache restore (tagged with a `back-forward-cache`
+ * navigation type). We intentionally drop those for now: our reporting assumes one set of vitals
+ * per page load, so surfacing bfcache re-reports would skew the data until we're ready to model
+ * and communicate them.
+ */
+function withoutBfcache(callback: (metric: Metric) => void): (metric: Metric) => void {
+  return metric => {
+    if (metric.navigationType === 'back-forward-cache') {
+      return;
+    }
+    callback(metric);
+  };
+}
+
 function instrumentCls(): StopListening {
   return onCLS(
-    metric => {
+    withoutBfcache(metric => {
       triggerHandlers('cls', {
         metric,
       });
       _previousCls = metric;
-    },
+    }),
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
     { reportAllChanges: true },
@@ -229,12 +253,12 @@ function instrumentCls(): StopListening {
 
 function instrumentLcp(): StopListening {
   return onLCP(
-    metric => {
+    withoutBfcache(metric => {
       triggerHandlers('lcp', {
         metric,
       });
       _previousLcp = metric;
-    },
+    }),
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
     { reportAllChanges: true },
@@ -242,21 +266,25 @@ function instrumentLcp(): StopListening {
 }
 
 function instrumentTtfb(): StopListening {
-  return onTTFB(metric => {
-    triggerHandlers('ttfb', {
-      metric,
-    });
-    _previousTtfb = metric;
-  });
+  return onTTFB(
+    withoutBfcache(metric => {
+      triggerHandlers('ttfb', {
+        metric,
+      });
+      _previousTtfb = metric;
+    }),
+  );
 }
 
-function instrumentInp(): void {
-  return onINP(metric => {
-    triggerHandlers('inp', {
-      metric,
-    });
-    _previousInp = metric;
-  });
+function instrumentInp(): StopListening {
+  return onINP(
+    withoutBfcache(metric => {
+      triggerHandlers('inp', {
+        metric,
+      });
+      _previousInp = metric;
+    }),
+  );
 }
 
 function addMetricObserver(
@@ -283,20 +311,28 @@ function addMetricObserver(
 }
 
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
-  const options: PerformanceObserverInit = {};
+  const options: PerformanceObserverInit = { type, buffered: true };
 
   // Special per-type options we want to use
   if (type === 'event') {
-    options.durationThreshold = 0;
+    (options as PerformanceObserverInit & { durationThreshold?: number }).durationThreshold = 0;
   }
 
-  observe(
-    type,
-    entries => {
-      triggerHandlers(type, { entries });
-    },
-    options,
-  );
+  try {
+    if (PerformanceObserver.supportedEntryTypes.includes(type)) {
+      const po = new PerformanceObserver(list => {
+        // Delay by a microtask to work around a bug in Safari where the
+        // callback is invoked synchronously rather than in a separate task.
+        // See: https://github.com/GoogleChrome/web-vitals/issues/277
+        void Promise.resolve().then(() => {
+          triggerHandlers(type, { entries: list.getEntries() });
+        });
+      });
+      po.observe(options);
+    }
+  } catch {
+    // Unsupported entry type; nothing to observe.
+  }
 }
 
 function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {

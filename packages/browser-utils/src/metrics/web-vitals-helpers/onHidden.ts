@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types';
+import { WINDOW } from '../../types';
 import { addPageListener } from './globalListeners';
 
 export interface OnHiddenCallback {

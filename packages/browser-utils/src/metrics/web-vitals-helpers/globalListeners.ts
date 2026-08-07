@@ -1,4 +1,4 @@
-import { WINDOW } from '../../../types';
+import { WINDOW } from '../../types';
 
 /**
  * web-vitals 5.1.0 switched listeners to be added on the window rather than the document.

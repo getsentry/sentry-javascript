@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../../types';
+import { WINDOW } from '../../types';
 
 // sentry-specific change:
 // add optional param to not check for responseStart (see comment below)
