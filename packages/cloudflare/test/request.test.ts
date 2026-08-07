@@ -15,6 +15,7 @@ import { _clearGlobalClientCache, init } from '../src/sdk';
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   traceLifecycle: 'static',
+  cacheClient: false,
 };
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
@@ -1149,6 +1150,26 @@ describe('cached client (cacheClient)', () => {
     beforeSend() {
       return null;
     },
+  });
+
+  test('wrapRequestHandler reuses a client when cacheClient is enabled', async () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    const options = { ...MOCK_OPTIONS, cacheClient: true };
+
+    await wrapRequestHandler(
+      { options, request: new Request('https://example.com/first'), context: createMockExecutionContext() },
+      () => new Response('first'),
+    );
+    await wrapRequestHandler(
+      {
+        options: { ...options },
+        request: new Request('https://example.com/second'),
+        context: createMockExecutionContext(),
+      },
+      () => new Response('second'),
+    );
+
+    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
   });
 
   test('returns the same cached client for the same options', async () => {

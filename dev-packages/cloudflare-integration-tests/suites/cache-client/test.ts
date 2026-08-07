@@ -134,17 +134,19 @@ it('cacheClient: false - repro #22545: detached work events are silently dropped
 it('cacheClient: true - dedupe drops the same error across invocations', async ({ signal }) => {
   // A shared client shares its dedupe state, so the same error captured by two separate
   // invocations is reported only once — the second is dropped as a duplicate.
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname)
+    .ignore('transaction', 'span')
+    .unordered()
+    .failOnUnexpected()
+    .expect(errorEventExpectation('Same error', CAPTURE_MECHANISM))
+    .start(signal);
 
-  await runner.makeRequestAndWaitForEnvelope(
-    'get',
-    '/cache/dedupe?id=dedupe-shared',
-    errorEventExpectation('Same error', CAPTURE_MECHANISM),
-  );
-
-  // Second and third invocations capture the same error, but dedupe drops them.
+  // All three invocations are made without per-request waiters, while the runner requires the
+  // single expected error and rejects if either duplicate is delivered unexpectedly.
   await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
   await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
+  await runner.completed();
 });
 
 it('cacheClient: false - dedupe does not persist across invocations', async ({ signal }) => {
