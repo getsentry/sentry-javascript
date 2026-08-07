@@ -49,6 +49,42 @@ function richNormalizedRequest() {
 }
 
 describe('requestDataIntegration', () => {
+  // `event.request.url` carries the same query string as `request.query_string`, so it has to respect
+  // `dataCollection.urlQueryParams` too.
+  describe('event.request.url query params', () => {
+    function processWith(urlQueryParams?: DataCollection['urlQueryParams']): Event {
+      const integration = requestDataIntegration();
+      const event = baseEvent({
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            method: 'GET',
+            url: 'https://example.com/reset?token=secret&id=1',
+            query_string: 'token=secret&id=1',
+          },
+        },
+      });
+
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false, urlQueryParams }));
+
+      return event;
+    }
+
+    it('filters sensitive params by default', () => {
+      expect(processWith().request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+
+    it('strips the query entirely when collection is off', () => {
+      const event = processWith(false);
+
+      expect(event.request?.url).toBe('https://example.com/reset');
+      expect(event.request?.query_string).toBeUndefined();
+    });
+
+    it('honors allowList mode', () => {
+      expect(processWith({ allow: ['id'] }).request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+  });
+
   describe('IP-related headers on event.request', () => {
     it('removes known IP headers from event.request.headers when userInfo is false', () => {
       const integration = requestDataIntegration();

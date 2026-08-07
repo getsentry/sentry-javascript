@@ -139,6 +139,9 @@ function addNormalizedRequestDataToEvent(
   if (requestData.query_string) {
     requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
+  if (requestData.url) {
+    requestData.url = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
+  }
 
   event.request = {
     ...event.request,
