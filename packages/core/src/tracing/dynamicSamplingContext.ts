@@ -131,8 +131,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const isIgnoredRoot = isNonRecordingRoot && rootSpan.dropReason === 'ignored';
   if (isNonRecordingRoot && (!hasSpansEnabled(client.getOptions()) || isIgnoredRoot)) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
-    if (capturedScope) {
-      const dsc = { ...getDynamicSamplingContextFromScope(client, capturedScope) };
+    // The scope yields no DSC while an external propagation context is active. We do have a Sentry
+    // span here though, so we are head of *its* trace: fall through and derive the DSC from the span
+    // rather than emitting an empty one.
+    const scopeDsc = capturedScope && getDynamicSamplingContextFromScope(client, capturedScope);
+    if (scopeDsc) {
+      const dsc = { ...scopeDsc };
       if (isIgnoredRoot) {
         dsc.sampled = 'false';
       }
