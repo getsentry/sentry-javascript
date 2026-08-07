@@ -15,13 +15,12 @@ import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, Stream
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
-  showSpanDropWarning,
   spanToJSON,
   spanToStreamedSpanJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
-import { isStaticBeforeSendSpanCallback } from './beforeSendSpan';
+import { applyBeforeSendSpanCallback, isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
@@ -199,22 +198,7 @@ export function captureStandaloneSpanWithStaticCallback(
     }
   });
 
-  const processedSpan = beforeSendSpan(spanJSON) || (showSpanDropWarning(), spanJSON);
+  const processedSpan = applyBeforeSendSpanCallback(spanJSON, beforeSendSpan);
 
   return spanJsonToSerializedStreamedSpan(processedSpan);
-}
-
-/**
- * Apply a user-provided beforeSendSpan callback to a span JSON.
- */
-export function applyBeforeSendSpanCallback(
-  span: StreamedSpanJSON,
-  beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): StreamedSpanJSON {
-  const modifedSpan = beforeSendSpan(span);
-  if (!modifedSpan) {
-    showSpanDropWarning();
-    return span;
-  }
-  return modifedSpan;
 }
