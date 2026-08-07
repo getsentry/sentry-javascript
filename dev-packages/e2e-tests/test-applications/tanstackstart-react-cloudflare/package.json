@@ -16,8 +16,8 @@
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
-    "@tanstack/react-start": "^1.136.0",
-    "@tanstack/react-router": "^1.136.0",
+    "@tanstack/react-start": "^1.168.35",
+    "@tanstack/react-router": "^1.170.18",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
