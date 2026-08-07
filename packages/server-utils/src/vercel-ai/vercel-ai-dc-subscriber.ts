@@ -20,7 +20,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
+import { GEN_AI_GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
@@ -430,7 +430,7 @@ function buildInvokeAgentSpan(
   if (callId) {
     operationIdByCallId.set(callId, { operationId, isStream });
   }
-  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
+  const span = startGenAiSpan(GEN_AI_GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
@@ -472,7 +472,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
   // Gated on `recordInputs` to match the OTel path (descriptions come from the recorded tools list).
   const description =
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
-  return startGenAiSpan(GEN_AI_EXECUTE_TOOL_SPAN_OP, toolName, {
+  return startGenAiSpan(GEN_AI_GEN_AI_EXECUTE_TOOL_SPAN_OP, toolName, {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
