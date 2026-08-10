@@ -87,7 +87,8 @@ async function runMiddlewareRequest(
 }
 
 describe('Next.js edge middleware trace isolation', () => {
-  beforeAll(() => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
     (GLOBAL_OBJ as unknown as { AsyncLocalStorage: typeof AsyncLocalStorage }).AsyncLocalStorage = AsyncLocalStorage;
 
     const client = new VercelEdgeClient({
@@ -100,10 +101,6 @@ describe('Next.js edge middleware trace isolation', () => {
 
     setupOtel(client);
     setOpenTelemetryContextAsyncContextStrategy();
-  });
-
-  beforeEach(() => {
-    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('gives concurrent header-less requests to unrelated routes distinct trace ids', async () => {
