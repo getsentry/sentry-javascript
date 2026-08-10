@@ -5,6 +5,7 @@ import type { Event, EventHint } from '../../../src/types/event';
 import type { Exception } from '../../../src/types/exception';
 import type { StackParser } from '../../../src/types/stacktrace';
 import { applyAggregateErrorsToEvent } from '../../../src/utils/aggregate-errors';
+import { addExceptionMechanism } from '../../../src/utils/misc';
 import { createStackParser } from '../../../src/utils/stacktrace';
 
 const stackParser = createStackParser([0, line => ({ filename: line })]);
@@ -114,6 +115,55 @@ describe('applyAggregateErrorsToEvent()', () => {
         ],
       },
     });
+  });
+
+  // fixme: the mechanism should be on the error
+  test('keeps a capture mechanism on the captured error instead of its causes', () => {
+    const cause = new Error('Failure 1');
+    const errorCause = new Error('Failure 2', { cause });
+    const error = new Error('Failure 3', { cause: errorCause });
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+    const eventHint: EventHint = {
+      originalException: error,
+      mechanism: { handled: false, type: 'auto.http.example' },
+    };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+    addExceptionMechanism(event, eventHint.mechanism);
+
+    expect(event.exception?.values).toStrictEqual([
+      {
+        type: 'Error',
+        value: 'Failure 1',
+        mechanism: {
+          exception_id: 2,
+          handled: false, // true,
+          parent_id: 1,
+          source: 'cause',
+          type: 'auto.http.example', // 'chained',
+        },
+      },
+      {
+        type: 'Error',
+        value: 'Failure 2',
+        mechanism: {
+          exception_id: 1,
+          handled: true,
+          parent_id: 0,
+          source: 'cause',
+          type: 'chained',
+        },
+      },
+      {
+        type: 'Error',
+        value: 'Failure 3',
+        mechanism: {
+          exception_id: 0,
+          handled: true, //false,
+          type: 'instrument', //'auto.http.example',
+        },
+      },
+    ]);
   });
 
   test('recursively walks errors created in another realm', () => {
