@@ -164,7 +164,7 @@ export class Scope {
    *
    * This is non-enumerable so it does not leak into `toJSON`, `Object.keys` or structural comparisons.
    */
-  public refs!: Record<string, unknown>;
+  public declare refs: Record<string, unknown>;
 
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
