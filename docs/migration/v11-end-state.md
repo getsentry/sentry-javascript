@@ -609,11 +609,16 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 | `browser.TLS/SSL`               | `browser.tls_ssl`                  |
 | `browser.DNS`                   | `browser.dns`                      |
 
-### LangGraph no longer emits `create_agent` spans
+### AI integrations no longer trace non-inference operations
 
 Affected SDKs: All server-side SDKs.
 
-The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
+AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as:
+
+- Anthropic `messages.countTokens`.
+- LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
+
+If you reference these spans in dashboards or alerts, update them accordingly.
 
 ### Console breadcrumbs handled by `consoleIntegration`
 
