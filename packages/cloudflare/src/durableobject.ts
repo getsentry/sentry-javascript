@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { WEB_SERVER_WEBSOCKET_SPAN_OP } from '@sentry/conventions/op';
 import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -195,21 +196,39 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
 
   if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {
     obj.webSocketMessage = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketMessage', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketMessage',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketMessage.bind(obj),
     );
   }
 
   if (obj.webSocketClose && typeof obj.webSocketClose === 'function') {
     obj.webSocketClose = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketClose', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketClose',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketClose.bind(obj),
     );
   }
 
   if (obj.webSocketError && typeof obj.webSocketError === 'function') {
     obj.webSocketError = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketError', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketError',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketError.bind(obj),
       (_, error) =>
         captureException(error, {
