@@ -412,6 +412,96 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(events).toHaveLength(2);
     });
 
+    it('shares the isolation scope with directly called instrumented methods', async () => {
+      const events: Event[] = [];
+      const waits: Promise<unknown>[] = [];
+      const context = createMockExecutionContext();
+      context.waitUntil = vi.fn(promise => {
+        waits.push(promise);
+      });
+      const TestClass = class extends WorkerEntrypoint {
+        async outer() {
+          SentryCore.setTag('outer_tag', 'from-outer');
+
+          await this.inner();
+
+          SentryCore.captureMessage('outer message');
+        }
+
+        async inner() {
+          SentryCore.setTag('inner_tag', 'from-inner');
+          SentryCore.setUser({ id: 'user-from-inner' });
+        }
+      };
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+            beforeSend(event) {
+              events.push(event);
+              return null;
+            },
+          }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [context, {}],
+      );
+
+      await obj.outer();
+      await Promise.all(waits);
+
+      // `inner` is instrumented too, but it is reached from within `outer`'s invocation, so it must
+      // write to the scope `outer` already opened rather than fork one of its own.
+      expect(events[0]?.tags).toEqual(expect.objectContaining({ outer_tag: 'from-outer', inner_tag: 'from-inner' }));
+      expect(events[0]?.user).toEqual({ id: 'user-from-inner' });
+    });
+
+    it('does not leak isolation scope data between consecutive invocations', async () => {
+      const events: Event[] = [];
+      const waits: Promise<unknown>[] = [];
+      const context = createMockExecutionContext();
+      context.waitUntil = vi.fn(promise => {
+        waits.push(promise);
+      });
+      const TestClass = class extends WorkerEntrypoint {
+        async seed() {
+          SentryCore.setTag('seeded_tag', 'from-seeding-invocation');
+          SentryCore.setUser({ id: 'user-from-seeding-invocation' });
+          SentryCore.captureMessage('seed');
+        }
+
+        async probe() {
+          SentryCore.captureMessage('probe');
+        }
+      };
+      const obj = Reflect.construct(
+        instrumentWorkerEntrypoint(
+          () => ({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+            beforeSend(event) {
+              events.push(event);
+              return null;
+            },
+          }),
+          TestClass as unknown as WorkerEntrypointConstructor,
+        ),
+        [context, {}],
+      );
+
+      await obj.seed();
+      await Promise.all(waits.splice(0));
+      await obj.probe();
+      await Promise.all(waits);
+
+      // Guards the probe assertions against passing vacuously.
+      expect(events[0]?.tags).toEqual(expect.objectContaining({ seeded_tag: 'from-seeding-invocation' }));
+      expect(events[0]?.user).toEqual({ id: 'user-from-seeding-invocation' });
+
+      expect(events[1]?.message).toBe('probe');
+      expect(events[1]?.tags?.seeded_tag).toBeUndefined();
+      expect(events[1]?.user).toBeUndefined();
+    });
+
     it('only excludes WorkerEntrypoint lifecycle methods from RPC instrumentation', async () => {
       const initAndBind = vi.spyOn(SentryCore, 'initAndBind');
       const TestClass = class extends WorkerEntrypoint {

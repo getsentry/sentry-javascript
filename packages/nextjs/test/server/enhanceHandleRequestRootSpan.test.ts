@@ -1,4 +1,4 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -50,6 +50,35 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/users/[id]');
     expect(span.attributes[HTTP_ROUTE]).toBe('/api/users/[id]');
+  });
+
+  it('backfills http.response.status_code from the legacy http.status_code', () => {
+    const { span } = makeSpan(
+      {
+        [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
+        'http.method': 'GET',
+        [HTTP_STATUS_CODE]: 200,
+      },
+      'GET /foo',
+    );
+    enhanceHandleRequestRootSpan(span);
+
+    expect(span.attributes[HTTP_RESPONSE_STATUS_CODE]).toBe(200);
+  });
+
+  it('does not overwrite an existing http.response.status_code', () => {
+    const { span } = makeSpan(
+      {
+        [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
+        'http.method': 'GET',
+        [HTTP_STATUS_CODE]: 200,
+        [HTTP_RESPONSE_STATUS_CODE]: 500,
+      },
+      'GET /foo',
+    );
+    enhanceHandleRequestRootSpan(span);
+
+    expect(span.attributes[HTTP_RESPONSE_STATUS_CODE]).toBe(500);
   });
 
   it('strips trailing /route from app router route handler routes', () => {

@@ -23,7 +23,7 @@ sentryTest(
     const navigationSpan = spans.find(s => getSpanOp(s) === 'navigation');
     expect(navigationSpan).toBeDefined();
 
-    const longTaskSpans = spans.filter(s => getSpanOp(s) === 'ui.long-task');
+    const longTaskSpans = spans.filter(s => getSpanOp(s) === 'ui.long_task');
     expect(longTaskSpans).toHaveLength(0);
   },
 );

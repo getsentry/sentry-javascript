@@ -24,7 +24,13 @@ import {
 import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
-import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import {
+  debug,
+  parseStringToURLObject,
+  stripUrlQueryAndFragment,
+  timestampInSeconds,
+  filterCollectedUrl,
+} from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
@@ -72,7 +78,7 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     span.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [URL_FULL]: absoluteUrl,
+      [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
       [URL_TEMPLATE]: route,
     });

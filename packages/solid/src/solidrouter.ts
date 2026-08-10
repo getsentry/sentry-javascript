@@ -19,6 +19,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
@@ -40,7 +41,7 @@ function locationToSpanUrlAttributes(pathname: string, search: string = '', hash
 
   return {
     [URL_PATH]: pathname,
-    [URL_FULL]: getAbsoluteUrl(pathWithSearch),
+    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(pathWithSearch)),
   };
 }
 

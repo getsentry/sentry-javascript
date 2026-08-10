@@ -28,8 +28,8 @@ Sentry.init({
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
-      trackFetchStreamPerformance: true,
     }),
+    Sentry.fetchStreamPerformanceIntegration(),
     replay,
   ],
   // We recommend adjusting this value in production, or using tracesSampler

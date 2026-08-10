@@ -33,6 +33,7 @@ import {
   timestampInSeconds,
 } from '@sentry/core/browser';
 import type { XhrHint } from '@sentry/browser-utils';
+import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
@@ -90,20 +91,6 @@ export interface RequestInstrumentationOptions {
   traceXHR: boolean;
 
   /**
-   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
-   * Do not enable this in case you have live streams or very long running streams.
-   *
-   * Disabled by default since it can lead to issues with streams using the `cancel()` api
-   * (https://github.com/getsentry/sentry-javascript/issues/13950)
-   *
-   * Default: false
-   *
-   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
-   * to track the duration of streamed fetch response bodies.
-   */
-  trackFetchStreamPerformance: boolean;
-
-  /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
    *
    * Default: true
@@ -133,8 +120,6 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  // oxlint-disable-next-line typescript/no-deprecated -- default for the deprecated option, kept until it is removed
-  trackFetchStreamPerformance: false,
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -176,7 +161,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
-          [URL_FULL]: sanitizedFullUrl,
+          [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
           'server.address': host,
         });
 
@@ -391,11 +376,11 @@ function xhrCallback(
             type: 'xhr',
             // eslint-disable-next-line typescript/no-deprecated
             [HTTP_METHOD]: method,
-            [URL_FULL]: sanitizedFullUrl,
+            [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             [SERVER_ADDRESS]: parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            [URL_QUERY]: getUrlQuery(parsedUrl?.search),
+            [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
           },
         })

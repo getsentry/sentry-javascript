@@ -37,6 +37,8 @@ import {
   stripDataUrlContent,
   getUrlFragment,
   getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -45,6 +47,7 @@ import {
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FRAGMENT,
@@ -214,11 +217,12 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
     [SENTRY_KIND]: 'client',
+    [SENTRY_OP]: 'http.client',
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
-    [URL_FULL]: requestUrl.toString(),
+    [URL_FULL]: filterCollectedUrl(requestUrl.toString()),
     [URL_PATH]: requestUrl.pathname,
-    [URL_QUERY]: getUrlQuery(requestUrl.search),
+    [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',

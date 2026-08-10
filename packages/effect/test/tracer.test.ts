@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
 import { SentryEffectTracer } from '../src/tracer';
@@ -203,7 +203,7 @@ describe('SentryEffectTracer', () => {
     }).pipe(withSentryTracer),
   );
 
-  it.effect('sets origin to auto.function.effect for regular spans', () =>
+  it.effect('sets origin and op for regular spans', () =>
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
@@ -223,12 +223,13 @@ describe('SentryEffectTracer', () => {
 
       expect(capturedAttributes).toBeDefined();
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
 
       mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
-  it.effect('sets origin to auto.http.effect for http.server spans', () =>
+  it.effect('sets origin and op for http.server spans', () =>
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
@@ -248,12 +249,13 @@ describe('SentryEffectTracer', () => {
 
       expect(capturedAttributes).toBeDefined();
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
 
       mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
-  it.effect('sets origin to auto.http.effect for http.client spans', () =>
+  it.effect('sets origin and op for http.client spans', () =>
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
@@ -273,6 +275,7 @@ describe('SentryEffectTracer', () => {
 
       expect(capturedAttributes).toBeDefined();
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.client');
 
       mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),

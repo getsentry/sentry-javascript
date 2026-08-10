@@ -1,95 +1,67 @@
-// The webpack/Turbopack code-transform loader, re-exported so it compiles into this
-// package's build (the `@apm-js-collab` packages are bundled devDependencies and not resolvable on
-// user installs). Bundlers reference it by on-disk path via `getOrchestrionLoaderPath()`, so it
-// needs its own entrypoint/subpath rather than being reachable from another module.
-import codeTransformerLoaderImpl from '@apm-js-collab/code-transformer-bundler-plugins/webpack-loader';
+// The webpack/Turbopack code-transform loader. Built with the upstream loader
+// factory so the module-injected custom transform is baked into the loader
+// module itself: Turbopack (and worker-based loaders like `thread-loader`)
+// serialize loader options as JSON, so function-valued options can never reach
+// a loader — everything that crosses that boundary must stay serializable.
+// Compiled into this package's build (the `@apm-js-collab` packages are bundled
+// devDependencies and not resolvable on user installs); bundlers reference it
+// by on-disk path via `getOrchestrionLoaderPath()`, so it needs its own
+// entrypoint/subpath rather than being reachable from another module.
+import { createLoader } from '@apm-js-collab/code-transformer-bundler-plugins/webpack-loader-factory';
+import { dirname, relative } from 'node:path';
+import { moduleInjectedTransforms } from './moduleInjectedTransform';
 
-// The loader context we rely on beyond the transform itself: `resourcePath` to
-// name the module, `async` for the transformed result, and `_compilation` to
-// tell webpack (present) from Turbopack (absent).
+interface LoaderOptions {
+  /** Fixed import specifier for the module-injected snippet. */
+  importSpecifier?: string;
+  /**
+   * Absolute path to the `@sentry/server-utils/orchestrion` helper module. When
+   * set, the snippet imports a PER-FILE RELATIVE path to it: Turbopack rejects
+   * absolute-path imports ("server relative imports are not implemented yet"),
+   * and a bare specifier emitted inside a transformed package doesn't resolve
+   * from that package's location under isolated installs (pnpm). A relative
+   * specifier is resolved from the importing file and consumed entirely at
+   * build time. Takes precedence over `importSpecifier`.
+   */
+  importHelperPath?: string;
+}
+
+// The slice of the loader context we touch ourselves; everything else is the
+// factory-built loader's business.
 interface LoaderContext {
   resourcePath: string;
-  async: () => (error: unknown, code?: string, map?: unknown) => void;
-  _compilation?: unknown;
+  getOptions: () => LoaderOptions;
 }
 
 type LoaderFn = (this: LoaderContext, code: string, inputSourceMap?: unknown) => void;
 
-const upstreamLoader: LoaderFn = codeTransformerLoaderImpl;
+// Read lazily by the baked-in transform each time it splices a snippet, so ONE
+// loader (and one upstream matcher) serves every per-file specifier. Safe as a
+// module-level slot: the write below and the factory loader's transform run
+// synchronously within a single loader invocation.
+let currentImportSpecifier: string | undefined;
 
-/**
- * The npm package name for a module path.
- * Reads the segment after the LAST `node_modules`, so pnpm's nested layout
- * resolves to the real package. Matches the name that channel integrations
- * await.
- */
-function packageNameFromPath(resourcePath: string): string | undefined {
-  const marker = '/node_modules/';
-  const normalized = resourcePath.replace(/\\/g, '/');
-  const index = normalized.lastIndexOf(marker);
-  if (index === -1) {
-    return undefined;
-  }
+const factoryLoader = createLoader({
+  customTransforms: moduleInjectedTransforms(() => currentImportSpecifier),
+}) as LoaderFn;
 
-  const [scopeOrName, name] = normalized.slice(index + marker.length).split('/');
-  if (!scopeOrName) {
-    return undefined;
-  }
-
-  return scopeOrName.startsWith('@') && name ? `${scopeOrName}/${name}` : scopeOrName;
+function relativeImportSpecifier(fromFile: string, toFile: string): string {
+  const rel = relative(dirname(fromFile), toFile).replace(/\\/g, '/');
+  return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
 /**
- * Announce a runtime-injected module the way the banner and runtime `--import`
- * hook do, so the lazily-registered channel integrations subscribe. Appended to
- * each transformed module's code, it runs when that module loads.
- */
-function onInjectSnippet(moduleName: string): string {
-  const name = JSON.stringify(moduleName);
-  return (
-    ';(function(){' +
-    'var g=globalThis.__SENTRY_ORCHESTRION__||={};' +
-    'if(!Array.isArray(g.bundler))g.bundler=[];' +
-    `if(g.bundler.indexOf(${name})<0)g.bundler.push(${name});` +
-    `if(typeof g.onInject==='function')g.onInject(${name});` +
-    '})();\n'
-  );
-}
-
-/**
- * Wraps the upstream code-transform loader.
- *
- * Under Turbopack the transform runs as a loader, but the webpack *plugin* that
- * emits the `injectDiagnostics` boot banner never runs, because Turbopack takes
- * loaders, not plugins. That banner is what calls `onInject` for bundled
- * modules, so without it the channel integrations never learn their module
- * loaded and never subscribe. When there is no webpack compilation (Turbopack
- * case), append the `onInject` call to each transformed module here instead.
- * Under webpack leave it to the banner, so signal fires exactly once per module
+ * Reads the Sentry-specific options (unknown to the upstream loader, which
+ * reads only its own fields), stages the snippet specifier for this file, and
+ * delegates to the factory-built loader. `instrumentations` stays a plain
+ * per-rule loader option, read by the upstream loader itself.
  */
 const codeTransformerLoader: LoaderFn = function (code, inputSourceMap) {
-  if (this._compilation) {
-    upstreamLoader.call(this, code, inputSourceMap);
-    return;
-  }
-
-  const realAsync = this.async.bind(this);
-  const { resourcePath } = this;
-
-  this.async = () => {
-    const callback = realAsync();
-    return (error: unknown, outputCode?: string, outputMap?: unknown): void => {
-      // The upstream loader returns the input code unchanged when it did not
-      // transform the module, so a changed string means a channel-publishing
-      // module we must announce.
-      const transformed = !error && typeof outputCode === 'string' && outputCode !== code;
-      const moduleName = transformed ? packageNameFromPath(resourcePath) : undefined;
-      const finalCode = moduleName ? `${outputCode}${onInjectSnippet(moduleName)}` : outputCode;
-      callback(error, finalCode, outputMap);
-    };
-  };
-
-  upstreamLoader.call(this, code, inputSourceMap);
+  const { importSpecifier, importHelperPath } = this.getOptions();
+  currentImportSpecifier = importHelperPath
+    ? relativeImportSpecifier(this.resourcePath, importHelperPath)
+    : importSpecifier;
+  return factoryLoader.call(this, code, inputSourceMap);
 };
 
 export default codeTransformerLoader;

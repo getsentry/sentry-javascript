@@ -55,16 +55,12 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
-<!-- TODO(v11): Evaluate whether we can move to Sentry CLI v4 already. -->
-
-### Sentry CLI v3
-
-The SDK and bundler plugins now use Sentry CLI v3. This is an internal change for most users. If you pin or invoke `@sentry/cli` directly, upgrade your usage to v3.
-
 ### AWS Lambda Layer Changes
 
 A new AWS Lambda Layer for version 11 will be published as `SentryNodeServerlessSDKv11`.
 The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/) once available.
+
+The layer is compatible with the `nodejs20.x`, `nodejs22.x` and `nodejs24.x` runtimes. Functions still on `nodejs18.x` need to move to a newer runtime before upgrading.
 
 Updates and fixes for version 10 will be published as `SentryNodeServerlessSDKv10`.
 
@@ -76,46 +72,112 @@ Affected SDKs: Server-side SDKs (`@sentry/node` and all dependents).
 
 By default, v11 no longer sets up an OpenTelemetry tracer provider for **most** SDKs. SDKs now own the full span lifecycle, producing native Sentry spans.
 
-A new optional OpenTelemetry integration lets you connect Sentry events such as Errors, Logs, Crons and Metrics to your OpenTelemetry traces, if you need to.
+A new optional OpenTelemetry integration lets you connect Sentry events such as Errors, Logs, Crons and Metrics to your OpenTelemetry traces, if you need to. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 
 Only `@sentry/nextjs` and `@sentry/sveltekit` still set up an OpenTelemetry compatible light tracer provider to capture spans the underlying frameworks emit.
 
 This means you can run your own OpenTelemetry setup cleanly alongside Sentry without having Sentry spans leak into your pipeline anymore. Your OpenTelemetry setup will no longer be required to use Sentry components for exporting, context management and trace propagation.
 
-This behavior is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11. It now defaults to `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs, and `@sentry/cloudflare`) and to `false` for `@sentry/nextjs` and `@sentry/sveltekit`. When `true`, the SDK skips the tracer provider and isolates scopes with a native AsyncLocalStorage strategy; it still emits its own spans, but spans you create through `@opentelemetry/api` are not captured. Set it to `false` to have Sentry register its own `SentryTracerProvider` as the global OpenTelemetry tracer provider, so those `@opentelemetry/api` spans become Sentry spans:
+With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only one remaining. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
+
+If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
+
+#### Choosing an OpenTelemetry setup
+
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the new `enableOpenTelemetrySetup` option, which replaces v10's `skipOpenTelemetrySetup` with inverted meaning (`skipOpenTelemetrySetup: true` becomes `enableOpenTelemetrySetup: false`). It defaults to `false` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `true` for `@sentry/nextjs` and `@sentry/sveltekit`.
+
+##### 1. Sentry only
+
+The default, and what you most likely want. Tracing works out of the box:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
-  // Register Sentry's OpenTelemetry tracer provider so spans created via `@opentelemetry/api` are captured
-  skipOpenTelemetrySetup: false,
+  tracesSampleRate: 1.0,
 });
 ```
 
-Note that `skipOpenTelemetrySetup: false` makes Sentry the OpenTelemetry tracer provider. If you run your own tracer provider, keep `skipOpenTelemetrySetup: true` so Sentry does not register a competing provider. The SDK no longer ships a `SentrySpanProcessor` or other components to route your OpenTelemetry spans into Sentry, so spans from your own provider stay in your OpenTelemetry pipeline and are not sent to Sentry.
+If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
 
-In v10, setting `skipOpenTelemetrySetup: true` also turned Sentry's own HTTP and fetch spans off by default, on the assumption that your own OpenTelemetry `HttpInstrumentation` would emit them instead. That is no longer the case: Sentry now emits HTTP and fetch spans whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`. If you run your own OpenTelemetry HTTP instrumentation alongside Sentry, disable Sentry's spans to avoid duplicates:
+##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
+
+Set `enableOpenTelemetrySetup: true`:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
-  integrations: [
-    // Let your own OpenTelemetry HttpInstrumentation own HTTP & fetch spans
+  tracesSampleRate: 1.0,
+  enableOpenTelemetrySetup: true,
+});
+```
+
+Sentry registers a minimal OpenTelemetry-compatible tracer provider, context manager and propagator. Just enough OpenTelemetry to pick up spans created through `@opentelemetry/api`, which become native Sentry spans.
+
+Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter and no OTLP output. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
+
+##### 3. Your own OpenTelemetry, Sentry linked to it
+
+Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
+
+```js
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import * as Sentry from '@sentry/node';
+
+const provider = new NodeTracerProvider({
+  spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter(Sentry.getOtlpTracesEndpoint('__DSN__')))],
+});
+
+provider.register();
+
+Sentry.init({
+  dsn: '__DSN__',
+  // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
+  integrations: [Sentry.otlpIntegration()],
+});
+```
+
+`enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
+
+OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
+
+Sentry does not touch your pipeline: no exporter, no span processor, no tracer provider, and outgoing trace propagation is left to your propagator. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces) for the details, including what changed if you used the v10 integration.
+
+##### Avoiding duplicate spans
+
+Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
+
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`.
+
+If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: integrations => [
+    // your own OpenTelemetry instrumentation already covers these
+    ...integrations.filter(integration => integration.name !== 'Postgres'),
     Sentry.httpIntegration({ spans: false }),
     Sentry.nativeNodeFetchIntegration({ spans: false }),
   ],
 });
 ```
 
-With this, we also heavily reduced our OpenTelemetry dependencies, with `@opentelemetry/api` being the only remaining package we abide by. These changes also mean `@sentry/node-core` no longer serves any purpose and was [merged back into `@sentry/node`](#sentrynode-core-was-merged-back-into-sentrynode).
+##### Migrating custom OpenTelemetry setups
 
-For most users, day-to-day tracing is **unchanged**.
+In v10, running your own OpenTelemetry setup meant registering Sentry's own components into it: `SentryContextManager`, `SentrySampler` and `SentrySpanProcessor`. Those were removed, so there is no longer a way to route spans from your own provider into Sentry as Sentry spans. Export them over OTLP instead, as shown in setup 3.
 
-> **TODO(v11):** Document the new optional OpenTelemetry integration once its final name and signature
-> are locked in — add the `Sentry.init` example.
+#### Connecting Sentry to your OpenTelemetry traces
 
-> **TODO(v11):** Link to the upcoming guide covering common use cases with the new OpenTelemetry setup
-> (running your own OpenTelemetry setup alongside Sentry, connecting Sentry events to OTel traces, etc.).
+`Sentry.otlpIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
+
+It does not set up a span exporter, span processor, or tracer provider. You keep full ownership of your OpenTelemetry pipeline, and outgoing request propagation is left to your OpenTelemetry propagator. To send your spans to Sentry, point your own exporter at the URL and auth headers that `Sentry.getOtlpTracesEndpoint()` derives from your DSN.
+
+An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
+
+If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
 
 ### `sendDefaultPii` is replaced by `dataCollection`
 
@@ -164,7 +226,10 @@ Sentry.init({
   dataCollection: {
     userInfo: false,
     cookies: false,
-    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    httpHeaders: {
+      request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    },
     httpBodies: [],
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
@@ -338,9 +403,7 @@ Sentry.init({
 
 // After
 Sentry.init({
-  ignoreSpans: [
-    'GET /health'
-  ]
+  ignoreSpans: ['GET /health'],
   beforeSendSpan: span => {
     if (span.is_segment) {
       span.name = scrubIds(span.name);
@@ -439,19 +502,11 @@ Two consequences to be aware of when upgrading:
 - **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
 - **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
-### `tracePropagationTargets` matching is now case-insensitive
-
-Affected SDKs: All SDKs.
-
-String and regular-expression matching for `tracePropagationTargets` is now case-insensitive.
-
 ### Span attribute changes
 
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-- `network.*` span attributes were aligned across SDKs.
-- Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -463,29 +518,91 @@ Affected SDKs: All SDKs.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
 
+### Span operation (`op`) changes
+
+Affected SDKs: All SDKs.
+
+Span ops are now aligned to a smaller, framework-neutral, convention-backed set. The detail that used to live in the op (framework, library, method name, trigger, or lifecycle phase) is preserved in span attributes such as `code.function.name`, `sentry.origin`, `db.system.name`, `db.operation.name`, `faas.trigger`, and framework-specific attributes.
+
+These changes are not caught by TypeScript. If you filter, group, or alert on span ops — in dashboards, dynamic sampling rules, `ignoreSpans`, or `beforeSendSpan` — update them to the new ops below.
+
+**Backend HTTP, handlers, middleware & routers:**
+
+| Area                                                                 | Before                                                                                                                                                                                                                     | After         |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Request handlers (Express, Koa, Connect, Fastify, Elysia, NestJS, …) | `request_handler.<library>`, `handler.nestjs`                                                                                                                                                                              | `handler`     |
+| Hono `app.request()` in-process dispatch                             | `hono.request`                                                                                                                                                                                                             | `http.server` |
+| Web-server middleware                                                | `middleware.express`, `middleware.koa`, `middleware.hono`, `middleware.elysia`, `middleware.nestjs`, `middleware.nuxt`, `middleware.nitro`, `middleware.tanstackstart`, `hook.fastify`, `http.server.middleware` (Next.js) | `middleware`  |
+| Backend router layers                                                | `router.express`, `router.koa`, `router.hapi`                                                                                                                                                                              | `router`      |
+| Hapi server extensions                                               | `server.ext.hapi`                                                                                                                                                                                                          | `middleware`  |
+| NestJS setup & lifecycle handlers                                    | `app_creation.nestjs`, `request_context.nestjs`, `event.nestjs`                                                                                                                                                            | `function`    |
+
+**Framework functions:**
+
+| Area                                                                                                      | Before                                                                                                                                                                                              | After      |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Loaders, actions & server functions (Next.js, Remix, React Router, SvelteKit, SolidStart, TanStack Start) | `function.nextjs`, `function.sveltekit.load`, `function.react_router.loader`, `function.remix.document_request`, `loader.remix`, `action.remix`, `function.server_action`, `function.tanstackstart` | `function` |
+
+**Frontend & UI:**
+
+| Area                                     | Before                                                                                                                               | After                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Frontend routing                         | `ui.angular.routing`, `ui.sveltekit.routing`, `ui.ember.transition`                                                                  | `router`                                                 |
+| React, Vue & Svelte component lifecycles | `ui.react.mount`/`render`/`update`, `ui.svelte.init`/`update`, Vue `render`/`update`/`mount`/`create`/`activate`/`unmount`/`destroy` | `ui.mount`, `ui.render`, `ui.update`, `ui.unmount`       |
+| Angular tracing decorators               | `ui.angular.init` (`TraceDirective`/`TraceClass`), `ui.angular.<method>` (`TraceMethod`)                                             | `ui.mount`, `function`                                   |
+| Ember route hooks, runloop & components  | `ui.ember.route.<hook>`, `ui.ember.runloop.<queue>`, `ui.ember.component.render`/`definition`/`init`                                 | `function`, `ui.task`, `ui.render`/`function`/`ui.mount` |
+| Browser paint entries                    | `paint`                                                                                                                              | `browser.paint`                                          |
+
+**Databases, cache & messaging:**
+
+| Area                                  | Before                                                                                                                                              | After                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Redis commands / connect              | `db.redis`, `db.redis.connect`                                                                                                                      | `db.query`, `db`                                  |
+| Nuxt & Nitro storage (unstorage)      | `cache.has_item`, `cache.get_item`, `cache.get_items`, `cache.get_keys`, `cache.set_item`, `cache.set_items`, `cache.remove_item`, `cache.clear`, … | `cache.get`, `cache.put`, `cache.remove`          |
+| Kafka, AMQP & OTel-inferred messaging | `message`, `message.produce`, `message.consume`                                                                                                     | `queue.publish`, `queue.receive`, `queue.process` |
+
+**RPC & Gen AI:**
+
+| Area                                                     | Before                                      | After                                    |
+| -------------------------------------------------------- | ------------------------------------------- | ---------------------------------------- |
+| tRPC                                                     | `rpc.server`                                | `rpc`                                    |
+| GCP gRPC calls                                           | `grpc.<service>`                            | `grpc`                                   |
+| AWS Bedrock inference                                    | `rpc`                                       | `gen_ai.chat`, `gen_ai.generate_content` |
+| Gen AI fallbacks & model metadata (Vercel AI, LangGraph) | `gen_ai.unknown`, `ai.run`, `gen_ai.models` | `function`                               |
+
+**FaaS, serverless & HTTP clients:**
+
+| Area                                           | Before                                                                | After                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| AWS Lambda functions                           | `function.aws.lambda`                                                 | `function.aws`                             |
+| GCP functions                                  | `function.gcp.http`, `function.gcp.event`, `function.gcp.cloud_event` | `function.gcp`                             |
+| Firebase functions                             | `http.request`                                                        | `function.gcp`                             |
+| Cloudflare cron, email & workflow steps        | `faas.cron`, `faas.email`, `function.step.do`                         | `function`                                 |
+| OTel-inferred FaaS spans (from `faas.trigger`) | arbitrary trigger strings used verbatim                               | `http.server`, `queue.process`, `function` |
+| GCP HTTP client                                | `http.client.<service>`                                               | `http.client`                              |
+| Prefetch HTTP requests                         | `http.client.prefetch`, `http.server.prefetch`                        | `http.client`, `http.server`               |
+
+**Casing normalized to snake_case:** Some `browser.*` and `ui.*` ops used inconsistent casing and are now aligned to snake_case:
+
+| Before                          | After                              |
+| ------------------------------- | ---------------------------------- |
+| `ui.long-task`                  | `ui.long_task`                     |
+| `ui.long-animation-frame`       | `ui.long_animation_frame`          |
+| `browser.unloadEvent`           | `browser.unload_event`             |
+| `browser.domContentLoadedEvent` | `browser.dom_content_loaded_event` |
+| `browser.loadEvent`             | `browser.load_event`               |
+| `browser.TLS/SSL`               | `browser.tls_ssl`                  |
+| `browser.DNS`                   | `browser.dns`                      |
+
 ### LangGraph no longer emits `create_agent` spans
 
 Affected SDKs: All server-side SDKs.
 
 The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
-### `thirdPartyErrorFilterIntegration` filters internal frames by default
-
-Affected SDKs: All SDKs.
-
-`ignoreSentryInternalFrames` is now the default behaviour for `thirdPartyErrorFilterIntegration`.
-
-### Console breadcrumbs handled by `consoleIntegration`
-
-Affected SDKs: `@sentry/browser` and `@sentry/deno` (and their dependents).
-
-The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIntegration` from `@sentry/core` to capture console breadcrumbs instead.
-
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
-
-**Middleware span op changed to `middleware`:** Next.js middleware spans now use the `middleware` span op instead of `http.server.middleware`. If you filter or alert on the previous op (e.g. in dashboards or dynamic sampling rules), update it to `middleware`.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
@@ -500,8 +617,6 @@ The SDK now requires the `nodejs_compat` compatibility flag instead of `nodejs_a
 
 ### Cloudflare: `wrapRequestHandler` moved to `@sentry/cloudflare/request`
 
-> **TODO(v11):** This needs to be clarified with #22367
-
 Affected SDKs: `@sentry/cloudflare`.
 
 `wrapRequestHandler` is no longer available from the main `@sentry/cloudflare` entry point. Import it from the dedicated subpath instead:
@@ -515,32 +630,9 @@ Affected SDKs: `@sentry/cloudflare`.
 
 ### `@sentry/core` / All SDKs
 
-- The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
-- The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
-
-```js
-// before
-Sentry.init({
-  _experiments: {
-    enableMetrics: true,
-    beforeSendMetric: metric => {
-      return metric;
-    },
-  },
-});
-
-// after
-Sentry.init({
-  enableMetrics: true,
-  beforeSendMetric: metric => {
-    return metric;
-  },
-});
-```
-
 - The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
 
 ```js
@@ -557,20 +649,6 @@ Sentry.init({});
 // or, to opt out
 Sentry.init({
   enableLogs: false,
-});
-```
-
-- The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
-
-```js
-// before
-Sentry.init({
-  integrations: [Sentry.browserTracingIntegration({ trackFetchStreamPerformance: true })],
-});
-
-// after
-Sentry.init({
-  integrations: [Sentry.browserTracingIntegration(), Sentry.fetchStreamPerformanceIntegration()],
 });
 ```
 
@@ -620,11 +698,9 @@ Sentry.init({
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
 - (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
-- (Fastify) The deprecated `setShouldHandleError` method was removed.
-- (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
-- (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
-- (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
+- The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
+- The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 
 ### `@sentry/cloudflare`
 
@@ -652,7 +728,7 @@ Sentry.init({
   );
 ```
 
-> **TODO(v11):** This might change to `enableRpcTracePropagation: true` by default. This depends on the outcomes of #20525
+- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
 
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
@@ -680,14 +756,9 @@ Sentry.init({
 ### `@sentry/opentelemetry`
 
 - `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
-- `OpenTelemetryServerRuntimeOptions` was removed.
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
-
-### `@sentry/core` span attributes
-
-- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### AI integrations
 
@@ -721,25 +792,9 @@ Sentry.init({
 
 - The `prune-profiler-binaries` script was removed.
 
-### `@sentry/nextjs`
-
-The following long-deprecated options in `withSentryConfig` / the `sentry` config were removed:
-
-- `unstable_sentryWebpackPluginOptions`
-- `autoInstrumentServerFunctions`
-- `autoInstrumentMiddleware`
-- `autoInstrumentAppDirectory`
-- `disableLogger`
-- `automaticVercelMonitors`
-- `disableManifestInjection`
-- `disableSentryWebpackConfig`
-- `turbopackApplicationKey`
-
-Remove these options from your `next.config.js` / `next.config.ts`.
-
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### `@sentry/nuxt`
 
@@ -838,12 +893,6 @@ import { init } from '@sentry/node';
 
 The utility `@sentry/tanstackstart` package was removed. Use the `@sentry/tanstackstart-react` package for your setup.
 
-### Metrics moved out of the base CDN bundle
-
-Affected SDKs: `@sentry/browser` (CDN bundles).
-
-Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.metrics` bundle.
-
 ## 5. Renames
 
 ### `InboundFilters` integration renamed to `EventFilters`
@@ -894,15 +943,6 @@ import { instrumentLangGraph } from '@sentry/node';
 import { instrumentStateGraph } from '@sentry/node';
 ```
 
-### `childProcess` integration split into `childProcess` and `worker`
-
-Affected SDKs: `@sentry/node` and dependents.
-
-The `childProcessIntegration` was split into a `childProcessIntegration` (for `child_process`) and a separate `workerIntegration` (for `worker_threads`).
-
-> **TODO(v11):** Document how the two integrations are configured and what users who customized
-> `childProcessIntegration` need to change.
-
 ### Deno default integrations renamed to match the other SDKs
 
 Affected SDKs: `@sentry/deno`.
@@ -916,14 +956,31 @@ Several default integrations were renamed to match the names used by the other S
 - `DenoMysql` => `Mysql`
 - `DenoPostgres` => `Postgres`
 
+### `OtlpIntegration` integration renamed to `Otlp`
+
+Affected SDKs: Server-side SDKs (`@sentry/node` and all dependents).
+
+The OTLP integration reports itself as `Otlp` rather than `OtlpIntegration`, matching every other integration in the SDKs, none of which carry an `Integration` suffix in their name. The `otlpIntegration()` export itself is unchanged. This only matters if you reference the integration by name:
+
+```js
+// before
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'OtlpIntegration'),
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'Otlp'),
+});
+```
+
+The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
+
 ## 6. Type Changes
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
-- Attribute typing and serialization were unified across the SDK.
-- The `SentrySpanArguments` interface and related dead code in `SentrySpan` were cleaned up.
-- `BrowserOptions` now supports the `TransportOptions` generic.
 - (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
 
 ```diff

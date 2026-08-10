@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.16.0"
+    "@sentry/conventions": "^0.16.0",
+    "web-vitals": "^6.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

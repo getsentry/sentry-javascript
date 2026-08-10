@@ -100,5 +100,25 @@ describe('GoogleCloudHttp tracing', () => {
         },
       });
     });
+
+    // Span names follow `METHOD scheme://host/path`, so a query string must never reach the name,
+    // whatever the caller passes as `uri`.
+    test('strips the query string from the span name', async () => {
+      nock('https://bigquery.googleapis.com')
+        .get('/bigquery/v2/projects/project-id/datasets')
+        .query(true)
+        .reply(200, '{}');
+
+      await new Promise<void>((resolve, reject) => {
+        (bigquery as unknown as { request: (o: unknown, cb: (e: unknown) => void) => void }).request(
+          { uri: '/datasets?key=SECRET_TOKEN_VALUE&alt=json', method: 'GET' },
+          (err: unknown) => (err ? reject(err) : resolve()),
+        );
+      });
+
+      expect(mockStartInactiveSpan).toBeCalledWith(expect.objectContaining({ name: 'GET /datasets' }));
+      const names = mockStartInactiveSpan.mock.calls.map(([args]) => (args as { name: string }).name);
+      expect(names.join('\n')).not.toContain('SECRET_TOKEN_VALUE');
+    });
   });
 });

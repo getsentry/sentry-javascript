@@ -39,12 +39,11 @@ type UnknownPlugin = any;
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
 import {
   INSTRUMENTED_MODULE_NAMES,
+  moduleInjectedTransforms,
+  ORCHESTRION_BUNDLER_MARKER_BANNER,
   SENTRY_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '@sentry/server-utils/orchestrion/config';
-
-const BUNDLER_MARKER_BANNER =
-  ';(globalThis.__SENTRY_ORCHESTRION__=(globalThis.__SENTRY_ORCHESTRION__||{})).bundler=true;';
 
 // Minimal shape of Bun's `PluginBuilder` that we touch. Typed locally instead
 // of depending on `bun-types`, which would pull Bun's globals.
@@ -56,8 +55,11 @@ interface BunPluginBuilder {
  * Returns the orchestrion code-transform plugin for Bun's bundler, configured
  * with the central `SENTRY_INSTRUMENTATIONS`. The plugin injects
  * `diagnostics_channel.tracingChannel` calls into the instrumented libraries as
- * `bun build` bundles them, and injects a banner that sets
- * `globalThis.__SENTRY_ORCHESTRION__.bundler = true` when the bundle boots
+ * `bun build` bundles them — plus, via the module-injected transform, the
+ * snippet that records each module on `globalThis.__SENTRY_ORCHESTRION__` when
+ * it is evaluated — and injects the marker banner so `bundler` is set (to `[]`)
+ * from boot, which is what gates the SDK's channel-integration setup at
+ * `init()`.
  *
  * Pass the result to `Bun.build({ plugins: [...] })`.
  *
@@ -72,19 +74,25 @@ export function sentryBunPlugin(): UnknownPlugin {
   // `PluginBuilder` (which has the `onLoad` the transform uses) to `setup`.
   // Cast to the Bun-compatible shape so we can forward Bun's builder to its
   // `setup`.
-  const transformer = codeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS }) as unknown as {
+  const transformer = codeTransformer({
+    instrumentations: SENTRY_INSTRUMENTATIONS,
+    customTransforms: moduleInjectedTransforms(),
+  }) as unknown as {
     setup: (build: BunPluginBuilder) => void;
   };
 
   return {
     name: 'sentry-orchestrion',
     setup(build: BunPluginBuilder): void {
-      // Inject a banner so the bundled output sets `bundler: true` at boot.
-      // `config` is the `Bun.build` config and is present when this plugin
-      // is passed to `Bun.build({ plugins: [...] })`.
+      // Inject the marker banner via Bun's native `banner` config (unlike the
+      // upstream `injectDiagnostics` path, it needs no `outdir`). `config` is
+      // the `Bun.build` config and is present when this plugin is passed to
+      // `Bun.build({ plugins: [...] })`.
       if (build.config) {
         const existing = build.config.banner ?? '';
-        build.config.banner = existing ? `${existing}\n${BUNDLER_MARKER_BANNER}` : BUNDLER_MARKER_BANNER;
+        build.config.banner = existing
+          ? `${existing}\n${ORCHESTRION_BUNDLER_MARKER_BANNER}`
+          : ORCHESTRION_BUNDLER_MARKER_BANNER;
 
         // Force-bundle every instrumented package. An externalized dependency
         // is resolved from `node_modules` at runtime and never passes throug

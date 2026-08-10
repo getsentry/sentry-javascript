@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions } from '@sentry/core';
+import type { ClientOptions, Options, Scope, ServerRuntimeOptions } from '@sentry/core';
 import type { NodeTransportOptions } from './transports';
 
 /**
@@ -10,19 +10,19 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
   /**
    * Controls whether the SDK registers its own Sentry OpenTelemetry tracer provider.
    *
-   * When `true` (the default for most SDKs), no tracer provider is set up. The SDK isolates scopes
+   * When `false` (the default for most SDKs), no tracer provider is set up. The SDK isolates scopes
    * with a native AsyncLocalStorage context strategy and still emits spans via its own
    * instrumentation, but spans created through `@opentelemetry/api` are not captured.
    *
-   * When `false`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
+   * When `true`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
    * global OpenTelemetry tracer provider, so spans created through `@opentelemetry/api` become Sentry
    * spans. This is the default for the Next.js and SvelteKit SDKs. If you run your own tracer provider,
-   * keep this `true` so the SDK does not register a competing provider; note the SDK no longer feeds
+   * keep this `false` so the SDK does not register a competing provider; note the SDK no longer feeds
    * spans into a user-owned provider, so those spans stay in your OpenTelemetry pipeline.
    *
-   * @default true
+   * @default false
    */
-  skipOpenTelemetrySetup?: boolean;
+  enableOpenTelemetrySetup?: boolean;
 }
 
 /**
@@ -37,28 +37,6 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
    */
   runtime?: { name: string; version?: string };
-  /**
-   * Sets profiling sample rate when @sentry/profiling-node is installed
-   *
-   * @deprecated
-   */
-  profilesSampleRate?: number;
-
-  /**
-   * Function to compute profiling sample rate dynamically and filter unwanted profiles.
-   *
-   * Profiling is enabled if either this or `profilesSampleRate` is defined. If both are defined, `profilesSampleRate` is
-   * ignored.
-   *
-   * Will automatically be passed a context object of default and optional custom data.
-   *
-   * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
-   * equivalent to returning 1 and returning `false` is equivalent to returning 0.
-   *
-   * @deprecated
-   */
-  profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
-
   /**
    * Sets profiling session sample rate for the entire profiling session (evaluated once per SDK initialization).
    *

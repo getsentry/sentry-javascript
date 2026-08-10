@@ -82,11 +82,26 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env);
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
 
     // DO bindings pass through untouched when RPC propagation is disabled
     expect(instrumented.COUNTER).toBe(doNamespace);
     expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
+  });
+
+  it('detects and instruments DurableObjectNamespace bindings by default', () => {
+    const doNamespace = {
+      idFromName: vi.fn(),
+      idFromString: vi.fn(),
+      get: vi.fn(),
+      newUniqueId: vi.fn(),
+    };
+    const env = { COUNTER: doNamespace };
+    const instrumented = instrumentEnv(env, {});
+
+    const result = instrumented.COUNTER;
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
+    expect((result as any).__instrumented).toBe(true);
   });
 
   it('detects and instruments DurableObjectNamespace bindings when enableRpcTracePropagation is enabled', () => {
@@ -160,7 +175,7 @@ describe('instrumentEnv', () => {
       },
     );
     const env = { SERVICE: jsrpcProxy };
-    const instrumented = instrumentEnv(env);
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
 
     const result = instrumented.SERVICE;
     // Should be the same reference — not wrapped when propagation is disabled
@@ -346,7 +361,7 @@ describe('instrumentEnv', () => {
       const mockFetch = vi.fn();
       const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
       const env = { MY_CERT: mtlsFetcher };
-      const instrumented = instrumentEnv(env);
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
 
       expect(instrumented.MY_CERT).toBe(mtlsFetcher);
     });
@@ -378,7 +393,7 @@ describe('instrumentEnv', () => {
   });
 
   describe('JSRPC RPC method instrumentation', () => {
-    it('does not inject Sentry RPC meta by default (enableRpcTracePropagation not set)', () => {
+    it('does not inject Sentry RPC meta when enableRpcTracePropagation is disabled', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -397,11 +412,11 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env);
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
 
       instrumented.SERVICE.myRpcMethod('arg1', 42);
 
-      // Without enableRpcTracePropagation, no metadata should be injected
+      // With enableRpcTracePropagation disabled, no metadata should be injected
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
     });
 

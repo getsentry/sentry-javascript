@@ -103,6 +103,8 @@ export {
   spanStreamingIntegration,
 } from '@sentry/core';
 export {
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

@@ -28,8 +28,6 @@ export interface GraphqlDocumentNode {
 
 /**
  * Rename the enclosing root span to include the operation name(s), e.g. `GET /graphql (query GetUser)`.
- * Mirrors the legacy OTel `useOperationNameForRootSpan` behavior; `parseSpanDescription` reads the same
- * `sentry.graphql.operation` attribute on the OTel export path.
  */
 export function renameRootSpanWithOperation(span: Span, operationType: string, operationName?: string): void {
   const rootSpan = getRootSpan(span);

@@ -22,6 +22,7 @@ import {
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
+import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
@@ -63,7 +64,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   if (!DEBUG_BUILD && options.debug) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -153,6 +154,12 @@ export function init(options: VercelEdgeOptions = {}): void {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
 
+    // The `BaseServer.handleRequest` span is the incoming request root span (e.g. for app-router server
+    // components). Since we no longer infer the op from OTel semantic attributes, set it directly here.
+    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest') {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+    }
+
     // We want to fork the isolation scope for incoming requests
     maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 
@@ -183,6 +190,7 @@ export function init(options: VercelEdgeOptions = {}): void {
       };
       enhanceMiddlewareRootSpan(mutableRootSpan);
       enhanceRunHandlerRootSpan(mutableRootSpan);
+      backfillHttpResponseStatusCode(mutableRootSpan.attributes);
     }
 
     setUrlProcessingMetadata(event);
@@ -204,6 +212,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     };
     enhanceMiddlewareRootSpan(mutableRootSpan);
     enhanceRunHandlerRootSpan(mutableRootSpan);
+    backfillHttpResponseStatusCode(attributes);
   });
 
   client.on('spanEnd', span => {

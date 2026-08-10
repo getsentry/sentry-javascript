@@ -175,17 +175,17 @@ interface BaseCloudflareOptions {
   enableDedupe?: boolean;
 
   /**
-   * The Cloudflare SDK is not OpenTelemetry native. By default (`true`) it does not set up a tracer
+   * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
    * provider; spans are emitted via the SDK's own instrumentation and scopes are isolated with
    * AsyncLocalStorage.
    *
-   * Set this to `false` to opt into the OpenTelemetry compatibility tracer, which captures spans
+   * Set this to `true` to opt into the OpenTelemetry compatibility tracer, which captures spans
    * emitted via `@opentelemetry/api`. Big caveat: it does not handle custom context, always working
    * off the current scope. This is good enough for many, but not all, integrations.
    *
-   * @default true
+   * @default false
    */
-  skipOpenTelemetrySetup?: boolean;
+  enableOpenTelemetrySetup?: boolean;
 
   /**
    * Enable trace propagation for RPC calls between Workers, Durable Objects, and Service Bindings.
@@ -200,33 +200,19 @@ interface BaseCloudflareOptions {
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
    *
-   * **Important:** This option should be enabled on **both sides** for full trace propagation.
+   * **Important:** This option is enabled by default. Set it to `false` to opt out, e.g. if you
+   * do not want trace context to leave your Worker via RPC calls.
    *
-   * @default false
+   * @default true
    * @example
    * ```ts
-   * // Worker side (caller)
+   * // Opt out of RPC trace propagation
    * export default Sentry.withSentry(
    *   (env) => ({
    *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
+   *     enableRpcTracePropagation: false,
    *   }),
    *   handler,
-   * );
-   *
-   * // Durable Object side (receiver)
-   * export const MyDO = Sentry.instrumentDurableObjectWithSentry(
-   *   (env) => ({
-   *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
-   *   }),
-   *   MyDOBase,
-   * );
-   *
-   * // WorkerEntrypoint side (receiver)
-   * export const MyEntrypoint = Sentry.withSentry(
-   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
-   *   MyEntrypointBase,
    * );
    * ```
    */

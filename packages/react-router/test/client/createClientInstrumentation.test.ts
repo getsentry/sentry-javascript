@@ -213,7 +213,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Fetcher fetcher-1',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.fetcher',
+          'sentry.op': 'function',
+          'code.function.name': 'fetcher',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -252,7 +253,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_loader',
+          'sentry.op': 'function',
+          'code.function.name': 'clientLoader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -289,12 +291,41 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_action',
+          'sentry.op': 'function',
+          'code.function.name': 'clientAction',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
       expect.any(Function),
     );
+  });
+
+  // `navigate('/x?token=y')` is app-supplied, so the query has to go through `dataCollection.urlQueryParams`.
+  it('filters sensitive query params in the `url.full` reported for a failed navigate', async () => {
+    const mockError = new Error('Navigate failed');
+    const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
+    const mockInstrument = vi.fn();
+
+    (core.getClient as any).mockReturnValue({});
+    (globalThis as any).location = {
+      href: 'https://example.com/home',
+      origin: 'https://example.com',
+      pathname: '/home',
+    };
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.navigate(mockCallNavigate, { currentUrl: '/home', to: '/search?token=secret&page=1' });
+
+    expect(core.captureException).toHaveBeenCalledWith(mockError, {
+      mechanism: {
+        type: 'react_router.navigate',
+        handled: false,
+        data: { 'url.full': '/search?token=[Filtered]&page=1' },
+      },
+    });
   });
 
   it('should capture errors when captureErrors is true (default)', async () => {
@@ -605,7 +636,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'clientMiddleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -638,7 +670,8 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_lazy',
+          'sentry.op': 'function',
+          'code.function.name': 'lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),

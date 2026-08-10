@@ -112,7 +112,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   if (!DEBUG_BUILD && options.debug) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -128,7 +128,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
   // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
-  if (!options.skipOpenTelemetrySetup) {
+  if (options.enableOpenTelemetrySetup ?? true) {
     process.env.NEXT_OTEL_FETCH_DISABLED = '1';
   }
 
@@ -148,7 +148,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     defaultIntegrations: customDefaultIntegrations,
     // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
     // provider (unlike most Node-based SDKs). A user-provided value still overrides this via `...options`.
-    skipOpenTelemetrySetup: false,
+    enableOpenTelemetrySetup: true,
     ...options,
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...cloudflareConfig,

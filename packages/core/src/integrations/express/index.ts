@@ -56,24 +56,6 @@ import { patchLayer } from './patch-layer';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 import { getDefaultExport } from '../../utils/get-default-export';
 
-function isLegacyOptions(
-  options: ExpressModuleExport | (ExpressIntegrationOptions & { express: ExpressModuleExport }),
-): options is ExpressIntegrationOptions & { express: ExpressModuleExport } {
-  return !!(options as { express: ExpressModuleExport }).express;
-}
-
-// TODO: remove this deprecation handling in v11
-let didLegacyDeprecationWarning = false;
-function deprecationWarning() {
-  if (!didLegacyDeprecationWarning) {
-    didLegacyDeprecationWarning = true;
-    DEBUG_BUILD &&
-      debug.warn(
-        '[Express] `patchExpressModule(options)` is deprecated. Use `patchExpressModule(moduleExports, getOptions)` instead.',
-      );
-  }
-}
-
 /**
  * This is a portable instrumentatiton function that works in any environment
  * where Express can be loaded, without depending on OpenTelemetry.
@@ -89,30 +71,9 @@ function deprecationWarning() {
 export function patchExpressModule(
   moduleExports: ExpressModuleExport,
   getOptions: () => ExpressIntegrationOptions,
-): ExpressModuleExport;
-/**
- * @deprecated Pass the Express module export as the first argument and options getter as the second argument.
- */
-export function patchExpressModule(
-  options: ExpressIntegrationOptions & { express: ExpressModuleExport },
-): ExpressModuleExport;
-export function patchExpressModule(
-  optionsOrExports: ExpressModuleExport | (ExpressIntegrationOptions & { express: ExpressModuleExport }),
-  maybeGetOptions?: () => ExpressIntegrationOptions,
 ): ExpressModuleExport {
-  let getOptions: () => ExpressIntegrationOptions;
-  let moduleExports: ExpressModuleExport;
-  if (!maybeGetOptions && isLegacyOptions(optionsOrExports)) {
-    // eslint-disable-next-line typescript/no-deprecated
-    const { express, ...options } = optionsOrExports;
-    moduleExports = express;
-    getOptions = () => options;
-    deprecationWarning();
-  } else if (typeof maybeGetOptions !== 'function') {
+  if (typeof getOptions !== 'function') {
     throw new TypeError('`patchExpressModule(moduleExports, getOptions)` requires a `getOptions` callback');
-  } else {
-    getOptions = maybeGetOptions;
-    moduleExports = optionsOrExports as ExpressModuleExport;
   }
 
   // pass in the require() or import() result of express

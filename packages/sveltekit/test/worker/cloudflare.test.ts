@@ -55,7 +55,7 @@ describe('initCloudflareSentryHandle', () => {
       {
         // SvelteKit emits its own OpenTelemetry spans, so it opts into the tracer provider rather than
         // inheriting Cloudflare's no-provider default.
-        options: expect.objectContaining({ dsn: options.dsn, skipOpenTelemetrySetup: false }),
+        options: expect.objectContaining({ dsn: options.dsn, enableOpenTelemetrySetup: true }),
         request,
         context,
         captureErrors: false,

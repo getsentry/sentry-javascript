@@ -51,7 +51,7 @@ describe('setupEventContextTrace gating', () => {
     vi.spyOn(trace, 'getActiveSpan').mockReturnValue(foreignOtelSpan);
 
     const beforeSend = vi.fn(() => null);
-    mockSdkInit({ beforeSend, skipOpenTelemetrySetup: false });
+    mockSdkInit({ beforeSend, enableOpenTelemetrySetup: true });
     const client = Sentry.getClient() as NodeClient;
 
     const error = new Error('boom');

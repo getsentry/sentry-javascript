@@ -10,6 +10,8 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  filterCollectedUrl,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 
@@ -56,14 +58,15 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
     const httpMethod = reqOpts.method || 'GET';
     const span = SETUP_CLIENTS.has(getClient() as Client)
       ? startInactiveSpan({
-          name: `${httpMethod} ${reqOpts.uri}`,
+          // Span names must not contain a query string, and callers can pass any URI they want.
+          name: `${httpMethod} ${stripUrlQueryAndFragment(reqOpts.uri)}`,
           onlyIfParent: true,
           attributes: {
             [SENTRY_OP]: WEB_SERVER_HTTP_CLIENT_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
             [HTTP_REQUEST_METHOD]: httpMethod,
             [SERVER_ADDRESS]: getServerAddress(this.apiEndpoint),
-            [URL_FULL]: reqOpts.uri,
+            [URL_FULL]: filterCollectedUrl(reqOpts.uri),
           },
         })
       : new SentryNonRecordingSpan();

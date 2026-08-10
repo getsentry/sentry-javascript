@@ -27,11 +27,11 @@ const isDeno = typeof globalAny.Deno !== 'undefined';
  * for modules the app never loads. So we defer:
  *
  * - If a module is already injected, then a bundler transformed and loaded it
- *   (which records it via `registerOrchestrionChannelIntegration`), or the
- *   runtime hook injected it before `init()`, so subscribe right away.
- * - Otherwise wait for the runtime hook's `orchestrion.module-runtime-injected`
- *   event, which fires when the module is loaded and transformed, before it can
- *   publish to its channels.
+ *   (which records it via `orchestrionModuleInjected`), or the runtime hook
+ *   injected it before `init()`, so subscribe right away.
+ * - Otherwise wait for the `orchestrion.module-injected` event, which fires
+ *   when the module is loaded and transformed, before it can publish to its
+ *   channels.
  *
  * Bun and Deno have no such channel limit and no reliable per-module injection
  * tracking, so there we just subscribe immediately.
@@ -115,7 +115,7 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
 
   DEBUG_BUILD && debug.log(`[orchestrion:${label}] not injected yet, waiting for the module to load`);
 
-  const cleanup = client.on('orchestrion.module-runtime-injected', (moduleName: string) => {
+  const cleanup = client.on('orchestrion.module-injected', (moduleName: string) => {
     if (hasBeenInstrumented(callback)) {
       cleanup();
       return;

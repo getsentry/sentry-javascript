@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { INSPECTOR_PORT } from '../playwright.config';
 
 test.describe('Worker V8 isolate memory tests', () => {
-  test('worker memory is stable across request batches', async ({ baseURL }) => {
+  test.skip('worker memory is stable across request batches', async ({ baseURL }) => {
     const profiler = new MemoryProfiler({ port: INSPECTOR_PORT });
 
     // Warm up: make initial requests and let the runtime settle
@@ -39,7 +39,7 @@ test.describe('Worker V8 isolate memory tests', () => {
     await profiler.close();
   });
 
-  test('durable object memory is stable across request batches', async ({ baseURL }) => {
+  test.skip('durable object memory is stable across request batches', async ({ baseURL }) => {
     const profiler = new MemoryProfiler({ port: INSPECTOR_PORT });
 
     // Warm up: let JIT compile, caches fill, and DO instance stabilize

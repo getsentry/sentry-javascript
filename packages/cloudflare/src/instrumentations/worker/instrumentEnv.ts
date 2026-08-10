@@ -91,7 +91,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
-      if (!options?.enableRpcTracePropagation) {
+      if (options?.enableRpcTracePropagation === false) {
         return item;
       }
 

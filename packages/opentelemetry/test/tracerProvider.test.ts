@@ -33,14 +33,12 @@ describe('SentryTracerProvider', () => {
     expect(spanToJSON(span as Span)).toEqual({
       data: {
         'sentry.origin': 'manual',
-        'sentry.op': 'db',
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
         'sentry.source': 'custom',
       },
       description: 'SELECT users',
-      op: 'db',
       origin: 'manual',
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
@@ -149,15 +147,6 @@ describe('SentryTracerProvider', () => {
     applyOtelSpanData(httpErrorSpan as Span, { finalizeStatus: true });
     expect(spanToJSON(httpErrorSpan as Span).status).toBe('internal_error');
 
-    const legacyHttpErrorSpan = trace.getTracer('test').startSpan('legacy-http-error');
-    legacyHttpErrorSpan.setAttribute('http.status_code', 500);
-    applyOtelSpanData(legacyHttpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(legacyHttpErrorSpan as Span).status).toBe('internal_error');
-    expect(spanToJSON(legacyHttpErrorSpan as Span).data).toMatchObject({
-      'http.response.status_code': 500,
-      'http.status_code': 500,
-    });
-
     const customErrorSpan = trace.getTracer('test').startSpan('custom-error');
     customErrorSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'This is a custom error' });
     applyOtelSpanData(customErrorSpan as Span, { finalizeStatus: true });
@@ -195,18 +184,5 @@ describe('SentryTracerProvider', () => {
     const streamed = spanToStreamedSpanJSON(span as Span);
     expect(streamed.status).toBe('error');
     expect(streamed.attributes?.['sentry.status.message']).toBe('Cannot enqueue Query after fatal error.');
-  });
-
-  it('infers op for HTTP server spans', () => {
-    const span = trace.getTracer('test').startSpan('GET', {
-      kind: SpanKind.SERVER,
-      attributes: {
-        'http.method': 'GET',
-        'http.route': '/my-path/:id',
-      },
-    });
-
-    const json = spanToJSON(span as Span);
-    expect(json.op).toBe('http.server');
   });
 });

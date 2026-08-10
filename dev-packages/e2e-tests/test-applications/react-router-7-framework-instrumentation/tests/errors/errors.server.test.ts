@@ -59,16 +59,15 @@ test.describe('server - instrumentation API error capture', () => {
     const transaction = await txPromise;
 
     // Find the loader span
-    const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(loaderSpan).toMatchObject({
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react_router.loader',
+        'sentry.op': 'function',
+        'code.function.name': 'loader',
       },
-      op: 'function.react_router.loader',
+      op: 'function',
     });
   });
 
