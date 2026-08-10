@@ -46,6 +46,28 @@ describe('init', () => {
     );
   });
 
+  test('installs Dedupe integration by default', () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const client = getClient();
+
+    expect(client?.getOptions()).toEqual(
+      expect.objectContaining({
+        integrations: expect.arrayContaining([expect.objectContaining({ name: 'Dedupe' })]),
+      }),
+    );
+  });
+
+  test('does not install Dedupe integration when enableDedupe is false', () => {
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', enableDedupe: false });
+    const client = getClient();
+
+    expect(client?.getOptions()).toEqual(
+      expect.objectContaining({
+        integrations: expect.not.arrayContaining([expect.objectContaining({ name: 'Dedupe' })]),
+      }),
+    );
+  });
+
   type MarkedIntegration = Integration & { _custom?: boolean };
 
   test("doesn't add spanStreamingIntegration if user added it manually", () => {
