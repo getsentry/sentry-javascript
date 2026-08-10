@@ -8,7 +8,10 @@ import { AGENT_SPAN_ORIGIN, type AgentInternals, getAgentAttributes, setAgentCon
  * the WebSocket message (on Cloudflare, the instrumented Durable Object `webSocketMessage` hook).
  *
  * Also sets the conversation id on the scope for the duration of the call: callable methods are the
- * unit of work for plain (non-chat) agents, which run LLM calls just like chat turns do.
+ * unit of work for plain (non-chat) agents, which run LLM calls just like chat turns do. It is
+ * awaited so the id is on the scope before the method body creates any span; the `agents`
+ * `onMessage` own property this wraps is already `async`, so the promise return is nothing new to
+ * the WebSocket dispatch upstream.
  */
 export function instrumentAgentCallableRpc(obj: AgentInternals): void {
   const original = obj.onMessage;
@@ -34,8 +37,8 @@ export function instrumentAgentCallableRpc(obj: AgentInternals): void {
             ...getAgentAttributes(thisArg),
           },
         },
-        () => {
-          setAgentConversationId(thisArg);
+        async () => {
+          await setAgentConversationId(thisArg);
           return Reflect.apply(target, thisArg, args);
         },
       );

@@ -21,7 +21,7 @@ import { extractRpcMeta } from './utils/rpcMeta';
 import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
 
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
-interface InstrumentedDurableObjectState extends DurableObjectState {
+export interface InstrumentedDurableObjectState extends DurableObjectState {
   originalStorage?: DurableObjectStorage;
 }
 
