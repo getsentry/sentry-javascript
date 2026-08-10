@@ -3,13 +3,11 @@ import { getModuleNames } from './module-names';
 
 export const anthropicAiConfig = [
   // One entry each for CJS/ESM
-  ...['resources/messages/messages.js', 'resources/messages/messages.mjs'].flatMap(filePath =>
-    (['create', 'countTokens'] as const).map(methodName => ({
-      channelName: 'chat',
-      module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
-      functionQuery: { className: 'Messages', methodName, kind: 'Auto' as const },
-    })),
-  ),
+  ...['resources/messages/messages.js', 'resources/messages/messages.mjs'].map(filePath => ({
+    channelName: 'chat',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Auto' as const },
+  })),
   ...['resources/completions.js', 'resources/completions.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },

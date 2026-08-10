@@ -612,6 +612,12 @@ Affected SDKs: All server-side SDKs.
 
 The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
+### AI integrations no longer trace non-inference operations
+
+Affected SDKs: All server-side SDKs.
+
+AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as pre-flight token counting. The Anthropic integration no longer emits a span for `messages.countTokens`. If you reference these spans in dashboards or alerts, update them accordingly.
+
 ### `thirdPartyErrorFilterIntegration` filters internal frames by default
 
 Affected SDKs: All SDKs.

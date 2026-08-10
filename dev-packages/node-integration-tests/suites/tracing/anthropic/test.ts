@@ -104,7 +104,7 @@ describe('Anthropic integration', () => {
         .expect({ transaction: expectModelsSpanOnTransaction })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(3);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -115,15 +115,6 @@ describe('Anthropic integration', () => {
             const errorSpan = container.items.find(span => span.name === 'chat error-model');
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
-
-            const tokenCountingSpan = container.items.find(
-              span =>
-                span.name === 'chat claude-3-haiku-20240307' &&
-                span.status === 'ok' &&
-                span.attributes[GEN_AI_RESPONSE_ID] === undefined,
-            );
-            expect(tokenCountingSpan).toBeDefined();
-            expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
             const streamingSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
@@ -154,7 +145,7 @@ describe('Anthropic integration', () => {
         .expect({ transaction: expectModelsSpanOnTransaction })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(3);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -185,14 +176,6 @@ describe('Anthropic integration', () => {
             expect(errorSpan!.name).toBe('chat error-model');
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
-
-            const tokenCountingSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_TEXT]?.value === '15',
-            );
-            expect(tokenCountingSpan).toBeDefined();
-            expect(tokenCountingSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(tokenCountingSpan!.status).toBe('ok');
-            expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
             // TODO: messages.stream() should produce its own distinct gen_ai span, but it
             // currently does not (pre-existing bug). Once fixed, add an additional indexed span assertion.
@@ -245,7 +228,7 @@ describe('Anthropic integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(3);
             const completionSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
             );
@@ -260,15 +243,6 @@ describe('Anthropic integration', () => {
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-
-            const tokenCountingSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_TEXT]?.value === '15',
-            );
-            expect(tokenCountingSpan).toBeDefined();
-            expect(tokenCountingSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(tokenCountingSpan!.status).toBe('ok');
-            expect(tokenCountingSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(tokenCountingSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
 
             const streamingSpan = container.items.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',

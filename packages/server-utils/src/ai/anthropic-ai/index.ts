@@ -125,10 +125,6 @@ function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
   if ('completion' in response) {
     span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: response.completion });
   }
-  // Models.countTokens
-  if ('input_tokens' in response) {
-    span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: JSON.stringify(response.input_tokens) });
-  }
 }
 
 /**
