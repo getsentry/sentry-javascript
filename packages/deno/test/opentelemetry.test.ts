@@ -22,7 +22,7 @@ function resetSdk(): void {
   cleanupOtel();
 }
 
-Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpenTelemetrySetup is true', async () => {
+Deno.test('should not capture spans emitted via @opentelemetry/api when enableOpenTelemetrySetup is false', async () => {
   resetSdk();
   const transactionEvents: any[] = [];
 
@@ -30,7 +30,7 @@ Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpen
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    skipOpenTelemetrySetup: true,
+    enableOpenTelemetrySetup: false,
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;

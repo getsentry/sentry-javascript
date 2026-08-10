@@ -8,5 +8,5 @@ Sentry.init({
   transport: loggingTransport,
   // This suite drives the raw OpenTelemetry tracer (`client.tracer.startActiveSpan`), which only
   // produces spans when Sentry owns the tracer provider.
-  skipOpenTelemetrySetup: false,
+  enableOpenTelemetrySetup: true,
 });
