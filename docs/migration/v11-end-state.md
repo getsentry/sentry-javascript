@@ -979,7 +979,7 @@ The utility `@sentry/tanstackstart` package was removed. Use the `@sentry/tansta
 
 Affected SDKs: `@sentry/browser` (CDN bundles).
 
-Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.metrics` bundle.
+Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.logs.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.logs.metrics` bundle. On the other bundles, `Sentry.metrics.*` is a no-op shim that warns in debug builds.
 
 ## 5. Renames
 

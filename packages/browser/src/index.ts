@@ -9,14 +9,6 @@ export { contextLinesIntegration } from './integrations/contextlines';
 export { graphqlClientIntegration } from './integrations/graphqlClient';
 export { viewHierarchyIntegration } from './integrations/view-hierarchy';
 
-export {
-  captureConsoleIntegration,
-  extraErrorDataIntegration,
-  rewriteFramesIntegration,
-  consoleLoggingIntegration,
-  createConsolaReporter,
-} from '@sentry/core/browser';
-
 export { replayIntegration, getReplay } from '@sentry/replay';
 export type {
   ReplayEventType,
@@ -52,6 +44,11 @@ export { userTimingIntegration } from './integrations/usertiming';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
+  captureConsoleIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  consoleLoggingIntegration,
+  createConsolaReporter,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
@@ -74,6 +71,7 @@ export {
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
   logger,
+  metrics,
 } from '@sentry/core/browser';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core/browser';
 export { makeBrowserOfflineTransport } from './transports/offline';
