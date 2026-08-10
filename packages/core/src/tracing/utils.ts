@@ -48,8 +48,6 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
  * Mark a span as created by the `SentryTracerProvider` (via the OTel tracer). Set by `SentryTracer`
  * on every span it creates; read by `SentrySpan.end()` to seal the span against further writes once
  * it has ended, mirroring OTel SDK spans (which are immutable after `end()`).
- *
- * TODO???
  */
 export function markSpanAsTracerProviderSpan(span: Span): void {
   addNonEnumerableProperty(span, TRACER_PROVIDER_SPAN_FIELD, true);
