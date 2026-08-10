@@ -32,7 +32,6 @@ import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingS
 import { startNewTrace } from '../../../src/tracing/trace';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
-import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -866,30 +865,6 @@ describe('startSpan', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as typeof startSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpan({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startSpanManual', () => {
@@ -1386,30 +1361,6 @@ describe('startSpanManual', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as unknown as typeof startSpanManual;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpanManual: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpanManual({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startInactiveSpan', () => {
@@ -1878,25 +1829,6 @@ describe('startInactiveSpan', () => {
       const childSpans = Array.from(outerSpan._sentryChildSpans);
       expect(childSpans).toContain(innerSpan);
     });
-  });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions) => {
-      return staticSpan;
-    }) as unknown as typeof startInactiveSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startInactiveSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startInactiveSpan({ name: 'GET users/[id]' });
-    expect(result).toBe(staticSpan);
   });
 });
 
@@ -2367,6 +2299,8 @@ describe('span hooks', () => {
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
 
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);

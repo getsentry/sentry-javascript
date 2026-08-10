@@ -14,10 +14,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { isSpan } from './helpers/isSpan';
@@ -1708,6 +1710,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      parentSampleRate: undefined,
+      normalizedRequest: undefined,
       name: 'outer',
       attributes: {
         attr1: 'yes',

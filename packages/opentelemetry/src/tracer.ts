@@ -4,7 +4,7 @@ import { isTracingSuppressed } from './utils/suppressTracing';
 import {
   _INTERNAL_safeMathRandom,
   _INTERNAL_setSpanForScope,
-  _INTERNAL_startInactiveSpan,
+  startInactiveSpan,
   addChildSpanToSpan,
   getCapturedScopesOnSpan,
   getCurrentScope,
@@ -125,7 +125,7 @@ export class SentryTracer implements Tracer {
     }
 
     if (options.root) {
-      return startNewTrace(() => _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: null }));
+      return startNewTrace(() => startInactiveSpan({ ...sentryOptions, parentSpan: null }));
     }
 
     if (parentSpan?.spanContext().isRemote) {
@@ -133,18 +133,18 @@ export class SentryTracer implements Tracer {
     }
 
     if (parentSpan) {
-      return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
+      return startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
     }
 
     // No parent span and no remote parent: this is a fresh root span.
-    return _INTERNAL_startInactiveSpan({
+    return startInactiveSpan({
       ...sentryOptions,
       parentSpan: hasExplicitContext ? null : undefined,
     });
   }
 
   private _startRootSpanWithRemoteParent(
-    options: Parameters<typeof _INTERNAL_startInactiveSpan>[0],
+    options: Parameters<typeof startInactiveSpan>[0],
     parentSpan: OpenTelemetrySpan,
   ): Span {
     const { spanId, traceId, traceState } = parentSpan.spanContext();
@@ -167,7 +167,7 @@ export class SentryTracer implements Tracer {
       });
       _INTERNAL_setSpanForScope(scope, undefined);
 
-      return _INTERNAL_startInactiveSpan({ ...options, parentSpan: null });
+      return startInactiveSpan({ ...options, parentSpan: null });
     });
   }
 
