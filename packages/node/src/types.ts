@@ -2,11 +2,9 @@ import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptio
 import type { NodeTransportOptions } from './transports';
 
 /**
- * Base options for WinterTC-compatible server-side JavaScript runtimes with OpenTelemetry support.
- * This interface extends the base ServerRuntimeOptions from @sentry/core with OpenTelemetry-specific configuration options.
- * Used by Node.js, Bun, and other WinterTC-compliant runtime SDKs that support OpenTelemetry instrumentation.
+ * Base options for the Sentry Node SDK.
  */
-export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions {
+export interface BaseNodeOptions extends ServerRuntimeOptions {
   /**
    * Controls whether the SDK registers its own Sentry OpenTelemetry tracer provider.
    *
@@ -23,13 +21,7 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
    * @default false
    */
   enableOpenTelemetrySetup?: boolean;
-}
 
-/**
- * Base options for the Sentry Node SDK.
- * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
- */
-export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
   /**
    * Override the runtime name reported in events.
    * Defaults to 'node' with the current process version if not specified.
