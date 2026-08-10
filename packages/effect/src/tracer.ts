@@ -1,3 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  GENERAL_FUNCTION_SPAN_OP,
+  WEB_SERVER_HTTP_CLIENT_SPAN_OP,
+  WEB_SERVER_HTTP_SERVER_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
@@ -17,6 +23,23 @@ function deriveOrigin(name: string): string {
   }
 
   return 'auto.function.effect';
+}
+
+/**
+ * Effect span names are chosen by user code, so the name is the only signal available. `@effect/platform`
+ * names its HTTP spans `http.server`/`http.client`, which map onto the matching Sentry ops; everything
+ * else is arbitrary user work and falls back to `function`.
+ */
+function deriveOp(name: string): string {
+  if (name.startsWith('http.server')) {
+    return WEB_SERVER_HTTP_SERVER_SPAN_OP;
+  }
+
+  if (name.startsWith('http.client')) {
+    return WEB_SERVER_HTTP_CLIENT_SPAN_OP;
+  }
+
+  return GENERAL_FUNCTION_SPAN_OP;
 }
 
 type HrTime = [number, number];
@@ -172,6 +195,7 @@ function createSentrySpan(
     name,
     startTime: nanosToHrTime(startTime),
     attributes: {
+      [SENTRY_OP]: deriveOp(name),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
     },
     ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
