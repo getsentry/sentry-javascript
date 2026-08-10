@@ -960,7 +960,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '16.0.0',
     });
 
@@ -992,30 +992,12 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
   });
 
-  it('should prefer top-level applicationKey over deprecated _experimental.turbopackApplicationKey', () => {
-    const userNextConfig: NextConfigObject = {};
-
-    const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: {
-        applicationKey: 'top-level-key',
-        _experimental: { turbopackApplicationKey: 'deprecated-key' },
-      },
-      nextJsVersion: '16.0.0',
-    });
-
-    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as {
-      loaders: Array<{ loader: string; options: { applicationKey: string } }>;
-    };
-    expect(rule.loaders[0]!.options.applicationKey).toBe('top-level-key');
-  });
-
   it('should only exclude Next.js polyfills, not all foreign modules', () => {
     const userNextConfig: NextConfigObject = {};
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '16.0.0',
     });
 
@@ -1031,7 +1013,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '15.4.1',
     });
 
@@ -1055,7 +1037,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: undefined,
     });
 
@@ -1067,7 +1049,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'custom-key-123' } },
+      userSentryOptions: { applicationKey: 'custom-key-123' },
       nextJsVersion: '16.0.0',
     });
 
@@ -1087,7 +1069,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       routeManifest: mockRouteManifest,
       nextJsVersion: '16.0.0',
     });
@@ -1113,7 +1095,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '17.0.0',
     });
 
@@ -1288,8 +1270,8 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
     const result = constructTurbopackConfig({
       userNextConfig,
       userSentryOptions: {
+        applicationKey: 'my-app',
         _experimental: {
-          turbopackApplicationKey: 'my-app',
           turbopackReactComponentAnnotation: { enabled: true },
         },
       },
