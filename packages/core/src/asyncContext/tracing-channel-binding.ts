@@ -1,11 +1,6 @@
 import { getMainCarrier } from '../carrier';
-import type { Scope } from '../scope';
-import { spanIsIgnored } from '../tracing/trace';
-import { _setSpanForScope } from '../utils/spanOnScope';
-import { getRootSpan } from '../utils/spanUtils';
 import { safeUnref } from '../utils/timer';
 import { getAsyncContextStrategy } from './index';
-import type { TracingChannelBinding } from './types';
 
 /**
  * Execute a callback whenever the tracing channel binding is available.
@@ -33,35 +28,4 @@ export function waitForTracingChannelBinding(callback: () => void, retries = 1):
       waitForTracingChannelBinding(callback, retries - 1);
     }, 1),
   );
-}
-
-/**
- * Build the default {@link TracingChannelBinding} shared by AsyncLocalStorage-based strategies.
- *
- * The ALS instance is supplied by the caller (kept as `unknown`).
- * The binding clones the current scope, plants the span on it, and reuses the existing isolation scope.
- *
- * The OpenTelemetry strategy does not use this: its store value is an OTel context, not a
- * `{ scope, isolationScope }` pair.
- */
-export function _INTERNAL_createTracingChannelBinding(
-  asyncLocalStorage: NonNullable<unknown>,
-  getScopes: () => { scope: Scope; isolationScope: Scope },
-): TracingChannelBinding {
-  return {
-    asyncLocalStorage,
-    getStoreWithActiveSpan: span => {
-      const { scope, isolationScope } = getScopes();
-      const activeScope = scope.clone();
-      // Do not make an ignored *child* the active span: no span is emitted for it, so its children and
-      // outgoing requests must propagate from the nearest emitted parent instead. An ignored *root* is
-      // still activated so its whole subtree is dropped with it. Mirrors core `startSpan` and the OTel
-      // context manager (`spanIsIgnored(span) && getRootSpan(span) !== span`).
-      if (!spanIsIgnored(span) || getRootSpan(span) === span) {
-        _setSpanForScope(activeScope, span);
-      }
-
-      return { scope: activeScope, isolationScope };
-    },
-  };
 }

@@ -1,21 +1,16 @@
-import { context, trace, TraceFlags, type Context } from '@opentelemetry/api';
 import type { Scope } from '@sentry/core';
 import {
-  addChildSpanToSpan,
   getAsyncContextStrategy,
   getCurrentScope,
   getIsolationScope,
   getMainCarrier,
   Scope as ScopeClass,
-  SentryNonRecordingSpan,
   setAsyncContextStrategy,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
-import { SENTRY_TRACE_STATE_CHILD_IGNORED } from '../src/constants';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
-import { TraceState } from '../src/utils/TraceState';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
@@ -83,73 +78,6 @@ describe('asyncContextStrategy', () => {
           bb: 'bb',
         });
       });
-    });
-  });
-
-  test('tracing channel binding keeps the parent active for an ignored child span', () => {
-    setOpenTelemetryContextAsyncContextStrategy();
-
-    const parentSpan = trace.getTracer('test').startSpan('parent');
-    const ignoredSpan = trace.wrapSpanContext({
-      traceId: parentSpan.spanContext().traceId,
-      spanId: '1234567890123456',
-      traceFlags: TraceFlags.NONE,
-      traceState: new TraceState().set(SENTRY_TRACE_STATE_CHILD_IGNORED, '1'),
-    });
-
-    context.with(trace.setSpan(context.active(), parentSpan), () => {
-      const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
-      const store = binding?.getStoreWithActiveSpan(ignoredSpan);
-
-      expect(store).toBeDefined();
-      expect(trace.getSpan(store as Context)).toBe(parentSpan);
-    });
-
-    parentSpan.end();
-  });
-
-  test('tracing channel binding keeps the parent active for a native ignored child span', () => {
-    setOpenTelemetryContextAsyncContextStrategy();
-
-    const parentSpan = trace.getTracer('test').startSpan('parent');
-    const ignoredSpan = new SentryNonRecordingSpan({
-      dropReason: 'ignored',
-      traceId: parentSpan.spanContext().traceId,
-    });
-    addChildSpanToSpan(parentSpan, ignoredSpan);
-
-    context.with(trace.setSpan(context.active(), parentSpan), () => {
-      const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
-      const store = binding?.getStoreWithActiveSpan(ignoredSpan);
-
-      expect(store).toBeDefined();
-      expect(trace.getSpan(store as Context)).toBe(parentSpan);
-    });
-
-    parentSpan.end();
-  });
-
-  test('tracing channel binding activates a native ignored root span with a remote parent', () => {
-    setOpenTelemetryContextAsyncContextStrategy();
-
-    const traceId = '12345678901234567890123456789012';
-    const remoteParent = trace.wrapSpanContext({
-      traceId,
-      spanId: '1234567890123456',
-      traceFlags: TraceFlags.SAMPLED,
-      isRemote: true,
-    });
-    const ignoredSpan = new SentryNonRecordingSpan({
-      dropReason: 'ignored',
-      traceId,
-    });
-
-    context.with(trace.setSpan(context.active(), remoteParent), () => {
-      const binding = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.();
-      const store = binding?.getStoreWithActiveSpan(ignoredSpan);
-
-      expect(store).toBeDefined();
-      expect(trace.getSpan(store as Context)).toBe(ignoredSpan);
     });
   });
 

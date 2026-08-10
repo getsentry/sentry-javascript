@@ -6,12 +6,6 @@ export const SENTRY_BAGGAGE_HEADER = 'baggage';
 export const SENTRY_TRACE_STATE_DSC = 'sentry.dsc';
 export const SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING = 'sentry.sampled_not_recording';
 
-/**
- *  A flag marking a context as ignored because the span associated with the context
- *  is ignored (`ignoreSpans` filter).
- */
-export const SENTRY_TRACE_STATE_CHILD_IGNORED = 'sentry.ignored';
-
 export const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
 
 export const SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY = createContextKey('sentry_fork_isolation_scope');
