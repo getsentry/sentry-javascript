@@ -346,7 +346,7 @@ Sentry.init({
 // After
 Sentry.init({
   beforeSendSpan: span => {
-    if (span.attributes?.['sentry.op'] === 'db.query') {
+    if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
       span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
     }
@@ -458,6 +458,12 @@ Sentry.init({
 ```
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+
+#### `Sentry.spanToJSON` returns streamed span format
+
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticJSON`, which still returns the static `SpanJSON` object format.
 
 ### Logs are enabled by default
 
