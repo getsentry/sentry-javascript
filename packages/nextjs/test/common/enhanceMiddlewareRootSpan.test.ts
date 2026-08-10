@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { enhanceMiddlewareRootSpan } from '../../src/common/enhanceMiddlewareRootSpan';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -18,12 +19,13 @@ function makeSpan(attributes: Record<string, unknown>, name?: string) {
     },
     getName: () => currentName,
     getOp: () => currentOp,
+    getSource: () => attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE],
   };
 }
 
 describe('enhanceMiddlewareRootSpan', () => {
   it('does nothing for spans that are not Middleware.execute', () => {
-    const { span, getName, getOp } = makeSpan(
+    const { span, getName, getOp, getSource } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest', [ATTR_NEXT_SPAN_NAME]: 'middleware GET /foo' },
       'GET /foo',
     );
@@ -32,15 +34,17 @@ describe('enhanceMiddlewareRootSpan', () => {
 
     expect(getName()).toBe('GET /foo');
     expect(getOp()).toBeUndefined();
+    expect(getSource()).toBeUndefined();
   });
 
-  it('sets the op but keeps the name when next.span_name is missing', () => {
-    const { span, getName, getOp } = makeSpan({ [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute' }, 'middleware');
+  it('sets the op and source but keeps the name when next.span_name is missing', () => {
+    const { span, getName, getOp, getSource } = makeSpan({ [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute' }, 'middleware');
 
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
     expect(getOp()).toBe('middleware');
+    expect(getSource()).toBe('route');
   });
 
   it('sets the op but keeps the name when next.span_name is an empty string', () => {
