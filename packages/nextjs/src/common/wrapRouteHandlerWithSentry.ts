@@ -12,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
+  SPAN_STATUS_ERROR,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
@@ -90,6 +91,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                     setHttpStatus(rootSpan, 404);
                   }
                 } else {
+                  const errorStatus = { code: SPAN_STATUS_ERROR, message: 'internal_error' } as const;
+                  activeSpan?.setStatus(errorStatus);
+                  rootSpan?.setStatus(errorStatus);
                   captureException(error, {
                     mechanism: {
                       handled: false,
