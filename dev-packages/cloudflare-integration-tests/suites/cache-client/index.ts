@@ -47,8 +47,8 @@ class CacheDurableObjectBase extends DurableObject<Env> {
     throw new Error(`Cache DO handler error from ${instanceId}`);
   }
 
-  async dedupe(): Promise<string> {
-    Sentry.captureException(new Error('Same error'));
+  async dedupe(errorMessage: string): Promise<string> {
+    Sentry.captureException(new Error(errorMessage));
     return 'dedupe test';
   }
 
@@ -91,8 +91,8 @@ class NoCacheDurableObjectBase extends DurableObject<Env> {
     throw new Error(`No-cache DO handler error from ${instanceId}`);
   }
 
-  async dedupe(): Promise<string> {
-    Sentry.captureException(new Error('Same error'));
+  async dedupe(errorMessage: string): Promise<string> {
+    Sentry.captureException(new Error(errorMessage));
     return 'dedupe test';
   }
 
@@ -141,6 +141,7 @@ export default Sentry.withSentry(
     async fetch(request, env, ctx) {
       const url = new URL(request.url);
       const instanceId = url.searchParams.get('id') || 'default';
+      const errorMessage = url.searchParams.get('errorMessage') || 'Same error';
 
       // Work that finishes AFTER the response: a post-response span tree plus a
       // log, metric and error, all registered via waitUntil. This is the worker-side
@@ -187,7 +188,7 @@ export default Sentry.withSentry(
         const stub = env.CACHE_DO.get(
           env.CACHE_DO.idFromName(`cache-do-${instanceId}`),
         ) as DurableObjectStub<CacheDurableObjectBase>;
-        const result = await stub.dedupe();
+        const result = await stub.dedupe(errorMessage);
         return new Response(String(result));
       }
 
@@ -233,7 +234,7 @@ export default Sentry.withSentry(
         const stub = env.NO_CACHE_DO.get(
           env.NO_CACHE_DO.idFromName(`no-cache-do-${instanceId}`),
         ) as DurableObjectStub<NoCacheDurableObjectBase>;
-        const result = await stub.dedupe();
+        const result = await stub.dedupe(errorMessage);
         return new Response(String(result));
       }
 

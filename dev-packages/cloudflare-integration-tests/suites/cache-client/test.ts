@@ -139,13 +139,20 @@ it('cacheClient: true - dedupe drops the same error across invocations', async (
     .unordered()
     .failOnUnexpected()
     .expect(errorEventExpectation('Same error', CAPTURE_MECHANISM))
+    .expect(errorEventExpectation('Another error', CAPTURE_MECHANISM))
+    .expect(errorEventExpectation('Same error', CAPTURE_MECHANISM))
     .start(signal);
 
   // All three invocations are made without per-request waiters, while the runner requires the
   // single expected error and rejects if either duplicate is delivered unexpectedly.
-  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
-  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
-  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Another error');
+  await runner.makeRequest('get', '/cache/dedupe?id=dedupe-shared&errorMessage=Same error');
   await runner.completed();
 });
 
