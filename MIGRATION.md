@@ -463,7 +463,7 @@ In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFE
 
 The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
 
-If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticJSON`, which still returns the static `SpanJSON` object format.
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
 
 ### Logs are enabled by default
 
