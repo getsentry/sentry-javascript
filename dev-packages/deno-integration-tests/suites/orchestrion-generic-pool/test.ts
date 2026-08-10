@@ -45,11 +45,11 @@ Deno.test('generic-pool instrumentation: orchestrion:generic-pool:acquire channe
     "'parent' transaction",
   );
 
-  // generic-pool sets a name + origin but no `op`, so match on description.
   const poolSpan = parent.spans?.find(s => s.description === 'generic-pool.acquire');
   assertExists(
     poolSpan,
     `expected a generic-pool.acquire span, got descriptions: ${parent.spans?.map(s => s.description).join(', ')}`,
   );
   assertEquals(poolSpan!.data?.['sentry.origin'], 'auto.db.generic_pool');
+  assertEquals(poolSpan!.op, 'db');
 });
