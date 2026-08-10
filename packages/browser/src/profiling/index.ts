@@ -3,9 +3,10 @@ import { debug, getClient } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
- * Starts the Sentry UI profiler.
- * This mode is exclusive with the transaction profiler and will only work if the profilesSampleRate is set to a falsy value.
- * In UI profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
+ * Starts a manually controlled Sentry UI profiling session.
+ *
+ * Profiling starts only when the integration sampled the current session and `profileLifecycle` is `manual`.
+ * While running, the profiler periodically sends profile chunks to Sentry until `stopProfiler()` is called.
  */
 function startProfiler(): void {
   const client = getClient();
@@ -25,7 +26,8 @@ function startProfiler(): void {
 }
 
 /**
- * Stops the Sentry UI profiler.
+ * Stops a manually controlled Sentry UI profiling session.
+ *
  * Calls to stop will stop the profiler and flush the currently collected profile data to Sentry.
  */
 function stopProfiler(): void {
