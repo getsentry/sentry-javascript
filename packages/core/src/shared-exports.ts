@@ -98,8 +98,6 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export { handleTunnelRequest } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
-// eslint-disable-next-line typescript/no-deprecated
-export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
