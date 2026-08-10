@@ -854,41 +854,6 @@ export default defineConfig({
 });
 ```
 
-### `@sentry/react-router`
-
-The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
-
-```ts
-// vite.config.ts
-import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router';
-import { defineConfig } from 'vite';
-
-export const sentryConfig: SentryReactRouterBuildOptions = {
-  // before
-  sourceMapsUploadOptions: {
-    enabled: false,
-    filesToDeleteAfterUpload: ['./build/**/*.map'],
-    release: { name: 'my-release' },
-  },
-
-  // after
-  org: 'my-org',
-  project: 'my-project',
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  sourcemaps: {
-    disable: true,
-    filesToDeleteAfterUpload: ['./build/**/*.map'],
-  },
-  release: { name: 'my-release' },
-};
-
-export default defineConfig(config => ({
-  plugins: [reactRouter(), sentryReactRouter(sentryConfig, config)],
-  sentryConfig,
-}));
-```
-
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
