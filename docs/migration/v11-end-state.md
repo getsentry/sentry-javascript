@@ -286,6 +286,11 @@ If `captureActionFormDataKeys` is not set, all form fields are captured when
 looks sensitive (`password`, `token`, …) are replaced with `[Filtered]`, including explicitly
 allowlisted ones.
 
+The captured fields are now reported as `remix.action_form_data.<field>` span attributes on every
+runtime. On Node, they were previously reported as `formData.<field>`; the Cloudflare and Hydrogen
+paths already used the new name. Update any dashboards, alerts, or saved searches that query
+`formData.*`.
+
 ### Channel-based instrumentation is the default
 
 Affected SDKs: `@sentry/node` and all dependents.

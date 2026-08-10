@@ -240,7 +240,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         }
 
         formData
-          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture, 'formData.'))
+          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)

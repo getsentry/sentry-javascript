@@ -41,8 +41,8 @@ test('Sends form data with action span', async ({ page }) => {
   expect(actionSpan?.op).toBe('function');
   expect(actionSpan?.data?.['code.function.name']).toBe('action');
   expect(actionSpan?.data).toMatchObject({
-    'formData.text': 'test',
-    'formData.file': 'file.txt',
+    'remix.action_form_data.text': 'test',
+    'remix.action_form_data.file': 'file.txt',
   });
 });
 

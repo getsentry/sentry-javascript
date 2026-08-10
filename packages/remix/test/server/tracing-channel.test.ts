@@ -150,6 +150,6 @@ describe('remixIntegration (Orchestrion-based)', () => {
     // The span ends only after the async form-data read resolves.
     await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
-    expect(span.setAttribute).toHaveBeenCalledWith('formData.actionType', 'create');
+    expect(span.setAttribute).toHaveBeenCalledWith('remix.action_form_data.actionType', 'create');
   });
 });
