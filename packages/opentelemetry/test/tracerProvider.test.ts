@@ -33,14 +33,12 @@ describe('SentryTracerProvider', () => {
     expect(spanToJSON(span as Span)).toEqual({
       data: {
         'sentry.origin': 'manual',
-        'sentry.op': 'db',
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
         'sentry.source': 'custom',
       },
       description: 'SELECT users',
-      op: 'db',
       origin: 'manual',
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
@@ -195,18 +193,5 @@ describe('SentryTracerProvider', () => {
     const streamed = spanToStreamedSpanJSON(span as Span);
     expect(streamed.status).toBe('error');
     expect(streamed.attributes?.['sentry.status.message']).toBe('Cannot enqueue Query after fatal error.');
-  });
-
-  it('infers op for HTTP server spans', () => {
-    const span = trace.getTracer('test').startSpan('GET', {
-      kind: SpanKind.SERVER,
-      attributes: {
-        'http.method': 'GET',
-        'http.route': '/my-path/:id',
-      },
-    });
-
-    const json = spanToJSON(span as Span);
-    expect(json.op).toBe('http.server');
   });
 });

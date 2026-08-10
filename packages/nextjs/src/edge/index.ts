@@ -153,6 +153,12 @@ export function init(options: VercelEdgeOptions = {}): void {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
 
+    // The `BaseServer.handleRequest` span is the incoming request root span (e.g. for app-router server
+    // components). Since we no longer infer the op from OTel semantic attributes, set it directly here.
+    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest') {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+    }
+
     // We want to fork the isolation scope for incoming requests
     maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 

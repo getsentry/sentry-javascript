@@ -1,14 +1,9 @@
 import type { TracerProvider } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
-import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
+import { debug as coreDebug } from '@sentry/core';
 import { setupOpenTelemetryLogger } from '../otel/logger';
 import type { NodeClient } from './client';
-import {
-  applyOtelSpanData,
-  backfillStreamedSpanDataFromOtel,
-  SentryPropagator,
-  SentryTracerProvider,
-} from '@sentry/opentelemetry';
+import { applyOtelSpanData, SentryPropagator, SentryTracerProvider } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 
 // The global registry of @opentelemetry/api 1.x, shared across all copies of the package
@@ -90,10 +85,6 @@ export function setupSpanDataBackfill(client: NodeClient): void {
   client.on('spanEnd', span => {
     applyOtelSpanData(span, { finalizeStatus: true });
   });
-
-  if (hasSpanStreamingEnabled(client)) {
-    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
-  }
 }
 
 /** Just exported for tests. */

@@ -2,11 +2,6 @@ import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions
 import {
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanShouldInferOtelSource,
-  spanSourceWasExplicitlySet,
   spanToJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -14,38 +9,14 @@ import {
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { inferStatusFromAttributes } from './utils/mapStatus';
-import { inferSpanData } from './utils/parseSpanDescription';
 
 /**
  * Backfill a native Sentry span with the data the OpenTelemetry SDK pipeline would otherwise derive
- * from OTel semantic attributes: `sentry.op`, `sentry.source`, the span name, `sentry.kind`, and status.
- *
- * On the OTel SDK provider this happens in the `SentrySpanProcessor`/`SentrySpanExporter` while
- * converting `ReadableSpan`s to Sentry payloads (via `parseSpanDescription` + `mapStatus`).
- * `SentryTracerProvider` creates native Sentry spans directly and never goes through that pipeline,
- * so the same inference has to run here instead — once at span start, and again at span end
- * (`finalizeStatus`, once attributes like `http.route` and the status code are available).
+ * from OTel semantic attributes.
  */
 export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolean } = {}): void {
   const spanJSON = spanToJSON(span);
   const attributes = spanJSON.data;
-  const mayInferSource = spanShouldInferOtelSource(span);
-  const hasCustomSpanName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] !== undefined;
-  // We may only infer the source/name when the span is OTel-branded and user code hasn't already
-  // chosen them: either via `updateSpanName` (which sets `sentry.custom_span_name`) or by explicitly
-  // setting `sentry.source`. Without the explicit-source check we couldn't tell a user-set `custom`
-  // apart from the default `custom` stamped on every root span at span start, and would override it.
-  const canInferSource = mayInferSource && !hasCustomSpanName && !spanSourceWasExplicitlySet(span);
-  const attributesForInference =
-    canInferSource && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
-      ? { ...attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: undefined }
-      : attributes;
-
-  const inferred = inferSpanData(attributesForInference);
-
-  if (inferred.op && attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, inferred.op);
-  }
 
   if (options.finalizeStatus) {
     applyOtelCompatibilityAttributes(span, attributes);
