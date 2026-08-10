@@ -610,10 +610,10 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 
 Affected SDKs: All server-side SDKs.
 
-AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as pre-flight token counting or graph compilation:
+AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as:
 
-- The Anthropic integration no longer emits a span for `messages.countTokens`.
-- The LangGraph integration no longer emits `gen_ai.create_agent` spans when a graph is compiled (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
+- Anthropic `messages.countTokens` (pre-flight token counting).
+- LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
 
 If you reference these spans in dashboards or alerts, update them accordingly.
 
