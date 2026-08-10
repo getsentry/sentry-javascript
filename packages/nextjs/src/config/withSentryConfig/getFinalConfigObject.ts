@@ -1,7 +1,6 @@
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
-import { migrateDeprecatedWebpackOptions } from './deprecatedWebpackOptions';
 import {
   getBundlerInfo,
   getServerExternalPackagesPatch,
@@ -30,13 +29,12 @@ import {
 /**
  * Materializes the final Next.js config object with Sentry's build-time integrations applied.
  *
- * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions` (to apply defaults/migrations).
+ * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions` (to apply defaults).
  */
 export function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  migrateDeprecatedWebpackOptions(userSentryOptions);
   const releaseName = resolveReleaseName(userSentryOptions);
 
   maybeSetUpTunnelRouteRewriteRules(incomingUserNextConfigObject, userSentryOptions);

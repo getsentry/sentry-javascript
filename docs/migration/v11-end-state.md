@@ -860,19 +860,22 @@ Sentry.init({
 
 ### `@sentry/nextjs`
 
-The following long-deprecated options in `withSentryConfig` / the `sentry` config were removed:
+The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
+moved under the `webpack` option in v10; use the replacement listed below instead:
 
-- `unstable_sentryWebpackPluginOptions`
-- `autoInstrumentServerFunctions`
-- `autoInstrumentMiddleware`
-- `autoInstrumentAppDirectory`
-- `disableLogger`
-- `automaticVercelMonitors`
-- `disableManifestInjection`
-- `disableSentryWebpackConfig`
-- `turbopackApplicationKey`
-
-Remove these options from your `next.config.js` / `next.config.ts`.
+| Removed option                          | Replacement                                                    |
+| --------------------------------------- | -------------------------------------------------------------- |
+| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                        |
+| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                             |
+| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                           |
+| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                              |
+| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                  |
+| `reactComponentAnnotation`              | `webpack.reactComponentAnnotation`                             |
+| `unstable_sentryWebpackPluginOptions`   | `webpack.unstable_sentryWebpackPluginOptions`                  |
+| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                  |
+| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                         |
+| `disableManifestInjection`              | `routeManifestInjection: false`                                |
+| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds) |
 
 ### Meta-framework build options
 
