@@ -46,6 +46,7 @@ export declare type AttributeValue =
   | Array<null | undefined | number>
   | Array<null | undefined | boolean>;
 
+// oxlint-disable-next-line typescript/no-deprecated
 export interface VercelAiOptions extends VercelAiBaseOptions {
   /**
    * By default, the instrumentation will register span processors only when the ai package is used.

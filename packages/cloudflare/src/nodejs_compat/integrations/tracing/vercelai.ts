@@ -10,6 +10,7 @@ import { defineIntegration } from '@sentry/core';
 import { vercelAiIntegration as serverUtilsVercelAiIntegration, type VercelAiOptions } from '@sentry/server-utils';
 import { vercelAIIntegration as cloudflareVercelAIIntegration } from '../../../integrations/tracing/vercelai';
 
+// oxlint-disable-next-line typescript/no-deprecated
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   const inner = serverUtilsVercelAiIntegration(options);
   const instrumentation = cloudflareVercelAIIntegration(options);
