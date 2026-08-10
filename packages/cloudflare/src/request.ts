@@ -10,7 +10,6 @@ import {
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
-  withIsolationScope,
 } from '@sentry/core';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import type { CloudflareOptions } from './client';
@@ -18,6 +17,7 @@ import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
+import { withInvocationIsolationScope } from './utils/invocationScope';
 import { classifyResponseStreaming } from './utils/streaming';
 
 function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
@@ -49,7 +49,7 @@ export function wrapRequestHandler(
   wrapperOptions: RequestHandlerWrapperOptions,
   handler: (...args: unknown[]) => Response | Promise<Response>,
 ): Promise<Response> {
-  return withIsolationScope(async isolationScope => {
+  return withInvocationIsolationScope(async isolationScope => {
     const { options, request, captureErrors = true } = wrapperOptions;
     const context = wrapperOptions.context;
 
