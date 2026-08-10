@@ -615,12 +615,6 @@ Affected SDKs: All server-side SDKs.
 
 The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
-### `thirdPartyErrorFilterIntegration` filters internal frames by default
-
-Affected SDKs: All SDKs.
-
-`ignoreSentryInternalFrames` is now the default behaviour for `thirdPartyErrorFilterIntegration`.
-
 ### Console breadcrumbs handled by `consoleIntegration`
 
 Affected SDKs: `@sentry/browser` and `@sentry/deno` (and their dependents).
