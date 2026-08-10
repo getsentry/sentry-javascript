@@ -49,10 +49,7 @@ export {
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
-export {
-  waitForTracingChannelBinding,
-  _INTERNAL_createTracingChannelBinding,
-} from './asyncContext/tracing-channel-binding';
+export { waitForTracingChannelBinding } from './asyncContext/tracing-channel-binding';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';

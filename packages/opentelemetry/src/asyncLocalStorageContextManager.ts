@@ -69,7 +69,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
     thisArg?: ThisParameterType<F>,
     ...args: A
   ): ReturnType<F> {
-    const ctx2 = buildContextWithSentryScopes(context, this.active());
+    const ctx2 = buildContextWithSentryScopes(context);
     const cb = thisArg == null ? fn : fn.bind(thisArg);
     return this._asyncLocalStorage.run(ctx2, cb as never, ...args);
   }
