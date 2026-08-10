@@ -1,38 +1,30 @@
-import type { Event } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getCapturedScopesOnSpan, spanToJSON } from '@sentry/core';
 import { getSanitizedRequestUrl } from './urls';
 
 /**
- * Sets the URL processing metadata for the event.
+ * Backfills the request URL on the segment span's isolation scope, so `requestDataIntegration`
+ * picks it up for every event of the request (including errors).
  */
-export function setUrlProcessingMetadata(event: Event): void {
-  // Skip if not a server-side transaction
-  if (event.type !== 'transaction' || event.contexts?.trace?.op !== 'http.server' || !event.contexts?.trace?.data) {
+export function setUrlProcessingMetadata(span: Span): void {
+  const { op, data: attributes } = spanToJSON(span);
+  if (op !== 'http.server') {
     return;
   }
 
-  const client = getClient();
-  if (!client) {
-    return;
-  }
-
-  const traceData = event.contexts.trace.data;
-
-  // Get the route from trace data
-  const componentRoute = traceData['next.route'] || traceData['http.route'];
-  const httpTarget = traceData['http.target'] as string | undefined;
+  // Get the route from the span attributes
+  const componentRoute = attributes['next.route'] || attributes['http.route'];
+  const httpTarget = attributes['http.target'];
 
   if (!componentRoute) {
     return;
   }
 
-  // Extract headers
-  const isolationScopeData = event.sdkProcessingMetadata?.capturedSpanIsolationScope?.getScopeData();
+  const isolationScopeData = getCapturedScopesOnSpan(span).isolationScope?.getScopeData();
   const headersDict = isolationScopeData?.sdkProcessingMetadata?.normalizedRequest?.headers;
 
-  const url = getSanitizedRequestUrl(componentRoute, undefined, headersDict, httpTarget?.toString());
+  const url = getSanitizedRequestUrl(String(componentRoute), undefined, headersDict, httpTarget?.toString());
 
-  // Add URL to the isolation scope's normalizedRequest so requestDataIntegration picks it up
   if (url && isolationScopeData?.sdkProcessingMetadata) {
     isolationScopeData.sdkProcessingMetadata.normalizedRequest =
       isolationScopeData.sdkProcessingMetadata.normalizedRequest || {};

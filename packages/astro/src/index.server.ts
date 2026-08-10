@@ -172,9 +172,6 @@ export {
   unleashIntegration,
   growthbookIntegration,
   spanStreamingIntegration,
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
   metrics,
 } from '@sentry/node';
 

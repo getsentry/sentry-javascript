@@ -1,13 +1,5 @@
 import type { IntegrationFn } from '@sentry/core/browser';
-import {
-  captureSpan,
-  debug,
-  defineIntegration,
-  hasSpanStreamingEnabled,
-  SpanBuffer,
-  spanIsSampled,
-} from '@sentry/core/browser';
-import { DEBUG_BUILD } from '../debug-build';
+import { captureSpan, defineIntegration, SpanBuffer, spanIsSampled } from '@sentry/core/browser';
 
 export const INTEGRATION_NAME = 'SpanStreaming' as const;
 
@@ -15,11 +7,6 @@ export const spanStreamingIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      if (!hasSpanStreamingEnabled(client)) {
-        DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] \`traceLifecycle\` is "static", skipping setup.`);
-        return;
-      }
-
       const buffer = new SpanBuffer(client);
 
       client.on('afterSpanEnd', span => {

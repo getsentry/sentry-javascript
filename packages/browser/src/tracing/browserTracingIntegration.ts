@@ -22,7 +22,6 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
-  hasSpanStreamingEnabled,
   isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
@@ -488,10 +487,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           return;
         }
 
-        addPerformanceEntries(span, {
-          ignoreResourceSpans,
-          spanStreamingEnabled: hasSpanStreamingEnabled(client),
-        });
+        addPerformanceEntries(span, { ignoreResourceSpans });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.

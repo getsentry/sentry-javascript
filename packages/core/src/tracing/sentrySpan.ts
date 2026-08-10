@@ -1,16 +1,12 @@
-/* eslint-disable max-lines */
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { Client } from '../client';
-import type { TransactionEvent } from '../types/event';
 import type { SpanLink } from '../types/link';
 import type {
   SentrySpanArguments,
@@ -32,32 +28,16 @@ import {
   convertSpanLinksForEnvelope,
   getRootSpan,
   getSimpleStatus,
-  getSpanDescendants,
   getStatusMessage,
   getStreamedSpanLinks,
   spanTimeInputToSeconds,
-  spanToJSON,
-  spanToTransactionTraceContext,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
-import { getSegmentSpanCaptureStrategy, type SegmentSpanCaptureConvertOptions } from './segmentSpanCaptureStrategy';
-import { isStaticBeforeSendSpanCallback } from './spans/beforeSendSpan';
-import { captureSpan, captureStandaloneSpanWithStaticCallback } from './spans/captureSpan';
-import { createStreamedSpanEnvelope } from './spans/envelope';
-import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import {
-  getCapturedScopesOnSpan,
-  markSpanSourceAsExplicit,
-  spanIsTracerProviderSpan,
-  spanShouldInferOtelSource,
-} from './utils';
-
-const MAX_SPAN_COUNT = 1000;
+import { markSpanSourceAsExplicit, spanIsTracerProviderSpan, spanShouldInferOtelSource } from './utils';
 
 /**
  * Span contains all data about a span
@@ -81,16 +61,6 @@ export class SentrySpan implements Span {
 
   /** if true, the span is sealed and ignores further mutations (set after end for tracer-provider spans) */
   private _frozen?: boolean;
-
-  /**
-   * If true, the span is sent on its own as a v2 streamed span and is never folded into a
-   * transaction. Used for late web vital spans (INP) when span streaming is disabled.
-   *
-   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and every
-   * span streams on its own. See the matching markers on `isStandaloneSpan`/`sendStandaloneSpan`,
-   * the `_convertSpanToTransaction` exclusion, and the `isStandalone`/`experimental.standalone` types.
-   */
-  private _isStandaloneSpan?: boolean;
 
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
@@ -126,8 +96,6 @@ export class SentrySpan implements Span {
     }
 
     this._events = [];
-
-    this._isStandaloneSpan = spanContext.isStandalone;
 
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
@@ -365,217 +333,21 @@ export class SentrySpan implements Span {
     return this;
   }
 
-  /**
-   * Whether this span is sent on its own (as a v2 streamed span) rather than as part of a
-   * transaction. Used internally; see `_isStandaloneSpan`.
-   * @internal
-   */
-  public isStandaloneSpan(): boolean {
-    return !!this._isStandaloneSpan;
-  }
-
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
     client?.emit('spanEnd', this);
-
-    // A standalone span is sent on its own as a v2 streamed span and never becomes/joins a
-    // transaction, so we send it here and stop.
-    // TODO(standalone): once we drop the static (transaction) trace lifecycle entirely and everything
-    // streams, standalone spans are no longer needed (every span streams on its own) and this branch,
-    // the `_isStandaloneSpan` flag, and the `_convertSpanToTransaction` exclusion can all be removed.
-    if (this._isStandaloneSpan) {
-      if (!client) return;
-
-      if (this._sampled) {
-        sendStandaloneSpan(this, client);
-        return;
-      }
-
-      DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-      client.recordDroppedEvent('sample_rate', 'span');
-
-      return;
-    }
-
     client?.emit('afterSpanEnd', this);
 
-    // Child spans aren't captured on their own. A registered strategy may re-emit a late child
-    // as its own orphan transaction; without one, it's dropped.
-    const rootSpan = getRootSpan(this);
-    if (rootSpan !== this) {
-      const strategy = getSegmentSpanCaptureStrategy();
-      if (strategy) {
-        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-        strategy.onChildSpanEnded(this, rootSpan, options => this._convertSpanToTransaction(options), scope);
-      }
+    // Child spans aren't captured on their own — the span streaming buffer picks them up.
+    if (getRootSpan(this) !== this) {
       return;
     }
 
-    if (client && hasSpanStreamingEnabled(client)) {
-      client.emit('afterSegmentSpanEnd', this);
-      return;
-    }
-
-    // A registered strategy defers the snapshot so children closing just after the segment still land
-    // (and late ones can orphan); without one, assemble synchronously from the live tree.
-    const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-    const strategy = getSegmentSpanCaptureStrategy();
-    if (strategy) {
-      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options), scope);
-    } else {
-      const transactionEvent = this._convertSpanToTransaction();
-      if (transactionEvent) {
-        scope.captureEvent(transactionEvent);
-      }
-    }
-  }
-
-  /**
-   * Finish the transaction & prepare the event to send to Sentry.
-   */
-  private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
-    // We can only convert finished spans
-    if (!isFullFinishedSpan(spanToJSON(this))) {
-      return undefined;
-    }
-
-    if (!this._name) {
-      DEBUG_BUILD && debug.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
-      this._name = '<unlabeled transaction>';
-    }
-
-    const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
-
-    const normalizedRequest = capturedSpanScope?.getScopeData().sdkProcessingMetadata?.normalizedRequest;
-
-    if (this._sampled !== true) {
-      return undefined;
-    }
-
-    // Skip the span itself, standalone spans (they are sent on their own), and (when a strategy
-    // tracks it) spans already sent. The synchronous default passes no hooks, so this bookkeeping
-    // stays out of SDKs that don't defer.
-    // TODO(standalone): drop the `isStandaloneSpan(descendant)` check once the static trace lifecycle is gone.
-    options.onSpanCaptured?.(this);
-    const spans: SpanJSON[] = [];
-    for (const descendant of getSpanDescendants(this)) {
-      if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
-        continue;
-      }
-      const spanJSON = spanToJSON(descendant);
-      if (!isFullFinishedSpan(spanJSON)) {
-        continue;
-      }
-      options.onSpanCaptured?.(descendant);
-      spans.push(spanJSON);
-    }
-
-    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-
-    // remove internal root span attributes we don't need to send.
-    /* eslint-disable @typescript-eslint/no-dynamic-delete */
-    delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-    let hasGenAiSpans = false;
-    spans.forEach(span => {
-      delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-      if (span.op?.startsWith('gen_ai.')) {
-        hasGenAiSpans = true;
-      }
-    });
-    // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
-
-    const transaction: TransactionEvent = {
-      contexts: {
-        trace: spanToTransactionTraceContext(this),
-      },
-      spans:
-        // spans.sort() mutates the array, but `spans` is already a copy so we can safely do this here
-        // we do not use spans anymore after this point
-        spans.length > MAX_SPAN_COUNT
-          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
-          : spans,
-      start_timestamp: this._startTime,
-      timestamp: this._endTime,
-      transaction: this._name,
-      type: 'transaction',
-      sdkProcessingMetadata: {
-        capturedSpanScope,
-        capturedSpanIsolationScope,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
-        hasGenAiSpans,
-      },
-      request: normalizedRequest,
-      ...(source && {
-        transaction_info: {
-          source,
-        },
-      }),
-    };
-
-    const measurements = timedEventsToMeasurements(this._events);
-    const hasMeasurements = measurements && Object.keys(measurements).length;
-
-    if (hasMeasurements) {
-      DEBUG_BUILD &&
-        debug.log(
-          '[Measurements] Adding measurements to transaction event',
-          JSON.stringify(measurements, undefined, 2),
-        );
-      transaction.measurements = measurements;
-    }
-
-    return transaction;
+    client?.emit('afterSegmentSpanEnd', this);
   }
 }
 
 function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {
   return (value && typeof value === 'number') || value instanceof Date || Array.isArray(value);
-}
-
-// We want to filter out any incomplete SpanJSON objects
-function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
-  return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
-}
-
-/**
- * `SentrySpan`s can be sent on their own (as a v2 streamed span) rather than as part of a transaction.
- *
- * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
- */
-function isStandaloneSpan(span: Span): boolean {
-  return span instanceof SentrySpan && span.isStandaloneSpan();
-}
-
-/**
- * Sends a single span on its own, as a v2 streamed span envelope.
- *
- * Used for standalone spans (e.g. a late INP web vital when span streaming is disabled): they are
- * not part of a transaction and are not handled by the span streaming buffer, so we serialize and
- * send them here directly.
- *
- * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
- */
-function sendStandaloneSpan(span: SentrySpan, client: Client): void {
-  const { beforeSendSpan, traceLifecycle } = client.getOptions();
-
-  // A user who opted out of span streaming wraps `beforeSendSpan` with `withStaticSpan` and writes it in
-  // the v1 `SpanJSON` format. That callback never runs through `captureSpan` (which only honors streamed
-  // callbacks), so scrub the span in its native v1 shape and convert it forward to v2, mirroring the
-  // gen_ai extraction path.
-  // TODO(standalone): remove this branch once the static trace lifecycle is dropped.
-  if (traceLifecycle === 'static' && isStaticBeforeSendSpanCallback(beforeSendSpan)) {
-    const serializedSpan = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
-    const dsc = getDynamicSamplingContextFromSpan(span);
-    // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
-    return;
-  }
-
-  const { _segmentSpan, ...serializedSpan } = captureSpan(span, client);
-  const dsc = getDynamicSamplingContextFromSpan(_segmentSpan);
-  // sendEnvelope should not throw
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  client.sendEnvelope(createStreamedSpanEnvelope([serializedSpan], dsc, client));
 }

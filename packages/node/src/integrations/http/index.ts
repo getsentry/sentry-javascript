@@ -101,15 +101,6 @@ interface HttpOptions {
   ignoreStaticAssets?: boolean;
 
   /**
-   * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
-   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
-   *
-   * @default `[[401, 404], [301, 303], [305, 399]]`
-   */
-  dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
-
-  /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
@@ -173,7 +164,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   const serverSpansOptions: HttpServerSpansIntegrationOptions = {
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
-    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
     // oxlint-disable-next-line typescript/no-deprecated -- pass through the deprecated option for back-compat
     instrumentation: options.instrumentation,
     onSpanCreated: options.incomingRequestSpanHook,

@@ -170,34 +170,12 @@ export function init(options: VercelEdgeOptions = {}): void {
     }
   });
 
-  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
-  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
-  // "custom", doesn't trigger.
-  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
-  // `enhanceMiddlewareRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
-  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
-  client.on('preprocessEvent', event => {
-    if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      const mutableRootSpan = {
-        attributes: event.contexts.trace.data,
-        getName: () => event.transaction,
-        setName: (name: string) => {
-          event.transaction = name;
-        },
-        setOp: (op: string) => {
-          event.contexts!.trace!.op = op;
-        },
-      };
-      enhanceMiddlewareRootSpan(mutableRootSpan);
-      enhanceRunHandlerRootSpan(mutableRootSpan);
-      backfillHttpResponseStatusCode(mutableRootSpan.attributes);
-    }
-
-    setUrlProcessingMetadata(event);
+  // Runs before `processSegmentSpan` scrubs/serializes, and receives the live span so the request URL
+  // can be backfilled onto its isolation scope for all events of the request.
+  client.on('afterSegmentSpanEnd', span => {
+    setUrlProcessingMetadata(span);
   });
 
-  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
-  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
   client.on('processSegmentSpan', span => {
     const attributes = (span.attributes ??= {});
     const mutableRootSpan = {

@@ -252,7 +252,6 @@ function getClientOptions(
   const spotlight = getSpotlightConfig(options.spotlight);
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
-  const traceLifecycle = getTraceLifecycle(options.traceLifecycle);
 
   const mergedOptions = {
     ...options,
@@ -264,7 +263,6 @@ function getClientOptions(
     release,
     tracesSampleRate,
     spotlight,
-    traceLifecycle,
     // Most Node-based SDKs default to running without a Sentry OpenTelemetry tracer provider. SDKs
     // that need OTel spans surfaced in Sentry (nextjs, sveltekit) opt back in by passing `true`.
     enableOpenTelemetrySetup: options.enableOpenTelemetrySetup ?? false,
@@ -310,20 +308,6 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
 
   const parsed = parseFloat(sampleRateFromEnv);
   return isFinite(parsed) ? parsed : undefined;
-}
-
-function getTraceLifecycle(traceLifecycle: NodeOptions['traceLifecycle']): 'stream' | 'static' {
-  if (traceLifecycle !== undefined) {
-    return traceLifecycle;
-  }
-
-  const lifecycleFromEnv = process.env.SENTRY_TRACE_LIFECYCLE;
-
-  if (lifecycleFromEnv === 'stream' || lifecycleFromEnv === 'static') {
-    return lifecycleFromEnv;
-  }
-
-  return 'stream';
 }
 
 /**

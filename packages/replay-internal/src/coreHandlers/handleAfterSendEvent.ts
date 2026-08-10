@@ -1,8 +1,7 @@
-import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/core';
+import type { ErrorEvent, Event, TransportMakeRequestResponse } from '@sentry/core';
 import { setTimeout } from '@sentry/browser-utils';
 import type { ReplayContainer } from '../types';
-import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
-import { addSegmentDetailsToContext } from './util/addSegmentDetailsToContext';
+import { isErrorEvent } from '../util/eventUtils';
 
 type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse) => void;
 
@@ -11,7 +10,7 @@ type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestR
  */
 export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCallback {
   return (event: Event, sendResponse: TransportMakeRequestResponse) => {
-    if (!replay.isEnabled() || (!isErrorEvent(event) && !isTransactionEvent(event))) {
+    if (!replay.isEnabled() || !isErrorEvent(event)) {
       return;
     }
 
@@ -23,17 +22,8 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
       return;
     }
 
-    if (isTransactionEvent(event)) {
-      handleTransactionEvent(replay, event);
-      return;
-    }
-
     handleErrorEvent(replay, event);
   };
-}
-
-function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent): void {
-  addSegmentDetailsToContext(replay, event.contexts?.trace?.trace_id, event.transaction);
 }
 
 function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {

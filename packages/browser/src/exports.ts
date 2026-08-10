@@ -70,9 +70,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
 } from '@sentry/core/browser';
 
 export {

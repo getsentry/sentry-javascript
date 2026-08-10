@@ -37,27 +37,6 @@ export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
 /**
- * Convert a span to a trace context, which can be sent as the `trace` context in an event.
- * By default, this will only include trace_id, span_id & parent_span_id.
- * If `includeAllData` is true, it will also include data, op, status & origin.
- */
-export function spanToTransactionTraceContext(span: Span): TraceContext {
-  const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
-
-  return {
-    parent_span_id,
-    span_id,
-    trace_id,
-    data,
-    op,
-    status,
-    origin,
-    links,
-  };
-}
-
-/**
  * Convert a span to a trace context, which can be sent as the `trace` context in a non-transaction event.
  */
 export function spanToTraceContext(span: Span): TraceContext {

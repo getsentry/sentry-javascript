@@ -25,7 +25,6 @@ import {
   getClient,
   getSanitizedUrlString,
   getSpanStatusFromHttpCode,
-  hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
   parseUrl,
@@ -273,11 +272,10 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
         ? `${request.method || 'GET'} ${stripDataUrlContent(url)}`
         : `${requestMethod} ${getSanitizedUrlString(parseUrl(requestUrl.toString()))}`;
 
-  const client = getClient();
   const span = startInactiveSpan({
     name: spanName,
     attributes,
-    onlyIfParent: !client || !hasSpanStreamingEnabled(client),
+    onlyIfParent: !getClient(),
   });
 
   // Execute the request hook if defined

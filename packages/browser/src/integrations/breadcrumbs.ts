@@ -99,7 +99,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 export const breadcrumbsIntegration = defineIntegration(_breadcrumbsIntegration);
 
 /**
- * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
+ * Adds a breadcrumb for Sentry events if this option is enabled.
  */
 function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => void {
   return function addSentryBreadcrumb(event: SentryEvent): void {
@@ -109,7 +109,7 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
 
     addBreadcrumb(
       {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+        category: 'sentry.event',
         event_id: event.event_id,
         level: event.level,
         message: getEventDescription(event),

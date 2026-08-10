@@ -11,7 +11,7 @@ interface MatchParam {
   /**
    * A function that returns an event from the envelope if one exists. You can optionally pass an array of envelope item
    * types to filter by - only envelopes matching the given types will be multiplexed.
-   * Allowed values are: 'event', 'transaction', 'profile', 'replay_event'
+   * Allowed values are: 'event', 'profile', 'replay_event'
    *
    * @param types Defaults to ['event']
    */
@@ -59,7 +59,7 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
     return {
       ...transport,
       send: async (envelope: Envelope): Promise<TransportMakeRequestResponse> => {
-        const event = eventFromEnvelope(envelope, ['event', 'transaction', 'profile', 'replay_event']);
+        const event = eventFromEnvelope(envelope, ['event', 'profile', 'replay_event']);
 
         if (event) {
           event.release = release;

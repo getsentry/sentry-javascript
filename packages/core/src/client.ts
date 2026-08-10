@@ -11,8 +11,6 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
-import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
-import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types/checkin';
@@ -20,7 +18,7 @@ import type { EventDropReason, Outcome } from './types/clientreport';
 import type { DataCategory } from './types/datacategory';
 import type { DsnComponents } from './types/dsn';
 import type { DynamicSamplingContext, Envelope } from './types/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { ErrorEvent, Event, EventHint, EventType } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
@@ -34,28 +32,23 @@ import type { RequestEventData } from './types/request';
 import type { SdkMetadata } from './types/sdkmetadata';
 import type { Session, SessionAggregates, SessionStatus } from './types/session';
 import type { SeverityLevel } from './types/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
+import type { Span, SpanAttributes, SpanContextData, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
-import { consoleSandbox, debug } from './utils/debug-logger';
+import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
-import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
-import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
-import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
-import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -234,12 +227,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
-    // is always one of the two known values for the rest of the SDK.
     this._options = {
       attachStacktrace: true,
       ...options,
-      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
     };
     this._integrations = {};
     this._numProcessing = 0;
@@ -254,24 +244,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
-    }
-
-    const { beforeSendSpan, traceLifecycle } = this._options;
-    // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
-    // so a mismatch means it is silently never called.
-    if (
-      DEBUG_BUILD &&
-      beforeSendSpan &&
-      isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
-    ) {
-      consoleSandbox(() => {
-        // oxlint-disable-next-line no-console
-        console.warn(
-          `Ignoring \`beforeSendSpan\`: ${
-            traceLifecycle === 'static' ? 'wrap it with' : 'remove'
-          } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
-        );
-      });
     }
 
     if (this._dsn) {
@@ -532,8 +504,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
     ) {
       this._setupIntegrations();
-
-      maybeWarnAboutIgnoredTransactionOptions(this._options);
     }
   }
 
@@ -581,18 +551,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
 
-    // Extract gen_ai spans from transaction and convert to span v2 format.
-    // This mutates event.spans to remove the extracted spans.
-    const genAiSpanItem = extractGenAiSpansFromEvent(event, this);
-
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
-    }
-
-    if (genAiSpanItem) {
-      env = addItemToEnvelope(env, genAiSpanItem);
     }
 
     // sendEnvelope should not throw
@@ -1480,14 +1442,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
-    const isTransaction = isTransactionEvent(event);
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
-    // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     const dataCategory = getDataCategoryByType(event.type);
 
@@ -1503,18 +1463,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint);
+        const result = processBeforeSend(options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory);
-          if (isTransaction) {
-            const spans = event.spans || [];
-            // the transaction itself counts as one span, plus all the child spans that are added
-            const spanCount = 1 + spans.length;
-            this.recordDroppedEvent('before_send', 'span', spanCount);
-          }
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
@@ -1528,28 +1482,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(
             `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
           );
-        }
-
-        if (isTransaction) {
-          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
-          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
-
-          const droppedSpanCount = spanCountBefore - spanCountAfter;
-          if (droppedSpanCount > 0) {
-            this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
-          }
-        }
-
-        // None of the Sentry built event processor will update transaction name,
-        // so if the transaction name has been changed by an event processor, we know
-        // it has to come from custom event processor added by a user
-        const transactionInfo = processedEvent.transaction_info;
-        if (isTransaction && transactionInfo && processedEvent.transaction !== event.transaction) {
-          const source = 'custom';
-          processedEvent.transaction_info = {
-            ...transactionInfo,
-            source,
-          };
         }
 
         this.sendEvent(processedEvent, hint);
@@ -1663,7 +1595,7 @@ function getDataCategoryByType(type: EventType | 'replay_event' | undefined): Da
 }
 
 /**
- * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
+ * Verifies that return value of the configured `beforeSend` is of expected type, and returns the value if so.
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
@@ -1692,106 +1624,21 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
-  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const {
-    beforeSend,
-    ignoreSpans,
-    // oxlint-disable-next-line typescript/no-deprecated
-    beforeSendTransaction,
-  } = options;
-  const beforeSendSpan = isStaticBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+  const { beforeSend } = options;
 
-  let processedEvent = event;
-
-  if (isErrorEvent(processedEvent) && beforeSend) {
-    return beforeSend(processedEvent, hint);
+  if (isErrorEvent(event) && beforeSend) {
+    return beforeSend(event, hint);
   }
 
-  if (isTransactionEvent(processedEvent)) {
-    // Avoid processing if we don't have to
-    if (beforeSendSpan || ignoreSpans) {
-      // 1. Process root span
-      const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
-
-      // 1.1 If the root span should be ignored, drop the whole transaction
-      if (
-        ignoreSpans?.length &&
-        shouldIgnoreSpan(
-          { description: rootSpanJson.description, op: rootSpanJson.op, attributes: rootSpanJson.data },
-          ignoreSpans,
-        )
-      ) {
-        // dropping the whole transaction!
-        return null;
-      }
-
-      // 1.2 If a `beforeSendSpan` callback is defined, process the root span
-      if (beforeSendSpan) {
-        const processedRootSpanJson = applyBeforeSendSpanCallback(rootSpanJson, beforeSendSpan);
-        // update event with processed root span values
-        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
-      }
-
-      // 2. Process child spans
-      if (processedEvent.spans) {
-        const processedSpans: SpanJSON[] = [];
-
-        const initialSpans = processedEvent.spans;
-
-        for (const span of initialSpans) {
-          // 2.a If the child span should be ignored, reparent it to the root span
-          if (
-            ignoreSpans?.length &&
-            shouldIgnoreSpan({ description: span.description, op: span.op, attributes: span.data }, ignoreSpans)
-          ) {
-            reparentChildSpans(initialSpans, span);
-            continue;
-          }
-
-          // 2.b If a `beforeSendSpan` callback is defined, process the child span
-          if (beforeSendSpan) {
-            processedSpans.push(applyBeforeSendSpanCallback(span, beforeSendSpan));
-          } else {
-            processedSpans.push(span);
-          }
-        }
-
-        const droppedSpans = processedEvent.spans.length - processedSpans.length;
-        if (droppedSpans) {
-          client.recordDroppedEvent('before_send', 'span', droppedSpans);
-        }
-
-        processedEvent.spans = processedSpans;
-      }
-    }
-
-    if (beforeSendTransaction) {
-      if (processedEvent.spans) {
-        // We store the # of spans before processing in SDK metadata,
-        // so we can compare it afterwards to determine how many spans were dropped
-        const spanCountBefore = processedEvent.spans.length;
-        processedEvent.sdkProcessingMetadata = {
-          ...event.sdkProcessingMetadata,
-          spanCountBeforeProcessing: spanCountBefore,
-        };
-      }
-      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
-    }
-  }
-
-  return processedEvent;
+  return event;
 }
 
 function isErrorEvent(event: Event): event is ErrorEvent {
   return event.type === undefined;
-}
-
-function isTransactionEvent(event: Event): event is TransactionEvent {
-  return event.type === 'transaction';
 }
 
 /**

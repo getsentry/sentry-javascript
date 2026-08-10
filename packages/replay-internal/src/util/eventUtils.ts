@@ -1,13 +1,8 @@
-import type { ErrorEvent, Event, FeedbackEvent, ReplayEvent, TransactionEvent } from '@sentry/core';
+import type { ErrorEvent, Event, FeedbackEvent, ReplayEvent } from '@sentry/core';
 
 /** If the event is an error event */
 export function isErrorEvent(event: Event): event is ErrorEvent {
   return !event.type;
-}
-
-/** If the event is a transaction event */
-export function isTransactionEvent(event: Event): event is TransactionEvent {
-  return event.type === 'transaction';
 }
 
 /** If the event is an replay event */

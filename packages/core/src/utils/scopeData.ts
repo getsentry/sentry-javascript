@@ -5,7 +5,7 @@ import type { Breadcrumb } from '../types/breadcrumb';
 import type { Event } from '../types/event';
 import type { Span } from '../types/span';
 import { merge } from './merge';
-import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
+import { spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -151,8 +151,7 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     event.level = level;
   }
 
-  // transaction events get their `transaction` from the root span name
-  if (transactionName && event.type !== 'transaction') {
+  if (transactionName) {
     event.transaction = transactionName;
   }
 }
@@ -179,12 +178,6 @@ function applySpanToEvent(event: Event, span: Span): void {
     dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
     ...event.sdkProcessingMetadata,
   };
-
-  const rootSpan = getRootSpan(span);
-  const transactionName = spanToJSON(rootSpan).description;
-  if (transactionName && !event.transaction && event.type === 'transaction') {
-    event.transaction = transactionName;
-  }
 }
 
 /**

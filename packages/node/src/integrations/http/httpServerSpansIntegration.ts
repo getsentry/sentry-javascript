@@ -85,15 +85,6 @@ export interface HttpServerSpansIntegrationOptions {
   ignoreStaticAssets?: boolean;
 
   /**
-   * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
-   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
-   *
-   * @default `[[401, 404], [301, 303], [305, 399]]`
-   */
-  ignoreStatusCodes?: (number | [number, number])[];
-
-  /**
    * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
    */
   instrumentation?: {
@@ -116,12 +107,6 @@ export interface HttpServerSpansIntegrationOptions {
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const ignoreStatusCodes = options.ignoreStatusCodes ?? [
-    [401, 404],
-    // 300 and 304 are possibly valid status codes we do not want to filter
-    [301, 303],
-    [305, 399],
-  ];
 
   const { onSpanCreated } = options;
   // eslint-disable-next-line typescript/no-deprecated
@@ -244,31 +229,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
         addStartSpanCallback(request, startSpan);
       });
-    },
-    processEvent(event) {
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (typeof statusCode === 'number') {
-          // Drop transaction if it has a status code that should be ignored
-          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-
-          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
-          // exporter already does this on its path; doing it here covers transactions produced
-          // by the `SentryTracerProvider`, which bypasses that exporter.
-          event.contexts = {
-            ...event.contexts,
-            response: {
-              ...event.contexts?.response,
-              status_code: statusCode,
-            },
-          };
-        }
-      }
-
-      return event;
     },
     afterAllSetup(client) {
       if (!DEBUG_BUILD) {
@@ -425,18 +385,4 @@ function getIncomingRequestAttributesOnResponse(
   }
 
   return newAttributes;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }

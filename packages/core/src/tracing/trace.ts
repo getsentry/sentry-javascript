@@ -19,7 +19,6 @@ import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
-import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
@@ -468,12 +467,7 @@ function createChildOrRootSpan({
  * but some of them need to be transformed.
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
-  const initialCtx: SentrySpanArguments = {
-    // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
-    // oxlint-disable-next-line typescript/no-deprecated
-    isStandalone: options.experimental?.standalone,
-    ...options,
-  };
+  const initialCtx: SentrySpanArguments = { ...options };
 
   if (options.startTime) {
     const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...initialCtx };
@@ -540,7 +534,7 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    client.recordDroppedEvent('sample_rate', 'span');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
@@ -585,7 +579,7 @@ function _startChildSpan(
     return childSpan;
   }
 
-  if (hasSpanStreamingEnabled(client) && spanIsNonRecordingSpan(childSpan)) {
+  if (spanIsNonRecordingSpan(childSpan)) {
     if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
       // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
       // In this case, the child was also ignored (see `sampled` above) but we need to
@@ -648,7 +642,7 @@ function getActiveSpanWrapper<T>(parentSpan: Span | undefined | null): (callback
 function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: SentrySpanArguments): boolean {
   const ignoreSpans = client?.getOptions().ignoreSpans;
 
-  if (!client || !hasSpanStreamingEnabled(client) || !ignoreSpans?.length) {
+  if (!client || !ignoreSpans?.length) {
     return false;
   }
 

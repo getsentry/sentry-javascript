@@ -3,7 +3,6 @@ import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
-import { URL_FULL } from '@sentry/conventions/attributes';
 
 type OriginalStackFrameResponse = {
   originalStackFrame: StackFrame;
@@ -59,18 +58,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
  * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
-  // Filter out spans for requests resolving source maps for stack frames in dev mode
-  if (event.type === 'transaction') {
-    event.spans = event.spans?.filter(span => {
-      const httpUrlAttribute: unknown = span.data?.[URL_FULL];
-      if (typeof httpUrlAttribute === 'string') {
-        return !httpUrlAttribute.includes('__nextjs_original-stack-frame'); // could also be __nextjs_original-stack-frames (plural)
-      }
-
-      return true;
-    });
-  }
-
   // Due to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the
   // entire event processor. Symbolicated stack traces are just a nice to have.
   try {

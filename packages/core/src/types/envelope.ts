@@ -37,7 +37,6 @@ export type EnvelopeItemType =
   | 'feedback'
   | 'session'
   | 'sessions'
-  | 'transaction'
   | 'attachment'
   | 'event'
   | 'profile'
@@ -71,7 +70,7 @@ type BaseEnvelope<EnvelopeHeader, Item> = [
 ];
 
 type EventItemHeaders = {
-  type: 'event' | 'transaction' | 'profile' | 'feedback';
+  type: 'event' | 'profile' | 'feedback';
 };
 type AttachmentItemHeaders = {
   type: 'attachment';

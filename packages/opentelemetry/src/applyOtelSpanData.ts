@@ -1,12 +1,5 @@
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  spanToJSON,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  isStatusErrorMessageValid,
-} from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/core';
+import { spanToJSON, SPAN_STATUS_OK } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { inferStatusFromAttributes } from './utils/mapStatus';
 
 /**
@@ -15,31 +8,10 @@ import { inferStatusFromAttributes } from './utils/mapStatus';
  */
 export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolean } = {}): void {
   const spanJSON = spanToJSON(span);
-  const attributes = spanJSON.data;
 
-  if (options.finalizeStatus) {
-    const client = getClient();
-    applyOtelSpanStatus(span, attributes, spanJSON.status, !!client && hasSpanStreamingEnabled(client));
-  }
-}
-
-function applyOtelSpanStatus(
-  span: Span,
-  attributes: SpanAttributes,
-  status: string,
-  spanStreamingEnabled: boolean,
-): void {
-  if (status === 'ok') {
-    span.setStatus(inferStatusFromAttributes(attributes) || { code: SPAN_STATUS_OK });
-    return;
-  }
-
-  // Normalize a non-canonical error message to `internal_error` for the (non-streamed) transaction
-  // `status` field, matching the OTel SDK exporter's `mapStatus`. Skip this under span streaming: the
-  // streamed serializer preserves the raw message as `sentry.status.message` by reading the live span
-  // status, and the OTel SDK path keeps it too because `mapStatus` maps at export without mutating the
-  // span. Overwriting it here would replace that message with `internal_error`.
-  if (!spanStreamingEnabled && status !== 'ok' && !isStatusErrorMessageValid(status)) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  // A non-canonical error message is preserved as-is: the streamed serializer keeps the raw message
+  // as `sentry.status.message` by reading the live span status.
+  if (options.finalizeStatus && spanJSON.status === 'ok') {
+    span.setStatus(inferStatusFromAttributes(spanJSON.data) || { code: SPAN_STATUS_OK });
   }
 }

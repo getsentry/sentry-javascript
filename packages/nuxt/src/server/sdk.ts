@@ -1,5 +1,4 @@
-import * as path from 'node:path';
-import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
+import type { Client, EventProcessor, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
   debug,
@@ -43,44 +42,9 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const client = initNode(sentryOptions);
 
-  getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
   getGlobalScope().addEventProcessor(clientSourceMapErrorFilter(options));
 
   return client;
-}
-
-/**
- * Filter out transactions for resource requests which we don't want to send to Sentry
- * for quota reasons.
- *
- * Only exported for testing
- */
-export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): EventProcessor {
-  return Object.assign(
-    (event => {
-      if (event.type !== 'transaction' || !event.transaction || isCacheEvent(event)) {
-        return event;
-      }
-
-      // Check if this looks like a parametrized route (contains :param or :param() patterns)
-      const hasRouteParameters = /\/:[^(/\s]*(\([^)]*\))?[^/\s]*/.test(event.transaction);
-
-      if (hasRouteParameters) {
-        return event;
-      }
-
-      // We don't want to send transaction for file requests, so everything ending with a *.someExtension should be filtered out
-      // path.extname will return an empty string for normal page requests
-      if (path.extname(event.transaction)) {
-        options.debug &&
-          DEBUG_BUILD &&
-          debug.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
-        return null;
-      }
-      return event;
-    }) satisfies EventProcessor,
-    { id: 'NuxtLowQualityTransactionsFilter' },
-  );
 }
 
 /**
@@ -128,11 +92,4 @@ async function flushSafelyWithTimeout(): Promise<void> {
   } catch (e) {
     DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
   }
-}
-
-/**
- * Checks if the event is a cache event.
- */
-function isCacheEvent(e: Event): boolean {
-  return e.contexts?.trace?.origin === 'auto.cache.nuxt';
 }

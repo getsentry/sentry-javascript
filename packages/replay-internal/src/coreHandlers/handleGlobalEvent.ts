@@ -2,7 +2,7 @@ import type { Event, EventHint } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';
 import type { ReplayContainer } from '../types';
-import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
+import { isErrorEvent, isFeedbackEvent, isReplayEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
 import { shouldRefreshSession } from '../session/shouldRefreshSession';
 import { debug } from '../util/logger';
@@ -43,8 +43,8 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
         return event;
       }
 
-      // We only want to handle errors, transactions, and feedbacks, nothing else
-      if (!isErrorEvent(event) && !isTransactionEvent(event) && !isFeedbackEvent(event)) {
+      // We only want to handle errors and feedbacks, nothing else
+      if (!isErrorEvent(event) && !isFeedbackEvent(event)) {
         return event;
       }
 
@@ -79,7 +79,6 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       const isErrorEventSampled = shouldSampleForBufferEvent(replay, event);
 
       // Tag errors if it has been sampled in buffer mode, or if it is session mode
-      // Only tag transactions if in session mode
       const shouldTagReplayId = isErrorEventSampled || replay.recordingMode === 'session';
 
       if (shouldTagReplayId) {

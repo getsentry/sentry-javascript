@@ -4,7 +4,6 @@ export {
   waitForEnvelopeItem,
   waitForError,
   waitForRequest,
-  waitForTransaction,
   waitForSession,
   waitForPlainRequest,
   waitForMetric,

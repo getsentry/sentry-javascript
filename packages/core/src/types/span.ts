@@ -232,16 +232,6 @@ export interface SentrySpanArguments {
    * as certain context information is only available during span creation.
    */
   links?: SpanLink[];
-
-  /**
-   * If true, the span is sent on its own as a v2 streamed span instead of being folded into a
-   * transaction.
-   *
-   * @internal this option is currently experimental and should only be used within SDK code.
-   *
-   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
-   */
-  isStandalone?: boolean | undefined;
 }
 
 /**

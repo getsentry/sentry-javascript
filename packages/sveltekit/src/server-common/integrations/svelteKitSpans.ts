@@ -1,4 +1,4 @@
-import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
+import type { Integration, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
 import { safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
@@ -11,17 +11,6 @@ import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 export function svelteKitSpansIntegration(): Integration {
   return {
     name: 'SvelteKitSpansEnhancement' as const,
-    // Using preprocessEvent to ensure the processing happens before user-configured
-    // event processors are executed
-    preprocessEvent(event) {
-      // only iterate over the spans if the root span was emitted by SvelteKit
-      // TODO: Right now, we can't optimize this to only check traces with a kit-emitted root span
-      // this is because in Cloudflare, the kit-emitted root span is missing but our cloudflare
-      // SDK emits the http.server span.
-      if (event.type === 'transaction') {
-        event.spans?.forEach(_enhanceKitSpan);
-      }
-    },
     processSpan(span) {
       _enhanceKitSpanStreamed(span);
     },
@@ -30,30 +19,6 @@ export function svelteKitSpansIntegration(): Integration {
 
 /**
  * Adds sentry-specific attributes and data to a span emitted by SvelteKit's native tracing (since 2.31.0)
- * @exported for testing
- */
-export function _enhanceKitSpan(span: SpanJSON): void {
-  const origin = _getKitSpanOrigin(span.description);
-  if (!origin) {
-    return;
-  }
-
-  const previousOp = span.op || span.data[SENTRY_OP];
-  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
-
-  if (!previousOp) {
-    span.op = WEB_SERVER_FUNCTION_SPAN_OP;
-    span.data[SENTRY_OP] = WEB_SERVER_FUNCTION_SPAN_OP;
-  }
-
-  if (!previousOrigin || previousOrigin === 'manual') {
-    span.origin = origin;
-    span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
-  }
-}
-
-/**
- * Streaming-mode counterpart of {@link _enhanceKitSpan} operating on {@link StreamedSpanJSON}.
  * @exported for testing
  */
 export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {

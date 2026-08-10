@@ -6,7 +6,6 @@ import {
   getComponentName,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setMeasurement,
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -198,14 +197,9 @@ interface AddPerformanceEntriesOptions {
    * Default: []
    */
   ignoreResourceSpans: Array<'resource.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
-
-  /**
-   * Whether span streaming is enabled.
-   */
-  spanStreamingEnabled?: boolean;
 }
 
-/** Add performance related spans to a transaction */
+/** Add performance related spans to the pageload/navigation span */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
   const origin = browserPerformanceTimeOrigin();
@@ -214,7 +208,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  const { spanStreamingEnabled, ignoreResourceSpans } = options;
+  const { ignoreResourceSpans } = options;
 
   const timeOrigin = msToSec(origin);
 
@@ -263,7 +257,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   _performanceCursor = Math.max(performanceEntries.length - 1, 0);
 
-  _trackNavigator(span, spanStreamingEnabled);
+  _trackNavigator(span);
 }
 
 /** Create a span for a browser paint performance entry. */
@@ -452,11 +446,8 @@ export function _addResourceSpans(
   });
 }
 
-/**
- * Capture the information of the user agent.
- * TODO v11: Remove non-span-streaming attributes and measurements once we removed transactions
- */
-function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined): void {
+/** Capture the information of the user agent. */
+function _trackNavigator(span: Span): void {
   const navigator = WINDOW.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
   if (!navigator) {
     return;
@@ -466,41 +457,24 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
-      span.setAttribute(
-        spanStreamingEnabled ? 'network.connection.effective_type' : 'effectiveConnectionType',
-        connection.effectiveType,
-      );
+      span.setAttribute('network.connection.effective_type', connection.effectiveType);
     }
 
     if (connection.type) {
-      span.setAttribute(spanStreamingEnabled ? 'network.connection.type' : 'connectionType', connection.type);
+      span.setAttribute('network.connection.type', connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
-      if (spanStreamingEnabled) {
-        span.setAttribute('network.connection.rtt', connection.rtt);
-      } else if (spanToJSON(span).op === 'pageload') {
-        // Measurements are only recorded on the pageload span, matching the historical
-        // behavior where `connection.rtt` was only flushed for pageload transactions.
-        setMeasurement('connection.rtt', connection.rtt, 'millisecond');
-      }
+      span.setAttribute('network.connection.rtt', connection.rtt);
     }
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
-    if (spanStreamingEnabled) {
-      span.setAttribute('device.memory.estimated_capacity', navigator.deviceMemory);
-    } else {
-      span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
-    }
+    span.setAttribute('device.memory.estimated_capacity', navigator.deviceMemory);
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
-    if (spanStreamingEnabled) {
-      span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
-    } else {
-      span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
-    }
+    span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
   }
 }
 

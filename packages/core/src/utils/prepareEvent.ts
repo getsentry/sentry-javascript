@@ -255,13 +255,8 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
     }),
   };
 
-  // event.contexts.trace stores information about a Transaction. Similarly,
-  // event.spans[] stores information about child Spans. Given that a
-  // Transaction is conceptually a Span, normalization should apply to both
-  // Transactions and Spans consistently.
-  // For now the decision is to skip normalization of Transactions and Spans,
-  // so this block overwrites the normalized event to add back the original
-  // Transaction information prior to normalization.
+  // We skip normalization of the trace context, so this block overwrites the normalized event to add
+  // back the original trace information prior to normalization.
   if (event.contexts?.trace && normalized.contexts) {
     normalized.contexts.trace = event.contexts.trace;
 
@@ -269,18 +264,6 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
     if (event.contexts.trace.data) {
       normalized.contexts.trace.data = normalize(event.contexts.trace.data, depth, maxBreadth);
     }
-  }
-
-  // event.spans[].data may contain circular/dangerous data so we need to normalize it
-  if (event.spans) {
-    normalized.spans = event.spans.map(span => {
-      return {
-        ...span,
-        ...(span.data && {
-          data: normalize(span.data, depth, maxBreadth),
-        }),
-      };
-    });
   }
 
   // event.contexts.flags (FeatureFlagContext) stores context for our feature

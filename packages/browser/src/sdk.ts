@@ -121,7 +121,6 @@ export function init(options: BrowserOptions = {}): Client | undefined {
 
   if (
     (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
-    options.traceLifecycle !== 'static' &&
     !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
   ) {
     integrations.push(spanStreamingIntegration());

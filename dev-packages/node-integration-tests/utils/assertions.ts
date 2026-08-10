@@ -8,10 +8,12 @@ import type {
   SerializedSession,
   SerializedStreamedSpanContainer,
   SessionAggregates,
-  TransactionEvent,
 } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
+
+/** The SDK no longer emits transaction events; kept so legacy assertions still compile. */
+type TransactionEvent = Event;
 
 export type DeepPartial<T> = T extends object
   ? {

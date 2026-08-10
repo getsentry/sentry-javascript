@@ -28,7 +28,6 @@ export interface EventFiltersOptions {
   allowUrls: Array<string | RegExp>;
   denyUrls: Array<string | RegExp>;
   ignoreErrors: Array<string | RegExp>;
-  ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
   disableErrorDefaults: boolean;
 }
@@ -36,15 +35,12 @@ export interface EventFiltersOptions {
 const INTEGRATION_NAME = 'EventFilters' as const;
 
 /**
- * An integration that filters out events (errors and transactions) based on:
+ * An integration that filters out error events based on:
  *
- * - (Errors) A curated list of known low-value or irrelevant errors (see {@link DEFAULT_IGNORE_ERRORS})
- * - (Errors) A list of error messages or urls/filenames passed in via
+ * - A curated list of known low-value or irrelevant errors (see {@link DEFAULT_IGNORE_ERRORS})
+ * - A list of error messages or urls/filenames passed in via
  *   - Top level Sentry.init options (`ignoreErrors`, `denyUrls`, `allowUrls`)
  *   - The same options passed to the integration directly via @param options
- * - (Transactions/Spans) A list of root span (transaction) names passed in via
- *   - Top level Sentry.init option (`ignoreTransactions`)
- *   - The same option passed to the integration directly via @param options
  *
  * Events filtered by this integration will not be sent to Sentry.
  */
@@ -78,7 +74,6 @@ function _mergeOptions(
       ...(clientOptions.ignoreErrors || []),
       ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
-    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
   };
 }
 
@@ -119,16 +114,6 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
         );
       return true;
     }
-  } else if (event.type === 'transaction') {
-    // Filter transactions
-
-    if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
-      DEBUG_BUILD &&
-        debug.warn(
-          `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
-        );
-      return true;
-    }
   }
   return false;
 }
@@ -139,15 +124,6 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
   }
 
   return getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, ignoreErrors));
-}
-
-function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string | RegExp>): boolean {
-  if (!ignoreTransactions?.length) {
-    return false;
-  }
-
-  const name = event.transaction;
-  return name ? stringMatchesSomePattern(name, ignoreTransactions) : false;
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {

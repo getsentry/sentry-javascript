@@ -378,28 +378,6 @@ export function waitForSession(
   });
 }
 
-/** Wait for a transaction to be sent. */
-export function waitForTransaction(
-  proxyServerName: string,
-  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
-): Promise<Event> {
-  const timestamp = getNanosecondTimestamp();
-  return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(
-      proxyServerName,
-      async envelopeItem => {
-        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-        if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
-          resolve(envelopeItemBody as Event);
-          return true;
-        }
-        return false;
-      },
-      timestamp,
-    ).catch(reject);
-  });
-}
-
 /**
  * Wait for metric items to be sent.
  */

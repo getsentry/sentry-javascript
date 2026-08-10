@@ -27,9 +27,7 @@ export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 // Node-only at runtime; the edge build exports an inert shim so named imports resolve in edge-compiled modules.
 export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
-export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
 // oxlint-disable-next-line typescript/no-deprecated
-export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 // Different implementation in server and worker
 export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;

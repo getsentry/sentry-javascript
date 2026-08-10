@@ -2,7 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
-import type { EventProcessor, TransactionSource } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
   debug,
@@ -10,7 +10,6 @@ import {
   getGlobalScope,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
@@ -246,41 +245,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
-  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
-  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
-  // "custom", doesn't trigger.
-  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
-  // `enhanceHandleRequestRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
-  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
-  client?.on('preprocessEvent', event => {
-    if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      const mutableRootSpan = {
-        attributes: event.contexts.trace.data,
-        getName: () => event.transaction,
-        setName: (name: string) => {
-          event.transaction = name;
-        },
-        setOp: (op: string) => {
-          event.contexts!.trace!.op = op;
-        },
-      };
-      enhanceHandleRequestRootSpan(mutableRootSpan);
-      enhanceMiddlewareRootSpan(mutableRootSpan);
-
-      // The enhancers rewrite the source on the trace-context attributes, but `transaction_info.source` was
-      // snapshotted at span end and isn't kept in sync. Mirror it here so backfilled routes (e.g. pages-router
-      // API handlers, whose root span carries no `http.route` at end) report `route` instead of `custom`.
-      const source = event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-      if (typeof source === 'string') {
-        event.transaction_info = { ...event.transaction_info, source: source as TransactionSource };
-      }
-    }
-
-    setUrlProcessingMetadata(event);
-  });
-
-  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
-  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
   client?.on('processSegmentSpan', span => {
     const attributes = (span.attributes ??= {});
     const mutableRootSpan = {
@@ -297,6 +261,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
     };
     enhanceHandleRequestRootSpan(mutableRootSpan);
     enhanceMiddlewareRootSpan(mutableRootSpan);
+  });
+
+  // Runs before `processSegmentSpan` scrubs/serializes, and receives the live span so the request URL
+  // can be backfilled onto its isolation scope for all events of the request.
+  client?.on('afterSegmentSpanEnd', span => {
+    setUrlProcessingMetadata(span);
   });
 
   if (process.env.NODE_ENV === 'development') {

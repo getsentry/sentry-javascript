@@ -10,7 +10,6 @@ import type {
   SerializedSession,
   SerializedStreamedSpanContainer,
   SessionAggregates,
-  TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
@@ -20,6 +19,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
 import type { DeepPartial } from './../assertions';
+
+/** The SDK no longer emits transaction events; kept so legacy assertions still compile. */
+type TransactionEvent = Event;
+
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,

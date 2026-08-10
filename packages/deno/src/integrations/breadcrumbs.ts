@@ -83,7 +83,7 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
 
     addBreadcrumb(
       {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+        category: 'sentry.event',
         event_id: event.event_id,
         level: event.level,
         message: getEventDescription(event),

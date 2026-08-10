@@ -70,7 +70,6 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
     debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
-    traceLifecycle: userOptions.traceLifecycle ?? getTraceLifecycleFromEnv(getEnvVar(env, 'SENTRY_TRACE_LIFECYCLE')),
     /*! rollup-include-development-only */
     spotlight,
     /*! rollup-include-development-only-end */
@@ -102,8 +101,4 @@ function getSpotlightFromEnv(
   return optionsSpotlight === true
     ? (envUrl ?? true) // true: use env URL if present, otherwise true
     : (envBool ?? envUrl); // undefined: use env var (bool or URL)
-}
-
-function getTraceLifecycleFromEnv(envVar: string | undefined): 'static' | 'stream' | undefined {
-  return envVar === 'stream' || envVar === 'static' ? envVar : undefined;
 }

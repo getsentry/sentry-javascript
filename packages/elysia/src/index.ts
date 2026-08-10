@@ -152,9 +152,6 @@ export {
   unleashIntegration,
   metrics,
   spanStreamingIntegration,
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
   bunServerIntegration,
   makeFetchTransport,
 } from '@sentry/bun';

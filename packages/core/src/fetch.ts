@@ -5,7 +5,6 @@ import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 import type { FetchBreadcrumbHint } from './types/breadcrumb';
 import type { HandlerDataFetch } from './types/instrument';
 import type { ResponseHookInfo } from './types/request';
@@ -85,18 +84,14 @@ export function instrumentFetchRequest(
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
-  // With span streaming, we always emit http.client spans, even without a parent span
-  const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
+  // We always emit http.client spans, even without a parent span
+  const shouldEmitSpan = hasParent || !!client;
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client))
       : new SentryNonRecordingSpan();
   const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
-
-  if (shouldCreateSpanResult && !shouldEmitSpan) {
-    client?.recordDroppedEvent('no_parent_span', 'span');
-  }
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;

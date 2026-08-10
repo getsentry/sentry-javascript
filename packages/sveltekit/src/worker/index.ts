@@ -82,9 +82,6 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,

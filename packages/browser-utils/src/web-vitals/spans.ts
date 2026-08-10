@@ -1,12 +1,10 @@
-import type { Client, Integration, Span, SpanAttributes } from '@sentry/core';
+import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
   getActiveSpan,
-  getClient,
   getCurrentScope,
   getRootSpan,
-  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -61,19 +59,10 @@ interface WebVitalSpanOptions {
   reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
-  /**
-   * When `true`, the span is sent on its own as a v2 streamed span instead of being folded into a
-   * transaction. Used for INP when span streaming is disabled (it reports late, so it can't ride
-   * the pageload transaction).
-   *
-   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always streams.
-   */
-  standalone?: boolean;
 }
 
 /**
- * Emits a web vital span. When `standalone` is set it is sent on its own as a v2 streamed span;
- * otherwise it flows through the span streaming pipeline as a child of `parentSpan`.
+ * Emits a web vital span, flowing through the span streaming pipeline as a child of `parentSpan`.
  */
 export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const {
@@ -87,7 +76,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     reportEvent,
     startTime,
     endTime,
-    standalone,
   } = options;
 
   const routeName = getCurrentScope().getScopeData().transactionName;
@@ -114,47 +102,16 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
   }
 
-  // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see
-  // `captureStandaloneSpanWithStaticCallback`), so Replay can't attach the replay id itself. Set it
-  // here, mirroring Replay's `processSpan`, so INP keeps its replay association like it did on v1.
-  // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always
-  // streams, at which point Replay's `processSpan` runs and attaches the replay id.
-  if (standalone) {
-    Object.assign(attributes, getReplayAttributes());
-  }
-
   const span = startInactiveSpan({
     name,
     attributes,
     startTime,
     parentSpan,
-    // oxlint-disable-next-line typescript/no-deprecated -- intentional during the v1/v2 transition; see the TODO(standalone) above
-    experimental: standalone ? { standalone: true } : undefined,
   });
 
   if (span) {
     span.end(endTime ?? startTime);
   }
-}
-
-interface ReplayIntegration extends Integration {
-  getReplayId: (onlyIfSampled?: boolean) => string | undefined;
-  getRecordingMode: () => 'session' | 'buffer' | undefined;
-}
-
-// TODO(standalone): remove once the static (transaction) trace lifecycle is dropped; Replay's
-// `processSpan` then attaches the replay id to the streamed INP span instead.
-function getReplayAttributes(): SpanAttributes {
-  const replay = getClient()?.getIntegrationByName<ReplayIntegration>('Replay');
-  const replayId = replay?.getReplayId(true);
-  if (!replayId) {
-    return {};
-  }
-
-  return {
-    'sentry.replay_id': replayId,
-    'sentry._internal.replay_is_buffering': replay!.getRecordingMode() === 'buffer' ? true : undefined,
-  };
 }
 
 /**
@@ -292,18 +249,11 @@ export function _sendClsSpan(
  * Requires `registerInpInteractionListener()` to be called separately for cached element names and
  * root spans per interaction.
  */
-export function trackInpAsSpan(client: Client): void {
+export function trackInpAsSpan(): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !browserPerformanceTimeOrigin()) {
     return;
   }
-
-  // INP reports late (on pagehide, after the pageload span has ended). With span streaming enabled
-  // it rides the streaming pipeline. With streaming disabled it would be dropped as a late span, so
-  // it is emitted as its own standalone v2 span instead (see `_emitWebVitalSpan`), overriding the
-  // static trace lifecycle for INP only.
-  // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
-  const standalone = !hasSpanStreamingEnabled(client);
 
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
     if (metric.value == null) {
@@ -322,7 +272,7 @@ export function trackInpAsSpan(client: Client): void {
       return;
     }
 
-    _sendInpSpan(metric.value, entry, standalone);
+    _sendInpSpan(metric.value, entry);
   };
 
   addInpInstrumentationHandler(onInp);
@@ -331,7 +281,7 @@ export function trackInpAsSpan(client: Client): void {
 /**
  * Exported only for testing.
  */
-export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, standalone = false): void {
+export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
@@ -363,6 +313,5 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
     startTime,
     endTime: startTime + duration,
     parentSpan: spanToUse,
-    standalone,
   });
 }

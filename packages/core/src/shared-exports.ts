@@ -83,11 +83,6 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
-export {
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
-} from './tracing/spans/beforeSendSpan';
 export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -175,7 +170,6 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
-export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
 export type { FeatureFlag } from './utils/featureFlags';
 export {
@@ -382,7 +376,7 @@ export type {
   MetricEnvelope,
 } from './types/envelope';
 export type { ExtendedError } from './types/error';
-export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types/event';
+export type { Event, EventHint, EventType, ErrorEvent } from './types/event';
 export type { EventProcessor } from './types/eventprocessor';
 export type { Exception } from './types/exception';
 export type { Extra, Extras } from './types/extra';

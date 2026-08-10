@@ -1,13 +1,11 @@
 /* eslint-disable max-lines */
 import {
   _INTERNAL_skipAiProviderWrapping,
-  getClient,
-  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Event, Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '@sentry/core';
+import type { Client, Span, SpanAttributes, SpanAttributeValue, StreamedSpanJSON } from '@sentry/core';
 import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -34,14 +32,7 @@ import {
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
-import type { TokenSummary } from './types';
-import {
-  accumulateTokensForParent,
-  applyAccumulatedTokens,
-  applyToolDescriptionsAndTokens,
-  convertAvailableToolsToJsonString,
-  requestMessagesFromPrompt,
-} from './utils';
+import { convertAvailableToolsToJsonString, requestMessagesFromPrompt } from './utils';
 import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
@@ -99,32 +90,6 @@ function onVercelAiSpanStart(span: Span): void {
   }
 
   processGenerateSpan(span, name, attributes);
-}
-
-function vercelAiEventProcessor(event: Event): Event {
-  if (event.type === 'transaction' && event.spans) {
-    // Map to accumulate token data by parent span ID
-    const tokenAccumulator: Map<string, TokenSummary> = new Map();
-
-    // First pass: process all spans and accumulate token data
-    for (const span of event.spans) {
-      processEndedVercelAiSpan(span);
-
-      // Accumulate token data for parent spans
-      accumulateTokensForParent(span, tokenAccumulator);
-    }
-
-    // Second pass: apply tool descriptions and accumulated tokens
-    applyToolDescriptionsAndTokens(event.spans, tokenAccumulator);
-
-    // Also apply to root when it is the invoke_agent pipeline
-    const trace = event.contexts?.trace;
-    if (trace?.op === 'gen_ai.invoke_agent') {
-      applyAccumulatedTokens(trace, tokenAccumulator);
-    }
-  }
-
-  return event;
 }
 
 /**
@@ -349,22 +314,6 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
   }
 }
 
-function processEndedVercelAiSpan(span: SpanJSON): void {
-  const { data: attributes, origin } = span;
-
-  if (origin !== 'auto.vercelai.otel') {
-    return;
-  }
-
-  // The Vercel AI SDK sets span status to raw error message strings.
-  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
-  if (span.status && span.status !== 'ok') {
-    span.status = 'internal_error';
-  }
-
-  processVercelAiSpanAttributes(attributes);
-}
-
 function processVercelAiStreamedSpan(span: StreamedSpanJSON): void {
   const attributes = span.attributes;
   if (attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
@@ -472,14 +421,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 
   // Store tool descriptions in the toolDescriptionMap so processSpan can apply them to execute_tool spans.
-  // This is only needed for span streaming (transaction path handles this separately)
-  const client = getClient();
-  if (
-    client &&
-    hasSpanStreamingEnabled(client) &&
-    attributes[AI_PROMPT_TOOLS_ATTRIBUTE] &&
-    Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])
-  ) {
+  if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] && Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])) {
     const descriptions = new Map<string, string>();
 
     // parse tool names and descriptions from tool string array
@@ -512,8 +454,6 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
  */
 export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
-  // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
-  client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
   client.on('processSpan', span => {
     processVercelAiStreamedSpan(span);
   });

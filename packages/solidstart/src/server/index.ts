@@ -129,9 +129,6 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
-  withStaticSpan,
-  // oxlint-disable-next-line typescript/no-deprecated
-  withStreamedSpan,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

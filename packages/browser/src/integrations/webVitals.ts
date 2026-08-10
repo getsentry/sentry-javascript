@@ -1,5 +1,5 @@
 import type { IntegrationFn, Span } from '@sentry/core/browser';
-import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
+import { defineIntegration } from '@sentry/core/browser';
 import {
   addWebVitalsToSpan,
   registerInpInteractionListener,
@@ -33,18 +33,8 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
   return {
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
-      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
-      // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
-      // Otherwise, they're recorded as measurements on the pageload span.
-      const trackClsOnPageloadSpan = !spanStreamingEnabled && !ignored.has('cls');
-      const trackLcpOnPageloadSpan = !spanStreamingEnabled && !ignored.has('lcp');
-
-      const finalizeWebVitals = startTrackingWebVitals({
-        trackCls: trackClsOnPageloadSpan,
-        trackLcp: trackLcpOnPageloadSpan,
-        client,
-      });
+      // CLS, LCP and INP are all tracked as their own streamed spans.
+      const finalizeWebVitals = startTrackingWebVitals();
 
       const pageloadSpans = new WeakSet<Span>();
 
@@ -58,26 +48,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
         }
 
         finalizeWebVitals();
-        addWebVitalsToSpan(span, {
-          recordClsOnPageloadSpan: trackClsOnPageloadSpan,
-          recordLcpOnPageloadSpan: trackLcpOnPageloadSpan,
-          spanStreamingEnabled,
-        });
+        addWebVitalsToSpan(span);
       });
 
-      if (spanStreamingEnabled) {
-        if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client);
-        }
-        if (!ignored.has('cls')) {
-          trackClsAsSpan(client);
-        }
+      if (!ignored.has('lcp')) {
+        trackLcpAsSpan(client);
       }
-
-      // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
-      // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
+      if (!ignored.has('cls')) {
+        trackClsAsSpan(client);
+      }
       if (!ignored.has('inp')) {
-        trackInpAsSpan(client);
+        trackInpAsSpan();
       }
     },
     afterAllSetup() {

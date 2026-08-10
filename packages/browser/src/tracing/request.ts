@@ -17,7 +17,6 @@ import {
   getUrlFragment,
   getUrlQuery,
   hasSpansEnabled,
-  hasSpanStreamingEnabled,
   instrumentFetchRequest,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -166,7 +165,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         });
 
         if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan, client);
+          addHTTPTimings(createdSpan);
         }
 
         onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
@@ -187,7 +186,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 
       if (createdSpan) {
         if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan, client);
+          addHTTPTimings(createdSpan);
         }
 
         onRequestSpanStart?.(createdSpan, {
@@ -211,7 +210,7 @@ const HTTP_TIMING_WAIT_MS = 300;
  *
  * @param span A span that has yet to be finished, must contain `url.full` on data.
  */
-function addHTTPTimings(span: Span, client: Client): void {
+function addHTTPTimings(span: Span): void {
   const url = spanToJSON(span).data[URL_FULL];
 
   if (!url || typeof url !== 'string') {
@@ -220,36 +219,33 @@ function addHTTPTimings(span: Span, client: Client): void {
 
   // Clean up the performance observer and other resources
   // We have to wait here because otherwise this cleans itself up before it is fully done.
-  // Default (non-streaming): just deregister the observer.
   let onEntryFound = (): void => void setTimeout(unsubscribePerformanceObsever);
 
-  // For streamed spans, we have to artificially delay the ending of the span until we
-  // either receive the timing data, or HTTP_TIMING_WAIT_MS elapses.
-  if (hasSpanStreamingEnabled(client)) {
-    const originalEnd = span.end.bind(span);
+  // We have to artificially delay the ending of the span until we either receive the timing data,
+  // or HTTP_TIMING_WAIT_MS elapses.
+  const originalEnd = span.end.bind(span);
 
-    span.end = (endTimestamp?: SpanTimeInput) => {
-      const capturedEndTimestamp = endTimestamp ?? timestampInSeconds();
-      let isEnded = false;
+  span.end = (endTimestamp?: SpanTimeInput) => {
+    const capturedEndTimestamp = endTimestamp ?? timestampInSeconds();
+    let isEnded = false;
 
-      const endSpanAndCleanup = (): void => {
-        if (isEnded) {
-          return;
-        }
-        isEnded = true;
-        setTimeout(unsubscribePerformanceObsever);
-        originalEnd(capturedEndTimestamp);
-        clearTimeout(fallbackTimeout);
-      };
-
-      onEntryFound = endSpanAndCleanup;
-
-      // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
-      // PerformanceResourceTiming entry arrives (e.g. cross-origin without
-      // Timing-Allow-Origin, or the browser didn't fire the observer in time).
-      const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
+    const endSpanAndCleanup = (): void => {
+      if (isEnded) {
+        return;
+      }
+      isEnded = true;
+      setTimeout(unsubscribePerformanceObsever);
+      originalEnd(capturedEndTimestamp);
+      clearTimeout(fallbackTimeout);
     };
-  }
+
+    onEntryFound = endSpanAndCleanup;
+
+    // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
+    // PerformanceResourceTiming entry arrives (e.g. cross-origin without
+    // Timing-Allow-Origin, or the browser didn't fire the observer in time).
+    const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
+  };
 
   const unsubscribePerformanceObsever = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
@@ -365,8 +361,8 @@ function xhrCallback(
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
-  // With span streaming, we always emit http.client spans, even without a parent span
-  const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
+  // We always emit http.client spans, even without a parent span
+  const shouldEmitSpan = hasParent || !!client;
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
@@ -389,10 +385,6 @@ function xhrCallback(
   // If the span is ignored, we don't want to continue the trace from it (NonRecordingSpan) but rather
   // from the active span. Passing `undefined` here will make `getTraceData` use the active span instead.
   const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
-
-  if (shouldCreateSpanResult && !shouldEmitSpan) {
-    client?.recordDroppedEvent('no_parent_span', 'span');
-  }
 
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;

@@ -6,9 +6,7 @@ import { getActiveSpan } from './utils/getActiveSpan';
 export function setupEventContextTrace(client: Client): void {
   client.on('preprocessEvent', event => {
     const span = getActiveSpan();
-    // For transaction events, this is handled separately
-    // Because the active span may not be the span that is actually the transaction event
-    if (!span || event.type === 'transaction') {
+    if (!span) {
       return;
     }
 
