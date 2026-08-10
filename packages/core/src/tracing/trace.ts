@@ -68,7 +68,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(customParentSpan, customScope ? scope : undefined);
+      const parentSpan = getParentSpan(customParentSpan, customScope);
       const client = getClient();
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -130,7 +130,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(customParentSpan, customScope ? scope : undefined);
+      const parentSpan = getParentSpan(customParentSpan, customScope);
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
@@ -180,12 +180,12 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // If `options.scope` is defined, we use this as as a wrapper,
   // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
-  const wrapper = options.scope
-    ? (callback: () => Span) => withScope(options.scope, callback)
+  const wrapper = customScope
+    ? (callback: () => Span) => withScope(customScope, callback)
     : customParentSpan !== undefined
       ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
       : getAcs().getActiveSpan
@@ -198,7 +198,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(customParentSpan, options.scope ? scope : undefined);
+    const parentSpan = getParentSpan(customParentSpan, customScope);
     const client = getClient();
 
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -714,11 +714,6 @@ function getParentSpan(
     return undefined;
   }
 
-  // An explicitly passed scope carries its active span in the scope slot (`Scope.clone` copies it)
-  // and takes precedence over the ambient active span. Otherwise `getActiveSpan` dispatches through
-  // the async context strategy, so in OTel environments the parent is resolved from the OTel
-  // context. That is the source of truth there: it also carries remote parents from the propagator
-  // and spans activated by instrumentation, which never reach the Sentry scope.
   const span = (explicitScope ? _getSpanForScope(explicitScope) : getActiveSpan()) as SentrySpan | undefined;
 
   if (!span) {
