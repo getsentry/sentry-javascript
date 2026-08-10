@@ -2,6 +2,7 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   spanToJSON,
+  spanToStaticSpanJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   isStatusErrorMessageValid,
@@ -19,7 +20,14 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
 
   if (options.finalizeStatus) {
     const client = getClient();
-    applyOtelSpanStatus(span, attributes, spanJSON.status, !!client && hasSpanStreamingEnabled(client));
+    // The status message (`not_found`, `internal_error`, …) is what we branch on here, so read it from
+    // the static representation — `spanToJSON` only narrows to `'ok' | 'error'`.
+    applyOtelSpanStatus(
+      span,
+      attributes,
+      spanToStaticSpanJSON(span).status,
+      !!client && hasSpanStreamingEnabled(client),
+    );
   }
 }
 

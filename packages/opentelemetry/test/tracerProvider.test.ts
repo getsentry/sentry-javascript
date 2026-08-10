@@ -4,8 +4,8 @@ import {
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   spanToJSON,
+  spanToStaticSpanJSON,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpanManual,
@@ -135,21 +135,23 @@ describe('SentryTracerProvider', () => {
   it('finalizes span statuses like the OpenTelemetry exporter', () => {
     const okSpan = trace.getTracer('test').startSpan('ok');
     applyOtelSpanData(okSpan as Span, { finalizeStatus: true });
+    expect(spanToStaticSpanJSON(okSpan as Span).status).toBe('ok');
     expect(spanToJSON(okSpan as Span).status).toBe('ok');
+    expect(spanToJSON(okSpan as Span).attributes).not.toHaveProperty('sentry.status.message');
 
     const httpErrorSpan = trace.getTracer('test').startSpan('http-error');
     httpErrorSpan.setAttribute('http.response.status_code', 500);
     applyOtelSpanData(httpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(httpErrorSpan as Span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(
-      'internal_error',
-    );
+    expect(spanToStaticSpanJSON(httpErrorSpan as Span).status).toBe('internal_error');
+    expect(spanToJSON(httpErrorSpan as Span).status).toBe('error');
+    expect(spanToJSON(httpErrorSpan as Span).attributes).toMatchObject({
+      'sentry.status.message': 'internal_error',
+    });
 
     const customErrorSpan = trace.getTracer('test').startSpan('custom-error');
     customErrorSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'This is a custom error' });
     applyOtelSpanData(customErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(customErrorSpan as Span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(
-      'internal_error',
-    );
+    expect(spanToStaticSpanJSON(customErrorSpan as Span).status).toBe('internal_error');
   });
 
   it('preserves an explicit OK status when finalizing', () => {
