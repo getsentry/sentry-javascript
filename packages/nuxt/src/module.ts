@@ -7,6 +7,9 @@ import {
   createResolver,
   defineNuxtModule,
 } from '@nuxt/kit';
+// Needed to make TS evaluate the augmentation of Nitro types (https://github.com/nuxt/nuxt/pull/34039)
+import type {} from '@nuxt/nitro-server';
+
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
