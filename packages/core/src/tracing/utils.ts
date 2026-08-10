@@ -6,18 +6,6 @@ import { derefWeakRef, makeWeakRef, type MaybeWeakRef } from '../utils/weakRef';
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 
-// Brand marking a span whose `sentry.source` should be inferred OTel-style at span end (by
-// `applyOtelSpanData`) rather than pinned. `SentryTraceProvider` sets it on the spans it creates
-// so they behave like OTel SDK spans, which carry no Sentry source concept. We use `Symbol.for`
-// so the key is shared across duplicated copies of `@sentry/core`.
-const OTEL_SOURCE_INFERENCE_SPAN_FIELD = Symbol.for('sentry.otelSourceInference');
-
-// Brand marking a span (otherwise subject to OTel-style source inference, see above) whose
-// `sentry.source` was explicitly set by user code after creation, so `applyOtelSpanData` stops
-// inferring and respects the chosen source and name. This is what tells a user-set `custom` source
-// apart from the default `custom` that `_startRootSpan` stamps on every root span.
-const OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD = Symbol.for('sentry.otelSourceExplicitlySet');
-
 // Brand marking a span created by the `SentryTracerProvider` (i.e. via the OTel tracer) rather than
 // directly through the core span API. Such a span is handed to OTel instrumentations as an OTel span,
 // so it must become immutable after `end()` like a real OTel SDK span (see `SentrySpan.end()`). Spans
@@ -27,11 +15,6 @@ const TRACER_PROVIDER_SPAN_FIELD = Symbol.for('sentry.tracerProviderSpan');
 type SpanWithScopes = Span & {
   [SCOPE_ON_START_SPAN_FIELD]?: Scope;
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: MaybeWeakRef<Scope>;
-};
-
-type SpanWithOtelSourceInference = Span & {
-  [OTEL_SOURCE_INFERENCE_SPAN_FIELD]?: boolean;
-  [OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD]?: boolean;
 };
 
 type SpanWithTracerProviderBrand = Span & {
@@ -62,38 +45,11 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
 }
 
 /**
- * Mark a span as eligible for OTel-style `sentry.source` inference at span end.
- * Set by `SentryTraceProvider` on the spans it creates; read by `SentrySpan.updateName()` and
- * `applyOtelSpanData()`.
- */
-export function markSpanForOtelSourceInference(span: Span): void {
-  addNonEnumerableProperty(span, OTEL_SOURCE_INFERENCE_SPAN_FIELD, true);
-}
-
-/** Whether a span is marked for OTel-style `sentry.source` inference (see {@link markSpanForOtelSourceInference}). */
-export function spanShouldInferOtelSource(span: Span): boolean {
-  return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_INFERENCE_SPAN_FIELD] === true;
-}
-
-/**
- * Mark that user code explicitly set `sentry.source` on a span subject to OTel-style inference, so
- * `applyOtelSpanData` keeps that source (and name) instead of overriding it. Set by `SentrySpan`
- * when `setAttribute` writes the source on an already-branded span (the default `custom` source is
- * stamped at construction, before the brand, so it doesn't trip this).
- */
-export function markSpanSourceAsExplicit(span: Span): void {
-  addNonEnumerableProperty(span, OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD, true);
-}
-
-/** Whether user code explicitly set `sentry.source` on a span (see {@link markSpanSourceAsExplicit}). */
-export function spanSourceWasExplicitlySet(span: Span): boolean {
-  return (span as SpanWithOtelSourceInference)[OTEL_SOURCE_EXPLICITLY_SET_SPAN_FIELD] === true;
-}
-
-/**
  * Mark a span as created by the `SentryTracerProvider` (via the OTel tracer). Set by `SentryTracer`
  * on every span it creates; read by `SentrySpan.end()` to seal the span against further writes once
  * it has ended, mirroring OTel SDK spans (which are immutable after `end()`).
+ *
+ * TODO???
  */
 export function markSpanAsTracerProviderSpan(span: Span): void {
   addNonEnumerableProperty(span, TRACER_PROVIDER_SPAN_FIELD, true);

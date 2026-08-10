@@ -9,11 +9,7 @@ import {
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { startInactiveSpan, startSpan } from '../../../src/tracing/trace';
-import {
-  markSpanAsTracerProviderSpan,
-  markSpanForOtelSourceInference,
-  spanSourceWasExplicitlySet,
-} from '../../../src/tracing/utils';
+import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { SpanJSON } from '../../../src/types/span';
@@ -57,48 +53,6 @@ describe('SentrySpan', () => {
 
       const spanJson = spanToJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
-    });
-
-    it('does not set the source when calling updateName on a span marked for OTel source inference', () => {
-      const span = new SentrySpan({ name: 'original name' });
-      markSpanForOtelSourceInference(span);
-
-      span.updateName('new name');
-
-      const spanJson = spanToJSON(span);
-      expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
-    });
-  });
-
-  describe('explicit source', () => {
-    it('flags a source set on a span marked for OTel source inference as explicit', () => {
-      const span = new SentrySpan({ name: 'original name' });
-      markSpanForOtelSourceInference(span);
-      expect(spanSourceWasExplicitlySet(span)).toBe(false);
-
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
-
-      expect(spanSourceWasExplicitlySet(span)).toBe(true);
-    });
-
-    it('does not flag the default source set at construction (before the inference brand) as explicit', () => {
-      const span = new SentrySpan({
-        name: 'original name',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
-      });
-      markSpanForOtelSourceInference(span);
-
-      expect(spanSourceWasExplicitlySet(span)).toBe(false);
-    });
-
-    it('does not flag a source set on a span that is not marked for OTel source inference', () => {
-      const span = new SentrySpan({ name: 'original name' });
-
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
-
-      expect(spanSourceWasExplicitlySet(span)).toBe(false);
     });
   });
 
