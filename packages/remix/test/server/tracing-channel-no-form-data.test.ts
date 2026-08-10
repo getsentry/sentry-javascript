@@ -61,8 +61,8 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
       }),
     );
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
-    // No form-data capture configured, so no `formData.*` attribute is set.
-    expect(span.setAttribute).not.toHaveBeenCalledWith('formData.actionType', expect.anything());
+    // No form-data capture configured, so no `remix.action_form_data.*` attribute is set.
+    expect(span.setAttribute).not.toHaveBeenCalledWith('remix.action_form_data.actionType', expect.anything());
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 });
