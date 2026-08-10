@@ -47,14 +47,6 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, inferred.op);
   }
 
-  if (inferred.data) {
-    Object.entries(inferred.data).forEach(([key, value]) => {
-      if (value !== undefined && attributes[key] === undefined) {
-        span.setAttribute(key, value);
-      }
-    });
-  }
-
   if (options.finalizeStatus) {
     applyOtelCompatibilityAttributes(span, attributes);
     const client = getClient();
