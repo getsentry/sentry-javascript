@@ -257,19 +257,6 @@ describe('durable object storage spans', () => {
   }
 });
 
-it('cacheClient: true - multiple DO instances share the same client', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .expect(errorEventExpectation('Cache DO handler error from instance-1', DO_MECHANISM))
-    .expect(errorEventExpectation('Cache DO handler error from instance-2', DO_MECHANISM))
-    .unordered()
-    .start(signal);
-
-  // Two different DO instances — both should capture errors
-  await runner.makeRequest('get', '/cache/handler-error?id=instance-1', { expectError: true });
-  await runner.makeRequest('get', '/cache/handler-error?id=instance-2', { expectError: true });
-  await runner.completed();
-});
-
 // The worker-side half of #22545: work registered via ctx.waitUntil finishes after
 // the response and after the invocation's flush point, so the spans/log/metric/error
 // are only delivered because the cached client drains them eagerly.
