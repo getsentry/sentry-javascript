@@ -23,6 +23,7 @@ import {
   URL_PATH,
   SENTRY_KIND,
   SENTRY_OP,
+  HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
@@ -105,6 +106,7 @@ function setResponseStatus(span: Span, result: unknown): void {
   if (typeof status === 'number') {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, status);
+    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
   }
 }
 

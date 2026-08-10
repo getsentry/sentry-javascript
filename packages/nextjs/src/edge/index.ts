@@ -22,6 +22,7 @@ import {
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
+import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
@@ -189,6 +190,7 @@ export function init(options: VercelEdgeOptions = {}): void {
       };
       enhanceMiddlewareRootSpan(mutableRootSpan);
       enhanceRunHandlerRootSpan(mutableRootSpan);
+      backfillHttpResponseStatusCode(mutableRootSpan.attributes);
     }
 
     setUrlProcessingMetadata(event);
@@ -210,6 +212,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     };
     enhanceMiddlewareRootSpan(mutableRootSpan);
     enhanceRunHandlerRootSpan(mutableRootSpan);
+    backfillHttpResponseStatusCode(attributes);
   });
 
   client.on('spanEnd', span => {
