@@ -12,7 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
-import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
+import type { SentrySpanArguments, Span, SpanContextData, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
@@ -23,8 +23,16 @@ import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
-import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { _setSpanForScope } from '../utils/spanOnScope';
+import {
+  addChildSpanToSpan,
+  getActiveSpan,
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  TRACE_FLAG_SAMPLED,
+} from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -65,7 +73,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope, customParentSpan);
+      const parentSpan = getParentSpan(customParentSpan);
       const client = getClient();
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -78,26 +86,29 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             scope,
           });
 
-      // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
-      // and descendants are also non-recording. Ignored child spans don't need this because
-      // the parent span is already on scope.
-      if (!spanIsIgnored(activeSpan) || !parentSpan) {
-        _setSpanForScope(scope, activeSpan);
+      const runCallback = (): T =>
+        handleCallbackErrors(
+          () => callback(activeSpan),
+          () => {
+            // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+            const { status } = spanToJSON(activeSpan);
+            if (activeSpan.isRecording() && status === 'ok') {
+              activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            }
+          },
+          () => {
+            activeSpan.end();
+          },
+        );
+
+      // Ignored child spans are not activated because there likely is an active, unignored span
+      // already; their children should attach to that one instead. Ignored root spans still get
+      // activated so that `getActiveSpan()` returns them and descendants are also non-recording.
+      if (spanIsIgnored(activeSpan) && parentSpan) {
+        return runCallback();
       }
 
-      return handleCallbackErrors(
-        () => callback(activeSpan),
-        () => {
-          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-          const { status } = spanToJSON(activeSpan);
-          if (activeSpan.isRecording() && status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
-        },
-        () => {
-          activeSpan.end();
-        },
-      );
+      return runCallbackWithActiveSpan(scope, activeSpan, runCallback);
     });
   });
 }
@@ -129,7 +140,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope, customParentSpan);
+      const parentSpan = getParentSpan(customParentSpan);
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
@@ -141,26 +152,29 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             scope,
           });
 
-      // We don't set ignored child spans onto the scope because there likely is an active,
+      const runCallback = (): T =>
+        handleCallbackErrors(
+          // We pass the `finish` function to the callback, so the user can finish the span manually
+          // this is mainly here for historic purposes because previously, we instructed users to call
+          // `finish` instead of `span.end()` to also clean up the scope. Nowadays, calling `span.end()`
+          // or `finish` has the same effect and we simply leave it here to avoid breaking user code.
+          () => callback(activeSpan, () => activeSpan.end()),
+          () => {
+            // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+            const { status } = spanToJSON(activeSpan);
+            if (activeSpan.isRecording() && status === 'ok') {
+              activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            }
+          },
+        );
+
+      // We don't activate ignored child spans because there likely is an active,
       // unignored span on the scope already.
-      if (!spanIsIgnored(activeSpan) || !parentSpan) {
-        _setSpanForScope(scope, activeSpan);
+      if (spanIsIgnored(activeSpan) && parentSpan) {
+        return runCallback();
       }
 
-      return handleCallbackErrors(
-        // We pass the `finish` function to the callback, so the user can finish the span manually
-        // this is mainly here for historic purposes because previously, we instructed users to call
-        // `finish` instead of `span.end()` to also clean up the scope. Nowadays, calling `span.end()`
-        // or `finish` has the same effect and we simply leave it here to avoid breaking user code.
-        () => callback(activeSpan, () => activeSpan.end()),
-        () => {
-          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-          const { status } = spanToJSON(activeSpan);
-          if (activeSpan.isRecording() && status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
-        },
-      );
+      return runCallbackWithActiveSpan(scope, activeSpan, runCallback);
     });
   });
 }
@@ -207,7 +221,7 @@ function _startInactiveSpanImpl(options: StartSpanOptions): Span {
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(scope, customParentSpan);
+    const parentSpan = getParentSpan(customParentSpan);
     const client = getClient();
 
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -355,10 +369,10 @@ function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined
 }
 
 function createChildOrRootSpan({
-  parentSpan,
+  parentSpan: resolvedParentSpan,
   spanArguments,
   forceTransaction,
-  scope,
+  scope: currentScope,
 }: {
   parentSpan: SentrySpan | undefined;
   spanArguments: SentrySpanArguments;
@@ -366,6 +380,13 @@ function createChildOrRootSpan({
   scope: Scope;
 }): Span {
   const isolationScope = getIsolationScope();
+
+  // A remote parent (an incoming trace on the ambient OTel context, set by the propagator) cannot
+  // parent spans locally. Continue its trace through the propagation context and start a root span
+  // instead, like `SentryTracer` does for remote parents.
+  const remoteParentSpan = resolvedParentSpan?.spanContext().isRemote ? resolvedParentSpan : undefined;
+  const scope = remoteParentSpan ? scopeWithRemoteParentPropagation(currentScope, remoteParentSpan) : currentScope;
+  const parentSpan = remoteParentSpan ? undefined : resolvedParentSpan;
 
   if (!hasSpansEnabled()) {
     const scopePropagationContext = scope.getPropagationContext();
@@ -490,6 +511,21 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
+/**
+ * Runs the callback with the span active. When the async context strategy bridges to an ambient
+ * context (OTel), activation must go through it so the span lands on that context and
+ * instrumentation-created child spans nest under it; the scope alone is not consulted there.
+ */
+function runCallbackWithActiveSpan<T>(scope: Scope, span: Span, callback: () => T): T {
+  const acs = getAcs();
+  if (acs.withActiveSpan) {
+    return acs.withActiveSpan(span, callback);
+  }
+
+  _setSpanForScope(scope, span);
+  return callback();
+}
+
 function _startRootSpan(
   spanArguments: SentrySpanArguments,
   scope: Scope,
@@ -610,7 +646,62 @@ function _startChildSpan(
   return childSpan;
 }
 
-function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): SentrySpan | undefined {
+/**
+ * Fork the scope with a propagation context continuing the remote parent's trace, so the root span
+ * created from it picks up the incoming trace id, parent span id, and sampling decision. Mirrors
+ * `SentryTracer._startRootSpanWithRemoteParent` in `@sentry/opentelemetry`.
+ */
+function scopeWithRemoteParentPropagation(scope: Scope, remoteParentSpan: SentrySpan): Scope {
+  const { spanId, traceId, traceState } = remoteParentSpan.spanContext();
+  const dsc = getDynamicSamplingContextFromSpan(remoteParentSpan);
+  const sampleRand = typeof dsc.sample_rand === 'string' ? Number(dsc.sample_rand) : undefined;
+
+  // Only freeze the DSC when the remote parent actually carried one (i.e. there was incoming
+  // baggage). Otherwise leave it unset so it is derived dynamically from the span — picking up the
+  // span's `transaction` name and the generated `sample_rand`.
+  const hasIncomingDsc = !!traceState?.get('sentry.dsc');
+
+  const forkedScope = scope.clone();
+  forkedScope.setPropagationContext({
+    traceId,
+    parentSpanId: spanId,
+    sampled: getSamplingDecisionFromRemoteSpanContext(remoteParentSpan.spanContext()),
+    dsc: hasIncomingDsc ? dsc : undefined,
+    sampleRand: typeof sampleRand === 'number' && !Number.isNaN(sampleRand) ? sampleRand : safeMathRandom(),
+  });
+  _setSpanForScope(forkedScope, undefined);
+  return forkedScope;
+}
+
+/**
+ * OpenTelemetry only knows a SAMPLED or NONE decision, but for us it is important to differentiate
+ * between unsampled and unset (deferred). Both arrive as `traceFlags: NONE`; the Sentry trace state
+ * and the DSC disambiguate. Port of `getSamplingDecision` in `@sentry/opentelemetry`.
+ */
+function getSamplingDecisionFromRemoteSpanContext(spanContext: SpanContextData): boolean | undefined {
+  const { traceFlags, traceState } = spanContext;
+
+  if (traceFlags === TRACE_FLAG_SAMPLED) {
+    return true;
+  }
+
+  if (traceState?.get('sentry.sampled_not_recording') === '1') {
+    return false;
+  }
+
+  const dscString = traceState?.get('sentry.dsc');
+  const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+  if (dsc?.sampled === 'true') {
+    return true;
+  }
+  if (dsc?.sampled === 'false') {
+    return false;
+  }
+
+  return undefined;
+}
+
+function getParentSpan(customParentSpan: Span | null | undefined): SentrySpan | undefined {
   // always use the passed in span directly
   if (customParentSpan) {
     return customParentSpan as SentrySpan;
@@ -621,7 +712,11 @@ function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined):
     return undefined;
   }
 
-  const span = _getSpanForScope(scope) as SentrySpan | undefined;
+  // `getActiveSpan` dispatches through the async context strategy, so in OTel environments the
+  // parent is resolved from the OTel context. That is the source of truth there: it also carries
+  // remote parents from the propagator and spans activated by instrumentation, which never reach
+  // the Sentry scope. The fallback reads the scope's span, same as before.
+  const span = getActiveSpan() as SentrySpan | undefined;
 
   if (!span) {
     return undefined;

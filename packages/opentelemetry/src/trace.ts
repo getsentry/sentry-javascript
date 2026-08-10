@@ -3,6 +3,8 @@ import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, suppressTracing } from './utils/suppressTracing';
 import type { Client, Scope, Span as SentrySpan } from '@sentry/core';
 import {
+  _INTERNAL_setSpanForScope,
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
@@ -18,7 +20,7 @@ import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 import { reconcileDscSampled } from './utils/reconcileDscSampled';
-import { SENTRY_TRACE_STATE_DSC } from './constants';
+import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
 
 /**
  * Internal helper for starting spans and manual spans. See {@link startSpan} and {@link startSpanManual} for the public APIs.
@@ -175,8 +177,26 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
  * @returns the value returned from the provided callback function.
  */
 export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
-  const newContextWithActiveSpan = span ? trace.setSpan(context.active(), span) : trace.deleteSpan(context.active());
-  return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
+  let newContextWithActiveSpan = span ? trace.setSpan(context.active(), span) : trace.deleteSpan(context.active());
+
+  // Mirror `SentryTracer.startActiveSpan`: run the callback under the isolation scope captured when
+  // the span was created, so scope state used or set while it is active (tags, breadcrumbs,
+  // captured errors) belongs to that span and stays isolated from other concurrent work. Spans
+  // without captured scopes (e.g. foreign OTel spans) are unaffected.
+  const capturedIsolationScope = span ? getCapturedScopesOnSpan(span).isolationScope : undefined;
+  if (capturedIsolationScope) {
+    newContextWithActiveSpan = newContextWithActiveSpan.setValue(
+      SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
+      capturedIsolationScope,
+    );
+  }
+
+  return context.with(newContextWithActiveSpan, () => {
+    const scope = getCurrentScope();
+    // Keep the scope's span in sync with the context, like `SentryTracer.startActiveSpan` does.
+    _INTERNAL_setSpanForScope(scope, (span as unknown as SentrySpan) ?? undefined);
+    return callback(scope);
+  });
 }
 
 function getTracer(): Tracer {
