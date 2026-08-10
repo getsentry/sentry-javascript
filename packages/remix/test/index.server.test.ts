@@ -1,3 +1,4 @@
+import { getMainCarrier } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../src/index.server';
@@ -10,10 +11,7 @@ describe('Server init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
 
-    SentryNode.getGlobalScope().clear();
-    SentryNode.getIsolationScope().clear();
-    SentryNode.getCurrentScope().clear();
-    SentryNode.getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('inits the Node SDK', () => {

@@ -1,12 +1,5 @@
 import { context, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  GLOBAL_OBJ,
-  spanToJSON,
-  withIsolationScope,
-} from '@sentry/core';
+import { getMainCarrier, GLOBAL_OBJ, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -110,9 +103,7 @@ describe('Next.js edge middleware trace isolation', () => {
   });
 
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('gives concurrent header-less requests to unrelated routes distinct trace ids', async () => {

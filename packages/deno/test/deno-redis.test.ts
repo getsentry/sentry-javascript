@@ -2,17 +2,15 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { TransactionEvent } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import { init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 /** See deno-http.test.ts — same sink shape, deduped for clarity. */

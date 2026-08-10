@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { GLOBAL_OBJ, getMainCarrier } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,10 +19,7 @@ describe('Server init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
 
-    SentryNode.getGlobalScope().clear();
-    SentryNode.getIsolationScope().clear();
-    SentryNode.getCurrentScope().clear();
-    SentryNode.getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     delete process.env.VERCEL;
   });
@@ -156,10 +153,7 @@ describe('Server init()', () => {
 
     beforeEach(() => {
       // Reset the global scope to allow re-initialization
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     afterEach(() => {
@@ -231,10 +225,7 @@ describe('Server init()', () => {
 
     beforeEach(() => {
       // Reset the global scope to allow re-initialization
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     afterEach(() => {

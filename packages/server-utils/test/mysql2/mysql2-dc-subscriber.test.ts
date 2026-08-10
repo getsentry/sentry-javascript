@@ -7,10 +7,9 @@ import {
   Client,
   createTransport,
   getActiveSpan,
-  getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-  getGlobalScope,
+  getMainCarrier,
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
@@ -156,9 +155,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
   });
 
   afterEach(() => {
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
     vi.clearAllMocks();
   });
 

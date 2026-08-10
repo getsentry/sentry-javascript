@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
@@ -12,8 +12,7 @@ describe('userTimingIntegration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
@@ -133,8 +132,7 @@ describe('_addUserTimingSpan', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);

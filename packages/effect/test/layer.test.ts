@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
+import { getClient, getMainCarrier, SDK_VERSION } from '@sentry/core';
 import { Effect, Layer, Logger } from 'effect';
 import * as References from 'effect/References';
 import { afterEach, beforeEach, vi } from 'vitest';
@@ -37,12 +37,10 @@ describe.each([
   ],
 ])('effectLayer ($subSdkName)', ({ subSdkName, effectLayer, SentryEffectTracer, SentryEffectLogger }) => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   afterEach(() => {
-    getCurrentScope().setClient(undefined);
     vi.restoreAllMocks();
   });
 

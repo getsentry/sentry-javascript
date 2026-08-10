@@ -2,8 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/';
 import {
   getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
   getMainCarrier,
   getTraceData,
   registerExternalPropagationContext,
@@ -19,6 +17,7 @@ import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span } from '../../../src/types/span';
 import type { TestClientOptions } from '../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -45,10 +44,7 @@ function setupClient(opts?: Partial<TestClientOptions>): Client {
 describe('getTraceData', () => {
   beforeEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
-    getCurrentScope().setClient(undefined);
+    resetGlobals();
   });
 
   afterEach(() => {

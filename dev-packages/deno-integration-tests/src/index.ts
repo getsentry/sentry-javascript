@@ -1,15 +1,12 @@
 import type { TransactionEvent } from '@sentry/core';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/deno';
+import { getMainCarrier } from '@sentry/core';
 
 /**
- * Clear the current, isolation, and global scopes and detach the client so each
- * test starts from a clean slate.
+ * Wipe the Sentry carrier so the current, isolation, and global scopes (and the
+ * client) are recreated fresh, letting each test start from a clean slate.
  */
 export function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 export interface TransactionSink {

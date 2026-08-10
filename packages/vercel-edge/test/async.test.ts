@@ -1,4 +1,4 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, withIsolationScope, withScope } from '@sentry/core';
+import { getCurrentScope, getIsolationScope, getMainCarrier, Scope, withIsolationScope, withScope } from '@sentry/core';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
@@ -17,9 +17,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  getIsolationScope().clear();
-  getCurrentScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 });
 
 describe('withScope()', () => {

@@ -7,11 +7,8 @@ import {
   Client,
   createTransport,
   getActiveSpan,
-  getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-  getGlobalScope,
-  getIsolationScope,
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
@@ -106,10 +103,7 @@ interface NestFactoryCreateData {
 describe('NestJS orchestrion subscriber: app_creation', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   // Grab the bound span off the channel payload so we can assert on it
@@ -188,10 +182,7 @@ interface RouterCreateData {
 describe('NestJS orchestrion subscriber: request_context / request_handler', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   // Drives `RouterExecutionContext.create` over the channel: the subscriber's
@@ -320,10 +311,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
 describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/interceptor)', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   // Fire the @Injectable channel against `target` (as if its decorator arrow
@@ -628,10 +616,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   function applyCatch(target: object): void {
@@ -785,10 +770,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
 describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
     vi.restoreAllMocks();
   });
 

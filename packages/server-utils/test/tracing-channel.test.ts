@@ -7,11 +7,9 @@ import {
   Client,
   createTransport,
   getActiveSpan,
-  getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
@@ -103,10 +101,7 @@ function installTestAsyncContextStrategy(): void {
 describe('bindTracingChannelToSpan', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
     vi.clearAllMocks();
   });
 

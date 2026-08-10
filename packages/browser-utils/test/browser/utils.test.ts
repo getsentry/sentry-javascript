@@ -1,12 +1,11 @@
-import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { extractNetworkProtocol, startAndEndSpan } from '../../src/performance/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 describe('startAndEndSpan()', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(
       getDefaultClientOptions({
