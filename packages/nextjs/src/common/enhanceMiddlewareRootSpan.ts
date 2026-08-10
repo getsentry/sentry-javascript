@@ -1,5 +1,5 @@
 import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
+import { stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from './nextSpanAttributes';
 
 export interface MutableMiddlewareRootSpan {
@@ -28,7 +28,6 @@ export function enhanceMiddlewareRootSpan(span: MutableMiddlewareRootSpan): void
   }
 
   span.setOp(WEB_SERVER_MIDDLEWARE_SPAN_OP);
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
 
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
   if (typeof spanName !== 'string' || !spanName || !span.getName()) {

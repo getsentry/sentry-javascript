@@ -37,14 +37,14 @@ describe('enhanceMiddlewareRootSpan', () => {
     expect(getSource()).toBeUndefined();
   });
 
-  it('sets the op and source but keeps the name when next.span_name is missing', () => {
+  it('sets the op but keeps the name and source when next.span_name is missing', () => {
     const { span, getName, getOp, getSource } = makeSpan({ [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute' }, 'middleware');
 
     enhanceMiddlewareRootSpan(span);
 
     expect(getName()).toBe('middleware');
     expect(getOp()).toBe('middleware');
-    expect(getSource()).toBe('route');
+    expect(getSource()).toBeUndefined();
   });
 
   it('sets the op but keeps the name when next.span_name is an empty string', () => {
