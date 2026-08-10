@@ -549,6 +549,9 @@ export class Scope {
   /**
    * Clears the current scope and resets its properties.
    * Note: The client will not be cleared.
+   *
+   * @deprecated This method will be removed in v11. To reset scope state, re-initialize the SDK or run
+   * your code in a fresh scope via `withScope` instead.
    */
   public clear(): this {
     // client is not cleared here on purpose!
