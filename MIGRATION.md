@@ -778,6 +778,7 @@ Sentry.init({
   actions are instrumented automatically via the instrumentation API - export
   `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx`
   instead of wrapping them individually.
+- The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
 
 ### `@sentry/profiling-node`
 
@@ -785,7 +786,7 @@ Sentry.init({
 
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### `@sentry/nuxt`
 
@@ -851,6 +852,41 @@ export default defineConfig({
     sveltekit(),
   ],
 });
+```
+
+### `@sentry/react-router`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```ts
+// vite.config.ts
+import { reactRouter } from '@react-router/dev/vite';
+import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router';
+import { defineConfig } from 'vite';
+
+export const sentryConfig: SentryReactRouterBuildOptions = {
+  // before
+  sourceMapsUploadOptions: {
+    enabled: false,
+    filesToDeleteAfterUpload: ['./build/**/*.map'],
+    release: { name: 'my-release' },
+  },
+
+  // after
+  org: 'my-org',
+  project: 'my-project',
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  sourcemaps: {
+    disable: true,
+    filesToDeleteAfterUpload: ['./build/**/*.map'],
+  },
+  release: { name: 'my-release' },
+};
+
+export default defineConfig(config => ({
+  plugins: [reactRouter(), sentryReactRouter(sentryConfig, config)],
+  sentryConfig,
+}));
 ```
 
 ## 4. Package Removals

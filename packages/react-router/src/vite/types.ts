@@ -1,52 +1,6 @@
 import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 
-type SourceMapsOptions = {
-  /**
-   * If this flag is `true`, and an auth token is detected, the Sentry SDK will
-   * automatically generate and upload source maps to Sentry during a production build.
-   *
-   * @default true
-   * @deprecated Use `sourcemaps.disable` option instead of `sourceMapsUploadOptions.enabled`.
-   */
-  enabled?: boolean;
-
-  /**
-   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
-   * upload to Sentry has been completed.
-   *
-   * @default [] - By default no files are deleted.
-   *
-   * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
-   *
-   * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` option instead of `sourceMapsUploadOptions.filesToDeleteAfterUpload`.
-   */
-  filesToDeleteAfterUpload?: string | Array<string>;
-
-  /**
-   * Options related to managing the Sentry releases for a build.
-   *
-   * More info: https://docs.sentry.io/product/releases/
-   *
-   * @deprecated Use the `release` option at the root of `SentryVitePluginOptions` instead.
-   */
-  // todo(v11): Remove this option (currently it's not in use either, but it's kept to not cause a breaking change)
-  release?: {
-    /**
-     * Unique identifier for the release you want to create.
-     *
-     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
-     *
-     * Defaults to automatically detecting a value for your environment.
-     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
-     * (the latter requires access to git CLI and for the root directory to be a valid repository)
-     *
-     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
-     */
-    name?: string;
-  };
-};
-
 export type SentryReactRouterBuildOptions = BuildTimeOptionsBase &
   UnstableVitePluginOptions<Partial<SentryVitePluginOptions>> & {
     /**
@@ -67,11 +21,4 @@ export type SentryReactRouterBuildOptions = BuildTimeOptionsBase &
        */
       ignoredComponents?: string[];
     };
-
-    /**
-     * Options for the Sentry Vite plugin to customize the source maps upload process.
-     *
-     */
-    sourceMapsUploadOptions?: SourceMapsOptions;
-    // todo(v11): Remove this option (all options already exist in BuildTimeOptionsBase)
   };
