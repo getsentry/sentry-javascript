@@ -24,12 +24,10 @@ const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
-  { channel: CHANNELS.ANTHROPIC_CHAT, operation: 'chat', methodPath: 'messages.create', stream: 'async-iterable' },
-  { channel: CHANNELS.ANTHROPIC_MODELS, operation: 'models', methodPath: 'models.retrieve', stream: 'none' },
+  { channel: CHANNELS.ANTHROPIC_CHAT, operation: 'chat', stream: 'async-iterable' },
   {
     channel: CHANNELS.ANTHROPIC_MESSAGES_STREAM,
     operation: 'chat',
-    methodPath: 'messages.stream',
     stream: 'message-stream',
   },
 ] as const;
@@ -51,10 +49,10 @@ const _anthropicIntegration = ((options: AnthropicAiOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentAnthropic(options: AnthropicAiOptions): void {
-  for (const { channel, operation, methodPath, stream } of INSTRUMENTED_CHANNELS) {
+  for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-      data => createGenAiSpan(data, operation, methodPath, options),
+      data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(
@@ -76,7 +74,6 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
 function createGenAiSpan(
   data: AnthropicChannelContext,
   operation: string,
-  methodPath: string,
   options: AnthropicAiOptions,
 ): Span | undefined {
   const args = data.arguments ?? [];
@@ -99,7 +96,7 @@ function createGenAiSpan(
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const attributes = extractRequestAttributes(args, methodPath, operation);
+  const attributes = extractRequestAttributes(args, operation);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
 
@@ -161,7 +158,7 @@ function wrapStreamResult(
 
 /**
  * Orchestrion-driven Anthropic integration. Subscribes to the `orchestrion:@anthropic-ai/sdk:*`
- * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`), `models`, and
+ * diagnostics_channels injected into the SDK's chat (`messages`/`completions`/beta `messages`) and
  * `messages.stream()` methods, so it requires the orchestrion runtime hook or bundler plugin.
  */
 export const anthropicIntegration = defineIntegration(_anthropicIntegration);
