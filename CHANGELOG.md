@@ -4,6 +4,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.70.0
+
+- feat(v10/core): Support stable MCP SDK v2 ([#22986](https://github.com/getsentry/sentry-javascript/pull/22986))
+- feat(v10/deps): Bump `@sentry/node-cpu-profiler` to 2.4.3 ([#22992](https://github.com/getsentry/sentry-javascript/pull/22992))
+- feat(v10/solid,solidstart): Support `@solidjs/router` v1 ([#23163](https://github.com/getsentry/sentry-javascript/pull/23163))
+- fix(v10/cloudflare): Fork the isolation scope for Durable Object methods ([#23189](https://github.com/getsentry/sentry-javascript/pull/23189))
+- fix(v10/cloudflare): Get original waituntil in workflows ([#23192](https://github.com/getsentry/sentry-javascript/pull/23192))
+- fix(v10/cloudflare): Instrument DO RPC methods on the prototype, not a Proxy ([#23190](https://github.com/getsentry/sentry-javascript/pull/23190))
+- fix(v10/cloudflare): Set agent conversation id on the `onRequest` path ([#22985](https://github.com/getsentry/sentry-javascript/pull/22985))
+- fix(v10/cloudflare): Set conversation id independent of session name ([#23193](https://github.com/getsentry/sentry-javascript/pull/23193))
+- fix(v10/cloudflare): Try/catch on non-configurable prototypes ([#23191](https://github.com/getsentry/sentry-javascript/pull/23191))
+- fix(v10/cloudflare): Use gen_ai.agent.name for class names ([#22987](https://github.com/getsentry/sentry-javascript/pull/22987))
+- fix(v10/core,browser): Handle errors from other realms ([#23201](https://github.com/getsentry/sentry-javascript/pull/23201))
+- fix(v10/core): Sample errors after `beforeSend` while preserving session updates ([#22819](https://github.com/getsentry/sentry-javascript/pull/22819))
+- fix(v10/hono): Include originalException in captured exception hint ([#22990](https://github.com/getsentry/sentry-javascript/pull/22990))
+- fix(v10/nextjs): `meriyah` issue for `standalone` build ([#23055](https://github.com/getsentry/sentry-javascript/pull/23055))
+- fix(v10/nextjs): Remove tracing from middleware wrappers ([#22904](https://github.com/getsentry/sentry-javascript/pull/22904))
+- fix(v10/profiling-node): Respect profileSessionSampleRate in trace profile lifecycle ([#22940](https://github.com/getsentry/sentry-javascript/pull/22940))
+- fix(v10/react-router): Preserve `sourcemaps.disable` when `unstable_sentryVitePluginOptions` is set ([#22966](https://github.com/getsentry/sentry-javascript/pull/22966))
+- fix(v10/react): Remove routes from shared set on `<Routes>` unmount ([#22948](https://github.com/getsentry/sentry-javascript/pull/22948))
+- fix(v10/sveltekit): Export `metrics` from worker entry point ([#23027](https://github.com/getsentry/sentry-javascript/pull/23027))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/e2e): Add missing `@sentry/core` dep to nextjs-16-userfeedback ([#23009](https://github.com/getsentry/sentry-javascript/pull/23009))
+- test(v10/e2e): Fix failing `sveltekit-3` test ([#23016](https://github.com/getsentry/sentry-javascript/pull/23016))
+- test(v10/e2e): Fix type error in nextjs ai-error tests ([#23011](https://github.com/getsentry/sentry-javascript/pull/23011))
+- test(v10/e2e): Pin tanstackstart-react e2e deps to unblock tunnel tests ([#23048](https://github.com/getsentry/sentry-javascript/pull/23048))
+
+</details>
+
 Work in this release was contributed by @davidmurdoch, @Jxxunnn, and @kamilogorek. Thank you for your contributions!
 
 ## 10.69.0
