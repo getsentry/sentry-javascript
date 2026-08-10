@@ -576,6 +576,7 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
   } else if (typeof resolvedUrl === 'string') {
     const censoredUrl = censorPassword(resolvedUrl);
     attributes[ATTR_MESSAGING_URL] = censoredUrl; // todo(v11) remove this attribute
+    // oxlint-disable-next-line sdk/no-unfiltered-url-attributes -- AMQP connection URL, not an HTTP request URL
     attributes[URL_FULL] = censoredUrl;
 
     try {
