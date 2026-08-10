@@ -633,19 +633,6 @@ function _startChildSpan(
 }
 
 /**
- * A span context is valid when both ids have the correct length and are non-zero, per the W3C
- * traceparent spec. Equivalent of `isSpanContextValid` from `@opentelemetry/api`.
- */
-function spanContextIsValid({ traceId, spanId }: SpanContextData): boolean {
-  return (
-    /^[0-9a-f]{32}$/.test(traceId) &&
-    traceId !== '00000000000000000000000000000000' &&
-    /^[0-9a-f]{16}$/.test(spanId) &&
-    spanId !== '0000000000000000'
-  );
-}
-
-/**
  * Fork the scope with a propagation context continuing the remote parent's trace, so the root span
  * created from it picks up the incoming trace id, parent span id, and sampling decision. Mirrors
  * `SentryTracer._startRootSpanWithRemoteParent` in `@sentry/opentelemetry`.
@@ -717,13 +704,6 @@ function getParentSpan(
   const span = (explicitScope ? _getSpanForScope(explicitScope) : getActiveSpan()) as SentrySpan | undefined;
 
   if (!span) {
-    return undefined;
-  }
-
-  // Ignore an invalid ambient parent (e.g. a malformed incoming trace/span id set on the OTel
-  // context) and start a fresh trace instead, matching the `SentryTracer` and the OTel SDK sampler
-  // behavior. Spans from an explicitly passed scope are SDK-created and trusted as-is.
-  if (!explicitScope && !spanContextIsValid(span.spanContext())) {
     return undefined;
   }
 
