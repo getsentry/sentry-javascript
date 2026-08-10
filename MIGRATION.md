@@ -683,7 +683,6 @@ Sentry.init({
 ### `@sentry/node` / Server-side SDKs
 
 - `SentryContextManager` is no longer exported. It is no longer needed now that Sentry does not set up OpenTelemetry by default.
-- The `OpenTelemetryServerRuntimeOptions` type was removed. Its only remaining option, `enableOpenTelemetrySetup`, is part of the SDK-specific options types (e.g. `NodeOptions`).
 - The deprecated `honoIntegration` was removed. Use the [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) SDK to instrument Hono.
 - The `connect` instrumentation was removed.
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
