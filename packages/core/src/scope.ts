@@ -18,11 +18,12 @@ import type { PropagationContext } from './types/tracing';
 import type { User } from './types/user';
 import { debug } from './utils/debug-logger';
 import { isPlainObject } from './utils/is';
+import { addNonEnumerableProperty } from './utils/object';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
+import { _getSpanForScope } from './utils/spanOnScope';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
 
@@ -156,6 +157,15 @@ export class Scope {
   /** Conversation ID */
   protected _conversationId?: string;
 
+  /**
+   * A place to stash references to objects that are associated with this scope but should not be serialized,
+   * such as the currently active span (core) or the OpenTelemetry context (opentelemetry).
+   * These are cloned as-is (shallow) when the scope is cloned, so they survive `clone()`.
+   *
+   * This is non-enumerable so it does not leak into `toJSON`, `Object.keys` or structural comparisons.
+   */
+  public refs!: Record<string, unknown>;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -170,6 +180,7 @@ export class Scope {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
+    addNonEnumerableProperty(this, 'refs', {});
     this._propagationContext = {
       traceId: generateTraceId(),
       sampleRand: safeMathRandom(),
@@ -206,8 +217,7 @@ export class Scope {
     newScope._client = this._client;
     newScope._lastEventId = this._lastEventId;
     newScope._conversationId = this._conversationId;
-
-    _setSpanForScope(newScope, _getSpanForScope(this));
+    newScope.refs = { ...this.refs };
 
     return newScope;
   }
