@@ -39,7 +39,6 @@ export {
   getDynamicSamplingContextFromScope,
   spanToBaggageHeader,
 } from './dynamicSamplingContext';
-export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
 export { logSpanEnd, logSpanStart } from './logSpans';
 

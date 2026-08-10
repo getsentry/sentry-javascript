@@ -22,7 +22,6 @@ export {
   startNewTrace,
   withActiveSpan,
   getSpanDescendants,
-  setMeasurement,
 } from '@sentry/core/browser';
 
 export {

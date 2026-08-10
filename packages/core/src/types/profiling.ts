@@ -121,20 +121,6 @@ export interface Profile extends BaseProfile<ThreadCpuProfile> {
   debug_meta?: {
     images: DebugImage[];
   };
-  transaction?: {
-    name: string;
-    id: string;
-    trace_id: string;
-    active_thread_id: string;
-  };
-  transactions?: {
-    name: string;
-    id: string;
-    trace_id: string;
-    active_thread_id: string;
-    relative_start_ns: string;
-    relative_end_ns: string;
-  }[];
   measurements?: Record<
     string,
     {

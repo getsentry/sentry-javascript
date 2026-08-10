@@ -40,9 +40,8 @@ export function normalizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
       // fetch & xhr are handled separately,in handleNetworkBreadcrumbs
       'fetch',
       'xhr',
-      // These two are breadcrumbs for emitted sentry events, we don't care about them
+      // This is a breadcrumb for emitted sentry events, we don't care about them
       'sentry.event',
-      'sentry.transaction',
     ].includes(breadcrumb.category) ||
     // We capture UI breadcrumbs separately
     breadcrumb.category.startsWith('ui.')

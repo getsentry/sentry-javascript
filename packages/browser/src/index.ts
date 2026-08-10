@@ -59,7 +59,6 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   getSpanDescendants,
-  setMeasurement,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,

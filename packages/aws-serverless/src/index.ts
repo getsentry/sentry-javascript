@@ -72,7 +72,6 @@ export {
   functionToStringIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
-  setMeasurement,
   getActiveSpan,
   startSpan,
   startInactiveSpan,

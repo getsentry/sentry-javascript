@@ -1,6 +1,6 @@
 /* oxlint-disable max-lines */
 import SentryCli from '@sentry/cli';
-import { closeSession, DEFAULT_ENVIRONMENT, getTraceData, makeSession, setMeasurement, startSpan } from '@sentry/core';
+import { closeSession, DEFAULT_ENVIRONMENT, getTraceData, makeSession, startSpan } from '@sentry/core';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -699,8 +699,10 @@ export function createSentryBuildPluginManager(
                     0,
                   );
 
-                  setMeasurement('files', files.length, 'none', prepBundlesSpan);
-                  setMeasurement('upload_size', uploadSize, 'byte', prepBundlesSpan);
+                  prepBundlesSpan?.setAttributes({
+                    files: files.length,
+                    upload_size: uploadSize,
+                  });
 
                   // Preparation produced no artifacts, meaning none of the
                   // matched bundles had an associated source map. This almost

@@ -59,7 +59,6 @@ export {
   withIsolationScope,
   captureCheckIn,
   withMonitor,
-  setMeasurement,
   getActiveSpan,
   getRootSpan,
   getTraceData,

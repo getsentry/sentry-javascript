@@ -7,10 +7,6 @@ import type { ReplayContainer } from '../../types';
  * Add a breadcrumb event to replay.
  */
 export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcrumb): void {
-  if (breadcrumb.category === 'sentry.transaction') {
-    return;
-  }
-
   if (['ui.click', 'ui.input'].includes(breadcrumb.category as string)) {
     replay.triggerUserActivity();
   } else {

@@ -94,7 +94,6 @@ export {
   setExtra,
   setExtras,
   setHttpStatus,
-  setMeasurement,
   setTag,
   setTags,
   setAttribute,

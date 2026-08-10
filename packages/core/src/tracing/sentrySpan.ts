@@ -1,8 +1,5 @@
 import { getClient } from '../currentScopes';
-import { DEBUG_BUILD } from '../debug-build';
 import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -20,8 +17,6 @@ import type {
   StreamedSpanJSON,
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
-import type { TimedEvent } from '../types/timedEvent';
-import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   addStatusMessageAttribute,
@@ -36,7 +31,6 @@ import {
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { logSpanEnd } from './logSpans';
-import { timedEventsToMeasurements } from './measurement';
 import { markSpanSourceAsExplicit, spanIsTracerProviderSpan, spanShouldInferOtelSource } from './utils';
 
 /**
@@ -56,8 +50,6 @@ export class SentrySpan implements Span {
   protected _endTime?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
-  /** The timed events added to this span. */
-  protected _events: TimedEvent[];
 
   /** if true, the span is sealed and ignores further mutations (set after end for tracer-provider spans) */
   private _frozen?: boolean;
@@ -94,8 +86,6 @@ export class SentrySpan implements Span {
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
-
-    this._events = [];
 
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
@@ -270,9 +260,6 @@ export class SentrySpan implements Span {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
-      exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
-      measurements: timedEventsToMeasurements(this._events),
       links: convertSpanLinksForEnvelope(this._links),
     };
   }
@@ -307,29 +294,16 @@ export class SentrySpan implements Span {
   }
 
   /**
+   * Timed events are not part of the streamed span payload, so this is a no-op. It exists to keep
+   * `SentrySpan` compliant with the OpenTelemetry Span interface.
+   *
    * @inheritdoc
    */
   public addEvent(
-    name: string,
-    attributesOrStartTime?: SpanAttributes | SpanTimeInput,
-    startTime?: SpanTimeInput,
+    _name: string,
+    _attributesOrStartTime?: SpanAttributes | SpanTimeInput,
+    _startTime?: SpanTimeInput,
   ): this {
-    if (this._frozen) {
-      return this;
-    }
-    DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
-
-    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
-    const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
-
-    const event: TimedEvent = {
-      name,
-      time: spanTimeInputToSeconds(time),
-      attributes,
-    };
-
-    this._events.push(event);
-
     return this;
   }
 
@@ -346,8 +320,4 @@ export class SentrySpan implements Span {
 
     client?.emit('afterSegmentSpanEnd', this);
   }
-}
-
-function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {
-  return (value && typeof value === 'number') || value instanceof Date || Array.isArray(value);
 }

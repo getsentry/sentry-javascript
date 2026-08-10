@@ -29,8 +29,7 @@ const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
  */
 export function _INTERNAL_copyFlagsFromScopeToEvent(event: Event): Event {
   if (event.type) {
-    // No need to add the flags context to transaction events.
-    // Spans already get the flag.evaluation attributes.
+    // Only error events need the flags context; spans already get the flag.evaluation attributes.
     return event;
   }
 

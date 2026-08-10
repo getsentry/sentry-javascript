@@ -468,7 +468,6 @@ export type {
   // eslint-disable-next-line typescript/no-deprecated
   SerializedMetricAttributeValue,
 } from './types/metric';
-export type { TimedEvent } from './types/timedEvent';
 export type { StackFrame } from './types/stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types/stacktrace';
 export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types/tracing';

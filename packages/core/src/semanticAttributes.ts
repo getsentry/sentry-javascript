@@ -44,12 +44,6 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE = 'sentry.status.message';
 /** The reason why an idle span finished. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_span_finish_reason';
 
-/** The unit of a measurement, which may be stored as a TimedEvent. */
-export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_unit';
-
-/** The value of a measurement, which may be stored as a TimedEvent. */
-export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
-
 /** The release version of the application */
 export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
 /** The environment name (e.g., "production", "staging", "development") */
@@ -94,11 +88,6 @@ export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
  * @hidden
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_name';
-
-/**
- * The id of the profile that this span occurred in.
- */
-export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 
 export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';
 

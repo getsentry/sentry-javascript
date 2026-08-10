@@ -101,7 +101,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   Scope,
-  setMeasurement,
   getSpanDescendants,
   parameterize,
   getClient,

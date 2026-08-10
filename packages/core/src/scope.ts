@@ -61,9 +61,6 @@ export interface SdkProcessingMetadata {
   };
   normalizedRequest?: RequestEventData;
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-  capturedSpanScope?: Scope;
-  capturedSpanIsolationScope?: Scope;
-  spanCountBeforeProcessing?: number;
   ipAddress?: string;
 }
 

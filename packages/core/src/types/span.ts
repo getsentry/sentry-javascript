@@ -1,7 +1,6 @@
 import type { Attributes, RawAttributes } from '../attributes';
 import type { SpanKind } from '../spanKind';
 import type { SpanLink, SpanLinkJSON } from './link';
-import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
 import type { TransactionSource } from './transaction';
@@ -91,11 +90,7 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  profile_id?: string;
-  exclusive_time?: number;
-  measurements?: Measurements;
   is_segment?: boolean;
-  segment_id?: string;
   links?: SpanLinkJSON[];
 }
 

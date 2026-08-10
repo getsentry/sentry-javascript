@@ -362,15 +362,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       ...hint,
     };
 
-    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
-    const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
-    const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
-    const dataCategory = getDataCategoryByType(event.type);
-
-    this._process(
-      () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
-      dataCategory,
-    );
+    this._process(() => this._captureEvent(event, hintWithEventId, currentScope), getDataCategoryByType(event.type));
 
     return hintWithEventId.event_id;
   }
