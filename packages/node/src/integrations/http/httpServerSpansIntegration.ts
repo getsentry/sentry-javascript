@@ -423,9 +423,6 @@ function getIncomingRequestAttributesOnResponse(
     // oxlint-disable-next-line typescript/no-deprecated
     newAttributes[NET_PEER_PORT] = remotePort;
   }
-  // eslint-disable-next-line typescript/no-deprecated
-  newAttributes[HTTP_STATUS_CODE] = statusCode;
-  newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
 
   return newAttributes;
 }

@@ -3,6 +3,7 @@ import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
+import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
 
 export interface MutableRootSpan {
   attributes: Record<string, unknown>;
@@ -31,6 +32,8 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
 
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
   span.setOp('http.server');
+
+  backfillHttpResponseStatusCode(attributes);
 
   const currentName = span.getName();
   if (currentName) {

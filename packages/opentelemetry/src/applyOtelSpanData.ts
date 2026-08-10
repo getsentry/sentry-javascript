@@ -1,4 +1,3 @@
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import {
   getClient,
   hasSpanStreamingEnabled,
@@ -19,7 +18,6 @@ export function applyOtelSpanData(span: Span, options: { finalizeStatus?: boolea
   const attributes = spanJSON.data;
 
   if (options.finalizeStatus) {
-    applyOtelCompatibilityAttributes(span, attributes);
     const client = getClient();
     applyOtelSpanStatus(span, attributes, spanJSON.status, !!client && hasSpanStreamingEnabled(client));
   }
@@ -43,16 +41,5 @@ function applyOtelSpanStatus(
   // span. Overwriting it here would replace that message with `internal_error`.
   if (!spanStreamingEnabled && status !== 'ok' && !isStatusErrorMessageValid(status)) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  }
-}
-
-function applyOtelCompatibilityAttributes(span: Span, attributes: SpanAttributes): void {
-  // `http.status_code` is the deprecated legacy attribute, read for backward compatibility.
-  // eslint-disable-next-line typescript/no-deprecated
-  const legacyHttpStatusCode = attributes[HTTP_STATUS_CODE];
-
-  if (attributes[HTTP_RESPONSE_STATUS_CODE] === undefined && legacyHttpStatusCode !== undefined) {
-    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, legacyHttpStatusCode);
-    attributes[HTTP_RESPONSE_STATUS_CODE] = legacyHttpStatusCode;
   }
 }

@@ -147,15 +147,6 @@ describe('SentryTracerProvider', () => {
     applyOtelSpanData(httpErrorSpan as Span, { finalizeStatus: true });
     expect(spanToJSON(httpErrorSpan as Span).status).toBe('internal_error');
 
-    const legacyHttpErrorSpan = trace.getTracer('test').startSpan('legacy-http-error');
-    legacyHttpErrorSpan.setAttribute('http.status_code', 500);
-    applyOtelSpanData(legacyHttpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(legacyHttpErrorSpan as Span).status).toBe('internal_error');
-    expect(spanToJSON(legacyHttpErrorSpan as Span).data).toMatchObject({
-      'http.response.status_code': 500,
-      'http.status_code': 500,
-    });
-
     const customErrorSpan = trace.getTracer('test').startSpan('custom-error');
     customErrorSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'This is a custom error' });
     applyOtelSpanData(customErrorSpan as Span, { finalizeStatus: true });
