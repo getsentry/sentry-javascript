@@ -1,5 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { CACHE_KEY, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { CACHE_KEY, DB_OPERATION_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  DATABASE_CACHE_GET_SPAN_OP,
+  DATABASE_CACHE_PUT_SPAN_OP,
+  DATABASE_CACHE_REMOVE_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
   debug,
@@ -22,10 +27,21 @@ const INTEGRATION_NAME = 'Dataloader' as const;
 const MODULE_NAME = 'dataloader';
 const ORIGIN = 'auto.db.dataloader';
 
-// `load`, `loadMany` and `batch` are cache reads; the rest are cache mutations that get no `op`.
-const CACHE_GET_OP = 'cache.get';
-
 type Operation = 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll';
+
+/**
+ * Maps each operation to a convention cache op. `load`, `loadMany` and `batch` are cache reads,
+ * `prime` writes an entry, and `clear`/`clearAll` remove entries. The precise operation stays
+ * available on `db.operation.name`.
+ */
+const OPERATION_SPAN_OPS = {
+  load: DATABASE_CACHE_GET_SPAN_OP,
+  loadMany: DATABASE_CACHE_GET_SPAN_OP,
+  batch: DATABASE_CACHE_GET_SPAN_OP,
+  prime: DATABASE_CACHE_PUT_SPAN_OP,
+  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
+  clearAll: DATABASE_CACHE_REMOVE_SPAN_OP,
+} as const satisfies Record<Operation, string>;
 
 // The link shape shared between a `load` span and the `batch` span it triggers.
 type DataLoaderSpanLink = { context: ReturnType<Span['spanContext']> };
@@ -61,8 +77,8 @@ function getSpanName(loader: DataLoaderInstance | undefined, operation: Operatio
   return name ? `${MODULE_NAME}.${operation} ${name}` : `${MODULE_NAME}.${operation}`;
 }
 
-// `load` receives a single key, `loadMany`/`batch` receive a key array. Normalize both to the
-// `string[]` shape `cache.key` expects.
+// `load`/`prime`/`clear` receive a single key, `loadMany`/`batch` receive a key array. Normalize
+// both to the `string[]` shape `cache.key` expects. `clearAll` takes no key and yields `undefined`.
 function getCacheKey(keyArg: unknown): string[] | undefined {
   if (Array.isArray(keyArg)) {
     return keyArg.map(key => String(key));
@@ -76,19 +92,18 @@ function makeSpanOptions(
   operation: Operation,
   keyArg?: unknown,
 ): StartSpanOptions {
-  const isCacheGet = operation === 'load' || operation === 'loadMany' || operation === 'batch';
-
   return {
     name: getSpanName(loader, operation),
-    op: isCacheGet ? CACHE_GET_OP : undefined,
     onlyIfParent: true,
     attributes: {
+      [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
       // Every direct operation (`load`/`loadMany`/`prime`/`clear`/`clearAll`) is a client call, matching
       // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
       // peer, so it gets no kind.
       [SENTRY_KIND]: operation === 'batch' ? undefined : 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [CACHE_KEY]: isCacheGet ? getCacheKey(keyArg) : undefined,
+      [DB_OPERATION_NAME]: operation,
+      [CACHE_KEY]: getCacheKey(keyArg),
     },
   };
 }
