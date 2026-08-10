@@ -15,7 +15,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy, setupEventContextTrace } from '@sentry/opentelemetry';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
@@ -230,7 +230,6 @@ function _init(
   // OpenTelemetry context, so it only belongs here: without a Sentry tracer provider a foreign OTel
   // span could otherwise override the Sentry trace on error events.
   if (clientOptions.enableOpenTelemetrySetup) {
-    setupEventContextTrace(client);
     initOpenTelemetry(client);
   }
 
