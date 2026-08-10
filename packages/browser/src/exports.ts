@@ -73,7 +73,6 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
-  metrics,
 } from '@sentry/core/browser';
 
 export {
