@@ -103,7 +103,8 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   expect(requestData.envelope[0].event_id).not.toBe(mcpData.envelope[0].event_id);
   expect(mcpTrace?.op).toBe('mcp.server');
   expect(mcpTrace?.origin).toBe('auto.function.mcp_server');
-  expect(mcpTrace?.status).toBe('ok');
+  // MCP spans never set a status explicitly, and on v10 an unset status serializes as `undefined`
+  expect(mcpTrace?.status).toBeUndefined();
   expect(mcpTrace?.data?.['mcp.transport']).toBe('PerRequestHTTPServerTransport');
   expect(mcpTrace?.data?.['network.transport']).toBe('tcp');
   expect(mcpTrace?.data?.['mcp.protocol.version']).toBe('2026-07-28');
@@ -154,7 +155,7 @@ test('keeps sending spans for legacy-compatible MCP tool calls', async ({ baseUR
   const trace = mcpEvent.contexts?.trace;
 
   expect(trace?.op).toBe('mcp.server');
-  expect(trace?.status).toBe('ok');
+  expect(trace?.status).toBeUndefined();
   expect(trace?.data?.['mcp.transport']).toBe('WebStandardStreamableHTTPServerTransport');
   expect(trace?.data?.['mcp.method.name']).toBe('tools/call');
   expect(trace?.data?.['mcp.request.id']).toBe('legacy-tool-call');
