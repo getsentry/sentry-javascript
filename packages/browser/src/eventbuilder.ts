@@ -410,5 +410,5 @@ function getObjectClassName(obj: unknown): string | undefined | void {
 
 /** If a plain object has a property that is an `Error`, return this error. */
 function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
-  return Object.values(obj).find((v): v is Error => v instanceof Error);
+  return Object.values(obj).find(isError);
 }
