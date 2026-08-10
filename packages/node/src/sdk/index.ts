@@ -174,7 +174,7 @@ function _init(
   // AsyncLocalStorage strategy instead of the OpenTelemetry context strategy. Instrumentation still
   // emits spans via core `startSpan`; there is just no OTel provider or propagator behind them.
   let asyncLocalStorageLookup: ReturnType<typeof setOpenTelemetryContextAsyncContextStrategy> | undefined;
-  if (clientOptions.skipOpenTelemetrySetup) {
+  if (!clientOptions.enableOpenTelemetrySetup) {
     // The ALS store already is the `{ scope, isolationScope }` object, so no `contextSymbol` is needed
     // to reach it (unlike the OTel context strategy, where it is nested under the OTel context).
     const asyncLocalStorage = setAsyncLocalStorageAsyncContextStrategy();
@@ -229,7 +229,7 @@ function _init(
   // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the
   // OpenTelemetry context, so it only belongs here: without a Sentry tracer provider a foreign OTel
   // span could otherwise override the Sentry trace on error events.
-  if (!clientOptions.skipOpenTelemetrySetup) {
+  if (clientOptions.enableOpenTelemetrySetup) {
     setupEventContextTrace(client);
     initOpenTelemetry(client);
   }
@@ -266,8 +266,8 @@ function getClientOptions(
     spotlight,
     traceLifecycle,
     // Most Node-based SDKs default to running without a Sentry OpenTelemetry tracer provider. SDKs
-    // that need OTel spans surfaced in Sentry (nextjs, sveltekit) opt back in by passing `false`.
-    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
+    // that need OTel spans surfaced in Sentry (nextjs, sveltekit) opt back in by passing `true`.
+    enableOpenTelemetrySetup: options.enableOpenTelemetrySetup ?? false,
     debug: envToBool(options.debug ?? process.env.SENTRY_DEBUG),
   };
 

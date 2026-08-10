@@ -22,9 +22,12 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * 2. Requests to Sentry ingest (after rewrite) via fetch spans
  */
 export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+  // When the user brings their own OTel setup (enableOpenTelemetrySetup: false), we should not
   // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+  if (
+    (getClient()?.getOptions() as { enableOpenTelemetrySetup?: boolean } | undefined)?.enableOpenTelemetrySetup ===
+    false
+  ) {
     return;
   }
 

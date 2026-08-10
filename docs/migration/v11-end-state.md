@@ -88,7 +88,7 @@ If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
 
 #### Choosing an OpenTelemetry setup
 
-There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the new `enableOpenTelemetrySetup` option, which replaces v10's `skipOpenTelemetrySetup` with inverted meaning (`skipOpenTelemetrySetup: true` becomes `enableOpenTelemetrySetup: false`). It defaults to `false` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `true` for `@sentry/nextjs` and `@sentry/sveltekit`.
 
 ##### 1. Sentry only
 
@@ -105,13 +105,13 @@ If a library you depend on emits its own OpenTelemetry spans and you want those 
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
-Set `skipOpenTelemetrySetup: false`:
+Set `enableOpenTelemetrySetup: true`:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
-  skipOpenTelemetrySetup: false,
+  enableOpenTelemetrySetup: true,
 });
 ```
 
@@ -121,7 +121,7 @@ Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no ex
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
+Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -142,7 +142,7 @@ Sentry.init({
 });
 ```
 
-`skipOpenTelemetrySetup` already defaults to `true` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `false`, so you have to set it explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
+`enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
 OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
@@ -152,7 +152,7 @@ Sentry does not touch your pipeline: no exporter, no span processor, no tracer p
 
 Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
 
-Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`.
 
 If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
 

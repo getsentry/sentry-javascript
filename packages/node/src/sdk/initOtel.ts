@@ -39,7 +39,7 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
   if (registry && !registry.trace) {
     DEBUG_BUILD &&
       coreDebug.warn(
-        'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `skipOpenTelemetrySetup: true` in `Sentry.init()`.',
+        'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `enableOpenTelemetrySetup: false` in `Sentry.init()`.',
       );
     otelGlobal[OTEL_API_GLOBAL_KEY] = undefined;
 
