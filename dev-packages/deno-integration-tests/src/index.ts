@@ -1,12 +1,19 @@
 import type { TransactionEvent } from '@sentry/core';
-import { getMainCarrier } from '@sentry/core';
+import { getAsyncContextStrategy, getMainCarrier, setAsyncContextStrategy } from '@sentry/core';
 
 /**
  * Wipe the Sentry carrier so the current, isolation, and global scopes (and the
  * client) are recreated fresh, letting each test start from a clean slate.
+ *
+ * The async-context strategy is preserved across the wipe: channel integrations
+ * subscribe once per process and capture the strategy's `AsyncLocalStorage` at
+ * that point. Dropping it here would strand that ALS, so scope propagation into
+ * channel callbacks would silently break for every test after the first.
  */
 export function resetGlobals(): void {
+  const acs = getAsyncContextStrategy(getMainCarrier());
   getMainCarrier().__SENTRY__ = undefined;
+  setAsyncContextStrategy(acs);
 }
 
 export interface TransactionSink {

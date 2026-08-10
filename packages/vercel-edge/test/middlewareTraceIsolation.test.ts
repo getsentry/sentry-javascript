@@ -2,7 +2,7 @@ import { context, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import { getMainCarrier, GLOBAL_OBJ, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { AsyncLocalStorage } from 'async_hooks';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
