@@ -15,11 +15,10 @@ type Payload = {
 };
 
 type RenderEntry = {
-  payload: Payload;
   now: number;
 };
 
-export type RenderEntries = Map<string, RenderEntry>;
+export type RenderEntries = WeakMap<Payload, RenderEntry>;
 
 /** This is global, so should only be run once in tests! */
 export function instrumentGlobalsForPerformance(config: {
@@ -126,11 +125,7 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
 }
 
 export function _processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
-  const info = {
-    payload,
-    now: timestampInSeconds(),
-  };
-  beforeEntries.set(payload.object, info);
+  beforeEntries.set(payload, { now: timestampInSeconds() });
 }
 
 export function _processComponentRenderAfter(
@@ -139,15 +134,15 @@ export function _processComponentRenderAfter(
   op: string,
   minComponentDuration: number,
 ): void {
-  const begin = beforeEntries.get(payload.object);
+  const begin = beforeEntries.get(payload);
 
   if (!begin) {
     return;
   }
 
-  // Remove the entry so the render payload (which references the component
-  // instance) is not retained forever in this module-scope map.
-  beforeEntries.delete(payload.object);
+  // A WeakMap entry cannot outlive its payload, but delete promptly anyway
+  // so a long-lived payload doesn't keep the entry around between renders.
+  beforeEntries.delete(payload);
 
   const now = timestampInSeconds();
   const componentRenderDuration = now - begin.now;
@@ -176,8 +171,8 @@ function _instrumentComponents(config: {
 
   const minComponentDuration = minimumComponentRenderDuration ?? 2;
 
-  const beforeEntries: RenderEntries = new Map();
-  const beforeComponentDefinitionEntries: RenderEntries = new Map();
+  const beforeEntries: RenderEntries = new WeakMap();
+  const beforeComponentDefinitionEntries: RenderEntries = new WeakMap();
 
   function _subscribeToRenderEvents(): void {
     subscribe('render.component', {
