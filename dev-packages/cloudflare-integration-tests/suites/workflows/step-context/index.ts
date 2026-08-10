@@ -32,9 +32,8 @@ class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams
         // Both errors originate from the same line so they share a stack trace, which is what the
         // Dedupe integration keys on
         if (event.payload.captureManualTwice) {
-          for (let i = 0; i < 2; i++) {
-            Sentry.captureException(new Error('Manual capture'));
-          }
+          Sentry.captureException(new Error('Manual capture'));
+          Sentry.captureException(new Error('Manual capture'));
         }
 
         if (remainingFailures > 0) {
