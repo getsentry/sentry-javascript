@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import type { TransactionEvent } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -27,16 +26,6 @@ describe('Anthropic integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
-  // `models.retrieve` reports a generic `function` op (model retrieval is not an inference call), so it is
-  // delivered as a plain transaction span rather than extracted into the gen_ai span container.
-  const expectModelsSpanOnTransaction = (event: TransactionEvent): void => {
-    expect(event.transaction).toBe('main');
-    const modelsSpan = (event.spans ?? []).find(span => span.description === 'models claude-3-haiku-20240307');
-    expect(modelsSpan).toBeDefined();
-    expect(modelsSpan!.op).toBe('function');
-    expect(modelsSpan!.status).toBe('ok');
-  };
 
   const EXPECTED_MODEL_ERROR = {
     exception: {
@@ -101,7 +90,7 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({ transaction: expectModelsSpanOnTransaction })
+        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
@@ -142,7 +131,7 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({ transaction: expectModelsSpanOnTransaction })
+        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
@@ -212,20 +201,7 @@ describe('Anthropic integration', () => {
       }
 
       await runner
-        .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('main');
-            const modelsSpan = (event.spans ?? []).find(span => span.description === 'models claude-3-haiku-20240307');
-            expect(modelsSpan).toBeDefined();
-            expect(modelsSpan!.op).toBe('function');
-            expect(modelsSpan!.status).toBe('ok');
-            expect(modelsSpan!.data[GEN_AI_OPERATION_NAME]).toBe('models');
-            expect(modelsSpan!.data[GEN_AI_PROVIDER_NAME]).toBe('anthropic');
-            expect(modelsSpan!.data[GEN_AI_REQUEST_MODEL]).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.data[GEN_AI_RESPONSE_ID]).toBe('claude-3-haiku-20240307');
-            expect(modelsSpan!.data[GEN_AI_RESPONSE_MODEL]).toBe('claude-3-haiku-20240307');
-          },
-        })
+        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
@@ -523,19 +499,10 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('handles tool errors and model retrieval errors correctly', async () => {
+    test('handles tool errors correctly', async () => {
       await createRunner()
         .ignore('event')
-        .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('main');
-            const modelErrorSpan = (event.spans ?? []).find(span => span.description === 'models nonexistent-model');
-            expect(modelErrorSpan).toBeDefined();
-            expect(modelErrorSpan!.op).toBe('function');
-            expect(modelErrorSpan!.status).toBe('internal_error');
-            expect(modelErrorSpan!.data[GEN_AI_REQUEST_MODEL]).toBe('nonexistent-model');
-          },
-        })
+        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
             expect(container.items).toHaveLength(2);

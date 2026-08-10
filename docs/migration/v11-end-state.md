@@ -615,7 +615,7 @@ Affected SDKs: All server-side SDKs.
 
 AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as:
 
-- Anthropic `messages.countTokens`.
+- Anthropic `messages.countTokens`, `models.retrieve`, and `models.get`.
 - LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
 
 If you reference these spans in dashboards or alerts, update them accordingly.

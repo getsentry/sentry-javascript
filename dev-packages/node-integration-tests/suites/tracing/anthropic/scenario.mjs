@@ -6,15 +6,6 @@ function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
-  app.get('/anthropic/v1/models/:model', (req, res) => {
-    res.send({
-      id: req.params.model,
-      name: req.params.model,
-      created_at: 1715145600,
-      model: req.params.model,
-    });
-  });
-
   app.post('/anthropic/v1/messages', (req, res) => {
     const model = req.body.model;
 
@@ -127,10 +118,7 @@ async function run() {
       // Error is expected and handled
     }
 
-    // Third test: models.retrieve
-    await client.models.retrieve('claude-3-haiku-20240307');
-
-    // Fourth test: streaming via messages.create
+    // Third test: streaming via messages.create
     const stream = await client.messages.create({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: 'What is the capital of France?' }],
@@ -141,7 +129,7 @@ async function run() {
       void _;
     }
 
-    // Fifth test: streaming via messages.stream
+    // Fourth test: streaming via messages.stream
     await client.messages
       .stream({
         model: 'claude-3-haiku-20240307',

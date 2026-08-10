@@ -42,7 +42,6 @@ type SuccessfulResponse = {
   id: string;
   model: string;
   created?: number;
-  created_at?: number; // Available for Models.retrieve
   messages?: Array<Message>;
   content?: string | Array<ContentBlock>; // Available for Messages.create
   completion?: string; // Available for Completions.create
@@ -64,10 +63,6 @@ export type AnthropicAiResponse = SuccessfulResponse | MessageError;
 export interface AnthropicAiClient {
   messages?: {
     create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-  };
-  models?: {
-    list: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-    get: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
   completions?: {
     create: (...args: unknown[]) => Promise<AnthropicAiResponse>;

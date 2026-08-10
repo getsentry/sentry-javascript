@@ -42,15 +42,15 @@ export interface InstrumentedMethodEntry {
  */
 export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
 
-// Operation names that are not inference calls: `models` retrieves model metadata and `unknown` is
-// the fallback for methods with no registered operation. Neither should surface as a `gen_ai.*` op
-// (an unknown string must not masquerade as a convention), so they map to the generic `function` op.
-// The operation name itself is preserved on `gen_ai.operation.name`.
-const NON_INFERENCE_OPERATIONS = new Set(['models', 'unknown']);
+// Operation names that are not inference calls: `unknown` is the fallback for methods with no
+// registered operation. It should not surface as a `gen_ai.*` op (an unknown string must not
+// masquerade as a convention), so it maps to the generic `function` op. The operation name itself
+// is preserved on `gen_ai.operation.name`.
+const NON_INFERENCE_OPERATIONS = new Set(['unknown']);
 
 /**
  * Derive the span op from a gen_ai operation name. Inference operations become `gen_ai.<operation>`;
- * non-inference operations (`models`, `unknown`) become the generic `function` op.
+ * non-inference operations (`unknown`) become the generic `function` op.
  */
 export function getGenAiSpanOp(operationName: string): string {
   return NON_INFERENCE_OPERATIONS.has(operationName) ? GENERAL_FUNCTION_SPAN_OP : `gen_ai.${operationName}`;
