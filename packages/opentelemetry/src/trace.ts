@@ -1,6 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
-import type { Scope, Span as SentrySpan } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import { _INTERNAL_setSpanForScope, getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 
@@ -31,7 +31,7 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
   return context.with(newContextWithActiveSpan, () => {
     const scope = getCurrentScope();
     // Keep the scope's span in sync with the context, like `SentryTracer.startActiveSpan` does.
-    _INTERNAL_setSpanForScope(scope, (span as unknown as SentrySpan) ?? undefined);
+    _INTERNAL_setSpanForScope(scope, span ?? undefined);
     return callback(scope);
   });
 }
