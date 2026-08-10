@@ -4,8 +4,7 @@
 export * from '@sentry/node';
 
 export { init } from './sdk';
-// eslint-disable-next-line typescript/no-deprecated
-export { wrapSentryHandleRequest, sentryHandleRequest } from './wrapSentryHandleRequest';
+export { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 export { createSentryHandleRequest, type SentryHandleRequestOptions } from './createSentryHandleRequest';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';

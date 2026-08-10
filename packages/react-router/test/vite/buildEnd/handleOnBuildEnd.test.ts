@@ -134,15 +134,18 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
   });
 
-  it('should upload source maps when enabled', async () => {
+  it('resolves root-level BuildTimeOptionsBase options for release creation and source map upload', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
         ...defaultConfig.viteConfig,
         sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: true,
+          org: 'my-org',
+          project: 'my-project',
+          authToken: 'my-token',
+          release: { name: '1.2.3' },
+          sourcemaps: {
+            filesToDeleteAfterUpload: ['./build/custom/**/*.map'],
           },
         },
       } as unknown as TestConfig,
@@ -150,6 +153,26 @@ describe('sentryOnBuildEnd', () => {
 
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
+
+    expect(SentryCli).toHaveBeenCalledWith(null, {
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+    });
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('1.2.3');
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledWith('1.2.3', {
+      include: [{ paths: ['/build'] }],
+      live: 'rejectOnError',
+    });
+    expect(glob).toHaveBeenCalledWith(['./build/custom/**/*.map'], {
+      absolute: true,
+      nodir: true,
+    });
+  });
+
+  it('should upload source maps when enabled', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(defaultConfig);
 
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledTimes(1);
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledWith('undefined', {
@@ -158,27 +181,7 @@ describe('sentryOnBuildEnd', () => {
     });
   });
 
-  it('should not upload source maps when explicitly disabled', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: false,
-          },
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
-  });
-
-  it('should not upload source maps when disabled via top-level sourcemaps.disable', async () => {
+  it('should not upload or inject source maps when disabled via top-level sourcemaps.disable', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
@@ -330,24 +333,6 @@ describe('sentryOnBuildEnd', () => {
     expect(fs.promises.rm).not.toHaveBeenCalled();
   });
 
-  it('should not delete source maps when disabled via the deprecated sourceMapsUploadOptions', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: { enabled: false },
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(glob).not.toHaveBeenCalled();
-  });
-
   it('should delete source maps after upload with default pattern', async () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
@@ -365,7 +350,7 @@ describe('sentryOnBuildEnd', () => {
         ...defaultConfig.viteConfig,
         sentryConfig: {
           ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
+          sourcemaps: {
             filesToDeleteAfterUpload: '/custom/**/*.map',
           },
         },
@@ -406,21 +391,8 @@ describe('sentryOnBuildEnd', () => {
   });
 
   it('should inject debug IDs before uploading source maps', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: true,
-          },
-        },
-      } as unknown as TestConfig,
-    };
-
     // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
+    await sentryOnBuildEnd(defaultConfig);
 
     expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
   });
