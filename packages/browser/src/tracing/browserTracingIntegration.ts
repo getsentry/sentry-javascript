@@ -47,7 +47,6 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
-import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
@@ -166,17 +165,6 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   traceXHR: boolean;
-
-  /**
-   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
-   * Do not enable this in case you have live streams or very long running streams.
-   *
-   * Default: false
-   *
-   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
-   * to track the duration of streamed fetch response bodies.
-   */
-  trackFetchStreamPerformance: boolean;
 
   /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
@@ -354,8 +342,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     markBackgroundSpan,
     traceFetch,
     traceXHR,
-    // eslint-disable-next-line typescript/no-deprecated
-    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
@@ -712,10 +698,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         onRequestSpanStart,
         onRequestSpanEnd,
       });
-
-      if (trackFetchStreamPerformance) {
-        client.addIntegration(fetchStreamPerformanceIntegration());
-      }
     },
   };
 }) satisfies IntegrationFn;
