@@ -57,7 +57,7 @@ function aggregateExceptionsFromError(
   // Recursively call this function in order to walk down a chain of errors
   if (isError(error[key])) {
     applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
-    const newException = exceptionFromErrorImplementation(parser, error[key] as Error);
+    const newException = exceptionFromErrorImplementation(parser, error[key]);
     const newExceptionId = newExceptions.length;
     applyExceptionGroupFieldsForChildException(newException, key, newExceptionId, exceptionId);
     newExceptions = aggregateExceptionsFromError(
@@ -78,7 +78,7 @@ function aggregateExceptionsFromError(
     error.errors.forEach((childError, i) => {
       if (isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
-        const newException = exceptionFromErrorImplementation(parser, childError as Error);
+        const newException = exceptionFromErrorImplementation(parser, childError);
         const newExceptionId = newExceptions.length;
         applyExceptionGroupFieldsForChildException(newException, `errors[${i}]`, newExceptionId, exceptionId);
         newExceptions = aggregateExceptionsFromError(
