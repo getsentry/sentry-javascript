@@ -312,9 +312,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path',
-        },
       },
     ],
     [
@@ -328,9 +325,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path',
-        },
       },
     ],
     [
@@ -343,9 +337,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.server',
-        data: {
-          'url.full': 'https://www.example.com/my-path',
-        },
       },
     ],
     [
@@ -359,9 +350,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path/123',
-        },
       },
     ],
     [
@@ -373,9 +361,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http',
-        data: {
-          'url.full': 'https://www.example.com/my-path',
-        },
       },
     ],
     [
@@ -390,9 +375,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path/123',
-        },
       },
     ],
     [
@@ -408,9 +390,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path/123',
-        },
       },
     ],
     [
@@ -426,9 +405,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path/123',
-        },
       },
     ],
     [
@@ -441,11 +417,6 @@ describe('descriptionForHttpMethod', () => {
       },
       {
         op: 'http.client',
-        data: {
-          'url.full': 'https://www.example.com/my-path',
-          'url.query': 'id=1',
-          'url.fragment': 'section',
-        },
       },
     ],
   ])('%s', (_, attributes, expected) => {

@@ -11,9 +11,7 @@ import {
   MESSAGING_SYSTEM,
   RPC_SERVICE,
   SENTRY_KIND,
-  URL_FRAGMENT,
   URL_FULL,
-  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import {
   GENERAL_FUNCTION_SPAN_OP,
@@ -28,21 +26,16 @@ import {
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getSanitizedUrlString,
-  getUrlFragment,
-  getUrlQuery,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   stripUrlQueryAndFragment,
-  filterCollectedUrl,
-  filterCollectedUrlQuery,
 } from '@sentry/core';
 
 interface SpanDescription {
   op: string | undefined;
-  data?: Record<string, string | undefined>;
 }
 
 /**
@@ -176,29 +169,8 @@ export function descriptionForHttpMethod(attributes: Attributes): SpanDescriptio
         ? WEB_SERVER_HTTP_SERVER_SPAN_OP
         : WEB_SERVER_HTTP_SPAN_OP;
 
-  const { urlPath, url, query, fragment } = getSanitizedUrl(attributes);
-
-  if (!urlPath) {
-    return { op };
-  }
-
-  const data: Record<string, string> = {};
-
-  if (url) {
-    data[URL_FULL] = filterCollectedUrl(url);
-  }
-  const urlQuery = filterCollectedUrlQuery(getUrlQuery(query));
-  if (urlQuery) {
-    data[URL_QUERY] = urlQuery;
-  }
-  const urlFragment = getUrlFragment(fragment);
-  if (urlFragment) {
-    data[URL_FRAGMENT] = urlFragment;
-  }
-
   return {
     op,
-    data,
   };
 }
 
