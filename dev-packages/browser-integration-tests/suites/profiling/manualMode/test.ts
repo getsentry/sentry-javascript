@@ -62,7 +62,6 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
   validateProfile(envelopeItemPayload1.profile, {
     expectedFunctionNames: ['startJSSelfProfile', 'fibonacci', 'largeSum'],
     minSampleDurationMs: 20,
-    isChunkFormat: true,
   });
 
   // only contains fibonacci
@@ -88,7 +87,6 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
       'fibonacci1', // called by fibonacci2
       'fibonacci2',
     ],
-    isChunkFormat: true,
   });
 
   // does not contain notProfiledFib (called during unprofiled part)

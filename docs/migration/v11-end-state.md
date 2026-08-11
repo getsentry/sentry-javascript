@@ -861,6 +861,13 @@ Sentry.init({
   instead of wrapping them individually.
 - The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
 
+### Browser and Node profiling
+
+The legacy per-transaction profiling sampling options were removed. Configure session-based profiling with `profileSessionSampleRate` and choose a `profileLifecycle`:
+
+- Use `profileLifecycle: 'trace'` to start and stop profiling automatically with active traces.
+- Use `profileLifecycle: 'manual'` to control profiling explicitly through the profiler start and stop methods.
+
 ### `@sentry/profiling-node`
 
 - The `prune-profiler-binaries` script was removed.
