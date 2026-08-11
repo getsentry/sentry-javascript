@@ -48,26 +48,6 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_sp
 export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
 /** The environment name (e.g., "production", "staging", "development") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
-/**
- * The segment name (e.g., "GET /users")
- * @deprecated Use `SENTRY_SEGMENT_NAME` `@sentry/conventions/attributes` instead.
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
-/**
- * The id of the segment that this span belongs to.
- * @deprecated Use `SENTRY_SEGMENT_ID` `@sentry/conventions/attributes` instead.
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
-/**
- * The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript")
- * @deprecated Use `SENTRY_SDK_NAME` `@sentry/conventions/attributes` instead.
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
-/**
- * The version of the Sentry SDK
- * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 /** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
@@ -99,10 +79,6 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
-/**
- * @deprecated Use `URL_FULL` `@sentry/conventions/attributes` instead.
- */
-export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
 
 /**
  * A span link attribute to mark the link as a special span link.

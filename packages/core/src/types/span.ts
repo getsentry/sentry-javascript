@@ -91,7 +91,6 @@ export interface SpanJSON {
   trace_id: string;
   origin?: SpanOrigin;
   is_segment?: boolean;
-  links?: SpanLinkJSON[];
 }
 
 // These are aligned with OpenTelemetry trace flags

@@ -32,10 +32,7 @@ export function createStreamedSpanEnvelope(
 /**
  * Builds a span v2 container envelope item from already-serialized streamed spans.
  */
-export function createSpanContainerItem(
-  serializedSpans: Array<SerializedStreamedSpan>,
-  client: Client,
-): SpanContainerItem {
+function createSpanContainerItem(serializedSpans: Array<SerializedStreamedSpan>, client: Client): SpanContainerItem {
   const inferSetting = client.getDataCollectionOptions().userInfo ? 'auto' : 'never';
 
   return [

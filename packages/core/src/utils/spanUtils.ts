@@ -75,25 +75,6 @@ export function spanToTraceparentHeader(span: Span): string {
 }
 
 /**
- *  Converts the span links array to a flattened version to be sent within an envelope.
- *
- *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
- */
-export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
-  if (links && links.length > 0) {
-    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
-      span_id: spanId,
-      trace_id: traceId,
-      sampled: traceFlags === TRACE_FLAG_SAMPLED,
-      attributes,
-      ...restContext,
-    }));
-  } else {
-    return undefined;
-  }
-}
-
-/**
  * Converts the span links array to a flattened version with serialized attributes for V2 spans.
  *
  * If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
@@ -156,7 +137,7 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, status, links } = span;
+    const { attributes, startTime, name, endTime, status } = span;
 
     return {
       span_id,
@@ -170,7 +151,6 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      links: convertSpanLinksForEnvelope(links),
     };
   }
 

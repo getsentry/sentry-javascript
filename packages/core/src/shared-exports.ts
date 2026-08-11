@@ -91,7 +91,6 @@ export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export { handleTunnelRequest } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
-  convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
   spanToStreamedSpanJSON,

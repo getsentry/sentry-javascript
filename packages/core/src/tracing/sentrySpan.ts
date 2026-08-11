@@ -20,7 +20,6 @@ import type { SpanStatus } from '../types/spanStatus';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   addStatusMessageAttribute,
-  convertSpanLinksForEnvelope,
   getRootSpan,
   getSimpleStatus,
   getStatusMessage,
@@ -260,7 +259,6 @@ export class SentrySpan implements Span {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      links: convertSpanLinksForEnvelope(this._links),
     };
   }
 

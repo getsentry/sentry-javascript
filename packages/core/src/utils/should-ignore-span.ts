@@ -67,27 +67,6 @@ function _matchesAttributeValue(actual: unknown, pat: IgnoreSpanAttributeValue):
   return actual === pat;
 }
 
-/**
- * Takes a list of spans, and a span that was dropped, and re-parents the child spans of the dropped span to the parent of the dropped span, if possible.
- * This mutates the spans array in place!
- */
-export function reparentChildSpans(spans: SpanJSON[], dropSpan: SpanJSON): void {
-  const droppedSpanParentId = dropSpan.parent_span_id;
-  const droppedSpanId = dropSpan.span_id;
-
-  // This should generally not happen, as we do not apply this on root spans
-  // but to be safe, we just bail in this case
-  if (!droppedSpanParentId) {
-    return;
-  }
-
-  for (const span of spans) {
-    if (span.parent_span_id === droppedSpanId) {
-      span.parent_span_id = droppedSpanParentId;
-    }
-  }
-}
-
 function isStringOrRegExp(value: unknown): value is string | RegExp {
   return typeof value === 'string' || value instanceof RegExp;
 }
