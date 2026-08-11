@@ -3,6 +3,7 @@ import type { SerializedMetric } from '@sentry/core';
 import { waitForMetric } from '@sentry-internal/test-utils';
 
 const PROXY_SERVER_NAME = 'browser-bfcache';
+const BFCACHE_ORIGIN = 'auto.browser.bfcache';
 
 function attr(metric: SerializedMetric, key: string): unknown {
   return metric.attributes?.[key]?.value;
@@ -38,6 +39,7 @@ test('reports a hit on a genuine back/forward-cache restore', async ({ page }) =
   // No manual flush(): this asserts the real capture -> buffer -> send path.
   const hit = await hitPromise;
   expect(hit.value).toBe(1);
+  expect(attr(hit, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 });
 
 test('reports a miss with notRestoredReasons when an unload listener blocks bfcache', async ({ page }) => {
@@ -77,9 +79,11 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   const miss = await missPromise;
   expect(miss.value).toBe(1);
   expect(attr(miss, 'browser.bfcache.not_restored_reason_count')).toBeGreaterThanOrEqual(1);
+  expect(attr(miss, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 
   const unloadReason = await unloadReasonPromise;
   expect(attr(unloadReason, 'browser.bfcache.frame')).toBe('top');
+  expect(attr(unloadReason, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 
   const maskedReason = await maskedReasonPromise;
   expect(attr(maskedReason, 'browser.bfcache.frame')).toBe('top');
@@ -88,6 +92,7 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   expect(reloadDuration.type).toBe('distribution');
   expect(reloadDuration.unit).toBe('millisecond');
   expect(typeof reloadDuration.value).toBe('number');
+  expect(attr(reloadDuration, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 });
 
 test('reports a miss for an open WebSocket on Chrome < 149 (a hit from 149 on)', async ({ page, browser }) => {
