@@ -23,8 +23,15 @@ import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
-import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { _setSpanForScope } from '../utils/spanOnScope';
+import {
+  addChildSpanToSpan,
+  getActiveSpan,
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -360,7 +367,7 @@ function createChildOrRootSpan({
   forceTransaction,
   scope,
 }: {
-  parentSpan: SentrySpan | undefined;
+  parentSpan: Span | undefined;
   spanArguments: SentrySpanArguments;
   forceTransaction?: boolean;
   scope: Scope;
@@ -610,10 +617,10 @@ function _startChildSpan(
   return childSpan;
 }
 
-function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): SentrySpan | undefined {
+function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): Span | undefined {
   // always use the passed in span directly
   if (customParentSpan) {
-    return customParentSpan as SentrySpan;
+    return customParentSpan;
   }
 
   // This is different from `undefined` as it means the user explicitly wants no parent span
@@ -621,7 +628,7 @@ function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined):
     return undefined;
   }
 
-  const span = _getSpanForScope(scope) as SentrySpan | undefined;
+  const span = getActiveSpan(scope);
 
   if (!span) {
     return undefined;
@@ -630,7 +637,7 @@ function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined):
   const client = getClient();
   const options: Partial<ClientOptions> = client ? client.getOptions() : {};
   if (options.parentSpanIsAlwaysRootSpan) {
-    return getRootSpan(span) as SentrySpan;
+    return getRootSpan(span);
   }
 
   return span;
