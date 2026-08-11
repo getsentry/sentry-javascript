@@ -183,7 +183,12 @@ function _instrumentComponents(config: {
       },
 
       after(_name: string, _timestamp: number, payload: object) {
-        _processComponentRenderAfter(payload as Payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
+        _processComponentRenderAfter(
+          payload as Payload,
+          beforeEntries,
+          BROWSER_UI_RENDER_SPAN_OP,
+          minComponentDuration,
+        );
       },
     });
     if (enableComponentDefinitions) {
