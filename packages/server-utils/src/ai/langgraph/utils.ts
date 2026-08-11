@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -276,6 +276,11 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   const outputMessages = resultObj?.messages;
 
   if (!outputMessages || !Array.isArray(outputMessages)) {
+    // A custom state annotation has no `messages` array. Record the whole output state as a
+    // fallback so it is not dropped silently.
+    if (result && typeof result === 'object') {
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, stringify([{ role: 'assistant', content: stringify(result) }]));
+    }
     return;
   }
 
