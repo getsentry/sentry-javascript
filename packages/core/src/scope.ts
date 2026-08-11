@@ -23,7 +23,6 @@ import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { _getSpanForScope } from './utils/spanOnScope';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
 
