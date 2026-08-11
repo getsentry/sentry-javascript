@@ -14,7 +14,7 @@ test('Should create a transaction for middleware', async ({ request }) => {
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
   expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-  expect(middlewareTransaction.transaction_info?.source).toBe('url');
+  expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
@@ -39,7 +39,7 @@ test('Faulty middlewares', async ({ request }) => {
     expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
     expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-    expect(middlewareTransaction.transaction_info?.source).toBe('url');
+    expect(middlewareTransaction.transaction_info?.source).toBe('route');
   });
 
   await test.step('should record exceptions', async () => {

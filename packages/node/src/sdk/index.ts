@@ -41,7 +41,7 @@ import { getEntryPointType } from '../utils/entry-point';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry, setupSpanDataBackfill } from './initOtel';
+import { initOpenTelemetry } from './initOtel';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -220,11 +220,6 @@ function _init(
       await client.flush(200);
     });
   }
-
-  // Channel-based instrumentation emits spans via core `startSpan` in every mode, so always backfill
-  // the Sentry-convention span data (e.g. `sentry.op`) the OTel provider pipeline would otherwise
-  // derive. It is idempotent, so it is a no-op for spans the provider already enriches.
-  setupSpanDataBackfill(client);
 
   // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the
   // OpenTelemetry context, so it only belongs here: without a Sentry tracer provider a foreign OTel
