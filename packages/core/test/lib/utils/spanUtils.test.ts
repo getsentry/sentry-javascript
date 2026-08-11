@@ -318,7 +318,7 @@ describe('spanTimeInputToSeconds', () => {
   });
 });
 
-describe('spanToJSON', () => {
+describe('spanToStaticSpanJSON', () => {
   describe('SentrySpan', () => {
     it('works with a simple span', () => {
       const span = new SentrySpan();
@@ -876,8 +876,8 @@ describe('updateSpanName', () => {
   it('updates the span name and source', () => {
     const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
     updateSpanName(span, 'new-name');
-    const spanJSON = spanToStaticSpanJSON(span);
-    expect(spanJSON.description).toBe('new-name');
-    expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    const spanJSON = spanToJSON(span);
+    expect(spanJSON.name).toBe('new-name');
+    expect(spanJSON.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 });

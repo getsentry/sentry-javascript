@@ -164,7 +164,7 @@ function ensureTimestampInSeconds(timestamp: number): number {
 }
 
 /**
- * Convert a span to a JSON representation.
+ * Convert a span to a static JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
 // This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
@@ -208,7 +208,7 @@ export function spanToStaticSpanJSON(span: Span): SpanJSON {
 }
 
 /**
- * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
+ * Convert a span to a JSON representation.
  */
 export function spanToJSON(span: Span): StreamedSpanJSON {
   if (spanIsSentrySpan(span)) {
