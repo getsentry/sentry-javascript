@@ -171,7 +171,7 @@ function ensureTimestampInSeconds(timestamp: number): number {
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
 export function spanToStaticSpanJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getSpanJSON();
+    return span.getStaticSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -212,7 +212,7 @@ export function spanToStaticSpanJSON(span: Span): SpanJSON {
  */
 export function spanToJSON(span: Span): StreamedSpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getStreamedSpanJSON();
+    return span.getSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();

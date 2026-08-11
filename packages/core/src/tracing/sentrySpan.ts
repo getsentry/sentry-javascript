@@ -273,7 +273,7 @@ export class SentrySpan implements Span {
    * of SDK code. If you need to get a JSON representation of a span,
    * use `spanToJSON(span)` instead.
    */
-  public getSpanJSON(): SpanJSON {
+  public getStaticSpanJSON(): SpanJSON {
     return {
       data: this._attributes,
       description: this._name,
@@ -300,7 +300,7 @@ export class SentrySpan implements Span {
    * of SDK code. If you need to get a JSON representation of a span,
    * use `spanToJSON(span)` instead.
    */
-  public getStreamedSpanJSON(): StreamedSpanJSON {
+  public getSpanJSON(): StreamedSpanJSON {
     return {
       name: this._name ?? '',
       span_id: this._spanId,
