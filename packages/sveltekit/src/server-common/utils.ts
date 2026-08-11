@@ -2,6 +2,34 @@ import { captureException, objectify } from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
 import { isHttpError, isRedirect } from '../common/utils';
 
+/** The subset of Cloudflare's `ExecutionContext` the SDK relies on. */
+export type MinimalCloudflareExecutionContext = {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  waitUntil(promise: Promise<any>): void;
+};
+
+/**
+ * Reads the Cloudflare execution context off a SvelteKit `platform` object.
+ *
+ * The property name differs by adapter version:
+ * - `@sveltejs/adapter-cloudflare` <= 7 exposes it as `platform.context`
+ * - `@sveltejs/adapter-cloudflare` 8 renamed it to `platform.ctx`
+ *
+ * We read both so that request isolation and `waitUntil`-based flushing keep working across the
+ * adapter versions our peer range allows. Both accesses fail silently when the shape changes, so
+ * dropping either one costs us events without surfacing an error.
+ *
+ * @see https://github.com/sveltejs/kit/pull/16668
+ */
+export function getCloudflareExecutionContext(platform: unknown): MinimalCloudflareExecutionContext | undefined {
+  const { ctx, context } = (platform ?? {}) as {
+    ctx?: MinimalCloudflareExecutionContext;
+    context?: MinimalCloudflareExecutionContext;
+  };
+
+  return ctx ?? context;
+}
+
 /**
  * Takes a request event and extracts traceparent and DSC data
  * from the `sentry-trace` and `baggage` DSC headers.

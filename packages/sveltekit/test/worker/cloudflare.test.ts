@@ -12,12 +12,12 @@ vi.mock('@sentry/cloudflare/request', async importOriginal => {
 
 const globalWithSentry = globalThis as typeof GLOBAL_OBJ & Carrier;
 
-function getHandlerInput() {
+function getHandlerInput(platformKey: 'context' | 'ctx' = 'context') {
   const options = { dsn: 'https://public@dsn.ingest.sentry.io/1337' };
   const request = { foo: 'bar' };
   const context = { bar: 'baz' };
 
-  const event = { request, platform: { context } };
+  const event = { request, platform: { [platformKey]: context } };
   const resolve = vi.fn(() => Promise.resolve({}));
   return { options, event, resolve, request, context };
 }
@@ -39,8 +39,12 @@ describe('initCloudflareSentryHandle', () => {
     ).toBeDefined();
   });
 
-  it('calls wrapRequestHandler with the correct arguments', async () => {
-    const { options, event, resolve, request, context } = getHandlerInput();
+  // `@sveltejs/adapter-cloudflare` 8 renamed `platform.context` to `platform.ctx`
+  it.each([
+    ['context' as const, 'adapter-cloudflare <= 7'],
+    ['ctx' as const, 'adapter-cloudflare 8'],
+  ])('calls wrapRequestHandler with the correct arguments, reading platform.%s (%s)', async (platformKey, _adapter) => {
+    const { options, event, resolve, request, context } = getHandlerInput(platformKey);
 
     // @ts-expect-error - resolving an empty object is enough for this test
     vi.mocked(wrapRequestHandler).mockImplementationOnce((_, cb) => cb());
