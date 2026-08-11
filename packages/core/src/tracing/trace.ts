@@ -659,7 +659,9 @@ export function spanIsIgnored(span: Span): span is SentryNonRecordingSpan {
 }
 
 function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, finallyCallback?: () => void): T {
-  const wrapper = makeSpanActive ? (callback: () => T) => withActiveSpan(span, callback) : callback;
+  const wrapper = makeSpanActive
+    ? (callback: () => T) => withActiveSpan(span, callback)
+    : (callback: () => T) => callback();
 
   return wrapper(() =>
     handleCallbackErrors(
