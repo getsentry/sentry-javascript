@@ -121,15 +121,20 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
               resolvedFrame.originalCodeFrame,
             );
 
+            const resolvedFilename = resolvedFrame.originalStackFrame.file
+              ? stripWebpackInternalPrefix(resolvedFrame.originalStackFrame.file)
+              : undefined;
+
             return {
               ...frame,
               pre_context: preContextLines,
               context_line: contextLine,
               post_context: postContextLines,
               function: resolvedFrame.originalStackFrame.methodName,
-              filename: resolvedFrame.originalStackFrame.file
-                ? stripWebpackInternalPrefix(resolvedFrame.originalStackFrame.file)
-                : undefined,
+              filename: resolvedFilename,
+              // The parse-time `in_app` is derived from Turbopack's dev chunk names (`node_modules_<pkg>_<hash>.js`,
+              // `[project]/…`), which invert the classification. Re-derive it from the resolved original source path.
+              in_app: resolvedFilename ? !resolvedFilename.includes('node_modules') : frame.in_app,
               lineno:
                 resolvedFrame.originalStackFrame.lineNumber || resolvedFrame.originalStackFrame.line1 || undefined,
               colno: resolvedFrame.originalStackFrame.column || resolvedFrame.originalStackFrame.column1 || undefined,
