@@ -1,6 +1,12 @@
-import type { AIRecordingOptions } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 
-export interface WorkersAiOptions extends AIRecordingOptions {}
+/**
+ * Options for the Workers AI integration.
+ *
+ * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Workers-AI-specific
+ * options can be added here in the future without a breaking signature change.
+ */
+export type WorkersAiOptions = GenAiOptions;
 
 /**
  * Minimal shape of the Cloudflare Workers AI binding (`env.AI`).

@@ -1,22 +1,15 @@
 import { defineIntegration, waitForTracingChannelBinding, type IntegrationFn } from '@sentry/core';
+import type { GenAiOptions } from '../ai/core/utils';
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import * as dc from 'node:diagnostics_channel';
 
-export interface VercelAiOptions {
-  /**
-   * Enable or disable input recording. Enabled if `dataCollection.genAI.inputs` is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
-   * Integration-level options take precedence over global `dataCollection` config.
-   */
-  recordInputs?: boolean;
-
-  /**
-   * Enable or disable output recording. Enabled if `dataCollection.genAI.outputs` is `true`
-   * or if you set `isEnabled` to `true` in your ai SDK method telemetry settings.
-   * Integration-level options take precedence over global `dataCollection` config.
-   */
-  recordOutputs?: boolean;
-}
+/**
+ * Options for the Vercel AI integration.
+ *
+ * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Vercel-AI-specific
+ * options can be added here in the future without a breaking signature change.
+ */
+export type VercelAiOptions = GenAiOptions;
 
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {
   return {
