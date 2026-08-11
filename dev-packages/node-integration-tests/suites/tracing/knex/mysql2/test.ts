@@ -22,7 +22,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
-                'network.peer.port': 3307,
+                'server.port': 3307,
               }),
               status: 'ok',
               description:
@@ -38,7 +38,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
-                'network.peer.port': 3307,
+                'server.port': 3307,
               }),
               status: 'ok',
               description: 'insert into `User` (`email`, `name`) values (?, ?)',

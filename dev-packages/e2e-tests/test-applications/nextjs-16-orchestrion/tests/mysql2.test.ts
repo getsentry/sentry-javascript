@@ -25,7 +25,7 @@ test('Instruments mysql2 automatically via orchestrion', async ({ baseURL }) => 
         'db.statement': 'SELECT 1 + 1 AS solution',
         'db.user': 'root',
         'server.address': expect.any(String),
-        'network.peer.port': 3306,
+        'server.port': 3306,
       }),
     }),
   );

@@ -62,6 +62,6 @@ Deno.test('mongoose instrumentation: orchestrion:mongoose:model_save channel pro
   assertEquals(mongooseSpan!.data?.['db.operation'], 'save');
   assertEquals(mongooseSpan!.data?.['db.user'], 'root');
   assertEquals(mongooseSpan!.data?.['server.address'], '127.0.0.1');
-  assertEquals(mongooseSpan!.data?.['network.peer.port'], 27017);
+  assertEquals(mongooseSpan!.data?.['server.port'], 27017);
   assertEquals(mongooseSpan!.data?.['sentry.origin'], 'auto.db.mongoose');
 });

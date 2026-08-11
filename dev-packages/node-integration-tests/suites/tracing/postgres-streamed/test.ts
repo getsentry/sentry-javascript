@@ -32,7 +32,7 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'localhost',
   },
-  'network.peer.port': {
+  'server.port': {
     type: 'integer',
     value: expect.any(Number),
   },

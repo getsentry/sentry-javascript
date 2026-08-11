@@ -21,7 +21,7 @@ describe('knex auto instrumentation', () => {
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
-                'network.peer.port': 5445,
+                'server.port': 5445,
               }),
               status: 'ok',
               description:
@@ -36,7 +36,7 @@ describe('knex auto instrumentation', () => {
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
-                'network.peer.port': 5445,
+                'server.port': 5445,
               }),
               status: 'ok',
               // In the knex-otel spans, the placeholders (e.g., `$1`) are replaced by a `?`.

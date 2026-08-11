@@ -24,7 +24,7 @@ test('Instruments knex automatically via orchestrion', async ({ baseURL }) => {
         'sentry.origin': 'auto.db.knex',
         'sentry.op': 'db',
         'server.address': 'localhost',
-        'network.peer.port': 5432,
+        'server.port': 5432,
       }),
     }),
   );

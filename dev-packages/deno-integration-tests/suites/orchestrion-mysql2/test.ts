@@ -56,6 +56,6 @@ Deno.test('mysql2 instrumentation: orchestrion:mysql2:query channel produces a n
   assertEquals(mysqlSpan!.data?.['db.name'], 'mydb');
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');
-  assertEquals(mysqlSpan!.data?.['network.peer.port'], 3306);
+  assertEquals(mysqlSpan!.data?.['server.port'], 3306);
   assertEquals(mysqlSpan!.data?.['sentry.origin'], 'auto.db.mysql2');
 });

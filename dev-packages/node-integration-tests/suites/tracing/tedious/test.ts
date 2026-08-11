@@ -20,7 +20,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
         'db.name': 'master',
         'db.user': 'sa',
         'server.address': '127.0.0.1',
-        'network.peer.port': 1433,
+        'server.port': 1433,
       }),
       ...overrides,
     });

@@ -47,7 +47,7 @@ describe('mysql auto instrumentation', () => {
           ...(origin ? { 'sentry.origin': origin } : {}),
           'db.system': 'mysql',
           'server.address': 'localhost',
-          'network.peer.port': port,
+          'server.port': port,
           'db.user': 'root',
         }),
         status: 'ok',
@@ -200,7 +200,7 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'localhost',
         },
-        'network.peer.port': {
+        'server.port': {
           type: 'integer',
           value: expect.any(Number),
         },

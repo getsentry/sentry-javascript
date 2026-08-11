@@ -90,7 +90,7 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
           'db.user': 'root',
           'db.connection_string': expect.any(String),
           'server.address': expect.any(String),
-          'network.peer.port': 3306,
+          'server.port': 3306,
         }),
       }),
     );
@@ -106,7 +106,7 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
           'db.user': 'root',
           'db.connection_string': expect.any(String),
           'server.address': expect.any(String),
-          'network.peer.port': 3306,
+          'server.port': 3306,
         }),
       }),
     );

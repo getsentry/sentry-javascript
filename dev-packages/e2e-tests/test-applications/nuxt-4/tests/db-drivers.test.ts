@@ -76,7 +76,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),
-        'network.peer.port': 3306,
+        'server.port': 3306,
       }),
     }),
   );
@@ -92,7 +92,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),
-        'network.peer.port': 3306,
+        'server.port': 3306,
       }),
     }),
   );

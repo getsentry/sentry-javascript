@@ -93,7 +93,7 @@ Deno.test('mysql instrumentation: orchestrion:mysql:query channel produces a nes
   assertEquals(mysqlSpan!.data?.['db.system'], 'mysql');
   assertEquals(mysqlSpan!.data?.['db.statement'], 'SELECT 1 AS solution');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');
-  assertEquals(mysqlSpan!.data?.['network.peer.port'], 3306);
+  assertEquals(mysqlSpan!.data?.['server.port'], 3306);
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
   assertEquals(mysqlSpan!.data?.['sentry.origin'], 'auto.db.mysql');
 });
