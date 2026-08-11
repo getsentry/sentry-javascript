@@ -82,6 +82,12 @@ export function instrumentAppInstancePerformance(
   appInstance: ApplicationInstance,
   options?: Partial<Parameters<typeof browserTracingIntegration>[0]>,
 ): void {
+  // Disable in FastBoot — we only want to run Sentry client-side
+  const fastboot = appInstance.lookup('service:fastboot') as unknown as { isFastBoot: boolean } | undefined;
+  if (fastboot?.isFastBoot) {
+    return;
+  }
+
   addIntegration(
     browserTracingIntegration({
       ...options,
