@@ -4,14 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:build-webpack": "pnpm install && pnpm build-webpack",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
@@ -42,5 +47,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-otlp (webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      }
+    ]
   }
 }

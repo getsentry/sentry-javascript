@@ -11,6 +11,10 @@ const getStartCommand = () => {
     return 'pnpm next dev -p 3030 2>&1 | tee .tmp_dev_server_logs';
   }
 
+  if (testEnv === 'development-webpack') {
+    return 'pnpm next dev -p 3030 --webpack 2>&1 | tee .tmp_dev_server_logs';
+  }
+
   if (testEnv === 'production') {
     return 'pnpm next start -p 3030';
   }
