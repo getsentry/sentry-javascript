@@ -84,20 +84,17 @@ test('keeps exporting the app-owned spans over OTLP', async ({ baseURL }) => {
 });
 
 test('sends no transactions to Sentry', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('nextjs-otlp', () => true);
+  const transactionPromise = waitForTransaction('nextjs-otlp', () => true).then(() => 'transaction');
+  // The second request's error fences the first request's telemetry: anything Sentry sent for
+  // request 456, transaction included, is queued on the transport before it.
+  const fenceErrorPromise = waitForError('nextjs-otlp', event => {
+    return event.exception?.values?.[0]?.value === 'This is an exception with id 457';
+  }).then(() => 'fence');
 
   await triggerTelemetry(baseURL as string, '456');
-  // The error for the same request has arrived by now, so a transaction would have too.
-  await waitForError('nextjs-otlp', event => {
-    return event.exception?.values?.[0]?.value === 'This is an exception with id 456';
-  });
+  await triggerTelemetry(baseURL as string, '457');
 
-  const transaction = await Promise.race([
-    transactionPromise,
-    new Promise(resolve => setTimeout(() => resolve(undefined), 3000)),
-  ]);
-
-  expect(transaction).toBeUndefined();
+  expect(await Promise.race([transactionPromise, fenceErrorPromise])).toBe('fence');
 });
 
 test('keeps concurrent requests on separate traces', async ({ baseURL }) => {
