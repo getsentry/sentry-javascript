@@ -984,7 +984,23 @@ Sentry.init({
 
 The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
 
-## 6. Type Changes
+### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
+
+Affected SDKs: `@sentry/sveltekit`.
+
+The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
+
+```ts
+// vite.config.ts
+
+// before
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+// after
+import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+```
+
+The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
