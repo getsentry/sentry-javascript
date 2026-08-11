@@ -11,11 +11,11 @@ import {
 import { captureFeedback } from '../../src/feedback';
 import type { Span } from '../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { resetGlobals } from '../testutils';
 
 describe('captureFeedback', () => {
   beforeEach(() => {
-    getCurrentScope().setClient(undefined);
-    getCurrentScope().clear();
+    resetGlobals();
   });
 
   test('it works without a client', () => {

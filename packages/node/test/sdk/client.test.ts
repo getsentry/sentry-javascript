@@ -1,6 +1,6 @@
 import { ProxyTracer } from '@opentelemetry/api';
 import type { Event, EventHint, Log } from '@sentry/core';
-import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
+import { getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
 import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as os from 'os';
@@ -11,10 +11,7 @@ import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('NodeClient', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getGlobalScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
     setOpenTelemetryContextAsyncContextStrategy();
   });
 

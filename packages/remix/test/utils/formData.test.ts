@@ -24,7 +24,7 @@ function applyTo(formData: FormData, keys: Record<string, string | boolean> | un
   const attributes: Record<string, unknown> = {};
   const span = { setAttribute: (key: string, value: unknown) => void (attributes[key] = value) } as unknown as Span;
 
-  applyFormDataAttributes(span, formData, { keys }, 'formData.');
+  applyFormDataAttributes(span, formData, { keys });
 
   return attributes;
 }
@@ -57,31 +57,34 @@ describe('applyFormDataAttributes', () => {
   it('sets only allowlisted fields', () => {
     const attributes = applyTo(formDataOf({ username: 'alice', bio: 'ignored' }), { username: true });
 
-    expect(attributes).toEqual({ 'formData.username': 'alice' });
+    expect(attributes).toEqual({ 'remix.action_form_data.username': 'alice' });
   });
 
   it('applies renames', () => {
     const attributes = applyTo(formDataOf({ username: 'alice' }), { username: 'user' });
 
-    expect(attributes).toEqual({ 'formData.user': 'alice' });
+    expect(attributes).toEqual({ 'remix.action_form_data.user': 'alice' });
   });
 
   it('sets every field when no keys are configured', () => {
     const attributes = applyTo(formDataOf({ username: 'alice', bio: 'hello' }), undefined);
 
-    expect(attributes).toEqual({ 'formData.username': 'alice', 'formData.bio': 'hello' });
+    expect(attributes).toEqual({ 'remix.action_form_data.username': 'alice', 'remix.action_form_data.bio': 'hello' });
   });
 
   it('filters sensitive values when capturing all fields', () => {
     const attributes = applyTo(formDataOf({ username: 'alice', password: 'hunter2' }), undefined);
 
-    expect(attributes).toEqual({ 'formData.username': 'alice', 'formData.password': '[Filtered]' });
+    expect(attributes).toEqual({
+      'remix.action_form_data.username': 'alice',
+      'remix.action_form_data.password': '[Filtered]',
+    });
   });
 
   it('filters sensitive values even when explicitly allowlisted', () => {
     const attributes = applyTo(formDataOf({ password: 'hunter2' }), { password: true });
 
-    expect(attributes).toEqual({ 'formData.password': '[Filtered]' });
+    expect(attributes).toEqual({ 'remix.action_form_data.password': '[Filtered]' });
   });
 
   it('still filters a sensitive field renamed after rename', () => {
@@ -90,14 +93,14 @@ describe('applyFormDataAttributes', () => {
     // value ships in the clear.
     const attributes = applyTo(formDataOf({ password: 'hunter2' }), { password: 'pw' });
 
-    expect(attributes).toEqual({ 'formData.pw': '[Filtered]' });
+    expect(attributes).toEqual({ 'remix.action_form_data.pw': '[Filtered]' });
   });
 
   it('reports the filename for file uploads, not the contents', () => {
     const formData = new FormData();
     formData.append('avatar', new Blob(['file contents']), 'avatar.png');
 
-    expect(applyTo(formData, undefined)).toEqual({ 'formData.avatar': 'avatar.png' });
+    expect(applyTo(formData, undefined)).toEqual({ 'remix.action_form_data.avatar': 'avatar.png' });
   });
 
   it('reports a placeholder for unnamed non-string values', () => {
@@ -105,7 +108,7 @@ describe('applyFormDataAttributes', () => {
     // An appended Blob with no filename reports as `blob` in undici; force the empty-name case.
     formData.append('avatar', new Blob(['x']), '');
 
-    expect(applyTo(formData, undefined)).toEqual({ 'formData.avatar': '[non-string value]' });
+    expect(applyTo(formData, undefined)).toEqual({ 'remix.action_form_data.avatar': '[non-string value]' });
   });
 
   it('sets nothing for an empty form', () => {

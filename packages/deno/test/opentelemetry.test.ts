@@ -1,13 +1,11 @@
+import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import { init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function cleanupOtel(): void {

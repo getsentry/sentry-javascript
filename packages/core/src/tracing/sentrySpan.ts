@@ -50,12 +50,7 @@ import { isStaticBeforeSendSpanCallback } from './spans/beforeSendSpan';
 import { captureSpan, captureStandaloneSpanWithStaticCallback } from './spans/captureSpan';
 import { createStreamedSpanEnvelope } from './spans/envelope';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import {
-  getCapturedScopesOnSpan,
-  markSpanSourceAsExplicit,
-  spanIsTracerProviderSpan,
-  spanShouldInferOtelSource,
-} from './utils';
+import { getCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -195,12 +190,6 @@ export class SentrySpan implements Span {
       this._attributes[key] = value;
     }
 
-    // Setting the source on a span branded for OTel-style inference means user code is choosing it
-    // explicitly, so flag it to keep `applyOtelSpanData` from overriding it with an inferred source.
-    if (key === SEMANTIC_ATTRIBUTE_SENTRY_SOURCE && value !== undefined && spanShouldInferOtelSource(this)) {
-      markSpanSourceAsExplicit(this);
-    }
-
     return this;
   }
 
@@ -244,14 +233,9 @@ export class SentrySpan implements Span {
       return this;
     }
     this._name = name;
-    // Renaming a span marks its name as explicitly chosen, so we stamp `custom`.
-    // The exception is spans created by SentryTraceProvider: those are branded for
-    // OTel-style source inference at span end (mirroring OTel SDK spans, which have
-    // no Sentry source concept), so instrumentations renaming them must not pin
-    // `custom` — applyOtelSpanData infers the correct source (e.g. 'route', 'task').
-    if (!spanShouldInferOtelSource(this)) {
-      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
-    }
+    // Updating the name sets the source to custom
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
     return this;
   }
 
@@ -272,8 +256,7 @@ export class SentrySpan implements Span {
     this._onSpanEnded();
 
     // A span created by the SentryTracerProvider is handed to OTel instrumentations as an OTel span,
-    // so once end-of-span processing is done (including the `spanEnd` hook where `applyOtelSpanData`
-    // finalizes status/source) it is sealed against further writes — mirroring the OpenTelemetry SDK,
+    // so once end-of-span processing is done it is sealed against further writes — mirroring the OpenTelemetry SDK,
     // where setters no-op after a span has ended. Without this, an instrumentation that sets
     // status/attributes after `end()` (e.g. Next.js on a render error) would overwrite the finalized
     // values, and the deferred capture would then serialize those late writes. Spans created directly

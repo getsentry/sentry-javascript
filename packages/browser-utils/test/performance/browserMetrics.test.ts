@@ -1,8 +1,7 @@
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
-  getCurrentScope,
-  getIsolationScope,
+  getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
@@ -46,8 +45,7 @@ function mockPerformanceResourceTiming(
 describe('addWebVitalsToSpan', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(
       getDefaultClientOptions({
@@ -151,8 +149,7 @@ describe('_addResourceSpans', () => {
   });
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(
       getDefaultClientOptions({
@@ -590,8 +587,7 @@ describe('_addNavigationSpans', () => {
   });
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(
       getDefaultClientOptions({

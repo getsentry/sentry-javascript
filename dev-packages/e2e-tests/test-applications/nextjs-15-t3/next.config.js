@@ -6,6 +6,10 @@ const config = {};
 import { withSentryConfig } from '@sentry/nextjs';
 
 export default withSentryConfig(config, {
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
   silent: true,
 });

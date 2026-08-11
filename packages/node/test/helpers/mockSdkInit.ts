@@ -1,15 +1,12 @@
 import { context, propagation, trace } from '@opentelemetry/api';
-import { createTransport, getCurrentScope, getGlobalScope, getIsolationScope, resolvedSyncPromise } from '@sentry/core';
+import { createTransport, getMainCarrier, resolvedSyncPromise } from '@sentry/core';
 import { init } from '../../src/sdk';
 import type { NodeClientOptions } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 export function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 export function mockSdkInit(options?: Partial<NodeClientOptions>) {

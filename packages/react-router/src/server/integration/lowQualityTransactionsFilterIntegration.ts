@@ -1,6 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
 
 const LOW_QUALITY_TRANSACTIONS_FILTERS = [
   /GET \/node_modules\//,
@@ -11,8 +10,7 @@ const LOW_QUALITY_TRANSACTIONS_FILTERS = [
   { attributes: { 'http.target': /\/__manifest/ } },
 ];
 
-// TODO(v11): Remove the `_options` parameter (unused and only kept for back-compat with the previous signature)
-const _lowQualityTransactionsFilterIntegration = ((_options?: NodeOptions) => ({
+const _lowQualityTransactionsFilterIntegration = (() => ({
   name: 'LowQualityTransactionsFilter' as const,
   beforeSetup(client) {
     const opts = client.getOptions();

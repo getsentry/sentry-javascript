@@ -26,7 +26,7 @@ export async function storeFormDataKeys(
     // https://remix.run/docs/en/main/utils/parse-multipart-form-data#unstable_parsemultipartformdata
     const formData = await clonedRequest.formData();
 
-    applyFormDataAttributes(span, formData, formDataCapture, 'remix.action_form_data.');
+    applyFormDataAttributes(span, formData, formDataCapture);
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to read FormData from request', e);
   }

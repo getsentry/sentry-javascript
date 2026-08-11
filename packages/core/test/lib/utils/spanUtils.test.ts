@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
+  getCurrentScope,
+  Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -16,12 +18,15 @@ import {
   startSpan,
   timestampInSeconds,
   TRACEPARENT_REGEXP,
+  withScope,
 } from '../../../src';
 import type { SpanLink } from '../../../src/types/link';
 import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types/span';
 import type { SpanStatus } from '../../../src/types/spanStatus';
+import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
+  getActiveSpan,
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,
@@ -776,6 +781,60 @@ describe('getRootSpan', () => {
           expect(getRootSpan(inactiveSpan)).toBe(root);
         });
       });
+    });
+  });
+});
+
+describe('getActiveSpan', () => {
+  beforeEach(() => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+  });
+
+  it('returns undefined if no span is active on the current scope', () => {
+    expect(getActiveSpan()).toBeUndefined();
+  });
+
+  it('returns the span active on the current scope', () => {
+    startSpan({ name: 'test' }, span => {
+      expect(getActiveSpan()).toBe(span);
+    });
+  });
+
+  it('returns the span for the passed-in scope instead of the current scope', () => {
+    const span = new SentrySpan({ name: 'test' });
+    const scope = new Scope();
+    _setSpanForScope(scope, span);
+
+    expect(getActiveSpan(scope)).toBe(span);
+  });
+
+  it('returns the span of the passed-in scope even when a different span is active on the current scope', () => {
+    const scopeSpan = new SentrySpan({ name: 'scope-span' });
+    const scope = new Scope();
+    _setSpanForScope(scope, scopeSpan);
+
+    startSpan({ name: 'active-span' }, activeSpan => {
+      expect(getActiveSpan()).toBe(activeSpan);
+      expect(getActiveSpan(scope)).toBe(scopeSpan);
+    });
+  });
+
+  it('returns undefined if the passed-in scope has no span', () => {
+    const scope = new Scope();
+
+    startSpan({ name: 'active-span' }, () => {
+      expect(getActiveSpan(scope)).toBeUndefined();
+    });
+  });
+
+  it('reads the span from the current scope when no scope is passed in', () => {
+    const span = new SentrySpan({ name: 'test' });
+
+    withScope(scope => {
+      _setSpanForScope(scope, span);
+      expect(scope).toBe(getCurrentScope());
+      expect(getActiveSpan()).toBe(span);
     });
   });
 });

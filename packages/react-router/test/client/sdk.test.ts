@@ -1,5 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
-import { getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/browser';
+import { SDK_VERSION } from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init as reactRouterInit } from '../../src/client';
@@ -13,10 +13,7 @@ describe('React Router client SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      getGlobalScope().clear();
-      getIsolationScope().clear();
-      getCurrentScope().clear();
-      getCurrentScope().setClient(undefined);
+      SentryCore.getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds React Router metadata to the SDK options', () => {

@@ -1,3 +1,4 @@
+import { getMainCarrier } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../src/index.client';
@@ -10,10 +11,7 @@ describe('Client init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
 
-    SentryReact.getGlobalScope().clear();
-    SentryReact.getIsolationScope().clear();
-    SentryReact.getCurrentScope().clear();
-    SentryReact.getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('inits the React SDK', () => {

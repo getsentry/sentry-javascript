@@ -4,6 +4,7 @@ import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
+import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -429,14 +430,14 @@ export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
 /**
  * Returns the currently active span.
  */
-export function getActiveSpan(): Span | undefined {
+export function getActiveSpan(scope?: Scope): Span | undefined {
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
   if (acs.getActiveSpan) {
-    return acs.getActiveSpan();
+    return acs.getActiveSpan(scope);
   }
 
-  return _getSpanForScope(getCurrentScope());
+  return _getSpanForScope(scope || getCurrentScope());
 }
 
 /**
