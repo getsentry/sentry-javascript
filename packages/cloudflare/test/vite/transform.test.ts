@@ -401,6 +401,18 @@ describe('Workflow class wrapping', () => {
     expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
   });
 
+  it('wraps a workflow class re-exported from another module', () => {
+    const code = "export { MyWorkflow } from './workflow';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain("import { MyWorkflow as __SENTRY_REEXPORT_MyWorkflow__ } from './workflow';");
+    expect(result.code).toContain(
+      'const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__.instrumentWorkflowWithSentry((env) => ({}), __SENTRY_REEXPORT_MyWorkflow__);',
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
+    expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
+  });
+
   it('counts a manually wrapped workflow export as wrapped without touching it', () => {
     const code = [
       "import { instrumentWorkflowWithSentry } from '@sentry/cloudflare';",
@@ -533,9 +545,42 @@ describe('WorkerEntrypoint class wrapping (config fallback)', () => {
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
+  it('wraps a configured entrypoint re-exported from another module', () => {
+    const code = "export { AdminEntry } from './admin';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain("import { AdminEntry as __SENTRY_REEXPORT_AdminEntry__ } from './admin';");
+    expect(result.code).toContain(
+      'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_REEXPORT_AdminEntry__);',
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
+  });
+
   it('ignores an entrypoint that is neither structurally detected nor configured', () => {
     const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
     const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
+    expect(transform(code, other)).toBeUndefined();
+  });
+
+  // Structural detection reads the entry's own AST, so it can only ever name a class declared
+  // there — an unconfigured re-export has no base chain to inspect and must be left alone.
+  it('does not wrap a re-export that is only structurally detectable', () => {
+    const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+    const code = "export { AdminEntry } from './admin';";
+    expect(transform(code, other)).toBeUndefined();
+  });
+
+  // In `export { X } from '...'` the specifier's "local" name belongs to the *source* module, so it
+  // must never be matched against classes detected in this one — they are unrelated bindings that
+  // merely share a name.
+  it('does not wrap a re-export whose source name collides with a local entrypoint class', () => {
+    const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      "export { AdminEntry } from './admin';",
+    ].join('\n');
+
     expect(transform(code, other)).toBeUndefined();
   });
 });

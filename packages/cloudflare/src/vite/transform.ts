@@ -279,6 +279,11 @@ function buildMergedOptionsDeclaration(
  * `WorkerEntrypoint` subclass (matched by its *local* name) gets wrapped with
  * `withSentry`.
  *
+ * `localName` is the binding **in this module** the export refers to, and must be
+ * left undefined for `export { X } from '...'`: there the specifier's name belongs
+ * to the source module, so matching it against anything detected here would wrap a
+ * class that merely shares a name.
+ *
  * The one case where config is refined rather than obeyed is an `agents` Agent:
  * it *is* a Durable Object, so wrangler can only ever describe it as one, and
  * only the detected base chain distinguishes the two.
@@ -289,14 +294,14 @@ function resolveWrapperKind(
   state: TransformState,
 ): ClassWrapperKind | undefined {
   const configured = state.classWrappers.get(exportedName);
-  // Detection keys Agents by whichever name it could resolve the base chain from: the local binding
-  // for a class or import, the exported name for `export { X } from './x'` (which has no local one).
+
   if (
     configured === 'durableObject' &&
     ((localName && state.agentClasses.has(localName)) || state.agentClasses.has(exportedName))
   ) {
     return 'agent';
   }
+
   if (configured) return configured;
   if (localName && state.workerEntrypointClasses.has(localName)) return 'workerEntrypoint';
   return undefined;
@@ -489,7 +494,10 @@ function wrapCrossModuleSpecifier(
       ? specifier.exported.name
       : undefined;
   const localName = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
-  const kind = exportedName ? resolveWrapperKind(exportedName, localName, state) : undefined;
+  // With a `from` clause the specifier names an export of the *source* module, not a binding here.
+  const kind = exportedName
+    ? resolveWrapperKind(exportedName, sourceLiteral ? undefined : localName, state)
+    : undefined;
 
   if (!exportedName || !localName || !kind) return undefined;
 
