@@ -64,7 +64,7 @@
     "@sentry/replay": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
     "@sentry/conventions": "0.19.0",
-    "@supabase/supabase-js": "2.112.2",
+    "@supabase/supabase-js": "2.109.0",
     "axios": "1.18.0",
     "babel-loader": "^10.1.1",
     "fflate": "0.8.2",
