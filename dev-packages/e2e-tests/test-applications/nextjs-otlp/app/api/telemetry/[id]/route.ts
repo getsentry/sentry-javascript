@@ -9,8 +9,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return trace.getTracer('nextjs-otlp').startActiveSpan('telemetry-handler', span => {
     const { traceId, spanId } = span.spanContext();
 
-    // OpenTelemetry JS does not implement exemplars, so the trace has to be carried on the metric
-    // as an attribute for the two to be connectable.
+    // Test-only shortcut, do not copy this into an app. Exemplars are how a metric data point is
+    // meant to reference a trace, but OpenTelemetry JS ships them unwired, so the trace id has to
+    // ride along as an attribute instead. Attributes form the time series identity, so a trace id
+    // mints a fresh series per request. That is fine for five requests and ruinous at volume.
     metrics.getMeter('nextjs-otlp').createCounter('otlp.test.count').add(1, { id, 'trace.id': traceId });
 
     Sentry.captureException(new Error(`This is an exception with id ${id}`));
