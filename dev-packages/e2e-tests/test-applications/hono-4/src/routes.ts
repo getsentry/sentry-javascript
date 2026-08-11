@@ -66,6 +66,16 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
     },
     c => c.text('main inline all'),
   );
+  app.query(
+    '/test-main-inline/query',
+    async function mainInlineQuery(_c, next) {
+      await next();
+    },
+    async c => {
+      const body = await c.req.json<{ value: string }>();
+      return c.json({ method: c.req.method, value: body.value });
+    },
+  );
 
   // Combined: .use() middleware + inline middleware via .get() on the same path.
   app.use('/test-main-inline/combined/*', middlewareA);
