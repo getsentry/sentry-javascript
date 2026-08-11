@@ -112,7 +112,7 @@ export function initialize(appInstance: ApplicationInstance): void {
     instrumentNavigation: true,
 
     // Idle timeout (ms)
-    idleTimeout: 5000,
+    idleTimeout: 1000,
   });
 }
 
@@ -267,12 +267,12 @@ export default { initialize };
 
 ## Troubleshooting
 
-### "Cannot find module '@sentry/ember/performance'"
+### "Cannot find module" when importing Sentry utilities
 
-Make sure you're importing from the correct path:
+All exports — including the Ember-specific `init`, `browserTracingIntegration`, `instrumentAppInstancePerformance` and `instrumentRoutePerformance` — come from the top-level `@sentry/ember` entry point. There are no subpath imports:
 
 ```typescript
-import { browserTracingIntegration } from '@sentry/ember';
+import { browserTracingIntegration, instrumentAppInstancePerformance } from '@sentry/ember';
 ```
 
 ### Performance spans not appearing

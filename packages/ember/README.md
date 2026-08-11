@@ -15,7 +15,7 @@ This SDK is a v2 Ember addon that provides error tracking and performance monito
 ## Requirements
 
 - Ember.js 4.0+
-- Node.js 18+
+- Node.js 20.19.0+
 
 ## Installation
 
@@ -85,20 +85,7 @@ export default {
 | `minimumComponentRenderDuration` | `number`              | `2`        | Minimum duration (ms) for component spans |
 | `instrumentPageLoad`             | `boolean`             | `true`     | Instrument page load spans                |
 | `instrumentNavigation`           | `boolean`             | `true`     | Instrument navigation spans               |
-| `idleTimeout`                    | `number`              | `5000`     | Idle timeout (ms) for tracing             |
-
-You can also use the convenience function `setupPerformance`:
-
-```typescript
-import type ApplicationInstance from '@ember/application/instance';
-import { setupPerformance } from '@sentry/ember';
-
-export function initialize(appInstance: ApplicationInstance): void {
-  setupPerformance(appInstance);
-}
-
-export default { initialize };
-```
+| `idleTimeout`                    | `number`              | `1000`     | Idle timeout (ms) for tracing             |
 
 ### Route Performance Instrumentation
 
@@ -155,7 +142,7 @@ If you're upgrading from an older version of `@sentry/ember` (v1 addon format), 
 
 ### What Changed
 
-1. **No automatic instance initializer**: You must now explicitly set up performance instrumentation by creating an instance-initializer with `browserTracingIntegration({ appInstance })`.
+1. **No automatic instance initializer**: You must now explicitly set up performance instrumentation by creating an instance-initializer that calls `instrumentAppInstancePerformance(appInstance)`.
 
 2. **No `contentFor` hooks**: The addon no longer injects scripts via `contentFor`.
 
@@ -167,7 +154,7 @@ If you're upgrading from an older version of `@sentry/ember` (v1 addon format), 
 
 1. Update your `app/app.ts` to call `Sentry.init()` directly with your configuration.
 
-2. Create `app/instance-initializers/sentry-performance.ts` to set up performance monitoring using `browserTracingIntegration`.
+2. Create `app/instance-initializers/sentry-performance.ts` to set up performance monitoring using `instrumentAppInstancePerformance`.
 
 3. Remove any `@sentry/ember` configuration from `config/environment.js`.
 
