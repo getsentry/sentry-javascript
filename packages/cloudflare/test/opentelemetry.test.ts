@@ -75,7 +75,6 @@ describe('opentelemetry compatibility', () => {
     expect(transactionEvent?.spans?.length).toBe(0);
     expect(transactionEvent?.transaction).toBe('test');
     expect(transactionEvent?.contexts?.trace?.data).toEqual({
-      'sentry.cloudflare_tracer': true,
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
       'sentry.source': 'custom',
@@ -84,7 +83,6 @@ describe('opentelemetry compatibility', () => {
     expect(transactionEvent2?.spans?.length).toBe(1);
     expect(transactionEvent2?.transaction).toBe('test 2');
     expect(transactionEvent2?.contexts?.trace?.data).toEqual({
-      'sentry.cloudflare_tracer': true,
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
       'sentry.source': 'custom',
@@ -95,7 +93,6 @@ describe('opentelemetry compatibility', () => {
       expect.objectContaining({
         description: 'test 3',
         data: {
-          'sentry.cloudflare_tracer': true,
           'sentry.origin': 'manual',
           'test.attribute': 'test2',
         },
@@ -141,7 +138,6 @@ describe('opentelemetry compatibility', () => {
       expect.objectContaining({
         description: 'otel span',
         data: {
-          'sentry.cloudflare_tracer': true,
           'sentry.origin': 'manual',
         },
       }),
