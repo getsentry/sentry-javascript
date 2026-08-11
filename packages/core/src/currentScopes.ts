@@ -1,11 +1,9 @@
 import { getAsyncContextStrategy } from './asyncContext';
-import { getGlobalSingleton, getMainCarrier } from './carrier';
+import { getGlobalSingleton, getMainCarrier, getSentryCarrier } from './carrier';
 import type { Client } from './client';
 import { Scope } from './scope';
 import type { TraceContext } from './types/context';
 import { generateSpanId } from './utils/propagationContext';
-
-let _externalPropagationContextProvider: (() => { traceId: string; spanId: string } | undefined) | undefined;
 
 /**
  * Register an external propagation context provider function.
@@ -13,21 +11,24 @@ let _externalPropagationContextProvider: (() => { traceId: string; spanId: strin
  * instead of from the Sentry scope's propagation context.
  */
 export function registerExternalPropagationContext(fn: () => { traceId: string; spanId: string } | undefined): void {
-  _externalPropagationContextProvider = fn;
+  // Kept on the carrier rather than in module state: bundlers routinely emit more than one copy of
+  // `@sentry/core` (e.g. one per Next.js server chunk), and the copy the integration registers on is
+  // usually not the copy that reads it back when an event is assembled.
+  getSentryCarrier(getMainCarrier()).externalPropagationContextProvider = fn;
 }
 
 /**
  * Get the external propagation context, if a provider has been registered.
  */
 export function getExternalPropagationContext(): { traceId: string; spanId: string } | undefined {
-  return _externalPropagationContextProvider?.();
+  return getSentryCarrier(getMainCarrier()).externalPropagationContextProvider?.();
 }
 
 /**
  * Check if an external propagation context provider has been registered.
  */
 export function hasExternalPropagationContext(): boolean {
-  return _externalPropagationContextProvider !== undefined;
+  return getSentryCarrier(getMainCarrier()).externalPropagationContextProvider !== undefined;
 }
 
 /**
