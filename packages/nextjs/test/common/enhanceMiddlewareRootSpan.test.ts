@@ -88,8 +88,8 @@ describe('enhanceMiddlewareRootSpan', () => {
     ['middleware POST /api/protected?token=abc', 'middleware POST'],
     ['middleware DELETE /resources/[id]', 'middleware DELETE'],
     ['middleware HEAD /', 'middleware HEAD'],
-  ])('collapses "%s" to "%s"', (spanName, expected) => {
-    const { span, getName, getOp } = makeSpan(
+  ])('collapses "%s" to "%s" and sets a route source', (spanName, expected) => {
+    const { span, getName, getOp, getSource } = makeSpan(
       { [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute', [ATTR_NEXT_SPAN_NAME]: spanName },
       spanName,
     );
@@ -98,6 +98,23 @@ describe('enhanceMiddlewareRootSpan', () => {
 
     expect(getName()).toBe(expected);
     expect(getOp()).toBe('middleware');
+    expect(getSource()).toBe('route');
+  });
+
+  it('overrides a url source with route when collapsing an edge middleware name', () => {
+    const { span, getName, getSource } = makeSpan(
+      {
+        [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute',
+        [ATTR_NEXT_SPAN_NAME]: 'middleware GET /foo',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+      'middleware GET /foo',
+    );
+
+    enhanceMiddlewareRootSpan(span);
+
+    expect(getName()).toBe('middleware GET');
+    expect(getSource()).toBe('route');
   });
 
   it('normalizes the plain "middleware {METHOD}" name emitted for Node.js middleware', () => {
