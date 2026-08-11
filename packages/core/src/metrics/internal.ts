@@ -128,7 +128,7 @@ function _buildSerializedMetric(
   metric: Metric,
   client: Client,
   currentScope: Scope,
-  scopeAttributes: RawAttributes<Record<string, unknown>> | undefined,
+  scopeAttributes: RawAttributes<Record<string, unknown>>,
 ): SerializedMetric {
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
