@@ -15,13 +15,10 @@ type Payload = {
 };
 
 type RenderEntry = {
-  payload: Payload;
   now: number;
 };
 
-interface RenderEntries {
-  [name: string]: RenderEntry;
-}
+export type RenderEntries = WeakMap<Payload, RenderEntry>;
 
 /** This is global, so should only be run once in tests! */
 export function instrumentGlobalsForPerformance(config: {
@@ -127,25 +124,25 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
   });
 }
 
-function processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
-  const info = {
-    payload,
-    now: timestampInSeconds(),
-  };
-  beforeEntries[payload.object] = info;
+export function _processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
+  beforeEntries.set(payload, { now: timestampInSeconds() });
 }
 
-function processComponentRenderAfter(
+export function _processComponentRenderAfter(
   payload: Payload,
   beforeEntries: RenderEntries,
   op: string,
   minComponentDuration: number,
 ): void {
-  const begin = beforeEntries[payload.object];
+  const begin = beforeEntries.get(payload);
 
   if (!begin) {
     return;
   }
+
+  // A WeakMap entry cannot outlive its payload, but delete promptly anyway
+  // so a long-lived payload doesn't keep the entry around between renders.
+  beforeEntries.delete(payload);
 
   const now = timestampInSeconds();
   const componentRenderDuration = now - begin.now;
@@ -174,27 +171,27 @@ function _instrumentComponents(config: {
 
   const minComponentDuration = minimumComponentRenderDuration ?? 2;
 
-  const beforeEntries = {} as RenderEntries;
-  const beforeComponentDefinitionEntries = {} as RenderEntries;
+  const beforeEntries: RenderEntries = new WeakMap();
+  const beforeComponentDefinitionEntries: RenderEntries = new WeakMap();
 
   function _subscribeToRenderEvents(): void {
     subscribe('render.component', {
       before(_name: string, _timestamp: number, payload: Payload) {
-        processComponentRenderBefore(payload, beforeEntries);
+        _processComponentRenderBefore(payload, beforeEntries);
       },
 
       after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-        processComponentRenderAfter(payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
+        _processComponentRenderAfter(payload, beforeEntries, BROWSER_UI_RENDER_SPAN_OP, minComponentDuration);
       },
     });
     if (enableComponentDefinitions) {
       subscribe('render.getComponentDefinition', {
         before(_name: string, _timestamp: number, payload: Payload) {
-          processComponentRenderBefore(payload, beforeComponentDefinitionEntries);
+          _processComponentRenderBefore(payload, beforeComponentDefinitionEntries);
         },
 
         after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
-          processComponentRenderAfter(payload, beforeComponentDefinitionEntries, GENERAL_FUNCTION_SPAN_OP, 0);
+          _processComponentRenderAfter(payload, beforeComponentDefinitionEntries, GENERAL_FUNCTION_SPAN_OP, 0);
         },
       });
     }
