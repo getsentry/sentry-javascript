@@ -155,23 +155,31 @@ export function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
-            // Parse input messages
+            // Parse input state. MessagesAnnotation graphs expose a `messages` array. A custom state
+            // annotation exposes arbitrary keys instead, so the whole state is recorded as a fallback
+            // rather than dropped silently.
             const recordInputs = options.recordInputs;
             const recordOutputs = options.recordOutputs;
-            const inputMessages =
-              args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
+            const inputState = args.length > 0 ? args[0] : undefined;
+            const inputMessages = (inputState as { messages?: LangChainMessage[] } | null)?.messages ?? [];
 
-            if (inputMessages && recordInputs) {
-              const normalizedMessages = normalizeLangChainMessages(inputMessages);
-              const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
+            if (recordInputs) {
+              if (inputMessages.length > 0) {
+                const normalizedMessages = normalizeLangChainMessages(inputMessages);
+                const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
 
-              if (systemInstructions) {
-                span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+                if (systemInstructions) {
+                  span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+                }
+
+                span.setAttributes({
+                  [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
+                });
+              } else if (inputState && typeof inputState === 'object') {
+                span.setAttributes({
+                  [GEN_AI_INPUT_MESSAGES]: stringify([{ role: 'user', content: stringify(inputState) }]),
+                });
               }
-
-              span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-              });
             }
 
             // Call original invoke
