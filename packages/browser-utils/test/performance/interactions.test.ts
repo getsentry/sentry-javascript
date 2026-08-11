@@ -86,6 +86,7 @@ describe('interactionsIntegration', () => {
     const spans = getInteractionSpans();
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).name).toBe('/users/:id');
+    expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.browser.interactions' });
   });
 
   it('inherits the source of the route span', () => {
@@ -221,6 +222,6 @@ describe('interactionsIntegration', () => {
 
     const eventSpans = endedSpans.filter(span => spanToJSON(span).attributes['sentry.op'] === 'ui.interaction.click');
     expect(eventSpans).toHaveLength(1);
-    expect(spanToJSON(eventSpans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.ui.browser.metrics' });
+    expect(spanToJSON(eventSpans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.browser.interactions' });
   });
 });

@@ -168,7 +168,7 @@ function registerInteractionListener(
           attributes: {
             [SENTRY_OP]: BROWSER_UI_ACTION_CLICK_SPAN_OP,
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
-            [SENTRY_ORIGIN]: 'auto.ui.browser.interactions',
+            [SENTRY_ORIGIN]: 'auto.browser.interactions',
           },
         },
         idleSpanOptions,
@@ -197,7 +197,7 @@ function trackInteractionsAsSpans(): void {
           startTime: startTime,
           attributes: {
             [SENTRY_OP]: BROWSER_UI_INTERACTION_CLICK_SPAN_OP,
-            [SENTRY_ORIGIN]: 'auto.ui.browser.interactions',
+            [SENTRY_ORIGIN]: 'auto.browser.interactions',
           },
         };
 

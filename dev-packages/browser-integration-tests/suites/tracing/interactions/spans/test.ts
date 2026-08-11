@@ -79,7 +79,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
         type: 'string',
-        value: 'manual', // TODO: This is incorrect but not from span streaming.
+        value: 'auto.browser.interactions',
       },
       [SENTRY_SDK_NAME]: {
         type: 'string',
@@ -140,7 +140,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
         type: 'string',
-        value: 'auto.ui.browser.metrics',
+        value: 'auto.browser.interactions',
       },
       [SENTRY_SDK_NAME]: {
         type: 'string',
