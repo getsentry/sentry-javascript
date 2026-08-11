@@ -7,8 +7,6 @@ import { getCurrentScope } from '../currentScopes';
 import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
@@ -22,7 +20,6 @@ import type {
   Span,
   SpanAttributes,
   SpanJSON,
-  SpanOrigin,
   SpanTimeInput,
   StreamedSpanJSON,
 } from '../types/span';
@@ -167,40 +164,20 @@ function ensureTimestampInSeconds(timestamp: number): number {
  * Convert a span to a static JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
-// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
+// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `sentrySpan.ts` for backwards compatibility.
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
 export function spanToStaticSpanJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getStaticSpanJSON();
   }
 
-  const { spanId: span_id, traceId: trace_id } = span.spanContext();
-
-  // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
-  if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, status, links } = span;
-
-    return {
-      span_id,
-      trace_id,
-      data: attributes,
-      description: name,
-      parent_span_id: getOtelParentSpanId(span),
-      start_timestamp: spanTimeInputToSeconds(startTime),
-      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-      timestamp: spanTimeInputToSeconds(endTime) || undefined,
-      status: getStatusMessage(status),
-      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      links: convertSpanLinksForEnvelope(links),
-    };
-  }
-
-  // Finally, at least we have `spanContext()`....
+  // because `spanToJSON` accepts a `Span` interface rather than a `SentrySpan` instance,
+  // we need to handle the case where the span is not a Sentry span.
   // This should not actually happen in reality, but we need to handle it for type safety.
+  const ctx = span.spanContext();
   return {
-    span_id,
-    trace_id,
+    span_id: ctx.spanId,
+    trace_id: ctx.traceId,
     start_timestamp: 0,
     status: 'ok',
     data: {},
@@ -217,26 +194,8 @@ export function spanToJSON(span: Span): StreamedSpanJSON {
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
 
-  // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
-  if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, status, links } = span;
-
-    return {
-      name,
-      span_id,
-      trace_id,
-      parent_span_id: getOtelParentSpanId(span),
-      start_timestamp: spanTimeInputToSeconds(startTime),
-      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-      end_timestamp: spanTimeInputToSeconds(endTime) || undefined,
-      is_segment: span === INTERNAL_getSegmentSpan(span),
-      status: getSimpleStatus(status),
-      attributes: addStatusMessageAttribute(attributes, status),
-      links: getStreamedSpanLinks(links),
-    };
-  }
-
-  // Finally, as a fallback, at least we have `spanContext()`....
+  // Because `spanToJSON` accepts a `Span` interface rather than a `SentrySpan` instance,
+  // we need to handle the case where the span is not a Sentry span.
   // This should not actually happen in reality, but we need to handle it for type safety.
   return {
     span_id,
@@ -247,20 +206,6 @@ export function spanToJSON(span: Span): StreamedSpanJSON {
     is_segment: span === INTERNAL_getSegmentSpan(span),
     attributes: {},
   };
-}
-
-/**
- * In preparation for the next major of OpenTelemetry, we want to support
- * looking up the parent span id according to the new API
- * In OTel v1, the parent span id is accessed as `parentSpanId`
- * In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
- */
-function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | undefined {
-  return 'parentSpanId' in span
-    ? span.parentSpanId
-    : 'parentSpanContext' in span
-      ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
-      : undefined;
 }
 
 /**
@@ -280,22 +225,6 @@ export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): Se
       attributes: serializeAttributes(link.attributes),
     })),
   };
-}
-
-function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
-  const castSpan = span as Partial<OpenTelemetrySdkTraceBaseSpan>;
-  return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
-}
-
-/** Exported only for tests. */
-export interface OpenTelemetrySdkTraceBaseSpan extends Span {
-  attributes: SpanAttributes;
-  startTime: SpanTimeInput;
-  name: string;
-  status: SpanStatus;
-  endTime: SpanTimeInput;
-  parentSpanId?: string;
-  links?: SpanLink[];
 }
 
 /**
