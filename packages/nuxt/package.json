@@ -53,7 +53,7 @@
     }
   },
   "dependencies": {
-    "@nuxt/kit": "^3.13.2",
+    "@nuxt/kit": "^4.5.2",
     "@sentry/browser": "10.67.0",
     "@sentry/cloudflare": "10.67.0",
     "@sentry/conventions": "^0.19.0",
