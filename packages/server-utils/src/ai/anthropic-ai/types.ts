@@ -49,14 +49,6 @@ type SuccessfulResponse = {
 export type AnthropicAiResponse = SuccessfulResponse | MessageError;
 
 /**
- * Anthropic AI Integration interface for type safety
- */
-export interface AnthropicAiIntegration {
-  name: string;
-  options: AnthropicAiOptions;
-}
-
-/**
  * Message type for Anthropic AI
  */
 export type AnthropicAiMessage = {
