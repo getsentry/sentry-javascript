@@ -1,5 +1,4 @@
 import type { GenAiOptions } from '../core/utils';
-import type { OPENAI_METHOD_REGISTRY } from './constants';
 
 /**
  * Attribute values may be any non-nullish primitive value except an object.
@@ -352,8 +351,3 @@ export interface OpenAiIntegration {
   name: string;
   options: OpenAiOptions;
 }
-
-/**
- * @deprecated This type is no longer used and will be removed in the next major version.
- */
-export type InstrumentedMethod = keyof typeof OPENAI_METHOD_REGISTRY;

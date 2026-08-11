@@ -1,5 +1,4 @@
 import type { GenAiOptions } from '../core/utils';
-import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
 
 /** Options for the Anthropic AI integration. */
 export type AnthropicAiOptions = GenAiOptions;
@@ -69,11 +68,6 @@ export interface AnthropicAiIntegration {
   name: string;
   options: AnthropicAiOptions;
 }
-
-/**
- * @deprecated This type is no longer used and will be removed in the next major version.
- */
-export type AnthropicAiInstrumentedMethod = keyof typeof ANTHROPIC_METHOD_REGISTRY;
 
 /**
  * Message type for Anthropic AI
