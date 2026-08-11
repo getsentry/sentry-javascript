@@ -53,7 +53,7 @@ const waitForExportedSpan = (spanId: string): Promise<CollectedSpan> =>
   waitForCollected(({ spans }) => spans.find(span => span.spanId === spanId), `the span ${spanId}`);
 
 test('stamps errors with the trace of the active OpenTelemetry span', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nextjs-otlp', event => {
+  const errorEventPromise = waitForError('nextjs-custom-otel', event => {
     return event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -82,8 +82,8 @@ test('keeps exporting the app-owned spans over OTLP', async ({ baseURL }) => {
 });
 
 test('sends no transactions to Sentry', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('nextjs-otlp', () => true);
-  const errorPromise = waitForError('nextjs-otlp', event => {
+  const transactionPromise = waitForTransaction('nextjs-custom-otel', () => true);
+  const errorPromise = waitForError('nextjs-custom-otel', event => {
     return event.exception?.values?.[0]?.value === 'This is an exception with id 456';
   });
 
@@ -103,7 +103,7 @@ test('sends no transactions to Sentry', async ({ baseURL }) => {
 
 test('keeps concurrent requests on separate traces', async ({ baseURL }) => {
   const errorEventPromises = ['567', '678'].map(id =>
-    waitForError('nextjs-otlp', event => {
+    waitForError('nextjs-custom-otel', event => {
       return event.exception?.values?.[0]?.value === `This is an exception with id ${id}`;
     }),
   );

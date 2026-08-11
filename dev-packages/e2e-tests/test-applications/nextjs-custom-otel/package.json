@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-otlp",
+  "name": "nextjs-custom-otel",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -52,7 +52,7 @@
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-otlp (webpack)",
+        "label": "nextjs-custom-otel (webpack)",
         "assert-command": "pnpm test:assert-webpack"
       }
     ]

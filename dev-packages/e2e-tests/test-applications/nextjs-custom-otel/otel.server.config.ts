@@ -18,7 +18,7 @@ if (!globalWithOtelFlag.__otelRegistered) {
 
   startOtlpReceiver();
 
-  const resource = resourceFromAttributes({ 'service.name': 'nextjs-otlp' });
+  const resource = resourceFromAttributes({ 'service.name': 'nextjs-custom-otel' });
   const otlpBaseUrl = `http://localhost:${OTLP_RECEIVER_PORT}`;
 
   // The user owns tracing. Sentry's context manager and propagator are handed to the user's
