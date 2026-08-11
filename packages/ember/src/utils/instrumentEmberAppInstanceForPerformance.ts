@@ -37,10 +37,6 @@ export function instrumentEmberAppInstanceForPerformance(
   const { disableRunloopPerformance, instrumentPageLoad, instrumentNavigation } = config;
   const routerService = getRouterService(appInstance);
 
-  if (routerService._hasMountedSentryPerformanceRouting) {
-    // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
-    return;
-  }
   if (!routerService.recognize) {
     // Router is missing critical functionality to limit cardinality of the transaction names.
     return;
@@ -170,12 +166,9 @@ export function instrumentEmberAppInstanceForPerformance(
   });
 }
 
-function getRouterService(
-  appInstance: ApplicationInstance,
-): RouterService & { _hasMountedSentryPerformanceRouting?: boolean } {
+function getRouterService(appInstance: ApplicationInstance): RouterService {
   const routerService = appInstance.lookup('service:router') as RouterService & {
     externalRouter?: RouterService;
-    _hasMountedSentryPerformanceRouting?: boolean;
   };
 
   if (routerService.externalRouter) {
