@@ -288,10 +288,14 @@ export class CloudflareClient extends ServerRuntimeClient {
       // ending before it batch in the buffer and are drained by the boundary
       // flush. RPC sub-invocations in Durable Objects never reach a flush point,
       // so their spans batch one envelope per trace here.
-      if (!invocationState?.flushPointReached || invocationState.spanFlushScheduled) {
+      if (!invocationState?.flushPointReached) {
         return;
       }
-      invocationState.spanFlushScheduled = true;
+      const pendingTraceIds = (invocationState.pendingSpanFlushTraceIds ??= new Set<string>());
+      if (pendingTraceIds.has(span.spanContext().traceId)) {
+        return;
+      }
+      pendingTraceIds.add(span.spanContext().traceId);
       // The trace id must come from the span, not the current scope: `continueTrace`
       // writes the propagation context to the *current* scope, so the forked
       // isolation scope's propagation context carries a different trace id and
@@ -304,7 +308,7 @@ export class CloudflareClient extends ServerRuntimeClient {
       // runs in the same async context, so the send stays attributed to this
       // invocation.
       queueMicrotask(() => {
-        invocationState.spanFlushScheduled = false;
+        pendingTraceIds.delete(traceId);
         this.emit('flushTraceSpans', traceId);
       });
     });

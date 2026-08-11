@@ -770,6 +770,40 @@ describe('CloudflareClient', () => {
       expect(flushSpy).toHaveBeenCalledWith('trace-b');
     });
 
+    it('flushes every trace when one invocation ends spans of several traces in the same turn', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      // A single invocation can own more than one trace past its flush point —
+      // e.g. two `startNewTrace` background jobs completing synchronously inside
+      // one `ctx.waitUntil`. Debouncing per invocation instead of per trace would
+      // schedule only the first trace and leave the rest buffered with no later
+      // in-invocation drain.
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        client.emit('afterSpanEnd', makeSpan('trace-b') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+      expect(flushSpy).toHaveBeenCalledWith('trace-a');
+      expect(flushSpy).toHaveBeenCalledWith('trace-b');
+    });
+
+    it('still collapses repeated span ends of the same trace into one flush', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+      expect(flushSpy).toHaveBeenCalledWith('trace-a');
+    });
+
     it("flushes each invocation's trace in its own async context", async () => {
       const { client } = makeCachedClient();
       const ctxA = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };

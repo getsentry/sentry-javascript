@@ -37,7 +37,7 @@ export interface InvocationState {
    * their flush point each schedule their own flush in their own async context —
    * the flush and its envelope send stay attributed to the owning invocation.
    */
-  spanFlushScheduled?: boolean;
+  pendingSpanFlushTraceIds?: Set<string>;
   /** Eager transport drains owned by this invocation, serialized in capture order. */
   eagerFlushPromise?: PromiseLike<boolean>;
 }
