@@ -38,12 +38,12 @@ export function findAbsolutePathImports({
 
   const leaks: string[] = [];
 
-  for (const entry of fs.readdirSync(outputDir, { recursive: true, encoding: 'utf8' })) {
-    const file = path.join(outputDir, entry);
-    if (!extensions.includes(path.extname(entry)) || !fs.statSync(file).isFile()) {
+  for (const entry of fs.readdirSync(outputDir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !extensions.includes(path.extname(entry.name))) {
       continue;
     }
 
+    const file = path.join(entry.parentPath, entry.name);
     const contents = fs.readFileSync(file, 'utf8');
 
     for (const pattern of SPECIFIER_PATTERNS) {
