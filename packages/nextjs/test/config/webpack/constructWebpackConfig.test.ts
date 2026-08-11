@@ -727,7 +727,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   describe('orchestrion runtime externals', () => {
-    it('prepends an externals handler that resolves runtime packages to absolute paths', async () => {
+    it('prepends an externals handler that forwards runtime packages through @sentry/nextjs', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -738,8 +738,8 @@ describe('constructWebpackConfigFunction()', () => {
       const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
 
       expect(Array.isArray(externals)).toBe(true);
-      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toMatch(
-        /^commonjs ([/\\]|[A-Za-z]:).*register\.js$/,
+      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toBe(
+        'commonjs @sentry/nextjs/orchestrion-runtime/orchestrion/register',
       );
       await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
     });

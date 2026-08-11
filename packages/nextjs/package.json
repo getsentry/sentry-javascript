@@ -58,6 +58,10 @@
       "import": {
         "default": "./build/import-hook.mjs"
       }
+    },
+    "./orchestrion-runtime/*": {
+      "require": "./build/orchestrion-runtime/*.js",
+      "default": "./build/orchestrion-runtime/*.js"
     }
   },
   "publishConfig": {
