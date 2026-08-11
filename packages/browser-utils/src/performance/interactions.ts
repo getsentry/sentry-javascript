@@ -1,0 +1,212 @@
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  UI_COMPONENT_NAME,
+} from '@sentry/conventions/attributes';
+import { BROWSER_UI_INTERACTION_CLICK_SPAN_OP, BROWSER_UI_ACTION_CLICK_SPAN_OP } from '@sentry/conventions/op';
+import type { IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
+import {
+  browserPerformanceTimeOrigin,
+  debug,
+  defineIntegration,
+  getActiveSpan,
+  getComponentName,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
+  startIdleSpan,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { htmlTreeAsString } from '../htmlTreeAsString';
+import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
+import { WINDOW } from '../types';
+import { msToSec, startAndEndSpan } from './utils';
+
+const INTEGRATION_NAME = 'Interactions';
+
+interface InteractionsOptions {
+  /**
+   * The time that has to pass without any span being created.
+   * If this time is exceeded, the interaction span will finish.
+   *
+   * Default: 1000 (ms)
+   */
+  idleTimeout?: number;
+
+  /**
+   * The max. time an interaction span may run.
+   * If this time is exceeded, the interaction span will finish no matter what.
+   *
+   * Default: 30000 (ms)
+   */
+  finalTimeout?: number;
+
+  /**
+   * The max. time a child span of an interaction span may run.
+   * If this time is exceeded, the interaction span will finish no matter what.
+   *
+   * Default: 15000 (ms)
+   */
+  childSpanTimeout?: number;
+}
+
+interface RouteInfo {
+  name: string | undefined;
+  source: TransactionSource | undefined;
+}
+
+const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      const latestRoute: RouteInfo = { name: undefined, source: undefined };
+      // The pageload/navigation span that is currently in progress, if any. Clicks that happen while one
+      // is open are not turned into interaction spans, as they'd compete with the route span for children.
+      let inflightRouteSpan: Span | undefined;
+
+      function trackRoute(span: Span): void {
+        const { name, attributes } = spanToJSON(span);
+        latestRoute.name = name;
+        latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+      }
+
+      client.on('spanStart', span => {
+        if (isRouteSpan(span)) {
+          inflightRouteSpan = span;
+          trackRoute(span);
+        }
+      });
+
+      client.on('spanEnd', span => {
+        if (span !== inflightRouteSpan) {
+          return;
+        }
+        inflightRouteSpan = undefined;
+        // Re-read the route on end: routing instrumentation frequently renames the pageload or navigation
+        // span once the route is resolved, so this is more accurate than what we saw at span start.
+        trackRoute(span);
+      });
+
+      registerInteractionListener(latestRoute, () => inflightRouteSpan, options);
+
+      trackInteractionsAsSpans();
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Captures user interactions as spans.
+ *
+ * Clicks that happen outside of an in-progress pageload or navigation start an idle `ui.action.click` span,
+ * named after the last known route, which collects everything the interaction triggers (requests, child spans,
+ * …). Additionally, `ui.interaction.click` spans are recorded for the browser's own `event` timing entries.
+ *
+ * The integration requires `browserTracingIntegration` (or another source of pageload/navigation spans)
+ * to know which route an interaction belongs to.
+ *
+ * @example
+ * ```ts
+ * Sentry.init({
+ *   integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
+ * });
+ * ```
+ */
+export const interactionsIntegration = defineIntegration(_interactionsIntegration);
+
+function isRouteSpan(span: Span): boolean {
+  if (getRootSpan(span) !== span) {
+    return false;
+  }
+  const op = spanToJSON(span).attributes[SENTRY_OP];
+  return op === 'pageload' || op === 'navigation';
+}
+
+function registerInteractionListener(
+  latestRoute: RouteInfo,
+  getInflightRouteSpan: () => Span | undefined,
+  // `startIdleSpan` fills in `TRACING_DEFAULTS` for whatever is left out, which are the same defaults
+  // `browserTracingIntegration` uses for its pageload and navigation spans.
+  idleSpanOptions: InteractionsOptions,
+): void {
+  // `document` is not available in all browser environments (e.g. web workers), and without it there is
+  // nothing to click on.
+  if (!WINDOW.document) {
+    return;
+  }
+
+  let inflightInteractionSpan: Span | undefined;
+
+  addEventListener(
+    'click',
+    () => {
+      if (getInflightRouteSpan()) {
+        DEBUG_BUILD &&
+          debug.warn(
+            `[Tracing] Did not create ${BROWSER_UI_ACTION_CLICK_SPAN_OP} span because a pageload or navigation span is in progress.`,
+          );
+        return;
+      }
+
+      if (inflightInteractionSpan) {
+        inflightInteractionSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'interactionInterrupted');
+        inflightInteractionSpan.end();
+        inflightInteractionSpan = undefined;
+      }
+
+      if (!latestRoute.name) {
+        DEBUG_BUILD &&
+          debug.warn(
+            `[Tracing] Did not create ${BROWSER_UI_ACTION_CLICK_SPAN_OP} span because the latest route name is missing.`,
+          );
+        return;
+      }
+
+      inflightInteractionSpan = startIdleSpan(
+        {
+          name: latestRoute.name,
+          attributes: {
+            [SENTRY_OP]: BROWSER_UI_ACTION_CLICK_SPAN_OP,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
+          },
+        },
+        idleSpanOptions,
+      );
+    },
+    { capture: true },
+  );
+}
+
+/**
+ * Record the browser's `event` timing entries for clicks as spans on the currently active span.
+ */
+function trackInteractionsAsSpans(): void {
+  addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    const parent = getActiveSpan();
+    if (!parent) {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name === 'click') {
+        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+        const duration = msToSec(entry.duration);
+
+        const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
+          name: htmlTreeAsString(entry.target),
+          startTime: startTime,
+          attributes: {
+            [SENTRY_OP]: BROWSER_UI_INTERACTION_CLICK_SPAN_OP,
+            [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          },
+        };
+
+        const componentName = getComponentName(entry.target);
+        if (componentName) {
+          spanOptions.attributes[UI_COMPONENT_NAME] = componentName;
+        }
+
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
+      }
+    }
+  });
+}

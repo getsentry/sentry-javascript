@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/browser';
+import { interactionsIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
@@ -7,10 +8,8 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       enableLongTask: false,
-      _experiments: {
-        enableInteractions: true,
-      },
     }),
+    interactionsIntegration(),
     Sentry.spanStreamingIntegration(),
   ],
   tracesSampleRate: 1,

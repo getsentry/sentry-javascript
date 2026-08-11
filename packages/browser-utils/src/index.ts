@@ -6,12 +6,7 @@ export {
   addInpInstrumentationHandler,
 } from './instrumentation/performanceObserver';
 
-export {
-  addPerformanceEntries,
-  startTrackingInteractions,
-  startTrackingLongTasks,
-  startTrackingLongAnimationFrames,
-} from './performance/entries';
+export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 
 export {
   addWebVitalsToSpan,
@@ -22,6 +17,8 @@ export {
 
 // eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './performance/elementTiming';
+
+export { interactionsIntegration } from './performance/interactions';
 
 export { userTimingIntegration } from './performance/userTiming';
 
