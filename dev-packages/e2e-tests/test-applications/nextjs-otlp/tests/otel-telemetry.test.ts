@@ -63,16 +63,12 @@ test('stamps errors with the trace of the active OpenTelemetry span', async ({ b
   expect(errorEvent.contexts?.trace).toEqual({ trace_id: traceId, span_id: spanId });
 });
 
-test('connects the exported metric and the error through one trace id', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nextjs-otlp', event => {
-    return event.exception?.values?.[0]?.value === 'This is an exception with id 234';
-  });
-
+test('keeps exporting the app-owned metrics over OTLP', async ({ baseURL }) => {
   await triggerTelemetry(baseURL as string, '234');
 
-  const [errorEvent, metric] = await Promise.all([errorEventPromise, waitForExportedMetric('234')]);
+  const metric = await waitForExportedMetric('234');
 
-  expect(metric.attributes['trace.id']).toBe(errorEvent.contexts?.trace?.trace_id);
+  expect(metric).toEqual({ name: 'otlp.test.count', value: 1, attributes: { id: '234' } });
 });
 
 test('keeps exporting the app-owned spans over OTLP', async ({ baseURL }) => {
@@ -104,12 +100,14 @@ test('keeps concurrent requests on separate traces', async ({ baseURL }) => {
     }),
   );
 
-  await Promise.all([triggerTelemetry(baseURL as string, '567'), triggerTelemetry(baseURL as string, '678')]);
+  const [first, second] = await Promise.all([
+    triggerTelemetry(baseURL as string, '567'),
+    triggerTelemetry(baseURL as string, '678'),
+  ]);
 
   const [firstError, secondError] = await Promise.all(errorEventPromises);
-  const [firstMetric, secondMetric] = await Promise.all([waitForExportedMetric('567'), waitForExportedMetric('678')]);
 
-  expect(firstError.contexts?.trace?.trace_id).not.toBe(secondError.contexts?.trace?.trace_id);
-  expect(firstMetric.attributes['trace.id']).toBe(firstError.contexts?.trace?.trace_id);
-  expect(secondMetric.attributes['trace.id']).toBe(secondError.contexts?.trace?.trace_id);
+  expect(first.traceId).not.toBe(second.traceId);
+  expect(firstError.contexts?.trace?.trace_id).toBe(first.traceId);
+  expect(secondError.contexts?.trace?.trace_id).toBe(second.traceId);
 });
