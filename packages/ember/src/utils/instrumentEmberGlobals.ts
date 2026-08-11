@@ -177,6 +177,7 @@ function _instrumentComponents(config: {
   const beforeComponentDefinitionEntries: RenderEntries = new WeakMap();
 
   function _subscribeToRenderEvents(): void {
+    subscribe<void>('render.component', {
       before(_name: string, _timestamp: number, payload: object) {
         _processComponentRenderBefore(payload as Payload, beforeEntries);
       },
