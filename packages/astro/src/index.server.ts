@@ -129,6 +129,7 @@ export {
   setUser,
   spanToBaggageHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   spotlightIntegration,
   startInactiveSpan,

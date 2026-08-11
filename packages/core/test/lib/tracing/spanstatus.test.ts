@@ -1,30 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
+  SentrySpan,
+  setHttpStatus,
+  spanToStreamedSpanJSON,
+} from '../../../src/index';
 
 describe('setHttpStatus', () => {
   it.each([
-    [200, 'ok'],
-    [300, 'ok'],
-    [401, 'unauthenticated'],
-    [403, 'permission_denied'],
-    [404, 'not_found'],
-    [409, 'already_exists'],
-    [413, 'failed_precondition'],
-    [429, 'resource_exhausted'],
-    [455, 'invalid_argument'],
-    [501, 'unimplemented'],
-    [503, 'unavailable'],
-    [504, 'deadline_exceeded'],
-    [520, 'internal_error'],
-  ])('applies the correct span status and http status code to the span (%s - $%s)', (code, status) => {
+    [200, 'ok', undefined],
+    [300, 'ok', undefined],
+    [401, 'error', 'unauthenticated'],
+    [403, 'error', 'permission_denied'],
+    [404, 'error', 'not_found'],
+    [409, 'error', 'already_exists'],
+    [413, 'error', 'failed_precondition'],
+    [429, 'error', 'resource_exhausted'],
+    [455, 'error', 'invalid_argument'],
+    [501, 'error', 'unimplemented'],
+    [503, 'error', 'unavailable'],
+    [504, 'error', 'deadline_exceeded'],
+    [520, 'error', 'internal_error'],
+  ])('applies the correct span status and http status code to the span (%s - $%s)', (code, status, statusMessage) => {
     const span = new SentrySpan({ name: 'test' });
 
-    setHttpStatus(span, code);
+    setHttpStatus(span, code as number);
 
-    const { status: spanStatus, data } = spanToJSON(span);
+    const { status: spanStatus, attributes } = spanToStreamedSpanJSON(span);
 
     expect(spanStatus).toBe(status);
-    expect(data).toMatchObject({ 'http.response.status_code': code });
+    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(statusMessage);
+    expect(attributes).toMatchObject({ 'http.response.status_code': code });
   });
 
   it('defaults to internal_error', () => {
@@ -32,9 +38,10 @@ describe('setHttpStatus', () => {
 
     setHttpStatus(span, 600);
 
-    const { status: spanStatus, data } = spanToJSON(span);
+    const { status: spanStatus, attributes } = spanToStreamedSpanJSON(span);
 
-    expect(spanStatus).toBe('internal_error');
-    expect(data).toMatchObject({ 'http.response.status_code': 600 });
+    expect(spanStatus).toBe('error');
+    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+    expect(attributes).toMatchObject({ 'http.response.status_code': 600 });
   });
 });

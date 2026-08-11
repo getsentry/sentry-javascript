@@ -12,6 +12,7 @@ import {
   getSpanDescendants,
   removeChildSpanFromSpan,
   spanTimeInputToSeconds,
+  spanToStreamedSpanJSON,
   spanToJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
@@ -359,7 +360,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       if (
         _finished ||
         startedSpan === span ||
-        !!spanToJSON(startedSpan).timestamp ||
+        !!spanToStreamedSpanJSON(startedSpan).end_timestamp ||
         (startedSpan instanceof SentrySpan && startedSpan.isStandaloneSpan())
       ) {
         return;

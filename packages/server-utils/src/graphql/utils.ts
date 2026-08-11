@@ -1,6 +1,12 @@
 import { SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
-import { getClient, isObjectLike, getRootSpan, spanToJSON, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
+import {
+  getClient,
+  isObjectLike,
+  getRootSpan,
+  spanToStreamedSpanJSON,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 
 // Same key the OTel path uses, so renames stay consistent across both.
 const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
@@ -36,12 +42,12 @@ export function renameRootSpanWithOperation(span: Span, operationType: string, o
     return;
   }
 
-  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanJson = spanToStreamedSpanJSON(rootSpan);
 
   const newOperation = operationName ? `${operationType} ${operationName}` : operationType;
 
   // A single operation is stored as a string, multiple as an array.
-  const existingOperations = rootSpanJson.data[SENTRY_GRAPHQL_OPERATION];
+  const existingOperations = rootSpanJson.attributes[SENTRY_GRAPHQL_OPERATION];
   let operations: string | string[];
   if (Array.isArray(existingOperations)) {
     operations = [...(existingOperations as string[]), newOperation];
@@ -54,15 +60,15 @@ export function renameRootSpanWithOperation(span: Span, operationType: string, o
 
   // Keep the pre-rename name so repeated renames don't compound.
   const originalDescription =
-    (rootSpanJson.data[ORIGINAL_DESCRIPTION_ATTRIBUTE] as string | undefined) ?? rootSpanJson.description;
-  if (!rootSpanJson.data[ORIGINAL_DESCRIPTION_ATTRIBUTE]) {
+    (rootSpanJson.attributes[ORIGINAL_DESCRIPTION_ATTRIBUTE] as string | undefined) ?? rootSpanJson.name;
+  if (!rootSpanJson.attributes[ORIGINAL_DESCRIPTION_ATTRIBUTE]) {
     rootSpan.setAttribute(ORIGINAL_DESCRIPTION_ATTRIBUTE, originalDescription);
   }
 
   // `updateName` stamps `source: 'custom'`, so re-set the original source afterwards to preserve it.
-  const source = rootSpanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const source = rootSpanJson.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   rootSpan.updateName(`${originalDescription} (${getGraphqlOperationNamesFromAttribute(operations)})`);
-  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as SpanAttributeValue);
 }
 
 /** Format the accumulated operations for the root span name: up to 5 sorted names, then `+N`. */

@@ -1,4 +1,4 @@
-import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToStreamedSpanJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { extractNetworkProtocol, startAndEndSpan } from '../../src/performance/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
@@ -25,9 +25,9 @@ describe('startAndEndSpan()', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).description).toBe('evaluation');
-    expect(spanToJSON(span).op).toBe('script');
-    expect(spanToJSON(span).op).toBe('script');
+    expect(spanToStreamedSpanJSON(span).name).toBe('evaluation');
+    expect(spanToStreamedSpanJSON(span).attributes['sentry.op']).toBe('script');
+    expect(spanToStreamedSpanJSON(span).attributes['sentry.op']).toBe('script');
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {
@@ -38,8 +38,8 @@ describe('startAndEndSpan()', () => {
     })!;
 
     expect(span).toBeDefined();
-    expect(spanToJSON(parentSpan).start_timestamp).toEqual(spanToJSON(span).start_timestamp);
-    expect(spanToJSON(parentSpan).start_timestamp).toEqual(100);
+    expect(spanToStreamedSpanJSON(parentSpan).start_timestamp).toEqual(spanToStreamedSpanJSON(span).start_timestamp);
+    expect(spanToStreamedSpanJSON(parentSpan).start_timestamp).toEqual(100);
   });
 
   it('does not adjust start timestamp if child span starts after transaction', () => {
@@ -50,8 +50,10 @@ describe('startAndEndSpan()', () => {
     })!;
 
     expect(span).toBeDefined();
-    expect(spanToJSON(parentSpan).start_timestamp).not.toEqual(spanToJSON(span).start_timestamp);
-    expect(spanToJSON(parentSpan).start_timestamp).toEqual(123);
+    expect(spanToStreamedSpanJSON(parentSpan).start_timestamp).not.toEqual(
+      spanToStreamedSpanJSON(span).start_timestamp,
+    );
+    expect(spanToStreamedSpanJSON(parentSpan).start_timestamp).toEqual(123);
   });
 });
 

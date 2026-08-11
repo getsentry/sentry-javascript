@@ -9,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
   filterCollectedUrl,
@@ -131,7 +131,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
     // oxlint-disable-next-line typescript/no-deprecated
-    const method = spanToJSON(span).data[HTTP_METHOD];
+    const method = spanToStreamedSpanJSON(span).attributes[HTTP_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }

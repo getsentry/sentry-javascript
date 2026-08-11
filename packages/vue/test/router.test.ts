@@ -146,7 +146,8 @@ describe('instrumentVueRouter()', () => {
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockRootSpan = {
         ...MOCK_SPAN,
-        getSpanJSON: vi.fn().mockReturnValue({ op: 'pageload', data: {} }),
+        getSpanJSON: () => ({}),
+        getStreamedSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload' } }),
         updateName: vi.fn(),
         setAttribute: vi.fn(),
         setAttributes: vi.fn(),
@@ -252,9 +253,10 @@ describe('instrumentVueRouter()', () => {
       setAttribute: vi.fn(),
       setAttributes: vi.fn(),
       name: '',
-      getSpanJSON: () => ({
-        op: 'pageload',
-        data: {
+      getSpanJSON: () => ({}),
+      getStreamedSpanJSON: () => ({
+        attributes: {
+          'sentry.op': 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       }),
@@ -276,9 +278,9 @@ describe('instrumentVueRouter()', () => {
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
     mockRootSpan.name = 'customTxnName';
-    mockRootSpan.getSpanJSON = () => ({
-      op: 'pageload',
-      data: {
+    mockRootSpan.getStreamedSpanJSON = () => ({
+      attributes: {
+        'sentry.op': 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       },
     });
@@ -341,9 +343,10 @@ describe('instrumentVueRouter()', () => {
         setAttribute: vi.fn(),
         setAttributes: vi.fn(),
         name: '',
-        getSpanJSON: () => ({
-          op: 'pageload',
-          data: {
+        getSpanJSON: () => ({}),
+        getStreamedSpanJSON: () => ({
+          attributes: {
+            'sentry.op': 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
         }),

@@ -4,13 +4,12 @@ import {
   isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   stringMatchesSomePattern,
 } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
-import { GRAPHQL_DOCUMENT, URL_FULL } from '@sentry/conventions/attributes';
+import { GRAPHQL_DOCUMENT, HTTP_METHOD, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
@@ -57,10 +56,10 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
 
 function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOptions): void {
   client.on('beforeOutgoingRequestSpan', (span, hint) => {
-    const spanJSON = spanToJSON(span);
+    const spanJSON = spanToStreamedSpanJSON(span);
 
-    const spanAttributes = spanJSON.data || {};
-    const spanOp = spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+    const spanAttributes = spanJSON.attributes;
+    const spanOp = spanAttributes[SENTRY_OP];
 
     const isHttpClientSpan = spanOp === 'http.client';
 
@@ -69,7 +68,8 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
     }
 
     const httpUrl = spanAttributes[URL_FULL];
-    const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
+    // oxlint-disable-next-line typescript/no-deprecated
+    const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes[HTTP_METHOD];
 
     if (!isString(httpUrl) || !isString(httpMethod)) {
       return;

@@ -83,7 +83,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
-  const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const spanNameSource = processedSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanJSON.is_segment && spanNameSource) {
     // Backfill sentry.segment.name.source from sentry.source.
     // TODO(v11): Remove this backfill once we removed setting SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in favour of

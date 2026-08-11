@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
   setCurrentClient,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addNavigationSpans, _addResourceSpans, _setResourceRequestAttributes } from '../../src/performance/entries';
@@ -132,8 +132,8 @@ describe('addWebVitalsToSpan', () => {
       spanStreamingEnabled: true,
     });
 
-    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fp.value']).toBeUndefined();
-    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fcp.value']).toBeUndefined();
+    expect(spanToStreamedSpanJSON(nextPageloadSpan).attributes['browser.web_vital.fp.value']).toBeUndefined();
+    expect(spanToStreamedSpanJSON(nextPageloadSpan).attributes['browser.web_vital.fcp.value']).toBeUndefined();
   });
 });
 
@@ -235,14 +235,12 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, startTime, duration, timeOrigin);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(
+    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        description: '/assets/to/css',
+        name: '/assets/to/css',
         start_timestamp: timeOrigin + startTime,
-        timestamp: timeOrigin + startTime + duration,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
-        data: {
+        end_timestamp: timeOrigin + startTime + duration,
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
@@ -288,9 +286,9 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    const json = spanToJSON(spans[0]!);
-    expect(json.description).toBe('/assets/app.js?v=42#main');
-    expect(json.data['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
+    const json = spanToStreamedSpanJSON(spans[0]!);
+    expect(json.name).toBe('/assets/app.js?v=42#main');
+    expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
   });
 
   it('sets url.full to the full cross-origin URL', () => {
@@ -308,10 +306,10 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    const json = spanToJSON(spans[0]!);
-    expect(json.description).toBe('https://cdn.example.org/static/logo.png');
-    expect(json.data['url.full']).toBe('https://cdn.example.org/static/logo.png');
-    expect(json.data['url.same_origin']).toBe(false);
+    const json = spanToStreamedSpanJSON(spans[0]!);
+    expect(json.name).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.attributes['url.full']).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.attributes['url.same_origin']).toBe(false);
   });
 
   it('creates a variety of resource spans', () => {
@@ -352,7 +350,9 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
-      expect(spanToJSON(spans[i]!)).toEqual(expect.objectContaining({ op }));
+      expect(spanToStreamedSpanJSON(spans[i]!).attributes).toEqual(
+        expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }),
+      );
     }
   });
 
@@ -397,7 +397,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
     const spanOps = new Set(
       spans.map(s => {
-        return spanToJSON(s).op;
+        return spanToStreamedSpanJSON(s).attributes['sentry.op'];
       }),
     );
     expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
@@ -422,9 +422,9 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(
+    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: expect.objectContaining({
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
@@ -460,9 +460,9 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(
+    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: expect.objectContaining({
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
@@ -472,10 +472,8 @@ describe('_addResourceSpans', () => {
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
         }),
-        description: '/assets/to/css',
-        timestamp: 468,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
+        name: '/assets/to/css',
+        end_timestamp: 468,
         start_timestamp: 445,
       }),
     );
@@ -513,9 +511,9 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(
+    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
@@ -538,10 +536,8 @@ describe('_addResourceSpans', () => {
           'http.request.time_to_first_byte': 1.008,
           'http.request.worker_start': expect.any(Number),
         },
-        description: '/assets/to/css',
-        timestamp: 468,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
+        name: '/assets/to/css',
+        end_timestamp: 468,
         start_timestamp: 445,
       }),
     );
@@ -570,7 +566,9 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
       expect(spans).toHaveLength(1);
-      expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
+      expect(spanToStreamedSpanJSON(spans[0]!).attributes).toMatchObject({
+        'http.response_delivery_type': deliveryType,
+      });
     },
   );
 });
@@ -649,105 +647,87 @@ describe('_addNavigationSpans', () => {
     const parent_span_id = pageloadSpan.spanContext().spanId;
 
     expect(spans).toHaveLength(9);
-    expect(spans.map(spanToJSON)).toEqual(
+    expect(spans.map(spanToStreamedSpanJSON)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.dom_content_loaded_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.dom_content_loaded_event',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.load_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.load_event',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.connect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.connect',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.tls_ssl',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.tls_ssl',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.cache',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.cache',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.dns',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.dns',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.request',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.request',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.response',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.response',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'http.redirect_count': 2,
             'sentry.op': 'browser.redirect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.redirect',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),

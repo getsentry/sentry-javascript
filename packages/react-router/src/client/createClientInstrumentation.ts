@@ -10,7 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
@@ -378,7 +378,8 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
     return;
   }
 
-  const { op } = spanToJSON(rootSpan);
+  const { attributes } = spanToStreamedSpanJSON(rootSpan);
+  const op = attributes[SENTRY_OP];
   if (op !== 'navigation' && op !== 'pageload') {
     return;
   }

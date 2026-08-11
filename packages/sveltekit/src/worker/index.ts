@@ -70,6 +70,7 @@ export {
   setUser,
   spanToBaggageHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   startInactiveSpan,
   startNewTrace,

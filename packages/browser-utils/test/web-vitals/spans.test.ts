@@ -23,7 +23,6 @@ vi.mock('@sentry/core', async () => {
     startInactiveSpan: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
-    spanToJSON: vi.fn(),
     spanToStreamedSpanJSON: vi.fn(),
   };
 });

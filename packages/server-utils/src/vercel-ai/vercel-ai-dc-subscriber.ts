@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_FUNCTION_ID,
   GEN_AI_INPUT_MESSAGES,
@@ -24,12 +25,11 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   getClient,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceContext,
   startInactiveSpan,
   stringify,
@@ -336,7 +336,7 @@ function addTokensToSpan(span: Span, attribute: string, value: number | undefine
   if (value === undefined) {
     return;
   }
-  const current = spanToJSON(span).data[attribute];
+  const current = spanToStreamedSpanJSON(span).attributes[attribute];
   span.setAttribute(attribute, (typeof current === 'number' ? current : 0) + value);
 }
 
@@ -554,12 +554,9 @@ export function enrichSpanOnEnd(
   const providerAttributes = getProviderMetadataAttributes(providerMetadata);
   // Don't overwrite a conversation id already set on span start (e.g. by `conversationIdIntegration`
   // from a user-set scope value); the provider-derived id is only a fallback. Matches the OTel path.
-  if (
-    GEN_AI_CONVERSATION_ID_ATTRIBUTE in providerAttributes &&
-    spanToJSON(span).data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]
-  ) {
+  if (GEN_AI_CONVERSATION_ID in providerAttributes && spanToStreamedSpanJSON(span).attributes[GEN_AI_CONVERSATION_ID]) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE];
+    delete providerAttributes[GEN_AI_CONVERSATION_ID];
   }
   span.setAttributes(providerAttributes);
 

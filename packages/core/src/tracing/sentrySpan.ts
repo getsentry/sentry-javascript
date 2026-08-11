@@ -271,7 +271,7 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal This method is purely for internal purposes and should not be used outside
    * of SDK code. If you need to get a JSON representation of a span,
-   * use `spanToJSON(span)` instead.
+   * use `spanToStreamedSpanJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
     return {
@@ -307,8 +307,7 @@ export class SentrySpan implements Span {
       trace_id: this._traceId,
       parent_span_id: this._parentSpanId,
       start_timestamp: this._startTime,
-      // just in case _endTime is not set, we use the start time (i.e. duration 0)
-      end_timestamp: this._endTime ?? this._startTime,
+      end_timestamp: this._endTime,
       is_segment: this === getRootSpan(this),
       status: getSimpleStatus(this._status),
       attributes: addStatusMessageAttribute(this._attributes, this._status),

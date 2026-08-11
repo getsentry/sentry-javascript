@@ -125,6 +125,7 @@ export {
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   systemErrorIntegration,

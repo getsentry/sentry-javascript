@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   truncate,
 } from '@sentry/core';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
@@ -19,6 +19,14 @@ import {
   shouldConsiderForCache,
 } from '../../../utils/redisCache';
 import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
+import {
+  NET_PEER_NAME,
+  NET_PEER_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 
 // This module deliberately does NOT import the vendored OTel `IORedisInstrumentation`/
 // `RedisInstrumentation`, so the orchestrion opt-in can pull `cacheResponseHook`
@@ -74,11 +82,14 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   // Fall back to stable semconv attributes (server.address/server.port) when
   // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
   // set for node-redis v4/v5.
-  const spanData = spanToJSON(span).data;
-  const networkPeerAddress = spanData['net.peer.name'] ?? spanData['server.address'];
-  const networkPeerPort = spanData['net.peer.port'] ?? spanData['server.port'];
+  const attributes = spanToStreamedSpanJSON(span).attributes;
+  // oxlint-disable-next-line typescript/no-deprecated
+  const networkPeerAddress = (attributes[NET_PEER_NAME] ?? attributes[SERVER_ADDRESS]) as string | undefined;
+  // oxlint-disable-next-line typescript/no-deprecated
+  const networkPeerPort = (attributes[NET_PEER_PORT] ?? attributes[SERVER_PORT]) as number | undefined;
+
   if (networkPeerPort && networkPeerAddress) {
-    span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
+    span.setAttributes({ [NETWORK_PEER_ADDRESS]: networkPeerAddress, [NETWORK_PEER_PORT]: networkPeerPort });
   }
 
   // A remove response is a delete-count, not a cached value, so its size is meaningless.

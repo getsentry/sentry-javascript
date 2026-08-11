@@ -1,6 +1,7 @@
-import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core/browser';
+import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToStreamedSpanJSON } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 /**
  * Add a listener that cancels and finishes a transaction when the global
@@ -19,7 +20,10 @@ export function registerBackgroundTabDetection(): void {
       if (WINDOW.document.hidden && rootSpan) {
         const cancelledStatus = 'cancelled';
 
-        const { op, status } = spanToJSON(rootSpan);
+        const {
+          attributes: { [SENTRY_OP]: op },
+          status,
+        } = spanToStreamedSpanJSON(rootSpan);
 
         if (DEBUG_BUILD) {
           debug.log(`[Tracing] Transaction: ${cancelledStatus} -> since tab moved to the background, op: ${op}`);

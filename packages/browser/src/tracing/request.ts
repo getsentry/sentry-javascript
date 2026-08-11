@@ -25,7 +25,7 @@ import {
   SentryNonRecordingSpan,
   setHttpStatus,
   spanIsIgnored,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
   stripDataUrlContent,
@@ -212,7 +212,7 @@ const HTTP_TIMING_WAIT_MS = 300;
  * @param span A span that has yet to be finished, must contain `url.full` on data.
  */
 function addHTTPTimings(span: Span, client: Client): void {
-  const url = spanToJSON(span).data[URL_FULL];
+  const url = spanToStreamedSpanJSON(span).attributes[URL_FULL];
 
   if (!url || typeof url !== 'string') {
     return;
