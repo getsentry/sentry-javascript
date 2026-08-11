@@ -80,17 +80,23 @@ test('keeps exporting the app-owned spans over OTLP', async ({ baseURL }) => {
 });
 
 test('sends no transactions to Sentry', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('nextjs-otlp', () => true).then(() => 'transaction');
-  // The second request's error fences the first request's telemetry: anything Sentry sent for
-  // request 456, transaction included, is queued on the transport before it.
-  const fenceErrorPromise = waitForError('nextjs-otlp', event => {
-    return event.exception?.values?.[0]?.value === 'This is an exception with id 457';
-  }).then(() => 'fence');
+  const transactionPromise = waitForTransaction('nextjs-otlp', () => true);
+  const errorPromise = waitForError('nextjs-otlp', event => {
+    return event.exception?.values?.[0]?.value === 'This is an exception with id 456';
+  });
 
   await triggerTelemetry(baseURL as string, '456');
-  await triggerTelemetry(baseURL as string, '457');
+  // Proves the request's telemetry reached the proxy, so the absence check below is not vacuous.
+  await errorPromise;
 
-  expect(await Promise.race([transactionPromise, fenceErrorPromise])).toBe('fence');
+  // Absence can only be time bounded. This guards against Sentry's tracing defaults changing under
+  // the app, which would emit a transaction for every request, well inside this window.
+  const transaction = await Promise.race([
+    transactionPromise,
+    new Promise(resolve => setTimeout(() => resolve(undefined), 3000)),
+  ]);
+
+  expect(transaction).toBeUndefined();
 });
 
 test('keeps concurrent requests on separate traces', async ({ baseURL }) => {
