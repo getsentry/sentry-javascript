@@ -487,6 +487,7 @@ export type {
   InformationUnit,
   FractionUnit,
   MeasurementUnit,
+  MetricUnit,
   NoneUnit,
   Measurements,
 } from './types/measurement';
