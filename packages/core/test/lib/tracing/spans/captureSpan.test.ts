@@ -423,7 +423,10 @@ describe('captureSpan', () => {
       client.on('processSpan', processSpanFn);
       client.on('processSegmentSpan', processSegmentSpanFn);
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      const span = withScope(scope => {
+        scope.setClient(client);
+        return startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      });
 
       captureSpan(span, client);
 

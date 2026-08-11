@@ -188,24 +188,7 @@ export function spanToStaticSpanJSON(span: Span): SpanJSON {
  * Convert a span to a JSON representation.
  */
 export function spanToJSON(span: Span): StreamedSpanJSON {
-  if (spanIsSentrySpan(span)) {
-    return span.getSpanJSON();
-  }
-
-  const { spanId: span_id, traceId: trace_id } = span.spanContext();
-
-  // Because `spanToJSON` accepts a `Span` interface rather than a `SentrySpan` instance,
-  // we need to handle the case where the span is not a Sentry span.
-  // This should not actually happen in reality, but we need to handle it for type safety.
-  return {
-    span_id,
-    trace_id,
-    start_timestamp: 0,
-    name: '',
-    status: 'ok',
-    is_segment: span === INTERNAL_getSegmentSpan(span),
-    attributes: {},
-  };
+  return span.getSpanJSON();
 }
 
 /**
@@ -232,7 +215,7 @@ export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): Se
  * :( So instead we approximate this by checking if it has the `getSpanJSON` method.
  */
 export function spanIsSentrySpan(span: Span): span is SentrySpan {
-  return typeof (span as SentrySpan).getSpanJSON === 'function';
+  return typeof (span as SentrySpan).getStaticSpanJSON === 'function';
 }
 
 /**

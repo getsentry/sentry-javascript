@@ -279,14 +279,7 @@ export class SentrySpan implements Span {
     };
   }
 
-  /**
-   * Get {@link StreamedSpanJSON} representation of this span.
-   *
-   * @hidden
-   * @internal This method is purely for internal purposes and should not be used outside
-   * of SDK code. If you need to get a JSON representation of a span,
-   * use `spanToJSON(span)` instead.
-   */
+  /** @inheritdoc */
   public getSpanJSON(): StreamedSpanJSON {
     return {
       name: this._name ?? '',

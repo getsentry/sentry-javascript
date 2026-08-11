@@ -320,4 +320,9 @@ export interface Span {
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
    */
   recordException(exception: unknown, time?: SpanTimeInput): void;
+
+  /**
+   * Get a {@link StreamedSpanJSON} representation of this span.
+   */
+  getSpanJSON(): StreamedSpanJSON;
 }
