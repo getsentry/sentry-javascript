@@ -36,6 +36,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
+import type { GenAiOptions } from '../ai/core/utils';
 import { getProviderMetadataAttributes } from '../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -198,10 +199,7 @@ export interface VercelAiChannelMessage {
 export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
 /** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
-export interface VercelAiChannelOptions {
-  recordInputs?: boolean;
-  recordOutputs?: boolean;
-}
+export type VercelAiChannelOptions = GenAiOptions;
 
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,

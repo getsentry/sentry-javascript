@@ -1,13 +1,7 @@
-export interface LangGraphOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-}
+import type { GenAiOptions } from '../core/utils';
+
+/** Options for the LangGraph integration. */
+export type LangGraphOptions = GenAiOptions;
 
 /**
  * LangGraph Tool definition from lc_kwargs
