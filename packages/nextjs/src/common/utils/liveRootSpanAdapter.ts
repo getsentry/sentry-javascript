@@ -20,11 +20,7 @@ export function createLiveRootSpanAdapter(span: Span): MutableRootSpan {
     setName: (name: string) => {
       const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
       span.updateName(name);
-      if (source !== undefined) {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-      } else {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, undefined);
-      }
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     },
     setOp: (op: string) => {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
