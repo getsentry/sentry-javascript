@@ -660,7 +660,13 @@ export function spanIsIgnored(span: Span): span is SentryNonRecordingSpan {
 
 function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, finallyCallback?: () => void): T {
   const wrapper = makeSpanActive
-    ? (callback: () => T) => withActiveSpan(span, callback)
+    ? (callback: () => T) => {
+        return withActiveSpan(span, () => {
+          // Make sure the correct scope is captured on the span
+          setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
+          return callback();
+        });
+      }
     : (callback: () => T) => callback();
 
   return wrapper(() =>
