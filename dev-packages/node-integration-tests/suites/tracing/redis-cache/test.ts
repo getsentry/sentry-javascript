@@ -20,8 +20,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
+            'server.address': 'localhost',
+            'network.peer.port': 6383,
             'db.statement': 'set test-key [1 other arguments]',
           }),
         }),
@@ -32,8 +32,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
+            'server.address': 'localhost',
+            'network.peer.port': 6383,
             'db.statement': 'get test-key',
           }),
         }),

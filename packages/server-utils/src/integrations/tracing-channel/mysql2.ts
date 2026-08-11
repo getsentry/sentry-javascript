@@ -19,8 +19,8 @@ import {
   DB_STATEMENT,
   DB_SYSTEM,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 
@@ -127,9 +127,9 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
     [DB_NAME]: database || undefined,
     [DB_USER]: user || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_NAME]: host || undefined,
+    [SERVER_ADDRESS]: host || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_PORT]: portIsNumber ? portNumber : undefined,
+    [SERVER_PORT]: portIsNumber ? portNumber : undefined,
   };
 }
 

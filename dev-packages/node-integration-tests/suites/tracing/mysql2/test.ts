@@ -21,8 +21,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT 1 + 1 AS solution',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 3306,
+          'server.address': 'localhost',
+          'network.peer.port': 3306,
           'db.user': 'root',
         }),
       }),
@@ -34,8 +34,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         data: expect.objectContaining({
           'db.system': 'mysql',
           'db.statement': 'SELECT ? as a, ? as b, NOW() as c',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 3306,
+          'server.address': 'localhost',
+          'network.peer.port': 3306,
           'db.user': 'root',
         }),
       }),

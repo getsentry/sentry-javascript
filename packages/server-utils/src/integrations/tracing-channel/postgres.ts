@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SERVER_ADDRESS, SERVER_PORT, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
@@ -29,8 +29,6 @@ const ATTR_DB_NAME = 'db.name';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const ATTR_DB_USER = 'db.user';
 const ATTR_DB_STATEMENT = 'db.statement';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 const ATTR_PG_PLAN = 'db.postgresql.plan';
 const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
@@ -220,8 +218,8 @@ function getConnectionAttributes(params: PgConnectionParams): SpanAttributes {
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
     [ATTR_DB_NAME]: params.database,
     [ATTR_DB_USER]: params.user,
-    [ATTR_NET_PEER_NAME]: params.host,
-    [ATTR_NET_PEER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
+    [SERVER_ADDRESS]: params.host,
+    [SERVER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
   };
 }
 
@@ -245,9 +243,9 @@ function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
     [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis,
     [ATTR_PG_MAX_CLIENT]: opts.max,
     [ATTR_DB_NAME]: database,
-    [ATTR_NET_PEER_PORT]: port,
+    [SERVER_PORT]: port,
     // these two come from a url parse and slice, can be ''
-    [ATTR_NET_PEER_NAME]: host || undefined,
+    [SERVER_ADDRESS]: host || undefined,
     [ATTR_DB_USER]: user || undefined,
   };
 }

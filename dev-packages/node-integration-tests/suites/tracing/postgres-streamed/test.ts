@@ -28,11 +28,11 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'test',
   },
-  'net.peer.name': {
+  'server.address': {
     type: 'string',
     value: 'localhost',
   },
-  'net.peer.port': {
+  'network.peer.port': {
     type: 'integer',
     value: expect.any(Number),
   },
@@ -102,7 +102,7 @@ function expectedDbSpan({
 }): unknown {
   const attributes: Record<string, unknown> = {
     ...COMMON_DB_ATTRIBUTES,
-    'net.peer.name': {
+    'server.address': {
       type: 'string',
       value: host,
     },

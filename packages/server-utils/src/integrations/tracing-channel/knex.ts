@@ -1,7 +1,4 @@
-// The `@sentry/conventions` db/net attribute keys are deprecated (superseded by newer semconv), but we
-// emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-knex` produced.
-/* oxlint-disable typescript/no-deprecated */
-
+/* oxlint-disable typescript/no-deprecated -- legacy database attributes remain for compatibility. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
@@ -20,9 +17,9 @@ import {
   DB_STATEMENT,
   DB_SYSTEM,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
-  NET_TRANSPORT,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -176,9 +173,9 @@ function subscribeQuery(): void {
         [DB_OPERATION]: operation,
         [DB_USER]: connection?.user,
         [DB_NAME]: name,
-        [NET_PEER_NAME]: connection?.host ?? extractHostFromConnectionString(connectionString),
-        [NET_PEER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
-        [NET_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
+        [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
+        [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
+        [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
         [DB_STATEMENT]: dbStatement,
       };
 

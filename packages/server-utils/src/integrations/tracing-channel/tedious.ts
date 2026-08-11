@@ -16,8 +16,8 @@ import {
   DB_STATEMENT,
   DB_SYSTEM,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -136,8 +136,8 @@ function subscribeQuery(channelName: string, operation: string): void {
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
       [DB_STATEMENT]: sql,
       [ATTR_DB_SQL_TABLE]: request.table,
-      [NET_PEER_NAME]: connection.config?.server,
-      [NET_PEER_PORT]: connection.config?.options?.port,
+      [SERVER_ADDRESS]: connection.config?.server,
+      [SERVER_PORT]: connection.config?.options?.port,
     };
 
     const span = startInactiveSpan({

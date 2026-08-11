@@ -1,4 +1,18 @@
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -109,6 +123,17 @@ describe('getHttpServerSubscriptions', () => {
           'sentry.source': 'url',
           [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
           [URL_PATH]: '/users/42',
+          [SERVER_ADDRESS]: '127.0.0.1',
+          [SERVER_PORT]: expect.any(Number),
+          [NETWORK_LOCAL_ADDRESS]: '127.0.0.1',
+          [NETWORK_LOCAL_PORT]: expect.any(Number),
+          [CLIENT_ADDRESS]: '127.0.0.1',
+          [CLIENT_PORT]: expect.any(Number),
+          [NETWORK_PEER_ADDRESS]: '127.0.0.1',
+          [NETWORK_PEER_PORT]: expect.any(Number),
+          [NETWORK_PROTOCOL_NAME]: 'http',
+          [NETWORK_PROTOCOL_VERSION]: '1.1',
+          [NETWORK_TRANSPORT]: 'tcp',
         }),
       }),
     );

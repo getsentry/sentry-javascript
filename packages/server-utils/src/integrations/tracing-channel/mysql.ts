@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SERVER_ADDRESS, SERVER_PORT, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   isObjectLike,
@@ -26,8 +26,6 @@ const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const ATTR_DB_NAME = 'db.name';
 const ATTR_DB_USER = 'db.user';
 const ATTR_DB_STATEMENT = 'db.statement';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 
 /**
  * The shape orchestrion's transform attaches to the tracing-channel `context` object. Documented here
@@ -90,8 +88,8 @@ function instrumentMysql(): void {
           ...(database ? { [ATTR_DB_NAME]: database } : {}),
           ...(user ? { [ATTR_DB_USER]: user } : {}),
           ...(sql ? { [ATTR_DB_STATEMENT]: sql } : {}),
-          ...(host ? { [ATTR_NET_PEER_NAME]: host } : {}),
-          ...(portIsNumber ? { [ATTR_NET_PEER_PORT]: portNumber } : {}),
+          ...(host ? { [SERVER_ADDRESS]: host } : {}),
+          ...(portIsNumber ? { [SERVER_PORT]: portNumber } : {}),
         },
       });
     },

@@ -24,8 +24,8 @@ test('Instruments pg automatically via orchestrion', async ({ baseURL }) => {
         'db.user': 'postgres',
         'db.name': 'postgres',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 5432,
+        'server.address': expect.any(String),
+        'network.peer.port': 5432,
       }),
     }),
   );
@@ -41,8 +41,8 @@ test('Instruments pg automatically via orchestrion', async ({ baseURL }) => {
         'db.user': 'postgres',
         'db.name': 'postgres',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 5432,
+        'server.address': expect.any(String),
+        'network.peer.port': 5432,
       }),
     }),
   );

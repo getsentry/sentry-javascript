@@ -46,8 +46,8 @@ describe('mysql auto instrumentation', () => {
         data: expect.objectContaining({
           ...(origin ? { 'sentry.origin': origin } : {}),
           'db.system': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': port,
+          'server.address': 'localhost',
+          'network.peer.port': port,
           'db.user': 'root',
         }),
         status: 'ok',
@@ -196,11 +196,11 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'root',
         },
-        'net.peer.name': {
+        'server.address': {
           type: 'string',
           value: 'localhost',
         },
-        'net.peer.port': {
+        'network.peer.port': {
           type: 'integer',
           value: expect.any(Number),
         },

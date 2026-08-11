@@ -3,7 +3,7 @@
    `db.statement`). TODO(v11): switch to the non-deprecated `db.system.name`/`db.query.text`/
    `server.address`/`server.port` conventions and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, SERVER_ADDRESS, SERVER_PORT } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -56,8 +56,8 @@ function connectionAttributes(host: string | undefined, port: number | undefined
   return {
     [DB_SYSTEM]: 'redis',
     [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-    [NET_PEER_NAME]: host,
-    [NET_PEER_PORT]: port,
+    [SERVER_ADDRESS]: host,
+    [SERVER_PORT]: port,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }

@@ -62,8 +62,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
         'db.statement': 'SELECT 1 + 1 AS solution',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 3306,
+        'server.address': expect.any(String),
+        'network.peer.port': 3306,
       }),
     }),
   );
@@ -78,8 +78,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
         'db.statement': 'SELECT NOW()',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 3306,
+        'server.address': expect.any(String),
+        'network.peer.port': 3306,
       }),
     }),
   );

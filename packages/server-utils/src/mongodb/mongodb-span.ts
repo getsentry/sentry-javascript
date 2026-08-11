@@ -7,8 +7,8 @@ import {
   DB_OPERATION,
   DB_STATEMENT,
   DB_SYSTEM,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -132,10 +132,10 @@ export function getSpanAttributes(
   };
 
   if (host && port) {
-    attributes[NET_PEER_NAME] = host;
+    attributes[SERVER_ADDRESS] = host;
     const portNumber = parseInt(port, 10);
     if (!isNaN(portNumber)) {
-      attributes[NET_PEER_PORT] = portNumber;
+      attributes[SERVER_PORT] = portNumber;
     }
   }
 

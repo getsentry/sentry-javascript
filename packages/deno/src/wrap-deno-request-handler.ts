@@ -1,3 +1,4 @@
+import { CLIENT_ADDRESS, CLIENT_PORT, NETWORK_PROTOCOL_NAME } from '@sentry/conventions/attributes';
 import type { Integration, MaxRequestBodySize } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
@@ -73,14 +74,17 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
 
     const dataCollection = client.getDataCollectionOptions();
+    const clientAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
+    const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
     if (dataCollection.userInfo) {
-      assignIfSet(
-        attributes,
-        'client.address',
-        (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path,
-      );
-      assignIfSet(attributes, 'client.port', (info?.remoteAddr as Deno.NetAddr)?.port);
+      assignIfSet(attributes, CLIENT_ADDRESS, clientAddress);
+      assignIfSet(attributes, CLIENT_PORT, clientPort);
     }
+    assignIfSet(
+      attributes,
+      NETWORK_PROTOCOL_NAME,
+      urlObject && !('isRelative' in urlObject) ? urlObject.protocol.slice(0, -1) : undefined,
+    );
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';

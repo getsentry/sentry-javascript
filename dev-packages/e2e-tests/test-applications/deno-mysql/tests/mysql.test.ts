@@ -25,7 +25,7 @@ test('mysql queries emit a db span with orchestrion-channel attributes', async (
   expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
   expect(firstQuery!.data?.['db.system']).toBe('mysql');
   expect(firstQuery!.data?.['db.statement']).toBe('SELECT 1 + 1 AS solution');
-  expect(firstQuery!.data?.['net.peer.port']).toBe(3306);
+  expect(firstQuery!.data?.['network.peer.port']).toBe(3306);
   expect(firstQuery!.data?.['db.user']).toBe('root');
 });
 

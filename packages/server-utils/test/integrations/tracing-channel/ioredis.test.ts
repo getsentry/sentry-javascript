@@ -30,8 +30,8 @@ describe('startIORedisCommandSpan', () => {
         attributes: expect.objectContaining({
           'db.system': 'redis',
           'db.connection_string': 'redis://localhost:6379',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 6379,
+          'server.address': 'localhost',
+          'server.port': 6379,
           'db.statement': 'set test-key [1 other arguments]',
           'sentry.origin': 'auto.db.redis',
         }),

@@ -40,7 +40,22 @@ import {
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
-import { URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
@@ -282,6 +297,7 @@ function buildServerSpanWrap(
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
       const { socket } = request;
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
+      const collectClientAddress = client.getDataCollectionOptions().userInfo;
 
       return startSpanManual(
         {
@@ -293,10 +309,14 @@ function buildServerSpanWrap(
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
-            'net.host.ip': localAddress,
-            'net.host.port': localPort,
-            'net.peer.ip': remoteAddress,
-            'net.peer.port': remotePort,
+            [SERVER_ADDRESS]: hostname,
+            [SERVER_PORT]: localPort,
+            [NETWORK_LOCAL_ADDRESS]: localAddress,
+            [NETWORK_LOCAL_PORT]: localPort,
+            [CLIENT_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [CLIENT_PORT]: remotePort,
+            [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [NETWORK_PEER_PORT]: remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
@@ -307,12 +327,13 @@ function buildServerSpanWrap(
               client,
             ),
             'http.host': host,
-            'net.host.name': hostname,
+            [NETWORK_PROTOCOL_NAME]: 'http',
+            [NETWORK_PROTOCOL_VERSION]: httpVersion,
             'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
             'http.user_agent': userAgent,
             'http.scheme': scheme,
             'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+            [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
             ...getRequestContentLengthAttribute(request),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },

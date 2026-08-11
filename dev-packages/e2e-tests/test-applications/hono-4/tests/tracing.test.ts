@@ -88,15 +88,16 @@ test("preserves the baseline client.* and network.* server span attributes that 
   const data = transaction.contexts?.trace?.data ?? {};
 
   if (RUNTIME === 'node') {
-    expect(data['net.host.name']).toBe('localhost');
-    expect(data['net.transport']).toBe('ip_tcp');
-    expect(data['net.host.ip']).toEqual(expect.any(String));
-    expect(data['net.peer.ip']).toEqual(expect.any(String));
-    expect(data['net.peer.port']).toEqual(expect.any(Number));
+    expect(data['server.address']).toBe('localhost');
+    expect(data['network.transport']).toBe('tcp');
+    expect(data['network.local.address']).toEqual(expect.any(String));
+    expect(data['network.peer.address']).toEqual(expect.any(String));
+    expect(data['network.peer.port']).toEqual(expect.any(Number));
   } else if (RUNTIME === 'bun') {
-    // Doesn't set net.*, network.*, or client.* attributes
+    // Doesn't expose connection metadata through Bun.serve
   } else if (RUNTIME === 'cloudflare') {
-    expect(data['network.protocol.name']).toBe('HTTP/1.1');
+    expect(data['network.protocol.name']).toBe('http');
+    expect(data['network.protocol.version']).toBe('1.1');
   } else if (RUNTIME === 'deno') {
     expect(data['client.address']).toEqual(expect.any(String));
     expect(data['client.port']).toEqual(expect.any(Number));

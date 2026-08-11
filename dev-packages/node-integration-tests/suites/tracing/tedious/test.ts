@@ -19,8 +19,8 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
         'db.system': 'mssql',
         'db.name': 'master',
         'db.user': 'sa',
-        'net.peer.name': '127.0.0.1',
-        'net.peer.port': 1433,
+        'server.address': '127.0.0.1',
+        'network.peer.port': 1433,
       }),
       ...overrides,
     });

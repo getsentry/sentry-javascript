@@ -75,8 +75,8 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
   // set for node-redis v4/v5.
   const spanData = spanToJSON(span).data;
-  const networkPeerAddress = spanData['net.peer.name'] ?? spanData['server.address'];
-  const networkPeerPort = spanData['net.peer.port'] ?? spanData['server.port'];
+  const networkPeerAddress = spanData['server.address'];
+  const networkPeerPort = spanData['server.port'];
   if (networkPeerPort && networkPeerAddress) {
     span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
   }
