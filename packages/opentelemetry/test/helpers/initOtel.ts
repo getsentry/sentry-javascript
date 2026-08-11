@@ -2,7 +2,6 @@ import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { debug, getClient } from '@sentry/core';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
-import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import type { TestClient } from './TestClient';
 import { SentryTracerProvider } from '../../src/tracerProvider';
 
@@ -34,8 +33,6 @@ export function initOtel(): void {
       DiagLogLevel.DEBUG,
     );
   }
-
-  setupEventContextTrace(client);
 
   const provider = new SentryTracerProvider();
 

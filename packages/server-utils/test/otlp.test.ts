@@ -2,13 +2,7 @@ import type { Context, ContextManager } from '@opentelemetry/api';
 import { context, INVALID_SPAN_CONTEXT, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Envelope } from '@sentry/core';
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  registerExternalPropagationContext,
-  setCurrentClient,
-} from '@sentry/core';
+import { getCurrentScope, getMainCarrier, registerExternalPropagationContext, setCurrentClient } from '@sentry/core';
 import { getOtlpTracesEndpoint, otlpIntegration } from '../src/otlp';
 import { getDefaultTestClientOptions, TestClient } from './mocks/client';
 
@@ -95,9 +89,7 @@ function setupClientCapturingEnvelopes(): { client: TestClient; envelopes: Envel
 
 describe('otlpIntegration', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
     context.setGlobalContextManager(new SyncContextManager());
   });
 

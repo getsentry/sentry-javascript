@@ -1,11 +1,4 @@
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  GLOBAL_OBJ,
-  type Scope,
-  setAsyncContextStrategy,
-} from '@sentry/core';
+import { getIsolationScope, getMainCarrier, GLOBAL_OBJ, type Scope, setAsyncContextStrategy } from '@sentry/core';
 import { AsyncLocalStorage } from 'async_hooks';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -13,9 +6,7 @@ import { withInvocationIsolationScope } from '../../src/utils/invocationScope';
 
 describe('withInvocationIsolationScope()', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
     setAsyncLocalStorageAsyncContextStrategy();

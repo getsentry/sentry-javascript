@@ -7,10 +7,10 @@ import {
   Client,
   createTransport,
   getActiveSpan,
-  getCurrentScope,
+  getAsyncContextStrategy,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-  getGlobalScope,
+  getMainCarrier,
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
@@ -156,9 +156,12 @@ describe('subscribeMysql2DiagnosticChannels', () => {
   });
 
   afterEach(() => {
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getGlobalScope().clear();
+    // Reset scopes and client for a clean slate, but keep the async-context strategy the subscriber
+    // bound to in `beforeAll` — wiping it would strand the ALS the subscriber captured, so no further
+    // spans would be created.
+    const acs = getAsyncContextStrategy(getMainCarrier());
+    getMainCarrier().__SENTRY__ = undefined;
+    setAsyncContextStrategy(acs);
     vi.clearAllMocks();
   });
 

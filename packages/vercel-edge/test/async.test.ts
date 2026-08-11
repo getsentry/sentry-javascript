@@ -1,11 +1,13 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, withIsolationScope, withScope } from '@sentry/core';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getCurrentScope, getIsolationScope, getMainCarrier, Scope, withIsolationScope, withScope } from '@sentry/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
-beforeAll(() => {
+beforeEach(() => {
+  getMainCarrier().__SENTRY__ = undefined;
+
   const client = new VercelEdgeClient({
     stackParser: () => [],
     integrations: [],
@@ -14,12 +16,6 @@ beforeAll(() => {
 
   setOpenTelemetryContextAsyncContextStrategy();
   setupOtel(client);
-});
-
-beforeEach(() => {
-  getIsolationScope().clear();
-  getCurrentScope().clear();
-  getGlobalScope().clear();
 });
 
 describe('withScope()', () => {

@@ -70,35 +70,6 @@ describe('Sentry React-Router build-time options type', () => {
     expectTypeOf(completeOptions).toEqualTypeOf<SentryReactRouterBuildOptions>();
   });
 
-  it('includes all deprecated options', () => {
-    const completeOptions: SentryReactRouterBuildOptions = {
-      // SentryNuxtModuleOptions specific options
-      reactComponentAnnotation: { enabled: true, ignoredComponents: ['IgnoredComponent1', 'IgnoredComponent2'] },
-
-      unstable_sentryVitePluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
-
-      // Deprecated sourceMapsUploadOptions
-      sourceMapsUploadOptions: {
-        release: {
-          name: 'deprecated-release',
-        },
-        enabled: true,
-        filesToDeleteAfterUpload: ['./build/*.map'],
-      },
-    };
-
-    expectTypeOf(completeOptions).toEqualTypeOf<SentryReactRouterBuildOptions>();
-  });
-
   it('allows partial configuration', () => {
     const minimalOptions: SentryReactRouterBuildOptions = { reactComponentAnnotation: { enabled: true } };
 

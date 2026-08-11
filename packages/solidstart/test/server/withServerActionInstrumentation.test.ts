@@ -2,8 +2,6 @@ import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import {
   createTransport,
-  getCurrentScope,
-  getIsolationScope,
   NodeClient,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -53,9 +51,7 @@ describe('withServerActionInstrumentation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
-    getCurrentScope().setClient(undefined);
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   afterEach(() => {

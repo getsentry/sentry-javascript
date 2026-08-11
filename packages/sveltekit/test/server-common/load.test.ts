@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { getCurrentScope, getIsolationScope, NodeClient, setCurrentClient } from '@sentry/node';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -215,8 +215,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
   }
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   let client: NodeClient;

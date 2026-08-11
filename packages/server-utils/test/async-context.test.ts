@@ -1,7 +1,6 @@
 import {
   getAsyncContextStrategy,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   Scope,
@@ -14,9 +13,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async-context';
 
 describe('withScope()', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     setAsyncLocalStorageAsyncContextStrategy();
   });
@@ -105,9 +102,7 @@ describe('withScope()', () => {
 
 describe('withIsolationScope()', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     setAsyncLocalStorageAsyncContextStrategy();
   });

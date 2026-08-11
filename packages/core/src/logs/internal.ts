@@ -9,7 +9,7 @@ import type { Log, SerializedLog } from '../types/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { _getSpanForScope } from '../utils/spanOnScope';
+import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -138,7 +138,7 @@ export function _INTERNAL_captureLog(
     });
   }
 
-  const span = _getSpanForScope(currentScope);
+  const span = getActiveSpan(currentScope);
   // Add the parent span ID to the log attributes for trace context
   setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCapturedScopesOnSpan,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   getTraceData,
@@ -37,6 +36,7 @@ import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
+import { resetGlobals } from '../../testutils';
 
 const enum Type {
   Sync = 'sync',
@@ -49,9 +49,7 @@ describe('startSpan', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -896,9 +894,7 @@ describe('startSpanManual', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -1416,9 +1412,7 @@ describe('startInactiveSpan', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -1902,9 +1896,7 @@ describe('startInactiveSpan', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2232,9 +2224,7 @@ describe('continueTrace', () => {
 
 describe('getActiveSpan', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2293,9 +2283,7 @@ describe('getActiveSpan', () => {
 
 describe('withActiveSpan()', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2364,9 +2352,7 @@ describe('withActiveSpan()', () => {
 
 describe('span hooks', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -2443,9 +2429,7 @@ describe('span hooks', () => {
 
 describe('suppressTracing', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2502,9 +2486,7 @@ describe('suppressTracing', () => {
   });
 
   it("doesn't record a client outcome for suppressed spans", () => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2574,9 +2556,7 @@ describe('suppressTracing', () => {
 
 describe('isTracingSuppressed', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2628,8 +2608,7 @@ describe('isTracingSuppressed', () => {
 
 describe('startNewTrace', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   it('creates a new propagation context on the current scope', () => {
@@ -2658,9 +2637,7 @@ describe('startNewTrace', () => {
 describe('ignoreSpans (core path, streaming)', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
     setAsyncContextStrategy(undefined);
   });
 

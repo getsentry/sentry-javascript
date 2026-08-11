@@ -29,7 +29,7 @@ import * as timerModule from '../../src/utils/timer';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
-import { clearGlobalScope } from '../testutils';
+import { resetGlobals } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -46,10 +46,7 @@ describe('Client', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    clearGlobalScope();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   afterEach(() => {
@@ -538,33 +535,6 @@ describe('Client', () => {
           extra: {
             bar: 'wat',
             foo: 'wat',
-          },
-        }),
-      );
-    });
-
-    test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setExtra('foo', 'wat');
-
-      client.captureException(
-        new Error('test exception'),
-        {
-          captureContext: s => {
-            s.clear();
-            s.setExtra('bar', 'wat');
-            return s;
-          },
-        },
-        scope,
-      );
-
-      expect(TestClient.instance!.event).toEqual(
-        expect.objectContaining({
-          extra: {
-            bar: 'wat',
           },
         }),
       );

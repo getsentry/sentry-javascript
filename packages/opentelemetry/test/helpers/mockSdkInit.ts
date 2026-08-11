@@ -1,5 +1,5 @@
 import type { ClientOptions, Options } from '@sentry/core';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { initOtel } from './initOtel';
 import type { TestClient } from './TestClient';
@@ -18,11 +18,7 @@ function init(options: Partial<Options> | undefined = {}): TestClient {
 }
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
-  delete (global as any).__SENTRY__;
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 export function mockSdkInit(options?: Partial<ClientOptions>): TestClient {

@@ -11,18 +11,9 @@ import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
  * Applies data from the scope to the event and runs all event processors on it.
  */
 export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
-  const { fingerprint, span, breadcrumbs, sdkProcessingMetadata } = data;
+  const { fingerprint, breadcrumbs, sdkProcessingMetadata } = data;
 
-  // Apply general data
   applyDataToEvent(event, data);
-
-  // We want to set the trace context for normal events only if there isn't already
-  // a trace context on the event. There is a product feature in place where we link
-  // errors with transaction and it relies on that.
-  if (span) {
-    applySpanToEvent(event, span);
-  }
-
   applyFingerprintToEvent(event, fingerprint);
   applyBreadcrumbsToEvent(event, breadcrumbs);
   applySdkMetadataToEvent(event, sdkProcessingMetadata);
@@ -44,7 +35,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     attachments,
     propagationContext,
     transactionName,
-    span,
   } = mergeData;
 
   mergeAndOverwriteScopeData(data, 'extra', extra);
@@ -61,10 +51,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
 
   if (transactionName) {
     data.transactionName = transactionName;
-  }
-
-  if (span) {
-    data.span = span;
   }
 
   if (breadcrumbs.length) {
@@ -169,7 +155,8 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
   };
 }
 
-function applySpanToEvent(event: Event, span: Span): void {
+/** Apply a given span to the event. */
+export function applySpanToEvent(event: Event, span: Span): void {
   event.contexts = {
     trace: spanToTraceContext(span),
     ...event.contexts,
