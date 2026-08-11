@@ -5,12 +5,5 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   // The Sentry plugin runs first so its build-time transform wraps the worker
   // entry and both Durable Object classes before the Cloudflare plugin bundles it.
-  plugins: [
-    cloudflare(),
-    sentryCloudflareVitePlugin({
-      _experimental: {
-        autoInstrumentation: true,
-      },
-    }),
-  ],
+  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
 });
