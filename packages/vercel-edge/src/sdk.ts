@@ -20,7 +20,6 @@ import {
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
-  setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import { VercelEdgeClient } from './client';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
@@ -98,8 +97,6 @@ export function init(options: VercelEdgeOptions = {}): Client {
   if (options.enableOpenTelemetrySetup ?? true) {
     setupOtel(client);
   }
-
-  setupEventContextTrace(client);
 
   return client;
 }
