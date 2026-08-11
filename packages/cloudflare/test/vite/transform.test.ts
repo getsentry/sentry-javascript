@@ -23,7 +23,11 @@ function entrypointWrappers(...names: string[]): Map<string, ClassWrapperKind> {
 }
 
 function transform(code: string, ctx: TransformContext) {
-  return applyAutoInstrumentTransforms(code, parseJS(code), ctx);
+  const result = applyAutoInstrumentTransforms(code, parseJS(code), ctx);
+  // Rewriting whole statements (rather than only splicing in wrappers) makes it possible to emit
+  // syntactically broken output, which would surface as an opaque bundler error.
+  if (result) parseJS(result.code);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,9 +207,122 @@ describe('Durable Object class wrapping', () => {
     expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
   });
 
-  it('leaves re-exports from other modules alone and reports them unwrapped', () => {
+  it('wraps a DO class imported from another module and exported by specifier', () => {
+    const code = ["import { MyDurableObject } from './do';", 'export { MyDurableObject };'].join('\n');
+
+    const result = transform(code, ctx)!;
+    // The import binding cannot be reassigned, so the export is re-pointed at a wrapper binding.
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), MyDurableObject);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps a DO class re-exported straight from another module', () => {
     const code = "export { MyDurableObject } from './do';";
-    expect(transform(code, ctx)).toBeUndefined();
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps an aliased re-export from another module', () => {
+    const code = "export { Internal as MyDurableObject } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { Internal as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default re-export from another module', () => {
+    const code = "export { default as MyDurableObject } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_REEXPORT_MyDurableObject__ from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves sibling specifiers of a re-export statement untouched', () => {
+    const code = "export { Helper, MyDurableObject, other as Other } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+        "export { Helper, other as Other } from './do';",
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps a mix of local and imported classes in one export statement', () => {
+    const mixed: TransformContext = { classWrappers: doWrappers('LocalDO', 'ImportedDO'), optionsFn: '(env) => ({})' };
+    const code = [
+      "import { ImportedDO } from './do';",
+      'class DurableObject {}',
+      'class LocalDO extends DurableObject {}',
+      'const unrelated = 1;',
+      'export { LocalDO, ImportedDO, unrelated };',
+    ].join('\n');
+
+    const result = transform(code, mixed)!;
+    // The local class keeps its binding (renamed declaration + wrapper), so its specifier is
+    // carried over untouched alongside the unrelated one.
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { ImportedDO } from './do';",
+        'class DurableObject {}',
+        'class __SENTRY_ORIGINAL_LocalDO__ extends DurableObject {}',
+        'const LocalDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_LocalDO__);',
+        '',
+        'const unrelated = 1;',
+        'const __SENTRY_WRAPPED_ImportedDO__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), ImportedDO);',
+        'export { __SENTRY_WRAPPED_ImportedDO__ as ImportedDO };',
+        'export { LocalDO, unrelated };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['LocalDO', 'ImportedDO']));
+  });
+
+  it('counts a locally hand-wrapped class exported by specifier as wrapped', () => {
+    const code = [
+      "import { instrumentDurableObjectWithSentry } from '@sentry/cloudflare';",
+      "import { Impl } from './do';",
+      'const MyDurableObject = instrumentDurableObjectWithSentry((env) => ({}), Impl);',
+      'export { MyDurableObject };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+    expect(result.code).toBe(code);
   });
 
   it('reports wrapped DO classes for the inline export form', () => {

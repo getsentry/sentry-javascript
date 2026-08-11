@@ -305,6 +305,60 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       expect(result.code).not.toContain('instrumentAgentWithSentry');
     });
 
+    it('wraps an Agent imported from another module and exported by specifier', async () => {
+      const tx = createAgentPlugin({
+        'agent.ts': ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n'),
+      });
+      const code = ["import { MyAgent } from './agent';", 'export { MyAgent };'].join('\n');
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          "import { MyAgent } from './agent';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(() => undefined, MyAgent);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
+    });
+
+    it('wraps an Agent re-exported straight from another module', async () => {
+      const tx = createAgentPlugin({
+        'agent.ts': ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n'),
+      });
+      const code = "export { MyAgent } from './agent';";
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './agent';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(() => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
+    });
+
+    it('keeps the Durable Object helper for a re-exported plain Durable Object', async () => {
+      const tx = createAgentPlugin({
+        'do.ts': [
+          "import { DurableObject } from 'cloudflare:workers';",
+          'export class MyAgent extends DurableObject {}',
+        ].join('\n'),
+      });
+      const code = "export { MyAgent } from './do';";
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './do';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentDurableObjectWithSentry(() => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
+    });
+
     it('does not warn about an Agent that was wrapped manually', async () => {
       const dir = writeTempDir({ 'wrangler.toml': AGENT_WRANGLER });
       const plugin = sentryCloudflareAutoInstrumentPlugin();
@@ -342,7 +396,8 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     plugin.configResolved({ root: dir });
 
     const warnings: string[] = [];
-    const code = "export { MyDO } from './do';";
+    // A star re-export names nothing, so there is no specifier to re-point at a wrapper.
+    const code = "export * from './do';";
     await plugin.transform.call(
       { parse: (c: string) => parseJS(c), warn: (msg: string) => warnings.push(msg) },
       code,

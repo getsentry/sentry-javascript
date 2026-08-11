@@ -40,15 +40,14 @@ interface ExportDefaultNode extends BaseNode {
   declaration: BaseNode;
 }
 
-interface ExportSpecifierNode {
-  type: string;
+interface ExportSpecifierNode extends BaseNode {
   local?: { type: string; name?: string };
   exported?: { type: string; name?: string };
 }
 
 interface ExportNamedNode extends BaseNode {
   declaration?: BaseNode | null;
-  source?: unknown;
+  source?: BaseNode | null;
   specifiers?: ExportSpecifierNode[];
 }
 
@@ -83,6 +82,9 @@ function isCallToMethod(node: BaseNode, methodName: string): boolean {
  * lives in another module.
  */
 export type ClassWrapperKind = 'durableObject' | 'agent' | 'workflow' | 'workerEntrypoint';
+
+/** Specifier name a `export { default as X } from '...'` re-export uses for the source's default. */
+const DEFAULT_IMPORT = 'default';
 
 /**
  * The `@sentry/cloudflare` helper each wrapper kind emits. All share the same
@@ -132,10 +134,11 @@ export interface TransformResult {
  * {@link TransformContext.classWrappers}, e.g. Durable Object classes with
  * `instrumentDurableObjectWithSentry`).
  *
- * Handles both `export class MyDO {}` and the specifier form
- * (`class MyDO {}` … `export { MyDO }` / `export { Foo as MyDO }`).
- * Re-exports from other modules (`export { MyDO } from './do'`) cannot be
- * wrapped here and are left alone — the plugin warns about them via
+ * Handles `export class MyDO {}`, the specifier form (`class MyDO {}` …
+ * `export { MyDO }` / `export { Foo as MyDO }`), and classes that live in
+ * another module (`import { MyDO } from './do'; export { MyDO }` or
+ * `export { MyDO } from './do'`). Only star re-exports (`export * from './do'`)
+ * are left alone — the plugin warns about those via
  * {@link TransformResult.wrappedClasses}.
  *
  * Exported (rather than inlined into the plugin) so it can be unit-tested with a
@@ -162,6 +165,7 @@ export function applyAutoInstrumentTransforms(
     // The identifier must be chosen before wrapping, which bindings survive is only known after.
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
     autoWrapped: new Set<ExportName>(),
+    manuallyWrappedLocals: collectManuallyWrappedLocals(ast),
   };
   const { wrappedClasses } = state;
 
@@ -258,6 +262,12 @@ function buildMergedOptionsDeclaration(
     `const opts = (${optionsFn})(env); ` +
     `return { ...opts, rpcTracePropagationBindings: [${names}, ...(opts?.rpcTracePropagationBindings ?? [])] }; };\n`
   );
+  /**
+   * Top-level bindings already assigned an `instrument*WithSentry(...)` result
+   * (`const MyDO = instrumentDurableObjectWithSentry(...)`). Exporting one by
+   * specifier must report it as wrapped rather than wrap it a second time.
+   */
+  manuallyWrappedLocals: Set<string>;
 }
 
 /**
@@ -279,10 +289,39 @@ function resolveWrapperKind(
   state: TransformState,
 ): ClassWrapperKind | undefined {
   const configured = state.classWrappers.get(exportedName);
-  if (configured === 'durableObject' && localName && state.agentClasses.has(localName)) return 'agent';
+  // Detection keys Agents by whichever name it could resolve the base chain from: the local binding
+  // for a class or import, the exported name for `export { X } from './x'` (which has no local one).
+  if (
+    configured === 'durableObject' &&
+    ((localName && state.agentClasses.has(localName)) || state.agentClasses.has(exportedName))
+  ) {
+    return 'agent';
+  }
   if (configured) return configured;
   if (localName && state.workerEntrypointClasses.has(localName)) return 'workerEntrypoint';
   return undefined;
+}
+
+/**
+ * Top-level `const X = instrument*WithSentry(...)` bindings — a hand-wrapped class that is exported
+ * separately (`export { X }`) rather than inline.
+ */
+function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
+  const wrapperMethods = Object.values(WRAPPER_METHODS);
+  const locals = new Set<string>();
+
+  for (const node of ast.body) {
+    if (node.type !== 'VariableDeclaration') continue;
+    for (const declarator of (node as VariableDeclarationNode).declarations ?? []) {
+      const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
+      const init = declarator.init;
+      if (name && init && wrapperMethods.some(method => isCallToMethod(init, method))) {
+        locals.add(name);
+      }
+    }
+  }
+
+  return locals;
 }
 
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
@@ -335,12 +374,8 @@ function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: 
     return;
   }
 
-  // ---- Specifier export of a local class (`export { Foo as MyDO }`) ----
-  // Re-exports from another module carry a `source` — nothing local to wrap.
-  if (node.source) return;
-  for (const specifier of node.specifiers ?? []) {
-    wrapSpecifierExport(specifier, ctx, state);
-  }
+  // ---- Specifier export (`export { Foo as MyDO }`, `export { MyDO } from './do'`) ----
+  wrapSpecifierExports(node, ctx, state);
 }
 
 function collectManuallyWrappedClassExports(
@@ -396,28 +431,122 @@ function wrapInlineClassExport(
   state.needsImport = true;
 }
 
-function wrapSpecifierExport(specifier: ExportSpecifierNode, ctx: TransformContext, state: TransformState): void {
-  if (specifier.type !== 'ExportSpecifier' || specifier.exported?.type !== 'Identifier') return;
-  const exportedName = specifier.exported.name;
-  if (!exportedName) return;
+/**
+ * Wrap the configured classes an `export { ... }` statement names.
+ *
+ * A class *declared* in this module keeps the statement intact: the declaration is renamed and the
+ * wrapper takes over its binding, so the untouched specifier now exports the wrapped class.
+ *
+ * A class that lives in **another** module — imported and re-exported, or re-exported directly — has
+ * no local binding to overwrite (import bindings are immutable). Those specifiers are re-pointed at
+ * a fresh wrapper binding instead, which means rebuilding the statement; specifiers this plugin has
+ * no business touching are carried over verbatim.
+ */
+function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
+  const specifiers = node.specifiers ?? [];
+  if (specifiers.length === 0) return;
 
+  const sourceLiteral = node.source ? state.ms.original.slice(node.source.start, node.source.end) : undefined;
+
+  const prelude: string[] = [];
+  const wrappedPairs: string[] = [];
+  const kept: string[] = [];
+
+  for (const specifier of specifiers) {
+    const pair = wrapCrossModuleSpecifier(specifier, sourceLiteral, ctx, state, prelude);
+    if (pair) wrappedPairs.push(pair);
+    else kept.push(state.ms.original.slice(specifier.start, specifier.end));
+  }
+
+  if (wrappedPairs.length === 0) return;
+
+  const statements = [...prelude, `export { ${wrappedPairs.join(', ')} };`];
+  if (kept.length > 0) {
+    const clause = `export { ${kept.join(', ')} }`;
+    statements.push(sourceLiteral ? `${clause} from ${sourceLiteral};` : `${clause};`);
+  }
+  state.ms.overwrite(node.start, node.end, statements.join('\n'));
+}
+
+/**
+ * Handle one export specifier, returning the `Wrapped as Exported` pair to emit when its class has
+ * to be wrapped through a fresh binding — the cross-module case. The import/wrapper statements that
+ * pair depends on are pushed onto `prelude`.
+ *
+ * Returns `undefined` when the specifier can stay exactly as written: it doesn't name a configured
+ * class, its class is declared locally (wrapped in place via {@link wrapLocalClassExport}, which
+ * takes over the binding the specifier already exports), or the binding is already hand-wrapped.
+ */
+function wrapCrossModuleSpecifier(
+  specifier: ExportSpecifierNode,
+  sourceLiteral: string | undefined,
+  ctx: TransformContext,
+  state: TransformState,
+  prelude: string[],
+): string | undefined {
+  const exportedName =
+    specifier.type === 'ExportSpecifier' && specifier.exported?.type === 'Identifier'
+      ? specifier.exported.name
+      : undefined;
   const localName = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
-  const kind = resolveWrapperKind(exportedName, localName, state);
-  if (!kind) return;
+  const kind = exportedName ? resolveWrapperKind(exportedName, localName, state) : undefined;
 
-  const localClass = localName ? state.topLevelClasses.get(localName) : undefined;
-  if (!localName || !localClass?.id) return;
+  if (!exportedName || !localName || !kind) return undefined;
 
+  // Without a `from` clause the specifier points at a module-local binding, which may already be
+  // (or become) the wrapped class without touching the export statement itself.
+  if (!sourceLiteral) {
+    const localClass = state.topLevelClasses.get(localName);
+
+    if (localClass?.id) {
+      wrapLocalClassExport(localName, localClass, kind, ctx, state);
+      state.wrappedClasses.add(exportedName);
+      state.needsImport = true;
+      return undefined;
+    }
+
+    if (state.manuallyWrappedLocals.has(localName)) {
+      state.wrappedClasses.add(exportedName);
+      return undefined;
+    }
+  }
+
+  // The class comes from another module: bind it under a private name (for the `from` form, which
+  // has no local binding at all), wrap that, and export the wrapper under the configured name.
+  let target = localName;
+
+  if (sourceLiteral) {
+    target = `__SENTRY_REEXPORT_${exportedName}__`;
+    prelude.push(
+      localName === DEFAULT_IMPORT
+        ? `import ${target} from ${sourceLiteral};`
+        : `import { ${localName} as ${target} } from ${sourceLiteral};`,
+    );
+  }
+
+  const wrappedName = `__SENTRY_WRAPPED_${exportedName}__`;
+
+  prelude.push(`const ${wrappedName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${ctx.optionsFn}, ${target});`);
   state.wrappedClasses.add(exportedName);
   state.autoWrapped.add(exportedName);
   state.needsImport = true;
+
+  return `${wrappedName} as ${exportedName}`;
+}
+
+/** Rename a locally declared class and rebind its original name to the wrapper. */
+function wrapLocalClassExport(
+  localName: string,
+  localClass: ClassDeclarationNode,
+  kind: ClassWrapperKind,
+  ctx: TransformContext,
+  state: TransformState,
+): void {
   if (state.renamedLocals.has(localName)) return;
   state.renamedLocals.add(localName);
 
   const renamedClass = `__SENTRY_ORIGINAL_${localName}__`;
-  state.ms.overwrite(localClass.id.start, localClass.id.end, renamedClass);
-  // The existing `export { ... }` statement keeps exporting the (now
-  // wrapped) `localName` binding, so the wrapper is NOT exported here.
+  state.ms.overwrite(localClass.id!.start, localClass.id!.end, renamedClass);
   state.ms.appendLeft(
     localClass.end,
     `\nconst ${localName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
