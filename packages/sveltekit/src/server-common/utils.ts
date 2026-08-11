@@ -4,8 +4,7 @@ import { isHttpError, isRedirect } from '../common/utils';
 
 /** The subset of Cloudflare's `ExecutionContext` the SDK relies on. */
 export type MinimalCloudflareExecutionContext = {
-  // oxlint-disable-next-line typescript/no-explicit-any
-  waitUntil(promise: Promise<any>): void;
+  waitUntil(promise: Promise<unknown>): void;
 };
 
 /**
