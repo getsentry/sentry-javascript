@@ -1,5 +1,4 @@
 import type { GenAiOptions } from '../core/utils';
-import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
 
 /** Options for the Google GenAI integration. */
 export type GoogleGenAIOptions = GenAiOptions;
@@ -173,15 +172,6 @@ export interface GoogleGenAIChat {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
 }
-
-export type GoogleGenAIInstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
-
-/**
- * @deprecated Use {@link GoogleGenAIInstrumentedMethod} instead. This alias
- * preserves backwards compatibility with the misspelled name and will be
- * removed in the next major version.
- */
-export type GoogleGenAIIstrumentedMethod = GoogleGenAIInstrumentedMethod;
 
 // Export the response type for use in instrumentation
 export type GoogleGenAIResponse = GenerateContentResponse;
