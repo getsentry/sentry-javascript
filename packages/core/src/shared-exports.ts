@@ -367,7 +367,6 @@ export type {
   CheckInEnvelope,
   RawSecurityEnvelope,
   RawSecurityItem,
-  ProfileItem,
   ProfileChunkEnvelope,
   ProfileChunkItem,
   StreamedSpanEnvelope,
@@ -395,12 +394,9 @@ export type {
   ThreadId,
   FrameId,
   StackId,
-  ThreadCpuSample,
   ThreadCpuStack,
   ThreadCpuFrame,
-  ThreadCpuProfile,
   ContinuousThreadCpuProfile,
-  Profile,
   ProfileChunk,
 } from './types/profiling';
 export type {

@@ -1,13 +1,5 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  ContinuousThreadCpuProfile,
-  DebugImage,
-  Profile,
-  ProfileChunk,
-  Span,
-  ThreadCpuProfile,
-} from '@sentry/core/browser';
+import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core/browser';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -19,9 +11,7 @@ import {
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
-
-const MS_TO_NS = 1e6;
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
 
 // Checking if we are in Main or Worker thread: `self` (not `window`) is the `globalThis` in Web Workers and `importScripts` are only available in Web Workers
 const isMainThread = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window === GLOBAL_OBJ && typeof importScripts === 'undefined';
@@ -29,23 +19,6 @@ const isMainThread = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window === GLOBAL_OBJ 
 // Setting ID to 0 as we cannot get an ID from Web Workers
 export const PROFILER_THREAD_ID_STRING = String(0);
 export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
-
-function isProcessedJSSelfProfile(profile: ThreadCpuProfile | JSSelfProfile): profile is JSSelfProfile {
-  return !('thread_metadata' in profile);
-}
-
-// Enriches the profile with threadId of the current thread.
-// This is done in node as we seem to not be able to get the info from C native code.
-/**
- *
- */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | JSSelfProfile): ThreadCpuProfile {
-  if (!isProcessedJSSelfProfile(profile)) {
-    return profile;
-  }
-
-  return convertJSSelfProfileToSampledFormat(profile);
-}
 
 /**
  * Create a profile chunk envelope item
@@ -200,96 +173,6 @@ function convertToContinuousProfile(input: {
     samples,
     thread_metadata: { [PROFILER_THREAD_ID_STRING]: { name: PROFILER_THREAD_NAME } },
   };
-}
-
-/**
- * Converts a JSSelfProfile to a our sampled format.
- * Does not currently perform stack indexing.
- */
-export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profile['profile'] {
-  let EMPTY_STACK_ID: undefined | number = undefined;
-  let STACK_ID = 0;
-
-  // Initialize the profile that we will fill with data
-  const profile: Profile['profile'] = {
-    samples: [],
-    stacks: [],
-    frames: [],
-    thread_metadata: {
-      [PROFILER_THREAD_ID_STRING]: { name: PROFILER_THREAD_NAME },
-    },
-  };
-
-  const firstSample = input.samples[0];
-  if (!firstSample) {
-    return profile;
-  }
-
-  // We assert samples.length > 0 above and timestamp should always be present
-  const start = firstSample.timestamp;
-  // The JS SDK might change it's time origin based on some heuristic (see See packages/utils/src/time.ts)
-  // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
-  // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
-  // the drift between the SDK selected value and our profile time origin.
-  const perfOrigin = browserPerformanceTimeOrigin();
-  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
-  const adjustForOriginChange = origin - (perfOrigin || origin);
-
-  input.samples.forEach((jsSample, i) => {
-    // If sample has no stack, add an empty sample
-    if (jsSample.stackId === undefined) {
-      if (EMPTY_STACK_ID === undefined) {
-        EMPTY_STACK_ID = STACK_ID;
-        profile.stacks[EMPTY_STACK_ID] = [];
-        STACK_ID++;
-      }
-
-      profile['samples'][i] = {
-        // convert ms timestamp to ns
-        elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
-        stack_id: EMPTY_STACK_ID,
-        thread_id: PROFILER_THREAD_ID_STRING,
-      };
-      return;
-    }
-
-    let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
-
-    // Functions in top->down order (root is last)
-    // We follow the stackTop.parentId trail and collect each visited frameId
-    const stack: number[] = [];
-
-    while (stackTop) {
-      stack.push(stackTop.frameId);
-
-      const frame = input.frames[stackTop.frameId];
-
-      // If our frame has not been indexed yet, index it
-      if (frame && profile.frames[stackTop.frameId] === undefined) {
-        profile.frames[stackTop.frameId] = {
-          function: frame.name,
-          abs_path: typeof frame.resourceId === 'number' ? input.resources[frame.resourceId] : undefined,
-          lineno: frame.line,
-          colno: frame.column,
-        };
-      }
-
-      stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
-    }
-
-    const sample: Profile['profile']['samples'][0] = {
-      // convert ms timestamp to ns
-      elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
-      stack_id: STACK_ID,
-      thread_id: PROFILER_THREAD_ID_STRING,
-    };
-
-    profile['stacks'][STACK_ID] = stack;
-    profile['samples'][i] = sample;
-    STACK_ID++;
-  });
-
-  return profile;
 }
 
 /**

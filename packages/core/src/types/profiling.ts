@@ -29,13 +29,6 @@ export type ThreadId = string;
 export type FrameId = number;
 export type StackId = number;
 
-export interface ThreadCpuSample {
-  stack_id: StackId;
-  thread_id: ThreadId;
-  queue_address?: string;
-  elapsed_since_start_ns: string;
-}
-
 export interface ContinuousThreadCpuSample {
   stack_id: StackId;
   thread_id: ThreadId;
@@ -57,14 +50,6 @@ export type ThreadCpuFrame = {
   in_app?: boolean;
 };
 
-export interface ThreadCpuProfile {
-  samples: ThreadCpuSample[];
-  stacks: ThreadCpuStack[];
-  frames: ThreadCpuFrame[];
-  thread_metadata: Record<ThreadId, { name?: string; priority?: number }>;
-  queue_metadata?: Record<string, { label: string }>;
-}
-
 export interface ContinuousThreadCpuProfile {
   samples: ContinuousThreadCpuSample[];
   stacks: ThreadCpuStack[];
@@ -79,45 +64,6 @@ interface BaseProfile<T> {
   environment: string;
   platform: string;
   profile: T;
-  debug_meta?: {
-    images: DebugImage[];
-  };
-  measurements?: Record<
-    string,
-    {
-      unit: MeasurementUnit;
-      values: {
-        elapsed_since_start_ns: number;
-        value: number;
-      }[];
-    }
-  >;
-}
-
-export interface Profile extends BaseProfile<ThreadCpuProfile> {
-  event_id: string;
-  version: string;
-  os: {
-    name: string;
-    version: string;
-    build_number?: string;
-  };
-  runtime: {
-    name: string;
-    version: string;
-  };
-  device: {
-    architecture: string;
-    is_emulator: boolean;
-    locale: string;
-    manufacturer: string;
-    model: string;
-  };
-  timestamp: string;
-  release: string;
-  environment: string;
-  platform: string;
-  profile: ThreadCpuProfile;
   debug_meta?: {
     images: DebugImage[];
   };

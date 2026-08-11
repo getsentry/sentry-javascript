@@ -7,7 +7,7 @@ import type { Event } from './event';
 import type { FeedbackEvent, UserFeedback } from './feedback';
 import type { SerializedLogContainer } from './log';
 import type { SerializedMetricContainer } from './metric';
-import type { Profile, ProfileChunk } from './profiling';
+import type { ProfileChunk } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, SessionAggregates } from './session';
@@ -87,7 +87,6 @@ type ClientReportItemHeaders = { type: 'client_report' };
 type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
-type ProfileItemHeaders = { type: 'profile' };
 type ProfileChunkItemHeaders = { type: 'profile_chunk'; platform: ProfileChunk['platform'] };
 type SpanContainerItemHeaders = {
   type: 'span';
@@ -130,7 +129,6 @@ export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn
 type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
-export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanContainerItem = BaseEnvelopeItem<SpanContainerItemHeaders, SerializedStreamedSpanContainer>;
 export type LogContainerItem = BaseEnvelopeItem<LogContainerItemHeaders, SerializedLogContainer>;
@@ -147,7 +145,7 @@ type LogEnvelopeHeaders = BaseEnvelopeHeaders;
 type MetricEnvelopeHeaders = BaseEnvelopeHeaders;
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
-  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | ProfileItem | SpanContainerItem
+  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | SpanContainerItem
 >;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;

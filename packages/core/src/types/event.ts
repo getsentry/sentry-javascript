@@ -58,7 +58,7 @@ export interface Event {
  * Note that `ErrorEvent`s do not have a type (hence its undefined),
  * while all other events are required to have one.
  */
-export type EventType = 'profile' | 'replay_event' | 'feedback' | undefined;
+export type EventType = 'replay_event' | 'feedback' | undefined;
 
 export interface ErrorEvent extends Event {
   type: undefined;
