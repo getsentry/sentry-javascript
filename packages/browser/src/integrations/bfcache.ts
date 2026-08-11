@@ -4,8 +4,9 @@ import {
   BROWSER_BFCACHE_NOT_RESTORED_REASON_COUNT,
   BROWSER_BFCACHE_OUTCOME,
   BROWSER_BFCACHE_REASON,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import type { IntegrationFn } from '@sentry/core/browser';
+import type { IntegrationFn, SpanAttributes } from '@sentry/core/browser';
 import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -81,9 +82,9 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
         if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
           metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
             unit: 'millisecond',
-            attributes: {
+            attributes: _withOriginAttr({
               [SENTRY_SEGMENT_NAME]: routeName,
-            },
+            }),
           });
         }
 
@@ -103,11 +104,11 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
  */
 function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number, routeName?: string): void {
   metrics.count('browser.bfcache.navigation', 1, {
-    attributes: {
+    attributes: _withOriginAttr({
       [BROWSER_BFCACHE_OUTCOME]: outcome,
       [BROWSER_BFCACHE_NOT_RESTORED_REASON_COUNT]: reasonCount,
       [SENTRY_SEGMENT_NAME]: routeName,
-    },
+    }),
   });
 }
 
@@ -116,11 +117,11 @@ function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number
  */
 function _captureBFCacheReason({ reason, frame }: CollectedReason, routeName?: string) {
   metrics.count('browser.bfcache.not_restored', 1, {
-    attributes: {
+    attributes: _withOriginAttr({
       [BROWSER_BFCACHE_REASON]: reason,
       [BROWSER_BFCACHE_FRAME]: frame,
       [SENTRY_SEGMENT_NAME]: routeName,
-    },
+    }),
   });
 }
 
@@ -204,4 +205,13 @@ function _collectReasonsFromFrame(
   frame.children?.forEach(child => {
     _collectReasonsFromFrame(child, 'child', collectedReasons, maxReasons);
   });
+}
+
+/**
+ * Adds the origin attributes to a set of attributes, it mutates the original attributes.
+ */
+function _withOriginAttr(attributes: SpanAttributes): SpanAttributes {
+  attributes[SENTRY_ORIGIN] = 'auto.browser.bfcache';
+
+  return attributes;
 }
