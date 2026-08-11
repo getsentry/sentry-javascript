@@ -104,7 +104,6 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
         onSpanCreated: options.onIncomingSpanCreated,
         onSpanEnd: options.onIncomingSpanEnd,
         errorMonitor,
-        sessions: false,
       });
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
