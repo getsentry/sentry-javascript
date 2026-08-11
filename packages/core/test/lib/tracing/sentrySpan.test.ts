@@ -197,21 +197,20 @@ describe('SentrySpan', () => {
       expect(json.links).toHaveLength(1);
     });
 
-    it('seals a tracer-provider span that ended via the constructor endTimestamp', () => {
-      // `_endTime` is set in the constructor, so `end()` early-returns before reaching the seal at the
-      // bottom of its body. The span must still be sealed once `end()` is invoked.
+    it('keeps a tracer-provider span sealed across repeated `end()` calls', () => {
       const span = new SentrySpan({
         name: 'original',
         startTimestamp: 1,
-        endTimestamp: 2,
         attributes: { key: 'before' },
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end();
+      span.end(2);
+      span.end(3);
 
       span.setAttribute('key', 'after');
       expect(spanToJSON(span).data?.['key']).toBe('before');
+      expect(spanToJSON(span).timestamp).toBe(2);
     });
   });
 
@@ -255,20 +254,18 @@ describe('SentrySpan', () => {
         name: 'not-sampled',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: false,
       });
-      notSampledSpan.end();
+      notSampledSpan.end(2);
       expect(mockSend).not.toHaveBeenCalled();
 
       const sampledSpan = new SentrySpan({
         name: 'is-sampled',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      sampledSpan.end();
+      sampledSpan.end(2);
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
 
@@ -289,10 +286,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
       expect(mockSend).toHaveBeenCalled();
     });
 
@@ -321,10 +317,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
 
       expect(beforeSendSpan).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalled();
@@ -359,10 +354,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
 
       expect(seen[0]!['my.scope.attr']).toBeUndefined();
     });
@@ -621,8 +615,9 @@ describe('SentrySpan', () => {
     it('skips if span is already ended', () => {
       const startTimestamp = timestampInSeconds() - 5;
       const endTimestamp = timestampInSeconds() - 1;
-      const span = new SentrySpan({ startTimestamp, endTimestamp });
+      const span = new SentrySpan({ startTimestamp });
 
+      span.end(endTimestamp);
       span.end();
 
       expect(spanToJSON(span).timestamp).toBe(endTimestamp);
@@ -636,7 +631,8 @@ describe('SentrySpan', () => {
     });
 
     it('returns false for sampled, finished span', () => {
-      const span = new SentrySpan({ sampled: true, endTimestamp: Date.now() });
+      const span = new SentrySpan({ sampled: true });
+      span.end();
       expect(span.isRecording()).toEqual(false);
     });
 

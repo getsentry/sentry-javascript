@@ -121,18 +121,10 @@ export class SentrySpan implements Span {
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
     }
-    if (spanContext.endTimestamp) {
-      this._endTime = spanContext.endTimestamp;
-    }
 
     this._events = [];
 
     this._isStandaloneSpan = spanContext.isStandalone;
-
-    // If the span is already ended, ensure we finalize the span immediately
-    if (this._endTime) {
-      this._onSpanEnded();
-    }
   }
 
   /** @inheritDoc */
@@ -257,12 +249,7 @@ export class SentrySpan implements Span {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
-    // If already ended, skip the end-of-span processing, but still seal a tracer-provider span. The
-    // seal at the bottom of this method is skipped on this early return, and `_endTime` may have been
-    // set before this first `end()` call (e.g. via the constructor's `endTimestamp`), which would
-    // otherwise leave the span mutable after `end()`. End-of-span processing already ran in that case.
     if (this._endTime) {
-      this._frozen = spanIsTracerProviderSpan(this);
       return;
     }
 

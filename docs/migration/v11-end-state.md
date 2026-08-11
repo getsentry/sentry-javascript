@@ -1093,7 +1093,9 @@ The same applies when looking the integration up by name, e.g. via `client.getIn
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
 - Attribute typing and serialization were unified across the SDK.
-- The `SentrySpanArguments` interface and related dead code in `SentrySpan` were cleaned up.
+- The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
+  `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
+  during construction. Call `span.end(timestamp)` instead.
 - `BrowserOptions` now supports the `TransportOptions` generic.
 - (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
 
