@@ -24,7 +24,7 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "import-in-the-middle": "^2",
-    "next": "16.2.3",
+    "next": "16.3.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^8"
