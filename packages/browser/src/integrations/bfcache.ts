@@ -63,7 +63,7 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
       function onPageShow(event: PageTransitionEvent) {
         const routeName = _getSegmentName();
         if (event.persisted) {
-          _captureBFCacheNavigation('hit', undefined, routeName);
+          _captureBFCacheNavigation('hit', 0, routeName);
           return;
         }
 
@@ -102,11 +102,12 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
 /**
  * Captures a bf navigation as a metric and records the outcome and reason count.
  */
-function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount?: number, routeName?: string): void {
+function _captureBFCacheNavigation(outcome: BFCacheOutcome, reasonCount: number, routeName?: string): void {
   metrics.count('browser.bfcache.navigation', 1, {
     attributes: _withOriginAttr({
       [BROWSER_BFCACHE_OUTCOME]: outcome,
-      [BROWSER_BFCACHE_NOT_RESTORED_REASON_COUNT]: reasonCount,
+      // Attribute should be present if reasons are >= 1
+      [BROWSER_BFCACHE_NOT_RESTORED_REASON_COUNT]: reasonCount || undefined,
       [SENTRY_SEGMENT_NAME]: routeName,
     }),
   });
