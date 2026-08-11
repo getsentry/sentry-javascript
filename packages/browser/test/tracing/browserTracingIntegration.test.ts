@@ -7,7 +7,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getIsolationScope,
+  getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -63,9 +63,7 @@ describe('browserTracingIntegration', () => {
     vi.useFakeTimers();
     // Ensure start time aligns with cached origin time, which is used as pageload start time
     vi.setSystemTime(browserPerformanceTimeOrigin()!);
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     // Reset document and location to a fresh JSDOM for every test. `getLocationHref()` reads
     // `WINDOW.document.location.href`, so leaving `document` bound to a shared instance leaks URL state

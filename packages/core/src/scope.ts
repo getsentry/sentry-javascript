@@ -545,34 +545,6 @@ export class Scope {
   }
 
   /**
-   * Clears the current scope and resets its properties.
-   * Note: The client will not be cleared.
-   */
-  public clear(): this {
-    // client is not cleared here on purpose!
-    this._breadcrumbs = [];
-    this._tags = {};
-    this._attributes = {};
-    this._extra = {};
-    this._user = {};
-    this._contexts = {};
-    this._level = undefined;
-    this._transactionName = undefined;
-    this._fingerprint = undefined;
-    this._session = undefined;
-    this._conversationId = undefined;
-    _setSpanForScope(this, undefined);
-    this._attachments = [];
-    this.setPropagationContext({
-      traceId: generateTraceId(),
-      sampleRand: safeMathRandom(),
-    });
-
-    this._notifyScopeListeners();
-    return this;
-  }
-
-  /**
    * Adds a breadcrumb to the scope.
    * By default, the last 100 breadcrumbs are kept.
    */

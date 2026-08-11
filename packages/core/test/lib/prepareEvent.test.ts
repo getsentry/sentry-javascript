@@ -15,7 +15,7 @@ import {
   prepareEvent,
 } from '../../src/utils/prepareEvent';
 import { _setSpanForScope } from '../../src/utils/spanOnScope';
-import { clearGlobalScope } from '../testutils';
+import { resetGlobals } from '../testutils';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -404,8 +404,7 @@ describe('parseEventHintOrCaptureContext', () => {
 
 describe('prepareEvent', () => {
   beforeEach(() => {
-    clearGlobalScope();
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   it('works without any scope data', async () => {

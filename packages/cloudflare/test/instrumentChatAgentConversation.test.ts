@@ -1,5 +1,5 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
-import { getIsolationScope } from '@sentry/core';
+import { getIsolationScope, getMainCarrier } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentChatAgentConversation } from '../src/instrumentations/agents/instrumentChatAgentConversation';
 import {
@@ -52,7 +52,7 @@ function spyOnSetConversationId(): ReturnType<typeof vi.fn> {
 describe('instrumentChatAgentConversation', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('sets a generated conversation id during a chat turn', async () => {

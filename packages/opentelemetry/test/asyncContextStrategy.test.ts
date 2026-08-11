@@ -24,8 +24,7 @@ describe('asyncContextStrategy', () => {
   }
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     mockSdkInit();
   });

@@ -5,7 +5,6 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getGlobalScope,
   getIsolationScope,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -23,6 +22,7 @@ import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -30,9 +30,7 @@ describe('startIdleSpan', () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1 });
     const client = new TestClient(options);

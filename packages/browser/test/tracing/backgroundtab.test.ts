@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { getCurrentScope, setCurrentClient } from '@sentry/core/browser';
+import { getMainCarrier, setCurrentClient } from '@sentry/core/browser';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,7 +39,7 @@ describe('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    getCurrentScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('does not create an event listener if global document is undefined', () => {

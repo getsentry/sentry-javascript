@@ -1,15 +1,8 @@
 import { context, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  GLOBAL_OBJ,
-  spanToJSON,
-  withIsolationScope,
-} from '@sentry/core';
+import { getMainCarrier, GLOBAL_OBJ, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { AsyncLocalStorage } from 'async_hooks';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
@@ -94,7 +87,8 @@ async function runMiddlewareRequest(
 }
 
 describe('Next.js edge middleware trace isolation', () => {
-  beforeAll(() => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
     (GLOBAL_OBJ as unknown as { AsyncLocalStorage: typeof AsyncLocalStorage }).AsyncLocalStorage = AsyncLocalStorage;
 
     const client = new VercelEdgeClient({
@@ -107,12 +101,6 @@ describe('Next.js edge middleware trace isolation', () => {
 
     setupOtel(client);
     setOpenTelemetryContextAsyncContextStrategy();
-  });
-
-  beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
   });
 
   it('gives concurrent header-less requests to unrelated routes distinct trace ids', async () => {

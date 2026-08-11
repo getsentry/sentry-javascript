@@ -6,6 +6,7 @@ import {
   getClient,
   getCurrentScope,
   getIsolationScope,
+  getMainCarrier,
   startSpan,
   withIsolationScope,
   withScope,
@@ -21,8 +22,7 @@ const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder
 
 describe('sendFeedback', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
     vi.clearAllMocks();
   });
 
