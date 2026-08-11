@@ -1,12 +1,7 @@
 import type { GenAiOptions } from '../core/utils';
 import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
 
-/**
- * Options for the Google GenAI integration.
- *
- * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Google-GenAI-specific
- * options can be added here in the future without a breaking signature change.
- */
+/** Options for the Google GenAI integration. */
 export type GoogleGenAIOptions = GenAiOptions;
 
 /**

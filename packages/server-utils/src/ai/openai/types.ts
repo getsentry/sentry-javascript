@@ -14,12 +14,7 @@ export type AttributeValue =
   | Array<null | undefined | number>
   | Array<null | undefined | boolean>;
 
-/**
- * Options for the OpenAI integration.
- *
- * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so OpenAI-specific
- * options can be added here in the future without a breaking signature change.
- */
+/** Options for the OpenAI integration. */
 export type OpenAiOptions = GenAiOptions;
 
 export interface OpenAiClient {

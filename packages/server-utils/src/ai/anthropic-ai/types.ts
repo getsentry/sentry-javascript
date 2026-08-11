@@ -1,12 +1,7 @@
 import type { GenAiOptions } from '../core/utils';
 import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
 
-/**
- * Options for the Anthropic AI integration.
- *
- * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Anthropic-specific
- * options can be added here in the future without a breaking signature change.
- */
+/** Options for the Anthropic AI integration. */
 export type AnthropicAiOptions = GenAiOptions;
 
 export type Message = {

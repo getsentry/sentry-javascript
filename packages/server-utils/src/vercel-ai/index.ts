@@ -3,12 +3,7 @@ import type { GenAiOptions } from '../ai/core/utils';
 import { subscribeVercelAiTracingChannel } from './vercel-ai-dc-subscriber';
 import * as dc from 'node:diagnostics_channel';
 
-/**
- * Options for the Vercel AI integration.
- *
- * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Vercel-AI-specific
- * options can be added here in the future without a breaking signature change.
- */
+/** Options for the Vercel AI integration. */
 export type VercelAiOptions = GenAiOptions;
 
 const _vercelAiIntegration = ((options: VercelAiOptions = {}) => {

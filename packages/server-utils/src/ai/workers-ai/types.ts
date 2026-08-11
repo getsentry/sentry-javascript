@@ -1,11 +1,6 @@
 import type { GenAiOptions } from '../core/utils';
 
-/**
- * Options for the Workers AI integration.
- *
- * Currently an alias of {@link GenAiOptions}; kept as a distinct named type so Workers-AI-specific
- * options can be added here in the future without a breaking signature change.
- */
+/** Options for the Workers AI integration. */
 export type WorkersAiOptions = GenAiOptions;
 
 /**
