@@ -3,7 +3,7 @@ import {
   getAbsoluteUrl,
   getActiveSpan,
   getRootSpan,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import {
@@ -145,7 +145,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         }
       } else {
         // No matched route - update back-button navigations and set source to url
-        const { attributes, name: spanName } = spanToStreamedSpanJSON(rootSpan);
+        const { attributes, name: spanName } = spanToJSON(rootSpan);
         if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'navigation' && spanName === '-1') {
           rootSpan.updateName(name);
         }

@@ -11,7 +11,7 @@ import {
   hasSpansEnabled,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
+  spanToStaticSpanJSON,
 } from '@sentry/core';
 import type { OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
@@ -69,7 +69,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
               () => callback(span),
               () => {
                 // Only set the span status to ERROR when there wasn't any error status set before, in order to avoid stomping useful span statuses
-                if (spanToJSON(span).status === 'ok') {
+                if (spanToStaticSpanJSON(span).status === 'ok') {
                   span.setStatus({ code: SpanStatusCode.ERROR });
                 }
               },
@@ -86,7 +86,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
         () => callback(span),
         () => {
           // Only set the span status to ERROR when there wasn't any error status set before, in order to avoid stomping useful span statuses
-          if (spanToJSON(span).status === 'ok') {
+          if (spanToStaticSpanJSON(span).status === 'ok') {
             span.setStatus({ code: SpanStatusCode.ERROR });
           }
         },

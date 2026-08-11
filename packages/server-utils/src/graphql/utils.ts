@@ -1,12 +1,6 @@
 import { SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributeValue } from '@sentry/core';
-import {
-  getClient,
-  isObjectLike,
-  getRootSpan,
-  spanToStreamedSpanJSON,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { getClient, isObjectLike, getRootSpan, spanToJSON, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 // Same key the OTel path uses, so renames stay consistent across both.
 const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
@@ -42,7 +36,7 @@ export function renameRootSpanWithOperation(span: Span, operationType: string, o
     return;
   }
 
-  const rootSpanJson = spanToStreamedSpanJSON(rootSpan);
+  const rootSpanJson = spanToJSON(rootSpan);
 
   const newOperation = operationName ? `${operationType} ${operationName}` : operationType;
 

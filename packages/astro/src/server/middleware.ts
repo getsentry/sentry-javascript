@@ -10,7 +10,7 @@ import {
   getUrlQuery,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   winterCGRequestToRequestData,
   filterCollectedUrl,
   filterCollectedUrlQuery,
@@ -98,7 +98,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     // if there is an active span, we just want to enhance it with routing data etc.
-    if (rootSpan && spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
+    if (rootSpan && spanToJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
       return enhanceHttpServerSpan(ctx, next, rootSpan);
     }
 

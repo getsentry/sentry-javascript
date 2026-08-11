@@ -1,11 +1,6 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToStreamedSpanJSON,
-  timestampInSeconds,
-  withActiveSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
 import * as React from 'react';
@@ -115,7 +110,7 @@ class Profiler extends React.Component<ProfilerProps> {
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      const startTime = spanToStreamedSpanJSON(this._mountSpan).end_timestamp;
+      const startTime = spanToJSON(this._mountSpan).end_timestamp;
       withActiveSpan(this._mountSpan, () => {
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
@@ -218,7 +213,7 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        const startTime = spanToStreamedSpanJSON(mountSpan).end_timestamp;
+        const startTime = spanToJSON(mountSpan).end_timestamp;
         const endTimestamp = timestampInSeconds();
 
         const renderSpan = startInactiveSpan({

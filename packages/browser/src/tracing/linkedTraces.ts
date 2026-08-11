@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
@@ -138,7 +138,7 @@ export function addPreviousTraceSpanLink(
   span: Span,
   oldPropagationContext: PropagationContext,
 ): PreviousTraceInfo {
-  const spanJson = spanToStreamedSpanJSON(span);
+  const spanJson = spanToJSON(span);
 
   function getSampleRate(): number {
     try {

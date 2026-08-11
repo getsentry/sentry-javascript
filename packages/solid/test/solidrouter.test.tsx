@@ -1,4 +1,4 @@
-import { spanToStreamedSpanJSON } from '@sentry/browser';
+import { spanToJSON } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   createTransport,
@@ -63,7 +63,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
-    client.on('spanStart', span => spanStartMock(spanToStreamedSpanJSON(span)));
+    client.on('spanStart', span => spanStartMock(spanToJSON(span)));
     client.addIntegration(solidRouterBrowserTracingIntegration());
 
     const history = createMemoryHistory();
@@ -87,7 +87,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
-    client.on('spanStart', span => spanStartMock(spanToStreamedSpanJSON(span)));
+    client.on('spanStart', span => spanStartMock(spanToJSON(span)));
     client.addIntegration(
       solidRouterBrowserTracingIntegration({
         instrumentPageLoad: false,
@@ -143,10 +143,10 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
       // Wait for the router transition to complete (Navigate redirects are async)
       await waitFor(() => {
-        const navSpan = spans.find(s => spanToStreamedSpanJSON(s).attributes['sentry.op'] === 'navigation');
+        const navSpan = spans.find(s => spanToJSON(s).attributes['sentry.op'] === 'navigation');
         expect(navSpan).toBeDefined();
 
-        const span = spanToStreamedSpanJSON(navSpan!);
+        const span = spanToJSON(navSpan!);
         expect(span.name).toBe(parametrizedRoute);
         expect(span.attributes).toMatchObject({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
@@ -168,7 +168,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
-    client.on('spanStart', span => spanStartMock(spanToStreamedSpanJSON(span)));
+    client.on('spanStart', span => spanStartMock(spanToJSON(span)));
     client.addIntegration(
       solidRouterBrowserTracingIntegration({
         instrumentNavigation: false,
@@ -200,7 +200,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     setCurrentClient(client);
 
     client.on('spanStart', span => {
-      spanStartMock(spanToStreamedSpanJSON(span));
+      spanStartMock(spanToJSON(span));
     });
     client.addIntegration(solidRouterBrowserTracingIntegration());
     const SentryRouter = withSentryRouterRouting(MemoryRouter);

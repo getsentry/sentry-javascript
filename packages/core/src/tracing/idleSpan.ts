@@ -12,8 +12,8 @@ import {
   getSpanDescendants,
   removeChildSpanFromSpan,
   spanTimeInputToSeconds,
-  spanToStreamedSpanJSON,
   spanToJSON,
+  spanToStaticSpanJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -153,7 +153,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // Ensure we end with the last span timestamp, if possible
       const spans = getSpanDescendants(span).filter(child => child !== span);
 
-      const spanJson = spanToJSON(span);
+      const spanJson = spanToStaticSpanJSON(span);
 
       // If we have no spans, we just end, nothing else to do here
       // Likewise, if users explicitly ended the span, we simply end the span without timestamp adjustment
@@ -165,7 +165,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       const ignoreSpans = client.getOptions().ignoreSpans;
 
       const latestSpanEndTimestamp = spans?.reduce((acc: number | undefined, current) => {
-        const currentSpanJson = spanToJSON(current);
+        const currentSpanJson = spanToStaticSpanJSON(current);
         if (!currentSpanJson.timestamp) {
           return acc;
         }
@@ -288,7 +288,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
     _setSpanForScope(scope, previousActiveSpan);
 
-    const spanJSON = spanToJSON(span);
+    const spanJSON = spanToStaticSpanJSON(span);
 
     const { start_timestamp: startTimestamp } = spanJSON;
     // This should never happen, but to make TS happy...
@@ -321,7 +321,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
           debug.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
       }
 
-      const childSpanJSON = spanToJSON(childSpan);
+      const childSpanJSON = spanToStaticSpanJSON(childSpan);
       const { timestamp: childEndTimestamp = 0, start_timestamp: childStartTimestamp = 0 } = childSpanJSON;
 
       const spanStartedBeforeIdleSpanEnd = childStartTimestamp <= endTimestamp;
@@ -360,7 +360,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       if (
         _finished ||
         startedSpan === span ||
-        !!spanToStreamedSpanJSON(startedSpan).end_timestamp ||
+        !!spanToJSON(startedSpan).end_timestamp ||
         (startedSpan instanceof SentrySpan && startedSpan.isStandaloneSpan())
       ) {
         return;

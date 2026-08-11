@@ -4,7 +4,7 @@ import {
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SentrySpan,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   timestampInSeconds,
 } from '@sentry/core/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,7 +66,7 @@ describe('linkTraces', () => {
 
       spanStartCb(childSpan);
 
-      expect(spanToStreamedSpanJSON(childSpan).links).toBeUndefined();
+      expect(spanToJSON(childSpan).links).toBeUndefined();
     });
 
     it('adds a link from the first trace root span to the second trace root span', () => {
@@ -80,7 +80,7 @@ describe('linkTraces', () => {
 
       spanStartCb(rootSpanTrace1);
 
-      expect(spanToStreamedSpanJSON(rootSpanTrace1).links).toBeUndefined();
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
 
       const rootSpanTrace2 = new SentrySpan({
         name: 'test',
@@ -92,7 +92,7 @@ describe('linkTraces', () => {
 
       spanStartCb(rootSpanTrace2);
 
-      expect(spanToStreamedSpanJSON(rootSpanTrace2).links).toEqual([
+      expect(spanToJSON(rootSpanTrace2).links).toEqual([
         {
           attributes: {
             'sentry.link.type': 'previous_trace',
@@ -115,7 +115,7 @@ describe('linkTraces', () => {
 
       spanStartCb(rootSpanTrace1);
 
-      expect(spanToStreamedSpanJSON(rootSpanTrace1).links).toBeUndefined();
+      expect(spanToJSON(rootSpanTrace1).links).toBeUndefined();
 
       const rootSpan2Trace = new SentrySpan({
         name: 'test',
@@ -127,7 +127,7 @@ describe('linkTraces', () => {
 
       spanStartCb(rootSpan2Trace);
 
-      expect(spanToStreamedSpanJSON(rootSpan2Trace).links).toBeUndefined();
+      expect(spanToJSON(rootSpan2Trace).links).toBeUndefined();
     });
   });
 
@@ -183,7 +183,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
-    const spanJson = spanToStreamedSpanJSON(currentSpan);
+    const spanJson = spanToJSON(currentSpan);
 
     expect(spanJson.links).toEqual([
       {
@@ -394,7 +394,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
-    const spanJson = spanToStreamedSpanJSON(currentSpan);
+    const spanJson = spanToJSON(currentSpan);
 
     expect(spanJson.links).toBeUndefined();
 
@@ -449,7 +449,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
-    expect(spanToStreamedSpanJSON(currentSpan).links).toEqual([
+    expect(spanToJSON(currentSpan).links).toEqual([
       {
         trace_id: '789',
         span_id: '101',
@@ -489,7 +489,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(undefined, currentSpan, oldPropagationContext);
 
-    const spanJson = spanToStreamedSpanJSON(currentSpan);
+    const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
     expect(Object.keys(spanJson.attributes)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
@@ -530,7 +530,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const updatedPreviousTraceInfo = addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
 
-    const spanJson = spanToStreamedSpanJSON(currentSpan);
+    const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
     expect(Object.keys(spanJson.attributes)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 

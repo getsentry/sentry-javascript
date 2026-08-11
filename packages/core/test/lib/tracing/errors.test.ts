@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   setCurrentClient,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
 } from '../../../src';
@@ -49,13 +49,13 @@ describe('registerErrorHandlers()', () => {
     registerSpanErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
-    expect(spanToStreamedSpanJSON(transaction).status).toBe('ok');
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     mockErrorCallback({} as HandlerDataError);
-    expect(spanToStreamedSpanJSON(transaction).status).toBe('ok');
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     mockUnhandledRejectionCallback({});
-    expect(spanToStreamedSpanJSON(transaction).status).toBe('ok');
+    expect(spanToJSON(transaction).status).toBe('ok');
 
     transaction.end();
   });
@@ -65,7 +65,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      const { status, attributes } = spanToStreamedSpanJSON(span);
+      const { status, attributes } = spanToJSON(span);
       expect(status).toBe('error');
       expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });
@@ -76,7 +76,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      const { status, attributes } = spanToStreamedSpanJSON(span);
+      const { status, attributes } = spanToJSON(span);
       expect(status).toBe('error');
       expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });

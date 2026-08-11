@@ -13,7 +13,7 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
@@ -115,7 +115,7 @@ export function instrumentVueRouter(
 
     // Update the existing page load span with parametrized route information
     if (options.instrumentPageLoad && activePageLoadSpan) {
-      const existingAttributes = spanToStreamedSpanJSON(activePageLoadSpan).attributes;
+      const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
       if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
         activePageLoadSpan.updateName(spanName);
         activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
@@ -168,7 +168,7 @@ function getActivePageLoadSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP];
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   return op === 'pageload' ? rootSpan : undefined;
 }

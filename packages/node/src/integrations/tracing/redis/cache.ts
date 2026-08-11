@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   truncate,
 } from '@sentry/core';
 import type { IORedisCommandArgs } from '../../../utils/redisCache';
@@ -82,7 +82,7 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   // Fall back to stable semconv attributes (server.address/server.port) when
   // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
   // set for node-redis v4/v5.
-  const attributes = spanToStreamedSpanJSON(span).attributes;
+  const attributes = spanToJSON(span).attributes;
   // oxlint-disable-next-line typescript/no-deprecated
   const networkPeerAddress = (attributes[NET_PEER_NAME] ?? attributes[SERVER_ADDRESS]) as string | undefined;
   // oxlint-disable-next-line typescript/no-deprecated

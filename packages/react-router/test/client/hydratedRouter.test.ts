@@ -10,7 +10,7 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
-    spanToStreamedSpanJSON: vi.fn(),
+    spanToJSON: vi.fn(),
     getClient: vi.fn(),
     debug: {
       warn: vi.fn(),
@@ -62,7 +62,7 @@ describe('instrumentHydratedRouter', () => {
 
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
-    (core.spanToStreamedSpanJSON as any).mockImplementation((span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       name: '/foo/bar',
       // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
       attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload' },
@@ -143,7 +143,7 @@ describe('instrumentHydratedRouter', () => {
     // Routes without a loader/action never trigger a route hook, so the navigation root is still
     // source:url. The heuristic must still parameterize it instead of leaving the raw URL.
     (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
-    (core.spanToStreamedSpanJSON as any).mockImplementation((span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       name: '/foo/bar',
       attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', source: 'url' },
     }));
@@ -229,7 +229,7 @@ describe('instrumentHydratedRouter', () => {
     mockRouter.navigate('settings');
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
-    (core.spanToStreamedSpanJSON as any).mockImplementation((span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       name: 'settings',
       attributes: {
         'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload',
@@ -340,7 +340,7 @@ describe('instrumentHydratedRouter', () => {
     });
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
-    (core.spanToStreamedSpanJSON as any).mockImplementation((span: any) => ({
+    (core.spanToJSON as any).mockImplementation((span: any) => ({
       name: '/foo/bar',
       attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', 'url.path': '/foo' },
     }));

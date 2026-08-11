@@ -4,7 +4,7 @@ import {
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startSpanManual,
   type Span,
   withIsolationScope,
@@ -25,7 +25,7 @@ describe('SentryTracerProvider', () => {
       },
     });
 
-    expect(spanToStreamedSpanJSON(span as Span)).toEqual({
+    expect(spanToJSON(span as Span)).toEqual({
       attributes: {
         'sentry.origin': 'manual',
         'sentry.sample_rate': 1,
@@ -49,7 +49,7 @@ describe('SentryTracerProvider', () => {
     trace.getTracer('test').startActiveSpan('parent', parent => {
       const child = trace.getTracer('test').startSpan('child');
 
-      expect(spanToStreamedSpanJSON(child as Span).parent_span_id).toBe(parent.spanContext().spanId);
+      expect(spanToJSON(child as Span).parent_span_id).toBe(parent.spanContext().spanId);
     });
   });
 
@@ -59,7 +59,7 @@ describe('SentryTracerProvider', () => {
       const child = trace.getTracer('test').startSpan('child', {}, suppressedContext);
 
       expect(child.isRecording()).toBe(false);
-      expect(spanToStreamedSpanJSON(child as Span).trace_id).toBe(parent.spanContext().traceId);
+      expect(spanToJSON(child as Span).trace_id).toBe(parent.spanContext().traceId);
       // Non-recording spans no longer carry a `parent_span_id` under the scope-based
       // sampling model; the child is instead linked to the parent's span tree.
       expect(getRootSpan(child as Span)).toBe(getRootSpan(parent as unknown as Span));
@@ -105,7 +105,7 @@ describe('SentryTracerProvider', () => {
   it('parents core spans to the active OpenTelemetry span', () => {
     trace.getTracer('test').startActiveSpan('parent', parent => {
       startSpanManual({ name: 'child' }, child => {
-        expect(spanToStreamedSpanJSON(child).parent_span_id).toBe(parent.spanContext().spanId);
+        expect(spanToJSON(child).parent_span_id).toBe(parent.spanContext().spanId);
         child.end();
       });
     });
@@ -120,7 +120,7 @@ describe('SentryTracerProvider', () => {
     });
 
     const span = trace.getTracer('test').startSpan('server', { kind: SpanKind.SERVER }, remoteContext);
-    const json = spanToStreamedSpanJSON(span as Span);
+    const json = spanToJSON(span as Span);
 
     expect(json.trace_id).toBe('12312012123120121231201212312012');
     expect(json.parent_span_id).toBe('1121201211212012');

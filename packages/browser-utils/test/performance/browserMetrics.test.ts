@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
   setCurrentClient,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addNavigationSpans, _addResourceSpans, _setResourceRequestAttributes } from '../../src/performance/entries';
@@ -132,8 +132,8 @@ describe('addWebVitalsToSpan', () => {
       spanStreamingEnabled: true,
     });
 
-    expect(spanToStreamedSpanJSON(nextPageloadSpan).attributes['browser.web_vital.fp.value']).toBeUndefined();
-    expect(spanToStreamedSpanJSON(nextPageloadSpan).attributes['browser.web_vital.fcp.value']).toBeUndefined();
+    expect(spanToJSON(nextPageloadSpan).attributes['browser.web_vital.fp.value']).toBeUndefined();
+    expect(spanToJSON(nextPageloadSpan).attributes['browser.web_vital.fcp.value']).toBeUndefined();
   });
 });
 
@@ -235,7 +235,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, startTime, duration, timeOrigin);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         name: '/assets/to/css',
         start_timestamp: timeOrigin + startTime,
@@ -286,7 +286,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    const json = spanToStreamedSpanJSON(spans[0]!);
+    const json = spanToJSON(spans[0]!);
     expect(json.name).toBe('/assets/app.js?v=42#main');
     expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
   });
@@ -306,7 +306,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    const json = spanToStreamedSpanJSON(spans[0]!);
+    const json = spanToJSON(spans[0]!);
     expect(json.name).toBe('https://cdn.example.org/static/logo.png');
     expect(json.attributes['url.full']).toBe('https://cdn.example.org/static/logo.png');
     expect(json.attributes['url.same_origin']).toBe(false);
@@ -350,9 +350,7 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
-      expect(spanToStreamedSpanJSON(spans[i]!).attributes).toEqual(
-        expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }),
-      );
+      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }));
     }
   });
 
@@ -397,7 +395,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
     const spanOps = new Set(
       spans.map(s => {
-        return spanToStreamedSpanJSON(s).attributes['sentry.op'];
+        return spanToJSON(s).attributes['sentry.op'];
       }),
     );
     expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
@@ -422,7 +420,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
@@ -460,7 +458,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
@@ -511,7 +509,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!)).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
@@ -566,7 +564,7 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
       expect(spans).toHaveLength(1);
-      expect(spanToStreamedSpanJSON(spans[0]!).attributes).toMatchObject({
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({
         'http.response_delivery_type': deliveryType,
       });
     },
@@ -647,7 +645,7 @@ describe('_addNavigationSpans', () => {
     const parent_span_id = pageloadSpan.spanContext().spanId;
 
     expect(spans).toHaveLength(9);
-    expect(spans.map(spanToStreamedSpanJSON)).toEqual(
+    expect(spans.map(spanToJSON)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           attributes: {

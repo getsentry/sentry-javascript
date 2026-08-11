@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToStaticSpanJSON } from '@sentry/core';
 import type { MutableRootSpan } from '../../server/enhanceHandleRequestRootSpan';
 
 /**
@@ -13,10 +13,10 @@ import type { MutableRootSpan } from '../../server/enhanceHandleRequestRootSpan'
  * span start). We preserve the current source across the rename so only explicit source writes take effect.
  */
 export function createLiveRootSpanAdapter(span: Span): MutableRootSpan {
-  const attributes = spanToJSON(span).data;
+  const attributes = spanToStaticSpanJSON(span).data;
   return {
     attributes,
-    getName: () => spanToJSON(span).description,
+    getName: () => spanToStaticSpanJSON(span).description,
     setName: (name: string) => {
       const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
       span.updateName(name);

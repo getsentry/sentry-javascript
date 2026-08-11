@@ -3,7 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentrySpan,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceDirective } from '../src/index';
@@ -82,7 +82,7 @@ describe('Angular Tracing', () => {
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
-      expect(spanToStreamedSpanJSON(span)).toEqual(
+      expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
           attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
@@ -107,7 +107,7 @@ describe('Angular Tracing', () => {
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
-      expect(spanToStreamedSpanJSON(span)).toEqual(
+      expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',

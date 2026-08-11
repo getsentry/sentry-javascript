@@ -4,7 +4,7 @@ import {
   browserPerformanceTimeOrigin,
   defineIntegration,
   isPrimitive,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
 import { getBrowserPerformanceAPI, msToSec, startAndEndSpan } from './utils';
@@ -34,7 +34,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
-        const { attributes, start_timestamp: parentStartTimestamp } = spanToStreamedSpanJSON(idleSpan);
+        const { attributes, start_timestamp: parentStartTimestamp } = spanToJSON(idleSpan);
         const parentOp = attributes[SENTRY_OP];
 
         if (parentOp !== 'pageload' && parentOp !== 'navigation') {

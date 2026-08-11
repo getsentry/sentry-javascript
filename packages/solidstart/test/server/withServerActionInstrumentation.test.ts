@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -93,7 +93,7 @@ describe('withServerActionInstrumentation', () => {
     const client = createMockNodeClient();
     setCurrentClient(client);
 
-    client.on('spanStart', span => spanStartMock(spanToStreamedSpanJSON(span)));
+    client.on('spanStart', span => spanStartMock(spanToJSON(span)));
 
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(

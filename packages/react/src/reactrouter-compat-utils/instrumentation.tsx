@@ -17,7 +17,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../debug-build';
@@ -320,7 +320,7 @@ export function processResolvedRoutes(
   // Use captured span if provided, otherwise fall back to current active span
   const targetSpan = capturedSpan ?? getActiveRootSpan();
   if (targetSpan) {
-    const { end_timestamp, attributes } = spanToStreamedSpanJSON(targetSpan);
+    const { end_timestamp, attributes } = spanToJSON(targetSpan);
 
     // Skip update if span has already ended (end_timestamp is set when span.end() is called)
     if (end_timestamp) {
@@ -370,7 +370,7 @@ export function updateNavigationSpan(
   forceUpdate = false,
   matchRoutes: MatchRoutes,
 ): void {
-  const { name: currentName, end_timestamp, attributes } = spanToStreamedSpanJSON(activeRootSpan);
+  const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
 
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
@@ -418,8 +418,7 @@ function setupRouterSubscription(
   activeRootSpan: Span | undefined,
 ): void {
   let isInitialPageloadComplete = false;
-  let hasSeenPageloadSpan =
-    !!activeRootSpan && spanToStreamedSpanJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
+  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
   let hasSeenPopAfterPageload = false;
   let scheduledNavigationHandler: number | null = null;
   let lastHandledPathname: string | null = null;
@@ -427,8 +426,7 @@ function setupRouterSubscription(
   router.subscribe((state: RouterState) => {
     if (!isInitialPageloadComplete) {
       const currentRootSpan = getActiveRootSpan();
-      const isCurrentlyInPageload =
-        currentRootSpan && spanToStreamedSpanJSON(currentRootSpan).attributes[SENTRY_OP] === 'pageload';
+      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).attributes[SENTRY_OP] === 'pageload';
 
       if (isCurrentlyInPageload) {
         hasSeenPageloadSpan = true;
@@ -866,7 +864,7 @@ function wrapPatchRoutesOnNavigation(
 
             // Use the captured activeRootSpan instead of getActiveRootSpan() to avoid race conditions
             // where user navigates away during lazy route loading and we'd update the wrong span
-            const spanJson = activeRootSpan ? spanToStreamedSpanJSON(activeRootSpan) : undefined;
+            const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
             // Only update if we have a valid targetPath (patchRoutesOnNavigation can be called without path),
             // the captured span exists, hasn't ended, and is a navigation span
             if (
@@ -906,7 +904,7 @@ function wrapPatchRoutesOnNavigation(
 
         // Use the captured activeRootSpan instead of getActiveRootSpan() to avoid race conditions
         // where user navigates away during lazy route loading and we'd update the wrong span
-        const spanJson = activeRootSpan ? spanToStreamedSpanJSON(activeRootSpan) : undefined;
+        const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
         if (
           activeRootSpan &&
           spanJson &&
@@ -959,11 +957,7 @@ export function handleNavigation(opts: {
   }
 
   const activeRootSpan = getActiveRootSpan();
-  if (
-    activeRootSpan &&
-    spanToStreamedSpanJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload' &&
-    navigationType === 'POP'
-  ) {
+  if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload' && navigationType === 'POP') {
     return;
   }
 
@@ -983,7 +977,7 @@ export function handleNavigation(opts: {
 
     // Determine if this navigation should be skipped as a duplicate
     const trackedSpanHasEnded =
-      trackedNav && !trackedNav.isPlaceholder ? !!spanToStreamedSpanJSON(trackedNav.span).end_timestamp : false;
+      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).end_timestamp : false;
     const { skip, shouldUpdate } = shouldSkipNavigation(trackedNav, locationKey, name, trackedSpanHasEnded);
 
     if (skip) {
@@ -1199,7 +1193,7 @@ function shouldUpdateWildcardSpanName(
 
 function tryUpdateSpanNameBeforeEnd(
   span: Span,
-  spanJson: ReturnType<typeof spanToStreamedSpanJSON>,
+  spanJson: ReturnType<typeof spanToJSON>,
   currentName: string | undefined,
   location: Location,
   routes: RouteObject[],
@@ -1280,7 +1274,7 @@ function patchSpanEnd(
     // If no timestamp was provided, capture the current time now
     const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
 
-    const spanJson = spanToStreamedSpanJSON(span);
+    const spanJson = spanToJSON(span);
     const currentName = spanJson.name;
     const currentSource = spanJson.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
@@ -1333,7 +1327,7 @@ function patchSpanEnd(
 
       waitPromise
         .then(() => {
-          const updatedSpanJson = spanToStreamedSpanJSON(span);
+          const updatedSpanJson = spanToJSON(span);
           tryUpdateSpanNameBeforeEnd(
             span,
             updatedSpanJson,

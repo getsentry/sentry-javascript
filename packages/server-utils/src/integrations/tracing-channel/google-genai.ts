@@ -6,7 +6,7 @@ import {
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
@@ -93,7 +93,7 @@ function createGenAiSpan(
     if (activeSpan) {
       const {
         attributes: { [SENTRY_OP]: op, [SENTRY_ORIGIN]: origin },
-      } = spanToStreamedSpanJSON(activeSpan);
+      } = spanToJSON(activeSpan);
       if (origin === ORIGIN && op === 'gen_ai.chat') {
         return undefined;
       }

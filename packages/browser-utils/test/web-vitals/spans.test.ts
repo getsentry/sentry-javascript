@@ -23,7 +23,7 @@ vi.mock('@sentry/core', async () => {
     startInactiveSpan: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
-    spanToStreamedSpanJSON: vi.fn(),
+    spanToJSON: vi.fn(),
   };
 });
 
@@ -63,7 +63,7 @@ describe('_emitWebVitalSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     vi.mocked(SentryCore.getClient).mockReturnValue({ getIntegrationByName: () => undefined } as any);
   });
 
@@ -186,7 +186,7 @@ describe('_emitWebVitalSpan', () => {
 
   it('includes pageload span id when parentSpan is a pageload span', () => {
     const mockPageloadSpan = createMockPageloadSpan('abc123');
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       attributes: { 'sentry.op': 'pageload' },
     } as any);
 
@@ -212,7 +212,7 @@ describe('_emitWebVitalSpan', () => {
 
   it('does not include pageload span id when parentSpan is not a pageload span', () => {
     const mockNonPageloadSpan = createMockPageloadSpan('xyz789');
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       attributes: { 'sentry.op': 'ui.interaction.click' },
     } as any);
 
@@ -307,7 +307,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       attributes: { 'sentry.op': 'pageload' },
     } as any);
   });
@@ -394,7 +394,7 @@ describe('_sendClsSpan', () => {
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       attributes: { 'sentry.op': 'pageload' },
     } as any);
   });
@@ -477,7 +477,7 @@ describe('_sendInpSpan', () => {
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
   });
 
   afterEach(() => {
@@ -540,7 +540,7 @@ describe('_sendInpSpan', () => {
 
   it('uses cached element name and span from registerInpInteractionListener', () => {
     const mockRootSpan = createMockPageloadSpan('span-42');
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       name: 'cached-route',
       attributes: { 'sentry.op': 'navigation' },
     } as any);
@@ -594,7 +594,7 @@ describe('trackInpAsSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
-    vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
     vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {

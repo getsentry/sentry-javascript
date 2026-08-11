@@ -1,4 +1,4 @@
-import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToStreamedSpanJSON } from '@sentry/core/browser';
+import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
@@ -23,7 +23,7 @@ export function registerBackgroundTabDetection(): void {
         const {
           attributes: { [SENTRY_OP]: op },
           status,
-        } = spanToStreamedSpanJSON(rootSpan);
+        } = spanToJSON(rootSpan);
 
         if (DEBUG_BUILD) {
           debug.log(`[Tracing] Transaction: ${cancelledStatus} -> since tab moved to the background, op: ${op}`);

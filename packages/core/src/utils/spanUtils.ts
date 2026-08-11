@@ -44,7 +44,7 @@ export const TRACE_FLAG_SAMPLED = 0x1;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToStaticSpanJSON(span);
 
   return {
     parent_span_id,
@@ -66,7 +66,7 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
-  const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
+  const parent_span_id = isRemote ? spanId : spanToStaticSpanJSON(span).parent_span_id;
   const scope = getCapturedScopesOnSpan(span).scope;
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
@@ -167,9 +167,9 @@ function ensureTimestampInSeconds(timestamp: number): number {
  * Convert a span to a JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
-// This is not avoidable as we need `spanToStreamedSpanJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
-// And `spanToStreamedSpanJSON` needs the Span class from `span.ts` to check here.
-export function spanToJSON(span: Span): SpanJSON {
+// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
+// And `spanToJSON` needs the Span class from `span.ts` to check here.
+export function spanToStaticSpanJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
   }
@@ -210,7 +210,7 @@ export function spanToJSON(span: Span): SpanJSON {
 /**
  * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
  */
-export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
+export function spanToJSON(span: Span): StreamedSpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getStreamedSpanJSON();
   }

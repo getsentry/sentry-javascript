@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { getActiveSpan, getCurrentScope, getTraceData, spanToStreamedSpanJSON } from '@sentry/core';
+import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
@@ -37,11 +37,11 @@ describe('Bun HTTP Server Integration', () => {
   });
 
   test('creates an http.server span for incoming requests', async () => {
-    let span: ReturnType<typeof spanToStreamedSpanJSON> | undefined;
+    let span: ReturnType<typeof spanToJSON> | undefined;
 
     const { port, close } = await startServer((_req, res) => {
       const activeSpan = getActiveSpan();
-      span = activeSpan ? spanToStreamedSpanJSON(activeSpan) : undefined;
+      span = activeSpan ? spanToJSON(activeSpan) : undefined;
       res.end('ok');
     });
 
