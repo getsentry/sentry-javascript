@@ -60,7 +60,7 @@ export function instrumentEmberAppInstanceForPerformance(
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
-        ...(url ? _getRouteUrlAttributes(url, routeInfo?.params) : {}),
+        ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         url,
         toRoute: routeInfo?.name,
       },
@@ -96,7 +96,7 @@ export function instrumentEmberAppInstanceForPerformance(
         // it would tag the navigation span with the previous route's `url.*` attributes. When we don't
         // have a trustworthy target URL, we omit them and let `routeDidChange` set them from `currentURL`.
         const targetUrl = (transition as TransitionWithIntent).intent?.url;
-        const urlAttributes = targetUrl ? _getRouteUrlAttributes(targetUrl, transition.to?.params) : {};
+        const urlAttributes = targetUrl ? _getRouteUrlAttributes(client, targetUrl, transition.to?.params) : {};
 
         activeRootSpan = startBrowserTracingNavigationSpan(client, {
           name: `route:${toRoute}`,
@@ -119,7 +119,7 @@ export function instrumentEmberAppInstanceForPerformance(
         activeRootSpan.updateName(`route:${toRoute}`);
         activeRootSpan.setAttributes({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          ..._getRouteUrlAttributes(url, routeInfo?.params),
+          ..._getRouteUrlAttributes(client, url, routeInfo?.params),
           url,
           toRoute: toRoute,
         });
@@ -154,7 +154,9 @@ export function instrumentEmberAppInstanceForPerformance(
       // `currentURL` is the normalized route path and never includes the hash fragment, so we source
       // `url.full` from the location URL (which preserves `#/...` for hash-location apps) when available.
       const fullUrl = _getLocationURL(location) || url;
-      activeRootSpan.setAttributes(_getRouteUrlAttributes(url, routeInfo?.params ?? transition.to?.params, fullUrl));
+      activeRootSpan.setAttributes(
+        _getRouteUrlAttributes(client, url, routeInfo?.params ?? transition.to?.params, fullUrl),
+      );
     }
 
     if (disableRunloopPerformance) {
@@ -225,8 +227,8 @@ function buildUrlTemplate(path: string, params: Record<string, unknown> = {}): s
   return template;
 }
 
-// Only exported for testing
-export function _getRouteUrlAttributes(
+function _getRouteUrlAttributes(
+  client: Client,
   url: string,
   params: Record<string, unknown> = {},
   fullUrl: string = url,
@@ -237,7 +239,7 @@ export function _getRouteUrlAttributes(
   // fragment (e.g. `https://host/#/tracing`), which would otherwise be lost by `getUrlPathFromEmberLocation`.
   return {
     [URL_PATH]: path,
-    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(fullUrl)),
+    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(fullUrl), client),
     [URL_TEMPLATE]: buildUrlTemplate(path, params),
   };
 }
