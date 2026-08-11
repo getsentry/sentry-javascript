@@ -662,7 +662,7 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   const wrapper = makeSpanActive
     ? (callback: () => T) => {
         return withActiveSpan(span, () => {
-          // Make sure the correct scope is captured on the span
+          // Make sure the correct scope is captured on the span, since withActiveSpan forks the scope
           setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
           return callback();
         });
