@@ -206,7 +206,8 @@ export function getHeader(headers: PostgRESTHeaders | undefined, name: string): 
  */
 export function extractOperation(method: string, headers: PostgRESTHeaders = {}): string {
   switch (method) {
-    case 'GET': {
+    case 'GET':
+    case 'QUERY': {
       return 'select';
     }
     case 'POST': {
