@@ -546,7 +546,10 @@ describe('sentryAstro integration', () => {
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('release: "1.0.0"'));
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('debug: true'));
-    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('dsn: import.meta.env.PUBLIC_SENTRY_DSN'));
+    expect(injectScript).toHaveBeenCalledWith(
+      'page',
+      expect.stringContaining('dsn: import.meta.env.PUBLIC_SENTRY_DSN'),
+    );
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('release: "1.0.0"'));
   });
 
