@@ -849,6 +849,58 @@ describe('getBuildPluginOptions', () => {
   });
 
   describe('react component annotation', () => {
+    it('forwards the top-level option to the webpack plugin', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        reactComponentAnnotation: {
+          enabled: true,
+          ignoredComponents: ['Header'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.reactComponentAnnotation).toEqual({
+        enabled: true,
+        ignoredComponents: ['Header'],
+      });
+    });
+
+    it('lets the deprecated webpack-scoped option override the top-level one', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        reactComponentAnnotation: {
+          enabled: true,
+          ignoredComponents: ['TopLevel'],
+        },
+        webpack: {
+          reactComponentAnnotation: {
+            ignoredComponents: ['Scoped'],
+          },
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      // Merged field-wise: `enabled` comes from the top level, `ignoredComponents` from the scoped option
+      expect(result.reactComponentAnnotation).toEqual({
+        enabled: true,
+        ignoredComponents: ['Scoped'],
+      });
+    });
+
     it('merges react component annotation options correctly for webpack builds', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
