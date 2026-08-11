@@ -10,7 +10,7 @@ import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
-const INTEGRATION_NAME = 'BFCache';
+const INTEGRATION_NAME = 'Bfcache';
 
 type BFCacheOutcome = 'hit' | 'miss';
 
@@ -55,7 +55,7 @@ export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheInt
 
     setupOnce() {
       if (!WINDOW.addEventListener || !WINDOW.performance?.getEntriesByType) {
-        DEBUG_BUILD && debug.log('[BFCache] Browser APIs unavailable, skipping instrumentation.');
+        DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] Browser APIs unavailable, skipping instrumentation.`);
         return;
       }
 
@@ -147,7 +147,8 @@ export function _resolveMaxReasons(maxReasons: number | undefined): number {
   }
 
   if (maxReasons < 1) {
-    DEBUG_BUILD && debug.warn(`[BFCache] \`maxReasons\` must be at least 1, got ${maxReasons}. Using 1 instead.`);
+    DEBUG_BUILD &&
+      debug.warn(`[${INTEGRATION_NAME}] \`maxReasons\` must be at least 1, got ${maxReasons}. Using 1 instead.`);
     return 1;
   }
 
