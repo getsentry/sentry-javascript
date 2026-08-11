@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+const BASE = process.env.E2E_TEST_BASEPATH || '';
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('tanstack-router', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/posts/456`);
+  await page.goto(`${BASE}/posts/456`);
 
   const rootSpan = await transactionPromise;
 
@@ -43,7 +45,7 @@ test('sends pageload transaction with web vitals measurements', async ({ page })
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
 
   const transaction = await transactionPromise;
 
@@ -94,7 +96,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   await page.waitForTimeout(5000);
@@ -138,7 +140,7 @@ test('sends a pageload transaction with resolved URL attrs after same-route redi
   });
 
   // `/posts/999` matches `/posts/$postId` initially, then `beforeLoad` redirects to `/posts/2`.
-  await page.goto(`/posts/999`);
+  await page.goto(`${BASE}/posts/999`);
 
   const pageloadTxn = await pageloadTxnPromise;
 
@@ -174,7 +176,7 @@ test('sends a pageload transaction named after the resolved route when a redirec
 
   // Visiting `/redirect` directly throws `redirect({ to: '/posts/$postId', params: { postId: '1' } })`
   // in `beforeLoad` during the initial pageload, so the pageload span must be renamed to the target route.
-  await page.goto(`/redirect`);
+  await page.goto(`${BASE}/redirect`);
 
   const pageloadTxn = await pageloadTxnPromise;
 
@@ -210,7 +212,7 @@ test('sends a navigation transaction when a redirect is thrown in beforeLoad', a
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   await page.locator('#redirect-link').click();
@@ -247,7 +249,7 @@ test('sends a navigation transaction for a normal navigation that happens after 
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   // First trigger a redirect-driven navigation. Upstream (TanStack/router#3920) this leaves the
