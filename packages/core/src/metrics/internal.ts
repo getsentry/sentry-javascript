@@ -9,7 +9,7 @@ import type { Metric, SerializedMetric } from '../types/metric';
 import type { User } from '../types/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { _getSpanForScope } from '../utils/spanOnScope';
+import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -132,7 +132,7 @@ function _buildSerializedMetric(
 ): SerializedMetric {
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
-  const span = _getSpanForScope(currentScope);
+  const span = getActiveSpan(currentScope);
   const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
   const spanId = span ? span.spanContext().spanId : undefined;
 
