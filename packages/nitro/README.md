@@ -16,6 +16,7 @@
 
 - [Official Nitro SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nitro/)
 - [Example Nitro app](https://github.com/getsentry/sentry-javascript/tree/develop/dev-packages/e2e-tests/test-applications/nitro-3)
+- [Example Nitro app on Cloudflare Workers](https://github.com/getsentry/sentry-javascript/tree/develop/dev-packages/e2e-tests/test-applications/nitro-3-cloudflare)
 
 ## Compatibility
 
@@ -110,6 +111,91 @@ NODE_OPTIONS='--import ./instrument.mjs' npx nitro dev
 ```
 
 This works with any Nitro command (`nitro dev`, `nitro preview`, or a production start script).
+
+## Cloudflare Workers
+
+On a Workers preset such as `cloudflare-module`, use the Cloudflare plugin from `@sentry/nitro/cloudflare`. It
+replaces the `instrument.mjs` and `--import` steps above.
+
+Nitro registers every file in your server `plugins/` directory automatically, so creating the file is the only
+registration step:
+
+```ts
+// server/plugins/sentry.ts
+import { definePlugin } from 'nitro';
+import { sentryCloudflareNitroPlugin } from '@sentry/nitro/cloudflare';
+
+export default definePlugin(
+  sentryCloudflareNitroPlugin({
+    dsn: '__YOUR_DSN__',
+    tracesSampleRate: 1.0,
+  }),
+);
+```
+
+Directory scanning is disabled until `serverDir` is set, so set it next to the preset. In `nitro.config.ts`:
+
+```ts
+import { defineNitroConfig } from 'nitro/config';
+
+export default defineNitroConfig({
+  preset: 'cloudflare-module',
+  serverDir: './server',
+});
+```
+
+Or in `vite.config.ts` when using Nitro as a Vite plugin:
+
+```ts
+import { defineConfig } from 'vite';
+import { nitro } from 'nitro/vite';
+
+export default defineConfig({
+  plugins: [
+    nitro({
+      preset: 'cloudflare-module',
+      serverDir: './server',
+    }),
+  ],
+});
+```
+
+The plugin enables the full default integration set of `@sentry/cloudflare`, which requires the `nodejs_compat`
+compatibility flag in your `wrangler.jsonc`:
+
+```jsonc
+{
+  "compatibility_flags": ["nodejs_compat"],
+}
+```
+
+Secrets are not available at build time on Workers, so read the DSN from the runtime config when it comes from an
+environment binding. The runtime config only picks up keys declared in your Nitro config, so declare the key there
+and set it on the Worker as `NITRO_SENTRY_DSN`:
+
+```ts
+// server/plugins/sentry.ts
+import { definePlugin } from 'nitro';
+import { useRuntimeConfig } from 'nitro/runtime-config';
+import { sentryCloudflareNitroPlugin } from '@sentry/nitro/cloudflare';
+
+export default definePlugin(sentryCloudflareNitroPlugin(() => ({ dsn: useRuntimeConfig().sentryDsn })));
+```
+
+```ts
+// nitro.config.ts
+import { defineNitroConfig } from 'nitro/config';
+
+export default defineNitroConfig({
+  preset: 'cloudflare-module',
+  serverDir: './server',
+  runtimeConfig: { sentryDsn: '' },
+});
+```
+
+The plugin gives each request its own isolation scope, flushes events through `waitUntil`, and reports unhandled
+errors from Nitro's `error` hook. The build-time setup from `withSentryConfig` (source map upload and the h3 tracing
+channels) is not wired up for the Workers path yet, so server spans come from the Cloudflare request wrapper only.
 
 ## Uploading Source Maps
 
