@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client, ScopeContext } from '../../src';
-import { createStackParser, getGlobalScope, getIsolationScope, GLOBAL_OBJ } from '../../src';
+import { createStackParser, getGlobalScope, getIsolationScope, GLOBAL_OBJ, SentrySpan } from '../../src';
 import { Scope } from '../../src/scope';
 import type { Attachment } from '../../src/types/attachment';
 import type { Breadcrumb } from '../../src/types/breadcrumb';
@@ -14,6 +14,7 @@ import {
   parseEventHintOrCaptureContext,
   prepareEvent,
 } from '../../src/utils/prepareEvent';
+import { _setSpanForScope } from '../../src/utils/spanOnScope';
 import { clearGlobalScope } from '../testutils';
 
 describe('applyDebugIds', () => {
@@ -727,6 +728,33 @@ describe('prepareEvent', () => {
         sdkProcessingMetadata: {},
         tags: { initial: 'aa', foo: 'bar' },
       });
+    });
+  });
+
+  describe('active span', () => {
+    it('applies the root span name to transaction events', async () => {
+      const scope = new Scope();
+      _setSpanForScope(scope, new SentrySpan({ name: 'bar' }));
+
+      const event: Event = { type: 'transaction' };
+
+      const options = {} as ClientOptions;
+      const processedEvent = await prepareEvent(options, event, { integrations: [] }, scope);
+
+      expect(processedEvent?.transaction).toBe('bar');
+    });
+
+    it("doesn't apply the root span name to non-transaction events", async () => {
+      const scope = new Scope();
+      scope.setTransactionName('/users/:id');
+      _setSpanForScope(scope, new SentrySpan({ name: 'foo' }));
+
+      const event: Event = { type: undefined };
+
+      const options = {} as ClientOptions;
+      const processedEvent = await prepareEvent(options, event, { integrations: [] }, scope);
+
+      expect(processedEvent?.transaction).toBe('/users/:id');
     });
   });
 });

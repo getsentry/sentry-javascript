@@ -9,7 +9,8 @@ import type { StackParser } from '../types/stacktrace';
 import { getFilenameToDebugIdMap } from './debug-ids';
 import { addExceptionMechanism, uuid4 } from './misc';
 import { normalize } from './normalize';
-import { applyScopeDataToEvent, getCombinedScopeData } from './scopeData';
+import { applyScopeDataToEvent, applySpanToEvent, getCombinedScopeData } from './scopeData';
+import { getActiveSpan } from './spanUtils';
 import { truncate } from './string';
 import { resolvedSyncPromise } from './syncpromise';
 import { dateTimestampInSeconds } from './time';
@@ -87,6 +88,10 @@ export function prepareEvent(
   }
 
   applyScopeDataToEvent(prepared, data);
+  const span = getActiveSpan(finalScope);
+  if (span) {
+    applySpanToEvent(prepared, span);
+  }
 
   const eventProcessors = [
     ...clientEventProcessors,

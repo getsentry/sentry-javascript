@@ -14,7 +14,6 @@ import type { Primitive } from './types/misc';
 import type { RequestEventData } from './types/request';
 import type { Session } from './types/session';
 import type { SeverityLevel } from './types/severity';
-import type { Span } from './types/span';
 import type { PropagationContext } from './types/tracing';
 import type { User } from './types/user';
 import { debug } from './utils/debug-logger';
@@ -85,7 +84,6 @@ export interface ScopeData {
   fingerprint: string[];
   level?: SeverityLevel;
   transactionName?: string;
-  span?: Span;
   conversationId?: string;
 }
 
@@ -654,7 +652,6 @@ export class Scope {
       propagationContext: this._propagationContext,
       sdkProcessingMetadata: this._sdkProcessingMetadata,
       transactionName: this._transactionName,
-      span: _getSpanForScope(this),
       conversationId: this._conversationId,
     };
   }
