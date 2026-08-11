@@ -74,8 +74,7 @@ export interface ScopeData {
   breadcrumbs: Breadcrumb[];
   user: User;
   tags: { [key: string]: Primitive };
-  // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
