@@ -14,7 +14,7 @@ import {
   propagationContextFromHeaders,
   shouldContinueTrace,
 } from '@sentry/core';
-import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
+import { getScopesFromOpenTelemetryContext, setScopesOnContext } from './utils/contextData';
 import { makeTraceState } from './utils/makeTraceState';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
@@ -118,7 +118,7 @@ function getContextWithRemoteActiveSpanAndScopes(ctx: Context, options: Paramete
 
 function ensureScopesOnContext(ctx: Context, isContinuingTrace: boolean): Context {
   // If there are no scopes yet on the context, ensure we have them
-  const scopes = getScopesFromContext(ctx);
+  const scopes = getScopesFromOpenTelemetryContext(ctx);
 
   // If we have no scope here, this is most likely either the root context or a context manually derived from it
   // In this case, we want to fork the current scope, to ensure we do not pollute the root scope

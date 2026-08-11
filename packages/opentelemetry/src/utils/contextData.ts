@@ -10,7 +10,7 @@ const SCOPE_CONTEXT_FIELD = 'context';
  * Try to get the current scopes from the given OTEL context.
  * This requires a Context Manager that was wrapped with getWrappedContextManager.
  */
-export function getScopesFromContext(context: Context): CurrentScopes | undefined {
+export function getScopesFromOpenTelemetryContext(context: Context): CurrentScopes | undefined {
   return context.getValue(SENTRY_SCOPES_CONTEXT_KEY) as CurrentScopes | undefined;
 }
 

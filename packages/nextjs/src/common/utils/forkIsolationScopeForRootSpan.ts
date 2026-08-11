@@ -7,7 +7,7 @@ import {
   getRootSpan,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
-import { getScopesFromContext } from '@sentry/opentelemetry';
+import { getScopesFromOpenTelemetryContext } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 /**
@@ -32,7 +32,7 @@ export function maybeForkIsolationScopeForRootSpan(
   const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
   const scope = scopes.scope || getCurrentScope();
 
-  const currentScopesPointer = getScopesFromContext(context.active());
+  const currentScopesPointer = getScopesFromOpenTelemetryContext(context.active());
   if (currentScopesPointer) {
     currentScopesPointer.isolationScope = isolationScope;
   }

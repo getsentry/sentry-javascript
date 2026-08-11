@@ -17,7 +17,7 @@ import {
 } from './constants';
 import { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './trace';
 import type { CurrentScopes } from './types';
-import { getContextFromScope, getScopesFromContext } from './utils/contextData';
+import { getContextFromScope, getScopesFromOpenTelemetryContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
@@ -39,7 +39,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
 
   function getScopes(): CurrentScopes {
     const ctx = api.context.active();
-    const scopes = getScopesFromContext(ctx);
+    const scopes = getScopesFromOpenTelemetryContext(ctx);
 
     if (scopes) {
       return scopes;

@@ -3,17 +3,17 @@ import { Scope } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   getContextFromScope,
-  getScopesFromContext,
+  getScopesFromOpenTelemetryContext,
   setContextOnScope,
   setScopesOnContext,
 } from '../../src/utils/contextData';
 import type { CurrentScopes } from '../../src/types';
 
 describe('contextData', () => {
-  describe('getScopesFromContext / setScopesOnContext', () => {
+  describe('getScopesFromOpenTelemetryContext / setScopesOnContext', () => {
     it('returns undefined when no scopes are set on context', () => {
       const context = ROOT_CONTEXT;
-      expect(getScopesFromContext(context)).toBeUndefined();
+      expect(getScopesFromOpenTelemetryContext(context)).toBeUndefined();
     });
 
     it('returns scopes that were set on context', () => {
@@ -23,9 +23,9 @@ describe('contextData', () => {
 
       const contextWithScopes = setScopesOnContext(ROOT_CONTEXT, scopes);
 
-      expect(getScopesFromContext(contextWithScopes)).toBe(scopes);
-      expect(getScopesFromContext(contextWithScopes)?.scope).toBe(scope);
-      expect(getScopesFromContext(contextWithScopes)?.isolationScope).toBe(isolationScope);
+      expect(getScopesFromOpenTelemetryContext(contextWithScopes)).toBe(scopes);
+      expect(getScopesFromOpenTelemetryContext(contextWithScopes)?.scope).toBe(scope);
+      expect(getScopesFromOpenTelemetryContext(contextWithScopes)?.isolationScope).toBe(isolationScope);
     });
 
     it('does not modify the original context', () => {
@@ -36,8 +36,8 @@ describe('contextData', () => {
       const originalContext = ROOT_CONTEXT;
       const newContext = setScopesOnContext(originalContext, scopes);
 
-      expect(getScopesFromContext(originalContext)).toBeUndefined();
-      expect(getScopesFromContext(newContext)).toBe(scopes);
+      expect(getScopesFromOpenTelemetryContext(originalContext)).toBeUndefined();
+      expect(getScopesFromOpenTelemetryContext(newContext)).toBe(scopes);
     });
 
     it('allows overwriting scopes on a derived context', () => {
@@ -52,8 +52,8 @@ describe('contextData', () => {
       const context1 = setScopesOnContext(ROOT_CONTEXT, scopes1);
       const context2 = setScopesOnContext(context1, scopes2);
 
-      expect(getScopesFromContext(context1)).toBe(scopes1);
-      expect(getScopesFromContext(context2)).toBe(scopes2);
+      expect(getScopesFromOpenTelemetryContext(context1)).toBe(scopes1);
+      expect(getScopesFromOpenTelemetryContext(context2)).toBe(scopes2);
     });
   });
 
@@ -170,7 +170,7 @@ describe('contextData', () => {
       setContextOnScope(scope, contextWithScopes);
 
       // Navigate: context -> scopes -> scope -> context
-      const retrievedScopes = getScopesFromContext(contextWithScopes);
+      const retrievedScopes = getScopesFromOpenTelemetryContext(contextWithScopes);
       expect(retrievedScopes).toBe(scopes);
 
       const retrievedContext = getContextFromScope(retrievedScopes!.scope);

@@ -1,4 +1,4 @@
-export { getScopesFromContext } from './utils/contextData';
+export { getScopesFromOpenTelemetryContext } from './utils/contextData';
 
 export { SentryPropagator } from './propagator';
 export { SentryTracerProvider } from './tracerProvider';

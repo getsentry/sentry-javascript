@@ -6,7 +6,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from '../constants';
-import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './contextData';
+import { getScopesFromOpenTelemetryContext, setContextOnScope, setScopesOnContext } from './contextData';
 
 /**
  * Merge Sentry scopes into an OpenTelemetry {@link Context} and apply trace-context adjustments
@@ -18,7 +18,7 @@ import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './c
  * @returns A new context ready for `super.with` / `AsyncLocalStorage.run`.
  */
 export function buildContextWithSentryScopes(context: Context): Context {
-  const currentScopes = getScopesFromContext(context);
+  const currentScopes = getScopesFromOpenTelemetryContext(context);
   const currentScope = currentScopes?.scope || getCurrentScope();
   const currentIsolationScope = currentScopes?.isolationScope || getIsolationScope();
 
