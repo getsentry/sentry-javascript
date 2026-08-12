@@ -1,3 +1,13 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+/**
+ * @deprecated Use `SENTRY_SEGMENT_NAME_SOURCE` from `@sentry/conventions/attributes` instead.
+ *
+ * Temporary alias (same value as `sentry.segment.name.source`) so the monorepo can typecheck
+ * until stacked PRs migrate remaining call sites. Removed once those land.
+ */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = SENTRY_SEGMENT_NAME_SOURCE;
+
 /**
  * Attributes that holds the sample rate that was locally applied to a span.
  * If this attribute is not defined, it means that the span inherited a sampling decision.
