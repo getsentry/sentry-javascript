@@ -7,7 +7,7 @@ import type { CloudflareOptions } from './client';
 import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
-import { wrapRequestHandlerWithInit } from './request';
+import { wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { hasRpcMeta } from './utils/rpcMeta';
