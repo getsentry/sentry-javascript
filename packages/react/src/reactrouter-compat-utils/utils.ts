@@ -1,5 +1,5 @@
 import type { Span, TransactionSource } from '@sentry/core/browser';
-import { debug, getActiveSpan, getRootSpan, spanToStreamedSpanJSON } from '@sentry/core/browser';
+import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 import { matchRouteManifest, stripBasenameFromPathname } from './route-manifest';
@@ -376,7 +376,7 @@ export function getActiveRootSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP];
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

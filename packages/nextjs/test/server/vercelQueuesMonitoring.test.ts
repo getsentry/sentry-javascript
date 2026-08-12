@@ -10,7 +10,7 @@ vi.mock('@sentry/core', () => ({
       },
     }),
   }),
-  spanToStreamedSpanJSON: (span: { _data: Record<string, unknown> }) => ({
+  spanToJSON: (span: { _data: Record<string, unknown> }) => ({
     attributes: span._data,
   }),
 }));

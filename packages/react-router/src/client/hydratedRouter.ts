@@ -10,7 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import type { DataRouter } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -49,7 +49,7 @@ export function instrumentHydratedRouter(): void {
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
-        const pageloadName = spanToStreamedSpanJSON(pageloadSpan).name;
+        const pageloadName = spanToJSON(pageloadSpan).name;
         const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
           pageloadName &&
@@ -125,7 +125,7 @@ export function instrumentHydratedRouter(): void {
           return;
         }
 
-        const rootSpanJson = spanToStreamedSpanJSON(rootSpan);
+        const rootSpanJson = spanToJSON(rootSpan);
         const rootSpanAttributes = rootSpanJson.attributes;
 
         // When the instrumentation API is active, navigation roots are parameterized
@@ -208,7 +208,7 @@ function getActiveRootSpan(): Span | undefined {
 
   const rootSpan = getRootSpan(activeSpan);
 
-  const op = spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP];
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

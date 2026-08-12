@@ -3,7 +3,7 @@ import {
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   updateSpanName,
 } from '@sentry/core';
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
@@ -38,7 +38,7 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
     serverFnMeta?: ServerFnMeta;
   }): Promise<unknown> {
     const activeSpan = getActiveSpan();
-    const spanData = activeSpan ? spanToStreamedSpanJSON(activeSpan) : undefined;
+    const spanData = activeSpan ? spanToJSON(activeSpan) : undefined;
     if (activeSpan && spanData?.attributes[SENTRY_ORIGIN] === 'auto.function.tanstackstart.server') {
       if (serverFnMeta?.name) {
         const method = spanData.name.split(' ')[0] || 'GET';

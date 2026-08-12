@@ -15,8 +15,8 @@ import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, Stream
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
@@ -47,10 +47,10 @@ export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
  */
 export function captureSpan(span: Span, client: Client): SerializedStreamedSpanWithSegmentSpan {
   // Convert to JSON FIRST - we cannot write to an already-ended span
-  const spanJSON = spanToStreamedSpanJSON(span);
+  const spanJSON = spanToJSON(span);
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
-  const serializedSegmentSpan = spanToStreamedSpanJSON(segmentSpan);
+  const serializedSegmentSpan = spanToJSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
 
@@ -181,10 +181,10 @@ export function captureStandaloneSpanWithStaticCallback(
   client: Client,
   beforeSendSpan: (span: SpanJSON) => SpanJSON,
 ): SerializedStreamedSpan {
-  const spanJSON = spanToJSON(span);
+  const spanJSON = spanToStaticSpanJSON(span);
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
-  const serializedSegmentSpan = spanToStreamedSpanJSON(segmentSpan);
+  const serializedSegmentSpan = spanToJSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
   const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);

@@ -12,7 +12,7 @@ import {
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
@@ -139,7 +139,7 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
 
     const span = getSpan();
     expect(span).toBeDefined();
-    const json = spanToStreamedSpanJSON(span!);
+    const json = spanToJSON(span!);
     expect(json.name).toBe('Create Nest App');
     expect(json.attributes['sentry.op']).toBe('function');
     expect(json.attributes['sentry.origin']).toBe('auto.http.nestjs');
@@ -163,7 +163,7 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
 
     await channel.tracePromise(async () => ({ app: true }), { arguments: [] });
 
-    const json = spanToStreamedSpanJSON(getSpan()!);
+    const json = spanToJSON(getSpan()!);
     expect(json.attributes['nestjs.version']).toBeUndefined();
     expect(json.attributes['nestjs.module']).toBeUndefined();
     expect(json.attributes['nestjs.type']).toBe('app_creation');
@@ -213,12 +213,12 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
       return 'cats';
     }
 
-    let contextSpanJson: ReturnType<typeof spanToStreamedSpanJSON> | undefined;
+    let contextSpanJson: ReturnType<typeof spanToJSON> | undefined;
     const { effectiveHandler } = driveCreate(instance, getCats, '10.4.1', () => {
       // The per-request handler `create` returns. Capture the active span
       // here: when invoked it runs inside the request_context span.
       return function perRequest(): unknown {
-        contextSpanJson = spanToStreamedSpanJSON(getActiveSpan()!);
+        contextSpanJson = spanToJSON(getActiveSpan()!);
         return 'ok';
       };
     });
@@ -253,9 +253,9 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
 
     class CatsController {}
     const instance = new CatsController();
-    let handlerSpanJson: ReturnType<typeof spanToStreamedSpanJSON> | undefined;
+    let handlerSpanJson: ReturnType<typeof spanToJSON> | undefined;
     function getCats(): string {
-      handlerSpanJson = spanToStreamedSpanJSON(getActiveSpan()!);
+      handlerSpanJson = spanToJSON(getActiveSpan()!);
       return 'cats';
     }
 
@@ -289,7 +289,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     let contextSpanId: string | undefined;
     let handlerParentSpanId: string | undefined;
     function getCats(): string {
-      handlerParentSpanId = spanToStreamedSpanJSON(getActiveSpan()!).parent_span_id;
+      handlerParentSpanId = spanToJSON(getActiveSpan()!).parent_span_id;
       return 'cats';
     }
 
@@ -340,7 +340,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     new LoggerMiddleware().use({ url: '/' }, {}, next);
 
     expect(next).toHaveBeenCalledTimes(1);
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('LoggerMiddleware');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs');
@@ -363,7 +363,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     applyInjectable(AuthGuard);
 
     expect(new AuthGuard().canActivate({ ctx: true })).toBe(true);
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('AuthGuard');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.guard');
@@ -384,7 +384,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     applyInjectable(ParseIntPipe);
 
     expect(new ParseIntPipe().transform('42', { type: 'param' })).toBe(42);
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('ParseIntPipe');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.pipe');
@@ -418,7 +418,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     // Passthrough: same observable is returned (with `subscribe` proxied).
     expect(returned).toBe(observable);
 
-    const beforeJson = spanToStreamedSpanJSON(beforeSpan!);
+    const beforeJson = spanToJSON(beforeSpan!);
     expect(beforeJson.name).toBe('LoggingInterceptor');
     expect(beforeJson.attributes['sentry.op']).toBe('middleware');
     expect(beforeJson.attributes['sentry.origin']).toBe('auto.middleware.nestjs.interceptor');
@@ -461,7 +461,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
 
     expect(returned).toBe(observable);
     // before-span ended (when `next.handle()` ran, post-await)
-    expect(spanToStreamedSpanJSON(beforeSpan!).end_timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // after-span was created AND the observable instrumented despite the await
     returned.subscribe();
     expect(teardowns).toHaveLength(1);
@@ -497,7 +497,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(next.handle).not.toHaveBeenCalled();
     // before-span is closed even though `next.handle()` (which normally
     // ends it) never ran
-    expect(spanToStreamedSpanJSON(beforeSpan!).end_timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // no after-span, so the observable is left un-instrumented
     returned.subscribe();
     expect(teardowns).toHaveLength(0);
@@ -533,7 +533,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(next.handle).not.toHaveBeenCalled();
     // before-span is closed even though `next.handle()` (which normally
     // ends it) never ran
-    expect(spanToStreamedSpanJSON(beforeSpan!).end_timestamp).toBeDefined();
+    expect(spanToJSON(beforeSpan!).end_timestamp).toBeDefined();
     // no after-span, so the observable is left un-instrumented
     returned.subscribe();
     expect(teardowns).toHaveLength(0);
@@ -585,8 +585,8 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
     expect(returned).toBe(observable);
     // Each interceptor opened and ended its own distinct before-span.
     expect(outerBefore).not.toBe(innerBefore);
-    expect(spanToStreamedSpanJSON(outerBefore!).end_timestamp).toBeDefined();
-    expect(spanToStreamedSpanJSON(innerBefore!).end_timestamp).toBeDefined();
+    expect(spanToJSON(outerBefore!).end_timestamp).toBeDefined();
+    expect(spanToJSON(innerBefore!).end_timestamp).toBeDefined();
     // Exactly one "Interceptors - After Route" span was created for the
     // shared context.
     returned.subscribe();
@@ -642,7 +642,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
     expect(ret).toBe('handled:boom');
 
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('HttpExceptionFilter');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
@@ -697,7 +697,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
     expect(ret).toBe('handled:boom');
 
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('HttpExceptionFilter');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
@@ -721,7 +721,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
     const ret = new HttpExceptionFilter().catch('boom', { switchToHttp: () => ({}) });
     expect(ret).toBe('handled:boom');
 
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('HttpExceptionFilter');
     expect(json.attributes['sentry.op']).toBe('middleware');
     expect(json.attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
@@ -761,10 +761,8 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
       expect(new GuardAndFilter().canActivate({ ctx: true })).toBe(true);
       expect(new GuardAndFilter().catch('boom', { switchToHttp: () => ({}) })).toBe('handled:boom');
 
-      expect(spanToStreamedSpanJSON(guardSpan!).attributes['sentry.origin']).toBe('auto.middleware.nestjs.guard');
-      expect(spanToStreamedSpanJSON(filterSpan!).attributes['sentry.origin']).toBe(
-        'auto.middleware.nestjs.exception_filter',
-      );
+      expect(spanToJSON(guardSpan!).attributes['sentry.origin']).toBe('auto.middleware.nestjs.guard');
+      expect(spanToJSON(filterSpan!).attributes['sentry.origin']).toBe('auto.middleware.nestjs.exception_filter');
     });
   }
 });
@@ -854,7 +852,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     await (descriptor.value as AnyFn)();
 
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('event user.created');
     expect(json.attributes['sentry.op']).toBe('function');
     expect(json.attributes['sentry.origin']).toBe('auto.event.nestjs');
@@ -884,7 +882,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     expect(EmailProcessor.prototype.process).not.toBe(originalProcess);
 
     await new EmailProcessor().process({});
-    const json = spanToStreamedSpanJSON(spanInside!);
+    const json = spanToJSON(spanInside!);
     expect(json.name).toBe('emails process');
     expect(json.attributes['sentry.op']).toBe('queue.process');
     expect(json.attributes['sentry.origin']).toBe('auto.queue.nestjs.bullmq');
@@ -909,7 +907,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     }
     wrappedDecorator(ReportsProcessor);
     return new ReportsProcessor().process().then(() => {
-      expect(spanToStreamedSpanJSON(spanInside!).name).toBe('reports process');
+      expect(spanToJSON(spanInside!).name).toBe('reports process');
     });
   });
 
@@ -974,7 +972,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     await (descriptor.value as AnyFn)();
 
-    expect(spanToStreamedSpanJSON(spanInside!).name).toBe(expected);
+    expect(spanToJSON(spanInside!).name).toBe(expected);
   });
 
   it('bullmq @Processor: skips wrapping when the class is flagged __SENTRY_INTERNAL__', () => {

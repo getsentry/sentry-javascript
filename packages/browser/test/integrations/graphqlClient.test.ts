@@ -3,7 +3,7 @@
  */
 
 import type { Client } from '@sentry/core/browser';
-import { SentrySpan, spanToStreamedSpanJSON } from '@sentry/core/browser';
+import { SentrySpan, spanToJSON } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { URL_FULL } from '@sentry/conventions/attributes';
@@ -367,7 +367,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
@@ -385,7 +385,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
@@ -403,7 +403,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       expect(json.name).toBe('POST /graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
@@ -420,7 +420,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       expect(json.name).toBe('POST');
       expect(json.attributes['graphql.document']).toBeUndefined();
     });
@@ -438,7 +438,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       expect(json.name).toBe('custom span');
       expect(json.attributes['graphql.document']).toBeUndefined();
     });
@@ -457,7 +457,7 @@ describe('GraphqlClient', () => {
 
       handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
 
-      const json = spanToStreamedSpanJSON(span);
+      const json = spanToJSON(span);
       // The span is still renamed with the operation, but the document is not attached.
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBeUndefined();

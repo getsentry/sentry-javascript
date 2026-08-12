@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToStreamedSpanJSON,
+  spanToJSON,
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
@@ -128,7 +128,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   });
 
   client.on('spanStart', span => {
-    const spanAttributes = spanToStreamedSpanJSON(span).attributes;
+    const spanAttributes = spanToJSON(span).attributes;
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
 

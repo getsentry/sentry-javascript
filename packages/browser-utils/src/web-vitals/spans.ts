@@ -10,7 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
@@ -105,7 +105,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     ...passedAttributes,
   };
 
-  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
+  if (parentSpan && spanToJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
   }
@@ -343,9 +343,7 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
   const spanToUse = cachedContext?.span || rootSpan;
-  const routeName = spanToUse
-    ? spanToStreamedSpanJSON(spanToUse).name
-    : getCurrentScope().getScopeData().transactionName;
+  const routeName = spanToUse ? spanToJSON(spanToUse).name : getCurrentScope().getScopeData().transactionName;
   const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
 
   _emitWebVitalSpan({

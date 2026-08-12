@@ -3,7 +3,7 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
-import { init, spanToStreamedSpanJSON, startSpan } from '@sentry/deno';
+import { init, spanToJSON, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
@@ -38,7 +38,7 @@ Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send chann
   // child has actually ended and can be captured on the transaction.
   const rpcSpanEnded = new Promise<void>(resolve => {
     client.on('spanEnd', (span: Span) => {
-      if (spanToStreamedSpanJSON(span).attributes[SENTRY_OP] === 'rpc') {
+      if (spanToJSON(span).attributes[SENTRY_OP] === 'rpc') {
         resolve();
       }
     });

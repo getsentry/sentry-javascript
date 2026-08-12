@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-  SentrySpan,
-  setHttpStatus,
-  spanToStreamedSpanJSON,
-} from '../../../src/index';
+import { SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE, SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
 
 describe('setHttpStatus', () => {
   it.each([
@@ -26,7 +21,7 @@ describe('setHttpStatus', () => {
 
     setHttpStatus(span, code as number);
 
-    const { status: spanStatus, attributes } = spanToStreamedSpanJSON(span);
+    const { status: spanStatus, attributes } = spanToJSON(span);
 
     expect(spanStatus).toBe(status);
     expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(statusMessage);
@@ -38,7 +33,7 @@ describe('setHttpStatus', () => {
 
     setHttpStatus(span, 600);
 
-    const { status: spanStatus, attributes } = spanToStreamedSpanJSON(span);
+    const { status: spanStatus, attributes } = spanToJSON(span);
 
     expect(spanStatus).toBe('error');
     expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');

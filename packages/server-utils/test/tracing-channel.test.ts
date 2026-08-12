@@ -13,7 +13,7 @@ import {
   initAndBind,
   resolvedSyncPromise,
   setAsyncContextStrategy,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
 } from '@sentry/core';
@@ -161,7 +161,7 @@ describe('bindTracingChannelToSpan', () => {
     channel.traceSync(
       () => {
         startSpan({ name: 'child-span' }, child => {
-          childParentSpanId = spanToStreamedSpanJSON(child).parent_span_id;
+          childParentSpanId = spanToJSON(child).parent_span_id;
         });
       },
       { operation: 'read' },
@@ -201,7 +201,7 @@ describe('bindTracingChannelToSpan', () => {
           undefined,
           () => {
             startSpan({ name: 'child-span' }, child => {
-              childParentSpanId = spanToStreamedSpanJSON(child).parent_span_id;
+              childParentSpanId = spanToJSON(child).parent_span_id;
             });
             done();
           },
@@ -235,7 +235,7 @@ describe('bindTracingChannelToSpan', () => {
       otherRequestSpanId = other.spanContext().spanId;
       channel.asyncStart.runStores(ctx, () => {
         startSpan({ name: 'child-span' }, child => {
-          childParentSpanId = spanToStreamedSpanJSON(child).parent_span_id;
+          childParentSpanId = spanToJSON(child).parent_span_id;
         });
       });
     });
@@ -268,8 +268,8 @@ describe('bindTracingChannelToSpan', () => {
       channel.traceSync(() => undefined, { operation: 'read' });
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -287,7 +287,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -332,8 +332,8 @@ describe('bindTracingChannelToSpan', () => {
       await promise;
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -356,7 +356,7 @@ describe('bindTracingChannelToSpan', () => {
       await expect(promise).rejects.toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -374,7 +374,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -394,8 +394,8 @@ describe('bindTracingChannelToSpan', () => {
       });
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBe('ok');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -416,7 +416,7 @@ describe('bindTracingChannelToSpan', () => {
       });
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -437,7 +437,7 @@ describe('bindTracingChannelToSpan', () => {
       ).toThrow(error);
 
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -456,7 +456,7 @@ describe('bindTracingChannelToSpan', () => {
 
         // The transaction status field is normalized to a valid value; the raw message survives on
         // the streamed span as `sentry.status.message`.
-        const { status, attributes } = spanToStreamedSpanJSON(span);
+        const { status, attributes } = spanToJSON(span);
         expect(status).toBe('error');
         expect(attributes['sentry.status.message']).toBe('bad input');
         expect(attributes['error.type']).toBe('TypeError');
@@ -474,7 +474,7 @@ describe('bindTracingChannelToSpan', () => {
           ),
         ).toThrow('plain failure');
 
-        const { status, attributes } = spanToStreamedSpanJSON(span);
+        const { status, attributes } = spanToJSON(span);
         expect(status).toBe('error');
         expect(attributes['sentry.status.message']).toBe('plain failure');
         expect(attributes['error.type']).toBe('unknown');
@@ -493,7 +493,7 @@ describe('bindTracingChannelToSpan', () => {
         ).toThrow();
 
         // No usable message → no status message set → `getStatusMessage` defaults to `internal_error`.
-        const { status, attributes } = spanToStreamedSpanJSON(span);
+        const { status, attributes } = spanToJSON(span);
         expect(status).toBe('error');
         expect(attributes['error.type']).toBe('unknown');
       });
@@ -514,7 +514,7 @@ describe('bindTracingChannelToSpan', () => {
         }
 
         expect(threw).toBe(true);
-        const { status, attributes } = spanToStreamedSpanJSON(span);
+        const { status, attributes } = spanToJSON(span);
         expect(status).toBe('error');
         expect(attributes['error.type']).toBe('unknown');
       });
@@ -545,8 +545,8 @@ describe('bindTracingChannelToSpan', () => {
       ).rejects.toThrow(error);
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBe('error');
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
     });
 
     it('captures the exception with the default mechanism when `captureError` is true', async () => {
@@ -575,7 +575,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
     });
 
     it('captures the exception on the synchronous error path when `captureError` is true', () => {
@@ -604,7 +604,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
     });
 
     it('captures the exception on the callback error path when `captureError` is true', async () => {
@@ -636,7 +636,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.diagnostic_channels.bind_span', handled: false },
       });
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
     });
 
     it('captures the exception with the hint returned by a `captureError` function, passing it the thrown error', async () => {
@@ -668,7 +668,7 @@ describe('bindTracingChannelToSpan', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'auto.http.custom', handled: false },
       });
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
+      expect(spanToJSON(span).status).toBe('error');
     });
 
     it('uses the default mechanism when `captureError` is a function on the synchronous error path', () => {
@@ -713,7 +713,7 @@ describe('bindTracingChannelToSpan', () => {
         {
           beforeSpanEnd(s, data) {
             receivedSpan = s;
-            openWhenCalled = spanToStreamedSpanJSON(s).end_timestamp === undefined;
+            openWhenCalled = spanToJSON(s).end_timestamp === undefined;
             expect(data._sentrySpan).toBe(s);
             expect('result' in data).toBe(true);
             s.setAttribute('enriched', true);
@@ -725,8 +725,8 @@ describe('bindTracingChannelToSpan', () => {
 
       expect(receivedSpan).toBe(span);
       expect(openWhenCalled).toBe(true);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).attributes.enriched).toBe(true);
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).attributes.enriched).toBe(true);
     });
 
     it('runs before the span is ended on async completion', async () => {
@@ -739,7 +739,7 @@ describe('bindTracingChannelToSpan', () => {
         () => span,
         {
           beforeSpanEnd(s) {
-            expect(spanToStreamedSpanJSON(s).end_timestamp).toBeUndefined();
+            expect(spanToJSON(s).end_timestamp).toBeUndefined();
             s.setAttribute('enriched', true);
           },
         },
@@ -747,8 +747,8 @@ describe('bindTracingChannelToSpan', () => {
 
       await channel.tracePromise(async () => 'ok', { operation: 'read' });
 
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).attributes.enriched).toBe(true);
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).attributes.enriched).toBe(true);
     });
 
     it('runs on the error path with the error on the context object', async () => {
@@ -779,7 +779,7 @@ describe('bindTracingChannelToSpan', () => {
       ).rejects.toThrow(error);
 
       expect(sawError).toBe(error);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
     });
   });
 
@@ -811,22 +811,22 @@ describe('bindTracingChannelToSpan', () => {
     it('does not end the span while deferred', () => {
       const { span, endSpy } = setupDeferred('test:defer:open');
       expect(endSpy).not.toHaveBeenCalled();
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
     });
 
     it('`end()` ends the span once with no error status', () => {
       const { span, endSpy, end } = setupDeferred('test:defer:ok');
       end();
       expect(endSpy).toHaveBeenCalledTimes(1);
-      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
-      expect(spanToStreamedSpanJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
+      expect(spanToJSON(span).status).toBe('ok');
     });
 
     it('`end(error)` sets error status and the `error.type` attribute, then ends', () => {
       const { span, endSpy, end } = setupDeferred('test:defer:error');
       end(new TypeError('stream blew up'));
-      expect(spanToStreamedSpanJSON(span).status).toBe('error');
-      expect(spanToStreamedSpanJSON(span).attributes['error.type']).toBe('TypeError');
+      expect(spanToJSON(span).status).toBe('error');
+      expect(spanToJSON(span).attributes['error.type']).toBe('TypeError');
       expect(endSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -916,7 +916,7 @@ describe('bindTracingChannelToSpan', () => {
         channel.traceSync(
           () => {
             startSpan({ name: 'child-span' }, child => {
-              childParentSpanId = spanToStreamedSpanJSON(child).parent_span_id;
+              childParentSpanId = spanToJSON(child).parent_span_id;
             });
           },
           { operation: 'read' },

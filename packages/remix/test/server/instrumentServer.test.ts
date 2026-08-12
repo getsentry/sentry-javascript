@@ -17,7 +17,7 @@ describe('instrumentBuild', () => {
     } as unknown as Span;
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(rootSpan);
     vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue(rootSpan);
-    vi.spyOn(SentryCore, 'spanToStreamedSpanJSON').mockReturnValue({ name: 'GET /users/42' });
+    vi.spyOn(SentryCore, 'spanToJSON').mockReturnValue({ name: 'GET /users/42' });
     const build = {
       entry: { module: {} },
       routes: {

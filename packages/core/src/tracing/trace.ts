@@ -30,7 +30,7 @@ import {
   getRootSpan,
   spanIsSampled,
   spanTimeInputToSeconds,
-  spanToJSON,
+  spanToStaticSpanJSON,
 } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -674,7 +674,7 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
       () => callback(),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        const { status } = spanToJSON(span);
+        const { status } = spanToStaticSpanJSON(span);
         if (span.isRecording() && status === 'ok') {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }

@@ -7,7 +7,7 @@ import {
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
 import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
@@ -73,7 +73,7 @@ export function startTrackingLongTasks(): void {
       return;
     }
 
-    const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToStreamedSpanJSON(parent);
+    const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
@@ -120,7 +120,7 @@ export function startTrackingLongAnimationFrames(): void {
       const {
         start_timestamp: parentStartTimestamp,
         attributes: { [SENTRY_OP]: parentOp },
-      } = spanToStreamedSpanJSON(parent);
+      } = spanToJSON(parent);
 
       if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
         // Skip adding the span if the long animation frame started before the navigation started.
@@ -223,7 +223,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   const performanceEntries = performance.getEntries();
 
-  const { attributes, start_timestamp: transactionStartTime } = spanToStreamedSpanJSON(span);
+  const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
     const startTime = msToSec(entry.startTime);
@@ -486,7 +486,7 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
     if (isMeasurementValue(connection.rtt)) {
       if (spanStreamingEnabled) {
         span.setAttribute('network.connection.rtt', connection.rtt);
-      } else if (spanToStreamedSpanJSON(span).attributes[SENTRY_OP] === 'pageload') {
+      } else if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
         // Measurements are only recorded on the pageload span, matching the historical
         // behavior where `connection.rtt` was only flushed for pageload transactions.
         setMeasurement('connection.rtt', connection.rtt, 'millisecond');

@@ -99,8 +99,8 @@ export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   spanIsSampled,
   spanIsSentrySpan,
   spanToTraceContext,

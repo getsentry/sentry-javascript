@@ -146,8 +146,8 @@ describe('instrumentVueRouter()', () => {
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockRootSpan = {
         ...MOCK_SPAN,
-        getSpanJSON: () => ({}),
-        getStreamedSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload' } }),
+        getStaticSpanJSON: () => ({ op: 'pageload' }),
+        getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload' } }),
         updateName: vi.fn(),
         setAttribute: vi.fn(),
         setAttributes: vi.fn(),
@@ -253,10 +253,10 @@ describe('instrumentVueRouter()', () => {
       setAttribute: vi.fn(),
       setAttributes: vi.fn(),
       name: '',
-      getSpanJSON: () => ({}),
-      getStreamedSpanJSON: () => ({
-        attributes: {
-          'sentry.op': 'pageload',
+      getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
+      getStaticSpanJSON: () => ({
+        op: 'pageload',
+        data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       }),
@@ -278,7 +278,7 @@ describe('instrumentVueRouter()', () => {
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
     mockRootSpan.name = 'customTxnName';
-    mockRootSpan.getStreamedSpanJSON = () => ({
+    mockRootSpan.getSpanJSON = () => ({
       attributes: {
         'sentry.op': 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -343,13 +343,8 @@ describe('instrumentVueRouter()', () => {
         setAttribute: vi.fn(),
         setAttributes: vi.fn(),
         name: '',
-        getSpanJSON: () => ({}),
-        getStreamedSpanJSON: () => ({
-          attributes: {
-            'sentry.op': 'pageload',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-          },
-        }),
+        getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
+        getStaticSpanJSON: () => ({ op: 'pageload', data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
       };
       vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 

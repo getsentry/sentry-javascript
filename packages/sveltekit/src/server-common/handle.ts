@@ -13,7 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   startSpan,
   updateSpanName,
   winterCGHeadersToDict,
@@ -167,7 +167,7 @@ async function instrumentHandle(
         // We're doing this here instead of an event processor to ensure we update the
         // span name as early as possible (for dynamic sampling, et al.)
         // Other spans are enhanced in the `processKitSpans` integration.
-        const spanJson = spanToStreamedSpanJSON(kitRootSpan);
+        const spanJson = spanToJSON(kitRootSpan);
         const kitRootSpanAttributes = spanJson.attributes;
         const originalName = spanJson.name;
 

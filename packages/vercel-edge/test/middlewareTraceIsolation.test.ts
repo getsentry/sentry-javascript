@@ -1,5 +1,5 @@
 import { context, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
-import { getMainCarrier, GLOBAL_OBJ, spanToJSON, withIsolationScope } from '@sentry/core';
+import { getMainCarrier, GLOBAL_OBJ, spanToStaticSpanJSON, withIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -67,7 +67,7 @@ async function runMiddlewareRequest(
     nextMiddlewareTrace(new URL(url).pathname, () =>
       withIsolationScope(async () => {
         const rootSpan = trace.getActiveSpan()!;
-        const traceId = spanToJSON(rootSpan).trace_id!;
+        const traceId = spanToStaticSpanJSON(rootSpan).trace_id!;
 
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -75,7 +75,9 @@ async function runMiddlewareRequest(
         // concurrent request's span.
         const childTracer = trace.getTracer('user');
         const childSpan = childTracer.startSpan('user-work');
-        const childTraceId = spanToJSON(childSpan as unknown as Parameters<typeof spanToJSON>[0]).trace_id!;
+        const childTraceId = spanToStaticSpanJSON(
+          childSpan as unknown as Parameters<typeof spanToStaticSpanJSON>[0],
+        ).trace_id!;
         childSpan.end();
 
         await new Promise(resolve => setTimeout(resolve, delay));

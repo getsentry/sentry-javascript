@@ -4,7 +4,7 @@ import {
   isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  spanToStreamedSpanJSON,
+  spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
@@ -56,7 +56,7 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
 
 function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOptions): void {
   client.on('beforeOutgoingRequestSpan', (span, hint) => {
-    const spanJSON = spanToStreamedSpanJSON(span);
+    const spanJSON = spanToJSON(span);
 
     const spanAttributes = spanJSON.attributes;
     const spanOp = spanAttributes[SENTRY_OP];

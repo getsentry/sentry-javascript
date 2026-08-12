@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getMainCarrier, SentrySpan, setCurrentClient, spanToStreamedSpanJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
@@ -41,13 +41,11 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToStreamedSpanJSON(span).name)).toEqual(['app-ready', 'hydrate']);
-    expect(spans.map(span => spanToStreamedSpanJSON(span).attributes['sentry.op'])).toEqual(['mark', 'measure']);
-    expect(spanToStreamedSpanJSON(spans[0]!).end_timestamp).toBe(spanToStreamedSpanJSON(spans[0]!).start_timestamp);
-    expect(
-      spanToStreamedSpanJSON(spans[1]!).end_timestamp - spanToStreamedSpanJSON(spans[1]!).start_timestamp,
-    ).toBeCloseTo(0.025);
-    expect(spanToStreamedSpanJSON(spans[1]!).parent_span_id).toBe(parentSpan.spanContext().spanId);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['app-ready', 'hydrate']);
+    expect(spans.map(span => spanToJSON(span).attributes['sentry.op'])).toEqual(['mark', 'measure']);
+    expect(spanToJSON(spans[0]!).end_timestamp).toBe(spanToJSON(spans[0]!).start_timestamp);
+    expect(spanToJSON(spans[1]!).end_timestamp - spanToJSON(spans[1]!).start_timestamp).toBeCloseTo(0.025);
+    expect(spanToJSON(spans[1]!).parent_span_id).toBe(parentSpan.spanContext().spanId);
   });
 
   it('captures only entries added since the previous idle span ended', () => {
@@ -67,7 +65,7 @@ describe('userTimingIntegration', () => {
     );
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToStreamedSpanJSON(span).name)).toEqual(['initial-render', 'route-render']);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['initial-render', 'route-render']);
   });
 
   it('reads the latest entries immediately before the segment ends', () => {
@@ -78,7 +76,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!).name).toBe('last-moment-work');
+    expect(spanToJSON(spans[0]!).name).toBe('last-moment-work');
   });
 
   it('does not capture entries for unrelated idle spans', () => {
@@ -104,7 +102,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToStreamedSpanJSON(span).name)).toEqual(['application-mark', 'application-render']);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['application-mark', 'application-render']);
   });
 
   it('does not attach entries preceding a navigation span', () => {
@@ -124,7 +122,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!).name).toBe('current-route');
+    expect(spanToJSON(spans[0]!).name).toBe('current-route');
   });
 });
 
@@ -159,7 +157,7 @@ describe('_addUserTimingSpan', () => {
     _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
 
     expect(spans).toHaveLength(1);
-    expect(spanToStreamedSpanJSON(spans[0]!).attributes).toEqual({
+    expect(spanToJSON(spans[0]!).attributes).toEqual({
       'sentry.browser.measure.detail.phase': 'client',
       'sentry.browser.measure.detail.counts': '{"components":4}',
       'sentry.op': 'measure',
