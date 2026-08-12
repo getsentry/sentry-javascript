@@ -29,10 +29,19 @@ export async function fetchTrace(traceId: string): Promise<TraceItem[]> {
     { headers: { Authorization: `Bearer ${authToken}` } },
   );
 
-  // While polling we expect to see empty traces and the occasional rate limit, so anything
-  // other than a successful response is treated as "not there yet". Log it regardless -- a
-  // rejected request and a trace that has not landed yet are otherwise indistinguishable,
-  // which makes a permanently failing lookup look like a timeout.
+  // The trace endpoint is org scoped, so the auth token needs `org:read` on top of the
+  // project scopes the other assertions rely on. That never resolves by waiting, so fail
+  // loudly instead of polling until the timeout and reporting it as a missing event.
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(
+      `Trace lookup for ${traceId} was rejected with ${response.status}: ${await response.text()}. ` +
+        'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
+    );
+  }
+
+  // Empty traces and the occasional rate limit are expected while polling, so treat anything
+  // else that is not a success as "not there yet" -- but log it, since a rejected request and
+  // a trace that has not landed are otherwise indistinguishable.
   if (!response.ok) {
     console.log(`Trace lookup for ${traceId} returned ${response.status}: ${await response.text()}`);
     return [];
