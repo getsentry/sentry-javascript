@@ -90,7 +90,7 @@ export function initWithDefaultIntegrations(
   options: CloudflareOptions,
   getDefaultIntegrationsImpl: (options: CloudflareOptions) => Integration[],
 ): CloudflareClient | undefined {
-  const cacheEnabled = options.cacheClient !== false && Boolean(options.dsn);
+  const cacheEnabled = options.cacheClient !== false;
 
   if (cacheEnabled) {
     const cached = getCachedClient();

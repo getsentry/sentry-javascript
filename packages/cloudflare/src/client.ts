@@ -113,7 +113,7 @@ export class CloudflareClient extends ServerRuntimeClient {
 
         // If no more pending spans, resolve the completion promise
         if (this._pendingSpans.size === 0 && this._resolveSpanCompletion) {
-          DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, resolving promise');
+          DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, preparing to flush');
           this._resolveSpanCompletion();
           this._resetSpanCompletionPromise();
         }

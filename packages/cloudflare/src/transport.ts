@@ -8,6 +8,12 @@ export interface CloudflareTransportOptions extends BaseTransportOptions {
   fetchOptions?: RequestInit;
 }
 
+/**
+ * How many payloads the buffer holds before it starts rejecting new ones.
+ *
+ * With `cacheClient` a single client is reused across an isolate's invocations, so one buffer now has to absorb
+ * the payloads of many invocations rather than one. 256 is the size that held up under load testing that scenario.
+ */
 const DEFAULT_TRANSPORT_BUFFER_SIZE = 256;
 
 /**
