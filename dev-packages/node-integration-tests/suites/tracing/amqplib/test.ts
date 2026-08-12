@@ -1,25 +1,20 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
 // The scenarios all publish via `sendToQueue`, which delegates to `publish('', queue, ...)` — i.e. the
 // default (empty) exchange with the queue name as the routing key.
+const orchestrionMessagingAttributes = isOrchestrionEnabled() ? { 'messaging.operation.name': 'send' } : {};
+
 const expectedProducerSpan = (routingKey: string) =>
   expect.objectContaining({
     op: 'queue.publish',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
-      // Legacy messaging attributes emitted by both the OTel and orchestrion integrations.
-      'messaging.destination': '',
-      'messaging.destination_kind': 'topic',
-      'messaging.rabbitmq.routing_key': routingKey,
-      'messaging.url': 'amqp://sentry:***@localhost:5672/',
-      'messaging.protocol': 'AMQP',
-      'messaging.protocol_version': '0.9.1',
-      'net.peer.name': 'localhost',
-      'net.peer.port': 5672,
+      ...orchestrionMessagingAttributes,
       'messaging.operation.type': 'send',
       'messaging.destination.name': '',
       'messaging.rabbitmq.destination.routing_key': routingKey,
@@ -35,18 +30,16 @@ const expectedProducerSpan = (routingKey: string) =>
     status: 'ok',
   });
 
+const consumerMessagingAttributes = isOrchestrionEnabled() ? { 'messaging.operation.name': 'process' } : {};
+
 const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'queue.process',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
-    // Legacy messaging attributes emitted by both the OTel and orchestrion integrations. The consumer
-    // reads the default exchange ('') off the delivered message and the queue name as the routing key.
-    'messaging.destination': '',
-    'messaging.destination_kind': 'topic',
-    'messaging.rabbitmq.routing_key': 'queue1',
-    'messaging.operation': 'process',
+    // The consumer reads the default exchange ('') off the delivered message and the queue name as the routing key.
     'messaging.destination.name': '',
     'messaging.rabbitmq.destination.routing_key': 'queue1',
+    ...consumerMessagingAttributes,
     'messaging.operation.type': 'process',
     'sentry.kind': 'consumer',
     'sentry.op': 'queue.process',

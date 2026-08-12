@@ -525,8 +525,9 @@ String and regular-expression matching for `tracePropagationTargets` is now case
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+- The AMQP tracing-channel instrumentation no longer emits deprecated messaging attributes. Use `messaging.destination.name`, `messaging.rabbitmq.destination.routing_key`, `messaging.message.id`, `messaging.message.conversation_id`, `messaging.operation.name`, `network.protocol.name`, `network.protocol.version`, and `url.full` instead of their legacy `messaging.*` equivalents. `messaging.destination_kind` is no longer emitted.
+- The Redis and ioredis tracing-channel instrumentations now use `db.system.name`, `db.operation.name`, `db.query.text`, `server.address`, and `server.port` instead of `db.system`, `db.statement`, `db.connection_string`, `net.peer.name`, and `net.peer.port`.
 - `network.*` span attributes were aligned across SDKs.
-- Legacy messaging (`messaging.*`) and database (`db.statement`, …) span attributes on the AMQP and Redis instrumentations were replaced by their current semantic-convention equivalents.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.

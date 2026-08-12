@@ -8,6 +8,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
   });
 
   const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
+  const dbQueryTextAttribute = isOrchestrionEnabled() ? 'db.query.text' : 'db.statement';
+  const redisSystemAttributes = isOrchestrionEnabled() ? { 'db.system.name': 'redis' } : { 'db.system': 'redis' };
+  const redisConnectionAttributes = isOrchestrionEnabled()
+    ? { 'server.address': 'localhost', 'server.port': 6383 }
+    : { 'net.peer.name': 'localhost', 'net.peer.port': 6383 };
+  const redisSpanOp = isOrchestrionEnabled() ? 'db.query' : 'db';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -15,26 +21,24 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
-            'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
-            'db.statement': 'set test-key [1 other arguments]',
+            'sentry.op': redisSpanOp,
+            ...redisSystemAttributes,
+            ...redisConnectionAttributes,
+            [dbQueryTextAttribute]: 'set test-key [1 other arguments]',
           }),
         }),
         expect.objectContaining({
           description: 'get test-key',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
-            'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
-            'db.statement': 'get test-key',
+            'sentry.op': redisSpanOp,
+            ...redisSystemAttributes,
+            ...redisConnectionAttributes,
+            [dbQueryTextAttribute]: 'get test-key',
           }),
         }),
       ]),
@@ -58,7 +62,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
+            [dbQueryTextAttribute]: 'set ioredis-cache:test-key [1 other arguments]',
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -72,7 +76,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+            [dbQueryTextAttribute]: 'set ioredis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['ioredis-cache:test-key-set-EX'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -86,7 +90,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+            [dbQueryTextAttribute]: 'setex ioredis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['ioredis-cache:test-key-setex'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -100,7 +104,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'get ioredis-cache:test-key',
+            [dbQueryTextAttribute]: 'get ioredis-cache:test-key',
             'cache.hit': true,
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 10,
@@ -115,7 +119,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'get ioredis-cache:unavailable-data',
+            [dbQueryTextAttribute]: 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['ioredis-cache:unavailable-data'],
             'network.peer.address': 'localhost',
@@ -129,7 +133,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'mget [3 other arguments]',
+            [dbQueryTextAttribute]: 'mget [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
             'network.peer.address': 'localhost',
@@ -143,7 +147,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'del ioredis-cache:test-key',
+            [dbQueryTextAttribute]: 'del ioredis-cache:test-key',
             'cache.key': ['ioredis-cache:test-key'],
             'network.peer.address': 'localhost',
             'network.peer.port': 6383,
@@ -183,15 +187,15 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             op: 'db',
             origin: 'auto.db.otel.redis',
             data: expect.objectContaining({
-              'db.system': 'redis',
-              'db.statement': 'SET redis-multi-key [1 other arguments]',
+              ...redisSystemAttributes,
+              [dbQueryTextAttribute]: 'SET redis-multi-key [1 other arguments]',
             }),
           }),
           expect.objectContaining({
             description: 'GET redis-multi-key',
             op: 'db',
             origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-multi-key' }),
+            data: expect.objectContaining({ ...redisSystemAttributes, [dbQueryTextAttribute]: 'GET redis-multi-key' }),
           }),
         ];
 
@@ -205,7 +209,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-cache:test-key [1 other arguments]',
+            [dbQueryTextAttribute]: 'SET redis-cache:test-key [1 other arguments]',
             'cache.key': ['redis-cache:test-key'],
             'cache.item_size': 2,
           }),
@@ -217,7 +221,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-cache:test-key-set-EX [3 other arguments]',
+            [dbQueryTextAttribute]: 'SET redis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['redis-cache:test-key-set-EX'],
             'cache.item_size': 2,
           }),
@@ -229,7 +233,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SETEX redis-cache:test-key-setex [2 other arguments]',
+            [dbQueryTextAttribute]: 'SETEX redis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['redis-cache:test-key-setex'],
             'cache.item_size': 2,
           }),
@@ -241,7 +245,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-cache:test-key',
+            [dbQueryTextAttribute]: 'GET redis-cache:test-key',
             'cache.hit': true,
             'cache.key': ['redis-cache:test-key'],
             'cache.item_size': 10,
@@ -254,7 +258,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-cache:unavailable-data',
+            [dbQueryTextAttribute]: 'GET redis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['redis-cache:unavailable-data'],
           }),
@@ -266,7 +270,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'MGET [3 other arguments]',
+            [dbQueryTextAttribute]: 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
           }),
@@ -278,7 +282,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'DEL redis-cache:test-key',
+            [dbQueryTextAttribute]: 'DEL redis-cache:test-key',
             'cache.key': ['redis-cache:test-key'],
           }),
         }),
@@ -291,8 +295,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.system': 'redis',
-            'db.statement': 'INCR redis-test-key',
+            ...redisSystemAttributes,
+            [dbQueryTextAttribute]: 'INCR redis-test-key',
           }),
         }),
       ]),
@@ -336,15 +340,18 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             op: 'db',
             origin: 'auto.db.otel.redis',
             data: expect.objectContaining({
-              'db.system': 'redis',
-              'db.statement': 'SET redis-5-multi-key [1 other arguments]',
+              ...redisSystemAttributes,
+              [dbQueryTextAttribute]: 'SET redis-5-multi-key [1 other arguments]',
             }),
           }),
           expect.objectContaining({
             description: 'GET redis-5-multi-key',
             op: 'db',
             origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-5-multi-key' }),
+            data: expect.objectContaining({
+              ...redisSystemAttributes,
+              [dbQueryTextAttribute]: 'GET redis-5-multi-key',
+            }),
           }),
         ];
 
@@ -358,7 +365,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-5-cache:test-key [1 other arguments]',
+            [dbQueryTextAttribute]: 'SET redis-5-cache:test-key [1 other arguments]',
             'cache.key': ['redis-5-cache:test-key'],
             'cache.item_size': 2,
           }),
@@ -370,7 +377,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
+            [dbQueryTextAttribute]: 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['redis-5-cache:test-key-set-EX'],
             'cache.item_size': 2,
           }),
@@ -382,7 +389,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
+            [dbQueryTextAttribute]: 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
             'cache.key': ['redis-5-cache:test-key-setex'],
             'cache.item_size': 2,
           }),
@@ -394,7 +401,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-5-cache:test-key',
+            [dbQueryTextAttribute]: 'GET redis-5-cache:test-key',
             'cache.hit': true,
             'cache.key': ['redis-5-cache:test-key'],
             'cache.item_size': 10,
@@ -407,7 +414,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-5-cache:unavailable-data',
+            [dbQueryTextAttribute]: 'GET redis-5-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['redis-5-cache:unavailable-data'],
           }),
@@ -419,7 +426,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'MGET [3 other arguments]',
+            [dbQueryTextAttribute]: 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
           }),
@@ -431,7 +438,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'DEL redis-5-cache:test-key',
+            [dbQueryTextAttribute]: 'DEL redis-5-cache:test-key',
             'cache.key': ['redis-5-cache:test-key'],
           }),
         }),
@@ -444,8 +451,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.system': 'redis',
-            'db.statement': 'INCR redis-5-test-key',
+            ...redisSystemAttributes,
+            [dbQueryTextAttribute]: 'INCR redis-5-test-key',
           }),
         }),
       ]),

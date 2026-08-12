@@ -11,49 +11,55 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
   const origin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
+  const redisSpanOp = isOrchestrionEnabled() ? 'db.query' : 'db';
+  const redisData = isOrchestrionEnabled()
+    ? {
+        'db.system.name': 'redis',
+        'server.address': 'localhost',
+        'server.port': 6380,
+      }
+    : {
+        'db.system': 'redis',
+        'net.peer.name': 'localhost',
+        'net.peer.port': 6380,
+      };
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',
     spans: expect.arrayContaining([
       expect.objectContaining({
         description: 'set test-key [1 other arguments]',
-        op: 'db',
+        op: redisSpanOp,
         origin,
         data: expect.objectContaining({
-          'sentry.op': 'db',
+          'sentry.op': redisSpanOp,
           'sentry.origin': origin,
-          'db.system': 'redis',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 6380,
-          'db.statement': 'set test-key [1 other arguments]',
+          ...redisData,
+          'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
       expect.objectContaining({
         description: 'get test-key',
-        op: 'db',
+        op: redisSpanOp,
         origin,
         data: expect.objectContaining({
-          'sentry.op': 'db',
+          'sentry.op': redisSpanOp,
           'sentry.origin': origin,
-          'db.system': 'redis',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 6380,
-          'db.statement': 'get test-key',
+          ...redisData,
+          'db.query.text': 'get test-key',
         }),
       }),
       // a failing command produces a span with an error status
       expect.objectContaining({
         description: 'incr test-key',
-        op: 'db',
+        op: redisSpanOp,
         status: 'internal_error',
         origin,
         data: expect.objectContaining({
-          'sentry.op': 'db',
+          'sentry.op': redisSpanOp,
           'sentry.origin': origin,
-          'db.system': 'redis',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 6380,
-          'db.statement': 'incr test-key',
+          ...redisData,
+          'db.query.text': 'incr test-key',
         }),
       }),
     ]),
