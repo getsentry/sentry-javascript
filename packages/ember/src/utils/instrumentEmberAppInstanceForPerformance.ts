@@ -119,7 +119,6 @@ export function instrumentEmberAppInstanceForPerformance(
         activeRootSpan.setAttributes({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           ..._getRouteUrlAttributes(client, url, routeInfo?.params),
-          url,
           toRoute: toRoute,
         });
       }
