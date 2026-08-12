@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bun-integration-tests",
-  "version": "11.0.0-alpha.0",
+  "version": "11.0.0-alpha.1",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
@@ -14,14 +14,14 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@sentry/bun": "11.0.0-alpha.0",
-    "@sentry/hono": "11.0.0-alpha.0",
+    "@sentry/bun": "11.0.0-alpha.1",
+    "@sentry/hono": "11.0.0-alpha.1",
     "hono": "^4.12.34",
     "mysql": "^2.18.1",
     "pg": "8.16.0"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "11.0.0-alpha.0",
+    "@sentry-internal/test-utils": "11.0.0-alpha.1",
     "bun-types": "^1.2.9",
     "vitest": "^3.2.7"
   },
