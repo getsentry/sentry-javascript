@@ -462,6 +462,15 @@ function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArgument
     ...options,
   };
 
+  // Fold `op` into the attributes up front so samplers see `sentry.op`; the `SentrySpan`
+  // constructor only adds it after the sampling decision. An explicit `sentry.op` attribute wins.
+  if (options.op) {
+    initialCtx.attributes = {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: options.op,
+      ...options.attributes,
+    };
+  }
+
   if (options.startTime) {
     const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...initialCtx };
     ctx.startTimestamp = spanTimeInputToSeconds(options.startTime);
