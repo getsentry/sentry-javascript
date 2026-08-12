@@ -485,6 +485,22 @@ Sentry.init({
 });
 ```
 
+### The `enableMetrics` option was removed
+
+Affected SDKs: All SDKs.
+
+The `enableMetrics` option was removed. Metrics now follow an opt-in-by-usage model: metrics are captured whenever you use a metric API (`Sentry.metrics.*`). There is no longer an option to disable metric capture once you use a metric API. The `beforeSendMetric` callback is unaffected and remains available as a top-level option.
+
+```js
+// before
+Sentry.init({
+  enableMetrics: true,
+});
+
+// after: no option needed, metrics are captured when you use a metric API
+Sentry.init({});
+```
+
 ### Browser sessions use `unhandled` instead of `crashed`
 
 Affected SDKs: All SDKs running in the browser.
