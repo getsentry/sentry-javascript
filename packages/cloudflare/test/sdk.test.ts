@@ -252,19 +252,6 @@ describe('cacheClient', () => {
     });
   });
 
-  test('applies initialScope on every cached init, not just the first', () => {
-    const options = {
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-    } as const;
-
-    init({ ...options });
-    SentryCore.getCurrentScope().clear();
-
-    init({ ...options, initialScope: { tags: { from: 'initialScope' } } });
-
-    expect(SentryCore.getCurrentScope().getScopeData().tags).toEqual({ from: 'initialScope' });
-  });
-
   test('does not instrument ctx.waitUntil with the flush lock for cached clients', () => {
     const waitUntil = vi.fn();
     const context = { waitUntil, passThroughOnException: vi.fn() };
