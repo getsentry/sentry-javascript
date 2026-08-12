@@ -16,17 +16,6 @@ export type AttributeValue =
 /** Options for the OpenAI integration. */
 export type OpenAiOptions = GenAiOptions;
 
-export interface OpenAiClient {
-  responses?: {
-    create: (...args: unknown[]) => Promise<unknown>;
-  };
-  chat?: {
-    completions?: {
-      create: (...args: unknown[]) => Promise<unknown>;
-    };
-  };
-}
-
 /**
  * @see https://platform.openai.com/docs/api-reference/chat/object
  */
