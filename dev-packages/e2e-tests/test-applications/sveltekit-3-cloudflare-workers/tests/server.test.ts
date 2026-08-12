@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // These tests guard the Cloudflare execution context lookup in `@sentry/sveltekit`.
 //
@@ -9,27 +9,20 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 // with the events still queued. The assertions below therefore double as flush assertions; if the
 // SDK stops finding the execution context, no event reaches the proxy and these time out.
 
-test('sends a server transaction for a Worker-rendered route', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-3-cloudflare-workers', txnEvent => {
-    return txnEvent?.transaction === 'GET /';
+test('sends a streamed server span for a Worker-rendered route', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('sveltekit-3-cloudflare-workers', span => {
+    return getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
   await page.goto('/');
 
   await expect(page.locator('h1')).toHaveText('SvelteKit 3 on Cloudflare Workers');
 
-  const serverTxnEvent = await serverTxnEventPromise;
+  const serverSpan = await serverSpanPromise;
 
-  expect(serverTxnEvent).toMatchObject({
-    transaction: 'GET /',
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'http.server',
-        origin: 'auto.http.cloudflare',
-      },
-    },
-  });
+  expect(serverSpan.name).toBe('GET /');
+  expect(serverSpan.status).toBe('ok');
+  expect(serverSpan.trace_id).toMatch(/[a-f0-9]{32}/);
 });
 
 test('captures a server load error thrown in the Worker', async ({ page }) => {

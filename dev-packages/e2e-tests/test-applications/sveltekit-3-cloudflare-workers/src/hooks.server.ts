@@ -7,8 +7,7 @@ export const handleError = handleErrorWithSentry(() => {});
 
 export const handle = sequence(
   initCloudflareSentryHandle({
-    traceLifecycle: 'static',
-    environment: 'qa', // dynamic sampling bias to keep transactions
+    environment: 'qa', // dynamic sampling bias to keep spans
     dsn: E2E_TEST_DSN,
     debug: !!process.env.DEBUG,
     tunnel: 'http://localhost:3031/', // proxy server
