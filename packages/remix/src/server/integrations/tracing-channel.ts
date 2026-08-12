@@ -2,6 +2,7 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getSpanStatusFromHttpCode,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -11,17 +12,21 @@ import {
   spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
-  CODE_FUNCTION,
+  CODE_FUNCTION_NAME,
   HTTP_METHOD,
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
   URL_FULL,
   URL_PATH,
   SENTRY_KIND,
+  SENTRY_OP,
+  HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
+import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
@@ -74,7 +79,9 @@ function getRequestAttributes(request: unknown): SpanAttributes {
   }
   if (typeof url === 'string') {
     const urlObject = parseStringToURLObject(url);
-    attributes[URL_FULL] = urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined;
+    attributes[URL_FULL] = filterCollectedUrl(
+      urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+    );
     attributes[URL_PATH] = urlObject?.pathname;
   }
   return attributes;
@@ -100,6 +107,10 @@ function setResponseStatus(span: Span, result: unknown): void {
   if (typeof status === 'number') {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, status);
+    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
+
+    const spanStatus = getSpanStatusFromHttpCode(status);
+    span.setStatus(spanStatus);
   }
 }
 
@@ -120,7 +131,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
     // oxlint-disable-next-line typescript/no-deprecated
-    const method = spanToJSON(span).data[HTTP_METHOD];
+    const method = spanToJSON(span).attributes[HTTP_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
@@ -145,7 +156,7 @@ function subscribeRequestHandler(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
-          [CODE_FUNCTION]: 'requestHandler',
+          [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,
         },
       });
@@ -179,8 +190,8 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'loader.remix',
-          [CODE_FUNCTION]: 'loader',
+          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -213,8 +224,8 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'action.remix',
-          [CODE_FUNCTION]: 'action',
+          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -233,7 +244,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         }
 
         formData
-          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture, 'formData.'))
+          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)

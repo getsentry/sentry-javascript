@@ -19,14 +19,11 @@ vi.mock('fs', async () => {
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
-const orchestrionVite = vi.fn(
-  (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) => ({
-    name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
-  }),
-);
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
 vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
-  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean; injectChannelSubscribers?: boolean }) =>
-    orchestrionVite(options),
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
 
 vi.spyOn(console, 'log').mockImplementation(() => {
@@ -112,19 +109,15 @@ describe('sentrySvelteKit()', () => {
     expect(pluginNames).not.toContain('sentry-orchestrion-vite');
   });
 
-  it('adds the orchestrion plugin with channel-subscriber injection for the cloudflare adapter', async () => {
+  it('adds the orchestrion plugin with the same options regardless of adapter', async () => {
     orchestrionVite.mockClear();
     const plugins = await getSentrySvelteKitPlugins({ adapter: 'cloudflare' });
-    expect(orchestrionVite).toHaveBeenCalledWith(expect.objectContaining({ injectChannelSubscribers: true }));
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
     expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-vite');
-  });
 
-  it("doesn't inject channel subscribers for non-cloudflare adapters", async () => {
     orchestrionVite.mockClear();
     await getSentrySvelteKitPlugins({ adapter: 'node' });
-    expect(orchestrionVite).toHaveBeenCalledWith(
-      expect.not.objectContaining({ injectChannelSubscribers: expect.anything() }),
-    );
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
   });
 
   it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {

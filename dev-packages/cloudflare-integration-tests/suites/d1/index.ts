@@ -28,17 +28,6 @@ export default Sentry.withSentry(
         return new Response('ok');
       }
 
-      if (url.pathname === '/double-instrument') {
-        const prepareBeforeManual = env.DB.prepare;
-        const db = Sentry.instrumentD1WithSentry(env.DB);
-        const prepareAfterManual = db.prepare;
-
-        await db.prepare('SELECT * FROM users WHERE id = ?').bind(1).all();
-
-        const isSameRef = prepareBeforeManual === prepareAfterManual ? 'true' : 'false';
-        return new Response(isSameRef);
-      }
-
       if (url.pathname === '/error') {
         await env.DB.prepare('SELECT * FROM non_existent_table').all();
         return new Response('ok');

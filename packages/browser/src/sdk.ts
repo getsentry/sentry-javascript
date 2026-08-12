@@ -28,6 +28,8 @@ import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
 
+declare const __SENTRY_TRACING__: boolean;
+
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   /**
@@ -118,6 +120,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   });
 
   if (
+    (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
     options.traceLifecycle !== 'static' &&
     !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
   ) {

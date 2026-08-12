@@ -1,12 +1,13 @@
 // Orchestrion code-transform loader + webpack plugin. The loader is exposed
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
-import { createRequire } from 'node:module';
+import { SDK_VERSION } from '@sentry/core';
 import type { Compiler } from 'webpack';
 import type { InstrumentationConfig } from '..';
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
+import { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest } from './resolve';
 
 import { serializeInstrumentations as serializeInstrumentationsImpl } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 import type { AnyInstrumentationConfig, SerializableInstrumentationConfig } from '../apmTypes';
@@ -18,45 +19,7 @@ export const serializeInstrumentations: (configs: AnyInstrumentationConfig[]) =>
   serializeInstrumentationsImpl;
 export type { SerializableInstrumentationConfig } from '../apmTypes';
 
-// Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
-// module don't emit a "Critical dependency" warning.
-function getOrchestrionRequire(): ReturnType<typeof createRequire> {
-  let nodeRequire: ReturnType<typeof createRequire>;
-  /*! rollup-include-cjs-only */
-  nodeRequire = createRequire(__filename);
-  /*! rollup-include-cjs-only-end */
-  /*! rollup-include-esm-only */
-  nodeRequire = createRequire(import.meta.url);
-  /*! rollup-include-esm-only-end */
-  return nodeRequire;
-}
-
-/**
- * Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader).
- * Resolved via self-reference to this package's own bundled copy — the `@apm-js-collab` packages
- * are bundled devDependencies and not resolvable on user installs.
- */
-export function getOrchestrionLoaderPath(): string {
-  return getOrchestrionRequire().resolve('@sentry/server-utils/orchestrion/webpack-loader');
-}
-
-/**
- * Resolves a request for one of the orchestrion runtime packages (`@sentry/server-utils` itself, via
- * self-reference, or its `@apm-js-collab/*` dependencies) to an absolute path, from this package's
- * own on-disk location — where the whole dependency graph always resolves, regardless of the
- * consuming app's install layout. Returns `undefined` when the request can't be resolved.
- *
- * Bundler configs use this to emit absolute-path `commonjs` externals: a bare-specifier external
- * emitted into a bundled chunk resolves from the chunk's output location at runtime, which fails
- * under isolated installs (pnpm) where these packages are transitive dependencies.
- */
-export function resolveOrchestrionRuntimeRequest(request: string): string | undefined {
-  try {
-    return getOrchestrionRequire().resolve(request);
-  } catch {
-    return undefined;
-  }
-}
+export { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest };
 
 /** The central instrumentation config, to pass as the loader's `instrumentations` option. */
 export function getSentryInstrumentations(): InstrumentationConfig[] {
@@ -84,24 +47,34 @@ function externalizedWebpackModules(externals: unknown, moduleNames: string[]): 
   );
 }
 
-// The upstream plugin computes its loader path relative to its own file location, which after
-// bundling points into our `vendored/` tree at a file rollup never emitted. Replace it in the
-// rule the plugin just unshifted with our own bundled loader entrypoint.
-function fixupLoaderPath(compiler: Compiler): void {
-  for (const rule of compiler.options.module?.rules ?? []) {
-    if (!rule || typeof rule !== 'object' || !('use' in rule) || !Array.isArray(rule.use)) {
-      continue;
+const ORCHESTRION_HELPER_SPECIFIER = '@sentry/server-utils/orchestrion';
+
+// The injected module-injected snippet imports `@sentry/server-utils/orchestrion`
+// from INSIDE transformed `node_modules` files. Under isolated installs (pnpm)
+// that bare specifier doesn't resolve from an instrumented package's location,
+// so map it — exact-match only (the `$` suffix / `onlyModule`) — to this
+// package's own resolution, in whichever alias form the config already uses.
+// A user's own alias for the specifier is left untouched, and externals still
+// win — webpack consults `externals` before resolving — so setups that
+// externalize the runtime (e.g. Next.js) are unaffected.
+function addOrchestrionResolveAlias(compiler: Compiler): void {
+  const resolved = resolveOrchestrionRuntimeRequest(ORCHESTRION_HELPER_SPECIFIER);
+  if (!resolved) {
+    return;
+  }
+
+  const resolveOptions = (compiler.options.resolve ??= {});
+  const alias = resolveOptions.alias;
+  if (Array.isArray(alias)) {
+    if (!alias.some(entry => entry.name === ORCHESTRION_HELPER_SPECIFIER)) {
+      alias.push({ name: ORCHESTRION_HELPER_SPECIFIER, alias: resolved, onlyModule: true });
     }
-    for (const use of rule.use) {
-      if (
-        use &&
-        typeof use === 'object' &&
-        typeof use.loader === 'string' &&
-        use.loader.endsWith('webpack-loader.cjs')
-      ) {
-        use.loader = getOrchestrionLoaderPath();
-      }
-    }
+    return;
+  }
+
+  const aliasMap = (resolveOptions.alias = alias ?? {});
+  if (!(`${ORCHESTRION_HELPER_SPECIFIER}$` in aliasMap) && !(ORCHESTRION_HELPER_SPECIFIER in aliasMap)) {
+    aliasMap[`${ORCHESTRION_HELPER_SPECIFIER}$`] = resolved;
   }
 }
 
@@ -117,7 +90,18 @@ export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { a
     return { apply: () => undefined };
   }
 
-  const plugin = codeTransformerWebpack(orchestrionTransformOptions(options));
+  const plugin = codeTransformerWebpack({
+    ...orchestrionTransformOptions(options),
+    // The upstream plugin's own loader path points into our `vendored/` tree at
+    // a file rollup never emitted; use our bundled loader entrypoint instead
+    // (which also bakes in the module-injected transform for Turbopack).
+    loaderPath: getOrchestrionLoaderPath(),
+    // The loader ident hashes the instrumentations and each custom transform's
+    // source text, but not data a transform reads without naming it — our
+    // subscriber-definitions table. Key persistent caches on the SDK version so
+    // a release changing that table busts them.
+    cacheVersion: SDK_VERSION,
+  });
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   // The upstream plugin is a class instance, so `apply` is overridden in place
   // rather than spread into a new object (which would lose prototype methods).
@@ -129,8 +113,8 @@ export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { a
         compilation.warnings.push(new compiler.webpack.WebpackError(externalizedModulesWarning(externalizedModules)));
       });
     }
+    addOrchestrionResolveAlias(compiler);
     apply(compiler);
-    fixupLoaderPath(compiler);
   };
   return plugin;
 }

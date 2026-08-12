@@ -114,6 +114,25 @@ describe('getHttpServerSubscriptions', () => {
     );
   });
 
+  // `http.target` is the deprecated alias of `url.full` and carries the same query string, so it has to
+  // respect `dataCollection.urlQueryParams` too.
+  it('filters sensitive query params in `http.target` and `url.full`', async () => {
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/users/42?token=abc123&foo=bar');
+    const transaction = await waitForTransaction();
+
+    expect(transaction.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        'http.target': '/users/42?token=[Filtered]&foo=bar',
+        [URL_FULL]: expect.stringMatching(/\/users\/42\?token=\[Filtered\]&foo=bar$/),
+        [URL_PATH]: '/users/42',
+      }),
+    );
+  });
+
   it('reports a 500 status with internal_error span status', async () => {
     server = http.createServer((_req, res) => {
       res.statusCode = 500;

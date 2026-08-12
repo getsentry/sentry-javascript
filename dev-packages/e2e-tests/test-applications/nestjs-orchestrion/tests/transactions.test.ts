@@ -25,7 +25,7 @@ test('app_creation: emits a "Create Nest App" transaction at startup', async () 
     contexts: { trace: { op?: string; origin?: string; data?: Record<string, unknown> } };
   };
 
-  expect(transaction.contexts.trace.op).toBe('app_creation.nestjs');
+  expect(transaction.contexts.trace.op).toBe('function');
   expect(transaction.contexts.trace.origin).toBe('auto.http.nestjs');
   expect(transaction.contexts.trace.data).toEqual(
     expect.objectContaining({
@@ -47,10 +47,13 @@ test('request_context + handler: a route transaction nests the nestjs spans', as
   await fetch(`${baseURL}/test-transaction`);
   const transactionEvent = await transactionPromise;
 
-  // request_context span, identified by its controller/callback attributes.
+  // request_context span, identified by its `nestjs.type` attribute — it shares
+  // the `function` op and `auto.http.nestjs` origin with the request_handler span.
   // Its description isn't asserted: the span carries `http.*` attributes, so
   // the OTel span-name inference rewrites it to `GET /test-transaction`
-  const requestContext = findSpan(transactionEvent, 'request_context.nestjs', 'auto.http.nestjs');
+  const requestContext = (transactionEvent.spans ?? []).find(
+    span => span.data?.['nestjs.type'] === 'request_context' && span.origin === 'auto.http.nestjs',
+  );
   expect(requestContext).toBeDefined();
   expect(requestContext?.data).toMatchObject({
     'nestjs.type': 'request_context',
@@ -60,7 +63,7 @@ test('request_context + handler: a route transaction nests the nestjs spans', as
 
   // request_handler span: wraps the controller method itself.
   const handler = (transactionEvent.spans ?? []).find(
-    span => span.op === 'handler.nestjs' && span.description === 'testTransaction',
+    span => span.op === 'handler' && span.description === 'testTransaction',
   );
   expect(handler).toBeDefined();
 });

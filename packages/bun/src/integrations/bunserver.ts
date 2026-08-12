@@ -15,6 +15,8 @@ import {
   setHttpStatus,
   startSpan,
   withIsolationScope,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
 import {
@@ -289,13 +291,13 @@ function getSpanAttributesFromParsedUrl(
   };
 
   if (parsedUrl) {
-    attributes[URL_QUERY] = getUrlQuery(parsedUrl.search);
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search));
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
     if (parsedUrl.pathname) {
       attributes[URL_PATH] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes[URL_FULL] = parsedUrl.href;
+      attributes[URL_FULL] = filterCollectedUrl(parsedUrl.href);
       if (parsedUrl.port) {
         attributes[URL_PORT] = parsedUrl.port;
       }

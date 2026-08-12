@@ -8,7 +8,7 @@ describe('getDefaultIntegrations', () => {
   });
 
   it('collects and filters request cookies by default', () => {
-    const client = init({ skipOpenTelemetrySetup: true });
+    const client = init({ enableOpenTelemetrySetup: false });
     const requestDataIntegration = getDefaultIntegrations().find(integration => integration.name === 'RequestData');
     const event: Event = {
       sdkProcessingMetadata: {
@@ -24,7 +24,7 @@ describe('getDefaultIntegrations', () => {
   });
 
   it('does not collect request cookies when dataCollection.cookies is disabled', () => {
-    const client = init({ dataCollection: { cookies: false }, skipOpenTelemetrySetup: true });
+    const client = init({ dataCollection: { cookies: false }, enableOpenTelemetrySetup: false });
     const requestDataIntegration = getDefaultIntegrations().find(integration => integration.name === 'RequestData');
     const event: Event = {
       sdkProcessingMetadata: {

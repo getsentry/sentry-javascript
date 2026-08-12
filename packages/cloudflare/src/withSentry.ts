@@ -1,4 +1,3 @@
-import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
@@ -7,6 +6,7 @@ import { instrumentExportedHandlerQueue } from './instrumentations/worker/instru
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
 import { isCloudflareClass } from './utils/isCloudflareClass';
+import type { AnyExportedHandler, DefaultEnv, ResolveEnv } from './types';
 import {
   instrumentWorkerEntrypoint,
   type WorkerEntrypointConstructor,
@@ -23,18 +23,15 @@ import {
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// TODO(v11): The generic types need to be rewritten to following to improve type safety:
-// T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any>
 export function withSentry<
-  Env = typeof cloudflareEnv,
+  Env = DefaultEnv,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
-    Env,
-    QueueHandlerMessage,
-    CfHostMetadata
-  >,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends AnyExportedHandler | WorkerEntrypointConstructor<any, any> =
+    | ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>
+    | WorkerEntrypointConstructor<Env>,
+>(optionsCallback: (env: ResolveEnv<T, Env>) => CloudflareOptions | undefined, handler: T): T {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
     // oxlint-disable-next-line typescript/no-explicit-any
     return instrumentWorkerEntrypoint(optionsCallback as any, handler);

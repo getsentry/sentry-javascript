@@ -3,9 +3,9 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // As of React Router 7.15+, HydratedRouter invokes the client `fetch` hook in Framework Mode.
-// A fetcher submission produces a `function.react_router.fetcher` transaction
-// (origin `auto.function.react_router.instrumentation_api`) that nests the client action/loader
-// spans and the `http.client` spans for the underlying `.data` requests.
+// A fetcher submission produces a `function` transaction (origin
+// `auto.function.react_router.instrumentation_api`, `code.function.name` `fetcher`) that nests the
+// client action/loader spans and the `http.client` spans for the underlying `.data` requests.
 // See: https://github.com/remix-run/react-router/discussions/13749
 
 test.describe('client - instrumentation API fetcher', () => {
@@ -20,7 +20,7 @@ test.describe('client - instrumentation API fetcher', () => {
     });
 
     const fetcherTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.contexts?.trace?.op === 'function.react_router.fetcher';
+      return transactionEvent.contexts?.trace?.data?.['code.function.name'] === 'fetcher';
     });
 
     await page.goto(`/performance/fetcher-test`);
@@ -35,9 +35,9 @@ test.describe('client - instrumentation API fetcher', () => {
     // The fetcher transaction nests the client action span and the http.client span(s) for the
     // underlying `.data` request(s) - i.e. the OTel/browser fetch span is parented by the fetcher
     // span, not emitted standalone.
-    const spanOps = (fetcherTx.spans ?? []).map(span => span.op);
-    expect(spanOps).toContain('function.react_router.client_action');
-    expect(spanOps).toContain('http.client');
+    const spans = fetcherTx.spans ?? [];
+    expect(spans.some(span => span.data?.['code.function.name'] === 'clientAction')).toBe(true);
+    expect(spans.map(span => span.op)).toContain('http.client');
   });
 
   test('should still send server action transaction when fetcher submits', async ({ page }) => {

@@ -6,6 +6,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   lastEventId,
+  linkedErrorsIntegration,
   makeSession,
   Scope,
   setCurrentClient,
@@ -29,7 +30,7 @@ import * as timerModule from '../../src/utils/timer';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
-import { clearGlobalScope } from '../testutils';
+import { resetGlobals } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -46,10 +47,7 @@ describe('Client', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    clearGlobalScope();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   afterEach(() => {
@@ -454,6 +452,61 @@ describe('Client', () => {
       );
     });
 
+    test('keeps a custom mechanism on the captured error when linked errors are prepended', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        integrations: [linkedErrorsIntegration()],
+      });
+      const client = new TestClient(options);
+      client.init();
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      const cause = new Error('Failure 1');
+      const errorCause = Object.assign(new Error('Failure 2'), { cause });
+      const error = Object.assign(new Error('Failure 3'), { cause: errorCause });
+
+      client.captureException(error, {
+        originalException: error,
+        mechanism: { type: 'auto.http.example', handled: false },
+      });
+
+      expect(client.event?.exception?.values).toEqual([
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 1',
+          mechanism: {
+            exception_id: 2,
+            handled: true,
+            parent_id: 1,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 2',
+          mechanism: {
+            exception_id: 1,
+            handled: true,
+            parent_id: 0,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 3',
+          mechanism: {
+            exception_id: 0,
+            handled: false,
+            type: 'auto.http.example',
+          },
+        }),
+      ]);
+      expect(client.session?.status).toBe('crashed');
+    });
+
     test('does not truncate exception values by default', () => {
       const exceptionMessageLength = 10_000;
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -538,33 +591,6 @@ describe('Client', () => {
           extra: {
             bar: 'wat',
             foo: 'wat',
-          },
-        }),
-      );
-    });
-
-    test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setExtra('foo', 'wat');
-
-      client.captureException(
-        new Error('test exception'),
-        {
-          captureContext: s => {
-            s.clear();
-            s.setExtra('bar', 'wat');
-            return s;
-          },
-        },
-        scope,
-      );
-
-      expect(TestClient.instance!.event).toEqual(
-        expect.objectContaining({
-          extra: {
-            bar: 'wat',
           },
         }),
       );
@@ -1684,7 +1710,9 @@ describe('Client', () => {
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = withStaticSpan(vi.fn(() => null as unknown as SpanJSON));
+      // @ts-expect-error - intentionally violating the type signature here
+      const beforeSendSpan = withStaticSpan(vi.fn(() => null));
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1722,6 +1750,57 @@ describe('Client', () => {
         '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
       consoleWarnSpy.mockRestore();
+    });
+
+    test("doesn't throw if the `beforeSendSpan` callback throws", () => {
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error').mockImplementation(() => undefined);
+      const error = new Error('beforeSendSpan is broken');
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(() => {
+          throw error;
+        }),
+      );
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan, debug: true });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+        ],
+      };
+
+      expect(() => client.captureEvent(transaction)).not.toThrow();
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
+
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toHaveLength(2);
+      expect(client['_outcomes']).toEqual({});
+
+      expect(debugErrorSpy).toHaveBeenCalledTimes(3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+        error,
+      );
+      debugErrorSpy.mockRestore();
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {

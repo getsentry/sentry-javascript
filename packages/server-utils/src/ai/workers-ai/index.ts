@@ -6,7 +6,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { resolveAIRecordingOptions, shouldEnableTruncation } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
@@ -76,7 +76,7 @@ function instrumentRun(
         }
 
         if (options.recordInputs) {
-          addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
+          addRequestAttributes(span, inputs, operationName);
         }
 
         return originalResult.then(result => {
@@ -96,7 +96,7 @@ function instrumentRun(
       const originalResult = originalRun.apply(context, args) as Promise<unknown>;
 
       if (options.recordInputs) {
-        addRequestAttributes(span, inputs, operationName, shouldEnableTruncation(options.enableTruncation));
+        addRequestAttributes(span, inputs, operationName);
       }
 
       return originalResult.then(result => {

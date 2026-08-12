@@ -3,6 +3,7 @@ import * as path from 'path';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
+  resolveOrchestrionRuntimeRequest,
   serializeInstrumentations,
 } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
@@ -77,8 +78,7 @@ export function constructTurbopackConfig({
   // so it is safe even for node_modules with strict initialization order.
   // We only exclude Next.js build polyfills which contain non-standard syntax that causes
   // parse errors when any code is prepended (Turbopack re-parses the loader output).
-  // eslint-disable-next-line typescript/no-deprecated
-  const applicationKey = userSentryOptions?.applicationKey ?? userSentryOptions?._experimental?.turbopackApplicationKey;
+  const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
@@ -138,6 +138,14 @@ function maybeAddOrchestrionRule(
     return rules;
   }
 
+  // The loader's transform splices an import of the `@sentry/server-utils/orchestrion` helper into
+  // each instrumented module. Turbopack rejects absolute-path imports ("server relative imports are
+  // not implemented yet"), and under isolated installs (pnpm) the bare specifier emitted inside a
+  // bundled package doesn't resolve from that package's location — so pass the helper's absolute
+  // on-disk path and let the loader derive a per-file RELATIVE specifier, which Turbopack resolves
+  // from the importing file and bundles at build time.
+  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
+
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
@@ -148,6 +156,7 @@ function maybeAddOrchestrionRule(
           // Turbopack JSON-serializes loader options, so a RegExp `filePath` must be encoded first.
           options: {
             instrumentations: serializeInstrumentations(getSentryInstrumentations()) as unknown as JSONValue[],
+            ...(importHelperPath ? { importHelperPath } : {}),
           },
         },
       ],

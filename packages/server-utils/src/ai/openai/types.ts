@@ -1,83 +1,7 @@
-import type { OPENAI_METHOD_REGISTRY } from './constants';
+import type { GenAiOptions } from '../core/utils';
 
-/**
- * Attribute values may be any non-nullish primitive value except an object.
- *
- * null or undefined attribute values are invalid and will result in undefined behavior.
- */
-export type AttributeValue =
-  | string
-  | number
-  | boolean
-  | Array<null | undefined | string>
-  | Array<null | undefined | number>
-  | Array<null | undefined | boolean>;
-
-export interface OpenAiOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-}
-
-export interface OpenAiClient {
-  responses?: {
-    create: (...args: unknown[]) => Promise<unknown>;
-  };
-  chat?: {
-    completions?: {
-      create: (...args: unknown[]) => Promise<unknown>;
-    };
-  };
-}
-
-/**
- * @see https://platform.openai.com/docs/api-reference/chat/object
- */
-export interface OpenAiChatCompletionObject {
-  id: string;
-  object: 'chat.completion';
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: 'assistant' | 'user' | 'system' | string;
-      content: string | null;
-      refusal?: string | null;
-      annotations?: Array<unknown>; // Depends on whether annotations are enabled
-      tool_calls?: Array<unknown>;
-    };
-    logprobs?: unknown | null;
-    finish_reason: string | null;
-  }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-    prompt_tokens_details?: {
-      cached_tokens?: number;
-      audio_tokens?: number;
-    };
-    completion_tokens_details?: {
-      reasoning_tokens?: number;
-      audio_tokens?: number;
-      accepted_prediction_tokens?: number;
-      rejected_prediction_tokens?: number;
-    };
-  };
-  service_tier?: string;
-  system_fingerprint?: string;
-}
+/** Options for the OpenAI integration. */
+export type OpenAiOptions = GenAiOptions;
 
 /**
  * @see https://platform.openai.com/docs/api-reference/responses/object
@@ -135,45 +59,6 @@ export interface OpenAIResponseObject {
   user: string | null;
   metadata: Record<string, unknown>;
 }
-
-/**
- * @see https://platform.openai.com/docs/api-reference/embeddings/object
- */
-export interface OpenAIEmbeddingsObject {
-  object: 'embedding';
-  embedding: number[];
-  index: number;
-}
-
-/**
- * @see https://platform.openai.com/docs/api-reference/embeddings/create
- */
-export interface OpenAICreateEmbeddingsObject {
-  object: 'list';
-  data: OpenAIEmbeddingsObject[];
-  model: string;
-  usage: {
-    prompt_tokens: number;
-    total_tokens: number;
-  };
-}
-
-/**
- * OpenAI Conversations API Conversation object
- * @see https://platform.openai.com/docs/api-reference/conversations
- */
-export interface OpenAIConversationObject {
-  id: string;
-  object: 'conversation';
-  created_at: number;
-  metadata?: Record<string, unknown>;
-}
-
-export type OpenAiResponse =
-  | OpenAiChatCompletionObject
-  | OpenAIResponseObject
-  | OpenAICreateEmbeddingsObject
-  | OpenAIConversationObject;
 
 /**
  * Streaming event types for the Responses API
@@ -356,16 +241,3 @@ export interface ChatCompletionChunk {
 export interface OpenAIStream<T> extends AsyncIterable<T> {
   [Symbol.asyncIterator](): AsyncIterator<T>;
 }
-
-/**
- * OpenAI Integration interface for type safety
- */
-export interface OpenAiIntegration {
-  name: string;
-  options: OpenAiOptions;
-}
-
-/**
- * @deprecated This type is no longer used and will be removed in the next major version.
- */
-export type InstrumentedMethod = keyof typeof OPENAI_METHOD_REGISTRY;

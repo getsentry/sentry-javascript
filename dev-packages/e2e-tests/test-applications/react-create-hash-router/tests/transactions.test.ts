@@ -50,10 +50,10 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser.domContentLoadedEvent',
+      'sentry.op': 'browser.dom_content_loaded_event',
     },
     description: page.url(),
-    op: 'browser.domContentLoadedEvent',
+    op: 'browser.dom_content_loaded_event',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

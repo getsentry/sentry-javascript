@@ -1,16 +1,17 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { captureException } from '@sentry/core';
+import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
-import { ensureInstrumented } from './instrument';
+import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { wrapRequestHandlerWithInit } from './request';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
-import { extractRpcMeta } from './utils/rpcMeta';
+import { hasRpcMeta } from './utils/rpcMeta';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
+import type { DefaultEnv, ResolveEnv } from './types';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
 
 /**
@@ -33,8 +34,8 @@ type InstrumentedDurableObjectContext = any;
  *
  * This is the shared construction path used by both {@link instrumentDurableObjectWithSentry}
  * and {@link instrumentAgentWithSentry}. It intentionally does NOT apply the RPC prototype-method
- * proxy — callers apply that last via {@link finalizeWithRpcInstrumentation}, after any additional
- * per-instance instrumentation has been layered onto the returned object.
+ * instrumentation — callers apply that last via {@link finalizeWithRpcInstrumentation}, after any
+ * additional per-instance instrumentation has been layered onto the returned object.
  *
  * @internal
  */
@@ -44,7 +45,12 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   env: E,
   newTarget: NewableFunction,
   optionsCallback: (env: E) => CloudflareOptions,
-): { obj: T; options: CloudflareOptions; context: InstrumentedDurableObjectContext } {
+): {
+  obj: T;
+  options: CloudflareOptions;
+  context: InstrumentedDurableObjectContext;
+  frameworkManagedMethods: ReadonlySet<string>;
+} {
   setAsyncLocalStorageAsyncContextStrategy();
   const options = getFinalOptions(optionsCallback(env), env);
   // See InstrumentedDurableObjectContext — `ctx` is widened to `any` so the concrete
@@ -53,14 +59,85 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   const context = instrumentContext(ctx as any);
   const instrumentedEnv = instrumentEnv(env as Record<string, unknown>, options);
 
+  const prototype = (newTarget as unknown as { prototype?: object }).prototype ?? target.prototype;
+  const cachedFrameworkManagedMethods = frameworkManagedMethodsCache.get(prototype);
+  const methodsBeforeConstruction = cachedFrameworkManagedMethods ? undefined : resolvePrototypeMethods(prototype);
+
   // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
   // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
   // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
   const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
 
+  const frameworkManagedMethods = resolveFrameworkManagedMethods(
+    prototype,
+    obj,
+    methodsBeforeConstruction,
+    cachedFrameworkManagedMethods,
+  );
+
   instrumentDurableObjectHandlers(obj, options, context);
 
-  return { obj, options, context };
+  return { obj, options, context, frameworkManagedMethods };
+}
+
+const frameworkManagedMethodsCache = new WeakMap<object, ReadonlySet<string>>();
+
+/**
+ * Collects the methods visible from a prototype, using normal property lookup precedence.
+ * Methods inherited from `Object.prototype` are excluded because they cannot be Durable Object RPC methods.
+ */
+function resolvePrototypeMethods(prototype: object | null): Map<string, unknown> {
+  const methods = new Map<string, unknown>();
+
+  for (let current = prototype; current && current !== Object.prototype; current = Object.getPrototypeOf(current)) {
+    for (const name of Object.getOwnPropertyNames(current)) {
+      // The first occurrence wins, mirroring what a property lookup on the instance would find
+      if (name === 'constructor' || methods.has(name)) {
+        continue;
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(current, name);
+
+      if (descriptor && typeof descriptor.value === 'function') {
+        methods.set(name, descriptor.value);
+      }
+    }
+  }
+
+  return methods;
+}
+
+/**
+ * Finds methods that a framework replaced while constructing the first instance.
+ *
+ * Some frameworks register methods by function identity, so replacing one of their wrappers would
+ * break dispatch. The result is cached because frameworks commonly install their wrappers only
+ * once; later constructions would no longer reveal which methods they manage.
+ */
+function resolveFrameworkManagedMethods(
+  prototype: object,
+  obj: object,
+  methodsBeforeConstruction: Map<string, unknown> | undefined,
+  cached: ReadonlySet<string> | undefined,
+): ReadonlySet<string> {
+  if (cached) {
+    return cached;
+  }
+
+  const methodsAfterConstruction = resolvePrototypeMethods(Object.getPrototypeOf(obj) as object);
+  const managed = new Set<string>();
+
+  for (const [name, method] of methodsAfterConstruction) {
+    const before = methodsBeforeConstruction?.get(name);
+
+    if (before && before !== method) {
+      managed.add(name);
+    }
+  }
+
+  frameworkManagedMethodsCache.set(prototype, managed);
+
+  return managed;
 }
 
 /**
@@ -145,76 +222,175 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
   }
 }
 
+type RpcInstanceState = {
+  options: CloudflareOptions;
+  context: InstrumentedDurableObjectContext;
+  /** Per-instance cache of the traced method wrappers, keyed by method name. Created on first use. */
+  tracedMethods?: Map<string, UncheckedMethod>;
+};
+
 /**
- * Wraps a constructed (and already handler-instrumented) Durable Object instance with the RPC
- * prototype-method proxy, when RPC trace propagation is enabled. Returns the object unchanged when
- * RPC instrumentation is disabled.
+ * Method names the runtime never dispatches over RPC, so wrapping them buys no tracing.
  *
- * This must be applied last, so that any per-instance instrumentation (own properties such as
- * `fetch`, `alarm`, or Agent-specific handlers) is excluded from RPC method tracing.
+ * Mirrors `isReservedName` in workerd (`src/workerd/api/worker-rpc.c++`): the runtime rejects these
+ * before any property lookup happens. `fetch`, `alarm` and the `webSocket*` handlers are also
+ * instrumented per-instance as own properties, and `constructor` is on every prototype.
+ */
+const RESERVED_RPC_METHOD_NAMES: ReadonlySet<string> = new Set([
+  'constructor',
+  'fetch',
+  'connect',
+  'alarm',
+  'webSocketMessage',
+  'webSocketClose',
+  'webSocketError',
+  'dup',
+]);
+
+// Prototype wrappers are shared by all instances, while SDK options and traced method caches are not.
+const rpcInstanceStates = new WeakMap<object, RpcInstanceState>();
+
+/**
+ * Adds trace propagation to a constructed Durable Object's RPC methods.
  *
+ * RPC methods are wrapped on the prototype because Cloudflare dispatches them with the Durable
+ * Object instance as the receiver. This preserves native private-field access and keeps the methods
+ * visible to Cloudflare's RPC dispatcher. Built-in handlers, Agent handlers, and methods managed by
+ * another framework are left untouched.
+ *
+ * Call this after all per-instance instrumentation has been applied. If RPC trace propagation is
+ * disabled, the object is returned unchanged.
+ *
+ * @param obj The constructed Durable Object instance.
+ * @param options The resolved SDK options for this instance.
+ * @param context The instrumented execution context for this instance.
+ * @param excludedMethods Method names owned by another framework and therefore not safe to wrap.
+ * @returns The same Durable Object instance, with eligible prototype methods instrumented.
  * @internal
  */
 export function finalizeWithRpcInstrumentation<T extends object>(
   obj: T,
   options: CloudflareOptions,
   context: InstrumentedDurableObjectContext,
+  excludedMethods?: ReadonlySet<string>,
 ): T {
-  // Skip RPC instrumentation if not enabled
-  if (!options.enableRpcTracePropagation) {
+  // Skip RPC instrumentation only when explicitly opted out (enabled by default)
+  if (options.enableRpcTracePropagation === false) {
     return obj;
   }
 
-  // Return a Proxy that binds all methods to the original object and creates spans
-  // for RPC calls that have Sentry trace context propagated.
-  // Binding is required because frameworks may use private fields (babel WeakMap pattern),
-  // which fail if `this` is the Proxy instead of the original object.
-  const methodCache = new Map<string, UncheckedMethod>();
+  rpcInstanceStates.set(obj, { options, context });
 
-  return new Proxy(obj, {
-    get(proxyTarget, prop, receiver) {
-      const value = Reflect.get(proxyTarget, prop, receiver);
+  instrumentPrototypeRpcMethods(obj, excludedMethods);
 
-      if (typeof prop !== 'string' || typeof value !== 'function' || prop === 'constructor') {
-        return value;
+  return obj;
+}
+
+/**
+ * Returns a prototype method when it is eligible for RPC instrumentation.
+ */
+function getRpcMethodDescriptor(
+  obj: object,
+  prototype: object,
+  methodName: string,
+  excludedMethods?: ReadonlySet<string>,
+): PropertyDescriptor | undefined {
+  if (
+    RESERVED_RPC_METHOD_NAMES.has(methodName) ||
+    Object.prototype.hasOwnProperty.call(obj, methodName) ||
+    excludedMethods?.has(methodName)
+  ) {
+    return undefined;
+  }
+
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, methodName);
+
+  if (!descriptor || typeof descriptor.value !== 'function' || getInstrumented(descriptor.value)) {
+    return undefined;
+  }
+
+  return descriptor;
+}
+
+/**
+ * Wraps eligible methods on the instance's prototype chain once per class.
+ */
+function instrumentPrototypeRpcMethods(obj: object, excludedMethods?: ReadonlySet<string>): void {
+  let prototype: object | null = Object.getPrototypeOf(obj);
+
+  while (prototype && prototype !== Object.prototype) {
+    for (const methodName of Object.getOwnPropertyNames(prototype)) {
+      const descriptor = getRpcMethodDescriptor(obj, prototype, methodName, excludedMethods);
+
+      if (!descriptor) {
+        continue;
       }
 
-      const cached = methodCache.get(prop);
+      const wrapped = createRpcPrototypeWrapper(methodName, descriptor.value as UncheckedMethod);
 
-      if (cached) {
-        return cached;
-      }
+      try {
+        Object.defineProperty(prototype, methodName, { ...descriptor, value: wrapped });
+      } catch {}
 
-      const boundMethod = (value as UncheckedMethod).bind(proxyTarget);
+      // Only the wrapper is marked, not the original method: `wrapMethodWithSentry` resolves
+      // through the same global map and must not resolve the original to this wrapper,
+      // which would recurse.
+      markAsInstrumented(wrapped);
+    }
 
-      if (prop in Object.prototype || Object.prototype.hasOwnProperty.call(proxyTarget, prop)) {
-        methodCache.set(prop, boundMethod);
+    prototype = Object.getPrototypeOf(prototype);
+  }
+}
 
-        return boundMethod;
-      }
+/**
+ * Creates a prototype wrapper that traces RPC calls carrying Sentry metadata.
+ *
+ * The wrapper looks up SDK state from its receiver, allowing one prototype function to serve every
+ * instance. Calls without RPC metadata or instance state use the original method directly. The
+ * original function name and arity are preserved because frameworks may inspect them for dispatch.
+ */
+function createRpcPrototypeWrapper(methodName: string, originalMethod: UncheckedMethod): UncheckedMethod {
+  const wrapper = function (this: unknown, ...args: unknown[]): unknown {
+    // Untraced calls are the common case — every internal call the instance makes to one of its
+    // own methods lands here too — so check the arguments before touching per-instance state.
+    if (!hasRpcMeta(args)) {
+      return Reflect.apply(originalMethod, this, args);
+    }
 
-      // Pre-create the traced version
-      const tracedMethod = wrapMethodWithSentry(
-        { options, context, spanName: prop, spanOp: 'rpc', origin: 'auto.faas.cloudflare.durable_object' },
-        boundMethod,
+    const state = isObjectLike(this) ? rpcInstanceStates.get(this) : undefined;
+
+    if (!state) {
+      return Reflect.apply(originalMethod, this, args);
+    }
+
+    const tracedMethods = (state.tracedMethods ??= new Map());
+    let traced = tracedMethods.get(methodName);
+
+    if (!traced) {
+      traced = wrapMethodWithSentry(
+        {
+          options: state.options,
+          context: state.context,
+          spanName: methodName,
+          spanOp: 'rpc',
+          origin: 'auto.faas.cloudflare.durable_object',
+        },
+        originalMethod,
         undefined,
         true,
       );
+      tracedMethods.set(methodName, traced);
+    }
 
-      // Wrapper that checks for Sentry RPC metadata at call time
-      const wrappedMethod = ((...args: unknown[]) => {
-        const { rpcMeta } = extractRpcMeta(args);
+    return Reflect.apply(traced, this, args);
+  };
 
-        // If Sentry RPC metadata is present, use the traced version (creates span)
-        // Otherwise, call the bound method directly (no span)
-        return rpcMeta ? tracedMethod(...args) : boundMethod(...args);
-      }) as UncheckedMethod;
-
-      methodCache.set(prop, wrappedMethod);
-
-      return wrappedMethod;
-    },
+  Object.defineProperties(wrapper, {
+    name: { value: originalMethod.name, configurable: true },
+    length: { value: originalMethod.length, configurable: true },
   });
+
+  return wrapper as UncheckedMethod;
 }
 
 /**
@@ -227,7 +403,8 @@ export function finalizeWithRpcInstrumentation<T extends object>(
  * - webSocketClose
  * - webSocketError
  *
- * To instrument RPC methods (prototype methods), enable the `enableRpcTracePropagation` option.
+ * RPC methods (prototype methods) are instrumented by default. Set `enableRpcTracePropagation`
+ * to `false` to opt out.
  *
  * @param optionsCallback Function that returns the options for the SDK initialization.
  * @param DurableObjectClass The Durable Object class to instrument.
@@ -251,13 +428,15 @@ export function finalizeWithRpcInstrumentation<T extends object>(
  * ```
  */
 export function instrumentDurableObjectWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
+  Env = DefaultEnv,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends DurableObject<any> = DurableObject<Env>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
-      const { obj, options, context } = constructInstrumentedDurableObject(
+      const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
         ctx,
         env,
@@ -265,7 +444,7 @@ export function instrumentDurableObjectWithSentry<
         optionsCallback,
       );
 
-      return finalizeWithRpcInstrumentation(obj, options, context);
+      return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
 }
@@ -304,20 +483,21 @@ export function instrumentDurableObjectWithSentry<
  *   env => ({
  *     dsn: env.SENTRY_DSN,
  *     tracesSampleRate: 1.0,
- *     enableRpcTracePropagation: true,
  *   }),
  *   MyAgentBase,
  * );
  * ```
  */
 export function instrumentAgentWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, AgentClass: C): C {
+  Env = DefaultEnv,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends DurableObject<any> = DurableObject<Env>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, AgentClass: C): C {
   return new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
-      const { obj, options, context } = constructInstrumentedDurableObject(
+      const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
         ctx,
         env,
@@ -328,8 +508,10 @@ export function instrumentAgentWithSentry<
       instrumentCloudflareAgent(obj);
 
       // Apply RPC prototype-method instrumentation last, so the Agent-specific own-property
-      // handlers we just installed are excluded from RPC method tracing.
-      return finalizeWithRpcInstrumentation(obj, options, context);
+      // handlers we just installed are excluded from RPC method tracing. Methods the Agent
+      // framework installed itself are excluded too — `instrumentCloudflareAgent` traces those by
+      // wrapping the dispatch instead of the method.
+      return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
 }

@@ -1,10 +1,4 @@
-import type { SpanKind } from '@opentelemetry/api';
-import type { Scope, StartSpanOptions } from '@sentry/core';
-
-export interface OpenTelemetrySpanContext extends StartSpanOptions {
-  // Additional otel-only option, for now...?
-  kind?: SpanKind;
-}
+import type { Scope } from '@sentry/core';
 
 export interface CurrentScopes {
   scope: Scope;

@@ -26,9 +26,9 @@ import {
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
+  getGenAiSpanOp,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
-  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -48,11 +48,7 @@ const INSTRUMENTED_METHODS = new WeakSet<object>();
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(
-  args: unknown[],
-  methodPath: string,
-  operationName: string,
-): Record<string, unknown> {
+export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
@@ -73,12 +69,7 @@ export function extractRequestAttributes(
     if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
     if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
   } else {
-    if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
-      // models.retrieve(model-id) and models.get(model-id)
-      attributes[GEN_AI_REQUEST_MODEL] = args[0];
-    } else {
-      attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
-    }
+    attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
 
   return attributes;
@@ -88,13 +79,9 @@ export function extractRequestAttributes(
  * Add private request attributes to spans.
  * This is only recorded if recordInputs is true.
  */
-export function addPrivateRequestAttributes(
-  span: Span,
-  params: Record<string, unknown>,
-  enableTruncation: boolean,
-): void {
+export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages, enableTruncation);
+  setMessagesAttribute(span, messages);
 
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT]: JSON.stringify(params.prompt) });
@@ -130,10 +117,6 @@ function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
   // Completions.create
   if ('completion' in response) {
     span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: response.completion });
-  }
-  // Models.countTokens
-  if ('input_tokens' in response) {
-    span.setAttributes({ [GEN_AI_RESPONSE_TEXT]: JSON.stringify(response.input_tokens) });
   }
 }
 
@@ -213,7 +196,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model}`,
-    op: `gen_ai.${operationName}`,
+    op: getGenAiSpanOp(operationName),
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
 
@@ -225,7 +208,7 @@ function handleStreamingRequest<T extends unknown[], R>(
       originalResult = target.apply(invocationThis, args) as Promise<R>;
 
       if (options.recordInputs && params) {
-        addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+        addPrivateRequestAttributes(span, params);
       }
 
       return (async () => {
@@ -247,7 +230,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     return startSpanManual(spanConfig, span => {
       try {
         if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+          addPrivateRequestAttributes(span, params);
         }
         // The helper synchronously delegates to `create`; suppress that one internal call so it
         // does not produce a duplicate child span (see the dedup gate in `instrumentMethod`).
@@ -293,7 +276,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
+      const requestAttributes = extractRequestAttributes(args, operationName);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
@@ -319,14 +302,14 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpan(
         {
           name: `${operationName} ${model}`,
-          op: `gen_ai.${operationName}`,
+          op: getGenAiSpanOp(operationName),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {
           originalResult = target.apply(invocationThis, args) as Promise<R>;
 
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
+            addPrivateRequestAttributes(span, params);
           }
 
           return originalResult.then(

@@ -1,3 +1,4 @@
+/* eslint-disable typescript-eslint/no-deprecated */
 import { stringify } from '@sentry/core';
 import type { Span, SpanAttributes, SpanJSON, TraceContext } from '@sentry/core';
 import {
@@ -9,9 +10,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../core/utils';
-import { toolCallSpanContextMap } from './constants';
-import type { TokenSummary, ToolCallSpanContext } from './types';
+import { extractSystemInstructions } from '../core/utils';
+import type { TokenSummary } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
 
 /**
@@ -123,20 +123,6 @@ export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulat
 }
 
 /**
- * Get the span context associated with a tool call ID.
- */
-export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolCallSpanContext | undefined {
-  return toolCallSpanContextMap.get(toolCallId);
-}
-
-/**
- * Clean up the span mapping for a tool call ID
- */
-export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
-  toolCallSpanContextMap.delete(toolCallId);
-}
-
-/**
  * Convert an array of tool strings to a JSON string
  */
 export function convertAvailableToolsToJsonString(tools: unknown[]): string {
@@ -220,7 +206,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
  * Generate a request.messages JSON array from the prompt field in the
  * invoke_agent op
  */
-export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES] &&
@@ -239,7 +225,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
       }
 
-      const messagesJson = enableTruncation ? getTruncatedJsonString(filteredMessages) : stringify(filteredMessages);
+      const messagesJson = stringify(filteredMessages);
 
       span.setAttributes({
         [AI_PROMPT_ATTRIBUTE]: messagesJson,
@@ -259,16 +245,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
         }
 
-        // `extractSystemInstructions` returns the original array reference unchanged when no
-        // system message is extracted. When truncation is also disabled, re-serializing would
-        // reproduce the SDK's own input string, so we reuse it instead of allocating a second
-        // full-size copy of the payload (matters for large prompts in memory-constrained runtimes).
-        const messagesJson =
-          !enableTruncation && filteredMessages === messages
-            ? originalMessagesJson
-            : enableTruncation
-              ? getTruncatedJsonString(filteredMessages)
-              : stringify(filteredMessages);
+        const messagesJson = stringify(filteredMessages);
 
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,

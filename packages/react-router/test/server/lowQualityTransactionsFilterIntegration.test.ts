@@ -9,7 +9,7 @@ function makeMockClient(initial: Partial<ClientOptions> = {}): Client {
 }
 
 function setupIntegrationAndGetIgnoreSpans(initial: Partial<ClientOptions> = {}) {
-  const integration = lowQualityTransactionsFilterIntegration({});
+  const integration = lowQualityTransactionsFilterIntegration();
   const client = makeMockClient(initial);
   integration.beforeSetup!(client);
   return client.getOptions().ignoreSpans!;

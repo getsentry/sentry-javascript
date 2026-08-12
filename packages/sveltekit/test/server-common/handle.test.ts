@@ -141,13 +141,13 @@ describe('sentryHandle', () => {
 
       expect(_span!).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(_span!).op).toEqual('http.server');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
-      expect(spanToJSON(_span!).data?.[HTTP_ROUTE]).toEqual('/users/[id]');
+      expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
+      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
 
-      expect(spanToJSON(_span!).timestamp).toBeDefined();
+      expect(spanToJSON(_span!).end_timestamp).toBeDefined();
 
       const spans = getSpanDescendants(_span!);
       expect(spans).toHaveLength(1);
@@ -172,9 +172,9 @@ describe('sentryHandle', () => {
       }
 
       expect(_span).toBeUndefined();
-      expect(spanToJSON(kitRootSpan).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(kitRootSpan).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
-      expect(spanToJSON(kitRootSpan).data?.[HTTP_ROUTE]).toEqual('/users/[id]');
+      expect(spanToJSON(kitRootSpan).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(kitRootSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(kitRootSpan).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
       kitRootSpan.end();
     });
 
@@ -207,20 +207,26 @@ describe('sentryHandle', () => {
       expect(txnCount).toEqual(1);
       expect(_span!).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(_span!).op).toEqual('http.server');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
+      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
-      expect(spanToJSON(_span!).timestamp).toBeDefined();
+      expect(spanToJSON(_span!).end_timestamp).toBeDefined();
 
       const spans = getSpanDescendants(_span!).map(spanToJSON);
 
       expect(spans).toHaveLength(2);
       expect(spans).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
-          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+          expect.objectContaining({
+            name: 'GET /users/[id]',
+            attributes: expect.objectContaining({ 'sentry.op': 'http.server' }),
+          }),
+          expect.objectContaining({
+            name: 'GET api/users/details/[id]',
+            attributes: expect.objectContaining({ 'sentry.op': 'http.server' }),
+          }),
         ]),
       );
     });

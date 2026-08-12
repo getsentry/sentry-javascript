@@ -7,7 +7,7 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
 import { navigating, page } from '$app/stores';
@@ -125,9 +125,10 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
     );
 
     routingSpan = startInactiveSpan({
-      op: 'ui.sveltekit.routing',
       name: 'SvelteKit Route Change',
       attributes: {
+        // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
+        [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         ...navigationInfo,
       },

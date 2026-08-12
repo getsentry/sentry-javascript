@@ -51,11 +51,11 @@ import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { showSpanDropWarning } from './utils/spanUtils';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
+import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -295,9 +295,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
-    // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line typescript/no-deprecated
-    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+    const enableMetrics = this._options.enableMetrics ?? true;
 
     // Setup metric flushing with weight and timeout tracking
     if (enableMetrics) {
@@ -959,14 +957,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
-   * A hook that is called when an orchestrion-instrumented module is injected at
-   * runtime (by the `--import` module hook). Channel-based integrations use it to
-   * subscribe their diagnostics-channel listeners lazily, only once the module
-   * they instrument is actually loaded. Receives the injected module name.
+   * A hook that is called when an orchestrion-instrumented module is injected —
+   * at runtime by the module hook, or at load of a bundler-transformed module.
+   * Channel-based integrations use it to subscribe their diagnostics-channel
+   * listeners lazily, only once the module they instrument is actually loaded.
+   * Receives the injected module name.
    *
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'orchestrion.module-runtime-injected', callback: (moduleName: string) => void): () => void;
+  public on(hook: 'orchestrion.module-injected', callback: (moduleName: string) => void): () => void;
 
   /**
    * Register a hook on this client.
@@ -1233,9 +1232,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'stopUIProfiler'): void;
 
   /**
-   * Emit a hook when an orchestrion-instrumented module is injected at runtime.
+   * Emit a hook when an orchestrion-instrumented module is injected (runtime
+   * module hook or bundler-transformed module load).
    */
-  public emit(hook: 'orchestrion.module-runtime-injected', moduleName: string): void;
+  public emit(hook: 'orchestrion.module-injected', moduleName: string): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -1729,13 +1729,9 @@ function processBeforeSend(
 
       // 1.2 If a `beforeSendSpan` callback is defined, process the root span
       if (beforeSendSpan) {
-        const processedRootSpanJson = beforeSendSpan(rootSpanJson);
-        if (!processedRootSpanJson) {
-          showSpanDropWarning();
-        } else {
-          // update event with processed root span values
-          processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
-        }
+        const processedRootSpanJson = applyBeforeSendSpanCallback(rootSpanJson, beforeSendSpan);
+        // update event with processed root span values
+        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
       }
 
       // 2. Process child spans
@@ -1756,13 +1752,7 @@ function processBeforeSend(
 
           // 2.b If a `beforeSendSpan` callback is defined, process the child span
           if (beforeSendSpan) {
-            const processedSpan = beforeSendSpan(span);
-            if (!processedSpan) {
-              showSpanDropWarning();
-              processedSpans.push(span);
-            } else {
-              processedSpans.push(processedSpan);
-            }
+            processedSpans.push(applyBeforeSendSpanCallback(span, beforeSendSpan));
           } else {
             processedSpans.push(span);
           }

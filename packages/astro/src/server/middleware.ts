@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { HTTP_ROUTE, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -12,6 +12,8 @@ import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   winterCGRequestToRequestData,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import {
   captureException,
@@ -96,7 +98,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     // if there is an active span, we just want to enhance it with routing data etc.
-    if (rootSpan && spanToJSON(rootSpan).op === 'http.server') {
+    if (rootSpan && spanToJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
       return enhanceHttpServerSpan(ctx, next, rootSpan);
     }
 
@@ -214,7 +216,7 @@ async function instrumentRequestStartHttpServerSpan(
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
-            [URL_FULL]: ctx.url.href,
+            [URL_FULL]: filterCollectedUrl(ctx.url.href),
             [URL_PATH]: ctx.url.pathname,
             ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
           };
@@ -223,7 +225,7 @@ async function instrumentRequestStartHttpServerSpan(
             attributes[HTTP_ROUTE] = parametrizedRoute;
           }
 
-          attributes[URL_QUERY] = getUrlQuery(ctx.url.search);
+          attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
           attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
           const name = `${method} ${parametrizedRoute || ctx.url.pathname}`;

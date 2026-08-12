@@ -32,13 +32,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import {
-  buildMethodPath,
-  extractSystemInstructions,
-  getTruncatedJsonString,
-  resolveAIRecordingOptions,
-  shouldEnableTruncation,
-} from '../core/utils';
+import { buildMethodPath, extractSystemInstructions, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -143,12 +137,7 @@ export function extractRequestAttributes(
  * This is only recorded if recordInputs is true.
  * Handles different parameter formats for different Google GenAI methods.
  */
-export function addPrivateRequestAttributes(
-  span: Span,
-  params: Record<string, unknown>,
-  operationName: string,
-  enableTruncation: boolean,
-): void {
+export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
   if (operationName === 'embeddings') {
     const contents = params.contents;
     if (contents != null) {
@@ -193,9 +182,7 @@ export function addPrivateRequestAttributes(
     }
 
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES]: enableTruncation
-        ? getTruncatedJsonString(filteredMessages)
-        : stringify(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
     });
   }
 }
@@ -290,18 +277,13 @@ function instrumentMethod<T extends unknown[], R>(
         return startSpanManual(
           {
             name: `${operationName} ${model}`,
-            op: `gen_ai.${operationName}`,
+            op: getGenAiSpanOp(operationName),
             attributes: requestAttributes,
           },
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                addPrivateRequestAttributes(
-                  span,
-                  params,
-                  operationName,
-                  shouldEnableTruncation(options.enableTruncation),
-                );
+                addPrivateRequestAttributes(span, params, operationName);
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -324,12 +306,12 @@ function instrumentMethod<T extends unknown[], R>(
       return startSpan(
         {
           name: `${operationName} ${model}`,
-          op: `gen_ai.${operationName}`,
+          op: getGenAiSpanOp(operationName),
           attributes: requestAttributes,
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
+            addPrivateRequestAttributes(span, params, operationName);
           }
 
           return handleCallbackErrors(

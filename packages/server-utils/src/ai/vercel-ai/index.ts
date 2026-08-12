@@ -5,10 +5,9 @@ import {
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
+  spanToStaticSpanJSON,
 } from '@sentry/core';
 import type { Client, Event, Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '@sentry/core';
-import { shouldEnableTruncation } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -18,6 +17,7 @@ import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
@@ -31,8 +31,9 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
+import { SPAN_TO_OPERATION_NAME, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -72,7 +73,7 @@ import {
  * This is supposed to be used in `client.on('spanStart', ...)
  */
 function onVercelAiSpanStart(span: Span): void {
-  const { data: attributes, description: name } = spanToJSON(span);
+  const { data: attributes, description: name } = spanToStaticSpanJSON(span);
 
   if (!name) {
     return;
@@ -97,13 +98,7 @@ function onVercelAiSpanStart(span: Span): void {
     _INTERNAL_skipAiProviderWrapping([WORKERS_AI_INTEGRATION_NAME]);
   }
 
-  const client = getClient();
-  const integration = client?.getIntegrationByName('VercelAI') as
-    | { options?: { enableTruncation?: boolean } }
-    | undefined;
-  const enableTruncation = shouldEnableTruncation(integration?.options?.enableTruncation);
-
-  processGenerateSpan(span, name, attributes, enableTruncation);
+  processGenerateSpan(span, name, attributes);
 }
 
 function vercelAiEventProcessor(event: Event): Event {
@@ -340,14 +335,13 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
     attributes[GEN_AI_EMBEDDINGS_INPUT] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
   }
 
+  if (Array.isArray(attributes[GEN_AI_RESPONSE_FINISH_REASONS])) {
+    attributes[GEN_AI_RESPONSE_FINISH_REASONS] = JSON.stringify(attributes[GEN_AI_RESPONSE_FINISH_REASONS]);
+  }
+
   addProviderMetadataToAttributes(attributes);
 
   for (const key of Object.keys(attributes)) {
-    // JSON-stringify any array-valued attributes so they survive v2 span serialization.
-    // Can be removed once span streaming supports arrays natively.
-    if (Array.isArray(attributes[key])) {
-      attributes[key] = JSON.stringify(attributes[key]);
-    }
     // Change attributes namespaced with `ai.X` to `vercel.ai.X`
     if (key.startsWith('ai.')) {
       renameAttributeKey(attributes, key, `vercel.${key}`);
@@ -417,22 +411,13 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
-  // Store the span context in our global map using the tool call ID.
-  // This allows us to capture tool errors and link them to the correct span
-  // without retaining the full Span object in memory.
-  const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
-
-  if (typeof toolCallId === 'string') {
-    toolCallSpanContextMap.set(toolCallId, span.spanContext());
-  }
-
   const toolName = attributes[GEN_AI_TOOL_NAME];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);
   }
 }
 
-function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes, enableTruncation: boolean): void {
+function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
@@ -444,7 +429,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
-  requestMessagesFromPrompt(span, attributes, enableTruncation);
+  requestMessagesFromPrompt(span, attributes);
 
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL, attributes[AI_MODEL_ID_ATTRIBUTE]);
@@ -456,7 +441,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (operationName) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `gen_ai.${operationName}`);
   } else if (name.startsWith('ai.stream')) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
+    // Unmapped streaming pipeline span: we can't classify it as a specific gen_ai operation,
+    // so use the generic `function` op.
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, GENERAL_FUNCTION_SPAN_OP);
   }
 
   // For invoke_agent pipeline spans, use 'invoke_agent' as the description
@@ -503,7 +490,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     if (descriptions.size > 0) {
       // Tool call spans are siblings of doGenerate (both children of invoke_agent),
       // so we key by the parent span ID (the invoke_agent span).
-      const parentSpanId = spanToJSON(span).parent_span_id;
+      const parentSpanId = spanToStaticSpanJSON(span).parent_span_id;
       if (parentSpanId) {
         toolDescriptionMap.set(parentSpanId, descriptions);
       }

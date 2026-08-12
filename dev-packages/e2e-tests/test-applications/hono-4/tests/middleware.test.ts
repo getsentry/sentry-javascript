@@ -253,6 +253,37 @@ const MAIN_INLINE_CASES = [
 ] as const;
 
 test.describe('inline middleware spans (main app)', () => {
+  test('creates middleware span for inline middleware via .query()', async ({ baseURL }) => {
+    const fullPath = `${MAIN_INLINE_PREFIX}/query`;
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === `QUERY ${fullPath}`;
+    });
+
+    const response = await fetch(`${baseURL}${fullPath}`, {
+      method: 'QUERY',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: 'query-body' }),
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ method: 'QUERY', value: 'query-body' });
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe(`QUERY ${fullPath}`);
+    expect(transaction.contexts?.trace?.op).toBe('http.server');
+    expect(transaction.transaction_info?.source).toBe('route');
+    expect(transaction.request?.method).toBe('QUERY');
+
+    const middlewareSpans = (transaction.spans || []).filter(span => span.op === 'middleware');
+    expect(middlewareSpans).toHaveLength(1);
+    expect(middlewareSpans[0]).toEqual(
+      expect.objectContaining({
+        description: 'mainInlineQuery',
+        op: 'middleware',
+        origin: 'auto.middleware.hono',
+      }),
+    );
+  });
+
   MAIN_INLINE_CASES.forEach(({ name, path, method, expectedMiddlewareName }) => {
     test(`creates middleware span for inline middleware via ${name}`, async ({ baseURL }) => {
       const fullPath = `${MAIN_INLINE_PREFIX}${path}`;

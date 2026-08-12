@@ -24,11 +24,17 @@ import {
 import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
-import { debug, parseStringToURLObject, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import {
+  debug,
+  parseStringToURLObject,
+  stripUrlQueryAndFragment,
+  timestampInSeconds,
+  filterCollectedUrl,
+} from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP, ANGULAR_ROUTING_OP } from './constants';
+import { ANGULAR_INIT_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
@@ -62,7 +68,7 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     return;
   }
 
-  const { data: attributes, op } = spanToJSON(span);
+  const attributes = spanToJSON(span).attributes;
 
   if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
@@ -70,9 +76,9 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${attributes[SENTRY_OP]}.angular`,
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [URL_FULL]: absoluteUrl,
+      [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
       [URL_TEMPLATE]: route,
     });
@@ -131,8 +137,9 @@ export class TraceService implements OnDestroy {
           runOutsideAngular(() =>
             startInactiveSpan({
               name: `${navigationEvent.url}`,
-              op: ANGULAR_ROUTING_OP,
               attributes: {
+                // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
+                [SENTRY_OP]: 'router',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                 [URL_FULL]: strippedUrl,
@@ -252,7 +259,7 @@ export class TraceService implements OnDestroy {
 
     const rootSpan = getRootSpan(activeSpan);
 
-    this._pageloadOngoing = spanToJSON(rootSpan).op === 'pageload';
+    this._pageloadOngoing = spanToJSON(rootSpan).attributes[SENTRY_OP] === 'pageload';
     return this._pageloadOngoing;
   }
 }

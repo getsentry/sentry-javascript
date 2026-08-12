@@ -1,25 +1,7 @@
-/**
- * Options for LangChain integration
- */
-export interface LangChainOptions {
-  /**
-   * Whether to record input messages/prompts
-   * @default false (respects `dataCollection.genAI.inputs`)
-   */
-  recordInputs?: boolean;
+import type { GenAiOptions } from '../core/utils';
 
-  /**
-   * Whether to record output text and responses
-   * @default false (respects `dataCollection.genAI.outputs`)
-   */
-  recordOutputs?: boolean;
-
-  /**
-   * Enable or disable truncation of recorded input messages.
-   * Defaults to `true`.
-   */
-  enableTruncation?: boolean;
-}
+/** Options for the LangChain integration. */
+export type LangChainOptions = GenAiOptions;
 
 /**
  * LangChain Serialized type (compatible with @langchain/core)
@@ -106,14 +88,6 @@ export interface LangChainLLMResult {
     };
     model_name?: string;
   };
-}
-
-/**
- * Integration interface for type safety
- */
-export interface LangChainIntegration {
-  name: string;
-  options: LangChainOptions;
 }
 
 /**

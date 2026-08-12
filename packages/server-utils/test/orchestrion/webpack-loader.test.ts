@@ -1,88 +1,107 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import loader from '../../src/orchestrion/bundler/webpack-loader';
+import { getSentryInstrumentations, serializeInstrumentations } from '../../src/orchestrion/bundler/webpack';
 
-// Stand in for the upstream code-transform loader: a changed string signals a
-// transformed module, the input unchanged signals a pass-through.
-vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader', () => ({
-  default: function (this: { async: () => (e: unknown, c?: string, m?: unknown) => void }, code: string, map: unknown) {
-    const callback = this.async();
-    callback(null, code === 'PASS' ? code : `${code};//transformed`, map);
-  },
-}));
+// Runs the real factory-built loader end-to-end: the loader must transform
+// instrumented files (and splice the module-injected snippet) from nothing but
+// JSON-serializable options — the exact contract Turbopack holds it to.
 
-interface Ctx {
-  resourcePath: string;
-  _compilation?: unknown;
+// The code transformer reads the instrumented package's version from its
+// on-disk `package.json`, so each test package needs a real directory.
+function makePackage(root: string, name: string, version: string): void {
+  const dir = join(root, 'node_modules', name);
+  mkdirSync(join(dir, 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version }));
 }
 
-function runLoader(ctx: Ctx, code: string): string | undefined {
-  let output: string | undefined;
+const MYSQL_CONNECTION_SOURCE =
+  "'use strict';\nfunction Connection(){}\nConnection.prototype.query = function query(sql, cb){ return cb(); };\n";
+
+interface LoaderResult {
+  error: unknown;
+  code: string | undefined;
+}
+
+function runLoader(resourcePath: string, code: string, options: Record<string, unknown>): LoaderResult {
+  const result: LoaderResult = { error: undefined, code: undefined };
   const context = {
-    ...ctx,
-    async: () => (_error: unknown, outCode?: string) => {
-      output = outCode;
+    resourcePath,
+    getOptions: () => options,
+    async: () => (error: unknown, outCode?: string) => {
+      result.error = error;
+      result.code = outCode;
     },
   };
   (loader as (this: unknown, code: string) => void).call(context, code);
-  return output;
+  return result;
 }
 
-const IOREDIS = '/app/node_modules/ioredis/built/Redis.js';
-
 describe('orchestrion webpack/Turbopack loader', () => {
-  it('appends the onInject call for a transformed module under Turbopack (no compilation)', () => {
-    const output = runLoader({ resourcePath: IOREDIS }, 'code');
+  let root: string;
+  // The JSON-safe form Turbopack loader options must use (RegExp `filePath`s encoded).
+  const instrumentations = JSON.parse(JSON.stringify(serializeInstrumentations(getSentryInstrumentations())));
 
-    expect(output).toContain('code;//transformed');
-    expect(output).toContain('g.onInject("ioredis")');
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'orch-webpack-loader-'));
+    makePackage(root, 'mysql', '2.18.1');
+    makePackage(root, 'left-pad', '1.3.0');
   });
 
-  it('records the module on `.bundler` even when the bridge is not installed yet', () => {
-    const output = runLoader({ resourcePath: IOREDIS }, 'code') as string;
-    const snippet = output.slice('code;//transformed'.length);
-
-    // Bridge absent (early load): records `.bundler`, no throw.
-    const early: { __SENTRY_ORCHESTRION__?: { bundler?: string[]; onInject?: (name: string) => void } } = {};
-    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
-    new Function('globalThis', snippet)(early);
-    expect(early.__SENTRY_ORCHESTRION__?.bundler).toEqual(['ioredis']);
-
-    // Bridge present (loaded after init): records AND fires the bridge.
-    const injected: string[] = [];
-    const late = { __SENTRY_ORCHESTRION__: { onInject: (name: string) => injected.push(name) } };
-    // oxlint-disable-next-line typescript/no-implied-eval -- executing the generated injection snippet is the behavior under test
-    new Function('globalThis', snippet)(late);
-    expect(injected).toEqual(['ioredis']);
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
   });
 
-  it('does not append when webpack runs the plugin banner (compilation present)', () => {
-    const output = runLoader({ resourcePath: IOREDIS, _compilation: {} }, 'code');
+  it('transforms an instrumented module and splices the module-injected snippet', () => {
+    const { error, code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
+      instrumentations,
+    });
 
-    expect(output).toBe('code;//transformed');
-    expect(output).not.toContain('onInject');
+    expect(error).toBeNull();
+    expect(code).toContain('orchestrion:mysql:query');
+    expect(code).toMatch(
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+    );
+    expect(code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
   });
 
-  it('does not append for a pass-through (untransformed) module', () => {
-    const output = runLoader({ resourcePath: IOREDIS }, 'PASS');
+  it('honors a fixed importSpecifier option', () => {
+    const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
+      instrumentations,
+      importSpecifier: 'my-custom-orchestrion-helper',
+    });
 
-    expect(output).toBe('PASS');
+    expect(code).toContain('require("my-custom-orchestrion-helper")');
+    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
   });
 
-  it.each([
-    ['/app/node_modules/ioredis/built/Redis.js', 'ioredis'],
-    ['/app/node_modules/@redis/client/dist/lib/client/index.js', '@redis/client'],
-    // pnpm's nested layout: the real package is after the LAST node_modules.
-    ['/app/node_modules/.pnpm/ioredis@5.10.1/node_modules/ioredis/built/Redis.js', 'ioredis'],
-  ])('derives the package name from %s as %s', (resourcePath, expected) => {
-    const output = runLoader({ resourcePath }, 'code');
+  it('derives a per-file relative specifier from importHelperPath (Turbopack)', () => {
+    // Turbopack rejects absolute-path imports and bare specifiers that don't
+    // resolve from the importing file, so the snippet must import relatively.
+    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/orchestrion/index.js');
+    const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
+      instrumentations,
+      importHelperPath,
+    });
 
-    expect(output).toContain(`g.onInject("${expected}")`);
+    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/orchestrion/index.js")');
+    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
   });
 
-  it('does not append when the path has no node_modules segment', () => {
-    const output = runLoader({ resourcePath: '/app/src/index.js' }, 'code');
+  it('passes through files of packages that are not instrumented', () => {
+    const source = 'module.exports = function leftPad(){};\n';
+    const { error, code } = runLoader(join(root, 'node_modules/left-pad/lib/index.js'), source, { instrumentations });
 
-    expect(output).toBe('code;//transformed');
-    expect(output).not.toContain('onInject');
+    expect(error).toBeNull();
+    expect(code).toBe(source);
+  });
+
+  it('passes through files with no node_modules package context', () => {
+    const source = 'export const app = 1;\n';
+    const { code } = runLoader('/app/src/index.js', source, { instrumentations });
+
+    expect(code).toBe(source);
   });
 });

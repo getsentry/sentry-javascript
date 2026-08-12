@@ -33,6 +33,11 @@ import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
 
+// Re-exported here for bundler integrations that compose the upstream
+// code-transformer plugin themselves instead of using one of our wrappers
+// (`@sentry/bun`'s plugin uses the upstream `/bun` entry directly).
+export { moduleInjectedTransforms, ORCHESTRION_BUNDLER_MARKER_BANNER } from '../bundler/moduleInjectedTransform';
+
 /**
  * The orchestrion code-transform configs. Every instrumentable library is here
  * so the transform is all-or-nothing: whenever orchestrion is enabled, all of

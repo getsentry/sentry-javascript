@@ -35,11 +35,11 @@ test('Event emitter', async () => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.source': 'custom',
-      'sentry.op': 'event.nestjs',
+      'sentry.op': 'function',
       'sentry.origin': 'auto.event.nestjs',
     },
     origin: 'auto.event.nestjs',
-    op: 'event.nestjs',
+    op: 'function',
     status: 'ok',
   });
 });

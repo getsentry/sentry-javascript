@@ -74,7 +74,6 @@ sentryTest(
       ],
       // Should be at least 20ms based on our setTimeout(21) in the test
       minSampleDurationMs: 20,
-      isChunkFormat: true,
     });
 
     // === PROFILE CHUNK 2 ===
@@ -98,7 +97,6 @@ sentryTest(
         // second function is captured (other one is in other chunk)
         'largeSum',
       ],
-      isChunkFormat: true,
     });
   },
 );

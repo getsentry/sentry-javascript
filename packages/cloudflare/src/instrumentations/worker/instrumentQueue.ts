@@ -1,4 +1,5 @@
-import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
+import type { MessageBatch } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { MESSAGING_QUEUE_PROCESS_SPAN_OP } from '@sentry/conventions/op';
@@ -68,8 +69,7 @@ function wrapQueueHandler(
 /**
  * Instruments a queue handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerQueue<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

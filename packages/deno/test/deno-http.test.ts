@@ -2,17 +2,15 @@
 
 import * as http from 'node:http';
 import type { TransactionEvent } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import { init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 /**
@@ -92,7 +90,7 @@ Deno.test({
       });
     });
 
-    const response = await fetch(`http://127.0.0.1:${port}/users/42?x=1`);
+    const response = await fetch(`http://127.0.0.1:${port}/users/42?x=1`, { method: 'QUERY' });
     assertEquals(await response.text(), 'ok');
 
     // Wait on the real completion signal (transaction event flowed through
@@ -106,8 +104,8 @@ Deno.test({
 
     await new Promise<void>(resolve => server.close(() => resolve()));
 
-    assertEquals(txn.transaction, 'GET /users/42');
-    assertEquals(txn.contexts?.trace?.data?.['http.method'], 'GET');
+    assertEquals(txn.transaction, 'QUERY /users/42');
+    assertEquals(txn.contexts?.trace?.data?.['http.method'], 'QUERY');
     assertEquals(txn.contexts?.trace?.data?.['http.response.status_code'], 200);
   },
 });
@@ -140,7 +138,7 @@ Deno.test({
     // the http.client child span has somewhere to attach and txn is captured
     await startSpan({ name: 'parent', op: 'test' }, async () => {
       await new Promise<void>((resolve, reject) => {
-        const req = http.request({ host: '127.0.0.1', port: targetPort, path: '/ping', method: 'GET' }, res => {
+        const req = http.request({ host: '127.0.0.1', port: targetPort, path: '/ping', method: 'QUERY' }, res => {
           res.on('data', () => {});
           res.on('end', () => resolve());
           res.on('error', reject);
@@ -166,7 +164,7 @@ Deno.test({
       httpClientSpan,
       `expected an http.client child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
     );
-    assertEquals(httpClientSpan!.data?.['http.method'], 'GET');
+    assertEquals(httpClientSpan!.data?.['http.method'], 'QUERY');
     assertEquals(httpClientSpan!.data?.['http.response.status_code'], 200);
   },
 });

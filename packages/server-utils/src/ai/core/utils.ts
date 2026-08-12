@@ -15,10 +15,18 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
+import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 
-export interface AIRecordingOptions {
+export interface GenAiOptions {
+  /**
+   * Record input messages/prompts on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.inputs` setting; an explicit value here takes precedence.
+   */
   recordInputs?: boolean;
+  /**
+   * Record output text/responses on gen_ai spans. Defaults to the global
+   * `dataCollection.genAI.outputs` setting; an explicit value here takes precedence.
+   */
   recordOutputs?: boolean;
 }
 
@@ -42,33 +50,31 @@ export interface InstrumentedMethodEntry {
  */
 export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
 
+// Operation names that are not inference calls: `unknown` is the fallback for methods with no
+// registered operation. It should not surface as a `gen_ai.*` op (an unknown string must not
+// masquerade as a convention), so it maps to the generic `function` op. The operation name itself
+// is preserved on `gen_ai.operation.name`.
+const NON_INFERENCE_OPERATIONS = new Set(['unknown']);
+
+/**
+ * Derive the span op from a gen_ai operation name. Inference operations become `gen_ai.<operation>`;
+ * non-inference operations (`unknown`) become the generic `function` op.
+ */
+export function getGenAiSpanOp(operationName: string): string {
+  return NON_INFERENCE_OPERATIONS.has(operationName) ? GENERAL_FUNCTION_SPAN_OP : `gen_ai.${operationName}`;
+}
+
 /**
  * Resolves AI recording options by falling back to the client's `dataCollection.genAI` settings.
  * Precedence: explicit option > dataCollection.genAI > true (genAI data collected by default)
  */
-export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
+export function resolveAIRecordingOptions<T extends GenAiOptions>(options?: T): T & Required<GenAiOptions> {
   const genAI = getClient()?.getDataCollectionOptions().genAI;
   return {
     ...options,
     recordInputs: options?.recordInputs ?? genAI?.inputs ?? true,
     recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? true,
-  } as T & Required<AIRecordingOptions>;
-}
-
-/**
- * Resolves whether truncation should be enabled.
- * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled because gen_ai spans are always sent through the v2 span path
- * (full span streaming via `traceLifecycle: 'stream'`, or extraction into a v2 span envelope for
- * static transactions). That path is not subject to the transaction payload-size limits that
- * truncation works around, so the full message data can be retained.
- */
-export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
-  if (enableTruncation !== undefined) {
-    return enableTruncation;
-  }
-
-  return !getClient();
+  } as T & Required<GenAiOptions>;
 }
 
 /**
@@ -182,26 +188,6 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
 
   span.setAttributes(attrs);
   span.end();
-}
-
-/**
- * Get the truncated JSON string for a string, an array of messages, or an object.
- *
- * @param value - The value to truncate and serialize
- * @returns The truncated JSON string
- */
-export function getTruncatedJsonString<T>(value: T | T[]): string {
-  if (typeof value === 'string') {
-    // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
-    return truncateGenAiStringInput(value);
-  }
-  // Both truncation (media stripping recurses the value) and `JSON.stringify` can throw on
-  // circular refs or non-serializable values (e.g. BigInt); never let that crash instrumentation.
-  try {
-    return JSON.stringify(Array.isArray(value) ? truncateGenAiMessages(value) : value);
-  } catch {
-    return '[unserializable]';
-  }
 }
 
 /**

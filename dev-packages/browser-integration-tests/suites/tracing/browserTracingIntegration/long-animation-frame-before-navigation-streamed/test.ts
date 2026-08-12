@@ -19,7 +19,7 @@ sentryTest(
 
     const spans = await navigationSpansPromise;
 
-    const loafSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long-animation-frame'));
+    const loafSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
     expect(loafSpans).toHaveLength(0);
   },
 );

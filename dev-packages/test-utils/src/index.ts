@@ -15,6 +15,8 @@ export {
   getSpanOp,
 } from './event-proxy-server';
 
+export { findAbsolutePathImports } from './build-output';
+
 export { getPlaywrightConfig } from './playwright-config';
 export { createBasicSentryServer, createTestServer } from './server';
 

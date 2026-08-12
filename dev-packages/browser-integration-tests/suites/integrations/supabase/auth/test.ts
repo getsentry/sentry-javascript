@@ -17,6 +17,17 @@ async function mockSupabaseAuthRoutesSuccess(page: Page) {
         refresh_token: 'test-refresh-token',
         token_type: 'bearer',
         expires_in: 3600,
+        // `auth-js` rejects a token response without a user as `AuthInvalidTokenResponseError`,
+        // which would make `signInWithPassword` report an error instead of a successful sign-in.
+        user: {
+          id: '11111111-1111-1111-1111-111111111111',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'test@example.com',
+          created_at: '2024-01-01T00:00:00Z',
+          app_metadata: {},
+          user_metadata: {},
+        },
       }),
       headers: {
         'Content-Type': 'application/json',

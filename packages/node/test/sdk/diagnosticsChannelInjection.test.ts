@@ -38,14 +38,14 @@ describe('diagnostics-channel injection default', () => {
   });
 
   it('registers the injection hooks and runs detection when span recording is enabled', () => {
-    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
 
     expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
     expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
   it('does not register the injection hooks when tracing is disabled', () => {
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
     expect(detectOrchestrionSetup).not.toHaveBeenCalled();

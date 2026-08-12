@@ -49,6 +49,42 @@ function richNormalizedRequest() {
 }
 
 describe('requestDataIntegration', () => {
+  // `event.request.url` carries the same query string as `request.query_string`, so it has to respect
+  // `dataCollection.urlQueryParams` too.
+  describe('event.request.url query params', () => {
+    function processWith(urlQueryParams?: DataCollection['urlQueryParams']): Event {
+      const integration = requestDataIntegration();
+      const event = baseEvent({
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            method: 'GET',
+            url: 'https://example.com/reset?token=secret&id=1',
+            query_string: 'token=secret&id=1',
+          },
+        },
+      });
+
+      integration.processEvent?.(event, {}, mockClient({ userInfo: false, urlQueryParams }));
+
+      return event;
+    }
+
+    it('filters sensitive params by default', () => {
+      expect(processWith().request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+
+    it('strips the query entirely when collection is off', () => {
+      const event = processWith(false);
+
+      expect(event.request?.url).toBe('https://example.com/reset');
+      expect(event.request?.query_string).toBeUndefined();
+    });
+
+    it('honors allowList mode', () => {
+      expect(processWith({ allow: ['id'] }).request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+  });
+
   describe('IP-related headers on event.request', () => {
     it('removes known IP headers from event.request.headers when userInfo is false', () => {
       const integration = requestDataIntegration();
@@ -971,6 +1007,24 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     expect(span.attributes).toMatchObject({
       'http.request.body.data': '{"key":"value"}',
+    });
+  });
+
+  it('filters sensitive query params in `url.full` on the segment span', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com/api/users?token=secret&page=1',
+      method: 'GET',
+      query_string: 'token=secret&page=1',
+    });
+
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
+
+    expect(span.attributes).toMatchObject({
+      'url.full': 'https://example.com/api/users?token=[Filtered]&page=1',
+      'url.query': 'token=[Filtered]&page=1',
     });
   });
 

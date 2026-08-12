@@ -83,14 +83,14 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
-            'sentry.op': 'request_handler.fastify',
+            'sentry.op': 'handler',
             'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - route-handler',
             'fastify.type': 'request-handler',
             'http.route': '/test-transaction',
             'hook.callback.name': 'anonymous',
           },
           description: '@fastify/middie - route-handler',
-          op: 'request_handler.fastify',
+          op: 'handler',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
@@ -102,7 +102,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'request_context.nestjs',
+            'sentry.op': 'function',
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'request_context',
@@ -117,7 +117,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
-          op: 'request_context.nestjs',
+          op: 'function',
           origin: 'auto.http.nestjs',
         },
         {
@@ -125,7 +125,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'handler.nestjs',
+            'sentry.op': 'handler',
             component: '@nestjs/core',
             'nestjs.version': expect.any(String),
             'nestjs.type': 'handler',
@@ -136,7 +136,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
-          op: 'handler.nestjs',
+          op: 'handler',
           origin: 'auto.http.nestjs',
         },
         {
@@ -798,8 +798,16 @@ test('Sets error status on nest spans when a handler throws', async ({ baseURL }
 
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ op: 'request_context.nestjs', status: 'internal_error' }),
-      expect.objectContaining({ op: 'handler.nestjs', status: 'internal_error' }),
+      expect.objectContaining({
+        op: 'function',
+        status: 'internal_error',
+        data: expect.objectContaining({ 'nestjs.type': 'request_context' }),
+      }),
+      expect.objectContaining({
+        op: 'handler',
+        status: 'internal_error',
+        data: expect.objectContaining({ 'nestjs.type': 'handler' }),
+      }),
     ]),
   );
 });

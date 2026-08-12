@@ -92,6 +92,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -122,6 +123,8 @@ export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
@@ -132,9 +135,6 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
-
-// eslint-disable-next-line typescript/no-deprecated
-export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 

@@ -116,12 +116,15 @@ export {
   postgresJsIntegration,
   processSessionIntegration,
   prismaIntegration,
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   childProcessIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -174,5 +177,5 @@ export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
 // eslint-disable-next-line typescript/no-deprecated
-export { tryPatchHandler, wrapHandler } from './sdk';
+export { wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';

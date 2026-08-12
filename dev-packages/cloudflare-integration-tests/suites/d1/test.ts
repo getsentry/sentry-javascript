@@ -72,8 +72,8 @@ it('captures error event when a D1 query references a non-existent table', async
           value: 'no such table: non_existent_table: SQLITE_ERROR',
           stacktrace: expect.any(Object),
           mechanism: {
-            type: 'auto.http.cloudflare',
-            handled: false,
+            type: 'chained',
+            handled: true,
             source: 'cause',
             exception_id: 1,
             parent_id: 0,
@@ -84,8 +84,8 @@ it('captures error event when a D1 query references a non-existent table', async
           value: 'D1_ERROR: no such table: non_existent_table: SQLITE_ERROR',
           stacktrace: expect.any(Object),
           mechanism: {
-            type: 'generic',
-            handled: true,
+            type: 'auto.http.cloudflare',
+            handled: false,
             exception_id: 0,
           },
         },
@@ -130,25 +130,6 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
     .start(signal);
 
   await runner.makeRequest('get', '/exec');
-  await runner.completed();
-});
-
-it('does not double-instrument when instrumentD1WithSentry is used on top of env instrumentation', async ({
-  signal,
-}) => {
-  const runner = createRunner(__dirname)
-    .ignore('event')
-    .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      const d1Spans = findD1Spans(envelope);
-
-      const querySpans = d1Spans.filter(s => s.description === 'SELECT * FROM users WHERE id = ?');
-      expect(querySpans).toHaveLength(1);
-    })
-    .start(signal);
-
-  const response = await runner.makeRequest('get', '/double-instrument');
-  expect(response).toBe('true');
   await runner.completed();
 });
 

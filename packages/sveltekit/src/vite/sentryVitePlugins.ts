@@ -58,8 +58,6 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   sentryPlugins.push(
     sentryOrchestrionPlugin({
       buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
-      // On Cloudflare, subscribers are wired via a build-time marker the SDK reads at runtime;
-      ...(mergedOptions.adapter === 'cloudflare' ? { injectChannelSubscribers: true } : {}),
     }),
   );
 

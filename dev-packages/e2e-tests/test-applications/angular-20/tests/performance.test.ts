@@ -159,7 +159,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
     },
   });
 
-  const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+  const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
   expect(routingSpan).toBeDefined();
   expect(routingSpan?.description).toBe('/redirect1');
@@ -196,7 +196,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe('/cancel');
@@ -234,7 +234,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe(nonExistentRoute);

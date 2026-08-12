@@ -16,13 +16,13 @@ export function isOrchestrionInjected(): boolean {
 
 /**
  * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
- * into this process — from the runtime `--import` hook (`runtime`) and/or a
- * bundler plugin (`bundler`). Channel-based integrations use it to decide whether
- * to subscribe now (their module is already loaded) or wait for the runtime
- * injection event.
+ * into this process — from the runtime `--import` hook (`runtime`) and/or the
+ * snippets a bundler transform spliced into each transformed module (`bundler`).
+ * Channel-based integrations use it to decide whether to subscribe now (their
+ * module is already loaded) or wait for the module-injected event.
  *
- * `bundler` can be `true` rather than an array (Bun's banner sets a plain flag);
- * that carries no module names, so it contributes nothing here.
+ * The `Array.isArray` guard is runtime safety, not typing: a banner from
+ * another SDK copy or version may have written a non-array flag here.
  */
 export function getOrchestrionInjectedModules(): string[] {
   const { runtime, bundler } = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ?? {};
@@ -34,7 +34,9 @@ export function getOrchestrionInjectedModules(): string[] {
  * runtime `--import` hook (or init-time registration), a bundler plugin, or
  * both, and warns if not. When at least one injector is active, logs for each
  * mechanism whether it hooked (a defined array, even empty, means it did) and
- * which libraries it injected.
+ * which libraries it injected. For the bundler path, the entry banner ensures
+ * `[]` at boot; module names arrive as each transformed module is evaluated,
+ * so an empty list can also just mean none has loaded yet.
  *
  * Both injectors being active at once is fine: they operate on disjoint module
  * sets (a module is either loaded through Node's loader and transformed by the

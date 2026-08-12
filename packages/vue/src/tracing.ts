@@ -1,12 +1,23 @@
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { debug, timestampInSeconds, uniq } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
 
-const VUE_OP = 'ui.vue';
+// Maps each Vue lifecycle operation to a cross-framework span op.
+// TODO(conventions): Replace `'ui.mount'`, `'ui.update'` and `'ui.unmount'` with their span op constants once they are released in `@sentry/conventions`.
+const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
+  activate: 'ui.mount',
+  create: 'ui.mount',
+  mount: 'ui.mount',
+  update: 'ui.update',
+  unmount: 'ui.unmount',
+  destroy: 'ui.unmount',
+};
 
 type Mixins = Parameters<Vue['mixin']>[0];
 
@@ -84,8 +95,8 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             this.$_sentryRootComponentSpan ||
             startInactiveSpan({
               name: 'Application Render',
-              op: `${VUE_OP}.render`,
               attributes: {
+                [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
               onlyIfParent: true,
@@ -131,8 +142,8 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
             this.$_sentryComponentSpans[operation] = startInactiveSpan({
               name: `Vue ${componentName}`,
-              op: `${VUE_OP}.${operation}`,
               attributes: {
+                [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
               // UI spans should only be created if there is an active root span (transaction)

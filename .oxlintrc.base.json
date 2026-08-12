@@ -1,4 +1,10 @@
 {
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry/eslint-plugin-sdk"
+    }
+  ],
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
@@ -56,6 +62,12 @@
     "typescript/no-deprecated": "error"
   },
   "overrides": [
+    {
+      "files": ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      "rules": {
+        "sdk/no-unfiltered-url-attributes": "error"
+      }
+    },
     {
       "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
       "rules": {
@@ -163,14 +175,14 @@
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off"
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/services/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/services/**/*.ts"],
       "rules": {
         "max-lines": "off",
         "complexity": "off"

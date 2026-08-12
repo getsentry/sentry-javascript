@@ -1,11 +1,8 @@
 import { context, propagation, trace } from '@opentelemetry/api';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function cleanupOtel(): void {

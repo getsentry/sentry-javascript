@@ -185,7 +185,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
   });
 
   test.describe('trace propagation through internal .request() calls', () => {
-    test('single internal fetch produces a hono.request child span', async ({ baseURL }) => {
+    test('single internal fetch produces an internal-request child span', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
         return (
           event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${STOREFRONT}/product/:productId`
@@ -198,12 +198,14 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const traceId = transaction.contexts?.trace?.trace_id;
       const spans = transaction.spans || [];
 
-      const internalRequestSpans = spans.filter((s: { op?: string }) => s.op === 'hono.request');
+      const internalRequestSpans = spans.filter(
+        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+      );
 
       expect(internalRequestSpans).toHaveLength(1);
       expect(internalRequestSpans[0]).toEqual(
         expect.objectContaining({
-          op: 'hono.request',
+          op: 'http.server',
           origin: 'auto.http.hono.internal_request',
           trace_id: traceId,
         }),
@@ -211,7 +213,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(internalRequestSpans[0]?.description).toContain('GET /item/self-watering-plant');
     });
 
-    test('parallel internal fetches produce two sibling hono.request spans', async ({ baseURL }) => {
+    test('parallel internal fetches produce two sibling internal-request spans', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
         return (
           event.contexts?.trace?.op === 'http.server' &&
@@ -225,7 +227,9 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const traceId = transaction.contexts?.trace?.trace_id;
       const spans = transaction.spans || [];
 
-      const internalRequestSpans = spans.filter((s: { op?: string }) => s.op === 'hono.request');
+      const internalRequestSpans = spans.filter(
+        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+      );
 
       expect(internalRequestSpans).toHaveLength(2);
 
@@ -238,7 +242,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(internalRequestSpans[1]?.origin).toBe('auto.http.hono.internal_request');
     });
 
-    test('sequential chained fetches produce two ordered hono.request spans', async ({ baseURL }) => {
+    test('sequential chained fetches produce two ordered internal-request spans', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
         return (
           event.contexts?.trace?.op === 'http.server' &&
@@ -253,7 +257,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const spans = transaction.spans || [];
 
       const internalRequestSpans = spans
-        .filter((s: { op?: string }) => s.op === 'hono.request')
+        .filter((s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request')
         .sort(
           (a: { start_timestamp?: number }, b: { start_timestamp?: number }) =>
             (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0),
@@ -270,7 +274,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(internalRequestSpans[1]?.trace_id).toBe(traceId);
     });
 
-    test('hono.request span has no error status for internal 4xx HTTPException', async ({ baseURL }) => {
+    test('internal-request span has no error status for internal 4xx HTTPException', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
         return (
           event.contexts?.trace?.op === 'http.server' &&
@@ -283,7 +287,9 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const transaction = await transactionPromise;
       const spans = transaction.spans || [];
 
-      const internalRequestSpans = spans.filter((s: { op?: string }) => s.op === 'hono.request');
+      const internalRequestSpans = spans.filter(
+        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+      );
 
       expect(internalRequestSpans).toHaveLength(1);
       expect(internalRequestSpans[0]?.status).not.toBe('internal_error');

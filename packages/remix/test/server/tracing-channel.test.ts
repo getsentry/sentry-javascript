@@ -49,13 +49,25 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.source': 'url',
-          'code.function': 'requestHandler',
+          'code.function.name': 'requestHandler',
           'http.method': 'GET',
           'url.full': 'http://localhost/users',
         }),
       }),
     );
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 200);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('requestHandler: maps an error response code to the span status', async () => {
+    const ctx = { arguments: [makeRequest({ method: 'GET', url: 'http://localhost/users' })] };
+
+    await tracingChannel(remixChannels.REMIX_REQUEST_HANDLER).tracePromise(async () => ({ status: 500 }), ctx);
+
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 500);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
@@ -102,8 +114,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.remix',
-          'sentry.op': 'loader.remix',
-          'code.function': 'loader',
+          'sentry.op': 'function',
+          'code.function.name': 'loader',
           'http.method': 'GET',
           'url.full': 'http://localhost/users/123',
           'match.route.id': 'routes/users.$userId',
@@ -141,8 +153,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
-          'code.function': 'action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'http.method': 'POST',
         }),
       }),
@@ -150,6 +162,6 @@ describe('remixIntegration (Orchestrion-based)', () => {
     // The span ends only after the async form-data read resolves.
     await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
-    expect(span.setAttribute).toHaveBeenCalledWith('formData.actionType', 'create');
+    expect(span.setAttribute).toHaveBeenCalledWith('remix.action_form_data.actionType', 'create');
   });
 });

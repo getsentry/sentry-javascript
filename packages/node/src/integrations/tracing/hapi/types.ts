@@ -149,7 +149,7 @@ namespace Util {
     [key: string]: T;
   }
 
-  export type HTTP_METHODS_PARTIAL_LOWERCASE = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options';
+  export type HTTP_METHODS_PARTIAL_LOWERCASE = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'query';
   export type HTTP_METHODS_PARTIAL =
     | 'GET'
     | 'POST'
@@ -157,6 +157,7 @@ namespace Util {
     | 'PATCH'
     | 'DELETE'
     | 'OPTIONS'
+    | 'QUERY'
     | HTTP_METHODS_PARTIAL_LOWERCASE;
   export type HTTP_METHODS = 'HEAD' | 'head' | HTTP_METHODS_PARTIAL;
 }
