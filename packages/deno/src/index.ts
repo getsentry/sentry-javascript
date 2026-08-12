@@ -111,7 +111,6 @@ export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
-// oxlint-disable-next-line typescript/no-deprecated
 export { denoRedisIntegration } from './integrations/redis';
 // The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
 // Most are in the default set; `dataloader` and `knex` are opt-in (add them to
