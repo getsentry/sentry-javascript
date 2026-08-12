@@ -267,7 +267,6 @@ describe('Client', () => {
         attachStacktrace: true,
         traceLifecycle: 'stream',
         ...options,
-        enableLogs: true,
       });
     });
 
@@ -3428,20 +3427,6 @@ describe('Client', () => {
     });
   });
 
-  describe('enableLogs', () => {
-    it('defaults to `true`', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
-    });
-
-    it('can be disabled via the top-level option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: false });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(false);
-    });
-  });
-
   describe('log weight-based flushing', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -3581,24 +3566,6 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not flush logs when logs are disabled', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: false,
-      });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Create a large log message
-      const largeMessage = 'x'.repeat(400_000);
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
-
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
     });
 
     it('uses safeUnref on flush timer to not block process exit', () => {

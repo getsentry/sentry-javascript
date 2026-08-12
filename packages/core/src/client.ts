@@ -288,12 +288,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    this._options.enableLogs ??= true;
-
     // Setup log flushing with weight and timeout tracking
-    if (this._options.enableLogs) {
-      setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
-    }
+    setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
 
     const enableMetrics = this._options.enableMetrics ?? true;
 

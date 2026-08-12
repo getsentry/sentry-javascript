@@ -48,22 +48,20 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     super(clientOptions);
 
-    if (this.getOptions().enableLogs) {
-      this._logOnExitFlushListener = () => {
-        _INTERNAL_flushLogsBuffer(this);
-      };
+    this._logOnExitFlushListener = () => {
+      _INTERNAL_flushLogsBuffer(this);
+    };
 
-      if (serverName) {
-        this.on('beforeCaptureLog', log => {
-          log.attributes = {
-            ...log.attributes,
-            'server.address': serverName,
-          };
-        });
-      }
-
-      process.on('beforeExit', this._logOnExitFlushListener);
+    if (serverName) {
+      this.on('beforeCaptureLog', log => {
+        log.attributes = {
+          ...log.attributes,
+          'server.address': serverName,
+        };
+      });
     }
+
+    process.on('beforeExit', this._logOnExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on

@@ -471,18 +471,20 @@ Sentry.init({
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
 
-### Logs are enabled by default
+### The `enableLogs` option was removed
 
 Affected SDKs: All SDKs.
 
-Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
-
-To opt out of logging entirely, set `enableLogs` to `false`:
+The `enableLogs` option was removed. Logging now follows an opt-in-by-usage model similar to metrics: logs are captured whenever you call `Sentry.logger.*` or add a logging integration (such as `consoleLoggingIntegration()` or the Pino integration). There is no longer an option to disable logging once you use a logging API or integration.
 
 ```js
+// before
 Sentry.init({
-  enableLogs: false,
+  enableLogs: true,
 });
+
+// after: no option needed, logs are captured when you use a logging API or integration
+Sentry.init({});
 ```
 
 ### Browser sessions use `unhandled` instead of `crashed`
@@ -691,7 +693,7 @@ Sentry.init({
 });
 ```
 
-- The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
+- The `_experiments.enableLogs` and top-level `enableLogs` options were removed. Logs are now captured whenever you use a logging API (`Sentry.logger.*`) or add a logging integration, so you can simply omit the option.
 
 ```js
 // before
@@ -701,13 +703,8 @@ Sentry.init({
   },
 });
 
-// after: logs are enabled by default, no option needed
+// after: no option needed
 Sentry.init({});
-
-// or, to opt out
-Sentry.init({
-  enableLogs: false,
-});
 ```
 
 - The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.

@@ -52,7 +52,6 @@ describe('NodeClient', () => {
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
       tracesSampleRate: 1,
-      enableLogs: true,
     });
   });
 

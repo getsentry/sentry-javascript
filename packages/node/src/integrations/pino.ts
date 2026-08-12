@@ -124,9 +124,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
   return {
     name: 'Pino',
-    setup: client => {
-      const enableLogs = !!client.getOptions().enableLogs;
-
+    setup: () => {
       const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
@@ -141,7 +139,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         const messageKey = getPinoKey(self, 'pino.messageKey', 'msg');
         const logMessage = message || (resultObj?.[messageKey] as string | undefined) || '';
 
-        if (enableLogs && options.log.levels.includes(level)) {
+        if (options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
             ...resultObj,
             'sentry.origin': 'auto.log.pino',
