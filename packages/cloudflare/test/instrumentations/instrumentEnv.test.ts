@@ -89,6 +89,34 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
   });
 
+  it('instruments only the DurableObjectNamespace bindings named in the allowlist', () => {
+    const allowed = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const denied = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { COUNTER: allowed, SESSIONS: denied };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: ['COUNTER'] });
+
+    expect((instrumented.COUNTER as any).__instrumented).toBe(true);
+    expect(instrumented.SESSIONS).toBe(denied);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledTimes(1);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(allowed);
+  });
+
+  it('matches allowlisted binding names exactly rather than as substrings', () => {
+    const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { MY_COUNTER: doNamespace };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: ['COUNTER'] });
+
+    expect(instrumented.MY_COUNTER).toBe(doNamespace);
+  });
+
+  it('supports regular expressions in the allowlist', () => {
+    const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { SVC_ORDERS: doNamespace };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: [/^SVC_/] });
+
+    expect((instrumented.SVC_ORDERS as any).__instrumented).toBe(true);
+  });
+
   it('detects and instruments DurableObjectNamespace bindings when enableRpcTracePropagation is enabled', () => {
     const doNamespace = {
       idFromName: vi.fn(),
@@ -485,6 +513,45 @@ describe('instrumentEnv', () => {
       instrumented.SERVICE.myRpcMethod('arg1');
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
+
+    // A receiver without Sentry never strips the trailing metadata argument, so a caller has to be
+    // able to limit propagation to the bindings it knows are instrumented.
+    // See https://github.com/getsentry/sentry-javascript/issues/23233.
+    it('injects meta only into JSRPC calls on allowlisted bindings', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const allowedMethod = vi.fn();
+      const deniedMethod = vi.fn();
+      const createJsrpcBinding = (rpcMethod: ReturnType<typeof vi.fn>) =>
+        new Proxy(
+          { fetch: vi.fn(), myRpcMethod: rpcMethod },
+          {
+            get(target, prop) {
+              if (prop in target) {
+                return Reflect.get(target, prop);
+              }
+              return () => {};
+            },
+          },
+        );
+
+      const env = { ORDERS: createJsrpcBinding(allowedMethod), EXTERNAL: createJsrpcBinding(deniedMethod) };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: ['ORDERS'] });
+
+      instrumented.ORDERS.myRpcMethod('first');
+      instrumented.EXTERNAL.myRpcMethod('first');
+
+      expect(allowedMethod).toHaveBeenCalledWith('first', {
+        __sentry_rpc_meta__: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+      expect(deniedMethod).toHaveBeenCalledWith('first');
     });
   });
 });

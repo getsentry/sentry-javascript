@@ -200,6 +200,16 @@ interface BaseCloudflareOptions {
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
    *
+   * Accepts:
+   * - `false` (default) - never propagate.
+   * - `true` - propagate on every Durable Object and Service Binding.
+   * - `Array<string | RegExp>` - propagate on only the bindings whose names match the given strings or regular expressions.
+   *
+   *
+   * Prefer the array form when you call bindings whose receiver may not run Sentry. RPC calls carry
+   * trace context as a trailing argument, and only a Sentry-instrumented receiver strips it again —
+   * anywhere else it arrives as a real argument and changes the method's signature.
+   *
    * **Important:** This option should be enabled on **both sides** for full trace propagation.
    *
    * @default false
@@ -229,8 +239,19 @@ interface BaseCloudflareOptions {
    *   MyEntrypointBase,
    * );
    * ```
+   * @example
+   * ```ts
+   * // Only propagate to `env.ORDERS` and every `env.SVC_*` binding
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     enableRpcTracePropagation: ['ORDERS', /^SVC_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
    */
-  enableRpcTracePropagation?: boolean;
+  enableRpcTracePropagation?: boolean | Array<string | RegExp>;
 
   /**
    * Table names that should stay instrumented even though they match the reserved `cf_` prefix used
