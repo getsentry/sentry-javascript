@@ -68,7 +68,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(customParentSpan, customScope ?? scope);
+      const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
       const client = getClient();
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -118,7 +118,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(customParentSpan, customScope ?? scope);
+      const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
@@ -172,7 +172,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(customParentSpan, customScope ?? scope);
+    const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
     const client = getClient();
 
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -646,7 +646,7 @@ function getSamplingDecisionFromRemoteSpanContext(spanContext: SpanContextData):
   return undefined;
 }
 
-function getParentSpan(customParentSpan: Span | null | undefined, scope: Scope): Span | undefined {
+function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): Span | undefined {
   // always use the passed in span directly
   if (customParentSpan) {
     return customParentSpan;
