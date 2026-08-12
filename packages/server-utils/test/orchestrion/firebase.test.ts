@@ -1,9 +1,9 @@
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { getPortAndAddress, startFirestoreSpan } from '../../src/integrations/tracing-channel/firebase/firestore';
-import type { FirestoreReference } from '../../src/integrations/tracing-channel/firebase/firestore-types';
-import { wrapFunctionsRegistration } from '../../src/integrations/tracing-channel/firebase/functions';
+import { getPortAndAddress, startFirestoreSpan } from '../../src/integrations/firebase/firestore';
+import type { FirestoreReference } from '../../src/integrations/firebase/firestore-types';
+import { wrapFunctionsRegistration } from '../../src/integrations/firebase/functions';
 
 function makeSpan(): Span {
   return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;

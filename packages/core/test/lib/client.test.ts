@@ -6,6 +6,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   lastEventId,
+  linkedErrorsIntegration,
   makeSession,
   Scope,
   setCurrentClient,
@@ -449,6 +450,61 @@ describe('Client', () => {
           timestamp: 2020,
         }),
       );
+    });
+
+    test('keeps a custom mechanism on the captured error when linked errors are prepended', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        integrations: [linkedErrorsIntegration()],
+      });
+      const client = new TestClient(options);
+      client.init();
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      const cause = new Error('Failure 1');
+      const errorCause = Object.assign(new Error('Failure 2'), { cause });
+      const error = Object.assign(new Error('Failure 3'), { cause: errorCause });
+
+      client.captureException(error, {
+        originalException: error,
+        mechanism: { type: 'auto.http.example', handled: false },
+      });
+
+      expect(client.event?.exception?.values).toEqual([
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 1',
+          mechanism: {
+            exception_id: 2,
+            handled: true,
+            parent_id: 1,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 2',
+          mechanism: {
+            exception_id: 1,
+            handled: true,
+            parent_id: 0,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 3',
+          mechanism: {
+            exception_id: 0,
+            handled: false,
+            type: 'auto.http.example',
+          },
+        }),
+      ]);
+      expect(client.session?.status).toBe('crashed');
     });
 
     test('does not truncate exception values by default', () => {

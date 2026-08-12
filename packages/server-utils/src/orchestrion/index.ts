@@ -1,29 +1,29 @@
-import { amqplibIntegration } from '../integrations/tracing-channel/amqplib';
-import { anthropicIntegration } from '../integrations/tracing-channel/anthropic';
-import { awsIntegration } from '../integrations/tracing-channel/aws-sdk';
-import { dataloaderIntegration } from '../integrations/tracing-channel/dataloader';
-import { genericPoolIntegration } from '../integrations/tracing-channel/generic-pool';
-import { googleGenAIIntegration } from '../integrations/tracing-channel/google-genai';
-import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/tracing-channel/graphql';
-import { hapiIntegration } from '../integrations/tracing-channel/hapi';
-import { koaIntegration } from '../integrations/tracing-channel/koa';
-import { ioredisChannelIntegration } from '../integrations/tracing-channel/ioredis';
-import { kafkajsIntegration } from '../integrations/tracing-channel/kafkajs';
-import { knexIntegration } from '../integrations/tracing-channel/knex';
-import { langChainIntegration } from '../integrations/tracing-channel/langchain';
-import { langGraphIntegration } from '../integrations/tracing-channel/langgraph';
-import { lruMemoizerIntegration } from '../integrations/tracing-channel/lru-memoizer';
-import { mongodbIntegration } from '../integrations/tracing-channel/mongodb';
-import { mongooseIntegration } from '../integrations/tracing-channel/mongoose';
-import { mysqlIntegration } from '../integrations/tracing-channel/mysql';
-import { mysql2Integration } from '../integrations/tracing-channel/mysql2';
-import { openaiIntegration } from '../integrations/tracing-channel/openai';
-import { postgresIntegration } from '../integrations/tracing-channel/postgres';
-import { postgresJsIntegration } from '../integrations/tracing-channel/postgres-js';
-import { tediousIntegration } from '../integrations/tracing-channel/tedious';
-import { vercelAiIntegration } from '../integrations/tracing-channel/vercel-ai';
-import { expressIntegration } from '../integrations/tracing-channel/express';
-import { firebaseIntegration } from '../integrations/tracing-channel/firebase';
+import { amqplibIntegration } from '../integrations/amqplib';
+import { anthropicIntegration } from '../integrations/anthropic';
+import { awsIntegration } from '../integrations/aws-sdk';
+import { dataloaderIntegration } from '../integrations/dataloader';
+import { genericPoolIntegration } from '../integrations/generic-pool';
+import { googleGenAIIntegration } from '../integrations/google-genai';
+import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/graphql';
+import { hapiIntegration } from '../integrations/hapi';
+import { koaIntegration } from '../integrations/koa';
+import { ioredisChannelIntegration } from '../integrations/ioredis';
+import { kafkajsIntegration } from '../integrations/kafkajs';
+import { knexIntegration } from '../integrations/knex';
+import { langChainIntegration } from '../integrations/langchain';
+import { langGraphIntegration } from '../integrations/langgraph';
+import { lruMemoizerIntegration } from '../integrations/lru-memoizer';
+import { mongodbIntegration } from '../integrations/mongodb';
+import { mongooseIntegration } from '../integrations/mongoose';
+import { mysqlIntegration } from '../integrations/mysql';
+import { mysql2Integration } from '../integrations/mysql2';
+import { openaiIntegration } from '../integrations/openai';
+import { postgresIntegration } from '../integrations/postgres';
+import { postgresJsIntegration } from '../integrations/postgres-js';
+import { tediousIntegration } from '../integrations/tedious';
+import { vercelAiIntegration } from '../integrations/vercel-ai';
+import { expressIntegration } from '../integrations/express';
+import { firebaseIntegration } from '../integrations/firebase';
 
 export { detectOrchestrionSetup, isOrchestrionInjected } from './detect';
 // The runtime target of the snippet the bundler transform splices into every
@@ -65,16 +65,16 @@ export {
   expressIntegration,
   firebaseIntegration,
 };
-export type { KoaIntegrationOptions } from '../integrations/tracing-channel/koa';
-export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/tracing-channel/ioredis';
-export type { PostgresJsIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
-export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
-export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+export type { KoaIntegrationOptions } from '../integrations/koa';
+export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/ioredis';
+export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
+export { redisChannelIntegration } from '../integrations/redis';
+export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/redis';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
 // vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
-export type * from '../integrations/tracing-channel/graphql/graphql-types';
+export type * from '../integrations/graphql/graphql-types';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public

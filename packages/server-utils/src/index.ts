@@ -2,15 +2,7 @@ export * from './exports';
 
 // Exports using diagnostics channels
 export { graphqlIntegration } from './graphql';
-export { mongooseIntegration, startMongooseLegacySpan } from './mongoose';
-export type { MongooseLegacyCollection, StartMongooseLegacySpanOptions } from './mongoose';
-export {
-  getV3CommandOperation,
-  getV3SpanAttributes,
-  getV4SpanAttributes,
-  startMongoSpan,
-} from './mongodb/mongodb-span';
-export type { MongodbNamespace, MongoV3Topology } from './mongodb/mongodb-span';
+export { mongooseIntegration } from './mongoose';
 export { mysql2Integration } from './mysql2';
 export { instrumentPrisma, prismaIntegration } from './prisma';
 export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
@@ -33,4 +25,4 @@ export {
   handleFastifyError,
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentFastify,
-} from './integrations/tracing-channel/fastify';
+} from './integrations/fastify';

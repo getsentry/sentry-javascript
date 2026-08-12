@@ -1,7 +1,7 @@
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { startIORedisCommandSpan } from '../../../src/integrations/tracing-channel/ioredis';
+import { startIORedisCommandSpan } from '../../../src/integrations/ioredis';
 
 const CONNECTION = { host: 'localhost', port: 6379 };
 
