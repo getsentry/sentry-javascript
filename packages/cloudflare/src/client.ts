@@ -299,7 +299,7 @@ export class CloudflareClient extends ServerRuntimeClient {
       // The trace id must come from the span, not the current scope: `continueTrace`
       // writes the propagation context to the *current* scope, so the forked
       // isolation scope's propagation context carries a different trace id and
-      // flushing by it silently no-ops (measured: ~40% of post-flush traces lost).
+      // flushing by it silently no-ops.
       const traceId = span.spanContext().traceId;
       // Defer to a microtask: a synchronous flush here runs before the span
       // streaming integration's own `afterSpanEnd` handler has added the
