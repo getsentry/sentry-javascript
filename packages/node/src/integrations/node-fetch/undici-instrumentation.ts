@@ -440,7 +440,7 @@ function getRequestMethod(original: string): string {
     PATCH: true,
     DELETE: true,
     TRACE: true,
-    // QUERY from https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
+    // QUERY from https://datatracker.ietf.org/doc/rfc10008/
     QUERY: true,
   };
 
