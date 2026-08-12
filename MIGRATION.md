@@ -745,7 +745,6 @@ Sentry.init({
   );
 ```
 
-
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
 ```diff
