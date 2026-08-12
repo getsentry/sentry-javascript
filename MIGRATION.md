@@ -745,7 +745,7 @@ Sentry.init({
   );
 ```
 
-- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
+> **TODO(v11):** This might change to `enableRpcTracePropagation: true` by default. This depends on the outcomes of #20525
 
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
