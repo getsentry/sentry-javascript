@@ -17,9 +17,6 @@ export {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
 } from './spanstatus';
-// Note: `startSpan`, `startInactiveSpan`, `startSpanManual` and `startIdleSpan` are deliberately
-// not re-exported here. They exist in a plain variant (`server-exports`) and a span-streaming-aware
-// variant (`browser-exports`) under the same name — see `browser-exports.ts` for why.
 export {
   startSpan,
   startInactiveSpan,

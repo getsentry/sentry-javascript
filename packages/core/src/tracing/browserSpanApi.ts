@@ -18,13 +18,9 @@ import {
  * actually start a span. `@sentry/browser`'s `init()` deliberately doesn't reference spanStreamingIntegration,
  * so error-only apps tree-shake the entire span streaming graph away without needing
  * the `__SENTRY_TRACING__` flag.
- *
- * The names deliberately match the core originals: `@sentry/core/browser` serves these guarded
- * variants, `@sentry/core` serves the plain ones, so browser-facing packages upgrade by changing
- * only the import specifier.
  */
 
-const installed = new WeakSet<Client>();
+const clientsWithIntegration = new WeakSet<Client>();
 
 /**
  * Lazily install the browser span streaming integration.
@@ -37,11 +33,11 @@ const installed = new WeakSet<Client>();
 export function _INTERNAL_ensureBrowserSpanStreaming(client: Client | undefined = getClient()): void {
   // The `WeakSet` is an allocation optimization, not a semantic gate — `addIntegration()` is already
   // idempotent by integration name, including against a user-supplied instance.
-  if (!client || installed.has(client) || !hasSpanStreamingEnabled(client)) {
+  if (!client || clientsWithIntegration.has(client) || !hasSpanStreamingEnabled(client)) {
     return;
   }
 
-  installed.add(client);
+  clientsWithIntegration.add(client);
   client.addIntegration(spanStreamingIntegration());
 }
 

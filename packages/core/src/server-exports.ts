@@ -4,11 +4,7 @@
  * @module
  */
 
-// The span-start APIs and the span streaming integration exist in two variants under the same name:
-// the plain ones here, and span-streaming-aware ones in `browser-exports`. See `browser-exports.ts`.
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
-// `startIdleSpan` has no server consumer, but `@sentry/core` re-exports it — routing it through here
-// keeps the root entry's surface unchanged.
 export { startIdleSpan } from './tracing/idleSpan';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
 
