@@ -62,7 +62,7 @@ describe('trpcMiddleware', () => {
         attributes: {
           'sentry.op': 'rpc',
           'sentry.origin': 'auto.rpc.trpc',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'rpc.system.name': 'trpc',
           'rpc.method': 'test.procedure',
           'trpc.procedure_path': 'test.procedure',

@@ -106,7 +106,7 @@ describe('getHttpServerSubscriptions', () => {
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
           [URL_PATH]: '/users/42',
         }),

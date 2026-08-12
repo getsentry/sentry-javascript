@@ -1,5 +1,6 @@
 import {
   HTTP_ROUTE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   URL_DOMAIN,
   URL_FRAGMENT,
@@ -10,11 +11,7 @@ import {
   URL_SCHEME,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import {
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
 import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
@@ -198,13 +195,16 @@ export function getHttpSpanDetailsFromUrlObject(
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
   };
+
+  // The segment name source only carries meaning on segment spans, so we only set it for
+  // server spans (client spans are children of the incoming request's segment span).
+  let nameSource: 'url' | 'route' = 'url';
 
   if (routeName) {
     // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
     attributes[kind === 'server' ? HTTP_ROUTE : URL_TEMPLATE] = routeName;
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+    nameSource = 'route';
   }
 
   if (request?.method) {
@@ -223,7 +223,7 @@ export function getHttpSpanDetailsFromUrlObject(
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        nameSource = 'route';
       }
     }
 
@@ -238,6 +238,10 @@ export function getHttpSpanDetailsFromUrlObject(
         attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
     }
+  }
+
+  if (kind === 'server') {
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = nameSource;
   }
 
   return [getHttpSpanNameFromUrlObject(urlObject, kind, request, routeName), attributes];

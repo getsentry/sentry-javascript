@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
@@ -40,7 +40,7 @@ describe('express tracing - updateName', () => {
               contexts: {
                 trace: {
                   op: 'http.server',
-                  data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+                  data: { [SENTRY_SEGMENT_NAME_SOURCE]: 'custom' },
                 },
               },
             });
@@ -66,7 +66,7 @@ describe('express tracing - updateName', () => {
               contexts: {
                 trace: {
                   op: 'http.server',
-                  data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component' },
+                  data: { [SENTRY_SEGMENT_NAME_SOURCE]: 'component' },
                 },
               },
             });

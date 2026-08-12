@@ -283,7 +283,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.path': '"/tmp/data.txt"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -435,7 +435,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.input': '"test"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         }),
       });
     });
@@ -884,7 +884,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),

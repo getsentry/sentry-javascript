@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -29,7 +30,7 @@ app.get('/test/:id/updateSpanNameAndSource', (_req, res) => {
   const span = Sentry.getActiveSpan();
   const rootSpan = Sentry.getRootSpan(span);
   Sentry.updateSpanName(rootSpan, 'new-name');
-  rootSpan.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'component');
+  rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'component');
   res.send({ response: 'response 4' });
 });
 

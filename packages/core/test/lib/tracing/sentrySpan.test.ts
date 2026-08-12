@@ -1,10 +1,10 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { setCurrentClient } from '../../../src/sdk';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
@@ -13,7 +13,13 @@ import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { SpanJSON } from '../../../src/types/span';
-import { spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  spanToJSON,
+  spanToStaticSpanJSON,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+} from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -36,14 +42,14 @@ describe('SentrySpan', () => {
     it('sets the source to custom when calling updateName', () => {
       const span = new SentrySpan({
         name: 'original name',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
       });
 
       span.updateName('new name');
 
       const spanJson = spanToStaticSpanJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+      expect(spanJson.data[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('custom');
     });
 
     it('sets the source to custom when calling updateName on a span without a source', () => {
@@ -53,6 +59,18 @@ describe('SentrySpan', () => {
 
       const spanJson = spanToStaticSpanJSON(span);
       expect(spanJson.description).toEqual('new name');
+    });
+
+    it('does not set a source when calling updateName on a child span', () => {
+      const rootSpan = new SentrySpan({ name: 'root' });
+      const childSpan = new SentrySpan({ name: 'original name' });
+      addChildSpanToSpan(rootSpan, childSpan);
+
+      childSpan.updateName('new name');
+
+      const spanJson = spanToJSON(childSpan);
+      expect(spanJson.name).toEqual('new name');
+      expect(spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBeUndefined();
     });
   });
 

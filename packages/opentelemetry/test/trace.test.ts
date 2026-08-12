@@ -1,7 +1,8 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
+import { SENTRY_KIND, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getClient,
@@ -12,7 +13,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   withScope,
 } from '@sentry/core';
@@ -211,7 +211,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           });
         },
       );
@@ -221,14 +221,14 @@ describe('trace', () => {
           name: 'outer',
           op: 'my-op',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
           },
         },
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
@@ -257,7 +257,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
             [SENTRY_KIND]: 'client',
@@ -458,7 +458,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -482,7 +482,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -608,14 +608,14 @@ describe('trace', () => {
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       });
 
       const span2 = startInactiveSpan({
         name: 'outer',
         op: 'my-op',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         },
       });
@@ -623,7 +623,7 @@ describe('trace', () => {
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
       });
@@ -648,7 +648,7 @@ describe('trace', () => {
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
         test1: 'test 1',
         test2: 2,
         [SENTRY_KIND]: 'client',
@@ -786,7 +786,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -810,7 +810,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -981,7 +981,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
             [SENTRY_KIND]: 'client',
@@ -1171,7 +1171,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1195,7 +1195,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
