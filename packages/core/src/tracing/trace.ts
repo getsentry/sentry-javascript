@@ -40,7 +40,7 @@ import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { setCapturedScopesOnSpan } from './utils';
+import { getCapturedScopesOnSpan, setCapturedScopesOnSpan } from './utils';
 import type { Client } from '../client';
 import { SUPPRESS_TRACING_KEY } from './constants';
 
@@ -476,16 +476,6 @@ function getAcs(): AsyncContextStrategy {
  * context (OTel), activation must go through it so the span lands on that context and
  * instrumentation-created child spans nest under it; the scope alone is not consulted there.
  */
-function runCallbackWithActiveSpan<T>(scope: Scope, span: Span, callback: () => T): T {
-  const acs = getAcs();
-  if (acs.withActiveSpan) {
-    return acs.withActiveSpan(span, callback);
-  }
-
-  _setSpanForScope(scope, span);
-  return callback();
-}
-
 function _startRootSpan(
   spanArguments: SentrySpanArguments,
   scope: Scope,
@@ -721,8 +711,16 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   const wrapper = makeSpanActive
     ? (callback: () => T) => {
         return withActiveSpan(span, () => {
+          const scope = getCurrentScope();
+          // The fork made by withActiveSpan is based on the ambient scope. Carry over the
+          // propagation context captured at span creation, which can continue a remote parent's
+          // trace the ambient scope knows nothing about. For local parents this is a no-op.
+          const creationScope = getCapturedScopesOnSpan(span).scope;
+          if (creationScope) {
+            scope.setPropagationContext(creationScope.getPropagationContext());
+          }
           // Make sure the correct scope is captured on the span, since withActiveSpan forks the scope
-          setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
+          setCapturedScopesOnSpan(span, scope, getIsolationScope());
           return callback();
         });
       }

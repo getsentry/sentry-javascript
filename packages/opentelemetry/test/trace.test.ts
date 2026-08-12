@@ -4,6 +4,7 @@ import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -1602,6 +1603,31 @@ describe('trace (sampling)', () => {
         expect(outerSpan).toBeDefined();
         expect(outerSpan.isRecording()).toBe(true);
         expect(getSpanName(outerSpan)).toBe('outer');
+      });
+    });
+  });
+
+  it('keeps the remote parent propagation on the scope captured by the span', () => {
+    mockSdkInit({ tracesSampleRate: 1 });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: true,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ name: 'outer' }, outerSpan => {
+        const capturedScope = getCapturedScopesOnSpan(outerSpan).scope;
+        const propagationContext = capturedScope?.getPropagationContext();
+        expect(propagationContext?.traceId).toBe(traceId);
+        expect(propagationContext?.parentSpanId).toBe(parentSpanId);
+        expect(propagationContext?.sampled).toBe(true);
       });
     });
   });
