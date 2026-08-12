@@ -7,7 +7,7 @@ import { googleGenAIIntegration } from '../integrations/google-genai';
 import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/graphql';
 import { hapiIntegration } from '../integrations/hapi';
 import { koaIntegration } from '../integrations/koa';
-import { ioredisChannelIntegration } from '../integrations/ioredis';
+import { redisIntegration } from '../integrations/redis';
 import { kafkajsIntegration } from '../integrations/kafkajs';
 import { knexIntegration } from '../integrations/knex';
 import { langChainIntegration } from '../integrations/langchain';
@@ -47,7 +47,7 @@ export {
   graphqlDiagnosticsIntegration,
   hapiIntegration,
   koaIntegration,
-  ioredisChannelIntegration,
+  redisIntegration,
   kafkajsIntegration,
   knexIntegration,
   langChainIntegration,
@@ -67,7 +67,6 @@ export {
 };
 export type { KoaIntegrationOptions } from '../integrations/koa';
 export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
-export { redisIntegration } from '../integrations/redis';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
@@ -80,10 +79,6 @@ export type * from '../integrations/graphql/graphql-types';
  *
  * Single source of truth: add a new channel integration here and every consumer that spreads this map
  * into its default integrations picks it up automatically, so there's no separate list to keep in sync.
- *
- * NOTE: `ioredisChannelIntegration` and `redisIntegration` are intentionally NOT here. They only
- * partially replace the composite OTel `Redis` integration, so `@sentry/node` composes them into a
- * single `Redis` integration (gated against the OTel one) and wires them up separately.
  *
  * Framework SDKs that own their own channel listener (e.g. `@sentry/nestjs`'s `Nest`) are NOT here
  * either: their transform config is still in `SENTRY_INSTRUMENTATIONS`, but the listener lives in
@@ -118,4 +113,5 @@ export const channelIntegrations = {
   tediousIntegration,
   awsIntegration,
   firebaseIntegration,
+  redisIntegration,
 } as const;

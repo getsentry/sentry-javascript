@@ -26,10 +26,10 @@ export {
   openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  redisIntegration,
   tediousIntegration,
   vercelAiIntegration as vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
-export { redisIntegration } from './integrations/tracing/redis';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
