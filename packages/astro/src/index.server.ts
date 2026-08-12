@@ -128,6 +128,7 @@ export {
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spotlightIntegration,

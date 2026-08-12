@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
@@ -12,8 +12,7 @@ describe('userTimingIntegration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
@@ -42,10 +41,10 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToJSON(span).description)).toEqual(['app-ready', 'hydrate']);
-    expect(spans.map(span => spanToJSON(span).op)).toEqual(['mark', 'measure']);
-    expect(spanToJSON(spans[0]!).timestamp).toBe(spanToJSON(spans[0]!).start_timestamp);
-    expect(spanToJSON(spans[1]!).timestamp! - spanToJSON(spans[1]!).start_timestamp).toBeCloseTo(0.025);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['app-ready', 'hydrate']);
+    expect(spans.map(span => spanToJSON(span).attributes['sentry.op'])).toEqual(['mark', 'measure']);
+    expect(spanToJSON(spans[0]!).end_timestamp).toBe(spanToJSON(spans[0]!).start_timestamp);
+    expect(spanToJSON(spans[1]!).end_timestamp - spanToJSON(spans[1]!).start_timestamp).toBeCloseTo(0.025);
     expect(spanToJSON(spans[1]!).parent_span_id).toBe(parentSpan.spanContext().spanId);
   });
 
@@ -66,7 +65,7 @@ describe('userTimingIntegration', () => {
     );
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToJSON(span).description)).toEqual(['initial-render', 'route-render']);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['initial-render', 'route-render']);
   });
 
   it('reads the latest entries immediately before the segment ends', () => {
@@ -77,7 +76,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!).description).toBe('last-moment-work');
+    expect(spanToJSON(spans[0]!).name).toBe('last-moment-work');
   });
 
   it('does not capture entries for unrelated idle spans', () => {
@@ -103,7 +102,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(2);
-    expect(spans.map(span => spanToJSON(span).description)).toEqual(['application-mark', 'application-render']);
+    expect(spans.map(span => spanToJSON(span).name)).toEqual(['application-mark', 'application-render']);
   });
 
   it('does not attach entries preceding a navigation span', () => {
@@ -123,7 +122,7 @@ describe('userTimingIntegration', () => {
     client.emit('beforeIdleSpanEnd', parentSpan);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!).description).toBe('current-route');
+    expect(spanToJSON(spans[0]!).name).toBe('current-route');
   });
 });
 
@@ -133,8 +132,7 @@ describe('_addUserTimingSpan', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
@@ -159,7 +157,7 @@ describe('_addUserTimingSpan', () => {
     _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!).data).toEqual({
+    expect(spanToJSON(spans[0]!).attributes).toEqual({
       'sentry.browser.measure.detail.phase': 'client',
       'sentry.browser.measure.detail.counts': '{"components":4}',
       'sentry.op': 'measure',

@@ -378,7 +378,8 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
     return;
   }
 
-  const { op } = spanToJSON(rootSpan);
+  const { attributes } = spanToJSON(rootSpan);
+  const op = attributes[SENTRY_OP];
   if (op !== 'navigation' && op !== 'pageload') {
     return;
   }

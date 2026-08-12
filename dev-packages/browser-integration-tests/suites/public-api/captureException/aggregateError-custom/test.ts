@@ -38,3 +38,45 @@ sentryTest('captures custom AggregateErrors', async ({ getLocalTestUrl, page }) 
     }),
   ]);
 });
+
+// fixme: the mechanism should be on the error
+sentryTest(
+  'keeps a custom capture mechanism on the captured error instead of its causes',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const req = await waitForErrorRequestOnUrl(page, `${url}#custom-mechanism`);
+    const eventData = envelopeRequestParser(req);
+
+    expect(eventData.exception?.values).toHaveLength(3);
+    expect(eventData.exception?.values).toEqual([
+      expect.objectContaining({
+        value: 'Failure 1',
+        mechanism: {
+          exception_id: 2,
+          handled: false, // true,
+          parent_id: 1,
+          source: 'cause',
+          type: 'auto.http.example', // 'chained',
+        },
+      }),
+      expect.objectContaining({
+        value: 'Failure 2',
+        mechanism: {
+          exception_id: 1,
+          handled: true,
+          parent_id: 0,
+          source: 'cause',
+          type: 'chained',
+        },
+      }),
+      expect.objectContaining({
+        value: 'Failure 3',
+        mechanism: {
+          exception_id: 0,
+          handled: true, // false,
+          type: 'generic', // 'auto.http.example',
+        },
+      }),
+    ]);
+  },
+);

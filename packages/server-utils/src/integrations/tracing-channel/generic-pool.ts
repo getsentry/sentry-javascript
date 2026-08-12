@@ -1,4 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -38,6 +40,7 @@ function instrumentGenericPool(): void {
       startInactiveSpan({
         name: 'generic-pool.acquire',
         attributes: {
+          [SENTRY_OP]: DATABASE_DB_SPAN_OP,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.generic_pool',
         },
       }),

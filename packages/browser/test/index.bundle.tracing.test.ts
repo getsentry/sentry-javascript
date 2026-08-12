@@ -2,6 +2,7 @@ import {
   consoleLoggingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  metricsShim,
   replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
@@ -19,5 +20,6 @@ describe('index.bundle.tracing', () => {
 
     expect(TracingBundle.logger).toBe(loggerShim);
     expect(TracingBundle.consoleLoggingIntegration).toBe(consoleLoggingIntegrationShim);
+    expect(TracingBundle.metrics).toBe(metricsShim);
   });
 });

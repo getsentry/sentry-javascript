@@ -4,6 +4,7 @@ import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
+import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -43,7 +44,7 @@ export const TRACE_FLAG_SAMPLED = 0x1;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToStaticSpanJSON(span);
 
   return {
     parent_span_id,
@@ -65,7 +66,7 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
-  const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
+  const parent_span_id = isRemote ? spanId : spanToStaticSpanJSON(span).parent_span_id;
   const scope = getCapturedScopesOnSpan(span).scope;
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
@@ -163,14 +164,14 @@ function ensureTimestampInSeconds(timestamp: number): number {
 }
 
 /**
- * Convert a span to a JSON representation.
+ * Convert a span to a static JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
 // This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
-export function spanToJSON(span: Span): SpanJSON {
+export function spanToStaticSpanJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getSpanJSON();
+    return span.getStaticSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -207,11 +208,11 @@ export function spanToJSON(span: Span): SpanJSON {
 }
 
 /**
- * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
+ * Convert a span to a JSON representation.
  */
-export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
+export function spanToJSON(span: Span): StreamedSpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getStreamedSpanJSON();
+    return span.getSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -226,7 +227,8 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
       trace_id,
       parent_span_id: getOtelParentSpanId(span),
       start_timestamp: spanTimeInputToSeconds(startTime),
-      end_timestamp: spanTimeInputToSeconds(endTime),
+      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+      end_timestamp: spanTimeInputToSeconds(endTime) || undefined,
       is_segment: span === INTERNAL_getSegmentSpan(span),
       status: getSimpleStatus(status),
       attributes: addStatusMessageAttribute(attributes, status),
@@ -241,9 +243,9 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
     trace_id,
     start_timestamp: 0,
     name: '',
-    end_timestamp: 0,
     status: 'ok',
     is_segment: span === INTERNAL_getSegmentSpan(span),
+    attributes: {},
   };
 }
 
@@ -269,6 +271,9 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
 export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedStreamedSpan {
   return {
     ...spanJson,
+    // We only ever send ended spans, but fall back to the start time (i.e. duration 0) so that
+    // sent spans always carry an end timestamp.
+    end_timestamp: spanJson.end_timestamp ?? spanJson.start_timestamp,
     attributes: serializeAttributes(spanJson.attributes),
     links: spanJson.links?.map(link => ({
       ...link,
@@ -429,14 +434,14 @@ export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
 /**
  * Returns the currently active span.
  */
-export function getActiveSpan(): Span | undefined {
+export function getActiveSpan(scope?: Scope): Span | undefined {
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
   if (acs.getActiveSpan) {
-    return acs.getActiveSpan();
+    return acs.getActiveSpan(scope);
   }
 
-  return _getSpanForScope(getCurrentScope());
+  return _getSpanForScope(scope || getCurrentScope());
 }
 
 /**

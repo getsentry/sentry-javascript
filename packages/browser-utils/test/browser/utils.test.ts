@@ -1,12 +1,11 @@
-import { getCurrentScope, getIsolationScope, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { extractNetworkProtocol, startAndEndSpan } from '../../src/performance/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 describe('startAndEndSpan()', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const client = new TestClient(
       getDefaultClientOptions({
@@ -26,9 +25,9 @@ describe('startAndEndSpan()', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).description).toBe('evaluation');
-    expect(spanToJSON(span).op).toBe('script');
-    expect(spanToJSON(span).op).toBe('script');
+    expect(spanToJSON(span).name).toBe('evaluation');
+    expect(spanToJSON(span).attributes['sentry.op']).toBe('script');
+    expect(spanToJSON(span).attributes['sentry.op']).toBe('script');
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {

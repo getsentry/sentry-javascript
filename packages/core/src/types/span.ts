@@ -49,10 +49,11 @@ export interface StreamedSpanJSON {
   span_id: string;
   name: string;
   start_timestamp: number;
-  end_timestamp: number;
+  /** Only set once the span has ended. */
+  end_timestamp?: number;
   status: 'ok' | 'error';
   is_segment: boolean;
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
   links?: SpanLinkJSON<RawAttributes<Record<string, unknown>>>[];
 }
 
@@ -60,9 +61,11 @@ export interface StreamedSpanJSON {
  * Serialized span item.
  * This is the final, serialized span format that is sent to Sentry.
  * The intermediate representation is {@link StreamedSpanJSON}.
- * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
+ * Main differences: Attributes are converted to {@link Attributes}, thus including the `type`
+ * annotation, and `end_timestamp` is guaranteed to be set (we only ever send ended spans).
  */
-export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
+export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links' | 'end_timestamp'> & {
+  end_timestamp: number;
   attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
@@ -179,7 +182,6 @@ export interface SpanContextData {
 
 /**
  * Interface holding all properties that can be set on a Span on creation.
- * This is only used for the legacy span/transaction creation and will go away in v8.
  */
 export interface SentrySpanArguments {
   /**
@@ -221,11 +223,6 @@ export interface SentrySpanArguments {
    * Timestamp in seconds (epoch time) indicating when the span started.
    */
   startTimestamp?: number | undefined;
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span ended.
-   */
-  endTimestamp?: number | undefined;
 
   /**
    * Links to associate with the new span. Setting links here is preferred over addLink()

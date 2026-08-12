@@ -220,7 +220,7 @@ describe('init()', () => {
     });
 
     it('allows to opt-in to OpenTelemetry setup', () => {
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
@@ -231,7 +231,7 @@ describe('init()', () => {
       const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
       const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
 
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       expect(otelStrategySpy).toHaveBeenCalledTimes(1);
       expect(alsStrategySpy).not.toHaveBeenCalled();
@@ -250,7 +250,7 @@ describe('init()', () => {
         propagation: propagator,
       };
 
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const registry = global[OTEL_API_GLOBAL_KEY];
 
@@ -266,7 +266,7 @@ describe('init()', () => {
       const existingRegistry = { version: '0.0.1', trace: existingProvider };
       global[OTEL_API_GLOBAL_KEY] = existingRegistry;
 
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: false });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
@@ -279,7 +279,7 @@ describe('init()', () => {
   });
 
   it('returns initialized client', () => {
-    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     expect(client).toBeInstanceOf(NodeClient);
   });
@@ -290,7 +290,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     const postInitListeners = process.listeners('SIGTERM');
     const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
@@ -308,7 +308,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
     expect(client).toBeInstanceOf(NodeClient);
 
     const flushSpy = vi.spyOn(client as NodeClient, 'flush').mockResolvedValue(true);
@@ -332,7 +332,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     const postInitListeners = process.listeners('SIGTERM');
     const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));

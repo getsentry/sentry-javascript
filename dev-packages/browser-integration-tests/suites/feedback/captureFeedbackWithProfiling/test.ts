@@ -59,8 +59,8 @@ sentryTest(
     expect(pageLoadEvent.contexts?.trace?.data?.['thread.id']).toBe('0');
     expect(pageLoadEvent.contexts?.trace?.data?.['thread.name']).toBe('main');
 
-    // fixme: figure out why profiler_id is set on feedback and not on pageload transaction
-    // todo: rename to `profiler_id`
-    expect(feedbackEvent.contexts?.profile?.profile_id).toMatch(/^[a-f\d]{32}$/);
+    const profilerId = pageLoadEvent.contexts?.profile?.profiler_id;
+    expect(profilerId).toMatch(/^[a-f\d]{32}$/);
+    expect(feedbackEvent.contexts?.profile?.profiler_id).toBe(profilerId);
   },
 );

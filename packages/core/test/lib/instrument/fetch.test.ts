@@ -15,6 +15,11 @@ describe('instrument > parseFetchArgs', () => {
     ],
     ['string URL & options', ['http://example.com', { method: 'post' }], { method: 'POST', url: 'http://example.com' }],
     [
+      'string URL & QUERY options',
+      ['http://example.com', { method: 'query' }],
+      { method: 'QUERY', url: 'http://example.com' },
+    ],
+    [
       'URL object & options',
       [new URL('http://example.com'), { method: 'post' }],
       { method: 'POST', url: 'http://example.com/' },
@@ -36,6 +41,11 @@ describe('instrument > parseFetchArgs', () => {
         'Request object (as only arg)',
         [new Request('http://example.com', { method: 'POST' })],
         { method: 'POST', url: 'http://example.com/' },
+      ],
+      [
+        'Request object with QUERY method',
+        [new Request('http://example.com', { method: 'query' })],
+        { method: 'QUERY', url: 'http://example.com/' },
       ],
       [
         'Request object (with undefined options arg)',

@@ -50,9 +50,36 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
+    expect(span?.attributes['sentry.op']).toBe('http.server');
+    expect(span?.name).toBe('GET /users');
+    expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
+  });
+
+  test('creates an http.server span for incoming QUERY requests', async () => {
+    let span: ReturnType<typeof spanToJSON> | undefined;
+
+    const { port, close } = await startServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => {
+        const activeSpan = getActiveSpan();
+        span = activeSpan ? spanToJSON(activeSpan) : undefined;
+        res.end(Buffer.concat(chunks));
+      });
+    });
+
+    const response = await fetch(`http://localhost:${port}/search`, {
+      method: 'QUERY',
+      body: JSON.stringify({ query: 'bun' }),
+    });
+    expect(await response.json()).toEqual({ query: 'bun' });
+
+    await close();
+
+    expect(span).toBeDefined();
     expect(span?.op).toBe('http.server');
-    expect(span?.description).toBe('GET /users');
-    expect(span?.data['sentry.origin']).toBe('auto.http.server');
+    expect(span?.description).toBe('QUERY /search');
+    expect(span?.data['http.method']).toBe('QUERY');
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {

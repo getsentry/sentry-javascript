@@ -84,7 +84,7 @@ If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
 
 #### Choosing an OpenTelemetry setup
 
-There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the new `enableOpenTelemetrySetup` option, which replaces v10's `skipOpenTelemetrySetup` with inverted meaning (`skipOpenTelemetrySetup: true` becomes `enableOpenTelemetrySetup: false`). It defaults to `false` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `true` for `@sentry/nextjs` and `@sentry/sveltekit`.
 
 ##### 1. Sentry only
 
@@ -101,13 +101,13 @@ If a library you depend on emits its own OpenTelemetry spans and you want those 
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
-Set `skipOpenTelemetrySetup: false`:
+Set `enableOpenTelemetrySetup: true`:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
-  skipOpenTelemetrySetup: false,
+  enableOpenTelemetrySetup: true,
 });
 ```
 
@@ -117,7 +117,7 @@ Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no ex
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
+Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -138,7 +138,7 @@ Sentry.init({
 });
 ```
 
-`skipOpenTelemetrySetup` already defaults to `true` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `false`, so you have to set it explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
+`enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
 OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
@@ -148,7 +148,7 @@ Sentry does not touch your pipeline: no exporter, no span processor, no tracer p
 
 Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
 
-Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`.
 
 If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
 
@@ -226,7 +226,10 @@ Sentry.init({
   dataCollection: {
     userInfo: false,
     cookies: false,
-    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    httpHeaders: {
+      request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    },
     httpBodies: [],
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
@@ -343,7 +346,7 @@ Sentry.init({
 // After
 Sentry.init({
   beforeSendSpan: span => {
-    if (span.attributes?.['sentry.op'] === 'db.query') {
+    if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
       span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
     }
@@ -455,6 +458,22 @@ Sentry.init({
 ```
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+
+#### `Sentry.spanToJSON` returns streamed span format
+
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
+
+The `spanToStreamedSpanJSON` helper, which returned this format in v10, was removed in favor of `spanToJSON`. Since the two are now equivalent, replace any calls to it:
+
+```js
+// Before (v10)
+const spanJson = Sentry.spanToStreamedSpanJSON(span);
+
+// After (v11)
+const spanJson = Sentry.spanToJSON(span);
+```
 
 ### Logs are enabled by default
 
@@ -621,6 +640,97 @@ Affected SDKs: `@sentry/cloudflare`.
 ```diff
 - import { wrapRequestHandler } from '@sentry/cloudflare';
 + import { wrapRequestHandler } from '@sentry/cloudflare/request';
+```
+
+### Cloudflare: the Vite plugin auto-instruments your Worker by default
+
+Affected SDKs: `@sentry/cloudflare`.
+
+`sentryCloudflareVitePlugin()` now wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched, so no action is required for most users. Opt out with the new top-level `autoInstrumentation` option:
+
+```js
+sentryCloudflareVitePlugin({ autoInstrumentation: false });
+```
+
+The experimental opt-in this replaces was removed:
+
+```diff
+- sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
++ sentryCloudflareVitePlugin();
+```
+
+### `@sentry/ember` is now a v2 addon with manual setup
+
+Affected SDKs: `@sentry/ember`.
+
+`@sentry/ember` is now a [v2 (Embroider) addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/), so it builds cleanly under Embroider and Vite in addition to classic builds. Because v2 addons cannot auto-configure the host app, Sentry is no longer wired up from `config/environment.js` and no longer registers its own initializer. You now call `Sentry.init()` yourself and opt into performance instrumentation explicitly. A full walkthrough lives in [`packages/ember/UPGRADE.md`](./packages/ember/UPGRADE.md).
+
+**1. Initialize Sentry in `app/app.ts` instead of `config/environment.js`.** Remove the `'@sentry/ember'` block from `config/environment.js` and call `init()` before your `Application` class:
+
+```ts
+// config/environment.js
+ENV.sentryDsn = process.env.E2E_TEST_DSN;
+```
+
+```typescript
+// app/app.ts
+import Application from '@ember/application';
+import Resolver from 'ember-resolver';
+import loadInitializers from 'ember-load-initializers';
+import config from 'my-app/config/environment';
+import * as Sentry from '@sentry/ember';
+
+Sentry.init({
+  dsn: config.sentryDsn,
+  tracesSampleRate: 1.0,
+  // all @sentry/browser options are supported
+});
+
+export default class App extends Application {
+  modulePrefix = config.modulePrefix;
+  podModulePrefix = config.podModulePrefix;
+  Resolver = Resolver;
+}
+
+loadInitializers(App, config.modulePrefix);
+```
+
+The former `@sentry/ember` config keys map onto arguments you now pass directly: `sentry` options become `Sentry.init()` options, and the `disable*` performance flags move to `instrumentAppInstancePerformance()` (see below). `disablePerformance` no longer exists as a single switch — omit the instance-initializer entirely to disable performance instrumentation.
+
+**2. Opt into performance instrumentation with an instance-initializer.** Automatic performance instrumentation is gone; add it yourself:
+
+```typescript
+// app/instance-initializers/sentry-performance.ts
+import type ApplicationInstance from '@ember/application/instance';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
+
+export function initialize(appInstance: ApplicationInstance): void {
+  instrumentAppInstancePerformance(appInstance, {
+    // former config/environment flags live here now, e.g.:
+    // disableRunloopPerformance: false,
+    // disableInstrumentComponents: false,
+  });
+}
+
+export default { initialize };
+```
+
+FastBoot is detected automatically, so client-side instrumentation is skipped during server rendering with no extra configuration.
+
+**3. `instrumentRoutePerformance` is unchanged.** Wrapping individual routes works exactly as before:
+
+```typescript
+// app/routes/posts.ts
+import Route from '@ember/routing/route';
+import { instrumentRoutePerformance } from '@sentry/ember';
+
+class PostsRoute extends Route {
+  async model() {
+    return this.store.findAll('post');
+  }
+}
+
+export default instrumentRoutePerformance(PostsRoute);
 ```
 
 ## 3. Removed APIs
@@ -964,7 +1074,23 @@ Sentry.init({
 
 The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
 
-## 6. Type Changes
+### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
+
+Affected SDKs: `@sentry/sveltekit`.
+
+The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
+
+```ts
+// vite.config.ts
+
+// before
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+// after
+import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+```
+
+The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on

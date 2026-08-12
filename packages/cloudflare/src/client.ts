@@ -175,17 +175,17 @@ interface BaseCloudflareOptions {
   enableDedupe?: boolean;
 
   /**
-   * The Cloudflare SDK is not OpenTelemetry native. By default (`true`) it does not set up a tracer
+   * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
    * provider; spans are emitted via the SDK's own instrumentation and scopes are isolated with
    * AsyncLocalStorage.
    *
-   * Set this to `false` to opt into the OpenTelemetry compatibility tracer, which captures spans
+   * Set this to `true` to opt into the OpenTelemetry compatibility tracer, which captures spans
    * emitted via `@opentelemetry/api`. Big caveat: it does not handle custom context, always working
    * off the current scope. This is good enough for many, but not all, integrations.
    *
-   * @default true
+   * @default false
    */
-  skipOpenTelemetrySetup?: boolean;
+  enableOpenTelemetrySetup?: boolean;
 
   /**
    * Enable trace propagation for RPC calls between Workers, Durable Objects, and Service Bindings.

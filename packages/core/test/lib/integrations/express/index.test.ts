@@ -52,10 +52,9 @@ vi.mock('../../../../src/debug-build', () => ({
   DEBUG_BUILD: true,
 }));
 const debugErrors: [string, Error][] = [];
-const debugWarnings: string[] = [];
 vi.mock('../../../../src/utils/debug-logger', () => ({
   debug: {
-    warn: (msg: string) => debugWarnings.push(msg),
+    warn: () => {},
     error: (msg: string, er: Error) => {
       debugErrors.push([msg, er]);
     },
@@ -155,10 +154,7 @@ describe('patchExpressModule', () => {
       expect((r.route as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((a.use as WrappedFunction).__sentry_original__).toBe(undefined);
 
-      patchExpressModule({ express: moduleExports });
-      expect(debugWarnings).toStrictEqual([
-        '[Express] `patchExpressModule(options)` is deprecated. Use `patchExpressModule(moduleExports, getOptions)` instead.',
-      ]);
+      patchExpressModule(moduleExports, () => ({}));
 
       expect(typeof (r.use as WrappedFunction).__sentry_original__).toBe('function');
       expect(typeof (r.route as WrappedFunction).__sentry_original__).toBe('function');
@@ -176,13 +172,7 @@ describe('patchExpressModule', () => {
       expect((r.prototype.route as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((a.use as WrappedFunction).__sentry_original__).toBe(undefined);
 
-      // verify that the debug warning doesn't fire a second time
-      // vitest doesn't guarantee test ordering, so just verify
-      // in both places that there's only one warning.
-      patchExpressModule({ express: moduleExports });
-      expect(debugWarnings).toStrictEqual([
-        '[Express] `patchExpressModule(options)` is deprecated. Use `patchExpressModule(moduleExports, getOptions)` instead.',
-      ]);
+      patchExpressModule(moduleExports, () => ({}));
 
       expect(typeof (r.prototype.use as WrappedFunction).__sentry_original__).toBe('function');
       expect(typeof (r.prototype.route as WrappedFunction).__sentry_original__).toBe('function');

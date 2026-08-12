@@ -22,9 +22,9 @@ import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './ve
  * @param span The span that is starting.
  */
 export function handleOnSpanStart(span: Span): void {
-  const spanAttributes = spanToJSON(span).data;
+  const spanAttributes = spanToJSON(span).attributes;
   const rootSpan = getRootSpan(span);
-  const rootSpanAttributes = spanToJSON(rootSpan).data;
+  const rootSpanAttributes = spanToJSON(rootSpan).attributes;
   const isRootSpan = span === rootSpan;
 
   dropMiddlewareTunnelRequests(span, spanAttributes);

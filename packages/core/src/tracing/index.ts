@@ -2,10 +2,6 @@ export { registerSpanErrorInstrumentation } from './errors';
 export {
   setCapturedScopesOnSpan,
   getCapturedScopesOnSpan,
-  markSpanForOtelSourceInference,
-  spanShouldInferOtelSource,
-  markSpanSourceAsExplicit,
-  spanSourceWasExplicitlySet,
   markSpanAsTracerProviderSpan,
   spanIsTracerProviderSpan,
 } from './utils';

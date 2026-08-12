@@ -7,16 +7,13 @@ import {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
-  getRootSpan,
   isContinuingTrace,
   setAsyncContextStrategy,
-  spanIsIgnored,
 } from '@sentry/core';
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
-  SENTRY_TRACE_STATE_CHILD_IGNORED,
 } from './constants';
 import { withActiveSpan } from './trace';
 import type { CurrentScopes } from './types';
@@ -128,8 +125,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
   function getTracingChannelBinding(): TracingChannelBinding {
     return {
       asyncLocalStorage,
-      getStoreWithActiveSpan,
-    } satisfies TracingChannelBinding;
+    };
   }
 
   setAsyncContextStrategy({
@@ -150,16 +146,4 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
   api.context.setGlobalContextManager(ctxManager);
 
   return ctxManager.getAsyncLocalStorageLookup();
-}
-
-function getStoreWithActiveSpan(span: Parameters<TracingChannelBinding['getStoreWithActiveSpan']>[0]): api.Context {
-  const activeContext = api.context.active();
-
-  // Tracing channels bind directly to the context manager's AsyncLocalStorage and bypass
-  // SentryContextManager.with(), so ignored children must restore their parent here as well.
-  const isIgnoredChild =
-    (spanIsIgnored(span) && getRootSpan(span) !== span) ||
-    span.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1';
-
-  return isIgnoredChild ? activeContext : api.trace.setSpan(activeContext, span);
 }

@@ -24,7 +24,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
-import { DB_STATEMENT, DB_SYSTEM, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { DB_STATEMENT, DB_SYSTEM, DB_SYSTEM_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -94,6 +94,11 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
   if (name === 'prisma:engine:db_query' && merged[DB_SYSTEM] == null) {
     // oxlint-disable-next-line typescript/no-deprecated
     merged[DB_SYSTEM] = 'prisma';
+  }
+
+  // oxlint-disable-next-line typescript/no-deprecated
+  if (merged[DB_SYSTEM] || merged[DB_SYSTEM_NAME]) {
+    merged[SENTRY_OP] = 'db';
   }
 
   return merged;

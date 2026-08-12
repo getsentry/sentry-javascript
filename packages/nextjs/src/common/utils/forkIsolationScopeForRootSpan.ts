@@ -1,5 +1,5 @@
 import { context } from '@opentelemetry/api';
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { RawAttributes, Span } from '@sentry/core';
 import {
   getCapturedScopesOnSpan,
   getCurrentScope,
@@ -14,7 +14,10 @@ import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
  * Forks the isolation scope for `BaseServer.handleRequest` / `Middleware.execute` root spans so that request-scoped
  * data (e.g. `normalizedRequest`) stays isolated per request.
  */
-export function maybeForkIsolationScopeForRootSpan(span: Span, spanAttributes: SpanAttributes | undefined): void {
+export function maybeForkIsolationScopeForRootSpan(
+  span: Span,
+  spanAttributes: RawAttributes<Record<string, unknown>> | undefined,
+): void {
   const spanType = spanAttributes?.[ATTR_NEXT_SPAN_TYPE];
   if (spanType !== 'BaseServer.handleRequest' && spanType !== 'Middleware.execute') {
     return;

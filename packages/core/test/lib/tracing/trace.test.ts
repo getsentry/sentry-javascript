@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCapturedScopesOnSpan,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   getTraceData,
@@ -36,6 +35,7 @@ import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
+import { resetGlobals } from '../../testutils';
 
 const enum Type {
   Sync = 'sync',
@@ -48,9 +48,7 @@ describe('startSpan', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -103,8 +101,8 @@ describe('startSpan', () => {
       }
       expect(_span).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).name).toEqual('GET users/[id]');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for transaction to be mutated', async () => {
@@ -121,7 +119,7 @@ describe('startSpan', () => {
         //
       }
 
-      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
@@ -145,9 +143,9 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
+      expect(spanToJSON(spans[1]!).name).toEqual('SELECT * from users');
       expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for span to be mutated', async () => {
@@ -172,7 +170,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).op).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -197,17 +195,20 @@ describe('startSpan', () => {
       expect(_span).toBeDefined();
       const jsonSpan = spanToJSON(_span!);
       expect(jsonSpan).toEqual({
-        data: {
+        attributes: {
           'sentry.origin': 'auto.http.browser',
           'sentry.sample_rate': 1,
           'sentry.source': 'custom',
+          ...(isError && { 'sentry.status.message': 'internal_error' }),
         },
-        origin: 'auto.http.browser',
-        description: 'GET users/[id]',
+        name: 'GET users/[id]',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        parent_span_id: undefined,
         start_timestamp: expect.any(Number),
-        status: isError ? 'internal_error' : 'ok',
-        timestamp: expect.any(Number),
+        end_timestamp: expect.any(Number),
+        is_segment: true,
+        status: isError ? 'error' : 'ok',
+        links: undefined,
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
@@ -307,12 +308,12 @@ describe('startSpan', () => {
     const span = startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
       return span;
     });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
@@ -871,9 +872,7 @@ describe('startSpanManual', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -912,9 +911,9 @@ describe('startSpanManual', () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
       finish();
-      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
     });
   });
 
@@ -1367,9 +1366,7 @@ describe('startInactiveSpan', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -1404,11 +1401,11 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).timestamp).toBeUndefined();
+    expect(spanToJSON(span).end_timestamp).toBeUndefined();
 
     span.end();
 
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -1520,7 +1517,7 @@ describe('startInactiveSpan', () => {
     expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
     // sampling decision is inherited
-    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).attributes['sentry.sample_rate']));
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1834,9 +1831,7 @@ describe('startInactiveSpan', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2164,9 +2159,7 @@ describe('continueTrace', () => {
 
 describe('getActiveSpan', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2225,9 +2218,7 @@ describe('getActiveSpan', () => {
 
 describe('withActiveSpan()', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2296,9 +2287,7 @@ describe('withActiveSpan()', () => {
 
 describe('span hooks', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2317,11 +2306,11 @@ describe('span hooks', () => {
     const endedSpans: string[] = [];
 
     client.on('spanStart', span => {
-      startedSpans.push(spanToJSON(span).description || '');
+      startedSpans.push(spanToJSON(span).name);
     });
 
     client.on('spanEnd', span => {
-      endedSpans.push(spanToJSON(span).description || '');
+      endedSpans.push(spanToJSON(span).name);
     });
 
     startSpan({ name: 'span1' }, () => {
@@ -2377,9 +2366,7 @@ describe('span hooks', () => {
 
 describe('suppressTracing', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2436,9 +2423,7 @@ describe('suppressTracing', () => {
   });
 
   it("doesn't record a client outcome for suppressed spans", () => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2508,9 +2493,7 @@ describe('suppressTracing', () => {
 
 describe('isTracingSuppressed', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     setAsyncContextStrategy(undefined);
 
@@ -2562,8 +2545,7 @@ describe('isTracingSuppressed', () => {
 
 describe('startNewTrace', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   it('creates a new propagation context on the current scope', () => {
@@ -2592,9 +2574,7 @@ describe('startNewTrace', () => {
 describe('ignoreSpans (core path, streaming)', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
     setAsyncContextStrategy(undefined);
   });
 

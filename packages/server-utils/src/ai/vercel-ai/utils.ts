@@ -11,8 +11,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
 import { extractSystemInstructions } from '../core/utils';
-import { toolCallSpanContextMap } from './constants';
-import type { TokenSummary, ToolCallSpanContext } from './types';
+import type { TokenSummary } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
 
 /**
@@ -121,20 +120,6 @@ export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulat
       applyAccumulatedTokens(span, tokenAccumulator);
     }
   }
-}
-
-/**
- * Get the span context associated with a tool call ID.
- */
-export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolCallSpanContext | undefined {
-  return toolCallSpanContextMap.get(toolCallId);
-}
-
-/**
- * Clean up the span mapping for a tool call ID
- */
-export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
-  toolCallSpanContextMap.delete(toolCallId);
 }
 
 /**
