@@ -10,8 +10,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   stripDataUrlContent,
   filterCollectedUrl,
-} from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+  startInactiveSpan,
+} from '@sentry/core/browser';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
 const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeout>>();

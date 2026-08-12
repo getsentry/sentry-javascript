@@ -113,10 +113,6 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     defaultIntegrations,
   });
 
-  // `spanStreamingIntegration` is deliberately not added here: referencing it from `init()` would
-  // pull the entire span streaming graph into every bundle, including error-only ones. Instead the
-  // span-start APIs in `@sentry/core/browser` install it on first use — see `browserSpanApi.ts`.
-
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,

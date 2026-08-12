@@ -19,10 +19,6 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
-// The Cache Components overrides in `../common/utils/nextSpan` are deliberately not re-exported
-// here: both of their no-op conditions - `isBuild()` (reads the server-only `NEXT_PHASE` env var)
-// and `isUseCacheFunction()` (a React server reference check) - are unreachable in the browser. So
-// the client keeps `@sentry/react`'s span APIs, which additionally install span streaming on demand.
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 

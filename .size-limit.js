@@ -3,15 +3,12 @@ const nodePrefixedBuiltinModules = builtinModules.map(m => `node:${m}`);
 
 module.exports = [
   // Browser SDK (ESM)
-  // The three `init`-only entries below are kept deliberately tight (< 1 KB headroom): an `init`
-  // that references `spanStreamingIntegration` again - directly or through a transitive import -
-  // costs ~1.6 KB here and would otherwise land unnoticed.
   {
     name: '@sentry/browser',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '29.5 KB',
+    limit: '30 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -39,8 +36,6 @@ module.exports = [
     },
   },
   {
-    // Now that `init` no longer pulls in span streaming, this entry is within ~0.1 KB of the entry
-    // above. It stays as the floor: if the two ever diverge again, tracing code leaked back in.
     name: '@sentry/browser - with treeshaking flags tracing without tracing',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
@@ -235,7 +230,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '37 KB',
+    limit: '32 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {

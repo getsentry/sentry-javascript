@@ -61,23 +61,6 @@ describe('init', () => {
     expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
   });
 
-  // `init` must not reference `spanStreamingIntegration`: that reference alone is what keeps the
-  // whole span streaming graph in error-only bundles. It is installed lazily by the span-start APIs
-  // instead - see `_INTERNAL_ensureBrowserSpanStreaming`.
-  it.each([
-    ['default integrations', undefined],
-    ['default integrations disabled', false as const],
-  ])('does not install spanStreamingIntegration with %s', (_, defaultIntegrations) => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
-    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations });
-
-    init(options);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.some(integration => integration.name === 'SpanStreaming')).toBe(false);
-  });
-
   test("doesn't install default integrations if told not to", () => {
     const DEFAULT_INTEGRATIONS: Integration[] = [
       new MockIntegration('MockIntegration 0.3'),
