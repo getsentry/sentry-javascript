@@ -13,7 +13,7 @@ import {
 } from '@sentry/core';
 import {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   expressIntegration,
   firebaseIntegration,
@@ -74,7 +74,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // The orchestrion channels may be injected after (or while) the SDK loads.
     // If they never load, these are no-ops.
     amqplibIntegration(),
-    anthropicIntegration(),
+    anthropicAIIntegration(),
     awsIntegration(),
     expressIntegration(),
     firebaseIntegration(),

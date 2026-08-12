@@ -1,5 +1,5 @@
 import { amqplibIntegration } from '../integrations/amqplib';
-import { anthropicIntegration } from '../integrations/anthropic';
+import { anthropicAIIntegration } from '../integrations/anthropic';
 import { awsIntegration } from '../integrations/aws-sdk';
 import { dataloaderIntegration } from '../integrations/dataloader';
 import { genericPoolIntegration } from '../integrations/generic-pool';
@@ -38,7 +38,7 @@ export { nestjsChannels } from './config/nestjs';
 export { remixChannels } from './config/remix';
 export {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   dataloaderIntegration,
   genericPoolIntegration,
@@ -98,7 +98,7 @@ export const channelIntegrations = {
   mongooseIntegration,
   lruMemoizerIntegration,
   openAIIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   googleGenAIIntegration,
   langChainIntegration,
   langGraphIntegration,

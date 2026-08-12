@@ -2,7 +2,7 @@ import type { Integration } from '@sentry/core';
 import { prismaIntegration } from '@sentry/server-utils';
 import {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
@@ -52,7 +52,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     langGraphIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
-    anthropicIntegration(),
+    anthropicAIIntegration(),
     googleGenAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
