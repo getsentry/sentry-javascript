@@ -167,8 +167,8 @@ function ensureTimestampInSeconds(timestamp: number): number {
  * Convert a span to a JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
-// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
-// And `spanToJSON` needs the Span class from `span.ts` to check here.
+// This is not avoidable as we need `spanToStreamedSpanJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
+// And `spanToStreamedSpanJSON` needs the Span class from `span.ts` to check here.
 export function spanToJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
@@ -227,7 +227,8 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
       trace_id,
       parent_span_id: getOtelParentSpanId(span),
       start_timestamp: spanTimeInputToSeconds(startTime),
-      end_timestamp: spanTimeInputToSeconds(endTime),
+      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+      end_timestamp: spanTimeInputToSeconds(endTime) || undefined,
       is_segment: span === INTERNAL_getSegmentSpan(span),
       status: getSimpleStatus(status),
       attributes: addStatusMessageAttribute(attributes, status),
@@ -242,9 +243,9 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
     trace_id,
     start_timestamp: 0,
     name: '',
-    end_timestamp: 0,
     status: 'ok',
     is_segment: span === INTERNAL_getSegmentSpan(span),
+    attributes: {},
   };
 }
 
@@ -270,6 +271,9 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
 export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedStreamedSpan {
   return {
     ...spanJson,
+    // We only ever send ended spans, but fall back to the start time (i.e. duration 0) so that
+    // sent spans always carry an end timestamp.
+    end_timestamp: spanJson.end_timestamp ?? spanJson.start_timestamp,
     attributes: serializeAttributes(spanJson.attributes),
     links: spanJson.links?.map(link => ({
       ...link,

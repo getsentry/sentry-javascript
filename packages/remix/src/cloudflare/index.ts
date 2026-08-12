@@ -112,6 +112,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,

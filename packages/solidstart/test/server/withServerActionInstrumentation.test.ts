@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -93,14 +93,13 @@ describe('withServerActionInstrumentation', () => {
     const client = createMockNodeClient();
     setCurrentClient(client);
 
-    client.on('spanStart', span => spanStartMock(spanToJSON(span)));
+    client.on('spanStart', span => spanStartMock(spanToStreamedSpanJSON(span)));
 
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function',
-        description: 'getPrefecture',
-        data: expect.objectContaining({
+        name: 'getPrefecture',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',

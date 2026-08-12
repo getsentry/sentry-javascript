@@ -62,13 +62,13 @@ export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {
     return;
   }
 
-  const previousOrigin = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+  const previousOrigin = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
 
   safeSetSpanJSONAttributes(span, { [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP });
 
   if (previousOrigin === 'manual') {
     // `safeSetSpanJSONAttributes` skips existing keys, so overwrite the 'manual' sentinel directly.
-    span.attributes![SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
+    span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
   } else {
     safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin });
   }

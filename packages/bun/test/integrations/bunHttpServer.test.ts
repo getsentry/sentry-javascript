@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
+import { getActiveSpan, getCurrentScope, getTraceData, spanToStreamedSpanJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
@@ -37,11 +37,11 @@ describe('Bun HTTP Server Integration', () => {
   });
 
   test('creates an http.server span for incoming requests', async () => {
-    let span: ReturnType<typeof spanToJSON> | undefined;
+    let span: ReturnType<typeof spanToStreamedSpanJSON> | undefined;
 
     const { port, close } = await startServer((_req, res) => {
       const activeSpan = getActiveSpan();
-      span = activeSpan ? spanToJSON(activeSpan) : undefined;
+      span = activeSpan ? spanToStreamedSpanJSON(activeSpan) : undefined;
       res.end('ok');
     });
 
@@ -50,9 +50,9 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.op).toBe('http.server');
-    expect(span?.description).toBe('GET /users');
-    expect(span?.data['sentry.origin']).toBe('auto.http.server');
+    expect(span?.attributes['sentry.op']).toBe('http.server');
+    expect(span?.name).toBe('GET /users');
+    expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {

@@ -8,6 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
+  SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
   SPAN_STATUS_ERROR,
@@ -317,7 +318,7 @@ describe('spanTimeInputToSeconds', () => {
   });
 });
 
-describe('spanToJSON', () => {
+describe('spanToStreamedSpanJSON', () => {
   describe('SentrySpan', () => {
     it('works with a simple span', () => {
       const span = new SentrySpan();
@@ -432,7 +433,7 @@ describe('spanToJSON', () => {
           trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
           name: '',
           start_timestamp: expect.any(Number),
-          end_timestamp: expect.any(Number),
+          end_timestamp: undefined,
           status: 'ok',
           is_segment: true,
           attributes: {
@@ -565,7 +566,7 @@ describe('spanToJSON', () => {
           trace_id: 'TRACE-1',
           parent_span_id: undefined,
           start_timestamp: 123,
-          end_timestamp: 0,
+          end_timestamp: undefined,
           name: 'test span',
           is_segment: true,
           status: 'ok',
@@ -755,6 +756,38 @@ describe('spanIsSampled', () => {
   test('not sampled', () => {
     const span = new SentrySpan({ sampled: false });
     expect(spanIsSampled(span)).toBe(false);
+  });
+});
+
+// `end_timestamp` is what call sites use to tell an open span from an ended one, so it must stay
+// unset until the span actually ends — across all span implementations.
+describe('spanToStreamedSpanJSON end_timestamp', () => {
+  test('SentrySpan', () => {
+    const span = new SentrySpan({ name: 'test' });
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
+
+    span.end();
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
+  });
+
+  test('unsampled SentrySpan', () => {
+    const span = new SentrySpan({ name: 'test', sampled: false });
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
+
+    span.end();
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
+  });
+
+  test('OpenTelemetry span', () => {
+    const openSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: [0, 0] });
+    expect(spanToStreamedSpanJSON(openSpan).end_timestamp).toBeUndefined();
+
+    const endedSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: 456 });
+    expect(spanToStreamedSpanJSON(endedSpan).end_timestamp).toBe(456);
+  });
+
+  test('SentryNonRecordingSpan', () => {
+    expect(spanToStreamedSpanJSON(new SentryNonRecordingSpan()).end_timestamp).toBeUndefined();
   });
 });
 

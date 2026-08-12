@@ -3,7 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentrySpan,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceDirective } from '../src/index';
@@ -82,9 +82,9 @@ describe('Angular Tracing', () => {
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
-      expect(spanToJSON(span)).toEqual(
+      expect(spanToStreamedSpanJSON(span)).toEqual(
         expect.objectContaining({
-          data: expect.objectContaining({
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [URL_TEMPLATE]: route,
@@ -92,7 +92,7 @@ describe('Angular Tracing', () => {
             [URL_FULL]: expect.stringContaining('/users/123/'),
             [URL_PATH]: '/users/123/',
           }),
-          description: route,
+          name: route,
         }),
       );
     });
@@ -107,13 +107,13 @@ describe('Angular Tracing', () => {
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
-      expect(spanToJSON(span)).toEqual(
+      expect(spanToStreamedSpanJSON(span)).toEqual(
         expect.objectContaining({
-          data: {
+          attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'sample-source',
           },
-          description: 'initial-span-name',
+          name: 'initial-span-name',
         }),
       );
     });

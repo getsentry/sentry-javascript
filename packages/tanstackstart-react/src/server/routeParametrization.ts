@@ -5,7 +5,7 @@ import {
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   updateSpanName,
 } from '@sentry/core';
 
@@ -53,7 +53,7 @@ export function updateSpanWithRouteParametrization(method: string, pathname: str
   }
 
   const rootSpan = getRootSpan(activeSpan);
-  const rootSpanData = spanToJSON(rootSpan).data;
+  const rootSpanData = spanToStreamedSpanJSON(rootSpan).attributes;
   if (rootSpanData?.[HTTP_ROUTE]) {
     return;
   }

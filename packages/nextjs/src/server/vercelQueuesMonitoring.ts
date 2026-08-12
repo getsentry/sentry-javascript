@@ -1,6 +1,6 @@
 import { URL_FULL } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { getIsolationScope, spanToJSON } from '@sentry/core';
+import { getIsolationScope, spanToStreamedSpanJSON } from '@sentry/core';
 
 // OTel Messaging semantic convention attribute keys
 const ATTR_MESSAGING_SYSTEM = 'messaging.system';
@@ -74,7 +74,7 @@ export function maybeEnrichQueueConsumerSpan(span: Span): void {
  * We use domain-based detection to avoid false positives from user routes.
  */
 export function maybeEnrichQueueProducerSpan(span: Span): void {
-  const spanData = spanToJSON(span).data;
+  const spanData = spanToStreamedSpanJSON(span).attributes;
 
   // http.client spans have url.full attribute
   const urlFull = spanData?.[URL_FULL] as string | undefined;
@@ -113,7 +113,7 @@ export function maybeEnrichQueueProducerSpan(span: Span): void {
  * Cleans up the internal marker attribute from enriched queue spans on end.
  */
 export function maybeCleanupQueueSpan(span: Span): void {
-  const spanData = spanToJSON(span).data;
+  const spanData = spanToStreamedSpanJSON(span).attributes;
   if (spanData?.[ATTR_SENTRY_QUEUE_ENRICHED]) {
     span.setAttribute(ATTR_SENTRY_QUEUE_ENRICHED, undefined);
   }

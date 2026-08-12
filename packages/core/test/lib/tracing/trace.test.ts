@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setAsyncContextStrategy,
   setCurrentClient,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   withScope,
 } from '../../../src';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
@@ -102,8 +102,8 @@ describe('startSpan', () => {
       }
       expect(_span).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToStreamedSpanJSON(_span!).name).toEqual('GET users/[id]');
+      expect(spanToStreamedSpanJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for transaction to be mutated', async () => {
@@ -120,7 +120,7 @@ describe('startSpan', () => {
         //
       }
 
-      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToStreamedSpanJSON(_span!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
@@ -144,9 +144,9 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
-      expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToStreamedSpanJSON(spans[1]!).name).toEqual('SELECT * from users');
+      expect(spanToStreamedSpanJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
+      expect(spanToStreamedSpanJSON(spans[1]!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for span to be mutated', async () => {
@@ -171,7 +171,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).op).toEqual('db.query');
+      expect(spanToStreamedSpanJSON(spans[1]!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -194,19 +194,22 @@ describe('startSpan', () => {
       }
 
       expect(_span).toBeDefined();
-      const jsonSpan = spanToJSON(_span!);
+      const jsonSpan = spanToStreamedSpanJSON(_span!);
       expect(jsonSpan).toEqual({
-        data: {
+        attributes: {
           'sentry.origin': 'auto.http.browser',
           'sentry.sample_rate': 1,
           'sentry.source': 'custom',
+          ...(isError && { 'sentry.status.message': 'internal_error' }),
         },
-        origin: 'auto.http.browser',
-        description: 'GET users/[id]',
+        name: 'GET users/[id]',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        parent_span_id: undefined,
         start_timestamp: expect.any(Number),
-        status: isError ? 'internal_error' : 'ok',
-        timestamp: expect.any(Number),
+        end_timestamp: expect.any(Number),
+        is_segment: true,
+        status: isError ? 'error' : 'ok',
+        links: undefined,
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
@@ -306,17 +309,17 @@ describe('startSpan', () => {
     const span = startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
       return span;
     });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
-      return spanToJSON(span).start_timestamp;
+      return spanToStreamedSpanJSON(span).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -353,7 +356,7 @@ describe('startSpan', () => {
       expect(getActiveSpan()).toBe(span);
 
       // span has the correct parent span
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+      expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
 
       // scope data modifications
       getCurrentScope().setTag('cats', 'great');
@@ -390,7 +393,7 @@ describe('startSpan', () => {
         expect(getCurrentScope()).not.toBe(customScope);
 
         expect(getActiveSpan()).toBe(span1);
-        expect(spanToJSON(span1).parent_span_id).toBe('parent-span-id');
+        expect(spanToStreamedSpanJSON(span1).parent_span_id).toBe('parent-span-id');
       });
 
       // active span on customScope is reset
@@ -405,7 +408,7 @@ describe('startSpan', () => {
 
         expect(getActiveSpan()).toBe(span2);
         // both, span1 and span2 are children of the parent span
-        expect(spanToJSON(span2).parent_span_id).toBe('parent-span-id');
+        expect(spanToStreamedSpanJSON(span2).parent_span_id).toBe('parent-span-id');
       });
 
       withScope(customScope, () => {
@@ -460,7 +463,7 @@ describe('startSpan', () => {
 
     startSpan({ name: 'GET users/[id]', parentSpan }, span => {
       expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+      expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
     });
 
     expect(getActiveSpan()).toBe(undefined);
@@ -469,7 +472,7 @@ describe('startSpan', () => {
   it('allows to pass parentSpan=null', () => {
     startSpan({ name: 'GET users/[id]' }, () => {
       startSpan({ name: 'GET users/[id]', parentSpan: null }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
       });
     });
   });
@@ -480,7 +483,7 @@ describe('startSpan', () => {
     // @ts-expect-error _links exists on span
     expect(rawSpan1?._links).toEqual(undefined);
 
-    const span1JSON = spanToJSON(rawSpan1);
+    const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
     startSpan({ name: '/users/:id' }, rawSpan2 => {
       rawSpan2.addLink({
@@ -490,7 +493,7 @@ describe('startSpan', () => {
         },
       });
 
-      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+      const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
       expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -682,11 +685,11 @@ describe('startSpan', () => {
       client.init();
 
       startSpan({ name: 'parent span' }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         startSpan({ name: 'child span' }, childSpan => {
-          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
           startSpan({ name: 'grand child span' }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
           });
         });
       });
@@ -702,11 +705,11 @@ describe('startSpan', () => {
       client.init();
 
       startSpan({ name: 'parent span' }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         startSpan({ name: 'child span' }, childSpan => {
-          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
           startSpan({ name: 'grand child span' }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
           });
         });
       });
@@ -726,7 +729,7 @@ describe('startSpan', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           startSpan({ name: 'grand child span', parentSpan }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
           });
         });
       });
@@ -744,7 +747,7 @@ describe('startSpan', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           startSpan({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(undefined);
           });
         });
       });
@@ -933,9 +936,9 @@ describe('startSpanManual', () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
       finish();
-      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
     });
   });
 
@@ -970,7 +973,7 @@ describe('startSpanManual', () => {
         // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
         expect(getCurrentScope()).not.toBe(customScope);
-        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
 
         // span is active span
         expect(getActiveSpan()).toBe(span);
@@ -994,7 +997,7 @@ describe('startSpanManual', () => {
         // current scope is forked from the customScope
         expect(getCurrentScope()).not.toBe(initialScope);
         expect(getCurrentScope()).not.toBe(customScope);
-        expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
 
         // scope data modification from customScope in previous callback is persisted
         expect(getCurrentScope().getScopeData().tags).toEqual({ dogs: 'great', bears: 'great' });
@@ -1057,7 +1060,7 @@ describe('startSpanManual', () => {
 
     startSpanManual({ name: 'GET users/[id]', parentSpan }, span => {
       expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+      expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
 
       span.end();
     });
@@ -1068,7 +1071,7 @@ describe('startSpanManual', () => {
   it('allows to pass parentSpan=null', () => {
     startSpan({ name: 'GET users/[id]' }, () => {
       startSpanManual({ name: 'child', parentSpan: null }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         span.end();
       });
     });
@@ -1080,7 +1083,7 @@ describe('startSpanManual', () => {
     // @ts-expect-error _links exists on span
     expect(rawSpan1?._links).toEqual(undefined);
 
-    const span1JSON = spanToJSON(rawSpan1);
+    const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
     startSpanManual({ name: '/users/:id' }, rawSpan2 => {
       rawSpan2.addLink({
@@ -1090,7 +1093,7 @@ describe('startSpanManual', () => {
         },
       });
 
-      const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+      const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
       expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -1221,7 +1224,7 @@ describe('startSpanManual', () => {
   it('allows to pass a `startTime`', () => {
     const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
       span.end();
-      return spanToJSON(span).start_timestamp;
+      return spanToStreamedSpanJSON(span).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -1296,11 +1299,11 @@ describe('startSpanManual', () => {
       client.init();
 
       startSpanManual({ name: 'parent span' }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         startSpanManual({ name: 'child span' }, childSpan => {
-          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
           startSpanManual({ name: 'grand child span' }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
             grandChildSpan.end();
           });
           childSpan.end();
@@ -1319,11 +1322,11 @@ describe('startSpanManual', () => {
       client.init();
 
       startSpanManual({ name: 'parent span' }, span => {
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         startSpanManual({ name: 'child span' }, childSpan => {
-          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
           startSpanManual({ name: 'grand child span' }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
             grandChildSpan.end();
           });
           childSpan.end();
@@ -1346,7 +1349,7 @@ describe('startSpanManual', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           startSpanManual({ name: 'grand child span', parentSpan }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
             grandChildSpan.end();
           });
         });
@@ -1365,7 +1368,7 @@ describe('startSpanManual', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           startSpanManual({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
-            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+            expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(undefined);
             grandChildSpan.end();
           });
         });
@@ -1447,11 +1450,11 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).timestamp).toBeUndefined();
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeUndefined();
 
     span.end();
 
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToStreamedSpanJSON(span).end_timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -1482,8 +1485,8 @@ describe('startInactiveSpan', () => {
     const currentTraceId = getCurrentScope().getPropagationContext().traceId;
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
-    expect(spanToJSON(span).trace_id).toBe(currentTraceId);
-    expect(spanToJSON(span).parent_span_id).toBeUndefined();
+    expect(spanToStreamedSpanJSON(span).trace_id).toBe(currentTraceId);
+    expect(spanToStreamedSpanJSON(span).parent_span_id).toBeUndefined();
     expect(getDynamicSamplingContextFromSpan(span)).toEqual(
       expect.objectContaining({ trace_id: currentTraceId, transaction: 'GET users/[id]' }),
     );
@@ -1499,7 +1502,7 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+    expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 
     span.end();
@@ -1512,7 +1515,7 @@ describe('startInactiveSpan', () => {
 
     const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan });
 
-    expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+    expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('parent-span-id');
     expect(getActiveSpan()).toBe(undefined);
 
     span.end();
@@ -1523,7 +1526,7 @@ describe('startInactiveSpan', () => {
   it('allows to pass parentSpan=null', () => {
     startSpan({ name: 'outer' }, () => {
       const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: null });
-      expect(spanToJSON(span).parent_span_id).toBe(undefined);
+      expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
       span.end();
     });
   });
@@ -1544,8 +1547,8 @@ describe('startInactiveSpan', () => {
       ],
     });
 
-    const span1JSON = spanToJSON(rawSpan1);
-    const span2JSON = spanToJSON(rawSpan2);
+    const span1JSON = spanToStreamedSpanJSON(rawSpan1);
+    const span2JSON = spanToStreamedSpanJSON(rawSpan2);
     const span2LinkJSON = span2JSON.links?.[0];
 
     expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
@@ -1563,7 +1566,7 @@ describe('startInactiveSpan', () => {
     expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
     // sampling decision is inherited
-    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToStreamedSpanJSON(rawSpan1).attributes['sentry.sample_rate']));
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1671,7 +1674,7 @@ describe('startInactiveSpan', () => {
 
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
-    expect(spanToJSON(span).start_timestamp).toEqual(1234);
+    expect(spanToStreamedSpanJSON(span).start_timestamp).toEqual(1234);
   });
 
   it("picks up the trace id off the parent scope's propagation context", () => {
@@ -1736,19 +1739,19 @@ describe('startInactiveSpan', () => {
       client.init();
 
       const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+      expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(undefined);
 
       startSpan({ name: 'parent span' }, span => {
         const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+        expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
 
         startSpan({ name: 'child span' }, () => {
           const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
 
           startSpan({ name: 'grand child span' }, () => {
             const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
           });
         });
       });
@@ -1764,19 +1767,19 @@ describe('startInactiveSpan', () => {
       client.init();
 
       const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+      expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(undefined);
 
       startSpan({ name: 'parent span' }, span => {
         const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+        expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
 
         startSpan({ name: 'child span' }, childSpan => {
           const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
 
           startSpan({ name: 'grand child span' }, grandChildSpan => {
             const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
-            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
+            expect(spanToStreamedSpanJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
           });
         });
       });
@@ -1796,7 +1799,7 @@ describe('startInactiveSpan', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan });
-          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
           grandChildSpan.end();
         });
       });
@@ -1814,7 +1817,7 @@ describe('startInactiveSpan', () => {
       startSpan({ name: 'parent span' }, () => {
         startSpan({ name: 'child span' }, () => {
           const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan: null });
-          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+          expect(spanToStreamedSpanJSON(grandChildSpan).parent_span_id).toBe(undefined);
           grandChildSpan.end();
         });
       });
@@ -2209,7 +2212,7 @@ describe('continueTrace', () => {
         },
         () => {
           startSpan({ name: 'inner' }, span => {
-            const innerSpanJson = spanToJSON(span);
+            const innerSpanJson = spanToStreamedSpanJSON(span);
             const innerTraceId = innerSpanJson.trace_id;
             const innerParentSpanId = innerSpanJson.parent_span_id;
 
@@ -2309,7 +2312,7 @@ describe('withActiveSpan()', () => {
 
     const parentSpanId = withActiveSpan(inactiveSpan, () => {
       return startSpan({ name: 'child-span' }, childSpan => {
-        return spanToJSON(childSpan).parent_span_id;
+        return spanToStreamedSpanJSON(childSpan).parent_span_id;
       });
     });
 
@@ -2369,11 +2372,11 @@ describe('span hooks', () => {
     const endedSpans: string[] = [];
 
     client.on('spanStart', span => {
-      startedSpans.push(spanToJSON(span).description || '');
+      startedSpans.push(spanToStreamedSpanJSON(span).name);
     });
 
     client.on('spanEnd', span => {
-      endedSpans.push(spanToJSON(span).description || '');
+      endedSpans.push(spanToStreamedSpanJSON(span).name);
     });
 
     startSpan({ name: 'span1' }, () => {
@@ -2710,7 +2713,7 @@ describe('ignoreSpans (core path, streaming)', () => {
         expect(getActiveSpan()).toBe(rootSpan);
 
         startSpan({ name: 'grandchild' }, grandchildSpan => {
-          const json = spanToJSON(grandchildSpan);
+          const json = spanToStreamedSpanJSON(grandchildSpan);
           expect(json.parent_span_id).toBe(rootSpan.spanContext().spanId);
         });
       });

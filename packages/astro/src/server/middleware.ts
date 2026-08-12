@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { HTTP_ROUTE, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -10,7 +10,7 @@ import {
   getUrlQuery,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   winterCGRequestToRequestData,
   filterCollectedUrl,
   filterCollectedUrlQuery,
@@ -98,7 +98,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     // if there is an active span, we just want to enhance it with routing data etc.
-    if (rootSpan && spanToJSON(rootSpan).op === 'http.server') {
+    if (rootSpan && spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
       return enhanceHttpServerSpan(ctx, next, rootSpan);
     }
 

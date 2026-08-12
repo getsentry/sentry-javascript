@@ -10,7 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/core';
 import type { DataRouter } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -22,7 +22,7 @@ import {
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
 } from './utils';
-import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -49,7 +49,7 @@ export function instrumentHydratedRouter(): void {
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
-        const pageloadName = spanToJSON(pageloadSpan).description;
+        const pageloadName = spanToStreamedSpanJSON(pageloadSpan).name;
         const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
           pageloadName &&
@@ -125,21 +125,22 @@ export function instrumentHydratedRouter(): void {
           return;
         }
 
-        const rootSpanJson = spanToJSON(rootSpan);
+        const rootSpanJson = spanToStreamedSpanJSON(rootSpan);
+        const rootSpanAttributes = rootSpanJson.attributes;
 
         // When the instrumentation API is active, navigation roots are parameterized
         // by the native route hooks
         if (
-          rootSpanJson.op === 'navigation' &&
+          rootSpanAttributes[SENTRY_OP] === 'navigation' &&
           isClientInstrumentationApiUsed() &&
-          rootSpanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
+          rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
         ) {
           return;
         }
 
-        const rootSpanName = rootSpanJson.description;
+        const rootSpanName = rootSpanJson.name;
         const parameterizedRoute = getParameterizedRoute(newState);
-        const spanPathname = rootSpanJson.data?.[URL_PATH] as string | undefined;
+        const spanPathname = rootSpanAttributes[URL_PATH] as string | undefined;
         const destinationPathname = normalizePathname(newState.location.pathname);
 
         if (
@@ -207,7 +208,7 @@ function getActiveRootSpan(): Span | undefined {
 
   const rootSpan = getRootSpan(activeSpan);
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

@@ -1,5 +1,6 @@
 import type { Client, Measurements, Span } from '@sentry/core';
-import { browserPerformanceTimeOrigin, debug, setMeasurement, spanToJSON } from '@sentry/core';
+import { browserPerformanceTimeOrigin, debug, setMeasurement, spanToStreamedSpanJSON } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import {
@@ -150,7 +151,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
   const timeOrigin = msToSec(origin);
 
   // Measurements are only available for pageload transactions
-  if (spanToJSON(span).op === 'pageload') {
+  if (spanToStreamedSpanJSON(span).attributes[SENTRY_OP] === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
     if (spanStreamingEnabled) {

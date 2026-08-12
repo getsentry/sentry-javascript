@@ -16,7 +16,7 @@ vi.mock('@sentry/core', async () => {
     getClient: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
-    spanToJSON: vi.fn(),
+    spanToStreamedSpanJSON: vi.fn(),
     updateSpanName: vi.fn(),
     GLOBAL_OBJ: globalThis,
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
@@ -901,7 +901,7 @@ describe('navigation root parameterization', () => {
     const mockRootSpan = { setAttributes: vi.fn() };
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
-    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+    (core.spanToStreamedSpanJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();
@@ -923,7 +923,7 @@ describe('navigation root parameterization', () => {
     const mockRootSpan = { setAttributes: vi.fn() };
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
-    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+    (core.spanToStreamedSpanJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();
@@ -942,7 +942,7 @@ describe('navigation root parameterization', () => {
   it('does not rename root spans that are not pageload/navigation', async () => {
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue({ setAttribute: vi.fn() });
-    (core.spanToJSON as any).mockReturnValue({ op: 'http.server' });
+    (core.spanToStreamedSpanJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'http.server' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();

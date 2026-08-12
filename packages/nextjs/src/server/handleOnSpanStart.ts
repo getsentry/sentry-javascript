@@ -5,7 +5,7 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
 } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
@@ -22,9 +22,9 @@ import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './ve
  * @param span The span that is starting.
  */
 export function handleOnSpanStart(span: Span): void {
-  const spanAttributes = spanToJSON(span).data;
+  const spanAttributes = spanToStreamedSpanJSON(span).attributes;
   const rootSpan = getRootSpan(span);
-  const rootSpanAttributes = spanToJSON(rootSpan).data;
+  const rootSpanAttributes = spanToStreamedSpanJSON(rootSpan).attributes;
   const isRootSpan = span === rootSpan;
 
   dropMiddlewareTunnelRequests(span, spanAttributes);

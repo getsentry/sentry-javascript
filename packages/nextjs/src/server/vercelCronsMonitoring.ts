@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { _INTERNAL_safeDateNow, captureCheckIn, debug, getIsolationScope, spanToJSON } from '@sentry/core';
+import { _INTERNAL_safeDateNow, captureCheckIn, debug, getIsolationScope, spanToStreamedSpanJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { VercelCronsConfig } from '../common/types';
 
@@ -86,7 +86,7 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
  * Should be called from the spanEnd event handler.
  */
 export function maybeCompleteCronCheckIn(span: Span): void {
-  const spanData = spanToJSON(span).data;
+  const spanData = spanToStreamedSpanJSON(span).attributes;
   const checkInId = spanData?.[ATTR_SENTRY_CRON_CHECK_IN_ID];
   const monitorSlug = spanData?.[ATTR_SENTRY_CRON_MONITOR_SLUG];
   const startTime = spanData?.[ATTR_SENTRY_CRON_START_TIME];
@@ -97,7 +97,7 @@ export function maybeCompleteCronCheckIn(span: Span): void {
   }
 
   const duration = _INTERNAL_safeDateNow() / 1000 - startTime;
-  const spanStatus = spanToJSON(span).status;
+  const spanStatus = spanToStreamedSpanJSON(span).status;
   // Span status is 'ok' for success, undefined for unset, or an error message like 'internal_error'
   const checkInStatus = spanStatus && spanStatus !== 'ok' ? 'error' : 'ok';
 

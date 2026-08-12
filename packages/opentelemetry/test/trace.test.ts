@@ -13,7 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -333,7 +333,7 @@ describe('trace', () => {
 
       startSpan({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
         expect(getActiveSpan()).toBe(span);
-        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
       });
 
       expect(getActiveSpan()).toBe(undefined);
@@ -342,7 +342,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'GET users/[id' }, () => {
         startSpan({ name: 'child', parentSpan: null }, span => {
-          expect(spanToJSON(span).parent_span_id).toBe(undefined);
+          expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         });
       });
     });
@@ -350,9 +350,9 @@ describe('trace', () => {
     it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      expect(spanToJSON(rawSpan1).links).toBeUndefined();
+      expect(spanToStreamedSpanJSON(rawSpan1).links).toBeUndefined();
 
-      const span1JSON = spanToJSON(rawSpan1);
+      const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
       startSpan({ name: '/users/:id' }, rawSpan2 => {
         rawSpan2.addLink({
@@ -362,7 +362,7 @@ describe('trace', () => {
           },
         });
 
-        const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+        const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -377,9 +377,9 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      expect(spanToJSON(rawSpan1).links).toBeUndefined();
+      expect(spanToStreamedSpanJSON(rawSpan1).links).toBeUndefined();
 
-      const span1JSON = spanToJSON(rawSpan1);
+      const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
       startSpan(
         {
@@ -392,7 +392,7 @@ describe('trace', () => {
           ],
         },
         rawSpan2 => {
-          const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+          const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
           expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -692,7 +692,7 @@ describe('trace', () => {
       const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: parentSpan! });
 
       expect(getActiveSpan()).toBe(undefined);
-      expect(spanToJSON(span).parent_span_id).toBe(parentSpan!.spanContext().spanId);
+      expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(parentSpan!.spanContext().spanId);
 
       expect(getActiveSpan()).toBe(undefined);
     });
@@ -700,7 +700,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'outer' }, () => {
         const span = startInactiveSpan({ name: 'test span', parentSpan: null });
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         span.end();
       });
     });
@@ -708,7 +708,7 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      expect(spanToJSON(rawSpan1).links).toBeUndefined();
+      expect(spanToStreamedSpanJSON(rawSpan1).links).toBeUndefined();
 
       const rawSpan2 = startInactiveSpan({
         name: 'GET users/[id]',
@@ -720,8 +720,8 @@ describe('trace', () => {
         ],
       });
 
-      const span1JSON = spanToJSON(rawSpan1);
-      const span2JSON = spanToJSON(rawSpan2);
+      const span1JSON = spanToStreamedSpanJSON(rawSpan1);
+      const span2JSON = spanToStreamedSpanJSON(rawSpan2);
       const span2LinkJSON = span2JSON.links?.[0];
 
       expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
@@ -733,7 +733,7 @@ describe('trace', () => {
       expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
       // sampling decision is inherited
-      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToStreamedSpanJSON(rawSpan1).attributes['sentry.sample_rate']));
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1039,7 +1039,7 @@ describe('trace', () => {
 
       startSpanManual({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
         expect(getActiveSpan()).toBe(span);
-        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
 
         span.end();
       });
@@ -1050,7 +1050,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'outer' }, () => {
         startSpanManual({ name: 'GET users/[id]', parentSpan: null }, span => {
-          expect(spanToJSON(span).parent_span_id).toBe(undefined);
+          expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
           span.end();
         });
       });
@@ -1059,9 +1059,9 @@ describe('trace', () => {
     it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      expect(spanToJSON(rawSpan1).links).toBeUndefined();
+      expect(spanToStreamedSpanJSON(rawSpan1).links).toBeUndefined();
 
-      const span1JSON = spanToJSON(rawSpan1);
+      const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
       startSpanManual({ name: '/users/:id' }, rawSpan2 => {
         rawSpan2.addLink({
@@ -1071,7 +1071,7 @@ describe('trace', () => {
           },
         });
 
-        const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+        const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -1086,9 +1086,9 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      expect(spanToJSON(rawSpan1).links).toBeUndefined();
+      expect(spanToStreamedSpanJSON(rawSpan1).links).toBeUndefined();
 
-      const span1JSON = spanToJSON(rawSpan1);
+      const span1JSON = spanToStreamedSpanJSON(rawSpan1);
 
       startSpanManual(
         {
@@ -1101,7 +1101,7 @@ describe('trace', () => {
           ],
         },
         rawSpan2 => {
-          const span2LinkJSON = spanToJSON(rawSpan2).links?.[0];
+          const span2LinkJSON = spanToStreamedSpanJSON(rawSpan2).links?.[0];
 
           expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
@@ -1285,12 +1285,12 @@ describe('trace', () => {
         const span = startInactiveSpan({ name: 'test span' });
 
         expect(span).toBeDefined();
-        const traceId = spanToJSON(span).trace_id;
+        const traceId = spanToStreamedSpanJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe(undefined);
         // A root span without a parent continues the current scope's propagation context trace,
         // matching the core SDK behavior.
-        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
+        expect(spanToStreamedSpanJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           trace_id: traceId,
@@ -1311,12 +1311,12 @@ describe('trace', () => {
         const span = startInactiveSpan({ name: 'test span' });
 
         expect(span).toBeDefined();
-        const traceId = spanToJSON(span).trace_id;
+        const traceId = spanToStreamedSpanJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
         // The root span continues the scope's trace and inherits the propagation context's
         // parentSpanId as its parent, matching the core SDK behavior.
-        expect(spanToJSON(span).parent_span_id).toBe('1121201211212012');
-        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
+        expect(spanToStreamedSpanJSON(span).parent_span_id).toBe('1121201211212012');
+        expect(spanToStreamedSpanJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           environment: 'production',
@@ -1338,8 +1338,8 @@ describe('trace', () => {
           const span = startInactiveSpan({ name: 'test span' });
 
           expect(span).toBeDefined();
-          expect(spanToJSON(span).trace_id).toEqual(parentSpan.spanContext().traceId);
-          expect(spanToJSON(span).parent_span_id).toEqual(parentSpan.spanContext().spanId);
+          expect(spanToStreamedSpanJSON(span).trace_id).toEqual(parentSpan.spanContext().traceId);
+          expect(spanToStreamedSpanJSON(span).parent_span_id).toEqual(parentSpan.spanContext().spanId);
           expect(getDynamicSamplingContextFromSpan(span)).toEqual({
             ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
             trace_id: parentSpan.spanContext().traceId,
@@ -1371,8 +1371,8 @@ describe('trace', () => {
           const span = startInactiveSpan({ name: 'test span' });
 
           expect(span).toBeDefined();
-          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
-          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(spanToStreamedSpanJSON(span).trace_id).toEqual('12312012123120121231201212312012');
+          expect(spanToStreamedSpanJSON(span).parent_span_id).toEqual('1121201211212012');
           expect(getDynamicSamplingContextFromSpan(span)).toEqual({
             release: '1.0',
             environment: 'production',
@@ -1400,8 +1400,8 @@ describe('trace', () => {
           const span = startInactiveSpan({ name: 'test span' });
 
           expect(span).toBeDefined();
-          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
-          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(spanToStreamedSpanJSON(span).trace_id).toEqual('12312012123120121231201212312012');
+          expect(spanToStreamedSpanJSON(span).parent_span_id).toEqual('1121201211212012');
           expect(getDynamicSamplingContextFromSpan(span)).toEqual({
             release: '1.0',
             environment: 'production',
@@ -1904,7 +1904,7 @@ describe('span.end() timestamp conversion', () => {
 });
 
 function getSpanName(span: Span): string | undefined {
-  return spanToJSON(span).description;
+  return spanToStreamedSpanJSON(span).name;
 }
 
 // Native Sentry spans store timestamps in seconds; the tests assert HrTime `[seconds, nanoseconds]`.
@@ -1917,19 +1917,19 @@ function hrTimeFromSeconds(seconds: number): [number, number] {
 }
 
 function getSpanEndTime(span: Span): [number, number] | undefined {
-  const timestamp = spanToJSON(span).timestamp;
-  return typeof timestamp === 'number' ? hrTimeFromSeconds(timestamp) : [0, 0];
+  const endTimestamp = spanToStreamedSpanJSON(span).end_timestamp;
+  return typeof endTimestamp === 'number' ? hrTimeFromSeconds(endTimestamp) : [0, 0];
 }
 
 function getSpanStartTime(span: Span): [number, number] | undefined {
-  const startTimestamp = spanToJSON(span).start_timestamp;
+  const startTimestamp = spanToStreamedSpanJSON(span).start_timestamp;
   return typeof startTimestamp === 'number' ? hrTimeFromSeconds(startTimestamp) : undefined;
 }
 
 function getSpanAttributes(span: Span): Record<string, unknown> | undefined {
-  return spanToJSON(span).data;
+  return spanToStreamedSpanJSON(span).attributes;
 }
 
 function getSpanParentSpanId(span: Span): string | undefined {
-  return spanToJSON(span).parent_span_id;
+  return spanToStreamedSpanJSON(span).parent_span_id;
 }

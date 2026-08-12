@@ -16,7 +16,7 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
   getAbsoluteUrl,
@@ -68,7 +68,7 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     return;
   }
 
-  const { data: attributes, op } = spanToJSON(span);
+  const attributes = spanToStreamedSpanJSON(span).attributes;
 
   if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
     span.updateName(route);
@@ -76,7 +76,7 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${attributes[SENTRY_OP]}.angular`,
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
@@ -259,7 +259,7 @@ export class TraceService implements OnDestroy {
 
     const rootSpan = getRootSpan(activeSpan);
 
-    this._pageloadOngoing = spanToJSON(rootSpan).op === 'pageload';
+    this._pageloadOngoing = spanToStreamedSpanJSON(rootSpan).attributes[SENTRY_OP] === 'pageload';
     return this._pageloadOngoing;
   }
 }

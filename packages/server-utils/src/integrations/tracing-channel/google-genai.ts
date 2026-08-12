@@ -1,4 +1,4 @@
-import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
+import { GEN_AI_REQUEST_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -6,7 +6,7 @@ import {
   defineIntegration,
   getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../../ai/core/utils';
@@ -91,7 +91,9 @@ function createGenAiSpan(
   if (operation !== 'chat') {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
-      const { op, origin } = spanToJSON(activeSpan);
+      const {
+        attributes: { [SENTRY_OP]: op, [SENTRY_ORIGIN]: origin },
+      } = spanToStreamedSpanJSON(activeSpan);
       if (origin === ORIGIN && op === 'gen_ai.chat') {
         return undefined;
       }

@@ -31,7 +31,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
-  spanToJSON,
+  spanToStreamedSpanJSON,
   startIdleSpan,
   startInactiveSpan,
   timestampInSeconds,
@@ -51,7 +51,7 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -472,8 +472,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
 
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && debug.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+        if (activeSpan && !spanToStreamedSpanJSON(activeSpan).end_timestamp) {
+          DEBUG_BUILD &&
+            debug.log(
+              `[Tracing] Finishing current active span with op: ${spanToStreamedSpanJSON(activeSpan).attributes[SENTRY_OP]}`,
+            );
           // If there's an open active span, we need to finish it before creating an new one.
           activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
@@ -799,7 +802,7 @@ function registerInteractionListener(
 
     const activeIdleSpan = getActiveIdleSpan(client);
     if (activeIdleSpan) {
-      const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
+      const currentRootSpanOp = spanToStreamedSpanJSON(activeIdleSpan).attributes[SENTRY_OP];
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
           debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
@@ -853,7 +856,7 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
 const REDIRECT_THRESHOLD = 1.5;
 
 function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
-  const spanData = spanToJSON(activeSpan);
+  const spanData = spanToStreamedSpanJSON(activeSpan);
 
   const now = dateTimestampInSeconds();
 

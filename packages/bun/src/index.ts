@@ -143,6 +143,7 @@ export {
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,

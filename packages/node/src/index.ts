@@ -136,6 +136,7 @@ export {
   withActiveSpan,
   getRootSpan,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,

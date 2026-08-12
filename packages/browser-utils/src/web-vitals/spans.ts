@@ -105,7 +105,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     ...passedAttributes,
   };
 
-  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
+  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
   }
