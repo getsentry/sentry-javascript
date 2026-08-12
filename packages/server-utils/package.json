@@ -80,6 +80,12 @@
   },
   "typesVersions": {
     "*": {
+      "opentelemetry": [
+        "build/types/opentelemetry/index.d.ts"
+      ],
+      "no-diagnostic-channels": [
+        "build/types/index.no-diagnostic-channels.d.ts"
+      ],
       "orchestrion": [
         "build/types/orchestrion/index.d.ts"
       ],
