@@ -19,7 +19,7 @@
     "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",
     "@hono/node-server": "^2.0.5",
-    "hono": "^4.12.14"
+    "hono": "^4.13.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

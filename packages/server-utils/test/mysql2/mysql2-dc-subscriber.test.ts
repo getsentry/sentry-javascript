@@ -194,15 +194,15 @@ describe('subscribeMysql2DiagnosticChannels', () => {
 
       expect(span).toBeDefined();
       const json = spanToJSON(span!);
-      expect(json.description).toBe('SELECT solution FROM maths');
-      expect(json.op).toBe('db');
-      expect(json.origin).toBe('auto.db.mysql2.diagnostic_channel');
-      expect(json.data['db.system.name']).toBe('mysql');
-      expect(json.data['db.operation.name']).toBe('SELECT');
-      expect(json.data['db.namespace']).toBe('test');
-      expect(json.data['server.address']).toBe('127.0.0.1');
-      expect(json.data['server.port']).toBe(3306);
-      expect(json.timestamp).toBeDefined();
+      expect(json.name).toBe('SELECT solution FROM maths');
+      expect(json.attributes['sentry.op']).toBe('db');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['db.system.name']).toBe('mysql');
+      expect(json.attributes['db.operation.name']).toBe('SELECT');
+      expect(json.attributes['db.namespace']).toBe('test');
+      expect(json.attributes['server.address']).toBe('127.0.0.1');
+      expect(json.attributes['server.port']).toBe(3306);
+      expect(spanToJSON(span!).end_timestamp).toBeDefined();
     });
 
     it('sanitizes inlined values out of db.query.text and the span name', async () => {
@@ -214,12 +214,12 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       );
 
       const json = spanToJSON(span!);
-      const queryText = json.data['db.query.text'] as string;
+      const queryText = json.attributes['db.query.text'] as string;
       expect(queryText).toBe('SELECT * FROM users WHERE email = ? AND age = ?');
       expect(queryText).not.toContain('a@b.com');
       expect(queryText).not.toContain('21');
       // the span name is the sanitized statement too — no raw values leak there either
-      expect(json.description).toBe('SELECT * FROM users WHERE email = ? AND age = ?');
+      expect(json.name).toBe('SELECT * FROM users WHERE email = ? AND age = ?');
     });
 
     it('does not attach raw values to the span', async () => {
@@ -229,7 +229,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
         { result: [] },
       );
 
-      expect(JSON.stringify(spanToJSON(span!).data)).not.toContain('secret');
+      expect(JSON.stringify(spanToJSON(span!).attributes)).not.toContain('secret');
     });
 
     it('sets error status and does NOT capture an exception on failure', async () => {
@@ -239,8 +239,8 @@ describe('subscribeMysql2DiagnosticChannels', () => {
         { error: new Error('table missing') },
       );
 
-      expect(spanToJSON(span!).status).toBe('internal_error');
-      expect(spanToJSON(span!).timestamp).toBeDefined();
+      expect(spanToJSON(span!).status).toBe('error');
+      expect(spanToJSON(span!).end_timestamp).toBeDefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
 
@@ -265,8 +265,8 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       );
 
       const json = spanToJSON(span!);
-      expect(json.data['db.query.text']).toBe('SELECT * FROM users WHERE id = ?');
-      expect(json.data['db.operation.name']).toBe('SELECT');
+      expect(json.attributes['db.query.text']).toBe('SELECT * FROM users WHERE id = ?');
+      expect(json.attributes['db.operation.name']).toBe('SELECT');
     });
   });
 
@@ -279,14 +279,14 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       );
 
       const json = spanToJSON(span!);
-      expect(json.description).toBe('mysql2.connect');
-      expect(json.op).toBe('db');
-      expect(json.origin).toBe('auto.db.mysql2.diagnostic_channel');
-      expect(json.data['db.system.name']).toBe('mysql');
-      expect(json.data['db.namespace']).toBe('test');
-      expect(json.data['server.address']).toBe('127.0.0.1');
-      expect(json.data['server.port']).toBe(3306);
-      expect(json.data['db.query.text']).toBeUndefined();
+      expect(json.name).toBe('mysql2.connect');
+      expect(json.attributes['sentry.op']).toBe('db');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['db.system.name']).toBe('mysql');
+      expect(json.attributes['db.namespace']).toBe('test');
+      expect(json.attributes['server.address']).toBe('127.0.0.1');
+      expect(json.attributes['server.port']).toBe(3306);
+      expect(json.attributes['db.query.text']).toBeUndefined();
     });
 
     it('names the pool connect span distinctly', async () => {
@@ -296,7 +296,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
         { result: undefined },
       );
 
-      expect(spanToJSON(span!).description).toBe('mysql2.pool.connect');
+      expect(spanToJSON(span!).name).toBe('mysql2.pool.connect');
     });
 
     it('omits server.port for unix-socket connections', async () => {
@@ -307,8 +307,8 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       );
 
       const json = spanToJSON(span!);
-      expect(json.data['server.address']).toBe('/var/run/mysqld/mysqld.sock');
-      expect(json.data['server.port']).toBeUndefined();
+      expect(json.attributes['server.address']).toBe('/var/run/mysqld/mysqld.sock');
+      expect(json.attributes['server.port']).toBeUndefined();
     });
   });
 });

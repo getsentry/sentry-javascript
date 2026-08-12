@@ -43,6 +43,9 @@ export interface SentryCarrier {
   /** Strategy for assembling segment spans into transactions; set by SDKs that defer capture. */
   segmentSpanCaptureStrategy?: SegmentSpanCaptureStrategy;
 
+  /** Supplies trace context from a non-Sentry source (e.g. OpenTelemetry); set by `otlpIntegration`. */
+  externalPropagationContextProvider?: () => { traceId: string; spanId: string } | undefined;
+
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;
   /** Overwrites TextDecoder used in `@sentry/core`, need for `react-native@0.73` and older */

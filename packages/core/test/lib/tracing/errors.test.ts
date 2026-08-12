@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
+  setCurrentClient,
+  spanToJSON,
+  startInactiveSpan,
+  startSpan,
+} from '../../../src';
 import * as globalErrorModule from '../../../src/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/instrument/globalUnhandledRejection';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
@@ -59,7 +65,9 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      expect(spanToJSON(span).status).toBe('internal_error');
+      const { status, attributes } = spanToJSON(span);
+      expect(status).toBe('error');
+      expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });
   });
 
@@ -68,7 +76,9 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      expect(spanToJSON(span).status).toBe('internal_error');
+      const { status, attributes } = spanToJSON(span);
+      expect(status).toBe('error');
+      expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });
   });
 });

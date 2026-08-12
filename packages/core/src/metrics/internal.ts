@@ -128,7 +128,7 @@ function _buildSerializedMetric(
   metric: Metric,
   client: Client,
   currentScope: Scope,
-  scopeAttributes: RawAttributes<Record<string, unknown>> | undefined,
+  scopeAttributes: RawAttributes<Record<string, unknown>>,
 ): SerializedMetric {
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
@@ -173,11 +173,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { _experiments, enableMetrics, beforeSendMetric } = client.getOptions();
-
-  // todo(v11): Remove the experimental flag
-  // eslint-disable-next-line typescript/no-deprecated
-  const metricsEnabled = enableMetrics ?? _experiments?.enableMetrics ?? true;
+  const { enableMetrics, beforeSendMetric } = client.getOptions();
+  const metricsEnabled = enableMetrics ?? true;
 
   if (!metricsEnabled) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
@@ -190,10 +187,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   client.emit('processMetric', enrichedMetric);
 
-  // todo(v11): Remove the experimental `beforeSendMetric`
-  // eslint-disable-next-line typescript/no-deprecated
-  const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
-  const processedMetric = beforeSendCallback ? beforeSendCallback(enrichedMetric) : enrichedMetric;
+  const processedMetric = beforeSendMetric ? beforeSendMetric(enrichedMetric) : enrichedMetric;
 
   if (!processedMetric) {
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');

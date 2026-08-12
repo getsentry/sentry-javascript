@@ -861,6 +861,13 @@ Sentry.init({
   instead of wrapping them individually.
 - The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
 
+### Browser and Node profiling
+
+The legacy per-transaction profiling sampling options were removed. Configure session-based profiling with `profileSessionSampleRate` and choose a `profileLifecycle`:
+
+- Use `profileLifecycle: 'trace'` to start and stop profiling automatically with active traces.
+- Use `profileLifecycle: 'manual'` to control profiling explicitly through the profiler start and stop methods.
+
 ### `@sentry/profiling-node`
 
 - The `prune-profiler-binaries` script was removed.
@@ -1093,6 +1100,7 @@ The same applies when looking the integration up by name, e.g. via `client.getIn
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
 - Attribute typing and serialization were unified across the SDK.
+- The `attributes` field on the `ScopeData` type is now required. `Scope.getScopeData()` always returned it, so this only affects code that constructs `ScopeData` objects manually — add `attributes: {}` there.
 - The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
   `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
   during construction. Call `span.end(timestamp)` instead.

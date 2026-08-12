@@ -5,7 +5,7 @@ import {
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
+  spanToStaticSpanJSON,
 } from '@sentry/core';
 import type { Client, Event, Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '@sentry/core';
 import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
@@ -73,7 +73,7 @@ import {
  * This is supposed to be used in `client.on('spanStart', ...)
  */
 function onVercelAiSpanStart(span: Span): void {
-  const { data: attributes, description: name } = spanToJSON(span);
+  const { data: attributes, description: name } = spanToStaticSpanJSON(span);
 
   if (!name) {
     return;
@@ -499,7 +499,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     if (descriptions.size > 0) {
       // Tool call spans are siblings of doGenerate (both children of invoke_agent),
       // so we key by the parent span ID (the invoke_agent span).
-      const parentSpanId = spanToJSON(span).parent_span_id;
+      const parentSpanId = spanToStaticSpanJSON(span).parent_span_id;
       if (parentSpanId) {
         toolDescriptionMap.set(parentSpanId, descriptions);
       }

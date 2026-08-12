@@ -125,7 +125,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
       if (instrumentTracing) {
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan && getRootSpan(activeSpan);
-        const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+        const name = rootSpan ? spanToJSON(rootSpan).name : undefined;
 
         response = await startSpan(
           {
@@ -177,7 +177,7 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
 
     // Preserve the HTTP method prefix if the span already has one
     const method = args.request.method.toUpperCase();
-    const currentSpanName = spanToJSON(rootSpan).description;
+    const currentSpanName = spanToJSON(rootSpan).name;
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
     rootSpan.updateName(newSpanName);

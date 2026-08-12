@@ -1,5 +1,5 @@
 import type { SentrySpan, Span, SpanTimeInput, StartSpanOptions } from '@sentry/core';
-import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { spanToStaticSpanJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
 
 /**
@@ -20,7 +20,7 @@ export function startAndEndSpan(
   endTime: SpanTimeInput,
   { ...ctx }: StartSpanOptions,
 ): Span | undefined {
-  const parentStartTime = spanToJSON(parentSpan).start_timestamp;
+  const parentStartTime = spanToStaticSpanJSON(parentSpan).start_timestamp;
   if (parentStartTime && parentStartTime > startTimeInSeconds) {
     // We can only do this for SentrySpans...
     if (typeof (parentSpan as Partial<SentrySpan>).updateStartTime === 'function') {

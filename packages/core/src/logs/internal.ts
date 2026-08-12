@@ -98,7 +98,7 @@ export function _INTERNAL_captureLog(
 
   const {
     user: { id, email, username },
-    attributes: scopeAttributes = {},
+    attributes: scopeAttributes,
   } = getCombinedScopeData(getIsolationScope(), currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);

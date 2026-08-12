@@ -3,5 +3,7 @@ import { sentryCloudflareVitePlugin } from '@sentry/cloudflare/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
+  // Auto-instrumentation is off so this suite exercises the orchestrion
+  // transform alone — the worker entry stays untouched.
+  plugins: [cloudflare(), sentryCloudflareVitePlugin({ autoInstrumentation: false })],
 });

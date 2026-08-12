@@ -53,7 +53,7 @@
     }
   },
   "dependencies": {
-    "@nuxt/kit": "^3.13.2",
+    "@nuxt/kit": "^4.5.2",
     "@sentry/browser": "10.67.0",
     "@sentry/cloudflare": "10.67.0",
     "@sentry/conventions": "^0.19.0",
@@ -65,10 +65,10 @@
     "local-pkg": "^1.1.2"
   },
   "devDependencies": {
-    "@nuxt/nitro-server": "^3.21.6",
+    "@nuxt/nitro-server": "^3.21.11",
     "nitro": "^3.0.260311-beta",
     "nuxi": "^3.25.1",
-    "nuxt": "3.17.7",
+    "nuxt": "3.21.11",
     "vite": "^6.4.3"
   },
   "scripts": {

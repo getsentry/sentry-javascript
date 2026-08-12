@@ -50,9 +50,9 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.op).toBe('http.server');
-    expect(span?.description).toBe('GET /users');
-    expect(span?.data['sentry.origin']).toBe('auto.http.server');
+    expect(span?.attributes['sentry.op']).toBe('http.server');
+    expect(span?.name).toBe('GET /users');
+    expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {

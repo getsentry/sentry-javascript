@@ -70,6 +70,7 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   if (middlewareMatch) {
     span.setName(`middleware ${middlewareMatch[1]}`);
     span.setOp(WEB_SERVER_MIDDLEWARE_SPAN_OP);
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 
   // Next.js overrides transaction names for page loads that throw an error

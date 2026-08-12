@@ -2,6 +2,7 @@ import { captureException, getAbsoluteUrl } from '@sentry/browser';
 import {
   NAVIGATION_ROUTE_ID,
   PARAMS_KEY_BASE,
+  SENTRY_OP,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
@@ -114,7 +115,7 @@ export function instrumentVueRouter(
 
     // Update the existing page load span with parametrized route information
     if (options.instrumentPageLoad && activePageLoadSpan) {
-      const existingAttributes = spanToJSON(activePageLoadSpan).data;
+      const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
       if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
         activePageLoadSpan.updateName(spanName);
         activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
@@ -167,7 +168,7 @@ function getActivePageLoadSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   return op === 'pageload' ? rootSpan : undefined;
 }

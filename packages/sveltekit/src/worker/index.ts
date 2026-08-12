@@ -69,6 +69,7 @@ export {
   setAttributes,
   setUser,
   spanToBaggageHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   startInactiveSpan,

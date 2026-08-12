@@ -36,7 +36,7 @@ import {
   getStatusMessage,
   getStreamedSpanLinks,
   spanTimeInputToSeconds,
-  spanToJSON,
+  spanToStaticSpanJSON,
   spanToTransactionTraceContext,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -50,12 +50,7 @@ import { isStaticBeforeSendSpanCallback } from './spans/beforeSendSpan';
 import { captureSpan, captureStandaloneSpanWithStaticCallback } from './spans/captureSpan';
 import { createStreamedSpanEnvelope } from './spans/envelope';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
-import {
-  getCapturedScopesOnSpan,
-  markSpanSourceAsExplicit,
-  spanIsTracerProviderSpan,
-  spanShouldInferOtelSource,
-} from './utils';
+import { getCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
 
@@ -187,12 +182,6 @@ export class SentrySpan implements Span {
       this._attributes[key] = value;
     }
 
-    // Setting the source on a span branded for OTel-style inference means user code is choosing it
-    // explicitly, so flag it to keep `applyOtelSpanData` from overriding it with an inferred source.
-    if (key === SEMANTIC_ATTRIBUTE_SENTRY_SOURCE && value !== undefined && spanShouldInferOtelSource(this)) {
-      markSpanSourceAsExplicit(this);
-    }
-
     return this;
   }
 
@@ -236,14 +225,9 @@ export class SentrySpan implements Span {
       return this;
     }
     this._name = name;
-    // Renaming a span marks its name as explicitly chosen, so we stamp `custom`.
-    // The exception is spans created by SentryTraceProvider: those are branded for
-    // OTel-style source inference at span end (mirroring OTel SDK spans, which have
-    // no Sentry source concept), so instrumentations renaming them must not pin
-    // `custom` — applyOtelSpanData infers the correct source (e.g. 'route', 'task').
-    if (!spanShouldInferOtelSource(this)) {
-      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
-    }
+    // Updating the name sets the source to custom
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+
     return this;
   }
 
@@ -259,8 +243,7 @@ export class SentrySpan implements Span {
     this._onSpanEnded();
 
     // A span created by the SentryTracerProvider is handed to OTel instrumentations as an OTel span,
-    // so once end-of-span processing is done (including the `spanEnd` hook where `applyOtelSpanData`
-    // finalizes status/source) it is sealed against further writes — mirroring the OpenTelemetry SDK,
+    // so once end-of-span processing is done it is sealed against further writes — mirroring the OpenTelemetry SDK,
     // where setters no-op after a span has ended. Without this, an instrumentation that sets
     // status/attributes after `end()` (e.g. Next.js on a render error) would overwrite the finalized
     // values, and the deferred capture would then serialize those late writes. Spans created directly
@@ -277,7 +260,7 @@ export class SentrySpan implements Span {
    * of SDK code. If you need to get a JSON representation of a span,
    * use `spanToJSON(span)` instead.
    */
-  public getSpanJSON(): SpanJSON {
+  public getStaticSpanJSON(): SpanJSON {
     return {
       data: this._attributes,
       description: this._name,
@@ -302,17 +285,16 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal This method is purely for internal purposes and should not be used outside
    * of SDK code. If you need to get a JSON representation of a span,
-   * use `spanToStreamedSpanJSON(span)` instead.
+   * use `spanToJSON(span)` instead.
    */
-  public getStreamedSpanJSON(): StreamedSpanJSON {
+  public getSpanJSON(): StreamedSpanJSON {
     return {
       name: this._name ?? '',
       span_id: this._spanId,
       trace_id: this._traceId,
       parent_span_id: this._parentSpanId,
       start_timestamp: this._startTime,
-      // just in case _endTime is not set, we use the start time (i.e. duration 0)
-      end_timestamp: this._endTime ?? this._startTime,
+      end_timestamp: this._endTime,
       is_segment: this === getRootSpan(this),
       status: getSimpleStatus(this._status),
       attributes: addStatusMessageAttribute(this._attributes, this._status),
@@ -423,7 +405,7 @@ export class SentrySpan implements Span {
    */
   private _convertSpanToTransaction(options: SegmentSpanCaptureConvertOptions = {}): TransactionEvent | undefined {
     // We can only convert finished spans
-    if (!isFullFinishedSpan(spanToJSON(this))) {
+    if (!isFullFinishedSpan(spanToStaticSpanJSON(this))) {
       return undefined;
     }
 
@@ -450,7 +432,7 @@ export class SentrySpan implements Span {
       if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
-      const spanJSON = spanToJSON(descendant);
+      const spanJSON = spanToStaticSpanJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
         continue;
       }
