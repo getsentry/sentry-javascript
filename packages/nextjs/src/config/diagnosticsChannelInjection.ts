@@ -28,36 +28,48 @@ export function filterInstrumentedExternals(externals: string[], packagesToBundl
 }
 
 /**
- * A webpack `externals` array entry that keeps {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES} truly
- * external by resolving each request to an absolute path at build time and emitting a
- * `commonjs <absolute path>` external.
+ * Where the generated forwarders live — one CJS one-liner per `@sentry/server-utils` entrypoint
+ * (see `scripts/buildRollup.ts`). Forwarding through `@sentry/nextjs`, always a direct dependency,
+ * is what makes the emitted specifier both resolvable from `.next/server/**` and relocation-safe.
+ */
+const ORCHESTRION_FORWARDER_PREFIX = '@sentry/nextjs/orchestrion-runtime/';
+
+/** The forwarder specifier mirroring `request`: `<pkg>/a/b` → `…/orchestrion-runtime/a/b`. */
+export function getOrchestrionForwarderSpecifier(request: string, externalPackage: string): string {
+  const subpath = request.slice(externalPackage.length + 1);
+  return `${ORCHESTRION_FORWARDER_PREFIX}${subpath || 'index'}`;
+}
+
+/**
+ * A webpack `externals` array entry that keeps {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES}
+ * external, via the matching forwarder under {@link ORCHESTRION_FORWARDER_PREFIX}.
  *
- * Listing the packages in `serverExternalPackages` is not enough: Next.js only externalizes a
- * package when its bare specifier also resolves from the project root (`resolveExternal`'s
- * base-resolve check in `next/dist/build/handle-externals.js`) — otherwise the
- * `require('<bare specifier>')` it emits into the chunk would dangle at runtime, so Next silently
- * bundles the package instead. Under isolated installs (pnpm) the package is a transitive
- * dependency that never resolves from the project root, so the orchestrion runtime ended up
- * compiled into the server chunk — breaking the `Module.register` self-reference described on
- * {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES}. Absolute paths sidestep all of this — webpack
- * emits `require('/abs/path/…')`, which loads the real files from `node_modules` no matter where
- * the chunk lives.
+ * `serverExternalPackages` can't do this: Next only externalizes a package whose bare specifier
+ * also resolves from the project root (`resolveExternal`'s base-resolve check in
+ * `next/dist/build/handle-externals.js`), and under isolated installs this one doesn't — so Next
+ * silently bundles it, breaking the `Module.register` self-reference described on
+ * {@link ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES}.
  *
- * Must be placed *before* Next's own externals handler in the `externals` array: webpack calls
- * array entries in order and stops at the first one that returns a result.
+ * Must be placed *before* Next's own externals handler: webpack calls array entries in order and
+ * stops at the first result.
  */
 export async function externalizeOrchestrionRuntimePackages({
   request,
 }: {
   request?: string;
 }): Promise<string | undefined> {
-  if (
-    !request ||
-    !ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES.some(pkg => request === pkg || request.startsWith(`${pkg}/`))
-  ) {
+  const externalPackage = request
+    ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES.find(pkg => request === pkg || request.startsWith(`${pkg}/`))
+    : undefined;
+
+  if (!request || !externalPackage) {
     return undefined;
   }
 
-  const resolved = resolveOrchestrionRuntimeRequest(request);
-  return resolved ? `commonjs ${resolved}` : undefined;
+  // Not `require`-able (ESM-only subpath, or a typo): webpack reports it better than we can.
+  if (!resolveOrchestrionRuntimeRequest(request)) {
+    return undefined;
+  }
+
+  return `commonjs ${getOrchestrionForwarderSpecifier(request, externalPackage)}`;
 }
