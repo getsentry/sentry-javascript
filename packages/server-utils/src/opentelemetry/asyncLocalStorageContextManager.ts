@@ -27,16 +27,8 @@ import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { EventEmitter } from 'node:events';
 import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
+import type { AsyncLocalStorageLookup } from '../types';
 
-export type AsyncLocalStorageLookup = {
-  asyncLocalStorage: AsyncLocalStorage<unknown>;
-  /**
-   * The OpenTelemetry context key under which the `{ scope, isolationScope }` object is stored, for
-   * native threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted
-   * for the pure AsyncLocalStorage strategy, whose store already is that object.
-   */
-  contextSymbol?: symbol;
-};
 type ListenerFn = (...args: unknown[]) => unknown;
 
 /**

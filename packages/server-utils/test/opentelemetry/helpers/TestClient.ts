@@ -33,7 +33,7 @@ export function init(options: Partial<Options> = {}): TestClient {
   return client;
 }
 
-export function getDefaultTestClientOptions(options: Partial<Options> = {}): ClientOptions {
+function getDefaultTestClientOptions(options: Partial<Options> = {}): ClientOptions {
   return {
     integrations: [],
     traceLifecycle: 'static',

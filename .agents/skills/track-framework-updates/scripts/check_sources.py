@@ -48,7 +48,6 @@ EXCLUDED_PACKAGES: set[str] = {
     "@sentry/types",
     "@sentry/browser",
     "@sentry/node-native",
-    "@sentry/opentelemetry",
     "@sentry/profiling-node",
     "@sentry/wasm",
     "@sentry/vercel-edge",

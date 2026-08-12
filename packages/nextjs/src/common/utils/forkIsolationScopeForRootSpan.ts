@@ -7,7 +7,7 @@ import {
   getRootSpan,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
-import { getScopesFromOpenTelemetryContext } from '@sentry/opentelemetry';
+import { getScopesFromOpenTelemetryContext } from '@sentry/server-utils/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 /**

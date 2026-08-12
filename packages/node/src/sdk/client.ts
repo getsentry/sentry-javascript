@@ -11,10 +11,11 @@ import {
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
-import { type AsyncLocalStorageLookup, type SentryTracerProvider } from '@sentry/opentelemetry';
+import { type SentryTracerProvider } from '@sentry/server-utils/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
+import type { AsyncLocalStorageLookup } from '@sentry/server-utils';
 
 const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
 

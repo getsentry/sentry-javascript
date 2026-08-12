@@ -22,6 +22,11 @@
       "import": "./build/esm/index.js",
       "require": "./build/cjs/index.js"
     },
+    "./opentelemetry": {
+      "types": "./build/types/opentelemetry/index.d.ts",
+      "import": "./build/esm/opentelemetry/index.js",
+      "require": "./build/cjs/opentelemetry/index.js"
+    },
     "./no-diagnostic-channels": {
       "types": "./build/types/index.no-diagnostic-channels.d.ts",
       "import": "./build/esm/index.no-diagnostic-channels.js",

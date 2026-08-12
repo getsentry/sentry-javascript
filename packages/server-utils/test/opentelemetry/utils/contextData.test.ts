@@ -6,8 +6,8 @@ import {
   getScopesFromOpenTelemetryContext,
   setContextOnScope,
   setScopesOnContext,
-} from '../../src/utils/contextData';
-import type { CurrentScopes } from '../../src/types';
+} from '../../../src/opentelemetry/utils/contextData';
+import type { CurrentScopes } from '../../../src/opentelemetry/types';
 
 describe('contextData', () => {
   describe('getScopesFromOpenTelemetryContext / setScopesOnContext', () => {

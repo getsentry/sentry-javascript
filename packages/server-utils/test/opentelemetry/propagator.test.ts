@@ -1,8 +1,8 @@
 import { context, defaultTextMapGetter, defaultTextMapSetter, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import { suppressTracing, withScope } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
-import { SentryPropagator } from '../src/propagator';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../../src/opentelemetry/constants';
+import { SentryPropagator } from '../../src/opentelemetry/propagator';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
 const TRACE_ID = 'd4cda95b652f4a1592b449d5929fda1b';

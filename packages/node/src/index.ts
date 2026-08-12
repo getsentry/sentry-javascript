@@ -65,7 +65,7 @@ export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
 export type { NodeOptions } from './types';
 
-export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/server-utils/opentelemetry';
 
 export {
   addBreadcrumb,

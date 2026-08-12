@@ -1,7 +1,7 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { VercelEdgeClientOptions } from './types';
-import type { SentryTracerProvider } from '@sentry/opentelemetry';
+import type { SentryTracerProvider } from '@sentry/server-utils/opentelemetry';
 
 declare const process: {
   env: Record<string, string>;

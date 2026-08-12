@@ -10,7 +10,7 @@ import {
   withScope,
 } from '@sentry/core';
 import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/opentelemetry/asyncContextStrategy';
 import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {

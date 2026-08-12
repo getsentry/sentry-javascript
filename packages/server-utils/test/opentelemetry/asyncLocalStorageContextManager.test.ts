@@ -1,7 +1,7 @@
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
-import { SentryAsyncLocalStorageContextManager } from '../src/asyncLocalStorageContextManager';
+import { SentryAsyncLocalStorageContextManager } from '../../src/opentelemetry/asyncLocalStorageContextManager';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 describe('SentryAsyncLocalStorageContextManager', () => {

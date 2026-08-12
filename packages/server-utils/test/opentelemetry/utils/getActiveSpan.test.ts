@@ -1,8 +1,8 @@
 import { context, trace } from '@opentelemetry/api';
 import { getRootSpan, Scope } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { setContextOnScope } from '../../src/utils/contextData';
-import { getActiveSpan } from '../../src/utils/getActiveSpan';
+import { setContextOnScope } from '../../../src/opentelemetry/utils/contextData';
+import { getActiveSpan } from '../../../src/opentelemetry/utils/getActiveSpan';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('getActiveSpan', () => {

@@ -862,10 +862,7 @@ Sentry.init({
 
 ### `@sentry/opentelemetry`
 
-- `getTraceContextForScope` was removed. Scope-to-trace-context resolution now goes through the shared core implementation.
-- The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
-- `getSentryResource` was removed.
-- OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
+The opentelemetry package has been removed. You should generally no longer need to use any of the APIs it used to provide. A subset of APIs is still available under `@sentry/server-utils/opentelemetry` but they are meant to be used directly by consumers. Use either `enableOpenTelemetrySetup: true` to leverage the built-in setup, or use `Sentry.otlpIntegration()` to link a custom OTEL setup to Sentry. See [Better OpenTelemetry Interoperability](#better-opentelemetry-interoperability) for details.
 
 ### AI integrations
 

@@ -80,7 +80,6 @@
     "packages/node",
     "packages/node-native",
     "packages/nuxt",
-    "packages/opentelemetry",
     "packages/profiling-node",
     "packages/react",
     "packages/react-router",

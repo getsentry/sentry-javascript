@@ -190,11 +190,6 @@ export interface VercelAiChannelMessage {
  * Platform-provided factory that returns a tracing channel for the given channel name. The factory
  * is responsible for, when `start` fires, calling `transformStart(data)` and storing the returned
  * span on `data._sentrySpan` so the subscriber's `asyncEnd`/`error` handlers can read it.
- *
- * Node passes `@sentry/opentelemetry/tracing-channel`, which uses `bindStore` to additionally make
- * the span the active OTel context for the duration of the traced operation. That is what makes
- * nested AI SDK operations (model calls, tool calls) become children of the enclosing span without
- * any manual parent bookkeeping here.
  */
 export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 

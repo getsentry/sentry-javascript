@@ -1,9 +1,8 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { debug, getClient } from '@sentry/core';
-import { DEBUG_BUILD } from '../../src/debug-build';
-import { SentryPropagator } from '../../src/propagator';
+import { SentryPropagator } from '../../../src/opentelemetry/propagator';
 import type { TestClient } from './TestClient';
-import { SentryTracerProvider } from '../../src/tracerProvider';
+import { SentryTracerProvider } from '../../../src/opentelemetry/tracerProvider';
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -12,10 +11,9 @@ export function initOtel(): void {
   const client = getClient<TestClient>();
 
   if (!client) {
-    DEBUG_BUILD &&
-      debug.warn(
-        'No client available, skipping OpenTelemetry setup. This probably means that `Sentry.init()` was not called before `initOtel()`.',
-      );
+    debug.warn(
+      'No client available, skipping OpenTelemetry setup. This probably means that `Sentry.init()` was not called before `initOtel()`.',
+    );
     return;
   }
 

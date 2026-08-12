@@ -61,7 +61,6 @@ export class LocalLambdaStack extends Stack {
         { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
         { dir: 'node', name: '@sentry/node' },
         { dir: 'core', name: '@sentry/core' },
-        { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
         { dir: 'server-utils', name: '@sentry/server-utils' },
         { dir: 'bundler-plugins', name: '@sentry/bundler-plugins' },
       ];

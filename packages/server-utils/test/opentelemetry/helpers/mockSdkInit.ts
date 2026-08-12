@@ -1,6 +1,6 @@
 import type { ClientOptions, Options } from '@sentry/core';
 import { getMainCarrier } from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
+import { setOpenTelemetryContextAsyncContextStrategy } from '../../../src/opentelemetry/asyncContextStrategy';
 import { initOtel } from './initOtel';
 import type { TestClient } from './TestClient';
 import { init as initTestClient } from './TestClient';

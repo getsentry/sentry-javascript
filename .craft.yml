@@ -20,15 +20,11 @@ targets:
   - name: npm
     id: '@sentry/replay'
     includeNames: /^sentry-replay-\d.*\.tgz$/
-  ## 1.5 OpenTelemetry package
-  - name: npm
-    id: '@sentry/opentelemetry'
-    includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
-  ## 1.6 Feedback package (browser only)
+  ## 1.5 Feedback package (browser only)
   - name: npm
     id: '@sentry/feedback'
     includeNames: /^sentry-feedback-\d.*\.tgz$/
-  ## 1.7 ReplayCanvas package (browser only)
+  ## 1.6 ReplayCanvas package (browser only)
   - name: npm
     id: '@sentry/replay-canvas'
     includeNames: /^sentry-replay-canvas-\d.*\.tgz$/

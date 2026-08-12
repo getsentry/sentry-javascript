@@ -3,7 +3,7 @@ import { propagation, trace } from '@opentelemetry/api';
 import { debug as coreDebug } from '@sentry/core';
 import { setupOpenTelemetryLogger } from '../otel/logger';
 import type { NodeClient } from './client';
-import { SentryPropagator, SentryTracerProvider } from '@sentry/opentelemetry';
+import { SentryPropagator, SentryTracerProvider } from '@sentry/server-utils/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 
 // The global registry of @opentelemetry/api 1.x, shared across all copies of the package

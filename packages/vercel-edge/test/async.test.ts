@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
-import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/server-utils/opentelemetry';
 
 beforeEach(() => {
   getMainCarrier().__SENTRY__ = undefined;

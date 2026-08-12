@@ -1,8 +1,8 @@
 import { ProxyTracer } from '@opentelemetry/api';
 import type { Event, EventHint, Log } from '@sentry/core';
 import { getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
-import type { SentryTracerProvider } from '@sentry/opentelemetry';
-import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import type { SentryTracerProvider } from '@sentry/server-utils/opentelemetry';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/server-utils/opentelemetry';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';

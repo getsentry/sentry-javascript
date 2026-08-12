@@ -17,9 +17,9 @@ import {
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
-import { getActiveSpan } from '../src/utils/getActiveSpan';
-import { makeTraceState } from '../src/utils/makeTraceState';
+import { startInactiveSpan, startSpan, startSpanManual } from '../../src/opentelemetry/trace';
+import { getActiveSpan } from '../../src/opentelemetry/utils/getActiveSpan';
+import { makeTraceState } from '../../src/opentelemetry/utils/makeTraceState';
 import { isSpan } from './helpers/isSpan';
 import { mockSdkInit } from './helpers/mockSdkInit';
 

@@ -20,7 +20,7 @@ import {
   SentryPropagator,
   SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
-} from '@sentry/opentelemetry';
+} from '@sentry/server-utils/opentelemetry';
 import { VercelEdgeClient } from './client';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';

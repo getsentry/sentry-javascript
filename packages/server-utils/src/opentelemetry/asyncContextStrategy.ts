@@ -20,7 +20,7 @@ import type { CurrentScopes } from './types';
 import { getContextFromScope, getScopesFromOpenTelemetryContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
+import type { AsyncLocalStorageLookup } from '../types';
 import { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
 
 /**

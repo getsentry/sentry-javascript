@@ -178,7 +178,7 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
 function getTracer(): Tracer {
   // The node client has a `tracer` property, we use this if it exists, or else we use the global tracer
   const client = getClient<Client & { tracer?: Tracer }>();
-  return client?.tracer || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
+  return client?.tracer || trace.getTracer('@sentry/server-utils/opentelemetry', SDK_VERSION);
 }
 
 function getSpanOptions(options: StartSpanOptions): SpanOptions {

@@ -37,8 +37,7 @@
     "@sentry/server-utils": "10.67.0"
   },
   "devDependencies": {
-    "@edge-runtime/types": "4.0.0",
-    "@sentry/opentelemetry": "10.67.0"
+    "@edge-runtime/types": "4.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
