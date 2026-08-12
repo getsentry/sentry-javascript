@@ -244,7 +244,24 @@ it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ sig
   await runner.completed();
 });
 
-it('does not inject RPC trace metadata into receiver calls when enableRpcTracePropagation is disabled', async ({
+// Regression test for https://github.com/getsentry/sentry-javascript/issues/23233: a receiver that
+// is not instrumented never strips Sentry's trailing metadata argument, so a caller must only
+// propagate to bindings it was explicitly told about.
+it('does not change RPC method arguments for a binding left off the allowlist', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      expect(transactionEvent.transaction).toBe('GET /call-uninstrumented-rpc');
+    })
+    .start(signal);
+
+  const response = await runner.makeRequest<{ argumentCount: number; key: string }>('get', '/call-uninstrumented-rpc');
+  expect(response).toEqual({ argumentCount: 1, key: 'uninstrumented-key' });
+
+  await runner.completed();
+});
+
+it('does not inject RPC trace metadata into receiver calls when rpcTracePropagationTargets is empty', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)

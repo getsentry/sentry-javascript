@@ -94,10 +94,6 @@ function instrumentMethod(
     true,
   );
 
-  if (!options.enableRpcTracePropagation) {
-    return captureMethod;
-  }
-
   const tracedMethod = wrapMethodWithSentry(
     { options, context, spanName: prop, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
     boundMethod,

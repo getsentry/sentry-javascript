@@ -66,7 +66,7 @@ it('handles consecutive RPC calls without throwing "RPC receiver does not implem
 });
 
 // Regression test: RPC methods that access private fields should work correctly.
-// When enableRpcTracePropagation wraps the DO in a Proxy, calling methods through
+// When rpcTracePropagationTargets wraps the DO in a Proxy, calling methods through
 // the Proxy must ensure `this` refers to the original object (not the Proxy),
 // otherwise private field access throws: "Cannot read private member from an object
 // whose class did not declare it"

@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
 
-it('does not propagate trace from worker to durable object when enableRpcTracePropagation is disabled', async ({
+it('does not propagate trace from worker to durable object when rpcTracePropagationTargets is empty', async ({
   signal,
 }) => {
   let workerTraceId: string | undefined;
@@ -64,7 +64,7 @@ it('does not propagate trace from worker to durable object when enableRpcTracePr
   expect(doParentSpanId).toBeUndefined();
 });
 
-it('does not propagate trace from queue handler to durable object when enableRpcTracePropagation is disabled', async ({
+it('does not propagate trace from queue handler to durable object when rpcTracePropagationTargets is empty', async ({
   signal,
 }) => {
   let queueTraceId: string | undefined;
@@ -146,7 +146,7 @@ it('does not propagate trace from queue handler to durable object when enableRpc
   expect(doParentSpanId).toBeUndefined();
 });
 
-it('does not propagate trace from scheduled handler to durable object when enableRpcTracePropagation is disabled', async ({
+it('does not propagate trace from scheduled handler to durable object when rpcTracePropagationTargets is empty', async ({
   signal,
 }) => {
   let scheduledTraceId: string | undefined;

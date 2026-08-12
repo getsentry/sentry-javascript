@@ -75,7 +75,6 @@ export const ScopeDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableRpcTracePropagation: true,
   }),
   ScopeDurableObjectBase,
 );
@@ -84,7 +83,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationTargets: ['SCOPE_DO'],
   }),
   {
     async fetch(request, env) {

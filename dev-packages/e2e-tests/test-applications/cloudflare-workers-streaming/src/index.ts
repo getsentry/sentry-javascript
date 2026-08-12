@@ -85,7 +85,6 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    enableRpcTracePropagation: true,
   }),
   MyDurableObjectBase,
 );
@@ -101,7 +100,7 @@ export default Sentry.withSentry(
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    enableRpcTracePropagation: true,
+    rpcTracePropagationTargets: ['MY_DURABLE_OBJECT'],
   }),
   {
     async fetch(request, env) {
