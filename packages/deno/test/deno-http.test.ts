@@ -107,6 +107,8 @@ Deno.test({
     assertEquals(txn.transaction, 'GET /users/42');
     assertEquals(txn.contexts?.trace?.data?.['http.method'], 'GET');
     assertEquals(txn.contexts?.trace?.data?.['http.response.status_code'], 200);
+    assertEquals(txn.contexts?.trace?.data?.['network.protocol.name'], 'http');
+    assertEquals(txn.contexts?.trace?.data?.['network.protocol.version'], '1.1');
   },
 });
 

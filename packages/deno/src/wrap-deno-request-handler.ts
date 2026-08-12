@@ -80,11 +80,9 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       assignIfSet(attributes, CLIENT_ADDRESS, clientAddress);
       assignIfSet(attributes, CLIENT_PORT, clientPort);
     }
-    assignIfSet(
-      attributes,
-      NETWORK_PROTOCOL_NAME,
-      urlObject && !('isRelative' in urlObject) ? urlObject.protocol.slice(0, -1) : undefined,
-    );
+
+    // describes the OSI application-layer protocol (http), not the scheme (might be https)
+    attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
