@@ -11,7 +11,7 @@ import {
 import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
-import { bindTracingChannelToSpan } from '../tracing-channel';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the

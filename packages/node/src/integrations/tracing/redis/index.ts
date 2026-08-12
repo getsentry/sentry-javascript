@@ -1,7 +1,9 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
-import { redisIntegration as redisNativeChannelIntegration } from '@sentry/server-utils';
-import { ioredisChannelIntegration, redisChannelIntegration } from '@sentry/server-utils/orchestrion';
+import {
+  ioredisChannelIntegration,
+  redisIntegration as redisChannelIntegration,
+} from '@sentry/server-utils/orchestrion';
 import { cacheResponseHook, type RedisOptions, setRedisOptions } from './cache';
 
 // `cacheResponseHook`/`_redisOptions` live in `./cache` (which has no OTel
@@ -19,20 +21,13 @@ const _redisIntegration = ((options: RedisOptions = {}) => {
   // subscribers into this integration's `setup` so `Sentry.redisIntegration()` alone instruments
   // all ranges, even with `defaultIntegrations: []`. All three share the node cache `responseHook`,
   // which reads the options set below but only runs at command time, by which point they are set.
-  const orchestrionIntegrations = [
-    ioredisChannelIntegration({ responseHook: cacheResponseHook }),
-    redisChannelIntegration({ responseHook: cacheResponseHook }),
-  ];
+  const ioredis = ioredisChannelIntegration({ responseHook: cacheResponseHook });
+  const redis = redisChannelIntegration({ responseHook: cacheResponseHook });
 
-  return extendIntegration(redisNativeChannelIntegration({ responseHook: cacheResponseHook }), {
+  return extendIntegration(extendIntegration(ioredis, { ...redis }), {
     name: INTEGRATION_NAME,
     setupOnce() {
       setRedisOptions(options);
-    },
-    setup(client) {
-      for (const integration of orchestrionIntegrations) {
-        integration.setup?.(client);
-      }
     },
   });
 }) satisfies IntegrationFn;

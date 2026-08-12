@@ -37,7 +37,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'expressIntegration', modules: ['express', 'router'] },
   { exportName: 'graphqlIntegration', modules: ['graphql'] },
   { exportName: 'kafkajsIntegration', modules: ['kafkajs'] },
-  { exportName: 'redisChannelIntegration', modules: ['redis', '@redis/client'] },
+  { exportName: 'redisIntegration', modules: ['redis', '@redis/client'] },
   { exportName: 'ioredisChannelIntegration', modules: ['ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;

@@ -24,12 +24,14 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
+  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { CHANNELS } from '../orchestrion/channels';
-import { defaultDbStatementSerializer } from '../redis/redis-statement-serializer';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import { redisModuleNames } from '../orchestrion/config/redis';
-import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { CHANNELS } from '../../orchestrion/channels';
+import { defaultDbStatementSerializer } from './redis-statement-serializer';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { redisModuleNames } from '../../orchestrion/config/redis';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { subscribeRedisDiagnosticChannels } from './redis-dc-subscriber';
 
 // A distinct name from the composite OTel `Redis` integration — they can't share one, and
 // `Redis` stays in the set for its native diagnostics_channel subscriber (node-redis >=5.12 /
@@ -306,7 +308,7 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
   });
 }
 
-const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
+const _redisIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -319,6 +321,15 @@ const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {})
       });
       // node-redis v4/v5 binds spans into async context via `bindTracingChannelToSpan`.
       invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentNodeRedis, [options]);
+    },
+    setupOnce() {
+      if (!diagnosticsChannel.tracingChannel) {
+        return;
+      }
+
+      waitForTracingChannelBinding(() => {
+        subscribeRedisDiagnosticChannels(diagnosticsChannel.tracingChannel, options.responseHook);
+      });
     },
   };
 }) satisfies IntegrationFn;
@@ -346,4 +357,4 @@ function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
  * and multi/pipeline batches, fully replacing `@opentelemetry/instrumentation-redis`.
  * Requires the orchestrion runtime hook or bundler plugin.
  */
-export const redisChannelIntegration = defineIntegration(_redisChannelIntegration);
+export const redisIntegration = defineIntegration(_redisIntegration);

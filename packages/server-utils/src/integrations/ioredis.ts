@@ -7,7 +7,7 @@ import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/c
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
-import { defaultDbStatementSerializer } from '../redis/redis-statement-serializer';
+import { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { ioredisModuleNames } from '../orchestrion/config/ioredis';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';

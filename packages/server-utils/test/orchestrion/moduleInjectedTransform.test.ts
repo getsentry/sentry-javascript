@@ -23,7 +23,7 @@ describe('channel integration definitions', () => {
     expect(subscriberExportForModule('mysql')).toBe('mysqlIntegration');
     expect(subscriberExportForModule('pg')).toBe('postgresIntegration');
     expect(subscriberExportForModule('pg-pool')).toBe('postgresIntegration');
-    expect(subscriberExportForModule('@redis/client')).toBe('redisChannelIntegration');
+    expect(subscriberExportForModule('@redis/client')).toBe('redisIntegration');
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
 

@@ -68,8 +68,7 @@ export {
 export type { KoaIntegrationOptions } from '../integrations/koa';
 export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../integrations/ioredis';
 export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
-export { redisChannelIntegration } from '../integrations/redis';
-export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/redis';
+export { redisIntegration } from '../integrations/redis';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
@@ -83,7 +82,7 @@ export type * from '../integrations/graphql/graphql-types';
  * Single source of truth: add a new channel integration here and every consumer that spreads this map
  * into its default integrations picks it up automatically, so there's no separate list to keep in sync.
  *
- * NOTE: `ioredisChannelIntegration` and `redisChannelIntegration` are intentionally NOT here. They
+ * NOTE: `ioredisChannelIntegration` and `redisIntegration` are intentionally NOT here. They
  * only partially replace the composite OTel `Redis` integration and need the node SDK's redis cache
  * `responseHook` (which can't live in `server-utils`), so `@sentry/node` wires them up separately.
  *
