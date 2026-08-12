@@ -8,6 +8,7 @@ import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
+import { getCloudflareExecutionContext } from '../server-common/utils';
 
 /**
  *  Initializes Sentry SvelteKit Cloudflare SDK
@@ -41,7 +42,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
           options: opts,
           request: event.request,
           // @ts-expect-error This will exist in Cloudflare
-          context: event.platform.context,
+          context: getCloudflareExecutionContext(event.platform),
           // We don't want to capture errors here, as we want to capture them in the `sentryHandle` handler
           // where we can distinguish between redirects and actual errors.
           captureErrors: false,
