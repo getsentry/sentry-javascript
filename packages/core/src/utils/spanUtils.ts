@@ -3,13 +3,13 @@ import { getAsyncContextStrategy } from '../asyncContext';
 import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { getCurrentScope } from '../currentScopes';
 import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
@@ -458,8 +458,9 @@ export function getActiveSpan(scope?: Scope): Span | undefined {
  */
 export function updateSpanName(span: Span, name: string): void {
   span.updateName(name);
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-    [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
-  });
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, name);
+  // The segment name source attribute only carries meaning on segment spans, so we don't set it on child spans.
+  if (getRootSpan(span) === span) {
+    span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'custom');
+  }
 }

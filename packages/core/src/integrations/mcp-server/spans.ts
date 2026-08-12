@@ -5,12 +5,9 @@
  * Handles both request and notification spans with attribute extraction.
  */
 
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { getClient } from '../../currentScopes';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
@@ -72,7 +69,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
   return {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
+    [SENTRY_SEGMENT_NAME_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
   };
 }
 

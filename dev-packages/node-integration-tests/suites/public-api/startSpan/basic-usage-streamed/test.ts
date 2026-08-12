@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
   SENTRY_SEGMENT_ID,
@@ -154,7 +153,6 @@ test('sends a streamed span envelope with correct spans for a manually started s
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
           'sentry.segment.name.source': { type: 'string', value: 'custom' },
           'process.runtime.engine.name': { type: 'string', value: 'v8' },
           'process.runtime.engine.version': { type: 'string', value: expect.any(String) },

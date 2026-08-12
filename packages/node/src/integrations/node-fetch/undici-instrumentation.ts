@@ -31,7 +31,6 @@ import {
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -263,9 +262,6 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
   // SDKs that don't use an OpenTelemetry tracer provider at all.
   const isDataUrl = url.startsWith('data:');
-  if (!isDataUrl) {
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
-  }
   const spanName =
     requestMethod === '_OTHER'
       ? 'HTTP'

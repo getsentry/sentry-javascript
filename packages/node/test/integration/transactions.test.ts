@@ -1,6 +1,8 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -36,7 +38,7 @@ describe('Integration | Transactions', () => {
         op: 'test op',
         name: 'test name',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
         },
       },
@@ -77,7 +79,7 @@ describe('Integration | Transactions', () => {
       data: {
         'sentry.op': 'test op',
         'sentry.origin': 'auto.test',
-        'sentry.source': 'task',
+        'sentry.segment.name.source': 'task',
         'sentry.sample_rate': 1,
         'test.outer': 'test value',
       },
@@ -166,7 +168,7 @@ describe('Integration | Transactions', () => {
           op: 'test op',
           name: 'test name',
           attributes: {
-            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           },
         },
@@ -231,7 +233,7 @@ describe('Integration | Transactions', () => {
             data: {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
+              'sentry.segment.name.source': 'task',
               'test.outer': 'test value',
               'sentry.sample_rate': 1,
             },
@@ -269,7 +271,7 @@ describe('Integration | Transactions', () => {
             data: {
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
-              'sentry.source': 'custom',
+              'sentry.segment.name.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
             },
@@ -373,7 +375,7 @@ describe('Integration | Transactions', () => {
           trace: {
             data: {
               'sentry.origin': 'manual',
-              'sentry.source': 'custom',
+              'sentry.segment.name.source': 'custom',
               'test.outer': 'test value',
               'sentry.sample_rate': 1,
             },
@@ -408,7 +410,7 @@ describe('Integration | Transactions', () => {
           trace: {
             data: {
               'sentry.origin': 'manual',
-              'sentry.source': 'custom',
+              'sentry.segment.name.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
             },
@@ -458,7 +460,7 @@ describe('Integration | Transactions', () => {
           op: 'test op',
           name: 'test name',
           attributes: {
-            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           },
         },
@@ -481,7 +483,7 @@ describe('Integration | Transactions', () => {
             data: {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
+              'sentry.segment.name.source': 'task',
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),

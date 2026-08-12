@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
@@ -5,7 +6,6 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentrySpan,
@@ -26,6 +26,7 @@ import type { SpanStatus } from '../../../src/types/spanStatus';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
+  addChildSpanToSpan,
   getActiveSpan,
   getRootSpan,
   spanIsSampled,
@@ -841,10 +842,21 @@ describe('getActiveSpan', () => {
 
 describe('updateSpanName', () => {
   it('updates the span name and source', () => {
-    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } });
     updateSpanName(span, 'new-name');
     const spanJSON = spanToJSON(span);
     expect(spanJSON.description).toBe('new-name');
-    expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanJSON.data?.[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
+  });
+
+  it('does not set a source on child spans', () => {
+    const rootSpan = new SentrySpan({ name: 'root' });
+    const childSpan = new SentrySpan({ name: 'old-name' });
+    addChildSpanToSpan(rootSpan, childSpan);
+    updateSpanName(childSpan, 'new-name');
+    const spanJSON = spanToJSON(childSpan);
+    expect(spanJSON.description).toBe('new-name');
+    expect(spanJSON.data?.[SENTRY_SEGMENT_NAME_SOURCE]).toBeUndefined();
+    expect(spanJSON.data?.['sentry.custom_span_name']).toBe('new-name');
   });
 });

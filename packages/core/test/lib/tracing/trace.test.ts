@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCapturedScopesOnSpan,
@@ -8,7 +9,6 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -199,7 +199,7 @@ describe('startSpan', () => {
         data: {
           'sentry.origin': 'auto.http.browser',
           'sentry.sample_rate': 1,
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         origin: 'auto.http.browser',
         description: 'GET users/[id]',
@@ -289,7 +289,7 @@ describe('startSpan', () => {
     const span = startSpan(
       {
         name: '/users/123e4567-e89b-12d3-a456-426614174000',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
       },
       span => span,
     );
@@ -564,7 +564,7 @@ describe('startSpan', () => {
     expect(outerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
@@ -590,7 +590,7 @@ describe('startSpan', () => {
     expect(innerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -1168,7 +1168,7 @@ describe('startSpanManual', () => {
     expect(outerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
@@ -1194,7 +1194,7 @@ describe('startSpanManual', () => {
     expect(innerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -1619,7 +1619,7 @@ describe('startInactiveSpan', () => {
     expect(outerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
@@ -1645,7 +1645,7 @@ describe('startInactiveSpan', () => {
     expect(innerTransaction?.contexts).toEqual({
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,

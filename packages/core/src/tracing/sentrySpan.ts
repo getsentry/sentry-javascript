@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
@@ -233,8 +233,11 @@ export class SentrySpan implements Span {
       return this;
     }
     this._name = name;
-    // Updating the name sets the source to custom
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    // Updating the name sets the segment name source to custom. The attribute only carries meaning
+    // on segment spans, so we don't set it on child spans.
+    if (getRootSpan(this) === this) {
+      this.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'custom');
+    }
 
     return this;
   }
@@ -454,7 +457,7 @@ export class SentrySpan implements Span {
       spans.push(spanJSON);
     }
 
-    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const source = this._attributes[SENTRY_SEGMENT_NAME_SOURCE];
 
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */

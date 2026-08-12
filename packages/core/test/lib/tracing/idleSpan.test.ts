@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getActiveSpan,
@@ -8,7 +9,6 @@ import {
   getIsolationScope,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -178,7 +178,7 @@ describe('startIdleSpan', () => {
     // Mirrors a browser pageload/navigation span, whose name is the URL path.
     const idleSpan = startIdleSpan({
       name: '/users/123e4567-e89b-12d3-a456-426614174000',
-      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
     });
 
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);

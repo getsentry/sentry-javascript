@@ -4,7 +4,6 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   truncate,
 } from '@sentry/core';
@@ -103,5 +102,4 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   span.updateName(
     _redisOptions.maxCacheKeyLength ? truncate(spanDescription, _redisOptions.maxCacheKeyLength) : spanDescription,
   );
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, undefined);
 };

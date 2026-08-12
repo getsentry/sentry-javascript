@@ -6,11 +6,8 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -517,7 +514,7 @@ function _startRootSpan(
   const rootSpan = new SentrySpan({
     ...spanArguments,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
         sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
       ...finalAttributes,
