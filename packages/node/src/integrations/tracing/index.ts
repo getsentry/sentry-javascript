@@ -9,7 +9,7 @@ import {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -43,7 +43,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     koaIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
-    kafkajsIntegration(),
+    kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
     // AI providers
