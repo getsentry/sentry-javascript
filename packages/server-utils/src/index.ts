@@ -1,7 +1,6 @@
 export * from './exports';
 
 // Exports using diagnostics channels
-export { graphqlIntegration } from './graphql';
 export { mongooseIntegration } from './mongoose';
 export { mysql2Integration } from './mysql2';
 export { instrumentPrisma, prismaIntegration } from './prisma';

@@ -11,7 +11,7 @@ export {
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration as graphqlIntegration,
+  graphqlIntegration,
   hapiIntegration,
   kafkajsIntegration as kafkaIntegration,
   knexIntegration,

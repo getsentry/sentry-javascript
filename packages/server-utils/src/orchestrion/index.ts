@@ -4,7 +4,7 @@ import { awsIntegration } from '../integrations/aws-sdk';
 import { dataloaderIntegration } from '../integrations/dataloader';
 import { genericPoolIntegration } from '../integrations/generic-pool';
 import { googleGenAIIntegration } from '../integrations/google-genai';
-import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/graphql';
+import { graphqlIntegration } from '../integrations/graphql';
 import { hapiIntegration } from '../integrations/hapi';
 import { koaIntegration } from '../integrations/koa';
 import { redisIntegration } from '../integrations/redis';
@@ -44,7 +44,6 @@ export {
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
-  graphqlDiagnosticsIntegration,
   hapiIntegration,
   koaIntegration,
   redisIntegration,
@@ -108,7 +107,7 @@ export const channelIntegrations = {
   hapiIntegration,
   koaIntegration,
   expressIntegration,
-  graphqlIntegration: graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   kafkajsIntegration,
   tediousIntegration,
   awsIntegration,

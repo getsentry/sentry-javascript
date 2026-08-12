@@ -14,13 +14,8 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import type { GraphqlDocumentNode } from '../../graphql/utils';
-import {
-  collectGraphqlDocument,
-  getOperationSpanName,
-  hasResultErrors,
-  renameRootSpanWithOperation,
-} from '../../graphql/utils';
+import type { GraphqlDocumentNode } from './types';
+import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
 import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
