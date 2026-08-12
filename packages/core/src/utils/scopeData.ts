@@ -5,7 +5,7 @@ import type { Breadcrumb } from '../types/breadcrumb';
 import type { Event } from '../types/event';
 import type { Span } from '../types/span';
 import { merge } from './merge';
-import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
+import { getRootSpan, spanToStaticSpanJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -168,7 +168,7 @@ export function applySpanToEvent(event: Event, span: Span): void {
   };
 
   const rootSpan = getRootSpan(span);
-  const transactionName = spanToJSON(rootSpan).description;
+  const transactionName = spanToStaticSpanJSON(rootSpan).description;
   if (transactionName && !event.transaction && event.type === 'transaction') {
     event.transaction = transactionName;
   }

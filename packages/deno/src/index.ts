@@ -88,6 +88,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,

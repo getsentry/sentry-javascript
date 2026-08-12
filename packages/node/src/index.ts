@@ -135,6 +135,7 @@ export {
   getActiveSpan,
   withActiveSpan,
   getRootSpan,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,

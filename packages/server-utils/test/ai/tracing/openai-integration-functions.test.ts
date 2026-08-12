@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { OpenAiClient } from '../../../src/ai/openai/types';
 import { instrumentOpenAiClient } from '../../../src/ai/openai';
 
 interface FullOpenAIClient {
@@ -103,12 +102,11 @@ class MockOpenAIClient implements FullOpenAIClient {
 
 describe('OpenAI Integration Private Field Fix', () => {
   let mockClient: MockOpenAIClient;
-  let instrumentedClient: FullOpenAIClient & OpenAiClient;
+  let instrumentedClient: FullOpenAIClient;
 
   beforeEach(() => {
     mockClient = new MockOpenAIClient();
-    instrumentedClient = instrumentOpenAiClient(mockClient as unknown as OpenAiClient) as FullOpenAIClient &
-      OpenAiClient;
+    instrumentedClient = instrumentOpenAiClient(mockClient as unknown as object) as FullOpenAIClient;
   });
 
   it('should work with instrumented methods (chat.completions.create)', async () => {

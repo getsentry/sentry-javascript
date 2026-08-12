@@ -25,9 +25,9 @@ describe('startAndEndSpan()', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).description).toBe('evaluation');
-    expect(spanToJSON(span).op).toBe('script');
-    expect(spanToJSON(span).op).toBe('script');
+    expect(spanToJSON(span).name).toBe('evaluation');
+    expect(spanToJSON(span).attributes['sentry.op']).toBe('script');
+    expect(spanToJSON(span).attributes['sentry.op']).toBe('script');
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {

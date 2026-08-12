@@ -6,12 +6,5 @@ export default defineConfig({
   // The Sentry plugin runs first so its build-time transform skips the manually
   // wrapped `Counter` Durable Object and auto-wraps the `MyWorkflow` Workflow
   // before the Cloudflare plugin bundles it.
-  plugins: [
-    cloudflare(),
-    sentryCloudflareVitePlugin({
-      _experimental: {
-        autoInstrumentation: true,
-      },
-    }),
-  ],
+  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
 });

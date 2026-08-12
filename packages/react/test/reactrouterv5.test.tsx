@@ -27,6 +27,9 @@ const mockRootSpan = {
   setAttribute: vi.fn(),
   setAttributes: vi.fn(),
   getSpanJSON() {
+    return { attributes: { 'sentry.op': 'pageload' } };
+  },
+  getStaticSpanJSON() {
     return { op: 'pageload' };
   },
 };

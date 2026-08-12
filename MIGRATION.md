@@ -346,7 +346,7 @@ Sentry.init({
 // After
 Sentry.init({
   beforeSendSpan: span => {
-    if (span.attributes?.['sentry.op'] === 'db.query') {
+    if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
       span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
     }
@@ -458,6 +458,22 @@ Sentry.init({
 ```
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+
+#### `Sentry.spanToJSON` returns streamed span format
+
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
+
+The `spanToStreamedSpanJSON` helper, which returned this format in v10, was removed in favor of `spanToJSON`. Since the two are now equivalent, replace any calls to it:
+
+```js
+// Before (v10)
+const spanJson = Sentry.spanToStreamedSpanJSON(span);
+
+// After (v11)
+const spanJson = Sentry.spanToJSON(span);
+```
 
 ### Logs are enabled by default
 
@@ -624,6 +640,23 @@ Affected SDKs: `@sentry/cloudflare`.
 ```diff
 - import { wrapRequestHandler } from '@sentry/cloudflare';
 + import { wrapRequestHandler } from '@sentry/cloudflare/request';
+```
+
+### Cloudflare: the Vite plugin auto-instruments your Worker by default
+
+Affected SDKs: `@sentry/cloudflare`.
+
+`sentryCloudflareVitePlugin()` now wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched, so no action is required for most users. Opt out with the new top-level `autoInstrumentation` option:
+
+```js
+sentryCloudflareVitePlugin({ autoInstrumentation: false });
+```
+
+The experimental opt-in this replaces was removed:
+
+```diff
+- sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
++ sentryCloudflareVitePlugin();
 ```
 
 ## 3. Removed APIs
@@ -967,7 +1000,23 @@ Sentry.init({
 
 The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
 
-## 6. Type Changes
+### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
+
+Affected SDKs: `@sentry/sveltekit`.
+
+The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
+
+```ts
+// vite.config.ts
+
+// before
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+// after
+import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+```
+
+The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on

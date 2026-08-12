@@ -1,5 +1,4 @@
 import type { GenAiOptions } from '../core/utils';
-import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
 
 /** Options for the Google GenAI integration. */
 export type GoogleGenAIOptions = GenAiOptions;
@@ -145,43 +144,6 @@ type GenerateContentResponse = {
   /** Usage metadata about the response(s). */
   usageMetadata?: GenerateContentResponseUsageMetadata;
 };
-
-/**
- * Basic interface for Google GenAI client with only the instrumented methods
- * This provides type safety while being generic enough to work with different client implementations
- */
-export interface GoogleGenAIClient {
-  models: {
-    generateContent: (...args: unknown[]) => Promise<GenerateContentResponse>;
-    // https://googleapis.github.io/js-genai/release_docs/classes/models.Models.html#generatecontentstream
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    generateContentStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
-    // https://googleapis.github.io/js-genai/release_docs/classes/models.Models.html#embedcontent
-    embedContent: (...args: unknown[]) => Promise<unknown>;
-  };
-  chats: {
-    create: (...args: unknown[]) => GoogleGenAIChat;
-  };
-}
-
-/**
- * Google GenAI Chat interface for chat instances created via chats.create()
- */
-export interface GoogleGenAIChat {
-  sendMessage: (...args: unknown[]) => Promise<GenerateContentResponse>;
-  // https://googleapis.github.io/js-genai/release_docs/classes/chats.Chat.html#sendmessagestream
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
-}
-
-export type GoogleGenAIInstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
-
-/**
- * @deprecated Use {@link GoogleGenAIInstrumentedMethod} instead. This alias
- * preserves backwards compatibility with the misspelled name and will be
- * removed in the next major version.
- */
-export type GoogleGenAIIstrumentedMethod = GoogleGenAIInstrumentedMethod;
 
 // Export the response type for use in instrumentation
 export type GoogleGenAIResponse = GenerateContentResponse;

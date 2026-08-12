@@ -110,7 +110,7 @@ class Profiler extends React.Component<ProfilerProps> {
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      const startTime = spanToJSON(this._mountSpan).timestamp;
+      const startTime = spanToJSON(this._mountSpan).end_timestamp;
       withActiveSpan(this._mountSpan, () => {
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
@@ -213,7 +213,7 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        const startTime = spanToJSON(mountSpan).timestamp;
+        const startTime = spanToJSON(mountSpan).end_timestamp;
         const endTimestamp = timestampInSeconds();
 
         const renderSpan = startInactiveSpan({

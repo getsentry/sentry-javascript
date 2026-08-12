@@ -26,26 +26,21 @@ describe('SentryTracerProvider', () => {
     });
 
     expect(spanToJSON(span as Span)).toEqual({
-      data: {
+      attributes: {
         'sentry.origin': 'manual',
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
         'sentry.source': 'custom',
       },
-      description: 'SELECT users',
-      origin: 'manual',
+      name: 'SELECT users',
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
       start_timestamp: expect.any(Number),
+      end_timestamp: undefined,
+      is_segment: true,
       status: 'ok',
-      timestamp: undefined,
       trace_id: span.spanContext().traceId,
-      profile_id: undefined,
-      exclusive_time: undefined,
-      measurements: undefined,
-      is_segment: undefined,
-      segment_id: undefined,
       links: undefined,
     });
   });
@@ -129,6 +124,6 @@ describe('SentryTracerProvider', () => {
 
     expect(json.trace_id).toBe('12312012123120121231201212312012');
     expect(json.parent_span_id).toBe('1121201211212012');
-    expect(json.data?.['sentry.kind']).toBe('server');
+    expect(json.attributes['sentry.kind']).toBe('server');
   });
 });

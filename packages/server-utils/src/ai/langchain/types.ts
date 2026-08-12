@@ -91,14 +91,6 @@ export interface LangChainLLMResult {
 }
 
 /**
- * Integration interface for type safety
- */
-export interface LangChainIntegration {
-  name: string;
-  options: LangChainOptions;
-}
-
-/**
  * LangChain callback handler interface
  * Compatible with both BaseCallbackHandlerMethodsClass and BaseCallbackHandler from @langchain/core
  * Uses general types and index signature for maximum compatibility across LangChain versions

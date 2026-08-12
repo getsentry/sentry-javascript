@@ -4,7 +4,7 @@ import { SPAN_STATUS_ERROR, SPAN_STATUS_UNSET } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import { backfillHttpServerStatus } from '../../src/common/utils/backfillHttpServerStatus';
 
-// Mimics an OTel SDK span shape so `spanToJSON` reads `data`/`status` off it (see
+// Mimics an OTel SDK span shape so `spanToStaticSpanJSON` reads `data`/`status` off it (see
 // `spanIsOpenTelemetrySdkTraceBaseSpan`: requires truthy attributes/startTime/name/endTime/status).
 function makeSpan(attributes: SpanAttributes, status: SpanStatus = { code: SPAN_STATUS_UNSET }) {
   const setStatus = vi.fn();

@@ -128,7 +128,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   });
 
   client.on('spanStart', span => {
-    const spanAttributes = spanToJSON(span).data;
+    const spanAttributes = spanToJSON(span).attributes;
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
 

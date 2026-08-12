@@ -46,7 +46,7 @@
     "@google-cloud/common": "^3.4.1",
     "@types/express": "^5.0.6",
     "@types/node": "^18.19.1",
-    "nock": "^14.0.16"
+    "nock": "^14.0.17"
   },
   "peerDependencies": {
     "@types/express": "^4.17.14 || ^5.x"
