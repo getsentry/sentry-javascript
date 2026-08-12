@@ -59,7 +59,7 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
     // Every db span nests under the native instrumentation-API http.server transaction.
     const rootSpanId = transactionEvent.contexts?.trace?.span_id;
     const spanIds = new Set([rootSpanId, ...spans.map(span => span.span_id)]);
-    const dbSpans = spans.filter(span => span.op === 'db');
+    const dbSpans = spans.filter(span => span.origin === 'auto.db.redis');
     expect(dbSpans.every(span => typeof span.parent_span_id === 'string' && spanIds.has(span.parent_span_id))).toBe(
       true,
     );

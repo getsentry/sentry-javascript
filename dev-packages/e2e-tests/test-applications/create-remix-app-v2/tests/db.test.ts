@@ -21,25 +21,27 @@ test.describe('orchestrion DB instrumentation', () => {
 
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'set test-key [1 other arguments]',
         status: 'ok',
         data: expect.objectContaining({
-          'db.system': 'redis',
-          'db.statement': 'set test-key [1 other arguments]',
+          'db.system.name': 'redis',
+          'db.operation.name': 'set',
+          'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
     );
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'get test-key',
         status: 'ok',
         data: expect.objectContaining({
-          'db.system': 'redis',
-          'db.statement': 'get test-key',
+          'db.system.name': 'redis',
+          'db.operation.name': 'get',
+          'db.query.text': 'get test-key',
         }),
       }),
     );
