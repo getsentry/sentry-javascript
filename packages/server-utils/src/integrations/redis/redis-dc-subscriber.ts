@@ -9,9 +9,10 @@ import {
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import type { RedisCacheOptions } from './redis-cache';
+import { applyRedisCacheAttributes } from './redis-cache';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
@@ -86,20 +87,6 @@ export interface RedisConnectData {
 }
 
 /**
- * Optional callback invoked once the redis command response arrives. Useful
- * for attaching response-derived attributes (e.g. cache hit/miss, payload size).
- *
- * Mirrors `@opentelemetry/instrumentation-ioredis`' response hook so existing
- * Sentry node code (`cacheResponseHook`) can be reused unchanged.
- */
-export type RedisDiagnosticChannelResponseHook = (
-  span: Span,
-  cmdName: string,
-  cmdArgs: string[],
-  result: unknown,
-) => void;
-
-/**
  * Platform-provided factory that creates a native tracing channel for the given name. The
  * subscriber binds the span and its lifecycle onto the channel via `bindTracingChannelToSpan`,
  * which propagates the active span through the runtime's async context.
@@ -119,15 +106,15 @@ export type RedisTracingChannelFactory = <T extends object>(name: string) => Tra
  */
 export function subscribeRedisDiagnosticChannels(
   tracingChannel: RedisTracingChannelFactory,
-  responseHook?: RedisDiagnosticChannelResponseHook,
+  cacheOptions: RedisCacheOptions = {},
 ): void {
   // node-redis: command name appears as args[0] in the channel payload, so
-  // strip it before the statement and response hook see it.
+  // strip it before the statement and cache handling see it.
   setupCommandChannel<RedisCommandData>(
     tracingChannel,
     REDIS_DC_CHANNEL_COMMAND,
     data => data.args.slice(1),
-    responseHook,
+    cacheOptions,
   );
   setupBatchChannel(tracingChannel, REDIS_DC_CHANNEL_BATCH, data =>
     data.batchMode === 'PIPELINE' ? 'PIPELINE' : 'MULTI',
@@ -136,7 +123,7 @@ export function subscribeRedisDiagnosticChannels(
   // ioredis: args already exclude the command name; no slicing needed. And
   // ioredis has no separate batch channel — pipeline/MULTI metadata rides
   // on the per-command payload via `batchMode`/`batchSize`.
-  setupCommandChannel<IORedisCommandData>(tracingChannel, IOREDIS_DC_CHANNEL_COMMAND, data => data.args, responseHook);
+  setupCommandChannel<IORedisCommandData>(tracingChannel, IOREDIS_DC_CHANNEL_COMMAND, data => data.args, cacheOptions);
   setupConnectChannel(tracingChannel, IOREDIS_DC_CHANNEL_CONNECT);
 }
 
@@ -144,7 +131,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
   tracingChannel: RedisTracingChannelFactory,
   channelName: string,
   getCommandArgs: (data: T) => string[],
-  responseHook?: RedisDiagnosticChannelResponseHook,
+  cacheOptions: RedisCacheOptions,
 ): void {
   bindTracingChannelToSpan(
     tracingChannel<T>(channelName),
@@ -170,7 +157,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
     {
       beforeSpanEnd(span, data) {
         if ('error' in data) return;
-        runResponseHook(responseHook, span, data.command, getCommandArgs(data), data.result);
+        applyRedisCacheAttributes(span, data.command, getCommandArgs(data), data.result, cacheOptions);
       },
     },
   );
@@ -211,19 +198,4 @@ function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channel
       },
     });
   });
-}
-
-function runResponseHook(
-  hook: RedisDiagnosticChannelResponseHook | undefined,
-  span: Span,
-  command: string,
-  args: string[],
-  result: unknown,
-): void {
-  if (!hook) return;
-  try {
-    hook(span, command, args, result);
-  } catch {
-    // never let user hooks break instrumentation
-  }
 }

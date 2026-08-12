@@ -28,6 +28,8 @@ import {
 } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
+import type { RedisCacheOptions } from './redis-cache';
+import { applyRedisCacheAttributes } from './redis-cache';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { redisModuleNames } from '../../orchestrion/config/redis';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -45,12 +47,7 @@ const ORIGIN = 'auto.db.redis';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_REDIS = 'redis';
 
-/** Mirrors `@opentelemetry/instrumentation-redis`' response hook. Not called for failed commands. */
-export type RedisResponseHook = (span: Span, command: string, args: Array<string | Buffer>, result: unknown) => void;
-
-export interface RedisChannelIntegrationOptions {
-  responseHook?: RedisResponseHook;
-}
+export interface RedisChannelIntegrationOptions extends RedisCacheOptions {}
 
 /** Structural type for a node-redis (`@redis/client`) command definition. */
 interface RedisCommandDefinition {
@@ -90,23 +87,6 @@ function endSpan(span: Span, err: unknown): void {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: err instanceof Error ? err.message : String(err) });
   }
   span.end();
-}
-
-function runResponseHook(
-  hook: RedisResponseHook | undefined,
-  span: Span,
-  command: string,
-  args: Array<string | Buffer>,
-  result: unknown,
-): void {
-  if (!hook) {
-    return;
-  }
-  try {
-    hook(span, command, args, result);
-  } catch {
-    // never let a user-provided response hook break instrumentation
-  }
 }
 
 // Strip a leading `commandOptions(...)` object (tagged with a `Symbol`) before
@@ -161,7 +141,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
 
 // Settles via `command_obj.callback`, not the sync return — so instead of
 // `bindTracingChannelToSpan` we open the span in `start`, wrap the callback to end it, and end on `error` for sync throws.
-function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined): void {
+function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext>(CHANNELS.REDIS_COMMAND);
   const noop = (): void => {};
   channel.subscribe({
@@ -197,7 +177,7 @@ function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined
       const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
-          runResponseHook(responseHook, span, command.command, command.args ?? [], reply);
+          applyRedisCacheAttributes(span, command.command, command.args ?? [], reply, cacheOptions);
         }
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
@@ -220,7 +200,7 @@ function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined
 function bindNodeRedisCommandChannel(
   channelName: string,
   getWireArgs: (data: CommandContext) => Array<string | Buffer> | undefined,
-  responseHook: RedisResponseHook | undefined,
+  cacheOptions: RedisCacheOptions,
 ): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
   bindTracingChannelToSpan(
@@ -236,12 +216,12 @@ function bindNodeRedisCommandChannel(
     },
     {
       beforeSpanEnd(span, data) {
-        if ('error' in data || !responseHook) {
+        if ('error' in data) {
           return;
         }
         const wireArgs = getWireArgs(data);
         if (wireArgs?.length) {
-          runResponseHook(responseHook, span, String(wireArgs[0]), wireArgs.slice(1), data.result);
+          applyRedisCacheAttributes(span, String(wireArgs[0]), wireArgs.slice(1), data.result, cacheOptions);
         }
       },
     },
@@ -328,21 +308,19 @@ const _redisIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
       }
 
       waitForTracingChannelBinding(() => {
-        subscribeRedisDiagnosticChannels(diagnosticsChannel.tracingChannel, options.responseHook);
+        subscribeRedisDiagnosticChannels(diagnosticsChannel.tracingChannel, options);
       });
     },
   };
 }) satisfies IntegrationFn;
 
 function instrumentLegacyRedis(options: RedisChannelIntegrationOptions): void {
-  subscribeLegacyRedisCommand(options.responseHook);
+  subscribeLegacyRedisCommand(options);
 }
 
 function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
-  const responseHook = options.responseHook;
-
-  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
-  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, options);
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, options);
   bindNodeRedisConnectChannel();
   bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
   bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');

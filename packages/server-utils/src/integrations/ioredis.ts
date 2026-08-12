@@ -8,6 +8,8 @@ import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
 import { defaultDbStatementSerializer } from './redis/redis-statement-serializer';
+import type { RedisCacheOptions } from './redis/redis-cache';
+import { applyRedisCacheAttributes } from './redis/redis-cache';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { ioredisModuleNames } from '../orchestrion/config/ioredis';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -22,12 +24,7 @@ const ORIGIN = 'auto.db.redis';
 // todo(v11): Let's drop this as this is already covered with host and port
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 
-/** Mirrors `@opentelemetry/instrumentation-ioredis`' response hook. Not called for failed commands. */
-export type IORedisResponseHook = (span: Span, command: string, args: Array<string | Buffer>, result: unknown) => void;
-
-export interface IORedisChannelIntegrationOptions {
-  responseHook?: IORedisResponseHook;
-}
+export interface IORedisChannelIntegrationOptions extends RedisCacheOptions {}
 
 /** Structural type for the command object ioredis passes to `sendCommand`. */
 interface RedisCommand {
@@ -102,8 +99,6 @@ const _ioredisChannelIntegration = ((options: IORedisChannelIntegrationOptions =
 }) satisfies IntegrationFn;
 
 function instrumentIoredis(options: IORedisChannelIntegrationOptions): void {
-  const responseHook = options.responseHook;
-
   const commandChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
     CHANNELS.IOREDIS_COMMAND,
   );
@@ -115,12 +110,12 @@ function instrumentIoredis(options: IORedisChannelIntegrationOptions): void {
     // ioredis' `requireParentSpan` default: only create a span under an active span.
     requiresParentSpan: true,
     beforeSpanEnd(span, data) {
-      if ('error' in data || !responseHook) {
+      if ('error' in data) {
         return;
       }
       const command = data.arguments?.[0] as RedisCommand | undefined;
       if (command) {
-        runResponseHook(responseHook, span, command, data.result);
+        applyRedisCacheAttributes(span, command.name, command.args, data.result, options);
       }
     },
   });
@@ -137,14 +132,6 @@ function instrumentIoredis(options: IORedisChannelIntegrationOptions): void {
     },
     { requiresParentSpan: true },
   );
-}
-
-function runResponseHook(hook: IORedisResponseHook, span: Span, command: RedisCommand, result: unknown): void {
-  try {
-    hook(span, command.name, command.args, result);
-  } catch {
-    // never let a user-provided response hook break instrumentation
-  }
 }
 
 /**
