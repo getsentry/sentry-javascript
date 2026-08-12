@@ -69,11 +69,3 @@ export interface CompiledGraph {
   };
   builder?: StateGraphBuilder;
 }
-
-/**
- * LangGraph Integration interface for type safety
- */
-export interface LangGraphIntegration {
-  name: string;
-  options: LangGraphOptions;
-}

@@ -31,7 +31,7 @@ test('sends an error', async ({ page }) => {
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const errorPromise = waitForError('ember-classic', async errorEvent => {

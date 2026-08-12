@@ -33,7 +33,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
+import { SPAN_TO_OPERATION_NAME, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -410,15 +410,6 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   span.setAttribute(GEN_AI_OPERATION_NAME, 'execute_tool');
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
-
-  // Store the span context in our global map using the tool call ID.
-  // This allows us to capture tool errors and link them to the correct span
-  // without retaining the full Span object in memory.
-  const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
-
-  if (typeof toolCallId === 'string') {
-    toolCallSpanContextMap.set(toolCallId, span.spanContext());
-  }
 
   const toolName = attributes[GEN_AI_TOOL_NAME];
   if (toolName) {

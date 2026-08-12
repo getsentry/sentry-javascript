@@ -147,8 +147,8 @@ describe('Supabase Integration', () => {
   });
 
   describe('extractOperation', () => {
-    it('returns select for GET', () => {
-      expect(extractOperation('GET')).toBe('select');
+    it.each(['GET', 'QUERY'])('returns select for %s', method => {
+      expect(extractOperation(method)).toBe('select');
     });
 
     it('returns insert for POST without resolution header', () => {

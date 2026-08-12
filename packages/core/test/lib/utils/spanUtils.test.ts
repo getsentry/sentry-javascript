@@ -342,12 +342,12 @@ describe('spanToStaticSpanJSON', () => {
         spanId: '5678',
         traceId: 'abcd',
         startTimestamp: 123,
-        endTimestamp: 456,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
         },
       });
       span.setStatus({ code: SPAN_STATUS_OK });
+      span.end(456);
 
       expect(spanToStaticSpanJSON(span)).toEqual({
         description: 'test name',
@@ -450,7 +450,6 @@ describe('spanToStaticSpanJSON', () => {
           spanId: '5678',
           traceId: 'abcd',
           startTimestamp: 123,
-          endTimestamp: 456,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
             attr1: 'value1',
@@ -472,6 +471,7 @@ describe('spanToStaticSpanJSON', () => {
         });
         span.setStatus({ code: SPAN_STATUS_OK });
         span.setAttribute('attr4', [1, 2, 3]);
+        span.end(456);
 
         expect(spanToJSON(span)).toEqual({
           name: 'test name',

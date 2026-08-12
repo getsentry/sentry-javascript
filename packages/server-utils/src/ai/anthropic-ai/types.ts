@@ -49,27 +49,6 @@ type SuccessfulResponse = {
 export type AnthropicAiResponse = SuccessfulResponse | MessageError;
 
 /**
- * Basic interface for Anthropic AI client with only the instrumented methods
- * This provides type safety while being generic enough to work with different client implementations
- */
-export interface AnthropicAiClient {
-  messages?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-  };
-  completions?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-  };
-}
-
-/**
- * Anthropic AI Integration interface for type safety
- */
-export interface AnthropicAiIntegration {
-  name: string;
-  options: AnthropicAiOptions;
-}
-
-/**
  * Message type for Anthropic AI
  */
 export type AnthropicAiMessage = {

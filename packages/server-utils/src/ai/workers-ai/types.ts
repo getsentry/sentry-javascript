@@ -4,16 +4,6 @@ import type { GenAiOptions } from '../core/utils';
 export type WorkersAiOptions = GenAiOptions;
 
 /**
- * Minimal shape of the Cloudflare Workers AI binding (`env.AI`).
- * We only rely on the `run` method, everything else is passed through untouched.
- * @see https://developers.cloudflare.com/workers-ai/configuration/bindings/
- */
-export interface WorkersAiClient {
-  run: (model: string, inputs: Record<string, unknown>, options?: Record<string, unknown>) => Promise<unknown>;
-  [key: string]: unknown;
-}
-
-/**
  * The token usage reported by Workers AI text generation models.
  */
 export interface WorkersAiUsage {
