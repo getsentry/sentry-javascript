@@ -17,12 +17,21 @@ test('should capture error with trpc context', async ({ page }) => {
   expect(trpcError.contexts?.trpc?.procedure_path).toBe('post.throwError');
   expect(trpcError.contexts?.trpc?.input).toEqual({ name: 'I love dogs' });
 
-  expect(trpcError.exception?.values?.[0]?.mechanism).toEqual({
-    handled: false,
-    type: 'auto.rpc.trpc.middleware',
+  const exceptionValues = trpcError.exception?.values;
+  expect(exceptionValues).toHaveLength(2);
+  expect(exceptionValues?.[0]?.type).toBe('Error');
+  expect(exceptionValues?.[0]?.value).toBe('Error thrown in trpc router');
+  expect(exceptionValues?.[0]?.mechanism).toEqual({
+    handled: true,
+    type: 'chained',
     exception_id: 1,
     parent_id: 0,
     source: 'cause',
+  });
+  expect(exceptionValues?.[1]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.rpc.trpc.middleware',
+    exception_id: 0,
   });
 });
 

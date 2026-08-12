@@ -52,10 +52,10 @@ test.describe('route handler errors', () => {
     expect(firstCause?.value).toBe('Failure 1');
     expect(firstCause?.mechanism).toEqual({
       exception_id: 2,
-      handled: false,
+      handled: true,
       parent_id: 1,
       source: 'cause',
-      type: 'auto.http.hono.context_error', // should be 'chained' (general issue with LinkedErrors)
+      type: 'chained',
     });
 
     const secondCause = errorEvent.exception?.values?.[1];
@@ -72,8 +72,8 @@ test.describe('route handler errors', () => {
     expect(capturedError?.value).toBe('Failure 3');
     expect(capturedError?.mechanism).toEqual({
       exception_id: 0,
-      handled: true,
-      type: 'generic', // should be 'auto.http.hono.context_error' (general issue with LinkedErrors)
+      handled: false,
+      type: 'auto.http.hono.context_error',
     });
 
     expect(errorEvent.transaction).toBe('GET /linked-error');
