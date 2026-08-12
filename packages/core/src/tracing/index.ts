@@ -5,7 +5,7 @@ export {
   markSpanAsTracerProviderSpan,
   spanIsTracerProviderSpan,
 } from './utils';
-export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
+export { TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { _INTERNAL_setDeferSegmentSpanCapture } from './deferSegmentSpanCapture';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -17,6 +17,9 @@ export {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
 } from './spanstatus';
+// Note: `startSpan`, `startInactiveSpan`, `startSpanManual` and `startIdleSpan` are deliberately
+// not re-exported here. They exist in a plain variant (`server-exports`) and a span-streaming-aware
+// variant (`browser-exports`) under the same name — see `browser-exports.ts` for why.
 export {
   startSpan,
   startInactiveSpan,

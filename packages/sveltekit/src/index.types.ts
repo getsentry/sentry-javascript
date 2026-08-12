@@ -47,6 +47,12 @@ export declare function wrapLoadWithSentry<T extends (...args: any) => any>(orig
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
+// The client entry serves the `@sentry/core/browser` span-start APIs, which install span streaming
+// on first use; the server entry serves the plain `@sentry/core` ones. Same signatures, but the
+// star exports above are ambiguous without these.
+export declare const startSpan: typeof clientSdk.startSpan;
+export declare const startSpanManual: typeof clientSdk.startSpanManual;
+export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;
 export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
 // oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;

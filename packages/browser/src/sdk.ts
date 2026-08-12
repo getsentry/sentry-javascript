@@ -7,6 +7,7 @@ import {
   getIntegrationsToSetup,
   initAndBind,
   setNormalizeStringifier,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core/browser';
 import type { BrowserClientOptions, BrowserOptions } from './client';
@@ -19,10 +20,6 @@ import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
-import {
-  spanStreamingIntegration,
-  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
-} from './integrations/spanstreaming';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
@@ -122,7 +119,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   if (
     (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
     options.traceLifecycle !== 'static' &&
-    !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
+    !integrations.some(integration => integration.name === 'SpanStreaming')
   ) {
     integrations.push(spanStreamingIntegration());
   }
