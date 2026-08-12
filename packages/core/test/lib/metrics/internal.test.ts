@@ -41,21 +41,6 @@ describe('_INTERNAL_captureMetric', () => {
     );
   });
 
-  it('does not capture metrics when enableMetrics is not enabled', () => {
-    const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableMetrics: false });
-    const client = new TestClient(options);
-    const scope = new Scope();
-    scope.setClient(client);
-
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
-
-    expect(logWarnSpy).toHaveBeenCalledWith('metrics option not enabled, metric will not be captured.');
-    expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
-
-    logWarnSpy.mockRestore();
-  });
-
   it('includes trace context when available', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);

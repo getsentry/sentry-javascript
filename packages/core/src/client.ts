@@ -295,18 +295,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
-    const enableMetrics = this._options.enableMetrics ?? true;
-
     // Setup metric flushing with weight and timeout tracking
-    if (enableMetrics) {
-      setupWeightBasedFlushing(
-        this,
-        'afterCaptureMetric',
-        'flushMetrics',
-        estimateMetricSizeInBytes,
-        _INTERNAL_flushMetricsBuffer,
-      );
-    }
+    setupWeightBasedFlushing(
+      this,
+      'afterCaptureMetric',
+      'flushMetrics',
+      estimateMetricSizeInBytes,
+      _INTERNAL_flushMetricsBuffer,
+    );
   }
 
   /**
