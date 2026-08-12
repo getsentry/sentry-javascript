@@ -25,8 +25,8 @@ test.describe('server-side errors', async () => {
     expect(exception0.type).toEqual('Error');
     expect(exception0.value).toEqual('Nuxt 3 Server error');
     expect(exception0.mechanism).toEqual({
-      handled: false,
-      type: 'auto.function.nuxt.nitro',
+      handled: true,
+      type: 'chained',
       exception_id: 1,
       parent_id: 0,
       source: 'cause',
@@ -34,8 +34,11 @@ test.describe('server-side errors', async () => {
 
     expect(exception1.type).toEqual('Error');
     expect(exception1.value).toEqual('Nuxt 3 Server error');
-    // TODO: This isn't correct but requires adjustment in the core SDK
-    expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });
+    expect(exception1.mechanism).toEqual({
+      handled: false,
+      type: 'auto.function.nuxt.nitro',
+      exception_id: 0,
+    });
 
     expect(error.tags?.['my-isolated-tag']).toBe(true);
     expect(error.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
@@ -82,8 +85,8 @@ test.describe('server-side errors', async () => {
     expect(exception0.type).toEqual('Error');
     expect(exception0.value).toEqual('Nuxt 3 Param Server error');
     expect(exception0.mechanism).toEqual({
-      handled: false,
-      type: 'auto.function.nuxt.nitro',
+      handled: true,
+      type: 'chained',
       exception_id: 1,
       parent_id: 0,
       source: 'cause',
@@ -91,7 +94,10 @@ test.describe('server-side errors', async () => {
 
     expect(exception1.type).toEqual('Error');
     expect(exception1.value).toEqual('Nuxt 3 Param Server error');
-    // TODO: This isn't correct but requires adjustment in the core SDK
-    expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });
+    expect(exception1.mechanism).toEqual({
+      handled: false,
+      type: 'auto.function.nuxt.nitro',
+      exception_id: 0,
+    });
   });
 });

@@ -175,14 +175,14 @@
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off"
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/services/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/services/**/*.ts"],
       "rules": {
         "max-lines": "off",
         "complexity": "off"

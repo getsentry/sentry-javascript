@@ -784,6 +784,27 @@ describe('startSpan', () => {
       });
     });
 
+    it('passes a `sentry.op` attribute to the tracesSampler when `op` is set', () => {
+      tracesSampler.mockReturnValueOnce(true);
+
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer', op: 'test.op', attributes: { test1: 'aa' } }, () => {});
+
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          'sentry.op': 'test.op',
+          test1: 'aa',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
+    });
+
     it.each([false, 0])('returns a negative sampling decision if tracesSampler returns %s', tracesSamplerResult => {
       tracesSampler.mockReturnValueOnce(tracesSamplerResult);
 
