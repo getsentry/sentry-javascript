@@ -105,23 +105,8 @@ function getContextWithRemoteActiveSpan(
 }
 
 /**
- * Takes trace strings and propagates them as a remote active span.
- * This should be used in addition to `continueTrace` in OTEL-powered environments.
- */
-export function continueTraceAsRemoteSpan<T>(
-  ctx: Context,
-  options: Parameters<typeof continueTrace>[0],
-  callback: () => T,
-): T {
-  const ctxWithSpanContext = getContextWithRemoteActiveSpanAndScopes(ctx, options);
-
-  return context.with(ctxWithSpanContext, callback);
-}
-
-/**
  * Build a context that continues an incoming trace as a remote active span, with scopes ensured.
- * Unlike `continueTraceAsRemoteSpan`, this returns the context instead of running a callback within it,
- * so it can be used to implement an OpenTelemetry propagator's `extract`.
+ * Returns the context so it can be used to implement an OpenTelemetry propagator's `extract`.
  */
 function getContextWithRemoteActiveSpanAndScopes(ctx: Context, options: Parameters<typeof continueTrace>[0]): Context {
   const ctxWithRemoteSpan = getContextWithRemoteActiveSpan(ctx, options);
