@@ -21,7 +21,7 @@ import { openAIIntegration } from '../integrations/openai';
 import { postgresIntegration } from '../integrations/postgres';
 import { postgresJsIntegration } from '../integrations/postgres-js';
 import { tediousIntegration } from '../integrations/tedious';
-import { vercelAiIntegration } from '../integrations/vercel-ai';
+import { vercelAIIntegration } from '../integrations/vercel-ai';
 import { expressIntegration } from '../integrations/express';
 import { firebaseIntegration } from '../integrations/firebase';
 
@@ -61,7 +61,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-  vercelAiIntegration,
+  vercelAIIntegration,
   expressIntegration,
   firebaseIntegration,
 };
@@ -103,7 +103,7 @@ export const channelIntegrations = {
   googleGenAIIntegration,
   langChainIntegration,
   langGraphIntegration,
-  vercelAiIntegration,
+  vercelAIIntegration,
   amqplibIntegration,
   hapiIntegration,
   koaIntegration,

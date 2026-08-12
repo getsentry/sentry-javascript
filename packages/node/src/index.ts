@@ -28,7 +28,7 @@ export {
   postgresJsIntegration,
   redisIntegration,
   tediousIntegration,
-  vercelAiIntegration as vercelAIIntegration,
+  vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
 export {
   otlpIntegration,

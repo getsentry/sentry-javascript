@@ -23,7 +23,7 @@ import {
   postgresJsIntegration,
   redisIntegration,
   tediousIntegration,
-  vercelAiIntegration,
+  vercelAIIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { fastifyIntegration } from './fastify';
 
@@ -50,7 +50,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
     langGraphIntegration(),
-    vercelAiIntegration(),
+    vercelAIIntegration(),
     openAIIntegration(),
     anthropicIntegration(),
     googleGenAIIntegration(),

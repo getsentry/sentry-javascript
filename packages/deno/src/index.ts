@@ -142,7 +142,6 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-  vercelAiIntegration,
 } from '@sentry/server-utils/orchestrion';
 export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
