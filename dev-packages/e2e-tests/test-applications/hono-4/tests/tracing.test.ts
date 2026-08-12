@@ -89,10 +89,12 @@ test("preserves the baseline client.* and network.* server span attributes that 
 
   if (RUNTIME === 'node') {
     expect(data['server.address']).toBe('localhost');
-    expect(data['network.transport']).toBe('tcp');
-    expect(data['network.local.address']).toEqual(expect.any(String));
-    expect(data['network.peer.address']).toEqual(expect.any(String));
-    expect(data['network.peer.port']).toEqual(expect.any(Number));
+    // `@hono/node-server` converts requests to Fetch before the SDK receives them,
+    // so its baseline spans do not expose socket metadata. `getConnInfo` adds it above.
+    expect(data['network.transport']).toBeUndefined();
+    expect(data['network.local.address']).toBeUndefined();
+    expect(data['network.peer.address']).toBeUndefined();
+    expect(data['network.peer.port']).toBeUndefined();
   } else if (RUNTIME === 'bun') {
     // Doesn't expose connection metadata through Bun.serve
   } else if (RUNTIME === 'cloudflare') {
