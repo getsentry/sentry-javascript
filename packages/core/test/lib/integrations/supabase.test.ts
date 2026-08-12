@@ -3,10 +3,15 @@ import * as breadcrumbModule from '../../../src/breadcrumbs';
 import * as exportsModule from '../../../src/exports';
 import {
   extractOperation,
+  getHeader,
   instrumentSupabaseClient,
   translateFiltersIntoMethods,
 } from '../../../src/integrations/supabase';
-import type { PostgRESTQueryBuilder, SupabaseClientInstance } from '../../../src/integrations/supabase';
+import type {
+  PostgRESTHeaders,
+  PostgRESTQueryBuilder,
+  SupabaseClientInstance,
+} from '../../../src/integrations/supabase';
 import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 
 const tracingMocks = vi.hoisted(() => ({
@@ -39,6 +44,8 @@ type CreateMockSupabaseClientOptions = {
   method?: string;
   url?: URL | string;
   body?: unknown;
+  /** Defaults to the plain-object shape used by `postgrest-js` v1. Pass a `Headers` instance to emulate v2. */
+  headers?: PostgRESTHeaders;
   /** When set, configures the mocked Sentry client's `dataCollection.databaseQueryData`. Omit to leave `getClient` to the test file `beforeEach`. */
   dataCollectionDatabaseQueryData?: boolean;
 };
@@ -67,10 +74,11 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
         : new URL(options.url)
       : new URL(DEFAULT_MOCK_SUPABASE_REST_URL);
   const body = options?.body;
+  const headers = options?.headers ?? { 'X-Client-Info': 'supabase-js/2.0.0' };
 
   class MockPostgRESTFilterBuilder {
     method = method;
-    headers: Record<string, string> = { 'X-Client-Info': 'supabase-js/2.0.0' };
+    headers: PostgRESTHeaders = headers;
     url = requestUrl;
     schema = 'public';
     body = body;
@@ -116,6 +124,28 @@ describe('Supabase Integration', () => {
     currentScopesMocks.getClient.mockReturnValue(undefined);
   });
 
+  describe('getHeader', () => {
+    it('reads a header off a plain object', () => {
+      expect(getHeader({ 'X-Client-Info': 'supabase-js/2.0.0' }, 'X-Client-Info')).toBe('supabase-js/2.0.0');
+    });
+
+    it('reads a header off a Headers instance', () => {
+      expect(getHeader(new Headers({ 'X-Client-Info': 'supabase-js/2.112.0' }), 'X-Client-Info')).toBe(
+        'supabase-js/2.112.0',
+      );
+    });
+
+    it('looks up plain object headers case-insensitively', () => {
+      expect(getHeader({ prefer: 'resolution=merge-duplicates' }, 'Prefer')).toBe('resolution=merge-duplicates');
+    });
+
+    it('returns undefined for unset headers', () => {
+      expect(getHeader({ Prefer: 'count=exact' }, 'X-Client-Info')).toBeUndefined();
+      expect(getHeader(new Headers({ Prefer: 'count=exact' }), 'X-Client-Info')).toBeUndefined();
+      expect(getHeader(undefined, 'X-Client-Info')).toBeUndefined();
+    });
+  });
+
   describe('extractOperation', () => {
     it('returns select for GET', () => {
       expect(extractOperation('GET')).toBe('select');
@@ -127,6 +157,10 @@ describe('Supabase Integration', () => {
 
     it('returns upsert for POST with resolution header', () => {
       expect(extractOperation('POST', { Prefer: 'resolution=merge-duplicates' })).toBe('upsert');
+    });
+
+    it('returns upsert for POST with resolution header on a Headers instance', () => {
+      expect(extractOperation('POST', new Headers({ Prefer: 'resolution=merge-duplicates' }))).toBe('upsert');
     });
 
     it('returns update for PATCH', () => {
@@ -431,6 +465,55 @@ describe('Supabase Integration', () => {
       expect(spanOptions.name).toMatch(/^insert\(\.\.\.\)/);
       expect(spanOptions.name).toContain('from(todos)');
       expect(spanOptions.attributes['db.body']).toEqual([{ title: 'Test Todo' }]);
+    });
+  });
+
+  describe.each([
+    ['plain object headers', (init: Record<string, string>): PostgRESTHeaders => init],
+    ['Headers instance', (init: Record<string, string>): PostgRESTHeaders => new Headers(init)],
+  ])('%s', (_name, createHeaders) => {
+    beforeEach(() => {
+      vi.spyOn(breadcrumbModule, 'addBreadcrumb').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('sets db.sdk from X-Client-Info', async () => {
+      tracingMocks.startSpan.mockClear();
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        { headers: createHeaders({ 'X-Client-Info': 'supabase-js/2.112.0' }) },
+      );
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').select().then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as { attributes: Record<string, unknown> };
+      expect(spanOptions.attributes['db.sdk']).toBe('supabase-js/2.112.0');
+    });
+
+    it('detects upsert from the Prefer header', async () => {
+      tracingMocks.startSpan.mockClear();
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        {
+          method: 'POST',
+          body: { title: 'Test Todo' },
+          headers: createHeaders({ Prefer: 'resolution=merge-duplicates' }),
+        },
+      );
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').upsert({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toMatch(/^upsert\(\.\.\.\)/);
+      expect(spanOptions.attributes['db.operation']).toBe('upsert');
     });
   });
 });

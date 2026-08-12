@@ -880,8 +880,10 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        reactComponentAnnotation: {
-          enabled: true,
+        webpack: {
+          reactComponentAnnotation: {
+            enabled: true,
+          },
         },
       };
 
@@ -970,27 +972,6 @@ describe('getBuildPluginOptions', () => {
           disable: false,
         }),
       });
-    });
-  });
-
-  describe('applicationKey is not forwarded to webpack plugin', () => {
-    it('does not include turbopackApplicationKey in webpack plugin options', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        _experimental: { turbopackApplicationKey: 'my-app' },
-      };
-
-      const result = getBuildPluginOptions({
-        sentryBuildOptions,
-        releaseName: mockReleaseName,
-        distDirAbsPath: mockDistDirAbsPath,
-        buildTool: 'webpack-client',
-      });
-
-      // turbopackApplicationKey should only be used by the Turbopack loader,
-      // not forwarded to the webpack plugin
-      expect(result.applicationKey).toBeUndefined();
     });
   });
 

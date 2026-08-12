@@ -3,6 +3,7 @@ import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core/brow
 import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 import { matchRouteManifest, stripBasenameFromPathname } from './route-manifest';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
@@ -375,7 +376,7 @@ export function getActiveRootSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

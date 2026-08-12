@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Contexts, StreamedSpanJSON } from '../../../../src';
+import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
+  debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -13,13 +14,18 @@ import {
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
+  spanStreamingIntegration,
   startInactiveSpan,
   startSpan,
   withStaticSpan,
   withScope,
 } from '../../../../src';
-import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
+import {
+  captureStandaloneSpanWithStaticCallback,
+  safeSetSpanJSONAttributes,
+} from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
+import type { TestClientOptions } from '../../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 import {
   SENTRY_SEGMENT_ID,
@@ -540,6 +546,137 @@ describe('captureSpan', () => {
 
       consoleWarnSpy.mockRestore();
     });
+
+    it('keeps the span and logs an error if the beforeSendSpan callback throws', () => {
+      const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+      const error = new Error('beforeSendSpan is broken');
+      // A v10 callback that was not migrated to the streamed format throws like this, because
+      // `data` doesn't exist on a `StreamedSpanJSON`.
+      const beforeSendSpan = vi.fn(() => {
+        throw error;
+      });
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          beforeSendSpan: beforeSendSpan as unknown as TestClientOptions['beforeSendSpan'],
+        }),
+      );
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.name).toBe('my-span');
+      expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+        error,
+      );
+
+      debugErrorSpy.mockRestore();
+    });
+
+    it("doesn't let a throwing beforeSendSpan callback propagate out of span.end()", () => {
+      const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          integrations: [spanStreamingIntegration()],
+          beforeSendSpan: (() => {
+            throw new Error('beforeSendSpan is broken');
+          }) as unknown as TestClientOptions['beforeSendSpan'],
+        }),
+      );
+
+      // Spans are captured synchronously from the `afterSpanEnd` hook, so a throwing callback
+      // would otherwise surface in user code that ended the span.
+      expect(() =>
+        withScope(scope => {
+          scope.setClient(client);
+          client.init();
+          startSpan({ name: 'my-span' }, () => undefined);
+        }),
+      ).not.toThrow();
+
+      debugErrorSpy.mockRestore();
+    });
+  });
+});
+
+describe('captureStandaloneSpanWithStaticCallback', () => {
+  it('applies a static beforeSendSpan callback', () => {
+    const beforeSendSpan = withStaticSpan(vi.fn(span => span));
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'staging',
+        traceLifecycle: 'static',
+        beforeSendSpan,
+      }),
+    );
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      span.end();
+      return span;
+    });
+
+    // @ts-expect-error - this is fine because withStaticSpan intentionally lies about its return type
+    const serialized = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
+
+    expect(beforeSendSpan).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
+
+    expect(serialized.name).toBe('my-span');
+    expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+  });
+
+  it("doesn't throw if the beforeSendSpan callback throws", () => {
+    const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+
+    const error = new Error('beforeSendSpan is broken');
+    const beforeSendSpan = vi.fn(() => {
+      throw error;
+    });
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+      }),
+    );
+
+    const span = withScope(scope => {
+      let span: Span | undefined;
+
+      expect(() => {
+        scope.setClient(client);
+        span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+      }).not.toThrow();
+
+      return span;
+    });
+
+    expect(() => captureStandaloneSpanWithStaticCallback(span!, client, beforeSendSpan)).not.toThrow();
+    expect(debugErrorSpy).toHaveBeenCalledWith(
+      'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+      error,
+    );
+
+    debugErrorSpy.mockRestore();
   });
 });
 

@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_FUNCTION_ID,
   GEN_AI_INPUT_MESSAGES,
@@ -20,12 +21,10 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL_SPAN_OP, GEN_AI_INVOKE_AGENT_SPAN_OP } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   getClient,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -37,6 +36,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
+import type { GenAiOptions } from '../ai/core/utils';
 import { getProviderMetadataAttributes } from '../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -56,6 +56,8 @@ const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
 const GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE = 'gen_ai.tool.description';
 const GEN_AI_EMBEDDINGS_OPERATION = 'embeddings';
 const GEN_AI_RERANK_OPERATION = 'rerank';
+const GEN_AI_INVOKE_AGENT_OPERATION = 'invoke_agent';
+const GEN_AI_EXECUTE_TOOL_OPERATION = 'execute_tool';
 // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
 // the generic `gen_ai.chat`, so v6 (OTel) and v7 (channel) produce the same spans.
 const GEN_AI_GENERATE_CONTENT_OPERATION = 'generate_content';
@@ -197,10 +199,7 @@ export interface VercelAiChannelMessage {
 export type VercelAiTracingChannelFactory = <T extends object>(name: string) => TracingChannel<T, T>;
 
 /** Integration-level recording options, pinned at subscribe time so we never look the integration up per event. */
-export interface VercelAiChannelOptions {
-  recordInputs?: boolean;
-  recordOutputs?: boolean;
-}
+export type VercelAiChannelOptions = GenAiOptions;
 
 /**
  * Subscribe Sentry span handlers to the `ai` SDK's native telemetry tracing channel (`ai:telemetry`,
@@ -337,7 +336,7 @@ function addTokensToSpan(span: Span, attribute: string, value: number | undefine
   if (value === undefined) {
     return;
   }
-  const current = spanToJSON(span).data[attribute];
+  const current = spanToJSON(span).attributes[attribute];
   span.setAttribute(attribute, (typeof current === 'number' ? current : 0) + value);
 }
 
@@ -430,7 +429,7 @@ function buildInvokeAgentSpan(
   if (callId) {
     operationIdByCallId.set(callId, { operationId, isStream });
   }
-  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_SPAN_OP, functionId, {
+  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_OPERATION, functionId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
@@ -472,7 +471,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
   // Gated on `recordInputs` to match the OTel path (descriptions come from the recorded tools list).
   const description =
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
-  return startGenAiSpan(GEN_AI_EXECUTE_TOOL_SPAN_OP, toolName, {
+  return startGenAiSpan(GEN_AI_EXECUTE_TOOL_OPERATION, toolName, {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
@@ -555,12 +554,9 @@ export function enrichSpanOnEnd(
   const providerAttributes = getProviderMetadataAttributes(providerMetadata);
   // Don't overwrite a conversation id already set on span start (e.g. by `conversationIdIntegration`
   // from a user-set scope value); the provider-derived id is only a fallback. Matches the OTel path.
-  if (
-    GEN_AI_CONVERSATION_ID_ATTRIBUTE in providerAttributes &&
-    spanToJSON(span).data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]
-  ) {
+  if (GEN_AI_CONVERSATION_ID in providerAttributes && spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID]) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE];
+    delete providerAttributes[GEN_AI_CONVERSATION_ID];
   }
   span.setAttributes(providerAttributes);
 

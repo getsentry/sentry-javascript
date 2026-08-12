@@ -6,12 +6,5 @@ export default defineConfig({
   // The Sentry plugin runs first so its build-time transform wraps the worker
   // entry and the self-bound `GreeterEntrypoint` before the Cloudflare plugin
   // bundles it.
-  plugins: [
-    cloudflare(),
-    sentryCloudflareVitePlugin({
-      _experimental: {
-        autoInstrumentation: true,
-      },
-    }),
-  ],
+  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
 });

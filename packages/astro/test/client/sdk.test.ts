@@ -1,13 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
-import {
-  browserTracingIntegration,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  SDK_VERSION,
-} from '@sentry/browser';
+import { browserTracingIntegration, getActiveSpan, getClient, SDK_VERSION } from '@sentry/browser';
+import { getMainCarrier } from '@sentry/core';
 import * as SentryBrowser from '@sentry/browser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
@@ -19,10 +12,7 @@ describe('Sentry client SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      getCurrentScope().clear();
-      getCurrentScope().setClient(undefined);
-      getIsolationScope().clear();
-      getGlobalScope().clear();
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds Astro metadata to the SDK options', () => {

@@ -1,16 +1,7 @@
-import type { AIRecordingOptions } from '../core/utils';
+import type { GenAiOptions } from '../core/utils';
 
-export interface WorkersAiOptions extends AIRecordingOptions {}
-
-/**
- * Minimal shape of the Cloudflare Workers AI binding (`env.AI`).
- * We only rely on the `run` method, everything else is passed through untouched.
- * @see https://developers.cloudflare.com/workers-ai/configuration/bindings/
- */
-export interface WorkersAiClient {
-  run: (model: string, inputs: Record<string, unknown>, options?: Record<string, unknown>) => Promise<unknown>;
-  [key: string]: unknown;
-}
+/** Options for the Workers AI integration. */
+export type WorkersAiOptions = GenAiOptions;
 
 /**
  * The token usage reported by Workers AI text generation models.

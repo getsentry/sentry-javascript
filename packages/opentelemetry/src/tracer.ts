@@ -11,8 +11,6 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   markSpanAsTracerProviderSpan,
-  markSpanForOtelSourceInference,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   setCapturedScopesOnSpan,
   spanIsIgnored,
@@ -21,7 +19,6 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { applyOtelSpanData } from './applyOtelSpanData';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
@@ -47,10 +44,6 @@ export class SentryTracer implements Tracer {
     // are not marked and keep their mutable behavior.
     markSpanAsTracerProviderSpan(span);
 
-    if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {
-      markSpanForOtelSourceInference(span);
-    }
-    applyOtelSpanData(span);
     return span;
   }
 

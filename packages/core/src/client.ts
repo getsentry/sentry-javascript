@@ -51,11 +51,11 @@ import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { showSpanDropWarning } from './utils/spanUtils';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
+import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -295,9 +295,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
-    // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line typescript/no-deprecated
-    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+    const enableMetrics = this._options.enableMetrics ?? true;
 
     // Setup metric flushing with weight and timeout tracking
     if (enableMetrics) {
@@ -1731,13 +1729,9 @@ function processBeforeSend(
 
       // 1.2 If a `beforeSendSpan` callback is defined, process the root span
       if (beforeSendSpan) {
-        const processedRootSpanJson = beforeSendSpan(rootSpanJson);
-        if (!processedRootSpanJson) {
-          showSpanDropWarning();
-        } else {
-          // update event with processed root span values
-          processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
-        }
+        const processedRootSpanJson = applyBeforeSendSpanCallback(rootSpanJson, beforeSendSpan);
+        // update event with processed root span values
+        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
       }
 
       // 2. Process child spans
@@ -1758,13 +1752,7 @@ function processBeforeSend(
 
           // 2.b If a `beforeSendSpan` callback is defined, process the child span
           if (beforeSendSpan) {
-            const processedSpan = beforeSendSpan(span);
-            if (!processedSpan) {
-              showSpanDropWarning();
-              processedSpans.push(span);
-            } else {
-              processedSpans.push(processedSpan);
-            }
+            processedSpans.push(applyBeforeSendSpanCallback(span, beforeSendSpan));
           } else {
             processedSpans.push(span);
           }

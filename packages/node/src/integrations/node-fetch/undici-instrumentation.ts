@@ -47,6 +47,7 @@ import {
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FRAGMENT,
@@ -216,6 +217,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
     [SENTRY_KIND]: 'client',
+    [SENTRY_OP]: 'http.client',
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
     [URL_FULL]: filterCollectedUrl(requestUrl.toString()),

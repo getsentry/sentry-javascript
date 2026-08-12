@@ -8,6 +8,7 @@ import {
 } from '@sentry/core';
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 type ServerFnMeta = {
   id?: string;
@@ -38,9 +39,9 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
   }): Promise<unknown> {
     const activeSpan = getActiveSpan();
     const spanData = activeSpan ? spanToJSON(activeSpan) : undefined;
-    if (activeSpan && spanData?.origin === 'auto.function.tanstackstart.server') {
+    if (activeSpan && spanData?.attributes[SENTRY_ORIGIN] === 'auto.function.tanstackstart.server') {
       if (serverFnMeta?.name) {
-        const method = spanData.description?.split(' ')[0] || 'GET';
+        const method = spanData.name.split(' ')[0] || 'GET';
         updateSpanName(activeSpan, `${method} /_serverFn/${serverFnMeta.name}`);
         activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       }

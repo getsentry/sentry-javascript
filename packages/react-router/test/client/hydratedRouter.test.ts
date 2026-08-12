@@ -63,9 +63,9 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
+      name: '/foo/bar',
       // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload' },
     }));
     (core.getClient as any).mockReturnValue({});
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -144,9 +144,8 @@ describe('instrumentHydratedRouter', () => {
     // source:url. The heuristic must still parameterize it instead of leaving the raw URL.
     (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { source: 'url' },
+      name: '/foo/bar',
+      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', source: 'url' },
     }));
 
     instrumentHydratedRouter();
@@ -231,9 +230,11 @@ describe('instrumentHydratedRouter', () => {
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: 'settings',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { 'url.path': '/foo/bar/settings' },
+      name: 'settings',
+      attributes: {
+        'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload',
+        'url.path': '/foo/bar/settings',
+      },
     }));
 
     const callback = mockRouter.subscribe.mock.calls[0][0];
@@ -340,9 +341,8 @@ describe('instrumentHydratedRouter', () => {
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { 'url.path': '/foo' },
+      name: '/foo/bar',
+      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', 'url.path': '/foo' },
     }));
 
     const callback = mockRouter.subscribe.mock.calls[0][0];

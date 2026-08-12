@@ -91,20 +91,6 @@ export interface RequestInstrumentationOptions {
   traceXHR: boolean;
 
   /**
-   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
-   * Do not enable this in case you have live streams or very long running streams.
-   *
-   * Disabled by default since it can lead to issues with streams using the `cancel()` api
-   * (https://github.com/getsentry/sentry-javascript/issues/13950)
-   *
-   * Default: false
-   *
-   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
-   * to track the duration of streamed fetch response bodies.
-   */
-  trackFetchStreamPerformance: boolean;
-
-  /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
    *
    * Default: true
@@ -134,8 +120,6 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  // oxlint-disable-next-line typescript/no-deprecated -- default for the deprecated option, kept until it is removed
-  trackFetchStreamPerformance: false,
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -228,7 +212,7 @@ const HTTP_TIMING_WAIT_MS = 300;
  * @param span A span that has yet to be finished, must contain `url.full` on data.
  */
 function addHTTPTimings(span: Span, client: Client): void {
-  const url = spanToJSON(span).data[URL_FULL];
+  const url = spanToJSON(span).attributes[URL_FULL];
 
   if (!url || typeof url !== 'string') {
     return;

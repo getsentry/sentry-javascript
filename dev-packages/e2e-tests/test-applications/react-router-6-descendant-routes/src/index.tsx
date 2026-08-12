@@ -26,7 +26,6 @@ Sentry.init({
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
-      trackFetchStreamPerformance: true,
     }),
     replay,
   ],

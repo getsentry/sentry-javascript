@@ -1,4 +1,5 @@
 import {
+  captureException,
   getActiveSpan,
   getClient,
   getDefaultIsolationScope,
@@ -92,9 +93,8 @@ export function responseHandler(
 
   if (context.error) {
     if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
-      getClient()?.captureException(context.error, {
+      captureException(context.error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
-        originalException: context.error,
       });
     }
   }

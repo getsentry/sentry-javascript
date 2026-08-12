@@ -1,3 +1,4 @@
+import { REMIX_ACTION_FORM_DATA_KEY_BASE } from '@sentry/conventions/attributes';
 import type { Client, Span } from '@sentry/core';
 import { _INTERNAL_filterKeyValueData } from '@sentry/core';
 import type { RemixOptions } from './remixOptions';
@@ -30,16 +31,11 @@ export function resolveFormDataCapture(client: Client | undefined): FormDataCapt
 }
 
 /**
- * Sets form-data span attributes under `attributePrefix`, honoring the configured key list and
- * renames. Values are run through the shared sensitive-key filter, so an allowlisted `password`
- * still reports as `[Filtered]` rather than in the clear.
+ * Sets form-data span attributes, honoring the configured key list and renames. Values are run
+ * through the shared sensitive-key filter, so an allowlisted `password` still reports as
+ * `[Filtered]` rather than in the clear.
  */
-export function applyFormDataAttributes(
-  span: Span,
-  formData: FormData,
-  { keys }: FormDataCapture,
-  attributePrefix: string,
-): void {
+export function applyFormDataAttributes(span: Span, formData: FormData, { keys }: FormDataCapture): void {
   const collected: Record<string, string> = {};
 
   formData.forEach((value, key) => {
@@ -59,6 +55,6 @@ export function applyFormDataAttributes(
   });
 
   for (const [key, value] of Object.entries(collected)) {
-    span.setAttribute(`${attributePrefix}${key}`, value);
+    span.setAttribute(`${REMIX_ACTION_FORM_DATA_KEY_BASE}.${key}`, value);
   }
 }

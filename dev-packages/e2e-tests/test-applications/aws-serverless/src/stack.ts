@@ -63,8 +63,6 @@ export class LocalLambdaStack extends Stack {
         { dir: 'core', name: '@sentry/core' },
         { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
         { dir: 'server-utils', name: '@sentry/server-utils' },
-        // `@sentry/node` depends on this, and on release branches the bumped version
-        // isn't on npm yet, so it has to come from the workspace as well.
         { dir: 'bundler-plugins', name: '@sentry/bundler-plugins' },
       ];
       const dependencies: Record<string, string> = {};

@@ -733,7 +733,7 @@ describe('trace', () => {
       expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
       // sampling decision is inherited
-      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).attributes['sentry.sample_rate']));
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1904,7 +1904,7 @@ describe('span.end() timestamp conversion', () => {
 });
 
 function getSpanName(span: Span): string | undefined {
-  return spanToJSON(span).description;
+  return spanToJSON(span).name;
 }
 
 // Native Sentry spans store timestamps in seconds; the tests assert HrTime `[seconds, nanoseconds]`.
@@ -1917,8 +1917,8 @@ function hrTimeFromSeconds(seconds: number): [number, number] {
 }
 
 function getSpanEndTime(span: Span): [number, number] | undefined {
-  const timestamp = spanToJSON(span).timestamp;
-  return typeof timestamp === 'number' ? hrTimeFromSeconds(timestamp) : [0, 0];
+  const endTimestamp = spanToJSON(span).end_timestamp;
+  return typeof endTimestamp === 'number' ? hrTimeFromSeconds(endTimestamp) : [0, 0];
 }
 
 function getSpanStartTime(span: Span): [number, number] | undefined {
@@ -1927,7 +1927,7 @@ function getSpanStartTime(span: Span): [number, number] | undefined {
 }
 
 function getSpanAttributes(span: Span): Record<string, unknown> | undefined {
-  return spanToJSON(span).data;
+  return spanToJSON(span).attributes;
 }
 
 function getSpanParentSpanId(span: Span): string | undefined {

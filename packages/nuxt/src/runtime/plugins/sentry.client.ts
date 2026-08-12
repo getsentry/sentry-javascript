@@ -67,8 +67,11 @@ export default defineNuxtPlugin({
 
     nuxtApp.hook('app:error', error => {
       if (isNuxtError(error)) {
+        // oxlint-disable-next-line typescript/no-deprecated
+        const statusCode = error?.status || error?.statusCode;
+
         // Do not report if status code is 3xx or 4xx
-        if (error?.statusCode && error.statusCode >= 300 && error.statusCode < 500) {
+        if (statusCode && statusCode >= 300 && statusCode < 500) {
           return;
         }
       }

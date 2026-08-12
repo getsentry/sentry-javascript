@@ -278,7 +278,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
     patchHttpMethodHandlers(app);
 
     app.on(
-      'GET',
+      'QUERY',
       '/test',
       async function onMw(_c: unknown, next: () => Promise<void>) {
         await next();
@@ -288,12 +288,67 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
       },
     );
 
-    await app.fetch(new Request('http://localhost/test'));
+    await app.fetch(new Request('http://localhost/test', { method: 'QUERY' }));
 
     const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
     expect(spanNames).toHaveLength(1);
     expect(spanNames).toContain('onMw');
     expect(spanNames).not.toContain('onHandler');
+  });
+
+  it('wraps app.query middleware when query is available (from 4.13.0)', async () => {
+    const context = { value: 'context' };
+    const result = { value: 'result' };
+    let registeredMiddleware: ((context: unknown, next: () => Promise<void>) => Promise<void>) | undefined;
+    let registeredHandler: ((context: unknown) => unknown) | undefined;
+    const query = vi.fn(function (
+      this: unknown,
+      path: string,
+      middleware: (context: unknown, next: () => Promise<void>) => Promise<void>,
+      handler: (context: unknown) => unknown,
+    ) {
+      expect(this).toBe(fakeApp);
+      expect(path).toBe('/test');
+      registeredMiddleware = middleware;
+      registeredHandler = handler;
+      return result;
+    });
+    const fakeApp = Object.assign(new Hono(), { query });
+    async function queryMiddleware(receivedContext: unknown, next: () => Promise<void>) {
+      expect(receivedContext).toBe(context);
+      await next();
+    }
+    const middleware = vi.fn(queryMiddleware);
+    const handler = vi.fn((receivedContext: unknown) => {
+      expect(receivedContext).toBe(context);
+      return 'handled';
+    });
+
+    patchHttpMethodHandlers(fakeApp as unknown as Parameters<typeof patchHttpMethodHandlers>[0]);
+    const registrationResult = fakeApp.query('/test', middleware, handler);
+
+    expect(registrationResult).toBe(result);
+    if (!registeredMiddleware || !registeredHandler) {
+      throw new Error('query handlers were not registered');
+    }
+    expect(registeredHandler).toBe(handler);
+
+    const next = vi.fn(async () => undefined);
+    await registeredMiddleware(context, next);
+    const handlerResult = registeredHandler(context);
+
+    expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
+    expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'queryMiddleware' }));
+    expect(middleware).toHaveBeenCalledWith(context, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith(context);
+    expect(handlerResult).toBe('handled');
+  });
+
+  it('patches apps without app.query', () => {
+    const app = new Hono();
+
+    expect(() => patchHttpMethodHandlers(app)).not.toThrow();
   });
 
   it('does not wrap sole handler in app.on(method, path, handler)', async () => {

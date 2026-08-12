@@ -17,6 +17,7 @@ test('Instruments generic-pool automatically via orchestrion', async ({ baseURL 
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'generic-pool.acquire',
+      op: 'db',
       origin: 'auto.db.generic_pool',
       status: 'ok',
       data: expect.objectContaining({

@@ -1,3 +1,4 @@
+import { getMainCarrier } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,10 +11,7 @@ describe('Sentry server SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds Astro metadata to the SDK options', () => {

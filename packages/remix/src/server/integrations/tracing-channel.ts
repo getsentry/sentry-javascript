@@ -2,6 +2,7 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getSpanStatusFromHttpCode,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -23,6 +24,7 @@ import {
   URL_PATH,
   SENTRY_KIND,
   SENTRY_OP,
+  HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion';
@@ -105,6 +107,10 @@ function setResponseStatus(span: Span, result: unknown): void {
   if (typeof status === 'number') {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, status);
+    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
+
+    const spanStatus = getSpanStatusFromHttpCode(status);
+    span.setStatus(spanStatus);
   }
 }
 
@@ -125,7 +131,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
     // oxlint-disable-next-line typescript/no-deprecated
-    const method = spanToJSON(span).data[HTTP_METHOD];
+    const method = spanToJSON(span).attributes[HTTP_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
@@ -238,7 +244,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         }
 
         formData
-          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture, 'formData.'))
+          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)

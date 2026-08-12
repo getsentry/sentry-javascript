@@ -15,13 +15,12 @@ import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, Stream
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
-  showSpanDropWarning,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
-import { isStaticBeforeSendSpanCallback } from './beforeSendSpan';
+import { applyBeforeSendSpanCallback, isStaticBeforeSendSpanCallback } from './beforeSendSpan';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 import { DEFAULT_ENVIRONMENT } from '../../constants';
@@ -48,10 +47,10 @@ export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
  */
 export function captureSpan(span: Span, client: Client): SerializedStreamedSpanWithSegmentSpan {
   // Convert to JSON FIRST - we cannot write to an already-ended span
-  const spanJSON = spanToStreamedSpanJSON(span);
+  const spanJSON = spanToJSON(span);
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
-  const serializedSegmentSpan = spanToStreamedSpanJSON(segmentSpan);
+  const serializedSegmentSpan = spanToJSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
 
@@ -84,7 +83,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
-  const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const spanNameSource = processedSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanJSON.is_segment && spanNameSource) {
     // Backfill sentry.segment.name.source from sentry.source.
     // TODO(v11): Remove this backfill once we removed setting SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in favour of
@@ -182,10 +181,10 @@ export function captureStandaloneSpanWithStaticCallback(
   client: Client,
   beforeSendSpan: (span: SpanJSON) => SpanJSON,
 ): SerializedStreamedSpan {
-  const spanJSON = spanToJSON(span);
+  const spanJSON = spanToStaticSpanJSON(span);
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
-  const serializedSegmentSpan = spanToStreamedSpanJSON(segmentSpan);
+  const serializedSegmentSpan = spanToJSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
   const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
@@ -199,22 +198,7 @@ export function captureStandaloneSpanWithStaticCallback(
     }
   });
 
-  const processedSpan = beforeSendSpan(spanJSON) || (showSpanDropWarning(), spanJSON);
+  const processedSpan = applyBeforeSendSpanCallback(spanJSON, beforeSendSpan);
 
   return spanJsonToSerializedStreamedSpan(processedSpan);
-}
-
-/**
- * Apply a user-provided beforeSendSpan callback to a span JSON.
- */
-export function applyBeforeSendSpanCallback(
-  span: StreamedSpanJSON,
-  beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): StreamedSpanJSON {
-  const modifedSpan = beforeSendSpan(span);
-  if (!modifedSpan) {
-    showSpanDropWarning();
-    return span;
-  }
-  return modifedSpan;
 }

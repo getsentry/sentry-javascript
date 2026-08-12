@@ -13,7 +13,7 @@ import { reactRouterServerIntegration } from './integration/reactRouterServer';
 export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
   return [
     ...getNodeDefaultIntegrations(options),
-    lowQualityTransactionsFilterIntegration(options),
+    lowQualityTransactionsFilterIntegration(),
     reactRouterServerIntegration(),
   ];
 }

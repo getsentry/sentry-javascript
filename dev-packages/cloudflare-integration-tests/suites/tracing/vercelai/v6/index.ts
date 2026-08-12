@@ -13,7 +13,7 @@ export default Sentry.withSentry(
     tracesSampleRate: 1,
     // The Vercel AI SDK emits its spans through `@opentelemetry/api`, so they are only picked up when
     // the Cloudflare OpenTelemetry tracer provider is set up.
-    skipOpenTelemetrySetup: false,
+    enableOpenTelemetrySetup: true,
   }),
   {
     async fetch(_request, _env, _ctx) {

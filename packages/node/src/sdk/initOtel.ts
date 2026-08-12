@@ -1,14 +1,9 @@
 import type { TracerProvider } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
-import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
+import { debug as coreDebug } from '@sentry/core';
 import { setupOpenTelemetryLogger } from '../otel/logger';
 import type { NodeClient } from './client';
-import {
-  applyOtelSpanData,
-  backfillStreamedSpanDataFromOtel,
-  SentryPropagator,
-  SentryTracerProvider,
-} from '@sentry/opentelemetry';
+import { SentryPropagator, SentryTracerProvider } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 
 // The global registry of @opentelemetry/api 1.x, shared across all copies of the package
@@ -44,7 +39,7 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
   if (registry && !registry.trace) {
     DEBUG_BUILD &&
       coreDebug.warn(
-        'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `skipOpenTelemetrySetup: true` in `Sentry.init()`.',
+        'Replaced a pre-existing OpenTelemetry API registry that was created by a different @opentelemetry/api version and would have blocked tracing. If you want to manage OpenTelemetry yourself, set `enableOpenTelemetrySetup: false` in `Sentry.init()`.',
       );
     otelGlobal[OTEL_API_GLOBAL_KEY] = undefined;
 
@@ -76,24 +71,6 @@ export function initOpenTelemetry(client: NodeClient): void {
 
   const provider = setupOtel();
   client.traceProvider = provider;
-}
-
-/**
- * Backfill Sentry span data (op, source, name, status) from OpenTelemetry semantic attributes.
- *
- * Channel-based instrumentation stamps OTel semantic attributes on native Sentry spans but leaves the
- * Sentry-convention fields (e.g. `sentry.op`) to be inferred. On the OTel SDK provider that inference
- * runs in the span processor/exporter; here it runs via client hooks so it happens whether or not a
- * Sentry tracer provider is set up.
- */
-export function setupSpanDataBackfill(client: NodeClient): void {
-  client.on('spanEnd', span => {
-    applyOtelSpanData(span, { finalizeStatus: true });
-  });
-
-  if (hasSpanStreamingEnabled(client)) {
-    client.on('preprocessSpan', backfillStreamedSpanDataFromOtel);
-  }
 }
 
 /** Just exported for tests. */

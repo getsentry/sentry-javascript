@@ -40,7 +40,7 @@ Sentry.init({
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
   // Opt into the Sentry OpenTelemetry tracer provider in the "(tracer provider)" e2e variant.
   // Leaving it `undefined` otherwise keeps the SDK's default (no provider).
-  skipOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? false : undefined,
+  enableOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? true : undefined,
 });
 
 import type * as H from 'http';

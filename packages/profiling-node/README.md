@@ -32,19 +32,21 @@ Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
   tracesSampleRate: 1,
-  profilesSampleRate: 1, // Set profiling sampling rate.
+  profileSessionSampleRate: 1,
+  profileLifecycle: 'trace',
   integrations: [nodeProfilingIntegration()],
 });
 ```
 
-Sentry SDK will now automatically profile all root spans, even the ones which may be started as a result of using an
-automatic instrumentation integration.
+The Sentry SDK will now collect profile chunks while spans are active, including spans started by automatic instrumentation.
 
 ```javascript
 Sentry.startSpan({ name: 'some workflow' }, () => {
   // The code in here will be profiled
 });
 ```
+
+With `profileLifecycle: 'manual'` (the default), you can start and stop the profiler by calling `Sentry.profiler.startProfiler()` and `Sentry.profiler.stopProfiler()`.
 
 ### Building the package from source
 

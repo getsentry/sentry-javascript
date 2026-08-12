@@ -1,19 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '@sentry/core';
+import { getMainCarrier, setCurrentClient } from '@sentry/core';
 import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../../src/ai/core/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   afterEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   function setupWithDataCollection(genAI: { inputs?: boolean; outputs?: boolean }): void {

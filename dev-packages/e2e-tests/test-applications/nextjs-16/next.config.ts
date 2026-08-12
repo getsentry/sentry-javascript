@@ -14,9 +14,9 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   silent: true,
+  applicationKey: 'nextjs-16-e2e',
   _experimental: {
     vercelCronsMonitoring: true,
-    turbopackApplicationKey: 'nextjs-16-e2e',
     turbopackReactComponentAnnotation: {
       enabled: true,
     },

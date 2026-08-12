@@ -3,9 +3,7 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   Client,
   createTransport,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   initAndBind,
   resolvedSyncPromise,
 } from '@sentry/core';
@@ -37,9 +35,7 @@ function initTestClient(): void {
 describe('vercel ai tracing channel: workers-ai dedup', () => {
   beforeEach(() => {
     _INTERNAL_clearAiProviderSkips();
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
     initTestClient();
   });
 
