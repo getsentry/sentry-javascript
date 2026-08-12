@@ -5,13 +5,11 @@ import {
   WEB_SERVER_HTTP_SERVER_SPAN_OP,
 } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import {
-  isObjectLike,
-  getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
+// This tracer is shared by the client and the server entry, so it needs the browser variant, which
+// installs the span streaming integration on first use. On the server that's a no-op: the client
+// already installs it eagerly, and `addIntegration` dedupes by name.
+import { startInactiveSpan } from '@sentry/core/browser';
 import type * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';

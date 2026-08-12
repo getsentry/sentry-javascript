@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
+import * as sentryCoreBrowser from '@sentry/core/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
@@ -117,7 +118,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(_options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
           isRecording: () => true,
@@ -140,7 +141,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(_options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
           isRecording: () => true,
@@ -163,7 +164,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(_options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
           isRecording: () => true,
@@ -207,7 +208,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
         capturedAttributes = options.attributes;
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
@@ -233,7 +234,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
         capturedAttributes = options.attributes;
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
@@ -259,7 +260,7 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
         capturedAttributes = options.attributes;
         return {
           spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),

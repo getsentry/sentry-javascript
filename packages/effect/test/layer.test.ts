@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest';
-import * as sentryCore from '@sentry/core';
+import * as sentryCoreBrowser from '@sentry/core/browser';
 import { getClient, getMainCarrier, SDK_VERSION } from '@sentry/core';
 import { Effect, Layer, Logger } from 'effect';
 import * as References from 'effect/References';
@@ -92,7 +92,7 @@ describe.each([
 
   it.effect('layer enables tracing when tracer is set', () =>
     Effect.gen(function* () {
-      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+      const startInactiveSpanMock = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan');
 
       const result = yield* Effect.withSpan('test-span')(Effect.succeed('traced'));
       expect(result).toBe('traced');
@@ -110,7 +110,7 @@ describe.each([
 
   it.effect('layer can be composed with tracer', () =>
     Effect.gen(function* () {
-      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+      const startInactiveSpanMock = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan');
 
       const result = yield* Effect.succeed(42).pipe(
         Effect.map(n => n * 2),
@@ -150,7 +150,7 @@ describe.each([
 
   it.effect('layer can be composed with all Effect features', () =>
     Effect.gen(function* () {
-      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+      const startInactiveSpanMock = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan');
 
       yield* Effect.logInfo('starting computation');
       const result = yield* Effect.succeed(42).pipe(
