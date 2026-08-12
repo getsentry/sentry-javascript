@@ -745,7 +745,6 @@ Sentry.init({
   );
 ```
 
-> **TODO(v11):** This might change to `enableRpcTracePropagation: true` by default. This depends on the outcomes of #20525
 
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
