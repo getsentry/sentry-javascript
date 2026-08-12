@@ -332,11 +332,3 @@ export interface ChatCompletionChunk {
 export interface OpenAIStream<T> extends AsyncIterable<T> {
   [Symbol.asyncIterator](): AsyncIterator<T>;
 }
-
-/**
- * OpenAI Integration interface for type safety
- */
-export interface OpenAiIntegration {
-  name: string;
-  options: OpenAiOptions;
-}
