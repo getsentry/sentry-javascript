@@ -1,6 +1,10 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequestOnUrl } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
 sentryTest('tracesSampler can sample based on the `sentry.op` attribute', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
