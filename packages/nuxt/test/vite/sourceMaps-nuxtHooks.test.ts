@@ -76,6 +76,39 @@ describe('setupSourceMaps hooks', () => {
     mockSentryRollupPlugin.mockClear();
   });
 
+  describe('removed `unstable_sentryBundlerPluginOptions`', () => {
+    // `getPluginOptions` runs once per bundler (Vite and Nitro's Rollup), so warning there emitted
+    // the same message twice. This pins it to exactly one.
+    it('warns exactly once, even though both bundler plugins are set up', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps(
+        // @ts-expect-error - removed in v11, but JS configs get no type checking
+        { unstable_sentryBundlerPluginOptions: { org: 'override-org' } },
+        mockNuxt as unknown as Nuxt,
+        mockAddVitePlugin,
+      );
+      await mockNuxt.triggerHook('nitro:config', { rollupConfig: {} });
+
+      const removalWarnings = consoleWarnSpy.mock.calls.filter(([message]) =>
+        String(message).includes('unstable_sentryBundlerPluginOptions'),
+      );
+      expect(removalWarnings).toHaveLength(1);
+    });
+
+    it('does not warn for a config without removed options', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ org: 'my-org' }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('unstable_'));
+    });
+  });
+
   describe('vite plugin registration', () => {
     it('calls `addVitePlugin` when setupSourceMaps is called', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
