@@ -67,4 +67,12 @@ export const NoPropagationEntrypoint = Sentry.withSentry(
   MySubWorkerEntrypointBase,
 );
 
+// Deliberately not wrapped with Sentry: nothing strips a trailing RPC metadata argument here, so
+// this is what a caller corrupts if it propagates to a receiver it has no guarantees about.
+export class UninstrumentedEntrypoint extends WorkerEntrypoint<Env> {
+  get(key: string): { argumentCount: number; key: string } {
+    return { argumentCount: arguments.length, key };
+  }
+}
+
 export default BindingEntrypoint;

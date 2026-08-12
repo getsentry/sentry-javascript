@@ -12,6 +12,7 @@ import {
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
+import { createRpcPropagationResolver } from '../../utils/rpcPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
@@ -22,7 +23,19 @@ function isProxyable(item: unknown): item is object {
   return isObjectLike(item) || typeof item === 'function';
 }
 
-const instrumentedBindings = new WeakMap<object, unknown>();
+// Keyed by the raw binding first, then by the name it was reached through and the RPC propagation
+// decision that name resolved to. Two names can alias the same binding object, and a name-scoped
+// allowlist (or a name-scoped span attribute) makes their instrumented forms differ, so the binding
+// object alone is not a sufficient cache key.
+const instrumentedBindings = new WeakMap<object, Map<string, unknown>>();
+
+function rememberBinding(item: object, cacheKey: string, instrumented: unknown): unknown {
+  const byCacheKey = instrumentedBindings.get(item) ?? new Map<string, unknown>();
+  byCacheKey.set(cacheKey, instrumented);
+  instrumentedBindings.set(item, byCacheKey);
+
+  return instrumented;
+}
 
 /**
  * Wraps the Cloudflare `env` object in a Proxy that detects binding types
@@ -44,6 +57,8 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
     return env;
   }
 
+  const shouldPropagateRpcTrace = createRpcPropagationResolver(options);
+
   return new Proxy(env, {
     get(target, prop, receiver) {
       const item = Reflect.get(target, prop, receiver);
@@ -52,53 +67,44 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return item;
       }
 
-      const cached = instrumentedBindings.get(item);
+      const bindingName = typeof prop === 'string' ? prop : String(prop);
+      const propagatesRpcTrace = shouldPropagateRpcTrace(bindingName);
+      const cacheKey = `${propagatesRpcTrace ? '1' : '0'}:${bindingName}`;
+
+      const cached = instrumentedBindings.get(item)?.get(cacheKey);
 
       if (cached) {
         return cached;
       }
 
       if (isD1Database(item)) {
-        const instrumented = instrumentD1(item);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentD1(item));
       }
 
       if (isQueue(item)) {
-        const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentQueueProducer(item, bindingName);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentQueueProducer(item, bindingName));
       }
 
       if (isR2Bucket(item)) {
-        const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentR2Bucket(item, bindingName);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentR2Bucket(item, bindingName));
       }
 
       if (isRateLimit(item)) {
-        const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentRateLimit(item, bindingName);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentRateLimit(item, bindingName));
       }
 
       if (isAiBinding(item)) {
-        const instrumented = instrumentWorkersAiClient(item);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentWorkersAiClient(item));
       }
 
-      if (!options?.enableRpcTracePropagation) {
+      // RPC trace propagation is opt-in, and the allowlist form scopes it to individual bindings —
+      // a binding it does not cover is left exactly as the runtime handed it over.
+      if (!propagatesRpcTrace) {
         return item;
       }
 
       if (isDurableObjectNamespace(item)) {
-        const instrumented = instrumentDurableObjectNamespace(item);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumentDurableObjectNamespace(item));
       }
 
       if (isJSRPC(item)) {
@@ -118,8 +124,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
           },
         });
 
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
+        return rememberBinding(item, cacheKey, instrumented);
       }
 
       return item;

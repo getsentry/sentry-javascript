@@ -11,6 +11,9 @@ interface Env {
   SUB_WORKER_NO_PROPAGATION: Fetcher & {
     get(key: string): Promise<{ argumentCount: number; key: string }>;
   };
+  SUB_WORKER_UNINSTRUMENTED: Fetcher & {
+    get(key: string): Promise<{ argumentCount: number; key: string }>;
+  };
 }
 
 class LoopbackEntrypointBase extends WorkerEntrypoint<Env> {
@@ -29,7 +32,9 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    // Allowlisted by binding name: `SUB_WORKER_UNINSTRUMENTED` is deliberately left out, since its
+    // receiver has no Sentry to strip a trailing metadata argument.
+    enableRpcTracePropagation: ['SUB_WORKER', 'SUB_WORKER_NO_PROPAGATION'],
   }),
   {
     async fetch(request, env, ctx) {
@@ -59,6 +64,10 @@ export default Sentry.withSentry(
         } catch {
           return new Response('fallback');
         }
+      }
+
+      if (url.pathname === '/call-uninstrumented-rpc') {
+        return Response.json(await env.SUB_WORKER_UNINSTRUMENTED.get('uninstrumented-key'));
       }
 
       if (url.pathname === '/call-entrypoint-rpc-no-propagation') {
