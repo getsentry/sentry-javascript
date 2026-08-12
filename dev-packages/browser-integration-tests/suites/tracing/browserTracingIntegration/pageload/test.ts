@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/browser';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -28,7 +27,7 @@ sentryTest('creates a pageload transaction with url as source', async ({ getLoca
   expect(traceContextData).toMatchObject({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    'sentry.segment.name.source': 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });

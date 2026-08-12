@@ -15,13 +15,19 @@ import {
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
   getAbsoluteUrl,
 } from '@sentry/browser';
-import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
@@ -70,14 +76,14 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
 
   const { data: attributes, op } = spanToJSON(span);
 
-  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+  if (!attributes || attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'url') {
     span.updateName(route);
 
     const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${op}.angular`,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
       [URL_TEMPLATE]: route,
@@ -118,7 +124,7 @@ export class TraceService implements OnDestroy {
                 name: strippedUrl,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 },
               },
               {
@@ -141,7 +147,7 @@ export class TraceService implements OnDestroy {
                 // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
                 [SENTRY_OP]: 'router',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,

@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
@@ -34,7 +33,7 @@ sentryTest(
     expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      'sentry.segment.name.source': 'url',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       ['sentry.idle_span_finish_reason']: 'cancelled',
     });
@@ -57,7 +56,6 @@ sentryTest(
         data: {
           'sentry.op': 'navigation.redirect',
           'sentry.origin': 'auto.navigation.browser',
-          'sentry.source': 'url',
           [URL_FULL]: expect.any(String),
           [URL_PATH]: expect.any(String),
         },

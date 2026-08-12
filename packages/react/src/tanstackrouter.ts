@@ -10,11 +10,11 @@ import { filterCollectedUrl } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 import {
   PARAMS_KEY_BASE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
@@ -73,7 +73,7 @@ export function tanstackRouterBrowserTracingIntegration(
         fallbackName: string,
       ): void => {
         span.updateName(match ? match.routeId : fallbackName);
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, match ? 'route' : 'url');
         span.setAttributes({
           ...(match && { [URL_TEMPLATE]: match.routeId }),
           ...locationToSpanUrlAttributes(castRouterInstance, toLocation),
@@ -93,7 +93,7 @@ export function tanstackRouterBrowserTracingIntegration(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
@@ -142,7 +142,7 @@ export function tanstackRouterBrowserTracingIntegration(
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },

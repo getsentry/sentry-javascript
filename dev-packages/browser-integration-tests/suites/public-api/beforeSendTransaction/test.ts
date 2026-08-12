@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../utils/helpers';
@@ -26,6 +25,6 @@ sentryTest(
     expect(eventData.transaction_info?.source).toBe('custom');
 
     // This stays the same but it has no effect on Relay.
-    expect(eventData.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(eventData.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   },
 );

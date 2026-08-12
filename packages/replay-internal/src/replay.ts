@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import type { ReplayRecordingMode, ReplayStopReason, Span } from '@sentry/core';
-import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
 import { EventType, record } from '@sentry/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
@@ -841,7 +841,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const lastRootSpan = lastActiveSpan && getRootSpan(lastActiveSpan);
 
     const attributes = (lastRootSpan && spanToJSON(lastRootSpan).data) || {};
-    const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const source = attributes['sentry.segment.name.source'];
     if (!lastRootSpan || !source || !['route', 'custom'].includes(source)) {
       return undefined;
     }

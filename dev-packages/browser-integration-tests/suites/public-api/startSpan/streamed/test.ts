@@ -1,25 +1,10 @@
 import { expect } from '@playwright/test';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_ID, SENTRY_SEGMENT_NAME, SENTRY_SDK_NAME, SENTRY_SDK_VERSION, SENTRY_TRACE_LIFECYCLE, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS, SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
-import {
-  SENTRY_SEGMENT_ID,
-  SENTRY_SEGMENT_NAME,
-  SENTRY_SDK_NAME,
-  SENTRY_SDK_VERSION,
-  SENTRY_TRACE_LIFECYCLE,
-} from '@sentry/conventions/attributes';
-
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
   async ({ getLocalTestUrl, page }) => {
@@ -255,7 +240,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+          [SENTRY_SEGMENT_NAME_SOURCE]: {
             type: 'string',
             value: 'custom',
           },

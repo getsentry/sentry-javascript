@@ -6,7 +6,7 @@ const btnEndSpan = document.getElementById('btnEndSpan');
 
 btnStartSpan.addEventListener('click', () => {
   Sentry.startSpanManual(
-    { name: 'test-root-span', attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } },
+    { name: 'test-root-span', attributes: { 'sentry.segment.name.source': 'url' } },
     async span => {
       window.__traceId = span.spanContext().traceId;
       await new Promise(resolve => {
@@ -22,7 +22,7 @@ btnUpdateName.addEventListener('click', () => {
   const span = Sentry.getActiveSpan();
   const rootSpan = Sentry.getRootSpan(span);
   rootSpan.updateName(`updated-root-span-${++updateCnt}`);
-  rootSpan.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  rootSpan.setAttribute('sentry.segment.name.source', 'route');
 });
 
 btnMakeRequest.addEventListener('click', () => {

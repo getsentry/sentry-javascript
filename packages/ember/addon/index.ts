@@ -4,18 +4,13 @@
 import { assert } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { getOwnConfig } from '@embroider/macros';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { BrowserOptions } from '@sentry/browser';
 import { startSpan } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import type { Client, TransactionSource } from '@sentry/core';
-import {
-  applySdkMetadata,
-  GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { applySdkMetadata, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -65,7 +60,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     return startSpan(
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
           [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
           [CODE_FUNCTION_NAME]: hookName,

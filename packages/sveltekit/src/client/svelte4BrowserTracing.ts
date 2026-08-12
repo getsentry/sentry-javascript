@@ -1,5 +1,5 @@
 import type { Client, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -7,7 +7,7 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
 import { navigating, page } from '$app/stores';
@@ -41,7 +41,7 @@ function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     },
   });
   if (!pageloadSpan) {
@@ -57,7 +57,7 @@ function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
 
     if (routeId) {
       pageloadSpan.updateName(routeId);
-      pageloadSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
+      pageloadSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
       getCurrentScope().setTransactionName(routeId);
     }
   });
@@ -116,7 +116,7 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
         op: 'navigation',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
           ...(parameterizedRouteDestination && { [URL_TEMPLATE]: parameterizedRouteDestination }),
           ...navigationInfo,
         },

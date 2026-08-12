@@ -3,23 +3,9 @@
  */
 
 import type { Span, StartSpanOptions } from '@sentry/core/browser';
-import {
-  getActiveSpan,
-  getCurrentScope,
-  getDynamicSamplingContextFromSpan,
-  getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCurrentClient,
-  spanIsSampled,
-  spanToJSON,
-  startInactiveSpan,
-  TRACING_DEFAULTS,
-  browserPerformanceTimeOrigin,
-  getSpanDescendants,
-} from '@sentry/core/browser';
+import { URL_FULL, URL_PATH, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+import { getActiveSpan, getCurrentScope, getDynamicSamplingContextFromSpan, getMainCarrier, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, setCurrentClient, spanIsSampled, spanToJSON, startInactiveSpan, TRACING_DEFAULTS, browserPerformanceTimeOrigin, getSpanDescendants } from '@sentry/core/browser';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,8 +19,6 @@ import {
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
-
 const oldTextEncoder = global.window.TextEncoder;
 const oldTextDecoder = global.window.TextDecoder;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
@@ -179,7 +163,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
@@ -266,7 +250,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
@@ -297,7 +281,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/test',
         [URL_PATH]: '/test',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span?.spanContext().traceId}-${span?.spanContext().spanId}-1`,
@@ -339,7 +323,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/test2',
         [URL_PATH]: '/test2',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span2?.spanContext().traceId}-${span2?.spanContext().spanId}-1`,
@@ -383,7 +367,7 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
@@ -413,7 +397,7 @@ describe('browserTracingIntegration', () => {
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.redirect',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [URL_FULL]: 'https://example.com/test',
           [URL_PATH]: '/test',
         },
@@ -478,7 +462,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
         },
@@ -517,7 +501,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
           testy: 'yes',
@@ -665,14 +649,14 @@ describe('browserTracingIntegration', () => {
     startBrowserTracingPageLoadSpan(client, {
       name: 'test span',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
 
     const pageloadSpan = getActiveSpan();
 
     expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).data[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
   it('sets source to "custom" if name is changed in-place in beforeStartSpan', () => {
@@ -697,14 +681,14 @@ describe('browserTracingIntegration', () => {
     startBrowserTracingPageLoadSpan(client, {
       name: 'test span',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
 
     const pageloadSpan = getActiveSpan();
 
     expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).data[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
   describe('startBrowserTracingNavigationSpan', () => {
@@ -760,7 +744,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
@@ -816,7 +800,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
           testy: 'yes',
@@ -909,7 +893,7 @@ describe('browserTracingIntegration', () => {
       const pageloadSpan = getActiveSpan();
 
       expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-      expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+      expect(spanToJSON(pageloadSpan!).data[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
     });
 
     it('sets the navigation span name on `scope.transactionName`', () => {
@@ -967,7 +951,7 @@ describe('browserTracingIntegration', () => {
 
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name: 'mySpan',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' },
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
@@ -1009,7 +993,7 @@ describe('browserTracingIntegration', () => {
 
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name: 'mySpan',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' },
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();

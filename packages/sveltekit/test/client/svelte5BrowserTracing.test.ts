@@ -4,9 +4,10 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { URL_TEMPLATE, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
 
@@ -84,7 +85,7 @@ describe('svelte5 browser tracing', () => {
         op: 'pageload',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
       });
 
@@ -92,7 +93,7 @@ describe('svelte5 browser tracing', () => {
 
       expect(createdRootSpan?.updateName).toHaveBeenCalledWith('/users/[id]');
       expect(createdRootSpan?.setAttributes).toHaveBeenCalledWith({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/users/[id]',
       });
       expect(setTransactionNameSpy).toHaveBeenCalledWith('/users/[id]');
@@ -125,7 +126,7 @@ describe('svelte5 browser tracing', () => {
           op: 'navigation',
           attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: '/users/[id]',
           }),
         }),

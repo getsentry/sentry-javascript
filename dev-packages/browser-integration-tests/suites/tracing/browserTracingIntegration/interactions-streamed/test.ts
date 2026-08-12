@@ -1,20 +1,7 @@
 import { expect } from '@playwright/test';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
-import {
-  SENTRY_SEGMENT_ID,
-  SENTRY_SEGMENT_NAME,
-  SENTRY_SDK_NAME,
-  SENTRY_SDK_VERSION,
-  SENTRY_TRACE_LIFECYCLE,
-} from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_ID, SENTRY_SEGMENT_NAME, SENTRY_SDK_NAME, SENTRY_SDK_VERSION, SENTRY_TRACE_LIFECYCLE, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT, SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
@@ -101,7 +88,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: '/index.html',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+      [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',
         value: 'url',
       },

@@ -5,16 +5,11 @@ import type {
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
-import {
-  getAbsoluteUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startInactiveSpan,
-} from '@sentry/browser';
+import { getAbsoluteUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Client, Span } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
-import { SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 type TransitionWithIntent = Transition & { intent?: { url?: string } };
 
@@ -149,7 +144,7 @@ function _instrumentEmberRouter(
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
         ..._getRouteUrlAttributes(url, routeInfo.params),
         url,
@@ -190,7 +185,7 @@ function _instrumentEmberRouter(
     activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
         ...urlAttributes,
         fromRoute,

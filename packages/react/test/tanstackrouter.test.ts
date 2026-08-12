@@ -1,6 +1,7 @@
 import * as SentryBrowser from '@sentry/browser';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core/browser';
+import { URL_TEMPLATE, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
 
@@ -84,7 +85,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       name: '/posts/$postId',
       attributes: expect.objectContaining({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/posts/$postId',
         'url.path.params.postId': '999',
       }),

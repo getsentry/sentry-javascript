@@ -1,9 +1,5 @@
 import { expect } from '@playwright/test';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -26,7 +22,7 @@ sentryTest(
     expect(attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      'sentry.segment.name.source': 'custom',
     });
 
     expect(transaction.transaction_info?.source).toBe('custom');
