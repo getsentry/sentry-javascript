@@ -30,8 +30,15 @@ export async function fetchTrace(traceId: string): Promise<TraceItem[]> {
   );
 
   // While polling we expect to see empty traces and the occasional rate limit, so anything
-  // other than a successful response is treated as "not there yet".
-  return response.ok ? await response.json() : [];
+  // other than a successful response is treated as "not there yet". Log it regardless -- a
+  // rejected request and a trace that has not landed yet are otherwise indistinguishable,
+  // which makes a permanently failing lookup look like a timeout.
+  if (!response.ok) {
+    console.log(`Trace lookup for ${traceId} returned ${response.status}: ${await response.text()}`);
+    return [];
+  }
+
+  return await response.json();
 }
 
 /**
