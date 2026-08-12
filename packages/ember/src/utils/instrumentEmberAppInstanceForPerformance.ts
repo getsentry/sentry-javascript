@@ -108,7 +108,7 @@ export function instrumentEmberAppInstanceForPerformance(
           },
         });
       }
-    } else if (activeRootSpan && spanToJSON(activeRootSpan).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+    } else if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
       // We make sure to update the pageload span with the current URL, if we couldn't get it before
       // In this case we re-load the router:main reference, as this may change and we may have a stale reference
       const location = getRouterMain(appInstance).location;
