@@ -25,4 +25,4 @@ export {
   handleFastifyError,
   // oxlint-disable-next-line typescript/no-deprecated
   instrumentFastify,
-} from './integrations/tracing-channel/fastify';
+} from './integrations/fastify';

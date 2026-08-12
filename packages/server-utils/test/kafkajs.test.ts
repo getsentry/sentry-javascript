@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isWrappedConsumerCallback,
-  wrapEachBatch,
-  wrapEachMessage,
-} from '../src/integrations/tracing-channel/kafkajs/consumer';
+import { isWrappedConsumerCallback, wrapEachBatch, wrapEachMessage } from '../src/integrations/kafkajs/consumer';
 
 // End-to-end span output (producer/consumer, error status, origins) is covered by the node integration
 // suite, which runs against a real broker in both OTel and orchestrion modes. This only covers the
