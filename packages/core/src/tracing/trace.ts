@@ -332,9 +332,9 @@ function createChildOrRootSpan({
 }): Span {
   const isolationScope = getIsolationScope();
 
-  // A remote parent (an incoming trace on the ambient OTel context, set by the propagator) cannot
-  // parent spans locally. Continue its trace through the propagation context and start a root span
-  // instead, like `SentryTracer` does for remote parents.
+  // A remote parent is an incoming trace on the ambient OTel context, set by the propagator. It
+  // cannot be used as a local parent span. Instead, we continue its trace through the propagation
+  // context and start a root span, like `SentryTracer` does for remote parents.
   const remoteParentSpan = resolvedParentSpan?.spanContext().isRemote ? resolvedParentSpan : undefined;
   const scope = remoteParentSpan ? scopeWithRemoteParentPropagation(currentScope, remoteParentSpan) : currentScope;
   const parentSpan = remoteParentSpan ? undefined : resolvedParentSpan;
