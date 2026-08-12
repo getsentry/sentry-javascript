@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "11.0.0-alpha.0",
+  "version": "11.0.0-alpha.1",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
@@ -49,11 +49,11 @@
     "@nestjs/platform-express": "^11",
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "6.15.0",
-    "@sentry/aws-serverless": "11.0.0-alpha.0",
-    "@sentry/core": "11.0.0-alpha.0",
-    "@sentry/server-utils": "11.0.0-alpha.0",
-    "@sentry/hono": "11.0.0-alpha.0",
-    "@sentry/node": "11.0.0-alpha.0",
+    "@sentry/aws-serverless": "11.0.0-alpha.1",
+    "@sentry/core": "11.0.0-alpha.1",
+    "@sentry/server-utils": "11.0.0-alpha.1",
+    "@sentry/hono": "11.0.0-alpha.1",
+    "@sentry/node": "11.0.0-alpha.1",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -104,7 +104,7 @@
   "devDependencies": {
     "@opentelemetry/instrumentation-http": "0.220.0",
     "@sentry/conventions": "0.19.0",
-    "@sentry-internal/test-utils": "11.0.0-alpha.0",
+    "@sentry-internal/test-utils": "11.0.0-alpha.1",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
