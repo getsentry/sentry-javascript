@@ -125,6 +125,35 @@ describe('Bun Serve Integration', () => {
     );
   });
 
+  test('generates a QUERY transaction with a request body', async () => {
+    const server = Bun.serve({
+      async fetch(req) {
+        return new Response(await req.text());
+      },
+      port,
+    });
+
+    const response = await fetch(`http://localhost:${port}/search`, {
+      method: 'QUERY',
+      body: JSON.stringify({ query: 'bun' }),
+    });
+    expect(await response.json()).toEqual({ query: 'bun' });
+
+    await server.stop();
+
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'http.request.method': 'QUERY',
+        }),
+        op: 'http.server',
+        name: 'QUERY /search',
+      }),
+      expect.any(Function),
+    );
+  });
+
   test('continues a trace', async () => {
     const TRACE_ID = '12312012123120121231201212312012';
     const PARENT_SPAN_ID = '1121201211212012';
