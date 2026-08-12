@@ -1,0 +1,176 @@
+import {
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
+} from '@sentry/conventions/attributes';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { getMainCarrier, setCurrentClient, spanToJSON } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { instrumentGoogleGenAIClient } from '../../../../src/ai/google-genai';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+
+const MODEL = 'gemini-1.5-pro';
+
+const CHAT_CONFIG = {
+  temperature: 0.8,
+  topP: 0.9,
+  topK: 40,
+  maxOutputTokens: 150,
+  frequencyPenalty: 0.5,
+  presencePenalty: 0.3,
+  tools: [{ functionDeclarations: [{ name: 'getWeather' }] }],
+  systemInstruction: 'You are a friendly robot.',
+};
+
+const MOCK_RESPONSE = {
+  modelVersion: MODEL,
+  candidates: [{ content: { parts: [{ text: 'Hi there!' }], role: 'model' } }],
+  usageMetadata: { promptTokenCount: 8, candidatesTokenCount: 12, totalTokenCount: 20 },
+};
+
+/**
+ * Minimal stand-in for a `@google/genai` client. `chats.create()` returns a chat object that keeps
+ * the model (as the real SDK does) and exposes the two message-sending methods. The config passed to
+ * `create()` is stored on the SDK internally and is not repeated on each `sendMessage()` call.
+ */
+function createFakeClient(): { chats: { create: (params: Record<string, unknown>) => unknown } } {
+  return {
+    chats: {
+      create: (params: Record<string, unknown>) => ({
+        model: params.model,
+        sendMessage: async (_params: Record<string, unknown>) => MOCK_RESPONSE,
+        sendMessageStream: async (_params: Record<string, unknown>) =>
+          (async function* () {
+            yield MOCK_RESPONSE;
+          })(),
+      }),
+    },
+  };
+}
+
+function setupClient(): Span[] {
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      tracesSampleRate: 1,
+    }),
+  );
+  setCurrentClient(client);
+  client.init();
+
+  const endedSpans: Span[] = [];
+  client.on('spanEnd', span => endedSpans.push(span));
+  return endedSpans;
+}
+
+async function drain(stream: AsyncIterable<unknown>): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for await (const _ of stream) {
+    // consume so the streaming span is ended
+  }
+}
+
+describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  it('welds chats.create() config onto chat.sendMessage() spans', async () => {
+    const endedSpans = setupClient();
+    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+
+    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+      sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
+    };
+    await chat.sendMessage({ message: 'Tell me a joke' });
+
+    expect(endedSpans).toHaveLength(1);
+    const data = spanToJSON(endedSpans[0]!).data;
+
+    expect(data[GEN_AI_OPERATION_NAME]).toBe('chat');
+    expect(data[GEN_AI_PROVIDER_NAME]).toBe('google_genai');
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe(MODEL);
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
+    expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
+    expect(data[GEN_AI_REQUEST_TOP_K]).toBe(40);
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+    expect(data[GEN_AI_REQUEST_FREQUENCY_PENALTY]).toBe(0.5);
+    expect(data[GEN_AI_REQUEST_PRESENCE_PENALTY]).toBe(0.3);
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"getWeather"}]');
+    expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
+    // The chat message stays as the only input message; the system instruction is split out above.
+    expect(data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","content":"Tell me a joke"}]');
+  });
+
+  it('welds chats.create() config onto chat.sendMessageStream() spans', async () => {
+    const endedSpans = setupClient();
+    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+
+    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+      sendMessageStream: (params: Record<string, unknown>) => Promise<AsyncIterable<unknown>>;
+    };
+    await drain(await chat.sendMessageStream({ message: 'Tell me a joke' }));
+
+    expect(endedSpans).toHaveLength(1);
+    const data = spanToJSON(endedSpans[0]!).data;
+
+    expect(data[GEN_AI_OPERATION_NAME]).toBe('chat');
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe(MODEL);
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
+    expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
+    expect(data[GEN_AI_REQUEST_TOP_K]).toBe(40);
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+    expect(data[GEN_AI_REQUEST_FREQUENCY_PENALTY]).toBe(0.5);
+    expect(data[GEN_AI_REQUEST_PRESENCE_PENALTY]).toBe(0.3);
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"getWeather"}]');
+    expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
+  });
+
+  it('lets a per-message config override the config from chats.create()', async () => {
+    const endedSpans = setupClient();
+    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+
+    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+      sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
+    };
+    await chat.sendMessage({ message: 'Tell me a joke', config: { temperature: 0.1 } });
+
+    const data = spanToJSON(endedSpans[0]!).data;
+    // Per-call temperature wins; the untouched create-time values still come through.
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.1);
+    expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+  });
+
+  it('does not leak chat config onto models.generateContent spans', async () => {
+    const endedSpans = setupClient();
+    const client = {
+      chats: { create: createFakeClient().chats.create },
+      models: { generateContent: async (_params: Record<string, unknown>) => MOCK_RESPONSE },
+    };
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    // Create a chat (with config) first, then make an unrelated generateContent call.
+    instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG });
+    await instrumented.models.generateContent({ model: 'gemini-1.5-flash' });
+
+    const genContentSpan = endedSpans.find(span => spanToJSON(span).data[GEN_AI_OPERATION_NAME] === 'generate_content');
+    const data = spanToJSON(genContentSpan!).data;
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe('gemini-1.5-flash');
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBeUndefined();
+    expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+  });
+});

@@ -250,6 +250,40 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   }
 }
 
+function asConfigObject(config: unknown): Record<string, unknown> | undefined {
+  return config && typeof config === 'object' ? (config as Record<string, unknown>) : undefined;
+}
+
+/**
+ * Merge the parameters captured at `chats.create()` time onto a `chat.sendMessage()` /
+ * `chat.sendMessageStream()` call, so the config that is defined once on the chat lands on every
+ * message span. The create-time config is the default and a per-message config overrides it key by
+ * key. Only `model` and `config` are inherited; the create `history` is intentionally left off the
+ * message spans. See issue #20086.
+ */
+function mergeChatCreateParams(
+  chatCreateParams: Record<string, unknown> | undefined,
+  callParams: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!chatCreateParams) {
+    return callParams;
+  }
+
+  const merged: Record<string, unknown> = { ...callParams };
+
+  if (!('model' in merged) && 'model' in chatCreateParams) {
+    merged.model = chatCreateParams.model;
+  }
+
+  const createConfig = asConfigObject(chatCreateParams.config);
+  const callConfig = asConfigObject(callParams?.config);
+  if (createConfig || callConfig) {
+    merged.config = { ...createConfig, ...callConfig };
+  }
+
+  return merged;
+}
+
 /**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
@@ -261,6 +295,7 @@ function instrumentMethod<T extends unknown[], R>(
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: GoogleGenAIOptions,
+  chatCreateParams?: Record<string, unknown>,
 ): (...args: T) => R | Promise<R> {
   const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
@@ -268,7 +303,9 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      const requestAttributes = extractRequestAttributes(operationName, params, context);
+      // The chat config is set once on chats.create() and reused for every message, so weld it on.
+      const attributeParams = mergeChatCreateParams(chatCreateParams, params);
+      const requestAttributes = extractRequestAttributes(operationName, attributeParams, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
 
       // Check if this is a streaming method
@@ -282,8 +319,8 @@ function instrumentMethod<T extends unknown[], R>(
           },
           async (span: Span) => {
             try {
-              if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params, operationName);
+              if (options.recordInputs && attributeParams) {
+                addPrivateRequestAttributes(span, attributeParams, operationName);
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -310,8 +347,8 @@ function instrumentMethod<T extends unknown[], R>(
           attributes: requestAttributes,
         },
         (span: Span) => {
-          if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, operationName);
+          if (options.recordInputs && attributeParams) {
+            addPrivateRequestAttributes(span, attributeParams, operationName);
           }
 
           return handleCallbackErrors(
@@ -339,7 +376,12 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for Google GenAI client instrumentation
  * Recursively instruments methods and handles special cases like chats.create
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
+function createDeepProxy<T extends object>(
+  target: T,
+  currentPath = '',
+  options: GoogleGenAIOptions,
+  chatCreateParams?: Record<string, unknown>,
+): T {
   return new Proxy(target, {
     get: (t, prop, receiver) => {
       const value = Reflect.get(t, prop, receiver);
@@ -350,7 +392,14 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       if (typeof value === 'function' && instrumentedMethod) {
         // If an operation is specified, we need to instrument the method itself
         const wrappedMethod = instrumentedMethod.operation
-          ? instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, instrumentedMethod, t, options)
+          ? instrumentMethod(
+              value as (...args: unknown[]) => unknown,
+              methodPath,
+              instrumentedMethod,
+              t,
+              options,
+              chatCreateParams,
+            )
           : value.bind(t);
 
         if (!instrumentedMethod.proxyResultPath) {
@@ -364,7 +413,14 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
         return function (...args: unknown[]): unknown {
           const result = wrappedMethod(...args);
           if (result && typeof result === 'object') {
-            return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
+            // The result (e.g. a chat object from chats.create()) carries the config passed here, so
+            // hand those params down to instrument its message methods with them (issue #20086).
+            return createDeepProxy(
+              result as object,
+              instrumentedMethod.proxyResultPath,
+              options,
+              args[0] as Record<string, unknown> | undefined,
+            );
           }
           return result;
         };
@@ -376,7 +432,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options);
+        return createDeepProxy(value, methodPath, options, chatCreateParams);
       }
 
       return value;
