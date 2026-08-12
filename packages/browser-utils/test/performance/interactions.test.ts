@@ -194,34 +194,78 @@ describe('interactionsIntegration', () => {
     expect(getInteractionSpans()).toHaveLength(1);
   });
 
-  it('records browser event timing entries for clicks as spans on the active span', () => {
-    let handler: ((data: { entries: PerformanceEntry[] }) => void) | undefined;
-    vi.spyOn(performanceObserver, 'addPerformanceInstrumentationHandler').mockImplementation((type, callback) => {
-      if (type === 'event') {
-        handler = callback as typeof handler;
+  describe('browser event timing entries', () => {
+    /** Clicks `target` and feeds the matching `event` timing entry through the observer handler. */
+    function clickAndReportEventTiming(target: Element): Span[] {
+      let handler: ((data: { entries: PerformanceEntry[] }) => void) | undefined;
+      vi.spyOn(performanceObserver, 'addPerformanceInstrumentationHandler').mockImplementation((type, callback) => {
+        if (type === 'event') {
+          handler = callback as typeof handler;
+        }
+        return () => undefined;
+      });
+
+      interactionsIntegration().setup?.(client);
+      completeRouteSpan(new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+      click();
+
+      handler?.({
+        entries: [
+          {
+            name: 'click',
+            entryType: 'event',
+            startTime: 100,
+            duration: 50,
+            target,
+          } as unknown as PerformanceEntry,
+        ],
+      });
+      flushIdleSpan();
+
+      return endedSpans.filter(span => spanToJSON(span).attributes['sentry.op'] === 'ui.interaction.click');
+    }
+
+    function appendButton(attributes: Record<string, string>): HTMLButtonElement {
+      const button = document.createElement('button');
+      for (const [key, value] of Object.entries(attributes)) {
+        button.setAttribute(key, value);
       }
-      return () => undefined;
+      document.body.appendChild(button);
+      return button;
+    }
+
+    afterEach(() => {
+      document.body.innerHTML = '';
     });
 
-    interactionsIntegration().setup?.(client);
-    completeRouteSpan(new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
-    click();
+    it('records them as spans on the active span', () => {
+      const spans = clickAndReportEventTiming(document.body);
 
-    handler?.({
-      entries: [
-        {
-          name: 'click',
-          entryType: 'event',
-          startTime: 100,
-          duration: 50,
-          target: document.body,
-        } as unknown as PerformanceEntry,
-      ],
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.browser.interactions' });
     });
-    flushIdleSpan();
 
-    const eventSpans = endedSpans.filter(span => spanToJSON(span).attributes['sentry.op'] === 'ui.interaction.click');
-    expect(eventSpans).toHaveLength(1);
-    expect(spanToJSON(eventSpans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.browser.interactions' });
+    it('names the span after the DOM tree and omits the component name for unannotated elements', () => {
+      const spans = clickAndReportEventTiming(appendButton({ class: 'clicked' }));
+
+      expect(spanToJSON(spans[0]!).name).toBe('body > button.clicked');
+      expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('ui.component_name');
+    });
+
+    it('prefers the annotated component name over the element name', () => {
+      const spans = clickAndReportEventTiming(
+        appendButton({ 'data-sentry-component': 'AnnotatedButton', 'data-sentry-element': 'StyledButton' }),
+      );
+
+      expect(spanToJSON(spans[0]!).name).toBe('body > AnnotatedButton');
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'ui.component_name': 'AnnotatedButton' });
+    });
+
+    it('falls back to the annotated element name when there is no component name', () => {
+      const spans = clickAndReportEventTiming(appendButton({ 'data-sentry-element': 'StyledButton' }));
+
+      expect(spanToJSON(spans[0]!).name).toBe('body > StyledButton');
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'ui.component_name': 'StyledButton' });
+    });
   });
 });
