@@ -31,7 +31,7 @@ test.describe('server-side errors', async () => {
     expect(exception1.value).toEqual('Nuxt 3 Server error');
     expect(exception1.mechanism).toEqual({
       handled: false,
-      type: 'auto.function.nuxt.nitro',
+      type: 'generic',
       exception_id: 0,
     });
   });
@@ -65,7 +65,7 @@ test.describe('server-side errors', async () => {
     expect(exception1.value).toEqual('Nuxt 3 Param Server error');
     expect(exception1.mechanism).toEqual({
       handled: false,
-      type: 'auto.function.nuxt.nitro',
+      type: 'generic',
       exception_id: 0,
     });
   });
