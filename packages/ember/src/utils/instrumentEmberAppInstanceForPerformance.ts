@@ -61,7 +61,6 @@ export function instrumentEmberAppInstanceForPerformance(
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
-        url,
         toRoute: routeInfo?.name,
       },
     });
