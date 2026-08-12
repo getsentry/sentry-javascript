@@ -143,6 +143,71 @@ export interface BuildTimeOptionsBase {
    * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
    */
   applicationKey?: string;
+
+  /**
+   * Metadata that should be associated with the built application.
+   *
+   * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
+   * `beforeSend`, event processors, or the transport), allowing for custom event filtering logic or
+   * routing of events. Read it at runtime via `moduleMetadataIntegration`.
+   *
+   * Metadata can either be passed directly, or as a callback that receives the organization slug,
+   * the project slug (the first one, when multiple projects are configured), all project slugs, and
+   * the release name.
+   */
+  moduleMetadata?: ModuleMetadata | ModuleMetadataCallback;
+}
+
+/**
+ * Arbitrary metadata associated with a built application.
+ */
+export interface ModuleMetadata {
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's ModuleMetadata type
+  [key: string]: any;
+}
+
+/**
+ * Arguments passed to a {@link ModuleMetadataCallback}.
+ */
+export interface ModuleMetadataCallbackArgs {
+  org?: string;
+  project?: string;
+  projects?: string[];
+  release?: string;
+}
+
+export type ModuleMetadataCallback = (args: ModuleMetadataCallbackArgs) => ModuleMetadata;
+
+/**
+ * Hook to customize source map file resolution.
+ *
+ * The hook is called with the absolute path of the build artifact and the value of its
+ * `//# sourceMappingURL=` comment, if present. It should return an absolute path (or a promise
+ * resolving to one) indicating where to find the artifact's corresponding source map file. If no
+ * path is returned, or the returned path doesn't exist, the standard resolution process is used.
+ */
+export type ResolveSourceMapHook = (
+  artifactPath: string,
+  sourceMappingUrl: string | undefined,
+) => string | undefined | Promise<string | undefined>;
+
+/**
+ * Options related to React component name annotations.
+ *
+ * Only applicable to React-based SDKs, which is why this is deliberately not part of
+ * {@link BuildTimeOptionsBase}.
+ */
+export interface ReactComponentAnnotationOptions {
+  /**
+   * Whether the component name annotate plugin should be enabled or not.
+   */
+  enabled?: boolean;
+
+  /**
+   * A list of strings representing the names of components to ignore. The plugin will not apply
+   * `data-sentry` annotations on the DOM element for these components.
+   */
+  ignoredComponents?: string[];
 }
 
 /**
@@ -272,6 +337,18 @@ interface SourceMapsOptions {
    */
   // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
   rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
+
+  /**
+   * Hook to customize source map file resolution.
+   *
+   * Mostly helpful for complex builds with custom source map generation. For example, if source maps
+   * are written to a separate directory and the `//# sourceMappingURL=` comment is rewritten to
+   * something other than a relative path, Sentry is unable to locate the source map for a given
+   * build artifact. This hook lets you implement the resolution process yourself.
+   *
+   * Use the `debug` option to print information about source map resolution.
+   */
+  resolveSourceMap?: ResolveSourceMapHook;
 }
 
 type AutoSetCommitsOptions = {

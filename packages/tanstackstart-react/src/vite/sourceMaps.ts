@@ -15,6 +15,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
     debug,
     errorHandler,
     headers,
+    moduleMetadata,
     org,
     project,
     release,
@@ -60,6 +61,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
     debug: debug ?? false,
     errorHandler,
     headers,
+    moduleMetadata,
     org: org ?? process.env.SENTRY_ORG,
     project: project ?? process.env.SENTRY_PROJECT,
     release,
@@ -68,9 +70,8 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
-      // BuildTimeOptionsBase types can lag behind bundler plugin options in some local setups.
-      // Keep runtime support while staying resilient to type version skew.
-      rewriteSources: (sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources as never,
+      rewriteSources: sourcemaps?.rewriteSources,
+      resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     reactComponentAnnotation: {
