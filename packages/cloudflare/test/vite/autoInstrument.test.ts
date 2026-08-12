@@ -491,6 +491,80 @@ describe('instrument file auto-detection', () => {
 
     const code = ['class DurableObject {}', 'export class MyDO extends DurableObject {}'].join('\n');
     const result = await tx(code, entryPath)!;
-    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS_CALLBACK__,');
+    expect(result.code).toContain(
+      'const __SENTRY_OPTIONS__ = __SENTRY__._INTERNAL_withSameWorkerRpcBindings(__SENTRY_OPTIONS_CALLBACK__, ["MY_DO"]);',
+    );
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS__,');
+  });
+
+  describe('same-worker RPC trace propagation', () => {
+    it('enables Durable Object bindings declared by this worker', async () => {
+      const { transform: tx, entryPath } = createPluginWithDir({
+        'wrangler.toml': [
+          'main = "index.ts"',
+          '',
+          '[[durable_objects.bindings]]',
+          'name = "COUNTER"',
+          'class_name = "Counter"',
+          '',
+          '[[durable_objects.bindings]]',
+          'name = "COUNTER_ALIAS"',
+          'class_name = "Counter"',
+        ].join('\n'),
+      });
+
+      const code = ['class DurableObject {}', 'export class Counter extends DurableObject {}'].join('\n');
+      const result = await tx(code, entryPath)!;
+
+      expect(result.code).toContain(
+        '__SENTRY__._INTERNAL_withSameWorkerRpcBindings(() => undefined, ["COUNTER","COUNTER_ALIAS"]);',
+      );
+    });
+
+    it('leaves Durable Object bindings owned by another worker opt-in', async () => {
+      const { transform: tx, entryPath } = createPluginWithDir({
+        'wrangler.toml': [
+          'main = "index.ts"',
+          '',
+          '[[durable_objects.bindings]]',
+          'name = "REMOTE_DO"',
+          'class_name = "Other"',
+          'script_name = "other-worker"',
+        ].join('\n'),
+      });
+
+      const code = 'export default { fetch() { return new Response("ok"); } };';
+      const result = await tx(code, entryPath)!;
+
+      expect(result.code).not.toContain('_INTERNAL_withSameWorkerRpcBindings');
+      expect(result.code).toContain('__SENTRY__.withSentry(() => undefined,');
+    });
+
+    it('enables self service bindings but not bindings to other workers', async () => {
+      const { transform: tx, entryPath } = createPluginWithDir({
+        'wrangler.toml': [
+          'name = "my-worker"',
+          'main = "index.ts"',
+          '',
+          '[[services]]',
+          'binding = "SELF"',
+          'service = "my-worker"',
+          'entrypoint = "AdminEntry"',
+          '',
+          '[[services]]',
+          'binding = "EXTERNAL"',
+          'service = "other-worker"',
+        ].join('\n'),
+      });
+
+      const code = [
+        "import { WorkerEntrypoint } from 'cloudflare:workers';",
+        'export class AdminEntry extends WorkerEntrypoint {}',
+      ].join('\n');
+      const result = await tx(code, entryPath)!;
+
+      expect(result.code).toContain('__SENTRY__._INTERNAL_withSameWorkerRpcBindings(() => undefined, ["SELF"]);');
+      expect(result.code).not.toContain('EXTERNAL');
+    });
   });
 });

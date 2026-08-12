@@ -669,3 +669,101 @@ describe('combined transforms', () => {
     expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Same-worker RPC binding floor
+// ---------------------------------------------------------------------------
+
+describe('same-worker RPC binding floor', () => {
+  it('declares the merged options callback after both imports and uses it at every wrapper site', () => {
+    const code = [
+      'export class MyDO {}',
+      'export class MyWorkflow {}',
+      'export default { fetch() { return new Response("ok"); } };',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: new Map<string, ClassWrapperKind>([
+        ['MyDO', 'durableObject'],
+        ['MyWorkflow', 'workflow'],
+      ]),
+      optionsFn: '__SENTRY_OPTIONS_CALLBACK__',
+      optionsImport: "import __SENTRY_OPTIONS_CALLBACK__ from './instrument.server.ts';\n",
+      sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
+    })!;
+
+    expect(result.code).toContain(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_OPTIONS_CALLBACK__ from './instrument.server.ts';",
+        'const __SENTRY_OPTIONS__ = __SENTRY__._INTERNAL_withSameWorkerRpcBindings(__SENTRY_OPTIONS_CALLBACK__, ["MY_DO"]);',
+      ].join('\n'),
+    );
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS__,');
+    expect(result.code).toContain('__SENTRY__.instrumentWorkflowWithSentry(__SENTRY_OPTIONS__,');
+    expect(result.code).toContain('__SENTRY__.withSentry(__SENTRY_OPTIONS__, __SENTRY_DEFAULT_EXPORT__)');
+  });
+
+  it('passes the env fallback callback through when there is no instrument file', () => {
+    const code = 'export class MyDO {}';
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyDO'),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
+    })!;
+
+    expect(result.code).toContain(
+      'const __SENTRY_OPTIONS__ = __SENTRY__._INTERNAL_withSameWorkerRpcBindings(() => undefined, ["MY_DO"]);',
+    );
+  });
+
+  it('enables a self service binding without an entrypoint only when it wrapped the default export', () => {
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+
+    const result = transform(code, {
+      classWrappers: doWrappers(),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'SELF' }],
+    })!;
+
+    expect(result.code).toContain('_INTERNAL_withSameWorkerRpcBindings(() => undefined, ["SELF"]);');
+  });
+
+  it('drops a binding whose class was wrapped by hand', () => {
+    // A hand-wrapped receiver keeps the user's own options, which default to no RPC trace metadata,
+    // so it would forward Sentry's trailing argument straight into the method body.
+    const code = [
+      'export const MyDO = Sentry.instrumentDurableObjectWithSentry(options, class {});',
+      'export default { fetch() { return new Response("ok"); } };',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyDO'),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
+    })!;
+
+    expect(result.code).not.toContain('_INTERNAL_withSameWorkerRpcBindings');
+  });
+
+  it('drops a binding whose class is re-exported from another module', () => {
+    const code = ['export { MyDO } from "./myDo";', 'export default { fetch() {} };'].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyDO'),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
+    })!;
+
+    expect(result.code).toContain('const __SENTRY_OPTIONS__ = () => undefined;');
+    expect(result.code).not.toContain('_INTERNAL_withSameWorkerRpcBindings');
+  });
+
+  it('leaves the output untouched when there are no same-worker bindings', () => {
+    const code = 'export class MyDO {}';
+    const ctx: TransformContext = { classWrappers: doWrappers('MyDO'), optionsFn: '() => undefined' };
+
+    expect(transform(code, { ...ctx, sameWorkerBindings: [] })!.code).toBe(transform(code, ctx)!.code);
+  });
+});

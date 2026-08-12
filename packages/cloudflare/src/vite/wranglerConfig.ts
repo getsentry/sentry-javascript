@@ -18,6 +18,20 @@ export interface WranglerConfig {
    * an export on a *different* worker, which this build can't wrap.
    */
   workerEntrypoints: string[];
+  /**
+   * Bindings (`env.<bindingName>`) whose RPC receiver lives in *this* worker, so this build is what
+   * instruments it. `className` is the class the binding targets; `undefined` means the worker's
+   * default export.
+   *
+   * Deliberately keyed by *binding* name and deliberately not deduped by class: two bindings may
+   * point at the same Durable Object class and both names have to be listed.
+   */
+  sameWorkerBindings: SameWorkerBinding[];
+}
+
+export interface SameWorkerBinding {
+  bindingName: string;
+  className?: string;
 }
 
 /**
@@ -62,6 +76,7 @@ export function resolveWranglerConfig(
       durableObjects: collectClassBindings(raw.durable_objects?.bindings),
       workflows: collectClassBindings(raw.workflows),
       workerEntrypoints: collectSelfBoundEntrypoints(raw),
+      sameWorkerBindings: collectSameWorkerBindings(raw),
     },
     configDir: dirname(raw.configPath ?? configPath),
   };
@@ -74,16 +89,52 @@ export function resolveWranglerConfig(
  * there is nothing to match against, so no entrypoints are derivable.
  */
 function collectSelfBoundEntrypoints(raw: Unstable_Config): string[] {
-  if (!raw.name) {
-    return [];
-  }
   const entrypoints = new Set<string>();
   for (const binding of raw.services ?? []) {
-    if (binding?.service === raw.name && typeof binding.entrypoint === 'string') {
+    if (isSelfService(raw, binding) && typeof binding.entrypoint === 'string') {
       entrypoints.add(binding.entrypoint);
     }
   }
   return [...entrypoints];
+}
+
+/**
+ * Whether a service binding points back at this very worker. Without a `name` there is nothing to
+ * match against, so no binding is derivable as self.
+ */
+function isSelfService(raw: Unstable_Config, binding: { service?: string } | undefined): boolean {
+  return !!raw.name && binding?.service === raw.name;
+}
+
+/**
+ * Collect the bindings whose RPC receiver this build instruments itself, so RPC trace propagation
+ * can be turned on for them without risking an uninstrumented receiver seeing Sentry's trailing
+ * metadata argument.
+ *
+ * Excluded, and therefore left opt-in: Durable Object bindings carrying a `script_name` (the class
+ * is exported by a different worker, and `collectClassBindings` skips wrapping it for the same
+ * reason) and service bindings naming another worker. Workflow bindings never reach the RPC
+ * instrumentation at all, and `tail_consumers` are not `env` bindings.
+ */
+function collectSameWorkerBindings(raw: Unstable_Config): SameWorkerBinding[] {
+  const byBindingName = new Map<string, SameWorkerBinding>();
+
+  for (const binding of raw.durable_objects?.bindings ?? []) {
+    if (typeof binding?.name === 'string' && typeof binding.class_name === 'string' && !binding.script_name) {
+      byBindingName.set(binding.name, { bindingName: binding.name, className: binding.class_name });
+    }
+  }
+
+  for (const binding of raw.services ?? []) {
+    if (isSelfService(raw, binding) && typeof binding.binding === 'string') {
+      byBindingName.set(binding.binding, {
+        bindingName: binding.binding,
+        className: typeof binding.entrypoint === 'string' ? binding.entrypoint : undefined,
+      });
+    }
+  }
+
+  return [...byBindingName.values()];
 }
 
 /**

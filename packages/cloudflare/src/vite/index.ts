@@ -45,6 +45,12 @@ export interface SentryCloudflareVitePluginOptions {
    * left alone, so this is safe alongside manual instrumentation. Set to
    * `false` to opt out.
    *
+   * Because the plugin instruments those receiver classes itself, it also
+   * enables `enableRpcTracePropagation` for the bindings that resolve to them —
+   * this worker's own Durable Objects and self service bindings. Bindings to
+   * *other* workers stay opt-in, since their receivers may not run Sentry and
+   * would see the trailing trace-metadata argument as a real argument.
+   *
    * @default true
    */
   autoInstrumentation?: boolean;

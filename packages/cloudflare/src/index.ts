@@ -111,6 +111,7 @@ export {
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
+export { _INTERNAL_withSameWorkerRpcBindings } from './rpcBindings';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 

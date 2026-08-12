@@ -217,6 +217,11 @@ interface BaseCloudflareOptions {
    * trace context as a trailing argument, and only a Sentry-instrumented receiver strips it again —
    * anywhere else it arrives as a real argument and changes the method's signature.
    *
+   * When you build with the Sentry Cloudflare Vite plugin, bindings that resolve to *this* worker
+   * (its own Durable Objects, its self service bindings) are enabled for you, because the plugin
+   * instruments those receivers itself. Whatever you set here is added on top of them, and `false`
+   * turns everything off, including the automatic ones.
+   *
    * **Important:** This option should be enabled on **both sides** for full trace propagation.
    *
    * @default false
