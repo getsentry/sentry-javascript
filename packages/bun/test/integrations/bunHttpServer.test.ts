@@ -1,5 +1,6 @@
 import http from 'node:http';
-import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
+import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { getActiveSpan, getCurrentScope, getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
@@ -50,7 +51,7 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.attributes['sentry.op']).toBe('http.server');
+    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
     expect(span?.name).toBe('GET /users');
     expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
   });
@@ -77,9 +78,9 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.op).toBe('http.server');
-    expect(span?.description).toBe('QUERY /search');
-    expect(span?.data['http.method']).toBe('QUERY');
+    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(span?.name).toBe('QUERY /search');
+    expect(span?.attributes[HTTP_METHOD]).toBe('QUERY');
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {
