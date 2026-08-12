@@ -19,14 +19,6 @@ export type BrowserClientReplayOptions = {
 
 export type BrowserClientProfilingOptions = {
   /**
-   * The sample rate for profiling
-   * 1.0 will profile all transactions and 0 will profile none.
-   *
-   * @deprecated Use `profileSessionSampleRate` and `profileLifecycle` instead.
-   */
-  profilesSampleRate?: number;
-
-  /**
    * Sets profiling session sample rate for the entire profiling session.
    *
    * A profiling session corresponds to a user session, meaning it is set once at integration initialization and

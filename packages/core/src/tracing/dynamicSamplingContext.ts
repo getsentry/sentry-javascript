@@ -13,7 +13,7 @@ import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBa
 import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
-import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanUtils';
 import { spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { getCapturedScopesOnSpan } from './utils';
 
@@ -93,7 +93,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
-  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanJson = spanToStaticSpanJSON(rootSpan);
   const rootSpanAttributes = rootSpanJson.data;
   const traceState = rootSpan.spanContext().traceState;
 

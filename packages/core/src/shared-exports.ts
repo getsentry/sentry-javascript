@@ -10,6 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
+export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureException,
@@ -49,10 +50,7 @@ export {
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
-export {
-  waitForTracingChannelBinding,
-  _INTERNAL_createTracingChannelBinding,
-} from './asyncContext/tracing-channel-binding';
+export { waitForTracingChannelBinding } from './asyncContext/tracing-channel-binding';
 export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
@@ -98,13 +96,11 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export { handleTunnelRequest } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
-// eslint-disable-next-line typescript/no-deprecated
-export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   spanIsSampled,
   spanIsSentrySpan,
   spanToTraceContext,

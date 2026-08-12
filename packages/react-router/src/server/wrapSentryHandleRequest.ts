@@ -128,7 +128,3 @@ export function wrapSentryHandleRequest(
     }
   };
 }
-
-// todo(v11): remove this
-/** @deprecated Use `wrapSentryHandleRequest` instead. */
-export const sentryHandleRequest = wrapSentryHandleRequest;

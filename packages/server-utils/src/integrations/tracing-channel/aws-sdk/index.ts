@@ -7,6 +7,7 @@ import {
   CLOUD_REGION,
   HTTP_STATUS_CODE,
   SENTRY_KIND,
+  HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { CHANNELS } from '../../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../../orchestrion/config/aws-sdk';
@@ -57,6 +58,7 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
   if (metadata.httpStatusCode) {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, metadata.httpStatusCode);
+    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, metadata.httpStatusCode);
   }
   if (metadata.extendedRequestId) {
     // oxlint-disable-next-line typescript/no-deprecated

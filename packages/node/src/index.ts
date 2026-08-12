@@ -63,7 +63,7 @@ export {
 export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
-export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
+export type { NodeOptions } from './types';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
@@ -135,6 +135,7 @@ export {
   getActiveSpan,
   withActiveSpan,
   getRootSpan,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,

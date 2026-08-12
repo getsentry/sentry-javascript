@@ -4,14 +4,14 @@ import {
   elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  metricsShim,
 } from '@sentry-internal/integration-shims';
 
 registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-// TODO(v11): Export metricsShim here once we remove metrics from the base bundle.
-export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger };
+export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger, metricsShim as metrics };
 
 export {
   getActiveSpan,

@@ -84,7 +84,7 @@ If you only use the Sentry SDK, day-to-day tracing remains **unchanged**.
 
 #### Choosing an OpenTelemetry setup
 
-There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the existing `skipOpenTelemetrySetup` option, whose default was flipped in v11: it is now `true` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `false` for `@sentry/nextjs` and `@sentry/sveltekit`.
+There are three ways to run the Sentry and OpenTelemetry SDKs together, and which one you want depends on who should own spans. This is controlled by the new `enableOpenTelemetrySetup` option, which replaces v10's `skipOpenTelemetrySetup` with inverted meaning (`skipOpenTelemetrySetup: true` becomes `enableOpenTelemetrySetup: false`). It defaults to `false` for most server SDKs (including `@sentry/node`, `@sentry/bun`, the serverless SDKs and `@sentry/cloudflare`) and `true` for `@sentry/nextjs` and `@sentry/sveltekit`.
 
 ##### 1. Sentry only
 
@@ -101,13 +101,13 @@ If a library you depend on emits its own OpenTelemetry spans and you want those 
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
-Set `skipOpenTelemetrySetup: false`:
+Set `enableOpenTelemetrySetup: true`:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
-  skipOpenTelemetrySetup: false,
+  enableOpenTelemetrySetup: true,
 });
 ```
 
@@ -117,7 +117,7 @@ Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no ex
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Leave `skipOpenTelemetrySetup` unset or set it to `true`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
+Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -138,7 +138,7 @@ Sentry.init({
 });
 ```
 
-`skipOpenTelemetrySetup` already defaults to `true` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `false`, so you have to set it explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
+`enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
 OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
@@ -148,7 +148,7 @@ Sentry does not touch your pipeline: no exporter, no span processor, no tracer p
 
 Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
 
-Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `skipOpenTelemetrySetup`.
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`.
 
 If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
 
@@ -226,7 +226,10 @@ Sentry.init({
   dataCollection: {
     userInfo: false,
     cookies: false,
-    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    httpHeaders: {
+      request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    },
     httpBodies: [],
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
@@ -343,7 +346,7 @@ Sentry.init({
 // After
 Sentry.init({
   beforeSendSpan: span => {
-    if (span.attributes?.['sentry.op'] === 'db.query') {
+    if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
       span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
     }
@@ -455,6 +458,22 @@ Sentry.init({
 ```
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+
+#### `Sentry.spanToJSON` returns streamed span format
+
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
+
+The `spanToStreamedSpanJSON` helper, which returned this format in v10, was removed in favor of `spanToJSON`. Since the two are now equivalent, replace any calls to it:
+
+```js
+// Before (v10)
+const spanJson = Sentry.spanToStreamedSpanJSON(span);
+
+// After (v11)
+const spanJson = Sentry.spanToJSON(span);
+```
 
 ### Logs are enabled by default
 
@@ -591,11 +610,16 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 | `browser.TLS/SSL`               | `browser.tls_ssl`                  |
 | `browser.DNS`                   | `browser.dns`                      |
 
-### LangGraph no longer emits `create_agent` spans
+### AI integrations no longer trace non-inference operations
 
 Affected SDKs: All server-side SDKs.
 
-The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
+AI integrations now only trace model invocations, tool calls, and agent invocations. Spans are no longer emitted for operations that don't run model inference, such as:
+
+- Anthropic `messages.countTokens`, `models.retrieve`, and `models.get`.
+- LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
+
+If you reference these spans in dashboards or alerts, update them accordingly.
 
 ### `@sentry/nextjs`
 
@@ -623,13 +647,55 @@ Affected SDKs: `@sentry/cloudflare`.
 + import { wrapRequestHandler } from '@sentry/cloudflare/request';
 ```
 
+### Cloudflare: the Vite plugin auto-instruments your Worker by default
+
+Affected SDKs: `@sentry/cloudflare`.
+
+`sentryCloudflareVitePlugin()` now wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched, so no action is required for most users. Opt out with the new top-level `autoInstrumentation` option:
+
+```js
+sentryCloudflareVitePlugin({ autoInstrumentation: false });
+```
+
+The experimental opt-in this replaces was removed:
+
+```diff
+- sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
++ sentryCloudflareVitePlugin();
+```
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
 
+- The internal, deprecated `addAutoIpAddressToUser` export was removed.
+- `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
+- The deprecated positional `spanOrigin` argument of `instrumentFetchRequest` was removed. Pass an options object (e.g. `{ spanOrigin }`) as the last argument instead.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
+- The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableMetrics: true,
+    beforeSendMetric: metric => {
+      return metric;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableMetrics: true,
+  beforeSendMetric: metric => {
+    return metric;
+  },
+});
+```
+
 - The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
 
 ```js
@@ -646,6 +712,20 @@ Sentry.init({});
 // or, to opt out
 Sentry.init({
   enableLogs: false,
+});
+```
+
+- The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration({ trackFetchStreamPerformance: true })],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration(), Sentry.fetchStreamPerformanceIntegration()],
 });
 ```
 
@@ -680,6 +760,7 @@ Sentry.init({
 ### `@sentry/node` / Server-side SDKs
 
 - `SentryContextManager` is no longer exported. It is no longer needed now that Sentry does not set up OpenTelemetry by default.
+- The `OpenTelemetryServerRuntimeOptions` type was removed. Its only remaining option, `enableOpenTelemetrySetup`, is part of the SDK-specific options types (e.g. `NodeOptions`).
 - The deprecated `honoIntegration` was removed. Use the [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) SDK to instrument Hono.
 - The `connect` instrumentation was removed.
 - The deprecated `prismaInstrumentation` option was removed. It was no longer used, as Prisma works out of the box.
@@ -695,6 +776,9 @@ Sentry.init({
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
 - (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
+- (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
+- (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
+- (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
@@ -757,6 +841,10 @@ Sentry.init({
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
 
+### `@sentry/core` span attributes
+
+- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
+
 ### AI integrations
 
 - The `enableTruncation` and `streamGenAiSpans` flags were removed. The new default is no truncation and to always stream gen AI spans.
@@ -775,14 +863,41 @@ Sentry.init({
   actions are instrumented automatically via the instrumentation API - export
   `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx`
   instead of wrapping them individually.
+- The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
+
+### Browser and Node profiling
+
+The legacy per-transaction profiling sampling options were removed. Configure session-based profiling with `profileSessionSampleRate` and choose a `profileLifecycle`:
+
+- Use `profileLifecycle: 'trace'` to start and stop profiling automatically with active traces.
+- Use `profileLifecycle: 'manual'` to control profiling explicitly through the profiler start and stop methods.
 
 ### `@sentry/profiling-node`
 
 - The `prune-profiler-binaries` script was removed.
 
+### `@sentry/nextjs`
+
+The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
+moved under the `webpack` option in v10; use the replacement listed below instead:
+
+| Removed option                          | Replacement                                                    |
+| --------------------------------------- | -------------------------------------------------------------- |
+| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                        |
+| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                             |
+| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                           |
+| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                              |
+| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                  |
+| `reactComponentAnnotation`              | `webpack.reactComponentAnnotation`                             |
+| `unstable_sentryWebpackPluginOptions`   | `webpack.unstable_sentryWebpackPluginOptions`                  |
+| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                  |
+| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                         |
+| `disableManifestInjection`              | `routeManifestInjection: false`                                |
+| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds) |
+
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### `@sentry/nuxt`
 
@@ -850,6 +965,10 @@ export default defineConfig({
 });
 ```
 
+### `@sentry/react-router`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
@@ -880,6 +999,12 @@ import { init } from '@sentry/node';
 ### `@sentry/tanstackstart` was removed
 
 The utility `@sentry/tanstackstart` package was removed. Use the `@sentry/tanstackstart-react` package for your setup.
+
+### Metrics moved out of the base CDN bundle
+
+Affected SDKs: `@sentry/browser` (CDN bundles).
+
+Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.logs.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.logs.metrics` bundle. On the other bundles, `Sentry.metrics.*` is a no-op shim that warns in debug builds.
 
 ## 5. Renames
 
@@ -964,11 +1089,35 @@ Sentry.init({
 
 The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
 
+### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
+
+Affected SDKs: `@sentry/sveltekit`.
+
+The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
+
+```ts
+// vite.config.ts
+
+// before
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+// after
+import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+```
+
+The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
+
 ## 6. Type Changes
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
   `any`.
+- Attribute typing and serialization were unified across the SDK.
+- The `attributes` field on the `ScopeData` type is now required. `Scope.getScopeData()` always returned it, so this only affects code that constructs `ScopeData` objects manually — add `attributes: {}` there.
+- The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
+  `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
+  during construction. Call `span.end(timestamp)` instead.
+- `BrowserOptions` now supports the `TransportOptions` generic.
 - (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
 
 ```diff

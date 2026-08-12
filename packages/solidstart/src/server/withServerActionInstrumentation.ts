@@ -21,7 +21,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
   const activeSpan = getActiveSpan();
 
   if (activeSpan) {
-    const spanData = spanToJSON(activeSpan).data;
+    const spanData = spanToJSON(activeSpan).attributes;
 
     // In solid start, server function calls are made to `/_server` which doesn't tell us
     // a lot. We rewrite the span's route to be that of the sever action name but only

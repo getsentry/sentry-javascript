@@ -96,7 +96,7 @@ export function initWithDefaultIntegrations(
     transport: options.transport || makeCloudflareTransport,
     // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
     // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
-    skipOpenTelemetrySetup: options.skipOpenTelemetrySetup ?? true,
+    enableOpenTelemetrySetup: options.enableOpenTelemetrySetup ?? false,
     flushLock,
   };
 
@@ -110,9 +110,9 @@ export function initWithDefaultIntegrations(
   }
   /*! rollup-include-development-only-end */
 
-  // Opt-in only: when `skipOpenTelemetrySetup` is `false`, set up a custom trace provider so spans
+  // Opt-in only: when `enableOpenTelemetrySetup` is `true`, set up a custom trace provider so spans
   // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
-  if (!clientOptions.skipOpenTelemetrySetup) {
+  if (clientOptions.enableOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
 

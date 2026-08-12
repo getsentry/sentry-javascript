@@ -1,13 +1,11 @@
+import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import { init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function cleanupOtel(): void {
@@ -22,7 +20,7 @@ function resetSdk(): void {
   cleanupOtel();
 }
 
-Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpenTelemetrySetup is true', async () => {
+Deno.test('should not capture spans emitted via @opentelemetry/api when enableOpenTelemetrySetup is false', async () => {
   resetSdk();
   const transactionEvents: any[] = [];
 
@@ -30,7 +28,7 @@ Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpen
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
-    skipOpenTelemetrySetup: true,
+    enableOpenTelemetrySetup: false,
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;

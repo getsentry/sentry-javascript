@@ -3,9 +3,10 @@
  */
 
 import type { TransactionEvent } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
+import { getClient, init, startSpan } from '../src';
 import DummyComponent from './components/Dummy.svelte';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -18,8 +19,7 @@ describe('Sentry.trackComponent()', () => {
 
     vi.resetAllMocks();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
     const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);

@@ -27,6 +27,7 @@ export class SqsServiceExtension implements ServiceExtension {
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
       [MESSAGING_DESTINATION_NAME]: queueName,
+      // oxlint-disable-next-line sdk/no-unfiltered-url-attributes -- SQS queue identifier, not an HTTP request URL
       [URL_FULL]: queueUrl,
       [SENTRY_KIND]: 'client',
     };

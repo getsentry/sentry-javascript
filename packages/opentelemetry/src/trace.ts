@@ -1,7 +1,7 @@
 import type { Context, Span, SpanContext, SpanOptions, TimeInput, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, suppressTracing } from './utils/suppressTracing';
-import type { Client, Scope, Span as SentrySpan } from '@sentry/core';
+import type { Client, Scope, Span as SentrySpan, StartSpanOptions } from '@sentry/core';
 import {
   getClient,
   getCurrentScope,
@@ -11,9 +11,8 @@ import {
   hasSpansEnabled,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
+  spanToStaticSpanJSON,
 } from '@sentry/core';
-import type { OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
@@ -26,7 +25,7 @@ import { SENTRY_TRACE_STATE_DSC } from './constants';
  * @param callback - The callback to execute with the span
  * @param autoEnd - Whether to automatically end the span after the callback completes
  */
-function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T, autoEnd: boolean): T {
+function _startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T, autoEnd: boolean): T {
   const tracer = getTracer();
 
   const { name, parentSpan: customParentSpan } = options;
@@ -69,7 +68,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
               () => callback(span),
               () => {
                 // Only set the span status to ERROR when there wasn't any error status set before, in order to avoid stomping useful span statuses
-                if (spanToJSON(span).status === 'ok') {
+                if (spanToStaticSpanJSON(span).status === 'ok') {
                   span.setStatus({ code: SpanStatusCode.ERROR });
                 }
               },
@@ -86,7 +85,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
         () => callback(span),
         () => {
           // Only set the span status to ERROR when there wasn't any error status set before, in order to avoid stomping useful span statuses
-          if (spanToJSON(span).status === 'ok') {
+          if (spanToStaticSpanJSON(span).status === 'ok') {
             span.setStatus({ code: SpanStatusCode.ERROR });
           }
         },
@@ -106,7 +105,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
  * You'll always get a span passed to the callback,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
+export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
   return _startSpan(options, callback, true);
 }
 
@@ -120,10 +119,7 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
  * You'll always get a span passed to the callback,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startSpanManual<T>(
-  options: OpenTelemetrySpanContext,
-  callback: (span: Span, finish: () => void) => T,
-): T {
+export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
   return _startSpan(options, span => callback(span, () => span.end()), false);
 }
 
@@ -136,7 +132,7 @@ export function startSpanManual<T>(
  * This function will always return a span,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
+export function startInactiveSpan(options: StartSpanOptions): Span {
   const tracer = getTracer();
 
   const { name, parentSpan: customParentSpan } = options;
@@ -185,8 +181,8 @@ function getTracer(): Tracer {
   return client?.tracer || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
-function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
-  const { startTime, attributes, kind, op, links } = options;
+function getSpanOptions(options: StartSpanOptions): SpanOptions {
+  const { startTime, attributes, op, links } = options;
 
   // OTEL expects timestamps in ms, not seconds
   const fixedStartTime = typeof startTime === 'number' ? ensureTimestampInMilliseconds(startTime) : startTime;
@@ -198,7 +194,6 @@ function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
           ...attributes,
         }
       : attributes,
-    kind,
     links,
     startTime: fixedStartTime,
   };

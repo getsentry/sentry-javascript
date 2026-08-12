@@ -1,12 +1,26 @@
-import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
-import type { OpenTelemetryServerRuntimeOptions } from '@sentry/node';
+import type { BaseTransportOptions, ClientOptions, Options, ServerRuntimeOptions } from '@sentry/core';
 
 /**
  * Base options for the Sentry Bun SDK.
- * Extends the common WinterTC options with OpenTelemetry support shared with Node.js and other server-side SDKs.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface BaseBunOptions extends OpenTelemetryServerRuntimeOptions {}
+export interface BaseBunOptions extends ServerRuntimeOptions {
+  /**
+   * Controls whether the SDK registers its own Sentry OpenTelemetry tracer provider.
+   *
+   * When `false` (the default), no tracer provider is set up. The SDK isolates scopes with a native
+   * AsyncLocalStorage context strategy and still emits spans via its own instrumentation, but spans
+   * created through `@opentelemetry/api` are not captured.
+   *
+   * When `true`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
+   * global OpenTelemetry tracer provider, so spans created through `@opentelemetry/api` become Sentry
+   * spans. If you run your own tracer provider, keep this `false` so the SDK does not register a
+   * competing provider; note the SDK no longer feeds spans into a user-owned provider, so those spans
+   * stay in your OpenTelemetry pipeline.
+   *
+   * @default false
+   */
+  enableOpenTelemetrySetup?: boolean;
+}
 
 /**
  * Configuration options for the Sentry Bun SDK

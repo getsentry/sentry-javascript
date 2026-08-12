@@ -122,6 +122,7 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,

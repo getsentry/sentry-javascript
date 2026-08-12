@@ -131,11 +131,11 @@ describe('dropMiddlewareTunnelRequests', () => {
     });
   });
 
-  describe('skipOpenTelemetrySetup', () => {
-    it('does not process spans when skipOpenTelemetrySetup is true', async () => {
+  describe('enableOpenTelemetrySetup', () => {
+    it('does not process spans when enableOpenTelemetrySetup is false', async () => {
       const core = await import('@sentry/core');
       vi.spyOn(core, 'getClient').mockReturnValueOnce({
-        getOptions: () => ({ skipOpenTelemetrySetup: true }),
+        getOptions: () => ({ enableOpenTelemetrySetup: false }),
       } as any);
 
       globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';

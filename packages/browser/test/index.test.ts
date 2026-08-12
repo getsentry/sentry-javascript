@@ -4,8 +4,7 @@
 
 import {
   eventFiltersIntegration,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   getReportDialogEndpoint,
   lastEventId,
   SDK_VERSION,
@@ -49,10 +48,7 @@ describe('SentryBrowser', () => {
   const beforeSend = vi.fn(event => event);
 
   beforeEach(() => {
-    getGlobalScope().clear();
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     init({
       beforeSend,

@@ -162,7 +162,7 @@ export function init(options: DenoOptions = {}): Client {
 
   // Set up OpenTelemetry compatibility to capture spans from libraries using @opentelemetry/api
   // Note: This is separate from Deno's native OTEL support and doesn't capture auto-instrumented spans
-  if (!options.skipOpenTelemetrySetup) {
+  if (options.enableOpenTelemetrySetup ?? true) {
     setupOpenTelemetryTracer();
   }
 

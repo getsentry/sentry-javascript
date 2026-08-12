@@ -1,4 +1,10 @@
 {
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry/eslint-plugin-sdk"
+    }
+  ],
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
@@ -56,6 +62,12 @@
     "typescript/no-deprecated": "error"
   },
   "overrides": [
+    {
+      "files": ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      "rules": {
+        "sdk/no-unfiltered-url-attributes": "error"
+      }
+    },
     {
       "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
       "rules": {

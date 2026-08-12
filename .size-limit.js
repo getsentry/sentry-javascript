@@ -303,7 +303,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '149 KB',
+    limit: '152 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -319,7 +319,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '153 KB',
+    limit: '156 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -335,7 +335,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '268 KB',
+    limit: '272 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -343,7 +343,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '272 KB',
+    limit: '276 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -351,7 +351,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '282 KB',
+    limit: '286 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -359,7 +359,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '286 KB',
+    limit: '290 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Next.js SDK (ESM)

@@ -88,7 +88,6 @@ Sentry.init({
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
-      trackFetchStreamPerformance: true,
       enableAsyncRouteHandlers: true,
       lazyRouteTimeout: runtimeConfig.lazyRouteTimeout,
       idleTimeout: runtimeConfig.idleTimeout,

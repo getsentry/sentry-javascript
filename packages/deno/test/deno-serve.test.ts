@@ -1,25 +1,13 @@
 // <reference lib="deno.ns" />
 
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import {
-  captureException,
-  captureMessage,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  init,
-  denoServeIntegration,
-  setTag,
-  setUser,
-} from '../build/esm/index.js';
+import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function delay(time: number): Promise<void> {

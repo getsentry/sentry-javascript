@@ -47,12 +47,11 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
-import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -166,17 +165,6 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   traceXHR: boolean;
-
-  /**
-   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
-   * Do not enable this in case you have live streams or very long running streams.
-   *
-   * Default: false
-   *
-   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
-   * to track the duration of streamed fetch response bodies.
-   */
-  trackFetchStreamPerformance: boolean;
 
   /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
@@ -354,8 +342,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     markBackgroundSpan,
     traceFetch,
     traceXHR,
-    // eslint-disable-next-line typescript/no-deprecated
-    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     ignoreResourceSpans,
@@ -486,8 +472,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
 
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && debug.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+        if (activeSpan && !spanToJSON(activeSpan).end_timestamp) {
+          DEBUG_BUILD &&
+            debug.log(
+              `[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).attributes[SENTRY_OP]}`,
+            );
           // If there's an open active span, we need to finish it before creating an new one.
           activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
@@ -712,10 +701,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         onRequestSpanStart,
         onRequestSpanEnd,
       });
-
-      if (trackFetchStreamPerformance) {
-        client.addIntegration(fetchStreamPerformanceIntegration());
-      }
     },
   };
 }) satisfies IntegrationFn;
@@ -788,6 +773,10 @@ export function getMetaContent(metaName: string): string | undefined {
 
 /** Returns the description of a server timing entry */
 export function getServerTiming(name: string): string | undefined {
+  // The cast is required for the declaration build (`build:types`), which resolves
+  // `getEntriesByType('navigation')` to `PerformanceEntry[]` (no `serverTiming`). It only reads as
+  // "unnecessary" to the type-aware linter, which runs with web-vitals' global augmentation applied.
+  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;
@@ -813,7 +802,7 @@ function registerInteractionListener(
 
     const activeIdleSpan = getActiveIdleSpan(client);
     if (activeIdleSpan) {
-      const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
+      const currentRootSpanOp = spanToJSON(activeIdleSpan).attributes[SENTRY_OP];
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
           debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);

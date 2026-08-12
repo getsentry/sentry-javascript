@@ -41,12 +41,14 @@ export interface BaseVercelEdgeOptions {
   clientClass?: typeof VercelEdgeClient;
 
   /**
-   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * If this is set to false, the SDK will not set up OpenTelemetry automatically.
    * In this case, you _have_ to ensure to set it up correctly yourself, including:
    * * The `SentryTracerProvider`
    * * The `SentryPropagator`
+   *
+   * @default true
    */
-  skipOpenTelemetrySetup?: boolean;
+  enableOpenTelemetrySetup?: boolean;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;

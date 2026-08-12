@@ -10,6 +10,7 @@ interface Env {
 interface WorkflowParams {
   failCount: number;
   captureManual?: boolean;
+  captureManualTwice?: boolean;
 }
 class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep): Promise<void> {
@@ -26,6 +27,13 @@ class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams
       async ctx => {
         if (event.payload.captureManual) {
           Sentry.captureException(new Error(`Manual capture on attempt ${ctx.attempt}`));
+        }
+
+        // Both errors originate from the same line so they share a stack trace, which is what the
+        // Dedupe integration keys on
+        if (event.payload.captureManualTwice) {
+          Sentry.captureException(new Error('Manual capture'));
+          Sentry.captureException(new Error('Manual capture'));
         }
 
         if (remainingFailures > 0) {
@@ -59,10 +67,11 @@ export default Sentry.withSentry(
       if (url.pathname === '/trigger-workflow') {
         const failCount = parseInt(url.searchParams.get('failCount') || '0', 10);
         const captureManual = url.searchParams.get('captureManual') === 'true';
+        const captureManualTwice = url.searchParams.get('captureManualTwice') === 'true';
 
         try {
           const instance = await env.STEP_CONTEXT_WORKFLOW.create({
-            params: { failCount, captureManual },
+            params: { failCount, captureManual, captureManualTwice },
           });
 
           return new Response(JSON.stringify({ id: instance.id }), { headers: { 'Content-Type': 'application/json' } });

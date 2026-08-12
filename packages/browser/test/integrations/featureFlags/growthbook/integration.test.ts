@@ -1,10 +1,10 @@
-import { getCurrentScope } from '@sentry/core/browser';
+import { getCurrentScope, getMainCarrier } from '@sentry/core/browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { growthbookIntegration } from '../../../../src/integrations/featureFlags/growthbook';
 
 describe('growthbookIntegration', () => {
   afterEach(() => {
-    getCurrentScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('accepts a precisely-typed GrowthBook class without a cast and captures boolean evaluations', () => {

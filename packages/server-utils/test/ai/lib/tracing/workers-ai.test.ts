@@ -10,15 +10,13 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _INTERNAL_clearAiProviderSkips,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
-  spanToJSON,
+  spanToStaticSpanJSON,
   startSpan,
 } from '@sentry/core';
 import type { DataCollection, Span } from '@sentry/core';
@@ -32,15 +30,11 @@ const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 describe('instrumentWorkersAiClient', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   afterEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('passes through non-run methods bound to the original client', () => {
@@ -167,7 +161,7 @@ describe('instrumentWorkersAiClient', () => {
       });
 
       expect(endedSpans).toHaveLength(1);
-      expect(spanToJSON(endedSpans[0]!).data).toEqual(expected);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
     });
   });
 
@@ -176,14 +170,12 @@ describe('instrumentWorkersAiClient', () => {
 
     /** Set up a client with the Vercel AI processors registered, recording every ended span. */
     function setupVercelAiClient(): void {
-      getCurrentScope().clear();
-      getIsolationScope().clear();
-      getGlobalScope().clear();
+      getMainCarrier().__SENTRY__ = undefined;
 
       spans = [];
       const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
       client.on('spanEnd', span => {
-        spans.push(spanToJSON(span).description ?? '');
+        spans.push(spanToStaticSpanJSON(span).description ?? '');
       });
       setCurrentClient(client);
       addVercelAiProcessors(client);

@@ -5,17 +5,12 @@ import {
   getCapturedScopesOnSpan,
   getRootSpan,
   spanToJSON,
-  spanToStreamedSpanJSON,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
   startSpanManual,
   type Span,
   withIsolationScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyOtelSpanData } from '../src/applyOtelSpanData';
 import { mockSdkInit } from './helpers/mockSdkInit';
-import { init as initTestClient } from './helpers/TestClient';
 
 describe('SentryTracerProvider', () => {
   beforeEach(() => {
@@ -31,28 +26,21 @@ describe('SentryTracerProvider', () => {
     });
 
     expect(spanToJSON(span as Span)).toEqual({
-      data: {
+      attributes: {
         'sentry.origin': 'manual',
-        'sentry.op': 'db',
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
         'sentry.source': 'custom',
       },
-      description: 'SELECT users',
-      op: 'db',
-      origin: 'manual',
+      name: 'SELECT users',
       parent_span_id: undefined,
       span_id: span.spanContext().spanId,
       start_timestamp: expect.any(Number),
+      end_timestamp: undefined,
+      is_segment: true,
       status: 'ok',
-      timestamp: undefined,
       trace_id: span.spanContext().traceId,
-      profile_id: undefined,
-      exclusive_time: undefined,
-      measurements: undefined,
-      is_segment: undefined,
-      segment_id: undefined,
       links: undefined,
     });
   });
@@ -136,77 +124,6 @@ describe('SentryTracerProvider', () => {
 
     expect(json.trace_id).toBe('12312012123120121231201212312012');
     expect(json.parent_span_id).toBe('1121201211212012');
-    expect(json.data?.['sentry.kind']).toBe('server');
-  });
-
-  it('finalizes span statuses like the OpenTelemetry exporter', () => {
-    const okSpan = trace.getTracer('test').startSpan('ok');
-    applyOtelSpanData(okSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(okSpan as Span).status).toBe('ok');
-
-    const httpErrorSpan = trace.getTracer('test').startSpan('http-error');
-    httpErrorSpan.setAttribute('http.response.status_code', 500);
-    applyOtelSpanData(httpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(httpErrorSpan as Span).status).toBe('internal_error');
-
-    const legacyHttpErrorSpan = trace.getTracer('test').startSpan('legacy-http-error');
-    legacyHttpErrorSpan.setAttribute('http.status_code', 500);
-    applyOtelSpanData(legacyHttpErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(legacyHttpErrorSpan as Span).status).toBe('internal_error');
-    expect(spanToJSON(legacyHttpErrorSpan as Span).data).toMatchObject({
-      'http.response.status_code': 500,
-      'http.status_code': 500,
-    });
-
-    const customErrorSpan = trace.getTracer('test').startSpan('custom-error');
-    customErrorSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'This is a custom error' });
-    applyOtelSpanData(customErrorSpan as Span, { finalizeStatus: true });
-    expect(spanToJSON(customErrorSpan as Span).status).toBe('internal_error');
-  });
-
-  it('preserves an explicit OK status when finalizing', () => {
-    const span = trace.getTracer('test').startSpan('explicit-ok');
-    span.setStatus({ code: SPAN_STATUS_OK });
-
-    applyOtelSpanData(span as Span, { finalizeStatus: true });
-
-    expect(spanToJSON(span as Span).status).toBe('ok');
-  });
-
-  it('keeps default custom source on provider-created spans', () => {
-    const span = trace.getTracer('test').startSpan('custom-source');
-    span.setAttribute('sentry.source', 'custom');
-
-    applyOtelSpanData(span as Span, { finalizeStatus: true });
-
-    expect(spanToJSON(span as Span).data?.['sentry.source']).toBe('custom');
-  });
-
-  it('preserves a non-canonical error status message under span streaming', () => {
-    // Under streaming the streamed serializer surfaces the raw message as `sentry.status.message`, so
-    // finalizing must not overwrite the live span status. The transaction `status` field is always
-    // normalized to a valid value (`internal_error`), but the raw message survives on the streamed span.
-    initTestClient({ tracesSampleRate: 1, traceLifecycle: 'stream' });
-    const span = trace.getTracer('test').startSpan('db-error');
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'Cannot enqueue Query after fatal error.' });
-
-    applyOtelSpanData(span as Span, { finalizeStatus: true });
-
-    const streamed = spanToStreamedSpanJSON(span as Span);
-    expect(streamed.status).toBe('error');
-    expect(streamed.attributes?.['sentry.status.message']).toBe('Cannot enqueue Query after fatal error.');
-  });
-
-  it('infers op for HTTP server spans', () => {
-    const span = trace.getTracer('test').startSpan('GET', {
-      kind: SpanKind.SERVER,
-      attributes: {
-        'http.method': 'GET',
-        'http.route': '/my-path/:id',
-      },
-    });
-
-    const json = spanToJSON(span as Span);
-    expect(json.op).toBe('http.server');
+    expect(json.attributes['sentry.kind']).toBe('server');
   });
 });

@@ -44,8 +44,6 @@ interface InstrumentFetchRequestOptions {
 /**
  * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
  *
- * @deprecated pass an options object instead of the spanOrigin parameter
- *
  * @returns Span if a span was created, otherwise void.
  */
 export function instrumentFetchRequest(
@@ -53,33 +51,7 @@ export function instrumentFetchRequest(
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-  spanOrigin: SpanOrigin,
-): Span | undefined;
-/**
- * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
- *
- * @returns Span if a span was created, otherwise void.
- */
-export function instrumentFetchRequest(
-  handlerData: HandlerDataFetch,
-  shouldCreateSpan: (url: string) => boolean,
-  shouldAttachHeaders: (url: string) => boolean,
-  spans: Record<string, Span>,
-  // eslint-disable-next-line @typescript-eslint/unified-signatures -- needed because the other overload is deprecated
-  instrumentFetchRequestOptions: InstrumentFetchRequestOptions,
-): Span | undefined;
-
-/**
- * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
- *
- * @returns Span if a span was created, otherwise void.
- */
-export function instrumentFetchRequest(
-  handlerData: HandlerDataFetch,
-  shouldCreateSpan: (url: string) => boolean,
-  shouldAttachHeaders: (url: string) => boolean,
-  spans: Record<string, Span>,
-  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
+  instrumentFetchRequestOptions?: InstrumentFetchRequestOptions,
 ): Span | undefined {
   if (!handlerData.fetchData) {
     return undefined;
@@ -99,7 +71,7 @@ export function instrumentFetchRequest(
       // Only end the span and call hooks if we're actually recording
       if (shouldCreateSpanResult) {
         endSpan(span, handlerData);
-        _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+        _callOnRequestSpanEnd(span, handlerData, instrumentFetchRequestOptions);
       }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -109,11 +81,7 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  // Backwards-compatible with the old signature. Needed to introduce the combined optional parameter
-  // to avoid API breakage for anyone calling this function with the optional spanOrigin parameter
-  // TODO (v11): remove this backwards-compatible code and only accept the options parameter
-  const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } =
-    typeof spanOriginOrOptions === 'object' ? spanOriginOrOptions : { spanOrigin: spanOriginOrOptions };
+  const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } = instrumentFetchRequestOptions ?? {};
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
@@ -176,14 +144,9 @@ export function instrumentFetchRequest(
 export function _callOnRequestSpanEnd(
   span: Span,
   handlerData: HandlerDataFetch,
-  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
+  instrumentFetchRequestOptions?: InstrumentFetchRequestOptions,
 ): void {
-  const onRequestSpanEnd =
-    typeof spanOriginOrOptions === 'object' && spanOriginOrOptions !== null
-      ? spanOriginOrOptions.onRequestSpanEnd
-      : undefined;
-
-  onRequestSpanEnd?.(span, {
+  instrumentFetchRequestOptions?.onRequestSpanEnd?.(span, {
     headers: handlerData.response?.headers,
     error: handlerData.error,
   });

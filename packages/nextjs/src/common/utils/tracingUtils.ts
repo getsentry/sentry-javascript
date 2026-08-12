@@ -1,6 +1,6 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
-import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
+import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
 import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
@@ -61,7 +61,7 @@ export function commonObjectToIsolationScope(commonObject: unknown): Scope {
  * @param spanAttributes The attributes of the span to check.
  * @returns True if the span is a resolve segment span, false otherwise.
  */
-export function isResolveSegmentSpan(spanAttributes: SpanAttributes): boolean {
+export function isResolveSegmentSpan(spanAttributes: RawAttributes<Record<string, unknown>>): boolean {
   return (
     spanAttributes[ATTR_NEXT_SPAN_TYPE] === 'NextNodeServer.getLayoutOrPageModule' &&
     spanAttributes[ATTR_NEXT_SPAN_NAME] === 'resolve segment modules' &&
@@ -96,8 +96,8 @@ export function getEnhancedResolveSegmentSpanName({ segment, route }: { segment:
  */
 export function maybeEnhanceServerComponentSpanName(
   activeSpan: Span,
-  spanAttributes: SpanAttributes,
-  rootSpanAttributes: SpanAttributes,
+  spanAttributes: RawAttributes<Record<string, unknown>>,
+  rootSpanAttributes: RawAttributes<Record<string, unknown>>,
 ): void {
   if (!isResolveSegmentSpan(spanAttributes)) {
     return;
@@ -109,7 +109,7 @@ export function maybeEnhanceServerComponentSpanName(
   activeSpan.updateName(enhancedName);
   activeSpan.setAttributes({
     'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
-    'sentry.nextjs.ssr.function.route': route,
+    'sentry.nextjs.ssr.function.route': route as string | undefined,
     [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   });

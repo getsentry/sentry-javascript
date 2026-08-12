@@ -5,7 +5,7 @@ import { MyBase } from './base';
 
 // NOTE: this file deliberately contains NO `Sentry.*` calls and no import of
 // `@sentry/cloudflare`. Everything below is wrapped at build time by
-// `sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } })`,
+// `sentryCloudflareVitePlugin()`,
 // which reads wrangler.jsonc, wraps the default export with `withSentry`, and
 // picks a wrapper per class: `instrumentAgentWithSentry` for the three Agents,
 // `instrumentDurableObjectWithSentry` for the plain Durable Object.

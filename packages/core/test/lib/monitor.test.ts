@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '../../src/currentScopes';
+import { getCurrentScope } from '../../src/currentScopes';
 import { withMonitor } from '../../src/monitor';
 import { setCurrentClient } from '../../src/sdk';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { resetGlobals } from '../testutils';
 
 describe('withMonitor', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     const client = new TestClient(getDefaultTestClientOptions({ dsn: 'https://username@domain/123' }));
     setCurrentClient(client);
