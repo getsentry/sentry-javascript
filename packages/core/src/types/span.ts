@@ -182,7 +182,6 @@ export interface SpanContextData {
 
 /**
  * Interface holding all properties that can be set on a Span on creation.
- * This is only used for the legacy span/transaction creation and will go away in v8.
  */
 export interface SentrySpanArguments {
   /**
@@ -224,11 +223,6 @@ export interface SentrySpanArguments {
    * Timestamp in seconds (epoch time) indicating when the span started.
    */
   startTimestamp?: number | undefined;
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span ended.
-   */
-  endTimestamp?: number | undefined;
 
   /**
    * Links to associate with the new span. Setting links here is preferred over addLink()
