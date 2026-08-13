@@ -5,7 +5,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tr
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export {
   amqplibIntegration,
-  anthropicIntegration as anthropicAIIntegration,
+  anthropicAIIntegration,
   dataloaderIntegration,
   expressIntegration,
   firebaseIntegration,
