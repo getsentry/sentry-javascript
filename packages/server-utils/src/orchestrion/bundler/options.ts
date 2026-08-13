@@ -1,7 +1,6 @@
-import type { InstrumentationConfig, CustomTransform } from '..';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import { moduleInjectedTransforms, ORCHESTRION_BUNDLER_MARKER_BANNER } from './moduleInjectedTransform';
-import type { CodeTransformerPluginOptions } from '../apmTypes';
+import type { CodeTransformerPluginOptions, InstrumentationConfig, CustomTransform } from '../apmTypes';
 
 export { ORCHESTRION_BUNDLER_MARKER_BANNER };
 

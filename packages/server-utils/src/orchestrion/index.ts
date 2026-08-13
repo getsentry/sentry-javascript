@@ -64,13 +64,7 @@ export {
   expressIntegration,
   firebaseIntegration,
 };
-export type { KoaIntegrationOptions } from '../integrations/koa';
-export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
-export type { InstrumentationConfig, CustomTransform } from './apmTypes';
-
-// The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
-// vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
-export type * from '../integrations/graphql/graphql-types';
+export type { InstrumentationConfig } from './apmTypes';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
