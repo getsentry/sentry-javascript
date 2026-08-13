@@ -3,6 +3,7 @@ import {
   browserPerformanceTimeOrigin,
   debug,
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -113,7 +114,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const parsedBaggage = parseBaggageHeader(baggage);
   // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-  let name = route || (hasSpanStreamingEnabled(client) ? 'Pageload' : globalObject.location.pathname);
+  let name = route || (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : globalObject.location.pathname);
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
   if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {

@@ -39,7 +39,9 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the CLS span carries the segment name it belongs to
-  expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+  // NOTE: taken from the scope's transaction name, which keeps the URL, rather than from the
+  // pageload segment span, which is named 'Pageload'.
+  expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
 
   // Check browser.web_vital.cls.source attributes
   expect(clsSpan.attributes['browser.web_vital.cls.source.1']?.value).toEqual(

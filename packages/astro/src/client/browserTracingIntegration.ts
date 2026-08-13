@@ -8,6 +8,7 @@ import {
   browserPerformanceTimeOrigin,
   debug,
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -77,7 +78,7 @@ function getPageloadSpanName(client: Client): { name: string; source: Transactio
   }
   return {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    name: hasSpanStreamingEnabled(client) ? 'Pageload' : WINDOW.location.pathname,
+    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
     source: 'url',
   };
 }

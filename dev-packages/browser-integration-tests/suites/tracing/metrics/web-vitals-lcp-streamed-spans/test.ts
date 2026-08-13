@@ -41,7 +41,9 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   expect(lcpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the LCP span carries the segment name it belongs to
-  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+  // NOTE: taken from the scope's transaction name, which keeps the URL, rather than from the
+  // pageload segment span, which is named 'Pageload'.
+  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
 
   // Check browser.web_vital.lcp.* attributes
   expect(lcpSpan.attributes['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));

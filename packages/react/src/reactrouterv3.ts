@@ -7,6 +7,7 @@ import {
 import type { Integration, TransactionSource } from '@sentry/core/browser';
 import {
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -66,7 +67,7 @@ export function reactRouterV3BrowserTracingIntegration(
           (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
             startBrowserTracingPageLoadSpan(client, {
               // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-              name: source === 'route' || !hasSpanStreamingEnabled(client) ? localName : 'Pageload',
+              name: source === 'route' || !hasSpanStreamingEnabled(client) ? localName : PAGELOAD_SPAN_NAME_FALLBACK,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',

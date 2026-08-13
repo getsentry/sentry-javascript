@@ -13,6 +13,7 @@ import {
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -123,7 +124,7 @@ export function instrumentVueRouter(
         const client = getClient();
         const isUnparameterizedStreamedPageload =
           transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
-        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? 'Pageload' : spanName);
+        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : spanName);
         activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
       }
 

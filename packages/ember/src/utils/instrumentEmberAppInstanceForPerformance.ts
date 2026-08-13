@@ -17,6 +17,7 @@ import {
   filterCollectedUrl,
   getCurrentScope,
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   spanToJSON,
   type Client,
   type Span,
@@ -67,7 +68,7 @@ export function instrumentEmberAppInstanceForPerformance(
       name: routeInfo
         ? `route:${routeInfo.name}`
         : hasSpanStreamingEnabled(client)
-          ? 'Pageload'
+          ? PAGELOAD_SPAN_NAME_FALLBACK
           : url || WINDOW.location.pathname,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',

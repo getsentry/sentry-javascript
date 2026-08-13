@@ -102,9 +102,7 @@ describe('browserTracingReactRouterV5', () => {
 
     client.init();
 
-    // The scope transaction name follows the pageload span name, which is low cardinality with
-    // span streaming enabled.
-    expect(getCurrentScope().getScopeData().transactionName).toEqual('Pageload');
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
   });
 
   it('starts a navigation transaction', () => {
