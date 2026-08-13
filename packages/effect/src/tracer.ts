@@ -4,12 +4,8 @@ import {
   WEB_SERVER_HTTP_CLIENT_SPAN_OP,
   WEB_SERVER_HTTP_SERVER_SPAN_OP,
 } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, StartSpanOptions } from '@sentry/core';
 import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
-// This tracer is shared by the client and the server entry, so it needs the browser variant, which
-// installs the span streaming integration on first use. On the server that's a no-op: the client
-// already installs it eagerly, and `addIntegration` dedupes by name.
-import { startInactiveSpan } from '@sentry/core/browser';
 import type * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';
@@ -178,7 +174,16 @@ class SentrySpanWrapper implements SentrySpanLike {
   }
 }
 
+/**
+ * The client and the server entry differ only in which `startInactiveSpan` they hand to
+ * {@link makeSentryTracer}: the browser one from `@sentry/core/browser`, which installs the span
+ * streaming integration on first use, and the plain one from `@sentry/core`, which does not. Nothing
+ * else about the tracer is platform-specific.
+ */
+export type StartInactiveSpan = (options: StartSpanOptions) => Span;
+
 function createSentrySpan(
+  startInactiveSpan: StartInactiveSpan,
   name: string,
   parent: Option.Option<EffectTracer.AnySpan>,
   context: Context.Context<never>,
@@ -219,7 +224,7 @@ const isEffectV4 = (() => {
   }
 })();
 
-const makeSentryTracerV3 = (): EffectTracer.Tracer => {
+const makeSentryTracerV3 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
   // Effect v3 API: span(name, parent, context, links, startTime, kind)
   return EffectTracer.make({
     span(
@@ -230,7 +235,7 @@ const makeSentryTracerV3 = (): EffectTracer.Tracer => {
       startTime: bigint,
       kind: EffectTracer.SpanKind,
     ) {
-      return createSentrySpan(name, parent, context, links, startTime, kind);
+      return createSentrySpan(startInactiveSpan, name, parent, context, links, startTime, kind);
     },
     context(execution: () => unknown, fiber: { currentSpan?: EffectTracer.AnySpan }) {
       const currentSpan = fiber.currentSpan;
@@ -242,12 +247,13 @@ const makeSentryTracerV3 = (): EffectTracer.Tracer => {
   } as unknown as EffectTracer.Tracer);
 };
 
-const makeSentryTracerV4 = (): EffectTracer.Tracer => {
+const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
   const EFFECT_EVALUATE = '~effect/Effect/evaluate' as const;
 
   return EffectTracer.make({
     span(options) {
       return createSentrySpan(
+        startInactiveSpan,
         options.name,
         options.parent,
         options.annotations,
@@ -267,6 +273,11 @@ const makeSentryTracerV4 = (): EffectTracer.Tracer => {
 };
 
 /**
- * Effect Layer that sets up the Sentry tracer for Effect spans.
+ * Creates an Effect `Tracer` that records Effect spans as Sentry spans.
+ *
+ * Use the `SentryEffectTracer` exported from `@sentry/effect` rather than calling this directly — the
+ * client and server entries each bind the right `startInactiveSpan` for their platform.
  */
-export const SentryEffectTracer = isEffectV4 ? makeSentryTracerV4() : makeSentryTracerV3();
+export function makeSentryTracer(startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer {
+  return isEffectV4 ? makeSentryTracerV4(startInactiveSpan) : makeSentryTracerV3(startInactiveSpan);
+}

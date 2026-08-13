@@ -43,6 +43,12 @@ describe('no-unguarded-span-apis', () => {
           filename: '/repo/packages/effect/src/server/index.ts',
           code: "import { startSpan } from '@sentry/core';",
         },
+        // `effect`'s shared tracer implementation takes `startInactiveSpan` as an argument, so it is
+        // not itself browser-facing - only `src/client/tracer.ts` binds the guarded variant.
+        {
+          filename: '/repo/packages/effect/src/tracer.ts',
+          code: "import { startInactiveSpan } from '@sentry/core';",
+        },
         // Tests and build config in browser packages don't ship to the browser.
         {
           filename: '/repo/packages/browser/test/tracing/request.test.ts',
@@ -71,9 +77,8 @@ describe('no-unguarded-span-apis', () => {
           code: "import { startSpan } from '@sentry/core';",
           errors: [{ messageId: 'unguardedSpanApi' }],
         },
-        // ...except for files explicitly listed as shared between both entry points.
         {
-          filename: '/repo/packages/effect/src/tracer.ts',
+          filename: '/repo/packages/effect/src/client/tracer.ts',
           code: "import { startInactiveSpan } from '@sentry/core';",
           errors: [{ messageId: 'unguardedSpanApi' }],
         },

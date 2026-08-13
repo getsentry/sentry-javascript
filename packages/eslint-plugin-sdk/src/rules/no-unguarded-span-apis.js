@@ -40,8 +40,7 @@ const BROWSER_FACING = {
   wasm: true,
 
   astro: ['src/client'],
-  // `tracer.ts` backs both the client and the server entry, so it needs the guarded variant too.
-  effect: ['src/client', 'src/tracer.ts'],
+  effect: ['src/client'],
   nextjs: ['src/client'],
   nuxt: ['src/client'],
   'react-router': ['src/client'],

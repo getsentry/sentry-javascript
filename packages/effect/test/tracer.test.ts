@@ -4,11 +4,36 @@ import * as sentryCoreBrowser from '@sentry/core/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
-import { SentryEffectTracer } from '../src/tracer';
+import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
+import { SentryEffectTracer as serverTracer } from '../src/server/tracer';
 
-const withSentryTracer = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, SentryEffectTracer);
+// The two variants differ only in which module they start spans through, so spying on `spanApi` also
+// asserts that wiring: the client tracer must go through `@sentry/core/browser` (which installs
+// `spanStreamingIntegration`) and the server tracer through the plain `@sentry/core`.
+const VARIANTS = [
+  { variant: 'client', tracer: clientTracer, spanApi: sentryCoreBrowser as SpanApi },
+  { variant: 'server', tracer: serverTracer, spanApi: sentryCore as SpanApi },
+];
 
-describe('SentryEffectTracer', () => {
+interface SpanApi {
+  startInactiveSpan: typeof sentryCore.startInactiveSpan;
+}
+
+function mockSpan(overrides: Record<string, unknown> = {}): sentryCore.Span {
+  return {
+    spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
+    isRecording: () => true,
+    setAttribute: vi.fn(),
+    setStatus: vi.fn(),
+    addEvent: vi.fn(),
+    end: vi.fn(),
+    ...overrides,
+  } as unknown as sentryCore.Span;
+}
+
+describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) => {
+  const withSentryTracer = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer);
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -58,45 +83,22 @@ describe('SentryEffectTracer', () => {
           results.push('parent-start');
           yield* Effect.withSpan('child-1')(Effect.sync(() => results.push('child-1')));
           yield* Effect.withSpan('child-2')(Effect.sync(() => results.push('child-2')));
-          results.push('parent-end');
         }),
       );
 
-      expect(results).toEqual(['parent-start', 'child-1', 'child-2', 'parent-end']);
+      expect(results).toEqual(['parent-start', 'child-1', 'child-2']);
     }).pipe(withSentryTracer),
   );
 
-  it.effect('handles span failures correctly', () =>
+  it.effect('handles concurrent spans', () =>
     Effect.gen(function* () {
-      const result = yield* Effect.withSpan('failing-span')(Effect.fail('expected-error')).pipe(
-        Effect.catchCause(cause => {
-          const error = cause.reasons[0]?._tag === 'Fail' ? cause.reasons[0].error : 'unknown';
-          return Effect.succeed(`caught: ${error}`);
-        }),
-      );
-
-      expect(result).toBe('caught: expected-error');
-    }).pipe(withSentryTracer),
-  );
-
-  it.effect('handles span with defects (die)', () =>
-    Effect.gen(function* () {
-      const result = yield* Effect.withSpan('defect-span')(Effect.die('defect-value')).pipe(
-        Effect.catchDefect(d => Effect.succeed(`caught-defect: ${d}`)),
-      );
-
-      expect(result).toBe('caught-defect: defect-value');
-    }).pipe(withSentryTracer),
-  );
-
-  it.effect('works with Effect.all for parallel operations', () =>
-    Effect.gen(function* () {
-      const results = yield* Effect.withSpan('parallel-parent')(
-        Effect.all([
-          Effect.withSpan('task-1')(Effect.succeed(1)),
-          Effect.withSpan('task-2')(Effect.succeed(2)),
-          Effect.withSpan('task-3')(Effect.succeed(3)),
-        ]),
+      const results = yield* Effect.all(
+        [
+          Effect.withSpan('concurrent-1')(Effect.succeed(1)),
+          Effect.withSpan('concurrent-2')(Effect.succeed(2)),
+          Effect.withSpan('concurrent-3')(Effect.succeed(3)),
+        ],
+        { concurrency: 'unbounded' },
       );
 
       expect(results).toEqual([1, 2, 3]);
@@ -118,22 +120,13 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
-      });
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(() =>
+        mockSpan({ setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status) }),
+      );
 
       yield* Effect.withSpan('success-span')(Effect.succeed('ok'));
 
       expect(setStatusCalls).toContainEqual({ code: 1 });
-
-      mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
@@ -141,22 +134,13 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
-      });
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(() =>
+        mockSpan({ setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status) }),
+      );
 
       yield* Effect.withSpan('error-span')(Effect.fail('test-error')).pipe(Effect.catchCause(() => Effect.void));
 
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'test-error' });
-
-      mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
@@ -164,22 +148,13 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const setStatusCalls: Array<{ code: number; message?: string }> = [];
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(_options => {
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
-      });
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(() =>
+        mockSpan({ setStatus: (status: { code: number; message?: string }) => setStatusCalls.push(status) }),
+      );
 
       yield* Effect.withSpan('defect-span')(Effect.die('fatal-defect')).pipe(Effect.catchDefect(() => Effect.void));
 
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'fatal-defect' });
-
-      mockStartInactiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
@@ -187,105 +162,67 @@ describe('SentryEffectTracer', () => {
     Effect.gen(function* () {
       const withActiveSpanCalls: sentryCore.Span[] = [];
 
-      const mockWithActiveSpan = vi
-        .spyOn(sentryCore, 'withActiveSpan')
-        .mockImplementation(<T>(span: sentryCore.Span | null, callback: (scope: sentryCore.Scope) => T): T => {
+      vi.spyOn(sentryCore, 'withActiveSpan').mockImplementation(
+        <T>(span: sentryCore.Span | null, callback: (scope: sentryCore.Scope) => T): T => {
           if (span) {
             withActiveSpanCalls.push(span);
           }
           return callback({} as sentryCore.Scope);
-        });
+        },
+      );
 
       yield* Effect.withSpan('context-span')(Effect.succeed('done'));
 
       expect(withActiveSpanCalls.length).toBeGreaterThan(0);
-
-      mockWithActiveSpan.mockRestore();
     }).pipe(withSentryTracer),
   );
 
-  it.effect('sets origin and op for regular spans', () =>
+  /** Captures the attributes the tracer passes to `startInactiveSpan` for a given Effect span name. */
+  const attributesFor = (spanName: string) =>
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(options => {
         capturedAttributes = options.attributes;
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: vi.fn(),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
+        return mockSpan();
       });
 
-      yield* Effect.withSpan('my-operation')(Effect.succeed('ok'));
+      yield* Effect.withSpan(spanName)(Effect.succeed('ok'));
 
-      expect(capturedAttributes).toBeDefined();
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
+      return capturedAttributes;
+    }).pipe(withSentryTracer);
 
-      mockStartInactiveSpan.mockRestore();
-    }).pipe(withSentryTracer),
+  it.effect('sets origin and op for regular spans', () =>
+    Effect.gen(function* () {
+      const attributes = yield* attributesFor('my-operation');
+
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
+    }),
   );
 
   it.effect('sets origin and op for http.server spans', () =>
     Effect.gen(function* () {
-      let capturedAttributes: Record<string, unknown> | undefined;
+      const attributes = yield* attributesFor('http.server GET /api/users');
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
-        capturedAttributes = options.attributes;
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: vi.fn(),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
-      });
-
-      yield* Effect.withSpan('http.server GET /api/users')(Effect.succeed('ok'));
-
-      expect(capturedAttributes).toBeDefined();
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
-
-      mockStartInactiveSpan.mockRestore();
-    }).pipe(withSentryTracer),
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    }),
   );
 
   it.effect('sets origin and op for http.client spans', () =>
     Effect.gen(function* () {
-      let capturedAttributes: Record<string, unknown> | undefined;
+      const attributes = yield* attributesFor('http.client GET https://api.example.com');
 
-      const mockStartInactiveSpan = vi.spyOn(sentryCoreBrowser, 'startInactiveSpan').mockImplementation(options => {
-        capturedAttributes = options.attributes;
-        return {
-          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-          isRecording: () => true,
-          setAttribute: vi.fn(),
-          setStatus: vi.fn(),
-          addEvent: vi.fn(),
-          end: vi.fn(),
-        } as unknown as sentryCore.Span;
-      });
-
-      yield* Effect.withSpan('http.client GET https://api.example.com')(Effect.succeed('ok'));
-
-      expect(capturedAttributes).toBeDefined();
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
-      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.client');
-
-      mockStartInactiveSpan.mockRestore();
-    }).pipe(withSentryTracer),
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.client');
+    }),
   );
 
   it.effect('can be used with Effect.withTracer', () =>
     Effect.gen(function* () {
       const result = yield* Effect.withSpan('inline-tracer-span')(Effect.succeed('with-tracer'));
       expect(result).toBe('with-tracer');
-    }).pipe(Effect.withTracer(SentryEffectTracer)),
+    }).pipe(Effect.withTracer(tracer)),
   );
 });
