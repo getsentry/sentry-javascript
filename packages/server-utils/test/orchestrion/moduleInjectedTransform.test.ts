@@ -41,6 +41,21 @@ describe('channel integration definitions', () => {
       expect(typeof (barrel as Record<string, unknown>)[exportName]).toBe('function');
     }
   });
+
+  // The transform configs' version ranges exclude versions that publish their own
+  // channels; registration must not inherit that gap, so every module named in a
+  // transform config that has a subscriber needs an entry here.
+  it('covers every instrumented module that has a channel-subscriber integration', async () => {
+    const { SENTRY_INSTRUMENTATIONS } = await import('../../src/orchestrion/config');
+    const configured = new Set(SENTRY_INSTRUMENTATIONS.map(c => c.module.name));
+    const defined = new Set(CHANNEL_INTEGRATION_DEFINITIONS.flatMap(d => d.modules as readonly string[]));
+
+    // `@nestjs/*` and `@remix-run/*` are covered by listeners in their own SDK packages.
+    const uncovered = [...configured].filter(
+      name => !defined.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
+    );
+    expect(uncovered).toEqual([]);
+  });
 });
 
 describe('module-injected transform', () => {
