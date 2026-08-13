@@ -696,7 +696,7 @@ describe('trackInpAsSpan', () => {
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'ui.interaction',
+          'sentry.op': 'ui.interaction.click',
           'browser.web_vital.inp.value': 120,
         }),
       }),
@@ -726,7 +726,7 @@ describe('soft navigation web vitals', () => {
     });
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
     vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockImplementation((metric: any) =>
@@ -761,7 +761,7 @@ describe('soft navigation web vitals', () => {
     lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
     lcpCallback({ metric: lcpMetric(2, 300) });
 
-    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
     expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
@@ -779,7 +779,7 @@ describe('soft navigation web vitals', () => {
     lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
     lcpCallback({ metric: lcpMetric(2, 300) });
 
-    expect(vi.mocked(SentryCore.startInactiveSpan)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(SentryCoreBrowser.startInactiveSpan)).toHaveBeenCalledTimes(1);
   });
 
   it('sends a CLS of 0 for a soft navigation without layout shifts', () => {
@@ -787,7 +787,7 @@ describe('soft navigation web vitals', () => {
 
     clsCallback({ metric: { value: 0, navigationId: 2, navigationType: 'soft-navigation', entries: [] } });
 
-    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    const call = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0];
     expect(call.attributes?.['browser.web_vital.cls.value']).toBe(0);
     expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
     expect(call.parentSpan).toBe(navigationSpan);
@@ -812,7 +812,7 @@ describe('soft navigation web vitals', () => {
     inpCallback({ metric: { value: 120, navigationId: 1, navigationType: 'navigate', entries: [entry] } });
     inpCallback({ metric: { value: 120, navigationId: 2, navigationType: 'soft-navigation', entries: [entry] } });
 
-    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
     expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
@@ -836,10 +836,11 @@ describe('soft navigation web vitals', () => {
       metric: { value: 8, navigationId: 2, navigationType: 'soft-navigation', navigationStartTime: 500, entries: [] },
     });
 
-    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    const call = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0];
     expect(call.name).toBe('Interaction to next paint');
-    // No entry means no interaction type, so the op stays unqualified rather than guessing one.
-    expect(call.attributes?.['sentry.op']).toBe('ui.interaction');
+    // No entry means no interaction type. The op still has to stay inside `ui.interaction.*` so
+    // these fast navigations are not excluded from INP aggregations.
+    expect(call.attributes?.['sentry.op']).toBe('ui.interaction.click');
     expect(call.attributes?.['browser.web_vital.inp.value']).toBe(8);
     expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
     expect(call.parentSpan).toBe(navigationSpan);

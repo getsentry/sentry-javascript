@@ -306,7 +306,11 @@ export function _sendInpSpan(
     (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
   );
   const duration = msToSec(inpValue);
-  const interactionType = entry && INP_ENTRY_MAP[entry.name];
+  // An INP without an entry has no interaction type to report. It still has to land inside the
+  // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations
+  // that web-vitals synthesizes these values for (GoogleChrome/web-vitals#724), reintroducing the
+  // reporting bias they were added to remove.
+  const interactionType = (entry && INP_ENTRY_MAP[entry.name]) || 'click';
 
   const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
@@ -319,7 +323,7 @@ export function _sendInpSpan(
 
   _emitWebVitalSpan({
     name,
-    op: interactionType ? INTERACTION_TYPE_TO_SPAN_OP[interactionType] : 'ui.interaction',
+    op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
