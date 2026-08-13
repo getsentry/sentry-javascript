@@ -6,6 +6,11 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import {
+  DATABASE_CACHE_GET_SPAN_OP,
+  DATABASE_CACHE_PUT_SPAN_OP,
+  DATABASE_CACHE_REMOVE_SPAN_OP,
+} from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
@@ -57,11 +62,11 @@ export function isInCommands(redisCommands: string[], command: string): boolean 
 /** Determine cache operation based on redis statement */
 export function getCacheOperation(command: string): 'cache.get' | 'cache.put' | 'cache.remove' | undefined {
   if (isInCommands(GET_COMMANDS, command)) {
-    return 'cache.get';
+    return DATABASE_CACHE_GET_SPAN_OP;
   } else if (isInCommands(SET_COMMANDS, command)) {
-    return 'cache.put';
+    return DATABASE_CACHE_PUT_SPAN_OP;
   } else if (isInCommands(REMOVE_COMMANDS, command)) {
-    return 'cache.remove';
+    return DATABASE_CACHE_REMOVE_SPAN_OP;
   } else {
     return undefined;
   }
