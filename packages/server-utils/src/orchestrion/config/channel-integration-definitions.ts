@@ -31,7 +31,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'openAIIntegration', modules: ['openai'] },
   { exportName: 'anthropicIntegration', modules: ['@anthropic-ai/sdk'] },
   { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
-  { exportName: 'vercelAiIntegration', modules: ['ai'] },
+  { exportName: 'vercelAIIntegration', modules: ['ai'] },
   { exportName: 'amqplibIntegration', modules: ['amqplib'] },
   { exportName: 'hapiIntegration', modules: ['@hapi/hapi'] },
   { exportName: 'expressIntegration', modules: ['express', 'router'] },

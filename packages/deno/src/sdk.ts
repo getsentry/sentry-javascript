@@ -34,7 +34,7 @@ import {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-  vercelAiIntegration,
+  vercelAIIntegration,
   redisIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
@@ -66,7 +66,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoHttpIntegration(),
     redisIntegration(),
     graphqlDiagnosticsIntegration(),
-    vercelAiIntegration(),
+    vercelAIIntegration(),
     // orchestrion-based instrumentations. We add a deliberate list here rather
     // than every channel integration: each one needs a Deno test proving it
     // records spans.
