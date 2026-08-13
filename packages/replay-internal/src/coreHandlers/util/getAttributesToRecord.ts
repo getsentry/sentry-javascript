@@ -27,9 +27,7 @@ export const BREADCRUMB_RELEVANT_ATTRIBUTES = new Set([...ATTRIBUTES_TO_RECORD, 
  */
 export function getAttributesToRecord(attributes: Record<string, unknown>): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
-  if (!attributes['data-sentry-component'] && attributes['data-sentry-element']) {
-    attributes['data-sentry-component'] = attributes['data-sentry-element'];
-  }
+
   for (const key in attributes) {
     if (ATTRIBUTES_TO_RECORD.has(key)) {
       let normalizedKey = key;
@@ -40,6 +38,12 @@ export function getAttributesToRecord(attributes: Record<string, unknown>): Reco
 
       obj[normalizedKey] = attributes[key];
     }
+  }
+
+  // `attributes` is the serialized node held by rrweb's mirror, which is the same object that was
+  // emitted in an earlier `adds` payload, so this fallback must not be written back onto it.
+  if (!obj['data-sentry-component'] && attributes['data-sentry-element']) {
+    obj['data-sentry-component'] = attributes['data-sentry-element'];
   }
 
   return obj;
