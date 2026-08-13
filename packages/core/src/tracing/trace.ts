@@ -12,7 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
-import type { SentrySpanArguments, Span, SpanContextData, SpanTimeInput } from '../types/span';
+import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
@@ -31,7 +31,6 @@ import {
   spanIsSampled,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
-  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -326,12 +325,15 @@ function createChildOrRootSpan({
 }): Span {
   const isolationScope = getIsolationScope();
 
-  // A remote parent is an incoming trace on the ambient OTel context, set by the propagator. It
-  // cannot be used as a local parent span. Instead, we continue its trace through the propagation
-  // context and start a root span, like `SentryTracer` does for remote parents.
-  const remoteParentSpan = resolvedParentSpan?.spanContext().isRemote ? resolvedParentSpan : undefined;
-  const scope = remoteParentSpan ? scopeWithRemoteParentPropagation(currentScope, remoteParentSpan) : currentScope;
-  const parentSpan = remoteParentSpan ? undefined : resolvedParentSpan;
+  // Listeners can adjust the scope and the parent right before span creation. The Node SDK uses
+  // this to turn a remote parent (an incoming trace on the ambient OTel context) into a propagation
+  // context on a forked scope, so the span continues the incoming trace as a root span.
+  const spanScope: { scope: Scope; parentSpan: Span | undefined } = {
+    scope: currentScope,
+    parentSpan: resolvedParentSpan,
+  };
+  getClient()?.emit('prepareSpanScope', spanScope);
+  const { scope, parentSpan } = spanScope;
 
   if (!hasSpansEnabled()) {
     const scopePropagationContext = scope.getPropagationContext();
@@ -583,61 +585,6 @@ function _startChildSpan(
   client.emit('spanStart', childSpan);
 
   return childSpan;
-}
-
-/**
- * Fork the scope with a propagation context continuing the remote parent's trace, so the root span
- * created from it picks up the incoming trace id, parent span id, and sampling decision. Mirrors
- * `SentryTracer._startRootSpanWithRemoteParent` in `@sentry/opentelemetry`.
- */
-function scopeWithRemoteParentPropagation(scope: Scope, remoteParentSpan: Span): Scope {
-  const { spanId, traceId, traceState } = remoteParentSpan.spanContext();
-  const dsc = getDynamicSamplingContextFromSpan(remoteParentSpan);
-  const sampleRand = typeof dsc.sample_rand === 'string' ? Number(dsc.sample_rand) : undefined;
-
-  // Only freeze the DSC when the remote parent actually carried one (i.e. there was incoming
-  // baggage). Otherwise leave it unset so it is derived dynamically from the span — picking up the
-  // span's `transaction` name and the generated `sample_rand`.
-  const hasIncomingDsc = !!traceState?.get('sentry.dsc');
-
-  const forkedScope = scope.clone();
-  forkedScope.setPropagationContext({
-    traceId,
-    parentSpanId: spanId,
-    sampled: getSamplingDecisionFromRemoteSpanContext(remoteParentSpan.spanContext()),
-    dsc: hasIncomingDsc ? dsc : undefined,
-    sampleRand: typeof sampleRand === 'number' && !Number.isNaN(sampleRand) ? sampleRand : safeMathRandom(),
-  });
-  _setSpanForScope(forkedScope, undefined);
-  return forkedScope;
-}
-
-/**
- * OpenTelemetry only knows a SAMPLED or NONE decision, but for us it is important to differentiate
- * between unsampled and unset (deferred). Both arrive as `traceFlags: NONE`; the Sentry trace state
- * and the DSC disambiguate. Port of `getSamplingDecision` in `@sentry/opentelemetry`.
- */
-function getSamplingDecisionFromRemoteSpanContext(spanContext: SpanContextData): boolean | undefined {
-  const { traceFlags, traceState } = spanContext;
-
-  if (traceFlags === TRACE_FLAG_SAMPLED) {
-    return true;
-  }
-
-  if (traceState?.get('sentry.sampled_not_recording') === '1') {
-    return false;
-  }
-
-  const dscString = traceState?.get('sentry.dsc');
-  const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
-  if (dsc?.sampled === 'true') {
-    return true;
-  }
-  if (dsc?.sampled === 'false') {
-    return false;
-  }
-
-  return undefined;
 }
 
 function getParentSpan(scope: Scope, customParentSpan: Span | null | undefined): Span | undefined {

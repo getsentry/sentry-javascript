@@ -11,7 +11,11 @@ import {
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
-import { type AsyncLocalStorageLookup, type SentryTracerProvider } from '@sentry/opentelemetry';
+import {
+  type AsyncLocalStorageLookup,
+  registerPrepareSpanScope,
+  type SentryTracerProvider,
+} from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -72,6 +76,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // provider path produce OTel spans that never reach `SentrySpan`, so the strategy is simply never
     // consulted for them.
     _INTERNAL_setDeferSegmentSpanCapture(this);
+
+    // Same constructor anchoring as above: every client must continue incoming (remote) traces,
+    // also manually constructed ones that never run `initOtel`.
+    registerPrepareSpanScope(this);
   }
 
   /** Get the OTEL tracer. */
