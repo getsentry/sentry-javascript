@@ -614,36 +614,22 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 
 Affected SDKs: All SDKs running in the browser.
 
-With [span streaming](#span-streaming-is-now-the-default) (the default), span names have to be **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/). A raw URL must never end up in a span name, so where the SDK previously fell back to the URL it now uses a static name per span op. The URL remains available on the `url.path` and `url.full` attributes, and `sentry.source` is unchanged.
+With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
-In v11, this only affects `pageload` spans. Further ops will follow in future releases. With `traceLifecycle: 'static'`, span names are unchanged.
+In v11, this only affects `pageload` spans. Further ops will follow in future releases.
+If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
+
+The following span names were adjusted:
 
 | Span op    | Before                                                                                      | After                                                      |
 | ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`) | The parameterized route, or `Pageload` if the SDK has none |
 
-For example, for a pageload of `https://example.com/users/123`:
+Some consequences to be aware of:
 
-```js
-// Before (and still the case with `traceLifecycle: 'static'`)
-{ name: '/users/123', attributes: { 'sentry.op': 'pageload', 'sentry.source': 'url' } }
+Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 
-// After, if the SDK resolved the route (most framework SDKs)
-{ name: '/users/:id', attributes: { 'sentry.op': 'pageload', 'sentry.source': 'route', 'url.template': '/users/:id' } }
-
-// After, if no route information is available (e.g. `@sentry/browser` without a router)
-{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'sentry.source': 'url', 'url.path': '/users/123' } }
-```
-
-Pageload spans start with this name. Most routing instrumentations only resolve the route after the span was started, so a pageload span is commonly named `Pageload` first and renamed to the route once it is known — it is never named after the raw URL in between.
-
-Three knock-on effects to be aware of:
-
-- Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
-- Errors captured during a pageload get the pageload span's name as their `transaction`, so an error on an unparameterized pageload is now grouped under `Pageload` rather than the URL.
-- `ui.action.click` spans are named after the route the interaction happened on, which is the pageload span's name until a navigation replaces it.
-
-`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `Pageload`, so filters matching a URL path no longer apply to it. Match on attributes instead:
+`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Match on attributes instead:
 
 ```js
 Sentry.init({
@@ -651,7 +637,7 @@ Sentry.init({
   ignoreSpans: ['/health'],
 
   // After
-  ignoreSpans: [{ attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
+  ignoreSpans: [{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
 });
 ```
 
