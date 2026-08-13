@@ -620,6 +620,8 @@ The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
+**Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
+
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
 Affected SDKs: `@sentry/cloudflare`.
