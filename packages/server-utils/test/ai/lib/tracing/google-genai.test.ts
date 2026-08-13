@@ -139,7 +139,7 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
   });
 
-  it('lets a per-message config override the config from chats.create()', async () => {
+  it('replaces the chats.create() config when a message provides its own', async () => {
     const endedSpans = setupClient();
     const instrumented = instrumentGoogleGenAIClient(createFakeClient());
 
@@ -149,10 +149,14 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
     await chat.sendMessage({ message: 'Tell me a joke', config: { temperature: 0.1 } });
 
     const data = spanToJSON(endedSpans[0]!).data;
-    // Per-call temperature wins; the untouched create-time values still come through.
+    // @google/genai resolves the request config as `params.config ?? chat.config`, so the
+    // per-message config is sent on its own. The create-time fields it omits are not part of the
+    // request, so they must not appear on the span.
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.1);
-    expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
-    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+    expect(data[GEN_AI_REQUEST_TOP_P]).toBeUndefined();
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBeUndefined();
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
+    expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
   });
 
   it('does not leak chat config onto models.generateContent spans', async () => {

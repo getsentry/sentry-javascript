@@ -257,9 +257,10 @@ function asConfigObject(config: unknown): Record<string, unknown> | undefined {
 /**
  * Merge the parameters captured at `chats.create()` time onto a `chat.sendMessage()` /
  * `chat.sendMessageStream()` call, so the config that is defined once on the chat lands on every
- * message span. The create-time config is the default and a per-message config overrides it key by
- * key. Only `model` and `config` are inherited; the create `history` is intentionally left off the
- * message spans. See issue #20086.
+ * message span. The SDK resolves the request config as `params.config ?? chat.config`, so a
+ * per-message config replaces the create-time config wholesale and the create-time config only
+ * applies when the message omits one. Only `model` and `config` are inherited; the create `history`
+ * is intentionally left off the message spans. See issue #20086.
  */
 function mergeChatCreateParams(
   chatCreateParams: Record<string, unknown> | undefined,
@@ -275,10 +276,15 @@ function mergeChatCreateParams(
     merged.model = chatCreateParams.model;
   }
 
-  const createConfig = asConfigObject(chatCreateParams.config);
+  // @google/genai sends `params.config ?? chat.config`, so a per-message config replaces the
+  // create-time config wholesale rather than merging into it. Fall back to the create-time config
+  // only when the message did not carry one, otherwise the span reports fields that were not sent.
   const callConfig = asConfigObject(callParams?.config);
-  if (createConfig || callConfig) {
-    merged.config = { ...createConfig, ...callConfig };
+  if (!callConfig) {
+    const createConfig = asConfigObject(chatCreateParams.config);
+    if (createConfig) {
+      merged.config = createConfig;
+    }
   }
 
   return merged;
