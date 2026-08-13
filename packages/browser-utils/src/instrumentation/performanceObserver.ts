@@ -9,6 +9,7 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'paint'
   | 'resource'
   | 'element'
+  | 'soft-navigation'
   // fist-input is still needed for INP
   | 'first-input';
 
@@ -30,6 +31,16 @@ export interface PerformanceEventTiming extends PerformanceEntry {
   cancelable?: boolean;
   target?: unknown | null;
   interactionId?: number;
+}
+
+/**
+ * A `soft-navigation` entry, minted by the browser once a history change is followed by a
+ * confirming paint. `interactionId` is the id of the `PerformanceEventTiming` entry for the
+ * interaction that drove the navigation, which is how we join it back to a Sentry navigation span.
+ */
+export interface PerformanceSoftNavigation extends PerformanceEntry {
+  readonly interactionId: number;
+  readonly navigationId: number;
 }
 
 interface PerformanceScriptTiming extends PerformanceEntry {
@@ -103,6 +114,29 @@ interface Metric {
     | 'prerender'
     | 'restore'
     | 'soft-navigation';
+
+  /**
+   * The id of the navigation the metric belongs to. For soft navigations this is the
+   * `navigationId` of the `soft-navigation` entry, otherwise it's the id of the hard navigation.
+   */
+  navigationId: number;
+
+  /**
+   * For soft navigations, the `interactionId` of the interaction that triggered the navigation.
+   */
+  navigationInteractionId?: number;
+
+  /**
+   * The start time the metric value is relative to. Non-zero for soft navigations, where the
+   * time origin is the triggering interaction rather than the start of the document.
+   */
+  navigationStartTime?: number;
+
+  /**
+   * The URL the metric was recorded for. Relevant for soft navigations, where a metric can be
+   * reported long after the URL has moved on.
+   */
+  navigationURL?: string;
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
@@ -122,6 +156,22 @@ let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
 let _previousFcp: Metric | undefined;
+
+let _reportSoftNavs = false;
+
+/**
+ * Opt the CLS, LCP and INP observers into reporting metrics for soft navigations.
+ *
+ * Each observer is instrumented lazily, on its first handler, and web-vitals takes its options at
+ * that point only. So this has to be called before any of the `add*InstrumentationHandler`
+ * functions, otherwise it won't take effect for observers that are already running.
+ *
+ * On browsers without the Soft Navigation API this is a no-op: web-vitals feature-detects the API
+ * and keeps reporting hard-navigation metrics as usual.
+ */
+export function enableSoftNavigationReporting(): void {
+  _reportSoftNavs = true;
+}
 
 /**
  * Add a callback that will be triggered when a CLS metric is available.
@@ -255,7 +305,7 @@ function instrumentCls(): StopListening {
     }),
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: true, reportSoftNavs: _reportSoftNavs },
   );
 }
 
@@ -269,7 +319,7 @@ function instrumentLcp(): StopListening {
     }),
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: true, reportSoftNavs: _reportSoftNavs },
   );
 }
 
@@ -303,6 +353,7 @@ function instrumentInp(): StopListening {
       });
       _previousInp = metric;
     }),
+    { reportSoftNavs: _reportSoftNavs },
   );
 }
 

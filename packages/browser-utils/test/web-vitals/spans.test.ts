@@ -5,13 +5,18 @@ import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import * as inpModule from '../../src/web-vitals/inp';
 import * as instrument from '../../src/instrumentation/performanceObserver';
 import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
+import { _emitWebVitalSpan } from '../../src/web-vitals/emitSpan';
+import * as reportEvents from '../../src/web-vitals/reportEvents';
+import * as softNavs from '../../src/web-vitals/softNavs';
 import {
-  _emitWebVitalSpan,
   _sendClsSpan,
   _sendInpSpan,
   _sendLcpSpan,
+  trackClsAsSpan,
   trackInpAsSpan,
+  trackLcpAsSpan,
 } from '../../src/web-vitals/spans';
+import * as utils from '../../src/web-vitals/utils';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -687,5 +692,133 @@ describe('trackInpAsSpan', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: { value: 120, entries: [{ name: 'scroll', duration: 120 }] } });
     expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
+  });
+});
+
+describe('soft navigation web vitals', () => {
+  const streamingClient = { getOptions: () => ({ traceLifecycle: 'stream' }), on: vi.fn() } as any;
+
+  const mockScope = {
+    getScopeData: vi.fn().mockReturnValue({ transactionName: 'test-route' }),
+  };
+
+  const navigationSpan = { spanContext: () => ({ spanId: 'nav-1' }) } as any;
+
+  let lcpCallback: (arg: { metric: any }) => void;
+  let clsCallback: (arg: { metric: any }) => void;
+  let reportEventCallback: (event: string, spanId: string, span?: any) => void;
+  let hiddenCallback: (() => void) | undefined;
+  let cleanupLcpHandler: () => void;
+
+  function lcpMetric(navigationId: number, value: number, navigationType = 'soft-navigation') {
+    return { value, navigationId, navigationType, entries: [{ startTime: value, element: {} }] };
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('PerformanceObserver', {
+      supportedEntryTypes: ['largest-contentful-paint', 'layout-shift', 'soft-navigation'],
+    });
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
+    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
+    vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockImplementation((metric: any) =>
+      metric.navigationType === 'soft-navigation' ? navigationSpan : undefined,
+    );
+    hiddenCallback = undefined;
+    cleanupLcpHandler = vi.fn();
+    vi.spyOn(instrument, 'addLcpInstrumentationHandler').mockImplementation((cb: any) => {
+      lcpCallback = cb;
+      return cleanupLcpHandler;
+    });
+    vi.spyOn(instrument, 'addClsInstrumentationHandler').mockImplementation((cb: any) => {
+      clsCallback = cb;
+      return () => undefined;
+    });
+    vi.spyOn(reportEvents, 'listenForWebVitalReportEvents').mockImplementation((_client: any, cb: any) => {
+      reportEventCallback = cb;
+    });
+    vi.spyOn(utils, 'onHidden').mockImplementation((cb: any) => {
+      hiddenCallback = cb;
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('reports one LCP span per soft navigation, against its navigation span', () => {
+    trackLcpAsSpan(streamingClient, true);
+
+    lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
+    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+
+    lcpCallback({ metric: lcpMetric(2, 300) });
+    lcpCallback({ metric: lcpMetric(3, 500) });
+
+    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
+    expect(calls[0]![0].parentSpan).toEqual(expect.objectContaining({ spanContext: expect.any(Function) }));
+    expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
+    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(calls[1]![0].parentSpan).toBe(navigationSpan);
+  });
+
+  it('flushes the last soft navigation LCP on pagehide', () => {
+    trackLcpAsSpan(streamingClient, true);
+
+    lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
+    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+    lcpCallback({ metric: lcpMetric(2, 300) });
+
+    hiddenCallback?.();
+
+    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
+    expect(calls[1]![0].attributes?.['browser.web_vital.lcp.report_event']).toBe('pagehide');
+  });
+
+  it('does not report soft navigation vitals that could not be correlated', () => {
+    vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockReturnValue(undefined);
+
+    trackLcpAsSpan(streamingClient, true);
+
+    lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
+    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+    lcpCallback({ metric: lcpMetric(2, 300) });
+    lcpCallback({ metric: lcpMetric(3, 500) });
+    hiddenCallback?.();
+
+    expect(vi.mocked(SentryCore.startInactiveSpan)).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the LCP handler alive for soft navigations but tears it down without them', () => {
+    trackLcpAsSpan(streamingClient, true);
+    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+    expect(cleanupLcpHandler).not.toHaveBeenCalled();
+    expect(hiddenCallback).toBeDefined();
+
+    trackLcpAsSpan(streamingClient, false);
+    reportEventCallback('navigation', 'pageload-2', createMockPageloadSpan('pageload-2'));
+    expect(cleanupLcpHandler).toHaveBeenCalled();
+  });
+
+  it('reports a CLS of 0 for a soft navigation without layout shifts', () => {
+    trackClsAsSpan(streamingClient, true);
+
+    clsCallback({ metric: { value: 0.1, navigationId: 1, navigationType: 'navigate', entries: [{ sources: [] }] } });
+    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+
+    clsCallback({ metric: { value: 0, navigationId: 2, navigationType: 'soft-navigation', entries: [] } });
+    clsCallback({ metric: { value: 0, navigationId: 3, navigationType: 'soft-navigation', entries: [] } });
+
+    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[1]![0].attributes?.['browser.web_vital.cls.value']).toBe(0);
+    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
   });
 });
