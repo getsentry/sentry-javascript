@@ -43,6 +43,7 @@ const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
 };
 
 type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>[0]>[0]['metric'];
+type InpMetric = Parameters<InstrumentationHandlerCallback>[0]['metric'];
 
 /**
  * Reports a web vital once per navigation, for browsers reporting soft navigations.
@@ -52,10 +53,10 @@ type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>
  * `reportAllChanges` in this mode, every value we're handed is already the final one for its
  * navigation, so there is nothing to accumulate: each report is a span.
  */
-function trackWebVitalPerNavigation(
+function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   client: Client,
-  addInstrumentationHandler: typeof addLcpInstrumentationHandler,
-  send: (metric: WebVitalMetric, parentSpan: Span | undefined, softNavigationId: number | undefined) => void,
+  addInstrumentationHandler: (callback: (data: { metric: M }) => void) => unknown,
+  send: (metric: M, parentSpan: Span | undefined, softNavigationId: number | undefined) => void,
 ): void {
   let pageloadSpan: Span | undefined;
   client.on('afterStartPageLoadSpan', span => {
@@ -245,35 +246,42 @@ export function trackInpAsSpan(client: Client, reportSoftNavs = false): void {
   // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
   const standalone = !hasSpanStreamingEnabled(client);
 
+  if (reportSoftNavs) {
+    // INP restarts per navigation and reports once that navigation is over, by which point the
+    // navigation span has ended and the interaction cache no longer knows about it. The metric
+    // says which navigation it belongs to, so INP is attributed exactly like LCP and CLS.
+    trackWebVitalPerNavigation(client, addInpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      const entry = findInpEntry(metric);
+      if (entry) {
+        _sendInpSpan(metric.value, entry, standalone, parentSpan, softNavigationId);
+      }
+    });
+    return;
+  }
+
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
-    if (metric.value == null) {
-      return;
+    const entry = findInpEntry(metric);
+    if (entry) {
+      _sendInpSpan(metric.value, entry, standalone);
     }
-
-    const duration = msToSec(metric.value);
-
-    if (duration > MAX_PLAUSIBLE_INP_DURATION) {
-      return;
-    }
-
-    const entry = metric.entries.find(e => e.duration === metric.value && INP_ENTRY_MAP[e.name]);
-
-    if (!entry) {
-      return;
-    }
-
-    // With soft navigations, INP restarts per navigation and reports once the navigation is over,
-    // by which point the navigation span has long ended and the interaction cache no longer knows
-    // about it. The metric tells us which navigation it belongs to, which is more reliable.
-    const navigationSpan = reportSoftNavs ? getNavigationSpanForMetric(metric) : undefined;
-    if (reportSoftNavs && metric.navigationType === 'soft-navigation' && !navigationSpan) {
-      return;
-    }
-
-    _sendInpSpan(metric.value, entry, standalone, navigationSpan, navigationSpan ? metric.navigationId : undefined);
   };
 
   addInpInstrumentationHandler(onInp);
+}
+
+/**
+ * The entry an INP span is built from: the one whose duration the reported value came from.
+ *
+ * There isn't always one. When every interaction of a soft navigation stayed below the Event Timing
+ * threshold, web-vitals reports a synthetic 8ms value with no entries at all. A span needs an entry
+ * for its start time, target element and interaction type, so those navigations report no INP.
+ */
+function findInpEntry(metric: InpMetric): PerformanceEventTiming | undefined {
+  if (metric.value == null || msToSec(metric.value) > MAX_PLAUSIBLE_INP_DURATION) {
+    return undefined;
+  }
+
+  return metric.entries.find(e => e.duration === metric.value && INP_ENTRY_MAP[e.name]);
 }
 
 /**
@@ -283,7 +291,7 @@ export function _sendInpSpan(
   inpValue: number,
   entry: PerformanceEventTiming,
   standalone = false,
-  navigationSpan?: Span,
+  attributedSpan?: Span,
   softNavigationId?: number,
 ): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
@@ -300,7 +308,9 @@ export function _sendInpSpan(
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-  const spanToUse = navigationSpan || cachedContext?.span || rootSpan;
+  // With soft navigations the caller knows exactly which navigation the metric belongs to. Without
+  // them we fall back to the span that was active when the interaction was observed.
+  const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
   const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
 
   _emitWebVitalSpan({
