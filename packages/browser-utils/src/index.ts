@@ -4,6 +4,7 @@ export {
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
+  addFcpInstrumentationHandler,
 } from './instrumentation/performanceObserver';
 
 export {

@@ -5,6 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import {
   addClsInstrumentationHandler,
+  addFcpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
@@ -35,11 +36,13 @@ export function startTrackingWebVitals({ trackCls, trackLcp }: StartTrackingWebV
     const lcpCleanupCallback = trackLcp ? _trackLCP() : undefined;
     const clsCleanupCallback = trackCls ? _trackCLS() : undefined;
     const ttfbCleanupCallback = _trackTtfb();
-    const fpFcpCleanupCallback = _trackFpFcp();
+    const fcpCleanupCallback = _trackFcp();
+    const fpCleanupCallback = _trackFp();
 
     return (): void => {
       ttfbCleanupCallback();
-      fpFcpCleanupCallback();
+      fcpCleanupCallback();
+      fpCleanupCallback();
       lcpCleanupCallback?.();
       clsCleanupCallback?.();
     };
@@ -89,18 +92,27 @@ function _trackTtfb(): () => void {
   });
 }
 
-/** Starts tracking First Paint and First Contentful Paint on the current page. */
-function _trackFpFcp(): () => void {
+/** Starts tracking the First Contentful Paint on the current page. */
+function _trackFcp(): () => void {
+  return addFcpInstrumentationHandler(({ metric }) => {
+    _measurements['fcp'] = { value: metric.value, unit: 'millisecond' };
+  });
+}
+
+/**
+ * Starts tracking First Paint on the current page.
+ *
+ * web-vitals has no `onFP`, so this stays on the raw paint observer. It mirrors what `onFCP` does
+ * for its own entry: skip the vital if the page was hidden before it, and rebase against
+ * `activationStart` so prerendered pages report time-to-paint from activation rather than from the
+ * (much earlier) prerender navigation start.
+ */
+function _trackFp(): () => void {
   return addPerformanceInstrumentationHandler('paint', ({ entries }) => {
     const firstHidden = getVisibilityWatcher();
     for (const entry of entries) {
-      // Only report if the page wasn't hidden prior to the web vital.
-      const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
-      if (entry.name === 'first-paint' && shouldRecord) {
-        _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
-      }
-      if (entry.name === 'first-contentful-paint' && shouldRecord) {
-        _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+      if (entry.name === 'first-paint' && entry.startTime < firstHidden.firstHiddenTime) {
+        _measurements['fp'] = { value: Math.max(entry.startTime - getActivationStart(), 0), unit: 'millisecond' };
       }
     }
   });
