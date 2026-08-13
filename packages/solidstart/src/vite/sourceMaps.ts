@@ -27,14 +27,12 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
     silent,
     sourcemaps,
     telemetry,
-    unstable_sentryVitePluginOptions,
   } = options;
 
   let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
   if (
     typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
-    typeof unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
     // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
     typeof viteConfig.build?.sourcemap === 'undefined'
   ) {
@@ -67,18 +65,13 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
       url: sentryUrl,
       sourcemaps: {
         ...sourcemaps,
-        filesToDeleteAfterUpload:
-          (sourcemaps?.filesToDeleteAfterUpload ||
-            unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload) ??
-          updatedFilesToDeleteAfterUpload,
-        ...unstable_sentryVitePluginOptions?.sourcemaps,
+        filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
       },
       _metaOptions: {
         telemetry: {
           metaFramework: 'solidstart',
         },
       },
-      ...unstable_sentryVitePluginOptions,
     }),
   ];
 }
@@ -102,13 +95,11 @@ export function makeAddSentryVitePluginSolidStart2(options: SentrySolidStartOpti
     sentryUrl,
     sourcemaps,
     telemetry,
-    unstable_sentryVitePluginOptions,
     ...passthroughOptions
   } = options;
 
   // Deferred because the default depends on whether the user set `build.sourcemap` themselves,
-  // which is only known once Vite resolves its config. `PromiseLike` because the unstable spelling
-  // may itself be a promise.
+  // which is only known once Vite resolves its config.
   let resolveFilesToDeleteAfterUpload:
     | ((value: FilesToDeleteAfterUpload | PromiseLike<FilesToDeleteAfterUpload>) => void)
     | undefined;
@@ -121,10 +112,7 @@ export function makeAddSentryVitePluginSolidStart2(options: SentrySolidStartOpti
     apply: 'build',
     enforce: 'post',
     config(config) {
-      // The promise always wins over the passed-in value, so the unstable spelling has to be read
-      // here too or it is silently replaced by the default below.
-      const userFilesToDelete =
-        sourcemaps?.filesToDeleteAfterUpload ?? unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload;
+      const userFilesToDelete = sourcemaps?.filesToDeleteAfterUpload;
 
       // Only clean up source maps we turned on ourselves.
       if (typeof userFilesToDelete === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
@@ -149,18 +137,12 @@ export function makeAddSentryVitePluginSolidStart2(options: SentrySolidStartOpti
     project: project ?? process.env.SENTRY_PROJECT,
     telemetry: telemetry ?? true,
     url: sentryUrl,
-    // Spread here so it overrides the plain options above, but not the objects merged below —
-    // spreading replaces whole keys rather than deep-merging.
-    ...unstable_sentryVitePluginOptions,
     sourcemaps: {
       ...sourcemaps,
-      ...unstable_sentryVitePluginOptions?.sourcemaps,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     _metaOptions: {
-      ...unstable_sentryVitePluginOptions?._metaOptions,
       telemetry: {
-        ...unstable_sentryVitePluginOptions?._metaOptions?.telemetry,
         metaFramework: 'solidstart',
       },
     },
