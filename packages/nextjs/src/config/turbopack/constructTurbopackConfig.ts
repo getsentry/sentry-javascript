@@ -99,7 +99,8 @@ export function constructTurbopackConfig({
   // Add component annotation loader for react component name annotation in Turbopack builds.
   // This is only added when annotation is enabled AND the Next.js version supports the
   // `condition` field in Turbopack rules (Next.js 16+).
-  const reactComponentAnnotation = {
+  // Typed as the unified option so reads below resolve to the non-deprecated declarations.
+  const reactComponentAnnotation: NonNullable<SentryBuildOptions['reactComponentAnnotation']> = {
     ...userSentryOptions?.reactComponentAnnotation,
     // eslint-disable-next-line typescript/no-deprecated
     ...userSentryOptions?._experimental?.turbopackReactComponentAnnotation,
