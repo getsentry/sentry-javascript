@@ -9,8 +9,10 @@ import {
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -117,7 +119,11 @@ export function instrumentVueRouter(
     if (options.instrumentPageLoad && activePageLoadSpan) {
       const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
       if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-        activePageLoadSpan.updateName(spanName);
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        const client = getClient();
+        const isUnparameterizedStreamedPageload =
+          transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? 'Pageload' : spanName);
         activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
       }
 

@@ -1,5 +1,9 @@
 import type { Client, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -37,7 +41,9 @@ function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
   const initialPath = WINDOW.location?.pathname;
 
   const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-    name: initialPath,
+    // With span streaming, span names have to be low cardinality. The route id is only available
+    // asynchronously, which updates the span name then.
+    name: hasSpanStreamingEnabled(client) ? 'Pageload' : initialPath,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',

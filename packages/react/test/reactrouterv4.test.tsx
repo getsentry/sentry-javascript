@@ -84,7 +84,7 @@ describe('browserTracingReactRouterV4', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v4',
@@ -102,7 +102,9 @@ describe('browserTracingReactRouterV4', () => {
 
     client.init();
 
-    expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
+    // The scope transaction name follows the pageload span name, which is low cardinality with
+    // span streaming enabled.
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('Pageload');
   });
 
   it('starts a navigation transaction', () => {

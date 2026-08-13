@@ -4,6 +4,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
   isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -99,7 +100,8 @@ export function startPageloadSpan(client: Client): void {
   const source = parameterizedRoute ? 'route' : 'url';
 
   const spanContext: StartSpanOptions = {
-    name: spanName,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? spanName : 'Pageload',
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
@@ -183,7 +185,11 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           const transaction = getRootSpan(activeRootSpan);
 
           if (transaction) {
-            transaction.updateName(name);
+            // This runs on mount, so the root span is the pageload span. With span streaming, its
+            // name has to be low cardinality, so we can't fall back to the URL.
+            const client = getClient();
+            const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+            transaction.updateName(isUnparameterizedStreamedPageload ? 'Pageload' : name);
             transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
             if (source === 'route') {
               transaction.setAttribute(URL_TEMPLATE, name);

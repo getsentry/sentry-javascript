@@ -637,7 +637,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         if (instrumentPageLoad) {
           const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
-            name: WINDOW.location.pathname,
+            // With span streaming, span names have to be low cardinality, and there is no route
+            // information available here.
+            name: hasSpanStreamingEnabled(client) ? 'Pageload' : WINDOW.location.pathname,
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
             startTime: origin ? origin / 1000 : undefined,
             attributes: {

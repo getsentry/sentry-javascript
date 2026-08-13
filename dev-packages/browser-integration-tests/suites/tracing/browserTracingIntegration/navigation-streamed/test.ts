@@ -68,7 +68,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
   expect(navigationTraceId).toBeDefined();
   expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
-  expect(pageloadSpan.name).toEqual('/index.html');
+  expect(pageloadSpan.name).toEqual('Pageload');
 
   expect(navigationSpan).toEqual({
     attributes: {

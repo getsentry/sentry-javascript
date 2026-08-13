@@ -6,7 +6,7 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core/browser';
-import { filterCollectedUrl } from '@sentry/core';
+import { filterCollectedUrl, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -89,7 +89,12 @@ export function tanstackRouterBrowserTracingIntegration(
         );
 
         const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-          name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          name: routeMatch
+            ? routeMatch.routeId
+            : hasSpanStreamingEnabled(client)
+              ? 'Pageload'
+              : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
@@ -108,7 +113,12 @@ export function tanstackRouterBrowserTracingIntegration(
           }
           const { toLocation } = onResolvedArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
+          applyRouteMatch(
+            pageloadSpan,
+            resolvedMatch,
+            toLocation,
+            hasSpanStreamingEnabled(client) ? 'Pageload' : toLocation.pathname,
+          );
         });
       }
 
