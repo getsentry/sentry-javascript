@@ -19,8 +19,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT 1 + 1 AS solution',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT 1 + 1 AS solution',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
@@ -32,8 +32,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT ? as a, ? as b, NOW() as c',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT ? as a, ? as b, NOW() as c',
           'net.peer.name': 'localhost',
           'net.peer.port': 3306,
           'db.user': 'root',
@@ -45,8 +45,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT ? AS scalar_value',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT ? AS scalar_value',
         }),
       }),
       // `execute` is instrumented the same way as `query`
@@ -55,8 +55,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT 42 AS answer',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT 42 AS answer',
         }),
       }),
       // a failing query produces a span with an error status
@@ -66,8 +66,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         status: 'internal_error',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT * FROM does_not_exist',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT * FROM does_not_exist',
         }),
       }),
     ]),

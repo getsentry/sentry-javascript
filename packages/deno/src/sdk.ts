@@ -13,20 +13,20 @@ import {
 } from '@sentry/core';
 import {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   hapiIntegration,
   kafkajsIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -65,7 +65,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoServeIntegration(),
     denoHttpIntegration(),
     redisIntegration(),
-    graphqlDiagnosticsIntegration(),
+    graphqlIntegration(),
     vercelAIIntegration(),
     // orchestrion-based instrumentations. We add a deliberate list here rather
     // than every channel integration: each one needs a Deno test proving it
@@ -74,7 +74,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // The orchestrion channels may be injected after (or while) the SDK loads.
     // If they never load, these are no-ops.
     amqplibIntegration(),
-    anthropicIntegration(),
+    anthropicAIIntegration(),
     awsIntegration(),
     expressIntegration(),
     firebaseIntegration(),
@@ -86,7 +86,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     langChainIntegration(),
     langGraphIntegration(),
     lruMemoizerIntegration(),
-    mongodbIntegration(),
+    mongoIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),

@@ -1,10 +1,10 @@
 import { amqplibIntegration } from '../integrations/amqplib';
-import { anthropicIntegration } from '../integrations/anthropic';
+import { anthropicAIIntegration } from '../integrations/anthropic';
 import { awsIntegration } from '../integrations/aws-sdk';
 import { dataloaderIntegration } from '../integrations/dataloader';
 import { genericPoolIntegration } from '../integrations/generic-pool';
 import { googleGenAIIntegration } from '../integrations/google-genai';
-import { graphqlIntegration, graphqlDiagnosticsIntegration } from '../integrations/graphql';
+import { graphqlIntegration } from '../integrations/graphql';
 import { hapiIntegration } from '../integrations/hapi';
 import { koaIntegration } from '../integrations/koa';
 import { redisIntegration } from '../integrations/redis';
@@ -13,7 +13,7 @@ import { knexIntegration } from '../integrations/knex';
 import { langChainIntegration } from '../integrations/langchain';
 import { langGraphIntegration } from '../integrations/langgraph';
 import { lruMemoizerIntegration } from '../integrations/lru-memoizer';
-import { mongodbIntegration } from '../integrations/mongodb';
+import { mongoIntegration } from '../integrations/mongodb';
 import { mongooseIntegration } from '../integrations/mongoose';
 import { mysqlIntegration } from '../integrations/mysql';
 import { mysql2Integration } from '../integrations/mysql2';
@@ -38,13 +38,12 @@ export { nestjsChannels } from './config/nestjs';
 export { remixChannels } from './config/remix';
 export {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   dataloaderIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
-  graphqlDiagnosticsIntegration,
   hapiIntegration,
   koaIntegration,
   redisIntegration,
@@ -53,7 +52,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -65,13 +64,7 @@ export {
   expressIntegration,
   firebaseIntegration,
 };
-export type { KoaIntegrationOptions } from '../integrations/koa';
-export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
-export type { InstrumentationConfig, CustomTransform } from './apmTypes';
-
-// The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
-// vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
-export type * from '../integrations/graphql/graphql-types';
+export type { InstrumentationConfig } from './apmTypes';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
@@ -92,14 +85,14 @@ export type * from '../integrations/graphql/graphql-types';
 export const channelIntegrations = {
   postgresIntegration,
   postgresJsIntegration,
-  mongoIntegration: mongodbIntegration,
+  mongoIntegration,
   mysqlIntegration,
   mysql2Integration,
   genericPoolIntegration,
   mongooseIntegration,
   lruMemoizerIntegration,
   openAIIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   googleGenAIIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -108,7 +101,7 @@ export const channelIntegrations = {
   hapiIntegration,
   koaIntegration,
   expressIntegration,
-  graphqlIntegration: graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   kafkajsIntegration,
   tediousIntegration,
   awsIntegration,

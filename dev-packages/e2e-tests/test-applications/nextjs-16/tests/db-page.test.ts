@@ -23,8 +23,8 @@ test('Instruments DB calls made during server-side rendering of a page', async (
       description: 'SELECT 40 + 2 AS answer',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'postgresql',
-        'db.statement': 'SELECT 40 + 2 AS answer',
+        'db.system.name': 'postgresql',
+        'db.query.text': 'SELECT 40 + 2 AS answer',
       }),
     }),
   );
@@ -35,8 +35,8 @@ test('Instruments DB calls made during server-side rendering of a page', async (
       description: 'set page-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'redis',
-        'db.statement': 'set page-key [1 other arguments]',
+        'db.system.name': 'redis',
+        'db.query.text': 'set page-key [1 other arguments]',
       }),
     }),
   );

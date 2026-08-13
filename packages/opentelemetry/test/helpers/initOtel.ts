@@ -2,6 +2,7 @@ import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { debug, getClient } from '@sentry/core';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
+import { registerPrepareSpanScope } from '../../src/prepareSpanScope';
 import type { TestClient } from './TestClient';
 import { SentryTracerProvider } from '../../src/tracerProvider';
 
@@ -18,6 +19,8 @@ export function initOtel(): void {
       );
     return;
   }
+
+  registerPrepareSpanScope(client);
 
   if (client.getOptions().debug) {
     // Disable diag, to ensure this works even if called multiple times

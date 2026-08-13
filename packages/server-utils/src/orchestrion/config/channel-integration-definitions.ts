@@ -29,7 +29,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
   { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
   { exportName: 'openAIIntegration', modules: ['openai'] },
-  { exportName: 'anthropicIntegration', modules: ['@anthropic-ai/sdk'] },
+  { exportName: 'anthropicAIIntegration', modules: ['@anthropic-ai/sdk'] },
   { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
   { exportName: 'vercelAIIntegration', modules: ['ai'] },
   { exportName: 'amqplibIntegration', modules: ['amqplib'] },

@@ -20,7 +20,6 @@ export {
 export {
   startSpan,
   startInactiveSpan,
-  _INTERNAL_startInactiveSpan,
   startSpanManual,
   continueTrace,
   withActiveSpan,

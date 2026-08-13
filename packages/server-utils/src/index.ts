@@ -1,18 +1,9 @@
 export * from './exports';
 
 // Exports using diagnostics channels
-export { graphqlIntegration } from './graphql';
-export { mongooseIntegration } from './mongoose';
-export { mysql2Integration } from './mysql2';
-export { instrumentPrisma, prismaIntegration } from './prisma';
-export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
+export { prismaIntegration } from './prisma';
 export { bindTracingChannelToSpan } from './tracing-channel';
-export type {
-  SentryTracingChannel,
-  TracingChannelLifeCycleOptions,
-  TracingChannelBindingHandle,
-  TracingChannelPayloadWithSpan,
-} from './tracing-channel';
+export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion';
 export type { GenAiOptions } from './ai/core/utils';
 export { vercelAIIntegration, type VercelAiOptions } from './vercel-ai';

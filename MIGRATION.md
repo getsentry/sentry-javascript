@@ -958,6 +958,13 @@ export default defineConfig({
 });
 ```
 
+### `@sentry/server-utils`
+
+- The following exports were removed from `@sentry/server-utils`. They were only reachable by importing from `@sentry/server-utils` directly (no user-facing SDK re-exported them) and were effectively internal; the underlying functionality is unchanged and still used within the SDK.
+  - `instrumentPrisma`: Prisma is instrumented via `prismaIntegration` and works out of the box, so manual instrumentation is no longer exposed.
+  - `defaultDbStatementSerializer`: the default Redis command statement serializer helper.
+  - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
