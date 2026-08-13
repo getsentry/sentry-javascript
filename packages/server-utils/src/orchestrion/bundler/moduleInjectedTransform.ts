@@ -1,6 +1,6 @@
 import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
-import { subscriberExportForModule } from '../config/channel-integration-definitions';
+import { subscriberExportsForModule } from '../config/channel-integration-definitions';
 
 // Tracks Program nodes we already injected into, so a package with several
 // instrumented files (or several configs pointing at one file) is injected only
@@ -28,15 +28,16 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
 /**
  * Snippet injected into each instrumented module. It imports the
  * `orchestrionModuleInjected` helper — plus the module's channel-subscriber
- * factory, when it has one — from `@sentry/server-utils/orchestrion` and calls
+ * factories, when it has any — from `@sentry/server-utils/orchestrion` and calls
  * the helper with the module's real name. The helper records the module on the
- * global marker, stores the factory, and emits the `orchestrion.module-injected`
- * client event, so it runs exactly when the module is evaluated — the moment
- * its channels can start publishing. That per-module timing is what keeps
- * subscriptions lazy (Node caps diagnostics channels in use at 1024).
+ * global marker, stores the factories, and emits the
+ * `orchestrion.module-injected` client event, so it runs exactly when the module
+ * is evaluated — the moment its channels can start publishing. That per-module
+ * timing is what keeps subscriptions lazy (Node caps diagnostics channels in use
+ * at 1024).
  *
- * Importing the single named factory (rather than a central dispatch that pulls
- * in every subscriber) is what makes this tree-shake: a bundle carries only the
+ * Importing the named factories (rather than a central dispatch that pulls in
+ * every subscriber) is what makes this tree-shake: a bundle carries only the
  * subscriber code for packages actually transformed into it. The helper is
  * generic (references no factory), so importing it alongside doesn't pull
  * siblings.
@@ -46,18 +47,14 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  * isolated installs); it's embedded via `JSON.stringify` so absolute Windows
  * paths survive.
  */
-function moduleInjectedSnippet(
-  moduleName: string,
-  exportName: string | undefined,
-  esm: boolean,
-  importSpecifier: string,
-): string {
-  const bindings = exportName ? `orchestrionModuleInjected, ${exportName}` : 'orchestrionModuleInjected';
+function moduleInjectedSnippet(moduleName: string, esm: boolean, importSpecifier: string): string {
+  const exportNames = subscriberExportsForModule(moduleName);
+  const bindings = ['orchestrionModuleInjected', ...exportNames].join(', ');
   const importStmt = esm
     ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
-  const args = exportName ? `${JSON.stringify(moduleName)}, ${exportName}` : JSON.stringify(moduleName);
+  const args = [JSON.stringify(moduleName), ...exportNames].join(', ');
   return `${importStmt}\norchestrionModuleInjected(${args});`;
 }
 
@@ -106,8 +103,7 @@ export function moduleInjectedTransforms(
 
     const specifier =
       (typeof importSpecifier === 'function' ? importSpecifier() : importSpecifier) ?? DEFAULT_IMPORT_SPECIFIER;
-    const exportName = subscriberExportForModule(moduleName);
-    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', specifier), {
+    const statements = parse(moduleInjectedSnippet(moduleName, moduleType === 'esm', specifier), {
       module: moduleType === 'esm',
       next: true,
     }).body as ProgramNode['body'];

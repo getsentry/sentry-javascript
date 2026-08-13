@@ -71,12 +71,14 @@ export type InternalGlobal = {
     /**
      * Channel-subscriber integration factories stored by the snippet the
      * bundler transform splices into each instrumented module, keyed by module
-     * name. A factory shared by several packages (e.g. pg/pg-pool) appears
-     * under several keys; integration-name deduplication collapses them at
-     * setup. A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * name. A package needs several factories when no single integration covers
+     * all of its versions (e.g. redis' orchestrion and native-channel
+     * subscribers). A factory shared by several packages (e.g. pg/pg-pool)
+     * appears under several keys; integration-name deduplication collapses them
+     * at setup. A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
      * `init()` and instantiates them.
      */
-    integrations?: Map<string, () => Integration>;
+    integrations?: Map<string, Array<() => Integration>>;
   };
 } & Carrier;
 

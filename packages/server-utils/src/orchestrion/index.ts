@@ -70,6 +70,7 @@ export type { IORedisChannelIntegrationOptions, IORedisResponseHook } from '../i
 export type { PostgresJsIntegrationOptions } from '../integrations/tracing-channel/postgres-js';
 export { redisChannelIntegration } from '../integrations/tracing-channel/redis';
 export type { RedisChannelIntegrationOptions, RedisResponseHook } from '../integrations/tracing-channel/redis';
+export { redisIntegration, type RedisDiagnosticChannelsOptions } from '../redis';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s

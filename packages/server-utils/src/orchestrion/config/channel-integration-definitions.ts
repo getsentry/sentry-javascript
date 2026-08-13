@@ -1,8 +1,8 @@
 /**
- * Build-time metadata mapping each instrumented package (orchestrion
- * `module.name`) to the channel-subscriber integration that consumes the
- * channels injected into it — by the `exportName` it is published under from
- * `@sentry/server-utils/orchestrion`.
+ * Build-time metadata mapping each channel-subscriber integration — by the
+ * `exportName` it is published under from `@sentry/server-utils/orchestrion` —
+ * to the instrumented packages (orchestrion `module.name`) whose channels it
+ * consumes.
  *
  * Kept in a separate, factory-free module on purpose: the module-injected
  * transform (reachable from every orchestrion bundler plugin) reads this to
@@ -12,8 +12,7 @@
  *
  * `exportName` must be a named export of `@sentry/server-utils/orchestrion`.
  * `modules` must match `module.name` values in `SENTRY_INSTRUMENTATIONS` — e.g.
- * `postgresIntegration` covers both `pg` and `pg-pool`, and
- * `redisChannelIntegration` both `redis` and `@redis/client`.
+ * `postgresIntegration` covers both `pg` and `pg-pool`.
  *
  * `redis`, `ioredis` and `dataloader` are included even though they're not in
  * the node SDK's `channelIntegrations` (they only partially replace an OTel
@@ -26,6 +25,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresJsIntegration', modules: ['postgres'] },
   { exportName: 'mysqlIntegration', modules: ['mysql'] },
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
+  { exportName: 'mongooseIntegration', modules: ['mongoose'] },
   { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
   { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
   { exportName: 'openaiIntegration', modules: ['openai'] },
@@ -39,10 +39,18 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'kafkajsIntegration', modules: ['kafkajs'] },
   { exportName: 'redisChannelIntegration', modules: ['redis', '@redis/client'] },
   { exportName: 'ioredisChannelIntegration', modules: ['ioredis'] },
+  // The native-channel subscriber, covering the versions the two rows above stop
+  // short of (node-redis >= 5.12.0, ioredis >= 5.11.0).
+  { exportName: 'redisIntegration', modules: ['redis', '@redis/client', 'ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
 
-/** Look up the subscriber export name for an instrumented package, if any. */
-export function subscriberExportForModule(moduleName: string): string | undefined {
-  return CHANNEL_INTEGRATION_DEFINITIONS.find(d => (d.modules as readonly string[]).includes(moduleName))?.exportName;
+/**
+ * The subscriber export names for an instrumented package, in table order.
+ * Empty when the package has no subscriber.
+ */
+export function subscriberExportsForModule(moduleName: string): string[] {
+  return CHANNEL_INTEGRATION_DEFINITIONS.filter(d => (d.modules as readonly string[]).includes(moduleName)).map(
+    d => d.exportName,
+  );
 }

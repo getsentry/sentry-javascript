@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   CHANNEL_INTEGRATION_DEFINITIONS,
-  subscriberExportForModule,
+  subscriberExportsForModule,
 } from '../../src/orchestrion/config/channel-integration-definitions';
 import { moduleInjectedTransforms } from '../../src/orchestrion/bundler/moduleInjectedTransform';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
@@ -19,12 +19,20 @@ function makePackage(root: string, name: string, version: string, type?: 'module
 }
 
 describe('channel integration definitions', () => {
-  it('maps every module to a defined subscriber export', () => {
-    expect(subscriberExportForModule('mysql')).toBe('mysqlIntegration');
-    expect(subscriberExportForModule('pg')).toBe('postgresIntegration');
-    expect(subscriberExportForModule('pg-pool')).toBe('postgresIntegration');
-    expect(subscriberExportForModule('@redis/client')).toBe('redisChannelIntegration');
-    expect(subscriberExportForModule('not-a-package')).toBeUndefined();
+  it('maps every module to its subscriber exports', () => {
+    expect(subscriberExportsForModule('mysql')).toEqual(['mysqlIntegration']);
+    expect(subscriberExportsForModule('pg')).toEqual(['postgresIntegration']);
+    expect(subscriberExportsForModule('pg-pool')).toEqual(['postgresIntegration']);
+    expect(subscriberExportsForModule('not-a-package')).toEqual([]);
+  });
+
+  // `redisChannelIntegration` covers the versions orchestrion injects channels into,
+  // `redisIntegration` the newer ones that publish their own — neither alone covers
+  // every version, so both are registered whenever the package is bundled.
+  it('maps redis and ioredis to both their orchestrion and native-channel subscribers', () => {
+    expect(subscriberExportsForModule('redis')).toEqual(['redisChannelIntegration', 'redisIntegration']);
+    expect(subscriberExportsForModule('@redis/client')).toEqual(['redisChannelIntegration', 'redisIntegration']);
+    expect(subscriberExportsForModule('ioredis')).toEqual(['ioredisChannelIntegration', 'redisIntegration']);
   });
 
   it('references only real named exports of @sentry/server-utils/orchestrion', async () => {

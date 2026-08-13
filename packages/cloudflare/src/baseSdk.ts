@@ -25,8 +25,11 @@ import { defaultStackParser } from './vendor/stacktrace';
 /**
  * Instantiate the channel-subscriber factories the `@sentry/cloudflare/vite`
  * plugin registered on the global marker. The plugin splices a small snippet
- * into each instrumented module that `.set`s its factory here (keyed by module
- * name), so the marker holds one factory per package actually bundled.
+ * into each instrumented module that `.set`s its factories here (keyed by module
+ * name), so the marker holds the subscribers for the packages actually bundled.
+ *
+ * A package has several factories when no single integration covers all of its
+ * versions — redis' orchestrion subscriber plus its native-channel one.
  *
  * The marker is read directly instead of importing the factories, so a worker
  * built without the plugin — where the channels never fire — ships none of this
@@ -36,7 +39,7 @@ import { defaultStackParser } from './vendor/stacktrace';
 function getRegisteredChannelIntegrations(): Integration[] {
   const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
 
-  return registered ? [...registered.values()].map(factory => factory()) : [];
+  return registered ? [...registered.values()].flat().map(factory => factory()) : [];
 }
 
 /**
@@ -119,14 +122,14 @@ export function initWithDefaultIntegrations(
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 
   // An instrumented module that first evaluates AFTER this init (e.g. a driver
-  // lazily required on first use) stores its subscriber factory on the global
+  // lazily required on first use) stores its subscriber factories on the global
   // marker too late for the default-integrations snapshot above. Its injected
-  // snippet emits this event right after storing the factory, so install the
-  // integration on the live client here. `addIntegration` dedupes by
+  // snippet emits this event right after storing them, so install the
+  // integrations on the live client here. `addIntegration` dedupes by
   // integration name, so already-installed integrations are no-ops.
   client.on('orchestrion.module-injected', moduleName => {
-    const factory = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
-    if (factory) {
+    const factories = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
+    for (const factory of factories ?? []) {
       client.addIntegration(factory());
     }
   });

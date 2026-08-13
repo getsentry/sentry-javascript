@@ -117,9 +117,9 @@ describe('getDefaultIntegrations', () => {
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: ['mysql', 'pg', 'lru-memoizer'],
       integrations: new Map([
-        ['mysql', mysqlIntegration],
-        ['pg', postgresIntegration],
-        ['lru-memoizer', lruMemoizerIntegration],
+        ['mysql', [mysqlIntegration]],
+        ['pg', [postgresIntegration]],
+        ['lru-memoizer', [lruMemoizerIntegration]],
       ]),
     };
 
@@ -139,7 +139,7 @@ describe('getDefaultIntegrations', () => {
     // after init: store the factory on the marker, then emit the event.
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: ['mysql'],
-      integrations: new Map([['mysql', mysqlIntegration]]),
+      integrations: new Map([['mysql', [mysqlIntegration]]]),
     };
     client?.emit('orchestrion.module-injected', 'mysql');
 

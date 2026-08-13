@@ -27,10 +27,19 @@ describe('orchestrionModuleInjected', () => {
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
   });
 
-  it('stores the factory on the global marker keyed by module name', () => {
+  it('stores the factories on the global marker keyed by module name', () => {
+    const orchestrion = factory('RedisChannel');
+    const native = factory('Redis');
+    orchestrionModuleInjected('redis', orchestrion, native);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('redis')).toEqual([orchestrion, native]);
+  });
+
+  // The one-factory call is the shape every earlier bundle emits, and the shape
+  // all but redis emit today. It is a plain subset of the variadic signature.
+  it('stores a single factory', () => {
     const fn = factory('Mysql');
     orchestrionModuleInjected('mysql', fn);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toBe(fn);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toEqual([fn]);
   });
 
   it('stores no factory when none is given', () => {
