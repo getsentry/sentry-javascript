@@ -29,6 +29,7 @@ import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils
 import {
   addChildSpanToSpan,
   getActiveSpan,
+  INTERNAL_getParentSpan,
   getRootSpan,
   getSpanDescendants,
   spanIsSampled,
@@ -875,6 +876,19 @@ describe('getActiveSpan', () => {
 });
 
 describe('addChildSpanToSpan', () => {
+  it('retains the exact local parent separately from the segment root', () => {
+    const segment = new SentrySpan({ name: 'segment', sampled: true });
+    const parent = new SentrySpan({ name: 'parent', sampled: true });
+    const child = new SentrySpan({ name: 'child', sampled: true });
+
+    addChildSpanToSpan(segment, parent);
+    addChildSpanToSpan(parent, child);
+
+    expect(INTERNAL_getParentSpan(parent)).toBe(segment);
+    expect(INTERNAL_getParentSpan(child)).toBe(parent);
+    expect(getRootSpan(child)).toBe(segment);
+  });
+
   it('does not track children on an unsampled span', () => {
     const parent = new SentrySpan({ name: 'parent', sampled: false });
     const child = new SentrySpan({ name: 'child', sampled: false });

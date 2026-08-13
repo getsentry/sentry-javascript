@@ -23,7 +23,7 @@ export type SegmentSpanConverter = (options?: SegmentSpanCaptureConvertOptions) 
  */
 export interface SegmentSpanCaptureStrategy {
   /** Assemble and capture a segment (root or standalone-root) span's transaction through its captured scope. */
-  onSegmentSpanEnded(convert: SegmentSpanConverter, scope: Scope): void;
+  onSegmentSpanEnded(segmentSpan: Span, convert: SegmentSpanConverter, scope: Scope): void;
   /** Consider a child that ended after its segment for emission as its own orphan transaction. */
   onChildSpanEnded(span: Span, rootSpan: Span, convert: SegmentSpanConverter, scope: Scope): void;
 }

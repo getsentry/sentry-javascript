@@ -391,7 +391,7 @@ export class SentrySpan implements Span {
     const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
     const strategy = getSegmentSpanCaptureStrategy();
     if (strategy) {
-      strategy.onSegmentSpanEnded(options => this._convertSpanToTransaction(options), scope);
+      strategy.onSegmentSpanEnded(this, options => this._convertSpanToTransaction(options), scope);
     } else {
       const transactionEvent = this._convertSpanToTransaction();
       if (transactionEvent) {

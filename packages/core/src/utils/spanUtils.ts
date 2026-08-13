@@ -363,10 +363,12 @@ export function addStatusMessageAttribute(
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
 const ROOT_SPAN_FIELD = '_sentryRootSpan';
+const PARENT_SPAN_FIELD = '_sentryParentSpan';
 
 type SpanWithPotentialChildren = Span & {
   [CHILD_SPANS_FIELD]?: Set<Span>;
   [ROOT_SPAN_FIELD]?: Span;
+  [PARENT_SPAN_FIELD]?: Span;
 };
 
 /**
@@ -377,6 +379,7 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   // We need this for `getRootSpan()` to work
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
   addNonEnumerableProperty(childSpan, ROOT_SPAN_FIELD, rootSpan);
+  addNonEnumerableProperty(childSpan, PARENT_SPAN_FIELD, span);
 
   // `_sentryChildSpans` exists only so `getSpanDescendants()` can walk the tree when the segment span
   // is sent, and that walk stops at an unsampled span without ever visiting its children. So a child
@@ -440,6 +443,11 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
  * Returns the root span of a given span.
  */
 export const getRootSpan = INTERNAL_getSegmentSpan;
+
+/** Returns the exact local parent span when the span was created by the Sentry SDK. */
+export function INTERNAL_getParentSpan(span: SpanWithPotentialChildren): Span | undefined {
+  return span[PARENT_SPAN_FIELD];
+}
 
 /**
  * Returns the segment span of a given span.
