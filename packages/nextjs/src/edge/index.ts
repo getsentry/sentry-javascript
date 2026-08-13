@@ -42,6 +42,7 @@ export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 export { pinoIntegration } from '../common/pinoIntegrationShim';
+export { vercelAIIntegration } from '../common/vercelAIIntegrationShim';
 
 // Override core span methods with Next.js-specific implementations that support Cache Components
 export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
