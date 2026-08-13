@@ -317,10 +317,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
     },
     {
       additionalDependencies: {
-        // Pinned: langchain 1.5.7 imports DEFAULT_LANGSMITH_GATEWAY from @langchain/core/utils/gateway,
-        // which no published @langchain/core exports yet, breaking ESM named-export validation.
-        // Restore ^1.0.0 once a @langchain/core release exports it.
-        langchain: '1.5.6',
+        langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/openai': '^1.0.0',
       },
