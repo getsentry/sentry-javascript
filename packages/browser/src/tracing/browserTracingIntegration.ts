@@ -128,6 +128,15 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
+   * If true, Sentry will also report LCP, CLS and INP for soft navigations, using the browser's
+   * [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment).
+   * Forwarded to the auto-registered `webVitalsIntegration` as `reportSoftNavs`.
+   *
+   * Default: false
+   */
+  enableSoftNavWebVitals: boolean;
+
+  /**
    * @deprecated This option is no longer used. Element timing is now tracked via the standalone
    * `elementTimingIntegration`. Add it to your `integrations` array to collect element timing metrics.
    */
@@ -227,14 +236,6 @@ export interface BrowserTracingOptions {
    * page load time.
    */
   enableReportPageLoaded: boolean;
-
-  /**
-   * Also report LCP, CLS and INP for soft navigations, using the browser's Soft Navigations API.
-   * Forwarded to the auto-registered `webVitalsIntegration` as `reportSoftNavs`.
-   *
-   * Default: false
-   */
-  enableSoftNavWebVitals: boolean;
 
   /**
    * A callback which is called before a span for a pageload or navigation is started.
