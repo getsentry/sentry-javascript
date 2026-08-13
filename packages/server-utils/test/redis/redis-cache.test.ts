@@ -1,18 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _redisOptions, cacheResponseHook } from '../../../src/integrations/tracing/redis';
 import {
+  applyRedisCacheAttributes,
   calculateCacheItemSize,
   GET_COMMANDS,
   getCacheKeySafely,
   REMOVE_COMMANDS,
   SET_COMMANDS,
   shouldConsiderForCache,
-} from '../../../src/utils/redisCache';
+} from '../../src/integrations/redis/redis-cache';
 
-describe('Redis', () => {
-  describe('cacheResponseHook', () => {
+describe('redis cache', () => {
+  describe('applyRedisCacheAttributes', () => {
     let mockSpan: any;
-    let originalRedisOptions: any;
 
     beforeEach(() => {
       mockSpan = {
@@ -21,28 +20,20 @@ describe('Redis', () => {
         updateName: vi.fn(),
         spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
       };
-
-      originalRedisOptions = { ..._redisOptions };
     });
 
     afterEach(() => {
       vi.restoreAllMocks();
-      // Reset redis options by clearing all properties first, then restoring original ones
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      Object.keys(_redisOptions).forEach(key => delete (_redisOptions as any)[key]);
-      Object.assign(_redisOptions, originalRedisOptions);
     });
 
     describe('early returns', () => {
       it.each([
-        { desc: 'no args', cmd: 'get', args: [], response: 'test' },
-        { desc: 'unsupported command', cmd: 'exists', args: ['key'], response: 'test' },
+        { desc: 'no args', cmd: 'get', args: [], response: 'test', options: {} },
+        { desc: 'unsupported command', cmd: 'exists', args: ['key'], response: 'test', options: {} },
         { desc: 'no cache prefixes', cmd: 'get', args: ['key'], response: 'test', options: {} },
         { desc: 'non-matching prefix', cmd: 'get', args: ['key'], response: 'test', options: { cachePrefixes: ['c'] } },
-      ])('should return early without modifying span when $desc', ({ cmd, args, response, options = {} }) => {
-        Object.assign(_redisOptions, options);
-
-        cacheResponseHook(mockSpan, cmd, args, response);
+      ])('should return early without modifying span when $desc', ({ cmd, args, response, options }) => {
+        applyRedisCacheAttributes(mockSpan, cmd, args, response, options);
 
         expect(mockSpan.setAttribute).not.toHaveBeenCalled();
         expect(mockSpan.setAttributes).not.toHaveBeenCalled();
@@ -51,16 +42,13 @@ describe('Redis', () => {
     });
 
     describe('span name truncation', () => {
-      beforeEach(() => {
-        Object.assign(_redisOptions, { cachePrefixes: ['cache:'] });
-      });
-
       it('should not truncate span name when maxCacheKeyLength is not set', () => {
-        cacheResponseHook(
+        applyRedisCacheAttributes(
           mockSpan,
           'mget',
           ['cache:very-long-key-name', 'cache:very-long-key-name-2', 'cache:very-long-key-name-3'],
           'value',
+          { cachePrefixes: ['cache:'] },
         );
 
         expect(mockSpan.updateName).toHaveBeenCalledWith(
@@ -69,17 +57,25 @@ describe('Redis', () => {
       });
 
       it('should truncate span name when maxCacheKeyLength is set', () => {
-        Object.assign(_redisOptions, { maxCacheKeyLength: 10 });
-
-        cacheResponseHook(mockSpan, 'get', ['cache:very-long-key-name'], 'value');
+        applyRedisCacheAttributes(mockSpan, 'get', ['cache:very-long-key-name'], 'value', {
+          cachePrefixes: ['cache:'],
+          maxCacheKeyLength: 10,
+        });
 
         expect(mockSpan.updateName).toHaveBeenCalledWith('cache:very...');
       });
 
       it('should truncate multiple keys joined with commas', () => {
-        Object.assign(_redisOptions, { maxCacheKeyLength: 20 });
-
-        cacheResponseHook(mockSpan, 'mget', ['cache:key1', 'cache:key2', 'cache:key3'], ['val1', 'val2', 'val3']);
+        applyRedisCacheAttributes(
+          mockSpan,
+          'mget',
+          ['cache:key1', 'cache:key2', 'cache:key3'],
+          ['val1', 'val2', 'val3'],
+          {
+            cachePrefixes: ['cache:'],
+            maxCacheKeyLength: 20,
+          },
+        );
 
         expect(mockSpan.updateName).toHaveBeenCalledWith('cache:key1, cache:ke...');
       });
@@ -214,6 +210,12 @@ describe('Redis', () => {
       const result = calculateCacheItemSize(circularObject);
       expect(result).toBeUndefined();
     });
+
+    it('should return total size for array input', () => {
+      const arr = ['test', Buffer.from('test'), 1234];
+      const result = calculateCacheItemSize(arr);
+      expect(result).toBe(12);
+    });
   });
 
   describe('shouldConsiderForCache', () => {
@@ -263,52 +265,6 @@ describe('Redis', () => {
         const result = shouldConsiderForCache(command, key, prefixes);
         expect(result).toBe(true);
       });
-    });
-  });
-
-  describe('calculateCacheItemSize', () => {
-    it('should return byte length for Buffer input', () => {
-      const buffer = Buffer.from('test');
-      const result = calculateCacheItemSize(buffer);
-      expect(result).toBe(4);
-    });
-
-    it('should return string length for string input', () => {
-      const str = 'test';
-      const result = calculateCacheItemSize(str);
-      expect(result).toBe(4);
-    });
-
-    it('should return number length for number input', () => {
-      const num = 1234;
-      const result = calculateCacheItemSize(num);
-      expect(result).toBe(4);
-    });
-
-    it('should return 0 for null or undefined input', () => {
-      const resultForNull = calculateCacheItemSize(null);
-      const resultForUndefined = calculateCacheItemSize(undefined);
-      expect(resultForNull).toBe(0);
-      expect(resultForUndefined).toBe(0);
-    });
-
-    it('should return total size for array input', () => {
-      const arr = ['test', Buffer.from('test'), 1234];
-      const result = calculateCacheItemSize(arr);
-      expect(result).toBe(12);
-    });
-
-    it('should return JSON string length for object input', () => {
-      const obj = { key: 'value' };
-      const result = calculateCacheItemSize(obj);
-      expect(result).toBe(15);
-    });
-
-    it('should return undefined for circular objects', () => {
-      const circularObject: { self?: any } = {};
-      circularObject.self = circularObject; // This creates a circular reference
-      const result = calculateCacheItemSize(circularObject);
-      expect(result).toBeUndefined();
     });
   });
 });

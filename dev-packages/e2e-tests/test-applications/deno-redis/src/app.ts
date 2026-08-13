@@ -15,7 +15,7 @@ const redisUrl = Deno.env.get('REDIS_URL') ?? 'redis://127.0.0.1:6379';
 
 // One shared client per process. node-redis publishes to the
 // `node-redis:command` / `:batch` / `:connect` diagnostics channels for every
-// operation on this client; denoRedisIntegration is already subscribed to
+// operation on this client; redisIntegration is already subscribed to
 // those.
 const redis = createClient({ url: redisUrl });
 function onRedisError(err: unknown) {
@@ -26,7 +26,7 @@ redis.on('error', onRedisError);
 await redis.connect();
 
 // Separate ioredis client. ioredis >= 5.11 publishes to the `ioredis:command`
-// and `ioredis:connect` channels, which denoRedisIntegration also subscribes
+// and `ioredis:connect` channels, which redisIntegration also subscribes
 // to. lazyConnect so we can yield a microtick before connecting and ensure
 // the DC subscriber is registered before ioredis creates its tracing channels.
 await Promise.resolve();

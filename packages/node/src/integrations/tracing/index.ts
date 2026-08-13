@@ -21,11 +21,11 @@ import {
   openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  redisIntegration,
   tediousIntegration,
   vercelAiIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { fastifyIntegration } from './fastify';
-import { redisIntegration } from './redis';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
@@ -36,8 +36,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),
-    // Redis keeps the node wrapper: it wires the cache `responseHook` into the channel subscribers
-    // and covers all redis client versions (native diagnostics_channel + orchestrion fallbacks).
     redisIntegration(),
     postgresIntegration(),
     prismaIntegration(),

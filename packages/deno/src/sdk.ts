@@ -35,6 +35,7 @@ import {
   postgresJsIntegration,
   tediousIntegration,
   vercelAiIntegration,
+  redisIntegration,
 } from '@sentry/server-utils/orchestrion';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -42,7 +43,6 @@ import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -64,7 +64,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoContextIntegration(),
     denoServeIntegration(),
     denoHttpIntegration(),
-    denoRedisIntegration(),
+    redisIntegration(),
     graphqlDiagnosticsIntegration(),
     vercelAiIntegration(),
     // orchestrion-based instrumentations. We add a deliberate list here rather

@@ -24,18 +24,20 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
+  waitForTracingChannelBinding,
 } from '@sentry/core';
-import { CHANNELS } from '../orchestrion/channels';
-import { defaultDbStatementSerializer } from '../redis/redis-statement-serializer';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import { redisModuleNames } from '../orchestrion/config/redis';
-import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { CHANNELS } from '../../orchestrion/channels';
+import { defaultDbStatementSerializer } from './redis-statement-serializer';
+import type { RedisCacheOptions } from './redis-cache';
+import { applyRedisCacheAttributes } from './redis-cache';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { redisModuleNames } from '../../orchestrion/config/redis';
+import { ioredisModuleNames } from '../../orchestrion/config/ioredis';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { subscribeRedisDiagnosticChannels } from './redis-dc-subscriber';
+import { instrumentIoredis } from './ioredis-channel-subscriber';
 
-// A distinct name from the composite OTel `Redis` integration — they can't share one, and
-// `Redis` stays in the set for its native diagnostics_channel subscriber (node-redis >=5.12 /
-// ioredis >=5.11). When this integration is active, the OTel `RedisInstrumentation` monkey-patch
-// is fully gated off in the node SDK.
-const INTEGRATION_NAME = 'RedisChannel' as const;
+const INTEGRATION_NAME = 'Redis' as const;
 
 const ORIGIN = 'auto.db.redis';
 
@@ -43,12 +45,7 @@ const ORIGIN = 'auto.db.redis';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_REDIS = 'redis';
 
-/** Mirrors `@opentelemetry/instrumentation-redis`' response hook. Not called for failed commands. */
-export type RedisResponseHook = (span: Span, command: string, args: Array<string | Buffer>, result: unknown) => void;
-
-export interface RedisChannelIntegrationOptions {
-  responseHook?: RedisResponseHook;
-}
+export interface RedisIntegrationOptions extends RedisCacheOptions {}
 
 /** Structural type for a node-redis (`@redis/client`) command definition. */
 interface RedisCommandDefinition {
@@ -88,23 +85,6 @@ function endSpan(span: Span, err: unknown): void {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: err instanceof Error ? err.message : String(err) });
   }
   span.end();
-}
-
-function runResponseHook(
-  hook: RedisResponseHook | undefined,
-  span: Span,
-  command: string,
-  args: Array<string | Buffer>,
-  result: unknown,
-): void {
-  if (!hook) {
-    return;
-  }
-  try {
-    hook(span, command, args, result);
-  } catch {
-    // never let a user-provided response hook break instrumentation
-  }
 }
 
 // Strip a leading `commandOptions(...)` object (tagged with a `Symbol`) before
@@ -159,7 +139,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
 
 // Settles via `command_obj.callback`, not the sync return — so instead of
 // `bindTracingChannelToSpan` we open the span in `start`, wrap the callback to end it, and end on `error` for sync throws.
-function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined): void {
+function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext>(CHANNELS.REDIS_COMMAND);
   const noop = (): void => {};
   channel.subscribe({
@@ -195,7 +175,7 @@ function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined
       const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
-          runResponseHook(responseHook, span, command.command, command.args ?? [], reply);
+          applyRedisCacheAttributes(span, command.command, command.args ?? [], reply, cacheOptions);
         }
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
@@ -218,7 +198,7 @@ function subscribeLegacyRedisCommand(responseHook: RedisResponseHook | undefined
 function bindNodeRedisCommandChannel(
   channelName: string,
   getWireArgs: (data: CommandContext) => Array<string | Buffer> | undefined,
-  responseHook: RedisResponseHook | undefined,
+  cacheOptions: RedisCacheOptions,
 ): void {
   const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
   bindTracingChannelToSpan(
@@ -234,12 +214,12 @@ function bindNodeRedisCommandChannel(
     },
     {
       beforeSpanEnd(span, data) {
-        if ('error' in data || !responseHook) {
+        if ('error' in data) {
           return;
         }
         const wireArgs = getWireArgs(data);
         if (wireArgs?.length) {
-          runResponseHook(responseHook, span, String(wireArgs[0]), wireArgs.slice(1), data.result);
+          applyRedisCacheAttributes(span, String(wireArgs[0]), wireArgs.slice(1), data.result, cacheOptions);
         }
       },
     },
@@ -306,7 +286,7 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
   });
 }
 
-const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {}) => {
+const _redisIntegration = ((options: RedisIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -319,19 +299,28 @@ const _redisChannelIntegration = ((options: RedisChannelIntegrationOptions = {})
       });
       // node-redis v4/v5 binds spans into async context via `bindTracingChannelToSpan`.
       invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentNodeRedis, [options]);
+      // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` channel, handled in `setupOnce`).
+      invokeOrchestrionInstrumentation(client, ioredisModuleNames, instrumentIoredis, [options]);
+    },
+    setupOnce() {
+      if (!diagnosticsChannel.tracingChannel) {
+        return;
+      }
+
+      waitForTracingChannelBinding(() => {
+        subscribeRedisDiagnosticChannels(diagnosticsChannel.tracingChannel, options);
+      });
     },
   };
 }) satisfies IntegrationFn;
 
-function instrumentLegacyRedis(options: RedisChannelIntegrationOptions): void {
-  subscribeLegacyRedisCommand(options.responseHook);
+function instrumentLegacyRedis(options: RedisIntegrationOptions): void {
+  subscribeLegacyRedisCommand(options);
 }
 
-function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
-  const responseHook = options.responseHook;
-
-  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, responseHook);
-  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, responseHook);
+function instrumentNodeRedis(options: RedisIntegrationOptions): void {
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, options);
+  bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, options);
   bindNodeRedisConnectChannel();
   bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_MULTI, () => 'MULTI');
   bindNodeRedisBatchChannel(CHANNELS.NODE_REDIS_PIPELINE, () => 'PIPELINE');
@@ -341,9 +330,21 @@ function instrumentNodeRedis(options: RedisChannelIntegrationOptions): void {
 }
 
 /**
- * Orchestrion-driven redis integration for `redis` v2-v3 and
- * node-redis v4/v5 `<5.12.0` (`@redis/client`). Covers single commands, `connect`,
- * and multi/pipeline batches, fully replacing `@opentelemetry/instrumentation-redis`.
- * Requires the orchestrion runtime hook or bundler plugin.
+ * Adds Sentry tracing instrumentation for the [redis](https://www.npmjs.com/package/redis) and
+ * [ioredis](https://www.npmjs.com/package/ioredis) libraries.
+ *
+ * A single integration covers every client version: `redis` v2-v3, node-redis v4/v5 (`@redis/client`)
+ * and ioredis `<5.11.0` via orchestrion channels, and node-redis `>=5.12.0` / ioredis `>=5.11.0` via
+ * their native `diagnostics_channel`. Captures single commands, `connect`, and multi/pipeline batches,
+ * plus cache spans for keys matching the configured `cachePrefixes`.
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.redisIntegration()],
+ * });
+ * ```
  */
-export const redisChannelIntegration = defineIntegration(_redisChannelIntegration);
+export const redisIntegration = defineIntegration(_redisIntegration);
