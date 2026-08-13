@@ -134,7 +134,10 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   }
 
   const previousActiveSpan = getActiveSpan();
-  const span = _startIdleSpan(startSpanOptions);
+
+  const span = startInactiveSpan(startSpanOptions);
+  _setSpanForScope(getCurrentScope(), span);
+  DEBUG_BUILD && debug.log('[Tracing] Started span is an idle span');
 
   // We patch span.end to ensure we can run some things before the span is ended
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -413,16 +416,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       span.end();
     }
   }, finalTimeout);
-
-  return span;
-}
-
-function _startIdleSpan(options: StartSpanOptions): Span {
-  const span = startInactiveSpan(options);
-
-  _setSpanForScope(getCurrentScope(), span);
-
-  DEBUG_BUILD && debug.log('[Tracing] Started span is an idle span');
 
   return span;
 }
