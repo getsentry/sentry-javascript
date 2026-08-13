@@ -7,7 +7,7 @@ import {
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   hapiIntegration,
   kafkajsIntegration,
   koaIntegration,
@@ -31,7 +31,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
   return [
     expressIntegration(),
     fastifyIntegration(),
-    graphqlDiagnosticsIntegration(),
+    graphqlIntegration(),
     mongodbIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),

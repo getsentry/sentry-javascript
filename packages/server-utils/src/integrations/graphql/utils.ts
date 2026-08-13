@@ -1,6 +1,7 @@
 import { SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { getClient, isObjectLike, getRootSpan, spanToJSON, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { GraphqlDocumentNode, GraphqlToken } from './types';
 
 // Same key the OTel path uses, so renames stay consistent across both.
 const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
@@ -9,22 +10,6 @@ const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
 // replace them in the serialized document so raw inline values can never reach
 // `graphql.document`. Mirrors the legacy OTel instrumentation's redaction set.
 const REDACTED_LITERAL_KINDS = new Set(['Int', 'Float', 'String', 'BlockString']);
-
-/** Minimal shape of a graphql-js lexer token, enough to locate literal spans for redaction. */
-interface GraphqlToken {
-  kind: string;
-  start: number;
-  end: number;
-  next?: GraphqlToken | null;
-}
-
-/** Minimal shape of a parsed graphql-js `DocumentNode`, enough to read its source and tokens. */
-export interface GraphqlDocumentNode {
-  loc?: {
-    startToken?: GraphqlToken;
-    source?: { body?: string };
-  };
-}
 
 /**
  * Rename the enclosing root span to include the operation name(s), e.g. `GET /graphql (query GetUser)`.

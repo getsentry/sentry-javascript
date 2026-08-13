@@ -7,8 +7,8 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import type { GraphqlDocumentNode } from './utils';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import type { GraphqlDocumentNode } from './types';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 
 // Channel names published by graphql >= 17.0.0 (see graphql-js `src/diagnostics.ts`).
@@ -85,7 +85,7 @@ export interface GraphqlResolveData {
 }
 
 /** Options controlling which graphql channels the subscriber emits spans for. */
-export interface GraphqlDiagnosticChannelsOptions {
+export interface GraphQLOptions {
   /**
    * Do not create spans for resolvers. Resolver spans are per-field and can be very high volume.
    * Defaults to `true`.
@@ -128,7 +128,7 @@ export type GraphqlTracingChannelFactory = <T extends object>(name: string) => T
  */
 export function subscribeGraphqlDiagnosticChannels(
   tracingChannel: GraphqlTracingChannelFactory,
-  options: GraphqlDiagnosticChannelsOptions = {},
+  options: GraphQLOptions = {},
 ): void {
   const ignoreResolveSpans = options.ignoreResolveSpans !== false;
   const ignoreTrivialResolveSpans = options.ignoreTrivialResolveSpans !== false;

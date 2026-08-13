@@ -19,7 +19,7 @@ import {
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   hapiIntegration,
   kafkajsIntegration,
   koaIntegration,
@@ -65,7 +65,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoServeIntegration(),
     denoHttpIntegration(),
     redisIntegration(),
-    graphqlDiagnosticsIntegration(),
+    graphqlIntegration(),
     vercelAIIntegration(),
     // orchestrion-based instrumentations. We add a deliberate list here rather
     // than every channel integration: each one needs a Deno test proving it
