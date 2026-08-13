@@ -21,20 +21,11 @@ import {
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
-import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
 import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
-
-/**
- * The orchestrion channel-subscriber integrations, listening on the diagnostics
- * channels that `@sentry/bun/plugin` injects at build time.
- */
-function getChannelIntegrations(): Integration[] {
-  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
-}
 
 /**
  * The performance integrations for bun: the OTel auto-performance set, but with
@@ -49,19 +40,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
     return [];
   }
 
-  const autoPerformanceIntegrations = getAutoPerformanceIntegrations();
-  if (!isOrchestrionInjected()) {
-    return autoPerformanceIntegrations;
-  }
-
-  const channelIntegrationInstances = getChannelIntegrations();
-  // The OTel integrations these channel subscribers replace, keyed by the name they share with them.
-  const replacedOtelIntegrationNames = new Set(channelIntegrationInstances.map(integration => integration.name));
-
-  return [
-    ...autoPerformanceIntegrations.filter(integration => !replacedOtelIntegrationNames.has(integration.name)),
-    ...channelIntegrationInstances,
-  ];
+  return getAutoPerformanceIntegrations();
 }
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
