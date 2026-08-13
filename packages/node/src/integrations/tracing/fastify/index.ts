@@ -1,19 +1,10 @@
-import type { Integration } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import {
   fastifyIntegration as serverUtilsFastifyIntegration,
   instrumentFastify,
   handleFastifyError,
 } from '@sentry/server-utils';
-
-interface FastifyIntegration extends Integration {
-  getShouldHandleError: () => (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
-  // todo(v11): Remove this
-  setShouldHandleError: (
-    shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean,
-  ) => void;
-}
 
 // oxlint-disable-next-line typescript/no-deprecated
 export { instrumentFastify };
@@ -53,54 +44,6 @@ interface FastifyIntegrationOptions {
   shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
 }
 
-interface FastifyHandlerOptions {
-  /**
-   * Callback method deciding whether error should be captured and sent to Sentry
-   *
-   * @param error Captured Fastify error
-   * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
-   * @param reply Fastify reply (or any object containing at least statusCode)
-   *
-   * @example
-   *
-   *
-   * ```javascript
-   * setupFastifyErrorHandler(app, {
-   *   shouldHandleError(_error, _request, reply) {
-   *     return reply.statusCode >= 400;
-   *   },
-   * });
-   * ```
-   *
-   *
-   * If using TypeScript, you can cast the request and reply to get full type safety.
-   *
-   * ```typescript
-   * import type { FastifyRequest, FastifyReply } from 'fastify';
-   *
-   * setupFastifyErrorHandler(app, {
-   *   shouldHandleError(error, minimalRequest, minimalReply) {
-   *     const request = minimalRequest as FastifyRequest;
-   *     const reply = minimalReply as FastifyReply;
-   *     return reply.statusCode >= 500;
-   *   },
-   * });
-   * ```
-   */
-  shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
-}
-
-const INTEGRATION_NAME = 'Fastify' as const;
-
-function getFastifyIntegration(): FastifyIntegration | undefined {
-  const client = getClient();
-  if (!client) {
-    return undefined;
-  } else {
-    return client.getIntegrationByName(INTEGRATION_NAME);
-  }
-}
-
 /**
  * Adds Sentry tracing instrumentation for [Fastify](https://fastify.dev/).
  *
@@ -125,7 +68,6 @@ export const fastifyIntegration = defineIntegration((options: Partial<FastifyInt
  * Add an Fastify error handler to capture errors to Sentry.
  *
  * @param fastify The Fastify instance to which to add the error handler
- * @param options Configuration options for the handler
  *
  * @example
  * ```javascript
@@ -141,11 +83,7 @@ export const fastifyIntegration = defineIntegration((options: Partial<FastifyInt
  * app.listen({ port: 3000 });
  * ```
  */
-export function setupFastifyErrorHandler(fastify: FastifyMinimal, options?: Partial<FastifyHandlerOptions>): void {
-  if (options?.shouldHandleError) {
-    getFastifyIntegration()?.setShouldHandleError(options.shouldHandleError);
-  }
-
+export function setupFastifyErrorHandler(fastify: FastifyMinimal): void {
   const plugin = Object.assign(
     function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (request, reply, error) => {

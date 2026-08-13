@@ -54,9 +54,6 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
     getShouldHandleError() {
       return _shouldHandleError;
     },
-    setShouldHandleError(shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean) {
-      _shouldHandleError = shouldHandleError;
-    },
   } satisfies FastifyIntegration;
 }) satisfies IntegrationFn;
 
