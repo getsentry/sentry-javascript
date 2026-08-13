@@ -22,10 +22,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'net.peer.name': 'localhost',
           'net.peer.port': 6380,
-          'db.statement': 'set test-key [1 other arguments]',
+          'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
       expect.objectContaining({
@@ -35,10 +35,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'net.peer.name': 'localhost',
           'net.peer.port': 6380,
-          'db.statement': 'get test-key',
+          'db.query.text': 'get test-key',
         }),
       }),
       // a failing command produces a span with an error status
@@ -50,10 +50,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'net.peer.name': 'localhost',
           'net.peer.port': 6380,
-          'db.statement': 'incr test-key',
+          'db.query.text': 'incr test-key',
         }),
       }),
     ]),

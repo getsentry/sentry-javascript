@@ -45,7 +45,7 @@ describe('mysql auto instrumentation', () => {
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
           ...(origin ? { 'sentry.origin': origin } : {}),
-          'db.system': 'mysql',
+          'db.system.name': 'mysql',
           'net.peer.name': 'localhost',
           'net.peer.port': port,
           'db.user': 'root',
@@ -100,7 +100,7 @@ describe('mysql auto instrumentation', () => {
             // A failing streamed query emits `error`, which marks the span as errored
             status: 'internal_error',
             data: expect.objectContaining({
-              'db.system': 'mysql',
+              'db.system.name': 'mysql',
               'db.user': 'root',
             }),
           }),
@@ -188,7 +188,7 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
         },
-        'db.system': {
+        'db.system.name': {
           type: 'string',
           value: 'mysql',
         },
@@ -260,7 +260,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT 1 + 1 AS solution',
             },
@@ -271,7 +271,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT NOW()',
             },

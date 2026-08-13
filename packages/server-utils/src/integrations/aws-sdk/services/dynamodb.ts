@@ -21,9 +21,9 @@ import {
   AWS_DYNAMODB_TABLE_COUNT as ATTR_AWS_DYNAMODB_TABLE_COUNT,
   AWS_DYNAMODB_TABLE_NAMES as ATTR_AWS_DYNAMODB_TABLE_NAMES,
   AWS_DYNAMODB_TOTAL_SEGMENTS as ATTR_AWS_DYNAMODB_TOTAL_SEGMENTS,
-  DB_NAME,
-  DB_OPERATION,
-  DB_SYSTEM,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
 } from '@sentry/conventions/attributes';
 import { DB_SYSTEM_VALUE_DYNAMODB } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
@@ -40,11 +40,9 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     const spanAttributes: Record<string, unknown> = {};
 
-    /* oxlint-disable typescript/no-deprecated -- old-semconv db.* attributes, matched to the OTel aws-sdk integration */
-    spanAttributes[DB_SYSTEM] = DB_SYSTEM_VALUE_DYNAMODB;
-    spanAttributes[DB_NAME] = tableName;
-    spanAttributes[DB_OPERATION] = operation;
-    /* oxlint-enable typescript/no-deprecated */
+    spanAttributes[DB_SYSTEM_NAME] = DB_SYSTEM_VALUE_DYNAMODB;
+    spanAttributes[DB_NAMESPACE] = tableName;
+    spanAttributes[DB_OPERATION_NAME] = operation;
 
     // `RequestItems` is undefined when no table names are returned; its keys are the table names.
     if (normalizedRequest.commandInput?.TableName) {
@@ -151,7 +149,7 @@ export class DynamodbServiceExtension implements ServiceExtension {
 
     return {
       spanAttributes,
-      // Matches what the exporter infers from `db.system` for the OTel DynamoDB spans.
+      // Matches what the exporter infers from the db system for the OTel DynamoDB spans.
       spanOp: 'db',
     };
   }

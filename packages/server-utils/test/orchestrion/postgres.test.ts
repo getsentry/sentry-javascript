@@ -122,13 +122,13 @@ describe('postgresIntegration', () => {
         name: 'SELECT * FROM "User"',
         op: 'db',
         attributes: expect.objectContaining({
-          'db.system': 'postgresql',
-          'db.name': 'tests',
+          'db.system.name': 'postgresql',
+          'db.namespace': 'tests',
           'db.user': 'tim',
           'net.peer.name': 'localhost',
           'net.peer.port': 5432,
           'db.connection_string': 'postgresql://localhost:5432/tests',
-          'db.statement': 'SELECT * FROM "User"',
+          'db.query.text': 'SELECT * FROM "User"',
           'sentry.origin': 'auto.db.postgres',
         }),
       }),
@@ -150,7 +150,7 @@ describe('postgresIntegration', () => {
         name: 'SELECT * FROM "User" WHERE "email" = $1',
         op: 'db',
         attributes: expect.objectContaining({
-          'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
+          'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
           'db.postgresql.plan': 'select-user-by-email',
           'sentry.origin': 'auto.db.postgres',
         }),
@@ -180,7 +180,7 @@ describe('postgresIntegration', () => {
       expect.objectContaining({
         name: 'pg.connect',
         op: 'db',
-        attributes: expect.objectContaining({ 'db.system': 'postgresql', 'db.name': 'tests' }),
+        attributes: expect.objectContaining({ 'db.system.name': 'postgresql', 'db.namespace': 'tests' }),
       }),
     );
     // Connect spans must NOT set an origin (so they default to 'manual').
@@ -209,8 +209,8 @@ describe('postgresIntegration', () => {
         name: 'pg-pool.connect',
         op: 'db',
         attributes: expect.objectContaining({
-          'db.system': 'postgresql',
-          'db.name': 'tests',
+          'db.system.name': 'postgresql',
+          'db.namespace': 'tests',
           'db.user': 'user',
           'net.peer.name': 'localhost',
           'net.peer.port': 5494,

@@ -16,11 +16,11 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),
   },
-  'db.name': {
+  'db.namespace': {
     type: 'string',
     value: 'tests',
   },
-  'db.system': {
+  'db.system.name': {
     type: 'string',
     value: 'postgresql',
   },
@@ -113,7 +113,7 @@ function expectedDbSpan({
   };
 
   if (statement) {
-    attributes['db.statement'] = {
+    attributes['db.query.text'] = {
       type: 'string',
       value: statement,
     };
