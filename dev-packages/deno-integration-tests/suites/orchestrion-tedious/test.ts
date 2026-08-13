@@ -58,7 +58,7 @@ Deno.test('tedious instrumentation: orchestrion:tedious:execSql channel produces
   assertEquals(tediousSpan!.data?.['db.namespace'], 'mydb');
   assertEquals(tediousSpan!.data?.['db.user'], 'sa');
   assertEquals(tediousSpan!.data?.['db.query.text'], 'SELECT 1');
-  assertEquals(tediousSpan!.data?.['net.peer.name'], '127.0.0.1');
-  assertEquals(tediousSpan!.data?.['net.peer.port'], 1433);
+  assertEquals(tediousSpan!.data?.['server.address'], '127.0.0.1');
+  assertEquals(tediousSpan!.data?.['server.port'], 1433);
   assertEquals(tediousSpan!.data?.['sentry.origin'], 'auto.db.tedious');
 });

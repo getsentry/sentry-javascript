@@ -125,8 +125,8 @@ describe('postgresIntegration', () => {
           'db.system.name': 'postgresql',
           'db.namespace': 'tests',
           'db.user': 'tim',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 5432,
+          'server.address': 'localhost',
+          'server.port': 5432,
           'db.connection_string': 'postgresql://localhost:5432/tests',
           'db.query.text': 'SELECT * FROM "User"',
           'sentry.origin': 'auto.db.postgres',
@@ -212,8 +212,8 @@ describe('postgresIntegration', () => {
           'db.system.name': 'postgresql',
           'db.namespace': 'tests',
           'db.user': 'user',
-          'net.peer.name': 'localhost',
-          'net.peer.port': 5494,
+          'server.address': 'localhost',
+          'server.port': 5494,
           // Credentials masked out of the connection string.
           'db.connection_string': 'postgresql://localhost:5494/tests',
           'db.postgresql.idle.timeout.millis': 10_000,
@@ -242,8 +242,8 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'net.peer.name': 'localhost',
-          'net.peer.port': 5433,
+          'server.address': 'localhost',
+          'server.port': 5433,
         }),
       }),
     );

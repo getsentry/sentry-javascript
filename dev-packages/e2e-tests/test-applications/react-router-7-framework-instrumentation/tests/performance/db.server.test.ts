@@ -89,8 +89,8 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
           'db.query.text': 'SELECT 1 + 1 AS solution',
           'db.user': 'root',
           'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': 3306,
+          'server.address': expect.any(String),
+          'server.port': 3306,
         }),
       }),
     );
@@ -105,8 +105,8 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
           'db.query.text': 'SELECT NOW()',
           'db.user': 'root',
           'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': 3306,
+          'server.address': expect.any(String),
+          'server.port': 3306,
         }),
       }),
     );

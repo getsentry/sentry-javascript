@@ -527,6 +527,7 @@ String and regular-expression matching for `tracePropagationTargets` is now case
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+- The `net.peer.name` and `net.peer.port` span attributes on database and messaging client spans were replaced by `server.address` and `server.port`, and `net.transport` by `network.transport`.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.

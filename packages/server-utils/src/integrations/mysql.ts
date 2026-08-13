@@ -1,5 +1,13 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_NAMESPACE, DB_QUERY_TEXT, DB_SYSTEM_NAME, DB_USER, SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   isObjectLike,
@@ -18,11 +26,9 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // When enabled, OTel 'Mysql' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Mysql' as const;
 
-// OTel "OLD" net semantic-conventions and the non-conventions `db.connection_string`, inlined to keep
-// this integration free of OTel deps. Matches `@opentelemetry/instrumentation-mysql`'s default shape.
+// `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined. Matches
+// `@opentelemetry/instrumentation-mysql`'s default shape.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 
 /**
  * The shape orchestrion's transform attaches to the tracing-channel `context` object. Documented here
@@ -85,8 +91,8 @@ function instrumentMysql(): void {
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
           ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
-          ...(host ? { [ATTR_NET_PEER_NAME]: host } : {}),
-          ...(portIsNumber ? { [ATTR_NET_PEER_PORT]: portNumber } : {}),
+          ...(host ? { [SERVER_ADDRESS]: host } : {}),
+          ...(portIsNumber ? { [SERVER_PORT]: portNumber } : {}),
         },
       });
     },
