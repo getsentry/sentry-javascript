@@ -1,3 +1,4 @@
+import { warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
@@ -7,6 +8,8 @@ import type { SentrySolidStartPluginOptions } from './types';
  * Various Sentry vite plugins to be used for SolidStart.
  */
 export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}, viteConfig: UserConfig): Plugin[] => {
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
   const sentryPlugins: Plugin[] = [];
 
   if (options.autoInjectServerSentry !== 'experimental_dynamic-import') {
