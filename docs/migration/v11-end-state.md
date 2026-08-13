@@ -1037,6 +1037,42 @@ Sentry.init({
 
 The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
 
+### `@sentry/solidstart`
+
+The `sourceMapsUploadOptions` build option was removed. Move its fields to the top level, matching every
+other meta-framework SDK. Note that `enabled` was replaced by `sourcemaps.disable` (inverted:
+`enabled: false` becomes `sourcemaps: { disable: true }`).
+
+This only affects SolidStart 1 setups using `withSentry()` / `sentrySolidStartVite()`. SolidStart 2's
+`sentrySolidStart()` already took its options at the top level.
+
+```ts
+// app.config.ts
+export default defineConfig(
+  withSentry(
+    {},
+    {
+      // before
+      sourceMapsUploadOptions: {
+        enabled: true,
+        telemetry: false,
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
+
+      // after
+      telemetry: false,
+      sourcemaps: {
+        disable: false,
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
+    },
+  ),
+);
+```
+
+The SolidStart build options now also accept `applicationKey`, `sentryUrl`, `headers`, `silent`,
+`errorHandler`, `release` and `moduleMetadata`, which previously had no top-level equivalent.
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
