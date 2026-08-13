@@ -1,3 +1,12 @@
+import type { ModuleMetadata, ModuleMetadataCallback, ResolveSourceMapHook } from '@sentry/core';
+
+export type {
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ModuleMetadataCallbackArgs,
+  ResolveSourceMapHook,
+} from '@sentry/core';
+
 export interface Options {
   /**
    * The slug of the Sentry organization associated with the app.
@@ -431,25 +440,6 @@ export interface Options {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RewriteSourcesHook = (source: string, map: any, context?: { mapDir: string }) => string;
-
-export type ResolveSourceMapHook = (
-  artifactPath: string,
-  sourceMappingUrl: string | undefined,
-) => string | undefined | Promise<string | undefined>;
-
-export interface ModuleMetadata {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-export interface ModuleMetadataCallbackArgs {
-  org?: string;
-  project?: string;
-  projects?: string[];
-  release?: string;
-}
-
-export type ModuleMetadataCallback = (args: ModuleMetadataCallbackArgs) => ModuleMetadata;
 
 export type IncludeEntry = {
   /**

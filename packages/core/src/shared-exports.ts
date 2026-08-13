@@ -517,6 +517,11 @@ export type { LegacyCSPReport } from './types/csp';
 export type { SerializedLog, SerializedLogContainer } from './types/log';
 export type {
   BuildTimeOptionsBase,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ModuleMetadataCallbackArgs,
+  ReactComponentAnnotationOptions,
+  ResolveSourceMapHook,
   UnstableVitePluginOptions,
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
