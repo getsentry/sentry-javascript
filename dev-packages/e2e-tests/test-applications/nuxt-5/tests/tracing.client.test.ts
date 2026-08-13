@@ -69,6 +69,7 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
   });
 });
 
+// fixme: note that this test only works because we explictly enabled Vue’s Options API in the nuxt config
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-5', async transactionEvent => {
     return transactionEvent.transaction === '/client-error';
