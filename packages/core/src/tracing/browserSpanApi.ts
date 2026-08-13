@@ -3,7 +3,6 @@ import { getClient } from '../currentScopes';
 import { spanStreamingIntegration } from '../integrations/browserSpanStreaming';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
-import { startIdleSpan as coreStartIdleSpan } from './idleSpan';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import {
   startInactiveSpan as coreStartInactiveSpan,
@@ -70,16 +69,3 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
   _INTERNAL_ensureBrowserSpanStreaming();
   return coreStartInactiveSpan(options);
 }
-
-/**
- * Starts an idle span that automatically ends once no activity happens for a while.
- *
- * See {@link startIdleSpan} in `@sentry/core` for details.
- *
- * Typed via `typeof` because `IdleSpanOptions` is intentionally not part of the public type surface,
- * and re-declaring the signature here would have to widen it.
- */
-export const startIdleSpan: typeof coreStartIdleSpan = (startSpanOptions, options) => {
-  _INTERNAL_ensureBrowserSpanStreaming();
-  return coreStartIdleSpan(startSpanOptions, options);
-};

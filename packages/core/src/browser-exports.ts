@@ -8,9 +8,10 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
-  startIdleSpan,
   _INTERNAL_ensureBrowserSpanStreaming,
 } from './tracing/browserSpanApi';
+
+export { startIdleSpan } from './tracing/idleSpan';
 
 export { spanStreamingIntegration } from './integrations/browserSpanStreaming';
 
