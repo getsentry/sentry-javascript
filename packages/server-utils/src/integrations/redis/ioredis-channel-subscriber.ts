@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-deprecated -- we intentionally emit the OLD db/net semconv
-   to match `@opentelemetry/instrumentation-ioredis` (and Sentry's `inferDbSpanData`, which keys off
-   `db.statement`). TODO(v11): switch to the non-deprecated `db.system.name`/`db.query.text`/
-   `server.address`/`server.port` conventions and drop this disable. */
+/* eslint-disable @typescript-eslint/no-deprecated -- the net attributes are still on the OLD semconv,
+   matching `@opentelemetry/instrumentation-ioredis`. TODO(v11): switch to `server.address`/`server.port`
+   and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_STATEMENT, DB_SYSTEM, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { DB_QUERY_TEXT, DB_SYSTEM_NAME, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -42,7 +41,7 @@ function getConnectionOptions(self: RedisClientLike | undefined): { host?: strin
 
 function connectionAttributes(host: string | undefined, port: number | undefined): Record<string, unknown> {
   return {
-    [DB_SYSTEM]: 'redis',
+    [DB_SYSTEM_NAME]: 'redis',
     [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
     [NET_PEER_NAME]: host,
     [NET_PEER_PORT]: port,
@@ -76,7 +75,7 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
   return startInactiveSpan({
     name: statement,
     op: 'db',
-    attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: statement },
+    attributes: { ...connectionAttributes(host, port), [DB_QUERY_TEXT]: statement },
   });
 }
 
@@ -115,7 +114,7 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
       return startInactiveSpan({
         name: 'connect',
         op: 'db',
-        attributes: { ...connectionAttributes(host, port), [DB_STATEMENT]: 'connect' },
+        attributes: { ...connectionAttributes(host, port), [DB_QUERY_TEXT]: 'connect' },
       });
     },
     { requiresParentSpan: true },

@@ -1,12 +1,13 @@
-// The `@sentry/conventions` db/net attribute keys are deprecated (superseded by newer semconv), but we
+// The `@sentry/conventions` net attribute keys are deprecated (superseded by newer semconv), but we
 // emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-mongodb` produced.
 /* oxlint-disable typescript/no-deprecated */
 
 import {
-  DB_NAME,
-  DB_OPERATION,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_COLLECTION_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
   NET_PEER_NAME,
   NET_PEER_PORT,
   SENTRY_KIND,
@@ -14,9 +15,8 @@ import {
 import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
-// OTel db/net keys/values not exported by `@sentry/conventions`, inlined to match
+// OTel db keys/values not exported by `@sentry/conventions`, inlined to match
 // what `@opentelemetry/instrumentation-mongodb` emitted.
-const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection';
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_MONGODB = 'mongodb';
 
@@ -124,10 +124,10 @@ export function getSpanAttributes(
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [DB_SYSTEM]: DB_SYSTEM_VALUE_MONGODB,
-    [DB_NAME]: dbName,
-    [ATTR_DB_MONGODB_COLLECTION]: dbCollection,
-    [DB_OPERATION]: operation,
+    [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MONGODB,
+    [DB_NAMESPACE]: dbName,
+    [DB_COLLECTION_NAME]: dbCollection,
+    [DB_OPERATION_NAME]: operation,
     [ATTR_DB_CONNECTION_STRING]: `mongodb://${host}:${port}/${dbName}`,
   };
 
@@ -141,7 +141,7 @@ export function getSpanAttributes(
 
   if (commandObj) {
     try {
-      attributes[DB_STATEMENT] = serializeDbStatement(commandObj);
+      attributes[DB_QUERY_TEXT] = serializeDbStatement(commandObj);
     } catch {
       // ignore serialization errors — the statement is best-effort metadata
     }
@@ -218,15 +218,15 @@ export function getV3SpanAttributes(
 }
 
 /**
- * Start a mongodb client span with the legacy (pre-stable) db/net semantic
- * conventions.
+ * Start a mongodb client span, with the db attributes on the stable conventions
+ * and the net attributes still on the legacy ones.
  *
  * `op: 'db'` is set explicitly rather than relying on `inferDbSpanData`,
  * to support platforms that lack it (ie, Deno).
  */
 export function startMongoSpan(attributes: SpanAttributes): Span {
   return startInactiveSpan({
-    name: (attributes[DB_STATEMENT] as string) || `mongodb.${attributes[DB_OPERATION] || 'command'}`,
+    name: (attributes[DB_QUERY_TEXT] as string) || `mongodb.${attributes[DB_OPERATION_NAME] || 'command'}`,
     op: 'db',
     attributes: {
       [SENTRY_KIND]: 'client',

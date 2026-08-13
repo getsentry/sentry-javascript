@@ -16,8 +16,8 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'net.peer.name': 'localhost',
@@ -31,8 +31,8 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'net.peer.name': 'localhost',
@@ -47,11 +47,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'User',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "User"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "User"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),
@@ -63,11 +63,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'DoesNotExist',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "DoesNotExist"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "DoesNotExist"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),

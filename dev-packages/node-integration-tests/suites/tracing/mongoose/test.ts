@@ -25,10 +25,10 @@ describe('Mongoose experimental Test', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'save',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'save',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.save',
         op: 'db',
@@ -36,10 +36,10 @@ describe('Mongoose experimental Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'findOne',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'findOne',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.findOne',
         op: 'db',
@@ -47,10 +47,10 @@ describe('Mongoose experimental Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'aggregate',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'aggregate',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.aggregate',
         op: 'db',
@@ -58,10 +58,10 @@ describe('Mongoose experimental Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'insertMany',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'insertMany',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.insertMany',
         op: 'db',
@@ -69,10 +69,10 @@ describe('Mongoose experimental Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'bulkWrite',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'bulkWrite',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.bulkWrite',
         op: 'db',
@@ -81,10 +81,10 @@ describe('Mongoose experimental Test', () => {
       // `remove` is patched only on mongoose 5/6.
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.name': 'test',
-          'db.operation': 'remove',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.namespace': 'test',
+          'db.operation.name': 'remove',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.remove',
         op: 'db',
@@ -93,8 +93,8 @@ describe('Mongoose experimental Test', () => {
       // A failing operation still produces a span, marked with an error status.
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.operation': 'save',
-          'db.system': 'mongoose',
+          'db.operation.name': 'save',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.RequiredDoc.save',
         op: 'db',

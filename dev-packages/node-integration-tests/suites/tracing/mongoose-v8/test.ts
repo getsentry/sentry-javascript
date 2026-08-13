@@ -26,9 +26,9 @@ describe('Mongoose v8 Test', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'save',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.operation.name': 'save',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.save',
         op: 'db',
@@ -36,9 +36,9 @@ describe('Mongoose v8 Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'updateOne',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.operation.name': 'updateOne',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.updateOne',
         op: 'db',
@@ -46,9 +46,9 @@ describe('Mongoose v8 Test', () => {
       }),
       expect.objectContaining({
         data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'deleteOne',
-          'db.system': 'mongoose',
+          'db.collection.name': 'blogposts',
+          'db.operation.name': 'deleteOne',
+          'db.system.name': 'mongoose',
         }),
         description: 'mongoose.BlogPost.deleteOne',
         op: 'db',

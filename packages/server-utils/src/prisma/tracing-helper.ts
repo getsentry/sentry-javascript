@@ -8,7 +8,7 @@
  * - Replaced `@prisma/instrumentation-contract` imports with local vendored types
  * - Span creation uses Sentry's span APIs (`startSpanManual` / `startInactiveSpan`) instead of the OTel tracer
  * - Span creation sets the Sentry origin, renames `db_query` spans to their SQL text, and backfills
- *   `db.system` for older Prisma versions
+ *   the db system for older Prisma versions
  * - Added a `createEngineSpan` method so a single helper serves both Prisma v5 (which calls
  *   `createEngineSpan`) and v6/v7 (which call `dispatchEngineSpans`)
  */
@@ -82,7 +82,7 @@ function registerPrismaSpan(id: string, span: Span): void {
 }
 
 /**
- * Older Prisma versions emit `prisma:engine:db_query` spans without a `db.system`, so it's backfilled here.
+ * Older Prisma versions emit `prisma:engine:db_query` spans without a db system, so it's backfilled here.
  */
 function buildSpanAttributes(name: string, attributes: Record<string, unknown> | undefined): SpanAttributes {
   const merged: SpanAttributes = {
@@ -90,10 +90,11 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRISMA_ORIGIN,
   };
 
+  // Prisma itself emits the deprecated `db.system` on older versions, so both spellings are checked
+  // before backfilling; the backfilled value goes on the stable one.
   // oxlint-disable-next-line typescript/no-deprecated
-  if (name === 'prisma:engine:db_query' && merged[DB_SYSTEM] == null) {
-    // oxlint-disable-next-line typescript/no-deprecated
-    merged[DB_SYSTEM] = 'prisma';
+  if (name === 'prisma:engine:db_query' && merged[DB_SYSTEM] == null && merged[DB_SYSTEM_NAME] == null) {
+    merged[DB_SYSTEM_NAME] = 'prisma';
   }
 
   // oxlint-disable-next-line typescript/no-deprecated
@@ -125,7 +126,7 @@ function buildSpanName(name: string, attributes: SpanAttributes): string {
  * Create every pending v5 engine span whose parent is now registered, repeating until no further span
  * resolves (so a child queued before its parent is created once the parent arrives in a later batch).
  * Each span is created under its resolved parent and registered by its engine id so its own children
- * can find it; origin, the `prisma:engine:db_query` to SQL rename, and the `db.system` backfill are
+ * can find it; origin, the `prisma:engine:db_query` to SQL rename, and the db system backfill are
  * applied here, exactly as for v6/v7 engine spans.
  */
 function createResolvedEngineSpans(): void {

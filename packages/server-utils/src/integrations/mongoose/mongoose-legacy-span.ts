@@ -1,17 +1,19 @@
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  DB_COLLECTION_NAME,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
-// OTel "OLD" db/net semantic-conventions, reproduced from the vendored
+// OTel "OLD" net semantic-conventions, reproduced from the vendored
 // `@opentelemetry/instrumentation-mongoose` span shape. Inlined as literals to
 // avoid importing the deprecated convention constants.
-const ATTR_DB_MONGODB_COLLECTION = 'db.mongodb.collection';
-const ATTR_DB_NAME = 'db.name';
-const ATTR_DB_USER = 'db.user';
 const ATTR_NET_PEER_NAME = 'net.peer.name';
 const ATTR_NET_PEER_PORT = 'net.peer.port';
-const ATTR_DB_OPERATION = 'db.operation';
-const ATTR_DB_SYSTEM = 'db.system';
 
 /** The subset of mongoose's `Collection` that the legacy span shape reads. */
 export interface MongooseLegacyCollection {
@@ -28,8 +30,9 @@ export interface StartMongooseLegacySpanOptions {
 }
 
 /**
- * Start a mongoose client span with the legacy (pre-stable) db/net semantic
- * conventions.
+ * Start a mongoose client span reproducing the vendored
+ * `@opentelemetry/instrumentation-mongoose` span shape, with the db attributes
+ * on the stable conventions and the net attributes still on the legacy ones.
  *
  * Shared by the vendored OTel/IITM instrumentation (`@sentry/node`) and the
  * orchestrion channel subscriber so the two emit an identical span shape,
@@ -44,13 +47,13 @@ export function startMongooseLegacySpan({
 }: StartMongooseLegacySpanOptions): Span {
   const attributes: SpanAttributes = {
     [SENTRY_KIND]: 'client',
-    [ATTR_DB_MONGODB_COLLECTION]: collection?.name,
-    [ATTR_DB_NAME]: collection?.conn?.name,
-    [ATTR_DB_USER]: collection?.conn?.user,
+    [DB_COLLECTION_NAME]: collection?.name,
+    [DB_NAMESPACE]: collection?.conn?.name,
+    [DB_USER]: collection?.conn?.user,
     [ATTR_NET_PEER_NAME]: collection?.conn?.host,
     [ATTR_NET_PEER_PORT]: collection?.conn?.port,
-    [ATTR_DB_OPERATION]: operation,
-    [ATTR_DB_SYSTEM]: 'mongoose',
+    [DB_OPERATION_NAME]: operation,
+    [DB_SYSTEM_NAME]: 'mongoose',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
   };
 

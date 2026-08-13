@@ -15,10 +15,10 @@ import {
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import {
-  DB_NAME,
-  DB_OPERATION,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
   DB_USER,
   NET_PEER_NAME,
   NET_PEER_PORT,
@@ -34,7 +34,7 @@ import { bindTracingChannelToSpan } from '../tracing-channel';
 const INTEGRATION_NAME = 'Knex' as const;
 const ORIGIN = 'auto.db.knex';
 
-// Max length of the query text captured in `db.statement`; "..." is appended when truncated, so the
+// Max length of the query text captured in `db.query.text`; "..." is appended when truncated, so the
 // truncated statement caps at 1024 chars (1 KiB), matching `@opentelemetry/instrumentation-knex`.
 const MAX_QUERY_LENGTH = 1021;
 
@@ -171,15 +171,15 @@ function subscribeQuery(): void {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
-        [DB_SYSTEM]: mapSystem(client?.driverName),
+        [DB_SYSTEM_NAME]: mapSystem(client?.driverName),
         [ATTR_DB_SQL_TABLE]: table,
-        [DB_OPERATION]: operation,
+        [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
-        [DB_NAME]: name,
+        [DB_NAMESPACE]: name,
         [NET_PEER_NAME]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [NET_PEER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NET_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_STATEMENT]: dbStatement,
+        [DB_QUERY_TEXT]: dbStatement,
       };
 
       return startInactiveSpan({
