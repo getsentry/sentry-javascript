@@ -8,15 +8,20 @@ import {
 } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
+import { startInactiveSpan, startSpan, withActiveSpan } from '../../../src/tracing/trace';
 import {
   markSpanAsTracerProviderSpan,
   markSpanForOtelSourceInference,
   spanSourceWasExplicitlySet,
 } from '../../../src/tracing/utils';
-import type { SpanJSON } from '../../../src/types/span';
-import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import type { Span, SpanJSON } from '../../../src/types/span';
+import { getRootSpan, spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+function childSpansOf(span: Span): Set<Span> {
+  return (span as unknown as { _sentryChildSpans?: Set<Span> })._sentryChildSpans ?? new Set();
+}
 
 describe('SentrySpan', () => {
   describe('name', () => {
@@ -209,6 +214,51 @@ describe('SentrySpan', () => {
 
       span.setAttribute('key', 'after');
       expect(spanToJSON(span).data?.['key']).toBe('before');
+    });
+  });
+
+  describe('child span retention', () => {
+    it('stops tracking children on a segment span once it has been captured', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const captureEvent = vi.spyOn(client, 'captureEvent');
+
+      let rootSpan: Span | undefined;
+      startSpan({ name: 'root' }, span => {
+        rootSpan = span;
+        startSpan({ name: 'child' }, () => {});
+      });
+
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(captureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: [expect.objectContaining({ description: 'child' })] }),
+        expect.any(Object),
+        expect.any(Object),
+      );
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+
+      // A child that starts after the tree was read is not tracked, but can still find its root span,
+      // which is all that re-emitting it as its own transaction needs.
+      const lateChild = withActiveSpan(rootSpan!, () => startInactiveSpan({ name: 'late child' }));
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+      expect(getRootSpan(lateChild)).toBe(rootSpan);
+    });
+
+    it('stops tracking children on a segment span that has streamed', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' }));
+      setCurrentClient(client);
+
+      let rootSpan: Span | undefined;
+      startSpan({ name: 'root' }, span => {
+        rootSpan = span;
+        startSpan({ name: 'child' }, () => {});
+      });
+
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+
+      const lateChild = withActiveSpan(rootSpan!, () => startInactiveSpan({ name: 'late child' }));
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+      expect(getRootSpan(lateChild)).toBe(rootSpan);
     });
   });
 
