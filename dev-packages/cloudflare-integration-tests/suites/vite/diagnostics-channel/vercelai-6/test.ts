@@ -31,7 +31,7 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             is_segment: false,
             attributes: expect.objectContaining({
               'sentry.op': { type: 'string', value: 'gen_ai.invoke_agent' },
-              'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
+              'sentry.origin': { type: 'string', value: 'auto.vercelai.channel' },
               [GEN_AI_OPERATION_NAME]: { type: 'string', value: 'invoke_agent' },
               [GEN_AI_USAGE_INPUT_TOKENS]: { type: 'integer', value: 10 },
               [GEN_AI_USAGE_OUTPUT_TOKENS]: { type: 'integer', value: 20 },
@@ -49,7 +49,7 @@ it('captures a transaction with Vercel AI v6 spans via @sentry/cloudflare vercel
             is_segment: false,
             attributes: expect.objectContaining({
               'sentry.op': { type: 'string', value: 'gen_ai.generate_content' },
-              'sentry.origin': { type: 'string', value: 'auto.vercelai.otel' },
+              'sentry.origin': { type: 'string', value: 'auto.vercelai.channel' },
               [GEN_AI_OPERATION_NAME]: { type: 'string', value: 'generate_content' },
             }),
           },

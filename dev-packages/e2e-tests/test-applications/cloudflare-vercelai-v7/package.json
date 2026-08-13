@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "preview": "vite preview --port 38787",
     "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod",
