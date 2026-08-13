@@ -6,9 +6,7 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/instrumentation-redis-v0.62.0/packages/redis-common
  * - Upstream version: @opentelemetry/redis-common@0.38.2
  *
- * Single canonical copy, shared by the orchestrion ioredis subscriber here and
- * the node SDK's vendored redis/ioredis instrumentations (which re-export it via
- * `packages/node/src/integrations/tracing/redis/vendored/redis-common.ts`).
+ * Single canonical copy, shared by the orchestrion redis and ioredis channel subscribers here.
  */
 /* eslint-disable -- vendored @opentelemetry/redis-common */
 
