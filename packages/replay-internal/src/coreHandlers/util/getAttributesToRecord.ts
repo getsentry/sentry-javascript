@@ -16,6 +16,13 @@ const ATTRIBUTES_TO_RECORD = new Set([
 ]);
 
 /**
+ * Attributes that can end up in a click breadcrumb. This is `ATTRIBUTES_TO_RECORD` plus
+ * `data-sentry-element`, which is not recorded itself but is used as a fallback for
+ * `data-sentry-component`.
+ */
+export const BREADCRUMB_RELEVANT_ATTRIBUTES = new Set([...ATTRIBUTES_TO_RECORD, 'data-sentry-element']);
+
+/**
  * Inclusion list of attributes that we want to record from the DOM element
  */
 export function getAttributesToRecord(attributes: Record<string, unknown>): Record<string, unknown> {
