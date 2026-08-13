@@ -510,13 +510,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   orgId?: `${number}` | number;
 
   /**
-   * If logs support should be enabled.
-   *
-   * @default true
-   */
-  enableLogs?: boolean;
-
-  /**
    * An event-processing callback for logs, guaranteed to be invoked after all other log
    * processors. This allows a log to be modified or dropped before it's sent.
    *
@@ -529,13 +522,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @returns A new log that will be sent | null.
    */
   beforeSendLog?: (log: Log) => Log | null;
-
-  /**
-   * If metrics support should be enabled.
-   *
-   * @default true
-   */
-  enableMetrics?: boolean;
 
   /**
    * Interval in ms for the idle flush timer used by logs and metrics.

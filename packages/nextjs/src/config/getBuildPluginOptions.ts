@@ -332,6 +332,8 @@ export function getBuildPluginOptions({
     reactComponentAnnotation: buildTool.startsWith('after-production-compile')
       ? undefined
       : {
+          ...sentryBuildOptions.reactComponentAnnotation,
+          // eslint-disable-next-line typescript/no-deprecated
           ...sentryBuildOptions.webpack?.reactComponentAnnotation,
           ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,
         },

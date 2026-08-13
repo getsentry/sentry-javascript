@@ -288,25 +288,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    this._options.enableLogs ??= true;
-
     // Setup log flushing with weight and timeout tracking
-    if (this._options.enableLogs) {
-      setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
-    }
-
-    const enableMetrics = this._options.enableMetrics ?? true;
+    setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
 
     // Setup metric flushing with weight and timeout tracking
-    if (enableMetrics) {
-      setupWeightBasedFlushing(
-        this,
-        'afterCaptureMetric',
-        'flushMetrics',
-        estimateMetricSizeInBytes,
-        _INTERNAL_flushMetricsBuffer,
-      );
-    }
+    setupWeightBasedFlushing(
+      this,
+      'afterCaptureMetric',
+      'flushMetrics',
+      estimateMetricSizeInBytes,
+      _INTERNAL_flushMetricsBuffer,
+    );
   }
 
   /**

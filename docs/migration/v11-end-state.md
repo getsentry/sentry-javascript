@@ -471,18 +471,20 @@ Sentry.init({
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
 
-### Logs are enabled by default
+### The `enableLogs` option was removed
 
 Affected SDKs: All SDKs.
 
-Logging follows an opt-in-by-usage model similar to metrics: you are opted in when you call `Sentry.logger.*` or explicitly enable a logging integration. The default value of `enableLogs` is now `true`, and logging integrations do not emit logs unless explicitly enabled.
-
-To opt out of logging entirely, set `enableLogs` to `false`:
+The `enableLogs` option was removed. Logging now follows an opt-in-by-usage model similar to metrics: logs are captured whenever you call `Sentry.logger.*` or add a logging integration (such as `consoleLoggingIntegration()` or the Pino integration). There is no longer an option to disable logging once you use a logging API or integration.
 
 ```js
+// before
 Sentry.init({
-  enableLogs: false,
+  enableLogs: true,
 });
+
+// after: no option needed, logs are captured when you use a logging API or integration
+Sentry.init({});
 ```
 
 ### Browser sessions use `unhandled` instead of `crashed`
@@ -635,6 +637,28 @@ The `console` option of `breadcrumbsIntegration` was removed. Use the `consoleIn
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
+**Unified `reactComponentAnnotation` option:** React component annotation is now configured through a single top-level `reactComponentAnnotation` option that applies to both webpack and Turbopack builds:
+
+```js
+export default withSentryConfig(nextConfig, {
+  reactComponentAnnotation: {
+    enabled: true,
+    ignoredComponents: ['MyComponent'],
+  },
+});
+```
+
+The two bundler-specific options it replaces are deprecated but still work, and will be removed in v12:
+
+- `webpack.reactComponentAnnotation`
+- `_experimental.turbopackReactComponentAnnotation`
+
+If both a bundler-specific option and the top-level one are set, the bundler-specific one wins for that bundler.
+
+Note that v10.30.0 deprecated a top-level `reactComponentAnnotation` in favour of `webpack.reactComponentAnnotation`, and v11 removed it. This reinstates the top-level option with broader meaning: it now drives Turbopack builds as well, which the old one never did. If you moved to `webpack.reactComponentAnnotation` for v10, moving back to the top level is the forward path.
+
+On Turbopack, component annotation requires Next.js 16+. The SDK now warns at build time if annotation is enabled on an older Next.js version, where it previously did nothing silently.
+
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
 Affected SDKs: `@sentry/cloudflare`.
@@ -669,7 +693,7 @@ Affected SDKs: `@sentry/cloudflare`.
 - The `createSpanEnvelope` function and the `SpanEnvelope` / `SpanItem` types were removed. They existed only to send standalone (v1) spans as their own segment envelope, which the SDK no longer does. Standalone spans are gone; spans are sent either on their transaction or, with span streaming, as streamed spans (`StreamedSpanEnvelope`).
 - The `disableInstrumentationWarnings` option and the `MissingInstrumentationContext` type were removed. Now that instrumentation is channel-based, the SDK can no longer detect the "you imported a framework before `Sentry.init()`" case, so the warning it gated and the context it attached no longer exist.
 - The deprecated `sendDefaultPii` option was removed. Use [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection) instead.
-- The `_experiments.enableMetrics` and `_experiments.beforeSendMetric` options were removed, use the top-level `enableMetrics` and `beforeSendMetric` options instead.
+- The `_experiments.enableMetrics` and top-level `enableMetrics` options were removed. Metrics are now captured whenever you use a metric API (`Sentry.metrics.*`), so you can simply omit the option. The `_experiments.beforeSendMetric` callback moved to the top-level `beforeSendMetric` option.
 
 ```js
 // before
@@ -684,14 +708,13 @@ Sentry.init({
 
 // after
 Sentry.init({
-  enableMetrics: true,
   beforeSendMetric: metric => {
     return metric;
   },
 });
 ```
 
-- The `_experiments.enableLogs` option was removed. Logs are now enabled by default, so if you were opting in via `_experiments.enableLogs: true` you can simply omit the option. Use the top-level `enableLogs: false` to opt out.
+- The `_experiments.enableLogs` and top-level `enableLogs` options were removed. Logs are now captured whenever you use a logging API (`Sentry.logger.*`) or add a logging integration, so you can simply omit the option.
 
 ```js
 // before
@@ -701,13 +724,8 @@ Sentry.init({
   },
 });
 
-// after: logs are enabled by default, no option needed
+// after: no option needed
 Sentry.init({});
-
-// or, to opt out
-Sentry.init({
-  enableLogs: false,
-});
 ```
 
 - The deprecated `trackFetchStreamPerformance` option of `browserTracingIntegration` was removed. To track the duration of streamed fetch response bodies, add `fetchStreamPerformanceIntegration()` to your `integrations` array instead.

@@ -1,11 +1,10 @@
 import { getClient } from '../currentScopes';
-import { DEBUG_BUILD } from '../debug-build';
 import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types/instrument';
 import type { IntegrationFn } from '../types/integration';
-import { CONSOLE_LEVELS, debug } from '../utils/debug-logger';
+import { CONSOLE_LEVELS } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
 import { _INTERNAL_captureLog } from './internal';
@@ -27,11 +26,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      const { enableLogs, normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
-      if (!enableLogs) {
-        DEBUG_BUILD && debug.warn('`enableLogs` is not enabled, ConsoleLogs integration disabled');
-        return;
-      }
+      const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
       const unsubscribe = addConsoleInstrumentationHandler(({ args, level }) => {
         if (getClient() !== client || !levels.includes(level)) {

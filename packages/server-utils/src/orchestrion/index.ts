@@ -17,7 +17,7 @@ import { mongodbIntegration } from '../integrations/mongodb';
 import { mongooseIntegration } from '../integrations/mongoose';
 import { mysqlIntegration } from '../integrations/mysql';
 import { mysql2Integration } from '../integrations/mysql2';
-import { openaiIntegration } from '../integrations/openai';
+import { openAIIntegration } from '../integrations/openai';
 import { postgresIntegration } from '../integrations/postgres';
 import { postgresJsIntegration } from '../integrations/postgres-js';
 import { tediousIntegration } from '../integrations/tedious';
@@ -57,7 +57,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
-  openaiIntegration,
+  openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
@@ -105,7 +105,7 @@ export const channelIntegrations = {
   genericPoolIntegration,
   mongooseIntegration,
   lruMemoizerIntegration,
-  openaiIntegration,
+  openAIIntegration,
   anthropicIntegration,
   googleGenAIIntegration,
   langChainIntegration,
