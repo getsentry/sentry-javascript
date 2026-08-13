@@ -21419,10 +21419,10 @@ open@^11.0.0:
     powershell-utils "^0.1.0"
     wsl-utils "^0.3.0"
 
-openai@5.18.1:
-  version "5.18.1"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-5.18.1.tgz#1c4884aefcada7ec684771e03c860c381f1902c1"
-  integrity sha512-iXSOfLlOL+jgnFr5CGrB2SEZw5C92o1nrFW2SasoAXj4QxGhfeJPgg8zkX+vaCfX80cT6CWjgaGnq7z9XzbyRw==
+openai@7.4.0:
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-7.4.0.tgz#68a91d333c388cffaa6b276b160acaf81b342a9f"
+  integrity sha512-+C9Muit5x8j9R8ej8ZzVgKcrVDtqFqTy9gxFdov0EItLgU68zrJtF9ZeT0cyqJQW9S3PCJkdFgADtRGquRBtew==
 
 openai@^5.3.0:
   version "5.23.2"
@@ -24319,9 +24319,9 @@ rollup-plugin-sourcemaps@^0.6.3:
     source-map-resolve "^0.6.0"
 
 rollup-plugin-visualizer@^6.0.3, rollup-plugin-visualizer@^7.0.1:
-  version "6.0.5"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.5.tgz#9cf774cff88f4ba2887c97354766b68931323280"
-  integrity sha512-9+HlNgKCVbJDs8tVtjQ43US12eqaiHyyiLMdBwQ7vSZPiHMysGNo2E88TAp1si5wx8NAoYriI2A5kuKfIakmJg==
+  version "6.0.11"
+  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.11.tgz#64addb59eb43d560cd1bdc5db91e64c0069b9f71"
+  integrity sha512-TBwVHVY7buHjIKVLqr9scTVFwqZqMXINcCphPwIWKPDCOBIa+jCQfafvbjRJDZgXdq/A996Dy6yGJ/+/NtAXDQ==
   dependencies:
     open "^8.0.0"
     picomatch "^4.0.2"

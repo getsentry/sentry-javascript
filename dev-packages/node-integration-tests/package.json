@@ -85,7 +85,7 @@
     "nock": "^14.0.17",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
-    "openai": "5.18.1",
+    "openai": "7.4.0",
     "pg": "8.20.0",
     "pino": "9.10.0",
     "pino-next": "npm:pino@^9.12.0",

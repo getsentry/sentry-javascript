@@ -26,7 +26,7 @@
     "@sentry/core": "10.67.0",
     "@sentry/hono": "10.67.0",
     "hono": "^4.12.34",
-    "openai": "5.18.1"
+    "openai": "7.4.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.34.0",
