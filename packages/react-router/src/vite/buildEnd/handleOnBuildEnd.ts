@@ -17,15 +17,6 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
 }
 
 /**
- * This hook is the only place that injects debug IDs and uploads source maps for React
- * Router, so `disable` has to be honoured wherever the user set it. Reading it from the
- * top-level config only would silently ignore `unstable_sentryVitePluginOptions`.
- */
-function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): boolean | 'disable-upload' | undefined {
-  return sentryConfig.sourcemaps?.disable ?? sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps?.disable;
-}
-
-/**
  * A build end hook that handles Sentry release creation and source map uploads.
  * It creates a new Sentry release if configured, uploads source maps to Sentry,
  * and optionally deletes the source map files after upload.
@@ -33,42 +24,36 @@ function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): 
 export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
   const sentryConfig = getSentryConfig(viteConfig);
 
-  const unstableSentryVitePluginOptions = sentryConfig.unstable_sentryVitePluginOptions;
-
   const {
     authToken,
+    headers,
     org,
     project,
     release,
+    sentryUrl,
     sourcemaps = { disable: false },
     debug = false,
   }: Omit<SentryReactRouterBuildOptions, 'sourcemaps'> &
     // Pick 'sourcemaps' from Vite plugin options as the types allow more (e.g. Promise values for `deleteFilesAfterUpload`)
     Pick<SentryVitePluginOptions, 'sourcemaps'> = {
-    ...unstableSentryVitePluginOptions,
     ...sentryConfig,
     sourcemaps: {
-      ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
-      disable: resolveSourceMapsDisable(sentryConfig),
+      disable: sentryConfig.sourcemaps?.disable,
     },
     release: {
-      ...unstableSentryVitePluginOptions?.release,
       ...sentryConfig.release,
     },
-    project: unstableSentryVitePluginOptions?.project
-      ? Array.isArray(unstableSentryVitePluginOptions?.project)
-        ? unstableSentryVitePluginOptions?.project[0]
-        : unstableSentryVitePluginOptions?.project
-      : sentryConfig.project,
   };
 
+  // `url` and `headers` previously only reached the CLI through `unstable_sentryVitePluginOptions`,
+  // so self-hosted setups had no supported way to point this upload at their instance.
   const cliInstance = new SentryCli(null, {
     authToken,
+    headers,
     org,
-    ...sentryConfig.unstable_sentryVitePluginOptions,
-    // same handling as in bundler plugins: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/05084f214c763a05137d863ff5a05ef38254f68d/packages/bundler-plugin-core/src/build-plugin-manager.ts#L102-L103
-    project: Array.isArray(project) ? project[0] : project,
+    project,
+    url: sentryUrl,
   });
 
   // check if release should be created
