@@ -783,6 +783,49 @@ describe('soft navigation web vitals', () => {
     expect(call.parentSpan).toBe(navigationSpan);
   });
 
+  it('attributes INP by navigation instead of the interaction cache', () => {
+    let inpCallback: (arg: { metric: any }) => void = () => undefined;
+    vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {
+      inpCallback = cb;
+      return () => undefined;
+    });
+    // The cache would attribute the hard navigation's INP to whatever span was active when the
+    // interaction was observed, which is the following navigation span.
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
+      span: navigationSpan,
+      elementName: '<a>',
+    } as any);
+
+    trackInpAsSpan(client, true);
+
+    const entry = { name: 'pointerdown', startTime: 500, duration: 120, interactionId: 1 };
+    inpCallback({ metric: { value: 120, navigationId: 1, navigationType: 'navigate', entries: [entry] } });
+    inpCallback({ metric: { value: 120, navigationId: 2, navigationType: 'soft-navigation', entries: [entry] } });
+
+    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
+    expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[1]![0].parentSpan).toBe(navigationSpan);
+    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+  });
+
+  it('reports no INP when web-vitals has no entry to attribute it to', () => {
+    let inpCallback: (arg: { metric: any }) => void = () => undefined;
+    vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {
+      inpCallback = cb;
+      return () => undefined;
+    });
+
+    trackInpAsSpan(client, true);
+
+    // web-vitals synthesizes an 8ms value with no entries when every interaction of a soft
+    // navigation stayed below the Event Timing threshold.
+    inpCallback({ metric: { value: 8, navigationId: 2, navigationType: 'soft-navigation', entries: [] } });
+
+    expect(vi.mocked(SentryCore.startInactiveSpan)).not.toHaveBeenCalled();
+  });
+
   it('does not use the page load report events when soft navigations are on', () => {
     const listenSpy = vi.spyOn(reportEvents, 'listenForWebVitalReportEvents');
 
