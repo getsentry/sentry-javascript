@@ -10,7 +10,8 @@
  *   and the configurable `createHook`/`endHook`/`requireParentSpan` options were removed in favor of inlined,
  *   Sentry-specific span attributes.
  * - Completely reworked to no longer reference OpenTelemetry.
- * - The upstream `fs_error` span attribute was replaced with the conventions-backed `error.type`.
+ * - The upstream `fs_error` span attribute (the error message) was replaced with the conventions-backed
+ *   `error.type` (the syscall error code, e.g. `ENOENT`).
  */
 
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
@@ -307,11 +308,11 @@ export function enableFsInstrumentation(config: FsInstrumentationConfig = {}): v
 }
 
 /**
- * Sets the error status on the span and, if configured, records the error message as a span attribute.
+ * Sets the error status on the span and, if configured, records the error type as a span attribute.
  */
 function recordError(span: Span, error: unknown, config: FsInstrumentationConfig): void {
   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   if (config.recordErrorMessagesAsSpanAttributes && error instanceof Error) {
-    span.setAttribute(ERROR_TYPE, error.message);
+    span.setAttribute(ERROR_TYPE, (error as NodeJS.ErrnoException).code ?? error.name);
   }
 }

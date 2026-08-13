@@ -24,7 +24,7 @@ describe('fs instrumentation', () => {
                     op: 'file',
                     status: 'internal_error',
                     data: {
-                      'error.type': expect.stringMatching('ENOENT: no such file or directory,'),
+                      'error.type': 'ENOENT',
                       path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
@@ -374,7 +374,7 @@ describe('fs instrumentation', () => {
                     status: 'internal_error',
                     // `error.type` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
                     data: {
-                      'error.type': expect.stringMatching('ENOENT: no such file or directory,'),
+                      'error.type': 'ENOENT',
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
                     },
