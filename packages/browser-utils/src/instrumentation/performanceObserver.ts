@@ -162,6 +162,13 @@ let _reportSoftNavs = false;
 /**
  * Opt the CLS, LCP and INP observers into reporting metrics for soft navigations.
  *
+ * This also turns `reportAllChanges` off for CLS and LCP. web-vitals force-reports a metric when
+ * the navigation it belongs to is over, so without the intermediate updates every value a handler
+ * receives is already the final one for its navigation. That only holds because soft navigations
+ * are limited to span streaming, where CLS and LCP are sent as their own spans - the static
+ * lifecycle instead writes them onto the pageload span as it ends, which is what `reportAllChanges`
+ * was originally added for (#11934, #12360).
+ *
  * Each observer is instrumented lazily, on its first handler, and web-vitals takes its options at
  * that point only. So this has to be called before any of the `add*InstrumentationHandler`
  * functions, otherwise it won't take effect for observers that are already running.
@@ -305,7 +312,7 @@ function instrumentCls(): StopListening {
     }),
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true, reportSoftNavs: _reportSoftNavs },
+    { reportAllChanges: !_reportSoftNavs, reportSoftNavs: _reportSoftNavs },
   );
 }
 
@@ -319,7 +326,7 @@ function instrumentLcp(): StopListening {
     }),
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true, reportSoftNavs: _reportSoftNavs },
+    { reportAllChanges: !_reportSoftNavs, reportSoftNavs: _reportSoftNavs },
   );
 }
 
