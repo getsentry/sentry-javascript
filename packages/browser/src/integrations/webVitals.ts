@@ -23,16 +23,20 @@ export interface WebVitalsOptions {
   ignore?: WebVitalName[];
 
   /**
-   * Experimental. Also report LCP, CLS and INP for soft navigations, using the browser's
-   * [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment).
+   * Also report LCP, CLS and INP for soft navigations, using the browser's
+   * [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment)
+   * (Chromium 151+).
    *
    * Each soft navigation gets its own set of vitals, reported against the navigation span it
    * belongs to. Turning this on also changes how the initial page load is measured: its vitals are
    * finalized at the first soft navigation rather than accumulating over the page's lifetime.
    *
-   * Requires span streaming (`traceLifecycle: 'stream'`), since soft navigation vitals are finalized
-   * long after the navigation span they belong to has ended. Ignored in browsers without support
-   * for the Soft Navigations API.
+   * Soft navigations the browser doesn't detect (programmatic navigations, navigations that never
+   * paint) report no vitals at all, so coverage is lower than for page loads.
+   *
+   * Requires span streaming (`traceLifecycle: 'stream'`, the default), since soft navigation vitals
+   * are finalized long after the navigation span they belong to has ended. Ignored in browsers
+   * without support for the Soft Navigations API.
    *
    * Default: `false`
    */
