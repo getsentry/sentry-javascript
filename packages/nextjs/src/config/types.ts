@@ -166,11 +166,15 @@ export type SentryBuildWebpackOptions = {
   reactComponentAnnotation?: {
     /**
      * Whether the component name annotate plugin should be enabled or not.
+     *
+     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     enabled?: boolean;
 
     /**
      * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     *
+     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     ignoredComponents?: string[];
   }; // TODO(v12): remove this option
@@ -683,7 +687,18 @@ export type SentryBuildOptions = {
      * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     turbopackReactComponentAnnotation?: {
+      /**
+       * Whether the component name annotate plugin should be enabled or not.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       enabled?: boolean;
+
+      /**
+       * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       ignoredComponents?: string[];
     }; // TODO(v12): remove this option
   }>;
