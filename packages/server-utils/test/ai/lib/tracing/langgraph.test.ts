@@ -123,6 +123,31 @@ describe('invoke_agent input/output recording', () => {
     expect(responseText).toContain('The weather is sunny');
   });
 
+  it('records an empty messages array on the chat path rather than wrapping it as custom state', async () => {
+    const endedSpans = setupClient();
+
+    const compiled = {
+      invoke: async (_input: { messages: Array<{ role: string; content: string }> }) => ({
+        messages: [{ role: 'assistant', content: 'Hello' }],
+      }),
+    };
+    const stateGraph = { compile: () => compiled };
+
+    instrumentStateGraph(stateGraph, { recordInputs: true, recordOutputs: true });
+    const graph = stateGraph.compile();
+    await graph.invoke({ messages: [] });
+
+    const data = spanToJSON(endedSpans[0]!).data;
+
+    const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
+    expect(inputMessages).toBeDefined();
+    expect(JSON.parse(inputMessages!)).toEqual([]);
+
+    const responseText = data[GEN_AI_RESPONSE_TEXT] as string | undefined;
+    expect(responseText).toBeDefined();
+    expect(responseText).toContain('Hello');
+  });
+
   it('does not record input messages when invoked with null input', async () => {
     const endedSpans = setupClient();
 

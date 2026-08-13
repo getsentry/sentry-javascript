@@ -155,16 +155,18 @@ export function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
-            // Parse input state. MessagesAnnotation graphs expose a `messages` array. A custom state
-            // annotation exposes arbitrary keys instead, so the whole state is recorded as a fallback
-            // rather than dropped silently.
+            // Parse input state. MessagesAnnotation graphs expose a `messages` array (possibly empty);
+            // a custom state annotation exposes arbitrary keys instead. Route on whether `messages` is
+            // an array, mirroring the output side in setResponseAttributes, so an empty chat history is
+            // recorded as an empty chat array rather than misread as custom state and wrapped.
             const recordInputs = options.recordInputs;
             const recordOutputs = options.recordOutputs;
             const inputState = args.length > 0 ? args[0] : undefined;
-            const inputMessages = (inputState as { messages?: LangChainMessage[] } | null)?.messages ?? [];
+            const stateMessages = (inputState as { messages?: LangChainMessage[] } | null)?.messages;
+            const inputMessages = Array.isArray(stateMessages) ? stateMessages : null;
 
             if (recordInputs) {
-              if (inputMessages.length > 0) {
+              if (inputMessages) {
                 const normalizedMessages = normalizeLangChainMessages(inputMessages);
                 const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
 
@@ -186,7 +188,7 @@ export function instrumentCompiledGraphInvoke(
             const result = await Reflect.apply(target, thisArg, args);
 
             if (recordOutputs) {
-              setResponseAttributes(span, inputMessages ?? null, result);
+              setResponseAttributes(span, inputMessages, result);
             }
 
             return result;
