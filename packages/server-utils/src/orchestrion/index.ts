@@ -64,8 +64,7 @@ export {
   expressIntegration,
   firebaseIntegration,
 };
-export type { InstrumentationConfig, CustomTransform } from './apmTypes';
-
+export type { InstrumentationConfig } from './apmTypes';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
