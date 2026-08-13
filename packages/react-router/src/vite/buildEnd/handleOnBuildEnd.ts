@@ -46,8 +46,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     },
   };
 
-  // `url` and `headers` previously only reached the CLI through `unstable_sentryVitePluginOptions`,
-  // so self-hosted setups had no supported way to point this upload at their instance.
   const cliInstance = new SentryCli(null, {
     authToken,
     headers,
