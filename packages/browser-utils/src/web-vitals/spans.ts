@@ -12,8 +12,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   timestampInSeconds,
-  startInactiveSpan,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
