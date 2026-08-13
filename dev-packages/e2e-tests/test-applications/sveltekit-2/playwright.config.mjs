@@ -10,4 +10,8 @@ const config = getPlaywrightConfig({
   startCommand: testEnv === 'development' ? `pnpm dev --port 3030` : `node build`,
 });
 
-export default config;
+export default {
+  ...config,
+  globalSetup: './global-setup.mjs',
+  globalTeardown: './global-teardown.mjs',
+};
