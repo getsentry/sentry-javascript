@@ -23,7 +23,7 @@ interface ManualEnv {
 export const reproduction = withSentry(
   env => {
     expectTypeOf(env).toEqualTypeOf<ManualEnv>();
-    return { dsn: env.SENTRY_DATA_SOURCE_NAME, sendDefaultPii: true };
+    return { dsn: env.SENTRY_DATA_SOURCE_NAME };
   },
   {
     fetch(_, env) {
