@@ -979,6 +979,58 @@ export default defineConfig({
 });
 ```
 
+### `@sentry/astro`
+
+Runtime SDK options (`dsn`, `environment`, `release` as a string, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate`, `replaysOnErrorSampleRate`) can no longer be passed to `sentryAstro()`. Configure them in `sentry.client.config.ts` / `sentry.server.config.ts` instead. `release` and `debug` on `sentryAstro()` are now build-time options (`release` for source map uploads, `debug` for build-time logging). If no config files exist, the generated default init snippets still pick them up (`release.name` as the runtime `release`, `debug` for SDK debug logging). The generated client snippet now always includes the `Replay` integration with default sample rates — to customize or remove it (previously done by setting both replay sample rates to `0`), create a `sentry.client.config.ts`.
+
+```ts
+// astro.config.mjs — before
+import { defineConfig } from 'astro/config';
+import sentry from '@sentry/astro';
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      // runtime SDK options on the integration
+      dsn: 'https://example@sentry.io/123',
+      release: '1.0.0',
+      environment: 'production',
+      tracesSampleRate: 0.5,
+    }),
+  ],
+});
+```
+
+```ts
+// astro.config.mjs — after (build-time options only)
+import { defineConfig } from 'astro/config';
+import sentry from '@sentry/astro';
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      release: { name: '1.0.0' },
+      debug: true,
+    }),
+  ],
+});
+```
+
+```ts
+// sentry.client.config.ts — after (runtime SDK options)
+import * as Sentry from '@sentry/astro';
+
+Sentry.init({
+  dsn: 'https://example@sentry.io/123',
+  release: '1.0.0',
+  environment: 'production',
+  tracesSampleRate: 0.5,
+});
+```
+
 ### `@sentry/react-router`
 
 The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
