@@ -1,8 +1,8 @@
 /**
- * Build-time metadata mapping each instrumented package (orchestrion
- * `module.name`) to the channel-subscriber integration that consumes the
- * channels injected into it — by the `exportName` it is published under from
- * `@sentry/server-utils/orchestrion`.
+ * Build-time metadata mapping each channel-subscriber integration — by the
+ * `exportName` it is published under from `@sentry/server-utils/orchestrion` —
+ * to the instrumented packages (orchestrion `module.name`) whose channels it
+ * consumes.
  *
  * Kept in a separate, factory-free module on purpose: the module-injected
  * transform (reachable from every orchestrion bundler plugin) reads this to
@@ -20,6 +20,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresJsIntegration', modules: ['postgres'] },
   { exportName: 'mysqlIntegration', modules: ['mysql'] },
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
+  { exportName: 'mongooseIntegration', modules: ['mongoose'] },
   { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
   { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
   { exportName: 'openAIIntegration', modules: ['openai'] },

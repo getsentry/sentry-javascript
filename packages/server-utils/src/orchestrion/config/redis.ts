@@ -1,7 +1,12 @@
 import type { InstrumentationConfig } from '..';
 import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 export const redisConfig = [
+  registrationOnly(
+    { name: '@redis/client', versionRange: '>=5.12.0', filePath: 'dist/lib/client/index.js' },
+    { className: 'RedisClient', methodName: 'connect' },
+  ),
   // redis `>=2.6.0 <4` (standalone `redis`). `internal_send_command` is an
   // anonymous prototype assignment (`expressionName`); it settles via the nested
   // `command_obj.callback`, so `kind: 'Sync'` and the subscriber wraps that callback.

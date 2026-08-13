@@ -1,5 +1,6 @@
 import type { InstrumentationConfig } from '..';
 import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 // mongoose >= 9.7.0 publishes via its own `node:diagnostics_channel` tracing channels (handled by
 // `subscribeMongooseDiagnosticChannels`), so this transform is gated to `< 9.7.0` to avoid emitting
@@ -37,6 +38,10 @@ const CONTEXT_CAPTURE_QUERY_METHODS = [
 ] as const;
 
 export const mongooseConfig = [
+  registrationOnly(
+    { name: 'mongoose', versionRange: '>=9.7.0', filePath: 'lib/query.js' },
+    { expressionName: 'estimatedDocumentCount' },
+  ),
   // Query execution
   // the span for most read/write operations. `op`, collection and model are
   // read off the `Query` at exec time.
