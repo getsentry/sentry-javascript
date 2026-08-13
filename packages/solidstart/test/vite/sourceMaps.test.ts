@@ -80,7 +80,10 @@ describe('makeAddSentryVitePlugin()', () => {
       {
         org: 'my-org',
         authToken: 'my-token',
-        sourceMapsUploadOptions: {
+        applicationKey: 'my-app-key',
+        sentryUrl: 'https://my.sentry.io',
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
         bundleSizeOptimizations: {
@@ -94,6 +97,10 @@ describe('makeAddSentryVitePlugin()', () => {
       expect.objectContaining({
         org: 'my-org',
         authToken: 'my-token',
+        applicationKey: 'my-app-key',
+        // `sentryUrl` is resolved to the plugin's `url` option
+        url: 'https://my.sentry.io',
+        moduleMetadata: { team: 'sdk' },
         sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
@@ -175,15 +182,13 @@ describe('makeAddSentryVitePlugin()', () => {
         bundleSizeOptimizations: {
           excludeTracing: true,
         },
-        sourceMapsUploadOptions: {
-          unstable_sentryVitePluginOptions: {
-            org: 'unstable-org',
-            sourcemaps: {
-              assets: ['unstable/*.js'],
-            },
-            bundleSizeOptimizations: {
-              excludeTracing: false,
-            },
+        unstable_sentryVitePluginOptions: {
+          org: 'unstable-org',
+          sourcemaps: {
+            assets: ['unstable/*.js'],
+          },
+          bundleSizeOptimizations: {
+            excludeTracing: false,
           },
         },
       },
