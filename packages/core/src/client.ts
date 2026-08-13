@@ -649,6 +649,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /**
+   * Register a callback that can adjust the scope and the parent span right before a span is
+   * created. Listeners mutate the passed `spanScope` object. The Node SDK uses this to continue
+   * the trace of a remote (incoming) parent through the propagation context of a forked scope.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'prepareSpanScope',
+    callback: (spanScope: { scope: Scope; parentSpan: Span | undefined }) => void,
+  ): () => void;
+
+  /**
    * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
    * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -985,6 +996,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whenever a span starts. */
   public emit(hook: 'spanStart', span: Span): void;
+
+  /** A hook that is called right before a span is created; listeners mutate the passed object. */
+  public emit(hook: 'prepareSpanScope', spanScope: { scope: Scope; parentSpan: Span | undefined }): void;
 
   /** A hook that is called every time before a span is sampled. */
   public emit(
