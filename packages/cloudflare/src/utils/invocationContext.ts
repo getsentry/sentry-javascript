@@ -54,6 +54,10 @@ type ScopeWithInvocationState = Scope & {
  * scope, which is shared by every invocation in the isolate.
  */
 export function setInvocationState(scope: Scope, state: InvocationState): void {
+  if (scope === getDefaultIsolationScope()) {
+    return;
+  }
+
   (scope as ScopeWithInvocationState)[INVOCATION_STATE] = state;
 }
 
