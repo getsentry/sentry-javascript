@@ -11,14 +11,10 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1,
-    // The Vercel AI SDK emits its spans through `@opentelemetry/api`, so they are only picked up when
-    // the Cloudflare OpenTelemetry tracer provider is set up.
-    enableOpenTelemetrySetup: true,
   }),
   {
     async fetch(_request, _env, _ctx) {
       await generateText({
-        experimental_telemetry: { isEnabled: true },
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             finishReason: { unified: 'stop', raw: 'stop' },
