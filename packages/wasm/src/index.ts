@@ -1,7 +1,8 @@
 import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import { patchWebAssembly } from './patchWebAssembly';
-import { getImage, getImages, registerModule } from './registry';
+import type { WasmDebugImage } from './registry';
+import { getImage, getImages, imageMatchesUrl, registerModule } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
@@ -32,14 +33,14 @@ interface WasmIntegrationOptions {
 
 // Access WINDOW with proper typing for _sentryWasmImages
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryWasmImages?: Array<DebugImage>;
+  _sentryWasmImages?: Array<WasmDebugImage>;
 };
 
 const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      patchWebAssembly();
+      patchWebAssembly(registerModule);
     },
     processEvent(event: Event): Event {
       let hasAtLeastOneWasmFrameWithImage = false;
@@ -50,8 +51,8 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
         event.exception.values.forEach(exception => {
           if (exception.stacktrace?.frames) {
             hasAtLeastOneWasmFrameWithImage =
-              hasAtLeastOneWasmFrameWithImage ||
-              patchFrames(exception.stacktrace.frames, options.applicationKey, existingImagesCount);
+              patchFrames(exception.stacktrace.frames, options.applicationKey, existingImagesCount) ||
+              hasAtLeastOneWasmFrameWithImage;
           }
         });
       }
@@ -59,8 +60,12 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
       if (hasAtLeastOneWasmFrameWithImage) {
         event.debug_meta = event.debug_meta || {};
         const mainThreadImages = getImages();
-        const workerImages = WINDOW._sentryWasmImages || [];
-        event.debug_meta.images = [...(event.debug_meta.images || []), ...mainThreadImages, ...workerImages];
+        const workerImages = getWorkerImages();
+        event.debug_meta.images = [
+          ...(event.debug_meta.images || []),
+          ...mainThreadImages.map(stripMatchUrls),
+          ...workerImages.map(stripMatchUrls),
+        ];
       }
 
       return event;
@@ -130,6 +135,19 @@ export function patchFrames(
         const mainThreadImagesCount = getImages().length;
         frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
         hasAtLeastOneWasmFrameWithImage = true;
+      } else if (isCallSiteDerivedWasmFilename(match[1])) {
+        // Firefox derives script names for buffer-compiled modules from the
+        // compile call site, which cannot be predicted at registration time.
+        // If exactly one distinct module was registered from raw bytes, the
+        // frame can only belong to that module. Unmatched `wasm://` names are
+        // deliberately NOT handled here: those come from modules that were
+        // compiled before the SDK was initialized, and attributing them to an
+        // unrelated image would mis-symbolicate.
+        const fallbackIndex = getSingleBufferImageIndex();
+        if (fallbackIndex >= 0) {
+          frame.addr_mode = `rel:${existingImagesOffset + fallbackIndex}`;
+          hasAtLeastOneWasmFrameWithImage = true;
+        }
       }
     }
   });
@@ -137,83 +155,71 @@ export function patchFrames(
   return hasAtLeastOneWasmFrameWithImage;
 }
 
+function getWorkerImages(): Array<WasmDebugImage> {
+  return WINDOW._sentryWasmImages || [];
+}
+
+function stripMatchUrls(image: WasmDebugImage): DebugImage {
+  const { _matchUrls, ...rest } = image;
+  return rest;
+}
+
 /**
  * Looks up an image by URL in worker images.
  */
 function getWorkerImage(url: string): number {
-  const workerImages = WINDOW._sentryWasmImages || [];
-  return workerImages.findIndex(image => {
-    return image.type === 'wasm' && image.code_file === url;
+  return getWorkerImages().findIndex(image => imageMatchesUrl(image, url));
+}
+
+function isCallSiteDerivedWasmFilename(filename: string): boolean {
+  return filename.includes('> WebAssembly.');
+}
+
+/**
+ * Returns the index (across main-thread and worker images) of the only
+ * distinct image that was registered from raw bytes, or -1 if there is none
+ * or more than one. The same module registered on several threads counts
+ * once, since the images share their (content-derived) `code_file`.
+ */
+function getSingleBufferImageIndex(): number {
+  const mainImages = getImages();
+  const workerImages = getWorkerImages();
+  let index = -1;
+  const codeFiles = new Set<string>();
+  mainImages.forEach((image, i) => {
+    if (image._matchUrls && !codeFiles.has(image.code_file)) {
+      codeFiles.add(image.code_file);
+      index = i;
+    }
   });
+  workerImages.forEach((image, i) => {
+    if (image._matchUrls && !codeFiles.has(image.code_file)) {
+      codeFiles.add(image.code_file);
+      index = mainImages.length + i;
+    }
+  });
+  return codeFiles.size === 1 ? index : -1;
 }
 
 /**
  * Use this function to register WASM support in a web worker.
  *
  * This function will:
- * - Patch WebAssembly.instantiateStreaming and WebAssembly.compileStreaming in the worker
+ * - Patch the WebAssembly compilation APIs in the worker
  * - Forward WASM debug images to the parent thread for symbolication
  *
  * @param options {RegisterWebWorkerWasmOptions} Options:
  *   - `self`: The worker's global scope (self).
  */
 export function registerWebWorkerWasm({ self }: RegisterWebWorkerWasmOptions): void {
-  patchWebAssemblyWithForwarding(self);
-}
+  patchWebAssembly((module, url, matchUrls) => {
+    const image = registerModule(module, url, matchUrls);
 
-/**
- * Patches the WebAssembly object in the worker scope and forwards
- * registered modules to the parent thread.
- */
-function patchWebAssemblyWithForwarding(workerSelf: MinimalDedicatedWorkerGlobalScope): void {
-  if ('instantiateStreaming' in WebAssembly) {
-    const origInstantiateStreaming = WebAssembly.instantiateStreaming;
-    WebAssembly.instantiateStreaming = function instantiateStreaming(
-      response: Response | PromiseLike<Response>,
-      importObject: WebAssembly.Imports,
-    ): Promise<WebAssembly.Module> {
-      return Promise.resolve(response).then(response => {
-        return origInstantiateStreaming(response, importObject).then(rv => {
-          if (response.url) {
-            registerModuleAndForward(rv.module, response.url, workerSelf);
-          }
-          return rv;
-        });
+    if (image) {
+      self.postMessage({
+        _sentryMessage: true,
+        _sentryWasmImages: [image],
       });
-    } as typeof WebAssembly.instantiateStreaming;
-  }
-
-  if ('compileStreaming' in WebAssembly) {
-    const origCompileStreaming = WebAssembly.compileStreaming;
-    WebAssembly.compileStreaming = function compileStreaming(
-      source: Response | Promise<Response>,
-    ): Promise<WebAssembly.Module> {
-      return Promise.resolve(source).then(response => {
-        return origCompileStreaming(response).then(module => {
-          if (response.url) {
-            registerModuleAndForward(module, response.url, workerSelf);
-          }
-          return module;
-        });
-      });
-    } as typeof WebAssembly.compileStreaming;
-  }
-}
-
-/**
- * Registers a WASM module and forwards its debug image to the parent thread.
- */
-function registerModuleAndForward(
-  module: WebAssembly.Module,
-  url: string,
-  workerSelf: MinimalDedicatedWorkerGlobalScope,
-): void {
-  const image = registerModule(module, url);
-
-  if (image) {
-    workerSelf.postMessage({
-      _sentryMessage: true,
-      _sentryWasmImages: [image],
-    });
-  }
+    }
+  });
 }
