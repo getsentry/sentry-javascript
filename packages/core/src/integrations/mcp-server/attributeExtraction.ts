@@ -2,24 +2,45 @@
  * Core attribute extraction and building functions for MCP server instrumentation
  */
 
-import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  LEGACY_MCP_REQUEST_ID_ATTRIBUTE,
+  MCP_CANCELLED_REASON_ATTRIBUTE,
+  MCP_CANCELLED_REQUEST_ID_ATTRIBUTE,
+  MCP_INPUT_RESPONSE_COUNT_ATTRIBUTE,
   MCP_LOGGING_DATA_TYPE_ATTRIBUTE,
   MCP_LOGGING_LEVEL_ATTRIBUTE,
   MCP_LOGGING_LOGGER_ATTRIBUTE,
   MCP_LOGGING_MESSAGE_ATTRIBUTE,
+  MCP_LOGGING_REQUESTED_LEVEL_ATTRIBUTE,
+  MCP_COMPLETION_REFERENCE_TYPE_ATTRIBUTE,
+  MCP_PAGINATION_CURSOR_PRESENT_ATTRIBUTE,
   MCP_REQUEST_ID_ATTRIBUTE,
+  MCP_REQUEST_STATE_PRESENT_ATTRIBUTE,
   MCP_RESOURCE_URI_ATTRIBUTE,
+  MCP_PROGRESS_CURRENT_ATTRIBUTE,
+  MCP_PROGRESS_MESSAGE_ATTRIBUTE,
+  MCP_PROGRESS_PERCENTAGE_ATTRIBUTE,
+  MCP_PROGRESS_TOTAL_ATTRIBUTE,
+  MCP_SUBSCRIPTION_ID_ATTRIBUTE,
 } from './attributes';
 import { extractTargetInfo, getRequestArguments } from './methodConfig';
-import type { JsonRpcNotification, JsonRpcRequest, McpSpanType } from './types';
+import { getBoundedMcpString, serializeMcpValue } from './serialization';
+import type { JsonRpcNotification, JsonRpcRequest, McpAttributes, McpSpanType } from './types';
+
+const MCP_LOG_LEVELS = new Set(['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']);
+const PAGINATED_METHODS = new Set(['tools/list', 'resources/list', 'resources/templates/list', 'prompts/list']);
+
+function getMcpToken(value: unknown): string | undefined {
+  return typeof value === 'string' || typeof value === 'number' ? getBoundedMcpString(String(value)) : undefined;
+}
 
 /**
  * Formats logging data for span attributes
  * @internal
  */
 function formatLoggingData(data: unknown): string {
-  return typeof data === 'string' ? data : JSON.stringify(data);
+  return serializeMcpValue(data) ?? '[unserializable]';
 }
 
 /**
@@ -33,25 +54,28 @@ export function getNotificationAttributes(
   method: string,
   params: Record<string, unknown>,
   recordInputs?: boolean,
-): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
+): McpAttributes {
+  const attributes: McpAttributes = {};
 
   switch (method) {
     case 'notifications/cancelled':
-      if (params?.requestId) {
-        attributes['mcp.cancelled.request_id'] = String(params.requestId);
+      {
+        const requestId = getMcpToken(params.requestId);
+        if (requestId !== undefined) {
+          attributes[MCP_CANCELLED_REQUEST_ID_ATTRIBUTE] = requestId;
+        }
       }
-      if (params?.reason) {
-        attributes['mcp.cancelled.reason'] = String(params.reason);
+      if (recordInputs && typeof params.reason === 'string') {
+        attributes[MCP_CANCELLED_REASON_ATTRIBUTE] = getBoundedMcpString(params.reason);
       }
       break;
 
     case 'notifications/message':
-      if (params?.level) {
-        attributes[MCP_LOGGING_LEVEL_ATTRIBUTE] = String(params.level);
+      if (typeof params.level === 'string' && MCP_LOG_LEVELS.has(params.level)) {
+        attributes[MCP_LOGGING_LEVEL_ATTRIBUTE] = params.level;
       }
-      if (params?.logger) {
-        attributes[MCP_LOGGING_LOGGER_ATTRIBUTE] = String(params.logger);
+      if (typeof params.logger === 'string') {
+        attributes[MCP_LOGGING_LOGGER_ATTRIBUTE] = getBoundedMcpString(params.logger);
       }
       if (params?.data !== undefined) {
         attributes[MCP_LOGGING_DATA_TYPE_ATTRIBUTE] = typeof params.data;
@@ -62,30 +86,23 @@ export function getNotificationAttributes(
       break;
 
     case 'notifications/progress':
-      if (params?.progressToken) {
-        attributes['mcp.progress.token'] = String(params.progressToken);
+      if (typeof params.progress === 'number' && Number.isFinite(params.progress)) {
+        attributes[MCP_PROGRESS_CURRENT_ATTRIBUTE] = params.progress;
       }
-      if (typeof params?.progress === 'number') {
-        attributes['mcp.progress.current'] = params.progress;
-      }
-      if (typeof params?.total === 'number') {
-        attributes['mcp.progress.total'] = params.total;
-        if (typeof params?.progress === 'number') {
-          attributes['mcp.progress.percentage'] = (params.progress / params.total) * 100;
+      if (typeof params.total === 'number' && Number.isFinite(params.total)) {
+        attributes[MCP_PROGRESS_TOTAL_ATTRIBUTE] = params.total;
+        if (typeof params.progress === 'number' && Number.isFinite(params.progress) && params.total !== 0) {
+          attributes[MCP_PROGRESS_PERCENTAGE_ATTRIBUTE] = (params.progress / params.total) * 100;
         }
       }
-      if (params?.message) {
-        attributes['mcp.progress.message'] = String(params.message);
+      if (recordInputs && typeof params.message === 'string') {
+        attributes[MCP_PROGRESS_MESSAGE_ATTRIBUTE] = getBoundedMcpString(params.message, 10_000);
       }
       break;
 
     case 'notifications/resources/updated':
-      if (params?.uri) {
-        attributes[MCP_RESOURCE_URI_ATTRIBUTE] = String(params.uri);
-        const urlObject = parseStringToURLObject(String(params.uri));
-        if (urlObject && !isURLObjectRelative(urlObject)) {
-          attributes['mcp.resource.protocol'] = urlObject.protocol.replace(':', '');
-        }
+      if (typeof params.uri === 'string') {
+        attributes[MCP_RESOURCE_URI_ATTRIBUTE] = getBoundedMcpString(params.uri);
       }
       break;
 
@@ -95,7 +112,23 @@ export function getNotificationAttributes(
       break;
   }
 
+  if (isNotificationSubscriptionId(params._meta)) {
+    attributes[MCP_SUBSCRIPTION_ID_ATTRIBUTE] = getBoundedMcpString(
+      String(params._meta['io.modelcontextprotocol/subscriptionId']),
+    );
+  }
+
   return attributes;
+}
+
+function isNotificationSubscriptionId(
+  meta: unknown,
+): meta is Record<'io.modelcontextprotocol/subscriptionId', string | number> {
+  if (!meta || typeof meta !== 'object') {
+    return false;
+  }
+  const subscriptionId = (meta as Record<string, unknown>)['io.modelcontextprotocol/subscriptionId'];
+  return typeof subscriptionId === 'string' || typeof subscriptionId === 'number';
 }
 
 /**
@@ -111,14 +144,42 @@ export function buildTypeSpecificAttributes(
   message: JsonRpcRequest | JsonRpcNotification,
   params?: Record<string, unknown>,
   recordInputs?: boolean,
-): Record<string, string | number> {
+): McpAttributes {
   if (type === 'request') {
     const request = message as JsonRpcRequest;
     const targetInfo = extractTargetInfo(request.method, params || {});
 
+    const inputResponses = params?.inputResponses;
+    const meta = params?._meta;
+    const requestedLogLevel =
+      meta && typeof meta === 'object' && !Array.isArray(meta)
+        ? (meta as Record<string, unknown>)['io.modelcontextprotocol/logLevel']
+        : undefined;
+    const completionReference =
+      request.method === 'completion/complete' && params?.ref && typeof params.ref === 'object'
+        ? (params.ref as Record<string, unknown>).type
+        : undefined;
+
     return {
-      ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
+      ...(request.id !== undefined && {
+        [MCP_REQUEST_ID_ATTRIBUTE]: getBoundedMcpString(String(request.id)),
+        [LEGACY_MCP_REQUEST_ID_ATTRIBUTE]: getBoundedMcpString(String(request.id)),
+      }),
       ...targetInfo.attributes,
+      ...(request.method === 'tools/call' && { [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool' }),
+      ...(inputResponses && typeof inputResponses === 'object' && !Array.isArray(inputResponses)
+        ? { [MCP_INPUT_RESPONSE_COUNT_ATTRIBUTE]: Object.keys(inputResponses).length }
+        : {}),
+      ...(typeof params?.requestState === 'string' && { [MCP_REQUEST_STATE_PRESENT_ATTRIBUTE]: true }),
+      ...(typeof requestedLogLevel === 'string' && MCP_LOG_LEVELS.has(requestedLogLevel)
+        ? { [MCP_LOGGING_REQUESTED_LEVEL_ATTRIBUTE]: requestedLogLevel }
+        : {}),
+      ...(PAGINATED_METHODS.has(request.method) && typeof params?.cursor === 'string'
+        ? { [MCP_PAGINATION_CURSOR_PRESENT_ATTRIBUTE]: true }
+        : {}),
+      ...(completionReference === 'ref/prompt' || completionReference === 'ref/resource'
+        ? { [MCP_COMPLETION_REFERENCE_TYPE_ATTRIBUTE]: completionReference }
+        : {}),
       ...(recordInputs ? getRequestArguments(request.method, params || {}) : {}),
     };
   }

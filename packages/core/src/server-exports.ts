@@ -8,7 +8,7 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
-export { wrapMcpServerWithSentry } from './integrations/mcp-server';
+export { wrapMcpServerFactoryWithSentry, wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';

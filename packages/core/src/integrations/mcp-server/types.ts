@@ -1,4 +1,5 @@
-import type { Span } from '../../types/span';
+import type { SpanLink } from '../../types/link';
+import type { Span, SpanAttributes } from '../../types/span';
 
 /** Types for MCP server instrumentation */
 
@@ -9,6 +10,8 @@ import type { Span } from '../../types/span';
 export type MethodConfig = {
   targetField: string;
   targetAttribute: string;
+  legacyTargetAttribute?: string;
+  includeTargetInSpanName?: boolean;
   captureArguments?: boolean;
   argumentsField?: string;
   captureUri?: boolean;
@@ -98,42 +101,45 @@ export interface MCPServerInstance {
    * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerResource`.
    * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerResource` instead.
    */
-  resource?: (name: string, ...args: unknown[]) => void;
+  resource?: (name: string, ...args: unknown[]) => unknown;
 
   /**
    * Register a tool handler.
    * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerTool`.
    * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerTool` instead.
    */
-  tool?: (name: string, ...args: unknown[]) => void;
+  tool?: (name: string, ...args: unknown[]) => unknown;
 
   /**
    * Register a prompt handler.
    * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerPrompt`.
    * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerPrompt` instead.
    */
-  prompt?: (name: string, ...args: unknown[]) => void;
+  prompt?: (name: string, ...args: unknown[]) => unknown;
 
   /**
    * Register a resource handler.
    * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `resource` method)
    * and the only supported form in v2.0.0+.
    */
-  registerResource?: (name: string, ...args: unknown[]) => void;
+  registerResource?: (name: string, ...args: unknown[]) => unknown;
 
   /**
    * Register a tool handler.
    * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `tool` method)
    * and the only supported form in v2.0.0+.
    */
-  registerTool?: (name: string, ...args: unknown[]) => void;
+  registerTool?: (name: string, ...args: unknown[]) => unknown;
 
   /**
    * Register a prompt handler.
    * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `prompt` method)
    * and the only supported form in v2.0.0+.
    */
-  registerPrompt?: (name: string, ...args: unknown[]) => void;
+  registerPrompt?: (name: string, ...args: unknown[]) => unknown;
+
+  /** Low-level request registration API exposed by `@modelcontextprotocol/server`. */
+  setRequestHandler?: (...args: unknown[]) => unknown;
 
   /** Connect the server to a transport */
   connect(transport: MCPTransport): Promise<void>;
@@ -141,6 +147,10 @@ export interface MCPServerInstance {
 
 /** Client connection information for handlers */
 export interface ExtraHandlerData {
+  classification?: {
+    era: 'legacy' | 'modern';
+    revision?: string;
+  };
   requestInfo?: { remoteAddress?: string; remotePort?: number };
   clientAddress?: string;
   clientPort?: number;
@@ -151,7 +161,7 @@ export interface ExtraHandlerData {
 }
 
 /** Types of MCP spans */
-export type McpSpanType = 'request' | 'notification-incoming' | 'notification-outgoing';
+export type McpSpanType = 'request' | 'request-outgoing' | 'notification-incoming' | 'notification-outgoing';
 
 /**
  * Configuration for creating MCP spans
@@ -164,6 +174,9 @@ export interface McpSpanConfig {
   extra?: ExtraHandlerData;
   callback: () => unknown;
   options?: ResolvedMcpOptions;
+  operationSessionData?: SessionData;
+  links?: SpanLink[];
+  parentSpan?: Span;
 }
 
 export type SessionId = string;
@@ -174,9 +187,16 @@ export type RequestId = string | number;
  * @internal
  */
 export type RequestSpanMapValue = {
+  requestId: RequestId;
   span: Span;
   method: string;
+  protocolVersion?: string;
+  sessionData?: SessionData;
+  baggage?: string;
+  tracestate?: string;
   startTime: number;
+  includeUserInfo: boolean;
+  finished?: boolean;
 };
 
 /** Generic MCP handler function */
@@ -217,6 +237,8 @@ export type PartyInfo = {
  */
 export type SessionData = {
   clientInfo?: PartyInfo;
+  clientCapabilities?: string[];
+  clientExtensionIds?: string[];
   protocolVersion?: string;
   serverInfo?: PartyInfo;
 };
@@ -236,3 +258,6 @@ export type McpServerWrapperOptions = {
  * @internal
  */
 export type ResolvedMcpOptions = Required<McpServerWrapperOptions>;
+
+/** Attribute maps emitted by MCP extraction helpers. */
+export type McpAttributes = SpanAttributes;

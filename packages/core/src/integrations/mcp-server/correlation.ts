@@ -3,64 +3,95 @@
  *
  * Handles mapping requestId to span data for correlation with handler execution.
  *
- * Uses sessionId as the primary key for stateful transports. This handles the wrapper
- * transport pattern (e.g., NodeStreamableHTTPServerTransport wrapping WebStandardStreamableHTTPServerTransport)
- * where onmessage and send may receive different `this` values but share the same sessionId.
- *
- * Falls back to WeakMap by transport instance for stateless transports (no sessionId).
+ * Correlation is scoped to the transport captured by the instrumentation wrapper. A session id
+ * is peer-controlled and is not a unique transport identity.
  */
 
+import { getClient } from '../../currentScopes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
-import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
-import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
-import {
-  buildServerAttributesFromInfo,
-  extractSessionDataFromInitializeResponse,
-  extractSessionDataFromResponse,
-} from './sessionExtraction';
-import { updateSessionDataForTransport } from './sessionManagement';
-import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
+import { ERROR_TYPE_ATTRIBUTE, MCP_REQUEST_OUTCOME_ATTRIBUTE } from './attributes';
+import type { MCPTransport, RequestId, RequestSpanMapValue, SessionData } from './types';
 
-/**
- * Session-scoped correlation for stateful transports (with sessionId)
- * @internal Using sessionId as key handles wrapper transport patterns where
- * different transport objects share the same logical session
- */
-const sessionToSpanMap = new Map<string, Map<RequestId, RequestSpanMapValue>>();
+type TransportSpanStore = WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>;
 
-/**
- * Transport-scoped correlation fallback for stateless transports (no sessionId)
- * @internal WeakMap allows automatic cleanup when transport is garbage collected
- */
-const statelessSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
+const incomingRequestSpans: TransportSpanStore = new WeakMap();
+const outgoingRequestSpans: TransportSpanStore = new WeakMap();
+const responseSendSpans: TransportSpanStore = new WeakMap();
+const responseProcessingSpans: TransportSpanStore = new WeakMap();
 
-/**
- * Gets or creates the span map for a transport, using sessionId when available
- * @internal
- * @param transport - MCP transport instance
- * @returns Span map for the transport/session
- */
-function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
-  const sessionId = transport.sessionId;
+/** Gets the span map for a transport identity. */
+function getSpanMap(
+  store: TransportSpanStore,
+  transport: MCPTransport,
+): Map<RequestId, RequestSpanMapValue> | undefined {
+  return store.get(transport);
+}
 
-  if (sessionId) {
-    // Stateful transport - use sessionId as key (handles wrapper pattern)
-    let spanMap = sessionToSpanMap.get(sessionId);
-    if (!spanMap) {
-      spanMap = new Map();
-      sessionToSpanMap.set(sessionId, spanMap);
-    }
-    return spanMap;
-  }
-
-  // Stateless fallback - use transport instance as key
-  let spanMap = statelessSpanMap.get(transport);
+function getOrCreateSpanMap(store: TransportSpanStore, transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
+  let spanMap = store.get(transport);
   if (!spanMap) {
     spanMap = new Map();
-    statelessSpanMap.set(transport, spanMap);
+    store.set(transport, spanMap);
   }
   return spanMap;
+}
+
+function takeSpan(
+  store: TransportSpanStore,
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  const spanMap = getSpanMap(store, transport);
+  const spanData = spanMap?.get(requestId);
+  if (!spanMap || !spanData) {
+    return undefined;
+  }
+
+  spanMap.delete(requestId);
+  return spanData;
+}
+
+export function deleteSpanForResponseSend(transport: MCPTransport, spanData: RequestSpanMapValue): void {
+  const spanMap = getSpanMap(responseSendSpans, transport);
+  if (spanMap?.get(spanData.requestId) === spanData) {
+    spanMap.delete(spanData.requestId);
+  }
+}
+
+export function deleteSpanForOutgoingRequest(transport: MCPTransport, spanData: RequestSpanMapValue): void {
+  const stores = [outgoingRequestSpans, responseProcessingSpans];
+  for (const store of stores) {
+    const spanMap = getSpanMap(store, transport);
+    if (spanMap?.get(spanData.requestId) === spanData) {
+      spanMap.delete(spanData.requestId);
+    }
+  }
+}
+
+export function finishSpan(spanData: RequestSpanMapValue, callback: (span: Span) => void): boolean {
+  if (spanData.finished) {
+    return false;
+  }
+
+  spanData.finished = true;
+  callback(spanData.span);
+  return true;
+}
+
+function shouldIncludeUserInfo(): boolean {
+  return Boolean(getClient()?.getDataCollectionOptions().userInfo);
+}
+
+function finishDuplicateSpan(spanData: RequestSpanMapValue): void {
+  finishSpan(spanData, span => {
+    span.setAttributes({
+      [ERROR_TYPE_ATTRIBUTE]: 'duplicate_request_id',
+      [MCP_REQUEST_OUTCOME_ATTRIBUTE]: 'request_id_reused',
+    });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'duplicate_request_id' });
+    span.end();
+  });
 }
 
 /**
@@ -70,101 +101,140 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
  * @param span - Active span to correlate
  * @param method - MCP method name
  */
-export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
-  const spanMap = getOrCreateSpanMap(transport);
+export function storeSpanForRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+  span: Span,
+  method: string,
+  sessionData?: SessionData,
+  traceContext?: { baggage?: string; tracestate?: string },
+): void {
+  const spanMap = getOrCreateSpanMap(incomingRequestSpans, transport);
+  const previousSpan = spanMap.get(requestId) ?? takeSpan(responseSendSpans, transport, requestId);
+  if (previousSpan) {
+    finishDuplicateSpan(previousSpan);
+  }
   spanMap.set(requestId, {
+    requestId,
     span,
     method,
+    protocolVersion: sessionData?.protocolVersion,
+    sessionData,
+    baggage: traceContext?.baggage,
+    tracestate: traceContext?.tracestate,
     // oxlint-disable-next-line sdk/no-unsafe-random-apis
     startTime: Date.now(),
+    includeUserInfo: shouldIncludeUserInfo(),
   });
 }
 
-/**
- * Completes span with results and cleans up correlation
- * @param transport - MCP transport instance
- * @param requestId - Request identifier
- * @param result - Execution result for attribute extraction
- * @param options - Resolved MCP options
- * @param hasError - Whether the JSON-RPC response contained an error
- */
-export function completeSpanWithResults(
-  transport: MCPTransport,
-  requestId: RequestId,
-  result: unknown,
-  options: ResolvedMcpOptions,
-  hasError = false,
-): void {
-  const spanMap = getOrCreateSpanMap(transport);
-  const spanData = spanMap.get(requestId);
-  if (spanData) {
-    const { span, method } = spanData;
-    const responseSessionData =
-      method === 'initialize'
-        ? extractSessionDataFromInitializeResponse(result)
-        : extractSessionDataFromResponse(result);
-    if (responseSessionData.protocolVersion || responseSessionData.serverInfo) {
-      updateSessionDataForTransport(transport, responseSessionData);
-    }
-    const responseAttributes: Record<string, string | number> = {
-      ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
-    };
-    if (responseSessionData.protocolVersion) {
-      responseAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = responseSessionData.protocolVersion;
-    }
-    if (Object.keys(responseAttributes).length > 0) {
-      span.setAttributes(responseAttributes);
-    }
-
-    if (hasError) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    } else if (method === 'tools/call') {
-      const toolAttributes = extractToolResultAttributes(result, options.recordOutputs);
-      span.setAttributes(toolAttributes);
-    } else if (method === 'prompts/get') {
-      const promptAttributes = extractPromptResultAttributes(result, options.recordOutputs);
-      span.setAttributes(promptAttributes);
-    }
-
-    span.end();
-    spanMap.delete(requestId);
-  }
+/** Returns request correlation without consuming it. */
+export function getSpanForRequest(transport: MCPTransport, requestId: RequestId): RequestSpanMapValue | undefined {
+  return getSpanMap(incomingRequestSpans, transport)?.get(requestId);
 }
 
-/**
- * Cleans up pending spans for a specific transport (when that transport closes)
- * @param transport - MCP transport instance
- */
-export function cleanupPendingSpansForTransport(transport: MCPTransport): void {
-  const sessionId = transport.sessionId;
+/** Removes and returns an incoming request correlation. */
+export function takeSpanForRequest(transport: MCPTransport, requestId: RequestId): RequestSpanMapValue | undefined {
+  return takeSpan(incomingRequestSpans, transport, requestId);
+}
 
-  // Try sessionId-based cleanup first (for stateful transports)
-  if (sessionId) {
-    const spanMap = sessionToSpanMap.get(sessionId);
+/** Moves an incoming request to the in-flight response-send store. */
+export function takeSpanForResponseSend(
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  const spanData = takeSpan(incomingRequestSpans, transport, requestId);
+  if (spanData) {
+    getOrCreateSpanMap(responseSendSpans, transport).set(requestId, spanData);
+  }
+  return spanData;
+}
+
+/** Stores a client span for a server-to-client request. */
+export function storeSpanForOutgoingRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+  span: Span,
+  method: string,
+  sessionData?: SessionData,
+  traceContext?: { baggage?: string; tracestate?: string },
+): RequestSpanMapValue {
+  const spanMap = getOrCreateSpanMap(outgoingRequestSpans, transport);
+  const previousSpan = spanMap.get(requestId) ?? takeSpan(responseProcessingSpans, transport, requestId);
+  if (previousSpan) {
+    finishDuplicateSpan(previousSpan);
+  }
+  const spanData: RequestSpanMapValue = {
+    requestId,
+    span,
+    method,
+    protocolVersion: sessionData?.protocolVersion,
+    sessionData,
+    baggage: traceContext?.baggage,
+    tracestate: traceContext?.tracestate,
+    // oxlint-disable-next-line sdk/no-unsafe-random-apis
+    startTime: Date.now(),
+    includeUserInfo: shouldIncludeUserInfo(),
+  };
+  spanMap.set(requestId, spanData);
+  return spanData;
+}
+
+/** Returns outgoing request correlation without consuming it. */
+export function getSpanForOutgoingRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  const spanMap = getSpanMap(outgoingRequestSpans, transport);
+  return (
+    spanMap?.get(requestId) ?? (typeof requestId === 'string' ? spanMap?.get(toNumericRequestId(requestId)) : undefined)
+  );
+}
+
+function toNumericRequestId(requestId: string): number {
+  const numericRequestId = Number(requestId);
+  return Number.isFinite(numericRequestId) ? numericRequestId : Number.NaN;
+}
+
+export function takeSpanForCancelledRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  return takeSpan(incomingRequestSpans, transport, requestId) ?? takeSpan(responseSendSpans, transport, requestId);
+}
+
+export function takeSpanForOutgoingRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  const exactSpanData = takeSpan(outgoingRequestSpans, transport, requestId);
+  return (
+    exactSpanData ??
+    (typeof requestId === 'string'
+      ? takeSpan(outgoingRequestSpans, transport, toNumericRequestId(requestId))
+      : undefined)
+  );
+}
+
+export function takeSpanForOutgoingResponse(
+  transport: MCPTransport,
+  requestId: RequestId,
+): RequestSpanMapValue | undefined {
+  const spanData = takeSpanForOutgoingRequest(transport, requestId);
+  if (spanData) {
+    getOrCreateSpanMap(responseProcessingSpans, transport).set(spanData.requestId, spanData);
+  }
+  return spanData;
+}
+
+export function takePendingSpansForTransport(transport: MCPTransport): RequestSpanMapValue[] {
+  const pendingSpans: RequestSpanMapValue[] = [];
+  for (const store of [incomingRequestSpans, outgoingRequestSpans, responseSendSpans, responseProcessingSpans]) {
+    const spanMap = store.get(transport);
     if (spanMap) {
-      for (const [, spanData] of spanMap) {
-        spanData.span.setStatus({
-          code: SPAN_STATUS_ERROR,
-          message: 'cancelled',
-        });
-        spanData.span.end();
-      }
-      sessionToSpanMap.delete(sessionId);
+      pendingSpans.push(...spanMap.values());
+      spanMap.clear();
     }
-    return;
   }
-
-  // Fallback to transport-based cleanup (for stateless transports)
-  const spanMap = statelessSpanMap.get(transport);
-  if (spanMap) {
-    for (const [, spanData] of spanMap) {
-      spanData.span.setStatus({
-        code: SPAN_STATUS_ERROR,
-        message: 'cancelled',
-      });
-      spanData.span.end();
-    }
-    spanMap.clear();
-    // Note: WeakMap entries are automatically cleaned up when transport is GC'd
-  }
+  return pendingSpans;
 }

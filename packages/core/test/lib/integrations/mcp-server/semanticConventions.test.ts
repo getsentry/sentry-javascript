@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
+import { buildTypeSpecificAttributes } from '../../../../src/integrations/mcp-server/attributeExtraction';
+import { getRequestArguments } from '../../../../src/integrations/mcp-server/methodConfig';
+import { getJsonRpcErrorAttributes } from '../../../../src/integrations/mcp-server/outcome';
+import {
+  extractCommonResultAttributes,
+  extractToolResultAttributes,
+} from '../../../../src/integrations/mcp-server/resultExtraction';
 import * as tracingModule from '../../../../src/tracing';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
@@ -48,8 +55,11 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call get-weather',
         op: 'mcp.server',
-        forceTransaction: true,
         attributes: {
+          'gen_ai.operation.name': 'execute_tool',
+          'gen_ai.tool.call.arguments': '{"location":"Seattle, WA"}',
+          'gen_ai.tool.name': 'get-weather',
+          'jsonrpc.request.id': 'req-1',
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'get-weather',
           'mcp.request.id': 'req-1',
@@ -58,11 +68,11 @@ describe('MCP Server Semantic Conventions', () => {
           'client.port': 54321,
           'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
+          'network.protocol.name': 'http',
           'mcp.request.argument.location': '"Seattle, WA"',
+          'sentry.kind': 'server',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
         },
       });
     });
@@ -80,23 +90,38 @@ describe('MCP Server Semantic Conventions', () => {
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'resources/read file:///docs/api.md',
+        name: 'resources/read',
         op: 'mcp.server',
-        forceTransaction: true,
         attributes: {
+          'jsonrpc.request.id': 'req-2',
           'mcp.method.name': 'resources/read',
           'mcp.resource.uri': 'file:///docs/api.md',
           'mcp.request.id': 'req-2',
           'mcp.session.id': 'test-session-123',
           'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
+          'network.protocol.name': 'http',
           'mcp.request.argument.uri': '"file:///docs/api.md"',
+          'sentry.kind': 'server',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
         },
       });
+    });
+
+    it('bounds peer-controlled custom method names', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+      const method = `com.example/${'m'.repeat(500)}`;
+      const boundedMethod = `${method.slice(0, 253)}...`;
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method, id: 'custom-method' }, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: boundedMethod,
+          attributes: expect.objectContaining({ 'mcp.method.name': boundedMethod }),
+        }),
+      );
     });
 
     it('should create spans with correct attributes for prompt operations', async () => {
@@ -114,19 +139,20 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'prompts/get analyze-code',
         op: 'mcp.server',
-        forceTransaction: true,
         attributes: {
+          'gen_ai.prompt.name': 'analyze-code',
+          'jsonrpc.request.id': 'req-3',
           'mcp.method.name': 'prompts/get',
           'mcp.prompt.name': 'analyze-code',
           'mcp.request.id': 'req-3',
           'mcp.session.id': 'test-session-123',
           'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
+          'network.protocol.name': 'http',
           'mcp.request.argument.name': '"analyze-code"',
+          'sentry.kind': 'server',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
         },
       });
     });
@@ -145,16 +171,15 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'notifications/tools/list_changed',
-          forceTransaction: true,
           attributes: {
             'mcp.method.name': 'notifications/tools/list_changed',
             'mcp.session.id': 'test-session-123',
             'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
+            'network.protocol.name': 'http',
+            'sentry.kind': 'server',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           },
         },
         expect.any(Function),
@@ -179,25 +204,22 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'tools/list',
-          forceTransaction: true,
-          attributes: expect.objectContaining({
-            'mcp.method.name': 'tools/list',
-            'mcp.request.id': 'req-4',
-            'mcp.session.id': 'test-session-123',
-            // Transport attributes
-            'mcp.transport': 'StreamableHTTPServerTransport',
-            'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
-            // Sentry-specific
-            'sentry.op': 'mcp.server',
-            'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
-          }),
-        }),
-      );
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'tools/list',
+        op: 'mcp.server',
+        attributes: {
+          'jsonrpc.request.id': 'req-4',
+          'mcp.method.name': 'tools/list',
+          'mcp.request.id': 'req-4',
+          'mcp.session.id': 'test-session-123',
+          'mcp.transport': 'StreamableHTTPServerTransport',
+          'network.protocol.name': 'http',
+          'network.transport': 'tcp',
+          'sentry.kind': 'server',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+        },
+      });
     });
 
     it('should create spans with logging attributes for notifications/message', async () => {
@@ -218,20 +240,19 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'notifications/message',
-          forceTransaction: true,
           attributes: {
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'test-session-123',
             'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
+            'network.protocol.name': 'http',
             'mcp.logging.level': 'info',
             'mcp.logging.logger': 'math-service',
             'mcp.logging.data_type': 'string',
             'mcp.logging.message': 'Addition completed: 2 + 5 = 7',
+            'sentry.kind': 'server',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           },
         },
         expect.any(Function),
@@ -260,9 +281,9 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.method.name': 'notifications/cancelled',
             'mcp.cancelled.request_id': 'req-123',
             'mcp.cancelled.reason': 'user_requested',
+            'sentry.kind': 'server',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -289,18 +310,20 @@ describe('MCP Server Semantic Conventions', () => {
           name: 'notifications/progress',
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/progress',
-            'mcp.progress.token': 'token-456',
             'mcp.progress.current': 75,
             'mcp.progress.total': 100,
             'mcp.progress.percentage': 75,
             'mcp.progress.message': 'Processing files...',
+            'sentry.kind': 'server',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
       );
+      const progressAttributes = startSpanSpy.mock.calls[0]?.[0].attributes;
+      expect(progressAttributes).not.toHaveProperty('mcp.progress.token');
+      expect(JSON.stringify(progressAttributes)).not.toContain('token-456');
 
       vi.clearAllMocks();
 
@@ -321,10 +344,9 @@ describe('MCP Server Semantic Conventions', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/resources/updated',
             'mcp.resource.uri': 'file:///tmp/data.json',
-            'mcp.resource.protocol': 'file',
+            'sentry.kind': 'server',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -346,9 +368,9 @@ describe('MCP Server Semantic Conventions', () => {
           name: 'notifications/tools/list_changed',
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/tools/list_changed',
+            'sentry.kind': 'client',
             'sentry.op': 'mcp.notification.server_to_client',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -388,8 +410,11 @@ describe('MCP Server Semantic Conventions', () => {
         expect.objectContaining({
           name: 'tools/call weather-lookup',
           op: 'mcp.server',
-          forceTransaction: true,
           attributes: expect.objectContaining({
+            'gen_ai.operation.name': 'execute_tool',
+            'gen_ai.tool.call.arguments': '{"location":"San Francisco","units":"celsius"}',
+            'gen_ai.tool.name': 'weather-lookup',
+            'jsonrpc.request.id': 'req-tool-result',
             'mcp.method.name': 'tools/call',
             'mcp.tool.name': 'weather-lookup',
             'mcp.request.id': 'req-tool-result',
@@ -413,11 +438,13 @@ describe('MCP Server Semantic Conventions', () => {
       };
 
       // Simulate the outgoing response (this should trigger span completion)
-      mockTransport.send?.(toolResponse);
+      await mockTransport.send?.(toolResponse);
 
       // Verify that the span was enriched with tool result attributes
       expect(setAttributesSpy).toHaveBeenCalledWith(
         expect.objectContaining({
+          'gen_ai.tool.call.result':
+            '{"content":[{"type":"text","text":"The weather in San Francisco is 18°C with partly cloudy skies."}]}',
           'mcp.tool.result.is_error': false,
           'mcp.tool.result.content_count': 1,
           'mcp.tool.result.content_type': 'text',
@@ -461,8 +488,11 @@ describe('MCP Server Semantic Conventions', () => {
         expect.objectContaining({
           name: 'prompts/get code-review',
           op: 'mcp.server',
-          forceTransaction: true,
           attributes: expect.objectContaining({
+            'gen_ai.prompt.name': 'code-review',
+            'gen_ai.prompt.variable.complexity': 'high',
+            'gen_ai.prompt.variable.language': 'typescript',
+            'jsonrpc.request.id': 'req-prompt-result',
             'mcp.method.name': 'prompts/get',
             'mcp.prompt.name': 'code-review',
             'mcp.request.id': 'req-prompt-result',
@@ -487,7 +517,7 @@ describe('MCP Server Semantic Conventions', () => {
         },
       };
 
-      mockTransport.send?.(promptResponse);
+      await mockTransport.send?.(promptResponse);
 
       expect(setAttributesSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -502,6 +532,274 @@ describe('MCP Server Semantic Conventions', () => {
       expect(endSpy).toHaveBeenCalled();
     });
 
+    it('should capture modern MRTR metadata without recording request state', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const setAttributesSpy = vi.fn();
+      const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      mockTransport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'req-mrtr',
+          params: {
+            name: 'approval',
+            inputResponses: {
+              first: { result: 'approved' },
+              second: { result: 'denied' },
+            },
+            requestState: 'opaque-sensitive-state',
+          },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.input_response.count': 2,
+            'mcp.request_state.present': true,
+          }),
+        }),
+      );
+      const requestAttributes = startInactiveSpanSpy.mock.calls[0]?.[0].attributes;
+      expect(Object.values(requestAttributes ?? {})).not.toContain('opaque-sensitive-state');
+
+      await mockTransport.send?.({
+        jsonrpc: '2.0',
+        id: 'req-mrtr',
+        result: {
+          resultType: 'input_required',
+          inputRequests: {
+            tool: { method: 'tools/call' },
+            elicitation: { method: 'elicitation/create' },
+          },
+        },
+      });
+
+      expect(setAttributesSpy).toHaveBeenCalledWith({
+        'mcp.input_request.count': 2,
+        'mcp.input_request.methods': ['elicitation/create', 'tools/call'],
+        'mcp.result.type': 'input_required',
+      });
+      expect(mockSpan.end).toHaveBeenCalledOnce();
+    });
+
+    it('should capture cache hints and collection size for a modern cacheable result', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const setAttributesSpy = vi.fn();
+      const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: 'tools/list', id: 'req-list', params: {} }, {});
+      await mockTransport.send?.({
+        jsonrpc: '2.0',
+        id: 'req-list',
+        result: {
+          resultType: 'complete',
+          ttlMs: 5_000,
+          cacheScope: 'public',
+          tools: [{ name: 'weather' }, { name: 'search' }],
+        },
+      });
+
+      expect(setAttributesSpy).toHaveBeenCalledWith({
+        'mcp.cache.scope': 'public',
+        'mcp.cache.ttl_ms': 5_000,
+        'mcp.result.count': 2,
+        'mcp.result.type': 'complete',
+      });
+      expect(mockSpan.end).toHaveBeenCalledOnce();
+    });
+
+    it('should treat modern request metadata as request-scoped and omit legacy session identity', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 'req-modern-metadata',
+          params: {
+            _meta: {
+              progressToken: 'progress-123',
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientCapabilities': {},
+              'io.modelcontextprotocol/logLevel': 'warning',
+            },
+          },
+        },
+        {},
+      );
+
+      const attributes = startInactiveSpanSpy.mock.calls[0]?.[0].attributes;
+      expect(attributes).toMatchObject({
+        'mcp.logging.requested_level': 'warning',
+        'mcp.protocol.version': '2026-07-28',
+      });
+      expect(attributes).not.toHaveProperty('mcp.progress.token');
+      expect(JSON.stringify(attributes)).not.toContain('progress-123');
+      expect(attributes).not.toHaveProperty('mcp.session.id');
+    });
+
+    it('should record result request state and subscription identity without recording opaque state', () => {
+      const attributes = extractCommonResultAttributes('subscriptions/listen', {
+        resultType: 'input_required',
+        requestState: 'opaque-sensitive-state',
+        _meta: { 'io.modelcontextprotocol/subscriptionId': 42 },
+      });
+
+      expect(attributes).toEqual({
+        'mcp.request_state.present': true,
+        'mcp.result.type': 'input_required',
+        'mcp.subscription.id': '42',
+      });
+      expect(Object.values(attributes)).not.toContain('opaque-sensitive-state');
+    });
+
+    it('records pagination state without recording opaque cursors', () => {
+      const requestAttributes = buildTypeSpecificAttributes(
+        'request',
+        {
+          jsonrpc: '2.0',
+          id: 'paginated-request',
+          method: 'tools/list',
+          params: { cursor: 'opaque-sensitive-cursor' },
+        },
+        { cursor: 'opaque-sensitive-cursor' },
+        false,
+      );
+      const resultAttributes = extractCommonResultAttributes('tools/list', {
+        resultType: 'complete',
+        nextCursor: 'opaque-sensitive-next-cursor',
+        tools: [{ name: 'weather' }],
+      });
+
+      expect(requestAttributes).toEqual({
+        'jsonrpc.request.id': 'paginated-request',
+        'mcp.pagination.cursor.present': true,
+        'mcp.request.id': 'paginated-request',
+      });
+      expect(resultAttributes).toEqual({
+        'mcp.pagination.next_cursor.present': true,
+        'mcp.result.count': 1,
+        'mcp.result.type': 'complete',
+      });
+      expect(Object.values({ ...requestAttributes, ...resultAttributes })).not.toContain('opaque-sensitive-cursor');
+      expect(Object.values({ ...requestAttributes, ...resultAttributes })).not.toContain(
+        'opaque-sensitive-next-cursor',
+      );
+    });
+
+    it('records bounded resource result metadata without resource content', () => {
+      const attributes = extractCommonResultAttributes('resources/read', {
+        resultType: 'complete',
+        contents: [
+          { uri: 'file:///secret/a.txt', mimeType: 'text/plain', text: 'sensitive text' },
+          { uri: 'file:///secret/b.json', mimeType: 'application/json', text: '{"secret":true}' },
+          { uri: 'file:///secret/c.txt', mimeType: 'text/plain', text: 'more sensitive text' },
+        ],
+      });
+
+      expect(attributes).toEqual({
+        'mcp.resource.result.mime_types': ['application/json', 'text/plain'],
+        'mcp.result.count': 3,
+        'mcp.result.type': 'complete',
+      });
+      expect(JSON.stringify(attributes)).not.toContain('file:///secret');
+      expect(JSON.stringify(attributes)).not.toContain('sensitive text');
+    });
+
+    it('records completion shape without completion values', () => {
+      const requestAttributes = buildTypeSpecificAttributes(
+        'request',
+        {
+          jsonrpc: '2.0',
+          id: 'completion-request',
+          method: 'completion/complete',
+          params: { ref: { type: 'ref/resource', uri: 'file:///secret/{name}' } },
+        },
+        { ref: { type: 'ref/resource', uri: 'file:///secret/{name}' } },
+        false,
+      );
+      const resultAttributes = extractCommonResultAttributes('completion/complete', {
+        resultType: 'complete',
+        completion: {
+          values: ['sensitive-first', 'sensitive-second'],
+          total: 10,
+          hasMore: true,
+        },
+      });
+
+      expect(requestAttributes).toEqual({
+        'jsonrpc.request.id': 'completion-request',
+        'mcp.completion.reference.type': 'ref/resource',
+        'mcp.request.id': 'completion-request',
+      });
+      expect(resultAttributes).toEqual({
+        'mcp.result.count': 2,
+        'mcp.result.has_more': true,
+        'mcp.result.total_count': 10,
+        'mcp.result.type': 'complete',
+      });
+      expect(JSON.stringify({ ...requestAttributes, ...resultAttributes })).not.toContain('file:///secret');
+      expect(JSON.stringify({ ...requestAttributes, ...resultAttributes })).not.toContain('sensitive-first');
+    });
+
+    it('should encode structured tool output as a bounded OTel object JSON value', () => {
+      const primitiveAttributes = extractToolResultAttributes(
+        { resultType: 'complete', structuredContent: ['first', 'second'] },
+        true,
+      );
+      const primitiveResult = primitiveAttributes['gen_ai.tool.call.result'];
+      expect(typeof primitiveResult).toBe('string');
+      expect(JSON.parse(primitiveResult as string)).toEqual({ structuredContent: ['first', 'second'] });
+
+      const oversizedAttributes = extractToolResultAttributes(
+        { resultType: 'complete', structuredContent: { payload: 'x'.repeat(11_000) } },
+        true,
+      );
+      const oversizedResult = oversizedAttributes['gen_ai.tool.call.result'];
+      expect(typeof oversizedResult).toBe('string');
+      expect((oversizedResult as string).length).toBeLessThanOrEqual(10_000);
+      expect(JSON.parse(oversizedResult as string)).toEqual({
+        _sentry: { originalLength: 11_014, truncated: true },
+      });
+    });
+
+    it('should only emit object-shaped canonical tool arguments and bound dynamic argument attributes', () => {
+      expect(getRequestArguments('tools/call', { arguments: ['not', 'an', 'object'] })).toEqual({});
+
+      const manyArguments = Object.fromEntries(Array.from({ length: 40 }, (_, index) => [`argument-${index}`, index]));
+      const attributes = getRequestArguments('tools/call', { arguments: manyArguments });
+
+      expect(JSON.parse(attributes['gen_ai.tool.call.arguments'] as string)).toEqual(manyArguments);
+      expect(Object.keys(attributes).filter(key => key.startsWith('mcp.request.argument.'))).toHaveLength(32);
+    });
+
+    it('should classify protocol-defined caller errors according to the negotiated revision', () => {
+      const error = { code: -32020, message: 'Request headers do not match request metadata' };
+
+      expect(getJsonRpcErrorAttributes(error, '2026-07-28')).toEqual({
+        'rpc.response.status_code': '-32020',
+      });
+      expect(getJsonRpcErrorAttributes(error, '2025-11-25')).toEqual({
+        'error.type': '-32020',
+        'rpc.response.status_code': '-32020',
+      });
+      expect(getJsonRpcErrorAttributes({ code: -32002, message: 'Resource not found' }, '2026-07-28')).toEqual({
+        'error.type': '-32002',
+        'rpc.response.status_code': '-32002',
+      });
+    });
+
     it('should capture tool result metadata but not content when recordOutputs is false', async () => {
       const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
       const transport = createMockTransport();
@@ -514,7 +812,7 @@ describe('MCP Server Semantic Conventions', () => {
       );
 
       transport.onmessage?.({ jsonrpc: '2.0', method: 'tools/call', id: 'req-1', params: { name: 'tool' } }, {});
-      transport.send?.({
+      await transport.send?.({
         jsonrpc: '2.0',
         id: 'req-1',
         result: {
@@ -541,7 +839,7 @@ describe('MCP Server Semantic Conventions', () => {
       );
 
       transport.onmessage?.({ jsonrpc: '2.0', method: 'prompts/get', id: 'req-1', params: { name: 'prompt' } }, {});
-      transport.send?.({
+      await transport.send?.({
         jsonrpc: '2.0',
         id: 'req-1',
         result: {
@@ -582,6 +880,66 @@ describe('MCP Server Semantic Conventions', () => {
 
       const lastCall = startSpanSpy.mock.calls[startSpanSpy.mock.calls.length - 1];
       expect(lastCall?.[0]?.attributes).not.toHaveProperty('mcp.logging.message');
+    });
+
+    it('never records request progress tokens when sensitive input collection is disabled', async () => {
+      getClientSpy.mockReturnValue(createMockClient(false, { inputs: false, outputs: false }));
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+      const privateProgressToken = 'Bearer private-progress-token-for-customer-42';
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 'private-progress-request',
+          params: {
+            _meta: {
+              progressToken: privateProgressToken,
+              'io.modelcontextprotocol/logLevel': 'warning',
+            },
+          },
+        },
+        {},
+      );
+
+      const lastCall = startInactiveSpanSpy.mock.calls[startInactiveSpanSpy.mock.calls.length - 1];
+      const attributes = lastCall?.[0].attributes;
+      expect(attributes).toHaveProperty('mcp.logging.requested_level', 'warning');
+      expect(attributes).not.toHaveProperty('mcp.progress.token');
+      expect(JSON.stringify(attributes)).not.toContain(privateProgressToken);
+    });
+
+    it('never records notification progress tokens when sensitive input collection is disabled', async () => {
+      getClientSpy.mockReturnValue(createMockClient(false, { inputs: false, outputs: false }));
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+      const privateProgressToken = 'session=user-42&authorization=private-progress-token';
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'notifications/progress',
+          params: {
+            progressToken: privateProgressToken,
+            progress: 3,
+            total: 12,
+            message: 'Private processing details',
+          },
+        },
+        {},
+      );
+
+      const lastCall = startSpanSpy.mock.calls[startSpanSpy.mock.calls.length - 1];
+      const attributes = lastCall?.[0].attributes;
+      expect(attributes).toHaveProperty('mcp.progress.current', 3);
+      expect(attributes).toHaveProperty('mcp.progress.total', 12);
+      expect(attributes).toHaveProperty('mcp.progress.percentage', 25);
+      expect(attributes).not.toHaveProperty('mcp.progress.token');
+      expect(attributes).not.toHaveProperty('mcp.progress.message');
+      expect(JSON.stringify(attributes)).not.toContain(privateProgressToken);
     });
   });
 });

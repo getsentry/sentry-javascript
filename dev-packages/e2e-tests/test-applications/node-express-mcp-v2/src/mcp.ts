@@ -1,11 +1,41 @@
 import { randomUUID } from 'node:crypto';
 import express from 'express';
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
+import { NodeStreamableHTTPServerTransport, toNodeHandler } from '@modelcontextprotocol/node';
 import { z } from 'zod';
-import { wrapMcpServerWithSentry } from '@sentry/node';
+import { wrapMcpServerFactoryWithSentry, wrapMcpServerWithSentry } from '@sentry/node';
 
 const mcpRouter = express.Router();
+
+const modernHandler = createMcpHandler(
+  wrapMcpServerFactoryWithSentry(() => {
+    const modernServer = new McpServer({
+      name: 'Echo-2026',
+      version: '2.0.0',
+    });
+
+    modernServer.registerTool(
+      'echo-modern',
+      {
+        description: 'Echo tool served through the per-request 2026-07-28 protocol',
+        inputSchema: z.object({ message: z.string() }),
+        outputSchema: z.object({ echoed: z.string() }),
+      },
+      async ({ message }) => ({
+        content: [{ type: 'text', text: `Modern tool echo: ${message}` }],
+        structuredContent: { echoed: message },
+      }),
+    );
+
+    return modernServer;
+  }),
+  { legacy: 'reject' },
+);
+const modernNodeHandler = toNodeHandler(modernHandler);
+
+mcpRouter.all('/mcp-modern', async (req, res) => {
+  await modernNodeHandler(req, res, req.body);
+});
 
 const server = wrapMcpServerWithSentry(
   new McpServer({

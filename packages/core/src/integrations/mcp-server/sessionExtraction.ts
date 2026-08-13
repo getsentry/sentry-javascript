@@ -7,33 +7,40 @@
 import {
   CLIENT_ADDRESS_ATTRIBUTE,
   CLIENT_PORT_ATTRIBUTE,
+  MCP_CLIENT_CAPABILITIES_ATTRIBUTE,
+  MCP_CLIENT_EXTENSION_IDS_ATTRIBUTE,
+  MCP_CLIENT_NAME_ATTRIBUTE,
+  MCP_CLIENT_TITLE_ATTRIBUTE,
+  MCP_CLIENT_VERSION_ATTRIBUTE,
   MCP_PROTOCOL_VERSION_ATTRIBUTE,
   MCP_SERVER_NAME_ATTRIBUTE,
   MCP_SERVER_TITLE_ATTRIBUTE,
   MCP_SERVER_VERSION_ATTRIBUTE,
   MCP_SESSION_ID_ATTRIBUTE,
   MCP_TRANSPORT_ATTRIBUTE,
-  NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
+  NETWORK_PROTOCOL_NAME_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import {
-  getClientInfoForTransport,
-  getProtocolVersionForTransport,
-  getSessionDataForTransport,
-} from './sessionManagement';
-import type {
-  ExtraHandlerData,
-  JsonRpcNotification,
-  JsonRpcRequest,
-  MCPTransport,
-  PartyInfo,
-  SessionData,
-} from './types';
+import { getProtocolVersionForTransport, getSessionDataForTransport } from './sessionManagement';
+import { getBoundedMcpString, getBoundedMcpStringList } from './serialization';
+import type { ExtraHandlerData, JsonRpcRequest, McpAttributes, MCPTransport, PartyInfo, SessionData } from './types';
 import { isValidContentItem } from './validation';
 
 const MCP_PROTOCOL_VERSION_META_KEY = 'io.modelcontextprotocol/protocolVersion';
 const MCP_CLIENT_INFO_META_KEY = 'io.modelcontextprotocol/clientInfo';
+const MCP_CLIENT_CAPABILITIES_META_KEY = 'io.modelcontextprotocol/clientCapabilities';
 const MCP_SERVER_INFO_META_KEY = 'io.modelcontextprotocol/serverInfo';
+
+const STATELESS_MCP_PROTOCOL_VERSION = '2026-07-28';
+const MAX_MCP_PROTOCOL_VERSION_LENGTH = 64;
+
+function isStatelessMcpProtocolVersion(protocolVersion?: string): boolean {
+  return (
+    typeof protocolVersion === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(protocolVersion) &&
+    protocolVersion >= STATELESS_MCP_PROTOCOL_VERSION
+  );
+}
 
 /**
  * Extracts and validates PartyInfo from an unknown object
@@ -45,13 +52,13 @@ function extractPartyInfo(obj: unknown): PartyInfo {
 
   if (isValidContentItem(obj)) {
     if (typeof obj.name === 'string') {
-      partyInfo.name = obj.name;
+      partyInfo.name = getBoundedMcpString(obj.name);
     }
     if (typeof obj.title === 'string') {
-      partyInfo.title = obj.title;
+      partyInfo.title = getBoundedMcpString(obj.title);
     }
     if (typeof obj.version === 'string') {
-      partyInfo.version = obj.version;
+      partyInfo.version = getBoundedMcpString(obj.version);
     }
   }
 
@@ -67,7 +74,10 @@ export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest)
   const sessionData: SessionData = {};
   if (isValidContentItem(request.params)) {
     if (typeof request.params.protocolVersion === 'string') {
-      sessionData.protocolVersion = request.params.protocolVersion;
+      sessionData.protocolVersion = getBoundedMcpString(
+        request.params.protocolVersion,
+        MAX_MCP_PROTOCOL_VERSION_LENGTH,
+      );
     }
     if (request.params.clientInfo) {
       sessionData.clientInfo = extractPartyInfo(request.params.clientInfo);
@@ -78,20 +88,34 @@ export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest)
 }
 
 /**
- * Extracts session data from an MCP 2026-07-28 request or notification envelope.
- * @param message - JSON-RPC message containing modern request metadata
+ * Extracts per-request data from an MCP 2026-07-28 request envelope.
+ * @param message - JSON-RPC request containing modern request metadata
  * @returns Session data extracted from the message
  */
-export function extractSessionDataFromMessage(message: JsonRpcRequest | JsonRpcNotification): SessionData {
+export function extractSessionDataFromMessage(message: JsonRpcRequest): SessionData {
   const sessionData: SessionData = {};
   if (isValidContentItem(message.params)) {
     if (isValidContentItem(message.params._meta)) {
       const meta = message.params._meta;
       if (typeof meta[MCP_PROTOCOL_VERSION_META_KEY] === 'string') {
-        sessionData.protocolVersion = meta[MCP_PROTOCOL_VERSION_META_KEY];
+        sessionData.protocolVersion = getBoundedMcpString(
+          meta[MCP_PROTOCOL_VERSION_META_KEY],
+          MAX_MCP_PROTOCOL_VERSION_LENGTH,
+        );
       }
       if (meta[MCP_CLIENT_INFO_META_KEY]) {
         sessionData.clientInfo = extractPartyInfo(meta[MCP_CLIENT_INFO_META_KEY]);
+      }
+      if (isValidContentItem(meta[MCP_CLIENT_CAPABILITIES_META_KEY])) {
+        const capabilities = meta[MCP_CLIENT_CAPABILITIES_META_KEY];
+        sessionData.clientCapabilities = getBoundedMcpStringList(
+          Object.keys(capabilities)
+            .filter(capability => capability !== 'experimental' && capability !== 'extensions')
+            .sort(),
+        );
+        if (isValidContentItem(capabilities.extensions)) {
+          sessionData.clientExtensionIds = getBoundedMcpStringList(Object.keys(capabilities.extensions).sort());
+        }
       }
     }
   }
@@ -108,7 +132,7 @@ export function extractSessionDataFromInitializeResponse(result: unknown): Parti
   const sessionData: Partial<SessionData> = {};
   if (isValidContentItem(result)) {
     if (typeof result.protocolVersion === 'string') {
-      sessionData.protocolVersion = result.protocolVersion;
+      sessionData.protocolVersion = getBoundedMcpString(result.protocolVersion, MAX_MCP_PROTOCOL_VERSION_LENGTH);
     }
     if (result.serverInfo) {
       sessionData.serverInfo = extractPartyInfo(result.serverInfo);
@@ -138,18 +162,30 @@ export function extractSessionDataFromResponse(result: unknown): Partial<Session
  * @param transport - MCP transport instance
  * @returns Client attributes for span instrumentation
  */
-export function getClientAttributes(transport: MCPTransport): Record<string, string> {
-  const clientInfo = getClientInfoForTransport(transport);
-  const attributes: Record<string, string> = {};
+export function getClientAttributes(transport: MCPTransport): McpAttributes {
+  const sessionData = getSessionDataForTransport(transport);
+  return buildClientAttributes(sessionData);
+}
+
+/** Build bounded client identity and capability attributes for one MCP operation. */
+export function buildClientAttributes(sessionData?: SessionData): McpAttributes {
+  const clientInfo = sessionData?.clientInfo;
+  const attributes: McpAttributes = {};
 
   if (clientInfo?.name) {
-    attributes['mcp.client.name'] = clientInfo.name;
+    attributes[MCP_CLIENT_NAME_ATTRIBUTE] = getBoundedMcpString(clientInfo.name);
   }
   if (clientInfo?.title) {
-    attributes['mcp.client.title'] = clientInfo.title;
+    attributes[MCP_CLIENT_TITLE_ATTRIBUTE] = getBoundedMcpString(clientInfo.title);
   }
   if (clientInfo?.version) {
-    attributes['mcp.client.version'] = clientInfo.version;
+    attributes[MCP_CLIENT_VERSION_ATTRIBUTE] = getBoundedMcpString(clientInfo.version);
+  }
+  if (sessionData?.clientCapabilities?.length) {
+    attributes[MCP_CLIENT_CAPABILITIES_ATTRIBUTE] = getBoundedMcpStringList(sessionData.clientCapabilities);
+  }
+  if (sessionData?.clientExtensionIds?.length) {
+    attributes[MCP_CLIENT_EXTENSION_IDS_ATTRIBUTE] = getBoundedMcpStringList(sessionData.clientExtensionIds);
   }
 
   return attributes;
@@ -164,13 +200,13 @@ export function buildClientAttributesFromInfo(clientInfo?: PartyInfo): Record<st
   const attributes: Record<string, string> = {};
 
   if (clientInfo?.name) {
-    attributes['mcp.client.name'] = clientInfo.name;
+    attributes[MCP_CLIENT_NAME_ATTRIBUTE] = getBoundedMcpString(clientInfo.name);
   }
   if (clientInfo?.title) {
-    attributes['mcp.client.title'] = clientInfo.title;
+    attributes[MCP_CLIENT_TITLE_ATTRIBUTE] = getBoundedMcpString(clientInfo.title);
   }
   if (clientInfo?.version) {
-    attributes['mcp.client.version'] = clientInfo.version;
+    attributes[MCP_CLIENT_VERSION_ATTRIBUTE] = getBoundedMcpString(clientInfo.version);
   }
 
   return attributes;
@@ -186,13 +222,13 @@ export function getServerAttributes(transport: MCPTransport): Record<string, str
   const attributes: Record<string, string> = {};
 
   if (serverInfo?.name) {
-    attributes[MCP_SERVER_NAME_ATTRIBUTE] = serverInfo.name;
+    attributes[MCP_SERVER_NAME_ATTRIBUTE] = getBoundedMcpString(serverInfo.name);
   }
   if (serverInfo?.title) {
-    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = serverInfo.title;
+    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = getBoundedMcpString(serverInfo.title);
   }
   if (serverInfo?.version) {
-    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = serverInfo.version;
+    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = getBoundedMcpString(serverInfo.version);
   }
 
   return attributes;
@@ -207,13 +243,13 @@ export function buildServerAttributesFromInfo(serverInfo?: PartyInfo): Record<st
   const attributes: Record<string, string> = {};
 
   if (serverInfo?.name) {
-    attributes[MCP_SERVER_NAME_ATTRIBUTE] = serverInfo.name;
+    attributes[MCP_SERVER_NAME_ATTRIBUTE] = getBoundedMcpString(serverInfo.name);
   }
   if (serverInfo?.title) {
-    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = serverInfo.title;
+    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = getBoundedMcpString(serverInfo.title);
   }
   if (serverInfo?.version) {
-    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = serverInfo.version;
+    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = getBoundedMcpString(serverInfo.version);
   }
 
   return attributes;
@@ -243,23 +279,33 @@ export function extractClientInfo(extra: ExtraHandlerData): {
  * @param transport - MCP transport instance
  * @returns Transport type mapping for span attributes
  */
-export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
+export function getTransportTypes(transport: MCPTransport): {
+  mcpTransport: string;
+  networkTransport: string;
+  networkProtocolName?: string;
+} {
   if (!transport?.constructor) {
     return { mcpTransport: 'unknown', networkTransport: 'unknown' };
   }
   const transportName = typeof transport.constructor?.name === 'string' ? transport.constructor.name : 'unknown';
   let networkTransport = 'unknown';
+  let networkProtocolName: string | undefined;
 
   const lowerTransportName = transportName.toLowerCase();
   if (lowerTransportName.includes('stdio')) {
     networkTransport = 'pipe';
+  } else if (lowerTransportName.includes('websocket')) {
+    networkTransport = 'tcp';
+    networkProtocolName = 'websocket';
   } else if (lowerTransportName.includes('http') || lowerTransportName.includes('sse')) {
     networkTransport = 'tcp';
+    networkProtocolName = 'http';
   }
 
   return {
     mcpTransport: transportName,
     networkTransport,
+    networkProtocolName,
   };
 }
 
@@ -273,22 +319,30 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
-): Record<string, string | number> {
+  operationSessionData?: SessionData,
+): McpAttributes {
   const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
-  const { mcpTransport, networkTransport } = getTransportTypes(transport);
-  const clientAttributes = getClientAttributes(transport);
+  const { mcpTransport, networkTransport, networkProtocolName } = getTransportTypes(transport);
+  const clientAttributes = operationSessionData
+    ? buildClientAttributes(operationSessionData)
+    : getClientAttributes(transport);
   const serverAttributes = getServerAttributes(transport);
   const protocolVersion = getProtocolVersionForTransport(transport);
+  const operationProtocolVersion = operationSessionData?.protocolVersion || protocolVersion;
 
   const attributes = {
-    ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
+    ...(sessionId && !isStatelessMcpProtocolVersion(operationProtocolVersion)
+      ? { [MCP_SESSION_ID_ATTRIBUTE]: getBoundedMcpString(sessionId) }
+      : {}),
     ...(clientInfo.address && { [CLIENT_ADDRESS_ATTRIBUTE]: clientInfo.address }),
     ...(clientInfo.port && { [CLIENT_PORT_ATTRIBUTE]: clientInfo.port }),
     [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
     [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
-    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
-    ...(protocolVersion && { [MCP_PROTOCOL_VERSION_ATTRIBUTE]: protocolVersion }),
+    ...(networkProtocolName && { [NETWORK_PROTOCOL_NAME_ATTRIBUTE]: networkProtocolName }),
+    ...(operationProtocolVersion && {
+      [MCP_PROTOCOL_VERSION_ATTRIBUTE]: getBoundedMcpString(operationProtocolVersion, MAX_MCP_PROTOCOL_VERSION_LENGTH),
+    }),
     ...clientAttributes,
     ...serverAttributes,
   };

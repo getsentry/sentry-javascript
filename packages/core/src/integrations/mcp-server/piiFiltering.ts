@@ -6,13 +6,24 @@
  * separately via recordInputs/recordOutputs options.
  */
 import type { SpanAttributeValue } from '../../types/span';
-import { CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE } from './attributes';
+import {
+  CLIENT_ADDRESS_ATTRIBUTE,
+  CLIENT_PORT_ATTRIBUTE,
+  MCP_REQUEST_ARGUMENT,
+  MCP_RESOURCE_URI_ATTRIBUTE,
+  MCP_TOOL_RESULT_ATTRIBUTE,
+} from './attributes';
 
 /**
  * Network PII attributes that should be removed when dataCollection.userInfo is false
  * @internal
  */
-const NETWORK_PII_ATTRIBUTES = new Set([CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE]);
+const NETWORK_PII_ATTRIBUTES = new Set([
+  CLIENT_ADDRESS_ATTRIBUTE,
+  CLIENT_PORT_ATTRIBUTE,
+  MCP_RESOURCE_URI_ATTRIBUTE,
+  `${MCP_REQUEST_ARGUMENT}.uri`,
+]);
 
 /**
  * Checks if an attribute key should be considered network PII.
@@ -27,7 +38,7 @@ const NETWORK_PII_ATTRIBUTES = new Set([CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_AT
  * @internal
  */
 function isNetworkPiiAttribute(key: string): boolean {
-  return NETWORK_PII_ATTRIBUTES.has(key);
+  return NETWORK_PII_ATTRIBUTES.has(key) || key.endsWith('.uri') || key.endsWith('.resource_uri');
 }
 
 /**
@@ -47,10 +58,30 @@ export function filterMcpPiiFromSpanData(
   return Object.entries(spanData).reduce(
     (acc, [key, value]) => {
       if (!isNetworkPiiAttribute(key)) {
-        acc[key] = value as SpanAttributeValue;
+        if (key === MCP_TOOL_RESULT_ATTRIBUTE && typeof value === 'string') {
+          const redactedResult = redactMcpResultUris(value);
+          if (redactedResult !== undefined) {
+            acc[key] = redactedResult;
+          }
+        } else {
+          acc[key] = value as SpanAttributeValue;
+        }
       }
       return acc;
     },
     {} as Record<string, SpanAttributeValue>,
   );
+}
+
+function redactMcpResultUris(serializedResult: string): string | undefined {
+  try {
+    return JSON.stringify(
+      JSON.parse(serializedResult, (key, value) => {
+        const normalizedKey = key.toLowerCase();
+        return normalizedKey === 'uri' || normalizedKey.endsWith('_uri') ? undefined : value;
+      }),
+    );
+  } catch {
+    return undefined;
+  }
 }

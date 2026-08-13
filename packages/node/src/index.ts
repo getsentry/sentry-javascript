@@ -147,6 +147,7 @@ export {
   profiler,
   consoleLoggingIntegration,
   createConsolaReporter,
+  wrapMcpServerFactoryWithSentry,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,

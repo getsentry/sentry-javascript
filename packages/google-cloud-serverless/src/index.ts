@@ -147,6 +147,7 @@ export {
   logger,
   consoleLoggingIntegration,
   createConsolaReporter,
+  wrapMcpServerFactoryWithSentry,
   wrapMcpServerWithSentry,
   NODE_VERSION,
   featureFlagsIntegration,

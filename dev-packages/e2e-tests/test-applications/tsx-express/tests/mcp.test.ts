@@ -4,36 +4,70 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-test('Records transactions for mcp handlers', async ({ baseURL }) => {
-  const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
+const APP_NAME = 'tsx-express';
 
+function waitForMcpTransaction(spanDescription: string, serverName: string) {
+  return waitForTransaction(APP_NAME, transactionEvent => {
+    return (
+      transactionEvent.spans?.some(
+        span =>
+          span.op === 'mcp.server' &&
+          span.description === spanDescription &&
+          span.data?.['mcp.server.name'] === serverName,
+      ) === true
+    );
+  });
+}
+
+function getMcpSpan(transactionEvent: Awaited<ReturnType<typeof waitForTransaction>>, spanDescription: string) {
+  const span = transactionEvent.spans?.find(
+    candidate => candidate.op === 'mcp.server' && candidate.description === spanDescription,
+  );
+  expect(span).toBeDefined();
+  return span!;
+}
+
+function expectMcpSpanToBeHttpChild(
+  transactionEvent: Awaited<ReturnType<typeof waitForTransaction>>,
+  mcpSpan: ReturnType<typeof getMcpSpan>,
+) {
+  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
+  expect(mcpSpan.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+
+  const rootSpanId = transactionEvent.contexts?.trace?.span_id;
+  const spansById = new Map(transactionEvent.spans?.map(span => [span.span_id, span]));
+  let parentSpanId = mcpSpan.parent_span_id;
+
+  while (parentSpanId && parentSpanId !== rootSpanId) {
+    const parentSpan = spansById.get(parentSpanId);
+    expect(parentSpan).toBeDefined();
+    parentSpanId = parentSpan?.parent_span_id;
+  }
+
+  expect(parentSpanId).toBe(rootSpanId);
+}
+
+test('records MCP handler spans inside legacy SSE HTTP transactions', async ({ baseURL }) => {
+  const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
   const client = new Client({
     name: 'test-client',
     version: '1.0.0',
   });
-
-  const initializeTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-    return transactionEvent.transaction === 'initialize';
-  });
+  const initializeTransactionPromise = waitForMcpTransaction('initialize', 'Echo');
 
   await client.connect(transport);
 
   await test.step('initialize handshake', async () => {
     const initializeTransaction = await initializeTransactionPromise;
-    expect(initializeTransaction).toBeDefined();
-    expect(initializeTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo');
+    const initializeSpan = getMcpSpan(initializeTransaction, 'initialize');
+    expectMcpSpanToBeHttpChild(initializeTransaction, initializeSpan);
+    expect(initializeSpan.data?.['mcp.method.name']).toBe('initialize');
+    expect(initializeSpan.data?.['mcp.client.name']).toBe('test-client');
+    expect(initializeSpan.data?.['mcp.server.name']).toBe('Echo');
   });
 
   await test.step('tool handler', async () => {
-    const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call echo';
-    });
+    const toolTransactionPromise = waitForMcpTransaction('tools/call echo', 'Echo');
 
     const toolResult = await client.callTool({
       name: 'echo',
@@ -51,25 +85,19 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
-
     const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-
-    // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
+    const toolSpan = getMcpSpan(toolTransaction, 'tools/call echo');
+    expectMcpSpanToBeHttpChild(toolTransaction, toolSpan);
+    expect(toolSpan.data?.['mcp.method.name']).toBe('tools/call');
+    expect(toolSpan.data?.['gen_ai.operation.name']).toBe('execute_tool');
+    expect(toolSpan.data?.['gen_ai.tool.name']).toBe('echo');
+    expect(toolSpan.data?.['mcp.tool.name']).toBe('echo');
+    expect(toolSpan.data?.['jsonrpc.request.id']).toBeDefined();
+    expect(toolSpan.data?.['mcp.request.id']).toBe(toolSpan.data?.['jsonrpc.request.id']);
   });
 
   await test.step('registerTool handler', async () => {
-    const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call echo-register';
-    });
+    const toolTransactionPromise = waitForMcpTransaction('tools/call echo-register', 'Echo');
 
     const toolResult = await client.callTool({
       name: 'echo-register',
@@ -87,23 +115,16 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-
     const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo-register');
+    const toolSpan = getMcpSpan(toolTransaction, 'tools/call echo-register');
+    expectMcpSpanToBeHttpChild(toolTransaction, toolSpan);
+    expect(toolSpan.data?.['mcp.method.name']).toBe('tools/call');
+    expect(toolSpan.data?.['gen_ai.tool.name']).toBe('echo-register');
+    expect(toolSpan.data?.['mcp.tool.name']).toBe('echo-register');
   });
 
   await test.step('resource handler', async () => {
-    const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const resourceTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'resources/read echo://foobar';
-    });
+    const resourceTransactionPromise = waitForMcpTransaction('resources/read', 'Echo');
 
     const resourceResult = await client.readResource({
       uri: 'echo://foobar',
@@ -113,22 +134,15 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
       contents: [{ text: 'Resource echo: foobar', uri: 'echo://foobar' }],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-
     const resourceTransaction = await resourceTransactionPromise;
-    expect(resourceTransaction).toBeDefined();
-
-    // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
+    const resourceSpan = getMcpSpan(resourceTransaction, 'resources/read');
+    expectMcpSpanToBeHttpChild(resourceTransaction, resourceSpan);
+    expect(resourceSpan.description).toBe('resources/read');
+    expect(resourceSpan.data?.['mcp.method.name']).toBe('resources/read');
   });
 
   await test.step('prompt handler', async () => {
-    const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const promptTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'prompts/get echo';
-    });
+    const promptTransactionPromise = waitForMcpTransaction('prompts/get echo', 'Echo');
 
     const promptResult = await client.getPrompt({
       name: 'echo',
@@ -149,79 +163,57 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-
     const promptTransaction = await promptTransactionPromise;
-    expect(promptTransaction).toBeDefined();
-
-    // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
+    const promptSpan = getMcpSpan(promptTransaction, 'prompts/get echo');
+    expectMcpSpanToBeHttpChild(promptTransaction, promptSpan);
+    expect(promptSpan.data?.['mcp.method.name']).toBe('prompts/get');
+    expect(promptSpan.data?.['gen_ai.prompt.name']).toBe('echo');
+    expect(promptSpan.data?.['mcp.prompt.name']).toBe('echo');
   });
 
   await test.step('error tool sets span status to internal_error', async () => {
-    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call always-error';
-    });
+    const toolTransactionPromise = waitForMcpTransaction('tools/call always-error', 'Echo');
 
-    try {
-      await client.callTool({ name: 'always-error', arguments: {} });
-    } catch {
-      // Expected: MCP SDK throws when the tool returns a JSON-RPC error
-    }
+    await expect(client.callTool({ name: 'always-error', arguments: {} })).resolves.toMatchObject({ isError: true });
 
     const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.status).toEqual('internal_error');
+    const toolSpan = getMcpSpan(toolTransaction, 'tools/call always-error');
+    expectMcpSpanToBeHttpChild(toolTransaction, toolSpan);
+    expect(toolSpan.status).toBe('internal_error');
   });
+
+  await client.close();
 });
 
 /**
- * Tests for StreamableHTTPServerTransport (wrapper transport pattern)
- *
- * StreamableHTTPServerTransport wraps WebStandardStreamableHTTPServerTransport via getters/setters.
- * This causes different `this` values in onmessage vs send, which was breaking span correlation.
- *
- * The fix uses sessionId as the correlation key instead of transport object reference.
- * This test verifies that spans are correctly recorded when using the wrapper transport.
+ * StreamableHTTPServerTransport wraps WebStandardStreamableHTTPServerTransport via getters and setters,
+ * so onmessage and send can observe different `this` values. This verifies that response completion
+ * remains correlated with the original request while the MCP spans retain their HTTP parent.
  *
  * @see https://github.com/getsentry/sentry-mcp/issues/767
  */
-test('Should record transactions for streamable HTTP transport (wrapper transport pattern)', async ({ baseURL }) => {
+test('records MCP handler spans inside streamable HTTP transactions', async ({ baseURL }) => {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
-
   const client = new Client({
     name: 'test-client-streamable',
     version: '1.0.0',
   });
-
-  const initializeTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'initialize' &&
-      transactionEvent.contexts?.trace?.data?.['mcp.server.name'] === 'Echo-Streamable'
-    );
-  });
+  const initializeTransactionPromise = waitForMcpTransaction('initialize', 'Echo-Streamable');
 
   await client.connect(transport);
 
   await test.step('initialize handshake', async () => {
     const initializeTransaction = await initializeTransactionPromise;
-    expect(initializeTransaction).toBeDefined();
-    expect(initializeTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client-streamable');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo-Streamable');
-    // Verify it's using a StreamableHTTP transport (may be wrapper or inner depending on environment)
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.transport']).toMatch(/StreamableHTTPServerTransport/);
+    const initializeSpan = getMcpSpan(initializeTransaction, 'initialize');
+    expectMcpSpanToBeHttpChild(initializeTransaction, initializeSpan);
+    expect(initializeSpan.data?.['mcp.method.name']).toBe('initialize');
+    expect(initializeSpan.data?.['mcp.client.name']).toBe('test-client-streamable');
+    expect(initializeSpan.data?.['mcp.server.name']).toBe('Echo-Streamable');
+    expect(initializeSpan.data?.['mcp.transport']).toMatch(/StreamableHTTPServerTransport/);
   });
 
-  await test.step('tool handler (tests wrapper transport correlation)', async () => {
-    // This is the critical test - without the sessionId fix, the span would not be completed
-    // because onmessage and send see different transport instances (wrapper vs inner)
-    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return transactionEvent.transaction === 'tools/call echo' && transport?.includes('StreamableHTTPServerTransport');
-    });
+  await test.step('tool handler preserves wrapper transport correlation', async () => {
+    const toolTransactionPromise = waitForMcpTransaction('tools/call echo', 'Echo-Streamable');
 
     const toolResult = await client.callTool({
       name: 'echo',
@@ -240,22 +232,16 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
     });
 
     const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo');
-    // This attribute proves the span was completed with results (sessionId correlation worked)
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.result.content_count']).toEqual(1);
+    const toolSpan = getMcpSpan(toolTransaction, 'tools/call echo');
+    expectMcpSpanToBeHttpChild(toolTransaction, toolSpan);
+    expect(toolSpan.data?.['mcp.method.name']).toBe('tools/call');
+    expect(toolSpan.data?.['gen_ai.tool.name']).toBe('echo');
+    expect(toolSpan.data?.['mcp.tool.name']).toBe('echo');
+    expect(toolSpan.data?.['mcp.tool.result.content_count']).toBe(1);
   });
 
   await test.step('resource handler', async () => {
-    const resourceTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return (
-        transactionEvent.transaction === 'resources/read echo://streamable-test' &&
-        transport?.includes('StreamableHTTPServerTransport')
-      );
-    });
+    const resourceTransactionPromise = waitForMcpTransaction('resources/read', 'Echo-Streamable');
 
     const resourceResult = await client.readResource({
       uri: 'echo://streamable-test',
@@ -266,18 +252,14 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
     });
 
     const resourceTransaction = await resourceTransactionPromise;
-    expect(resourceTransaction).toBeDefined();
-    expect(resourceTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(resourceTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('resources/read');
+    const resourceSpan = getMcpSpan(resourceTransaction, 'resources/read');
+    expectMcpSpanToBeHttpChild(resourceTransaction, resourceSpan);
+    expect(resourceSpan.description).toBe('resources/read');
+    expect(resourceSpan.data?.['mcp.method.name']).toBe('resources/read');
   });
 
   await test.step('prompt handler', async () => {
-    const promptTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return (
-        transactionEvent.transaction === 'prompts/get echo' && transport?.includes('StreamableHTTPServerTransport')
-      );
-    });
+    const promptTransactionPromise = waitForMcpTransaction('prompts/get echo', 'Echo-Streamable');
 
     const promptResult = await client.getPrompt({
       name: 'echo',
@@ -299,11 +281,10 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
     });
 
     const promptTransaction = await promptTransactionPromise;
-    expect(promptTransaction).toBeDefined();
-    expect(promptTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(promptTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('prompts/get');
+    const promptSpan = getMcpSpan(promptTransaction, 'prompts/get echo');
+    expectMcpSpanToBeHttpChild(promptTransaction, promptSpan);
+    expect(promptSpan.data?.['mcp.method.name']).toBe('prompts/get');
   });
 
-  // Clean up - close the client connection
   await client.close();
 });

@@ -97,6 +97,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerFactoryWithSentry,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,

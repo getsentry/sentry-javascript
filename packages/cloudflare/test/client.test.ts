@@ -1,5 +1,7 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Event } from '@sentry/core';
+import { startInactiveSpan, withActiveSpan, withScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
 
@@ -221,6 +223,68 @@ describe('CloudflareClient', () => {
   });
 
   describe('span lifecycle tracking', () => {
+    it('includes a child that ends after its static segment', async () => {
+      const transactions: Event[] = [];
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        tracesSampleRate: 1,
+        traceLifecycle: 'static',
+        beforeSendTransaction: event => {
+          transactions.push(event);
+          return null;
+        },
+      });
+      client.init();
+
+      withScope(scope => {
+        scope.setClient(client);
+        const root = startInactiveSpan({ name: 'GET /mcp' });
+        const child = withActiveSpan(root, () => startInactiveSpan({ name: 'tools/call weather' }));
+
+        root.end();
+        child.end();
+      });
+      await client.flush();
+
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]!.spans).toHaveLength(1);
+      expect(transactions[0]!.spans?.[0]?.description).toBe('tools/call weather');
+    });
+
+    it('captures a child that ends after its static segment was sent as an orphan transaction', () => {
+      const transactions: Event[] = [];
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        tracesSampleRate: 1,
+        traceLifecycle: 'static',
+        beforeSendTransaction: event => {
+          transactions.push(event);
+          return null;
+        },
+      });
+      client.init();
+
+      let child: ReturnType<typeof startInactiveSpan>;
+      withScope(scope => {
+        scope.setClient(client);
+        const root = startInactiveSpan({ name: 'GET /mcp' });
+        child = withActiveSpan(root, () => startInactiveSpan({ name: 'tools/call weather' }));
+        root.end();
+      });
+      client.emit('flush');
+
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]!.transaction).toBe('GET /mcp');
+      expect(transactions[0]!.spans).toHaveLength(0);
+
+      child!.end();
+      client.emit('flush');
+
+      expect(transactions).toHaveLength(2);
+      expect(transactions[1]!.transaction).toBe('tools/call weather');
+      expect(transactions[1]!.contexts?.trace?.data?.['sentry.parent_span_already_sent']).toBe(true);
+    });
+
     it('tracks pending spans when spanStart is emitted', () => {
       const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
 

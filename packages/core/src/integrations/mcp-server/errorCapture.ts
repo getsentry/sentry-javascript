@@ -15,11 +15,11 @@ import type { McpErrorType } from './types';
  * Captures an error without affecting MCP server operation.
  *
  * The active span already contains all MCP context (method, tool, arguments, etc.)
- * @param error - Error to capture
+ * @param error - Thrown value to capture
  * @param errorType - Classification of error type for filtering
  * @param extraData - Additional context data to include
  */
-export function captureError(error: Error, errorType?: McpErrorType, extraData?: Record<string, unknown>): void {
+export function captureError(error: unknown, errorType?: McpErrorType, extraData?: Record<string, unknown>): void {
   try {
     const client = getClient();
     if (!client) {

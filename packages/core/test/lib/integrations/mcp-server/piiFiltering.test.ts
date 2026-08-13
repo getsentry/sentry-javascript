@@ -133,6 +133,27 @@ describe('MCP Server PII Filtering', () => {
       expect(result).toHaveProperty('mcp.session.id', 'test-session-123');
     });
 
+    it('should redact nested URIs without dropping canonical tool output', () => {
+      const result = filterMcpPiiFromSpanData(
+        {
+          'gen_ai.tool.call.result': JSON.stringify({
+            content: [
+              { type: 'text', text: 'safe output' },
+              { type: 'resource_link', uri: 'file:///private/secret.txt' },
+            ],
+            resource_uri: 'https://example.invalid/private',
+          }),
+        },
+        false,
+      );
+
+      expect(result).toEqual({
+        'gen_ai.tool.call.result': JSON.stringify({
+          content: [{ type: 'text', text: 'safe output' }, { type: 'resource_link' }],
+        }),
+      });
+    });
+
     it('should handle empty span data', () => {
       const result = filterMcpPiiFromSpanData({}, false);
       expect(result).toEqual({});

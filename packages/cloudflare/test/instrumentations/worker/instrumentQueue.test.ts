@@ -268,7 +268,9 @@ describe('instrumentQueue', () => {
       );
 
       const batch = createMockQueueBatch();
-      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+      const context = createMockExecutionContext();
+      await wrappedHandler.queue?.(batch, MOCK_ENV, context);
+      await Promise.all(vi.mocked(context.waitUntil).mock.calls.map(([promise]) => promise));
 
       expect(sentryEvent.transaction).toEqual(`process ${batch.queue}`);
       expect(sentryEvent.spans).toHaveLength(0);

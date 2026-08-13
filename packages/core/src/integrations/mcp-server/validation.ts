@@ -16,7 +16,10 @@ import type { JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from './typ
  */
 export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
   return (
-    isObjectLike(message) && 'jsonrpc' in message && message.jsonrpc === '2.0' && 'method' in message && 'id' in message
+    isObjectLike(message) &&
+    message.jsonrpc === '2.0' &&
+    typeof message.method === 'string' &&
+    (typeof message.id === 'string' || typeof message.id === 'number')
   );
 }
 
@@ -26,13 +29,7 @@ export function isJsonRpcRequest(message: unknown): message is JsonRpcRequest {
  * @returns True if message is a JSON-RPC notification
  */
 export function isJsonRpcNotification(message: unknown): message is JsonRpcNotification {
-  return (
-    isObjectLike(message) &&
-    'jsonrpc' in message &&
-    message.jsonrpc === '2.0' &&
-    'method' in message &&
-    !('id' in message)
-  );
+  return isObjectLike(message) && message.jsonrpc === '2.0' && typeof message.method === 'string' && !('id' in message);
 }
 
 /**
@@ -59,12 +56,22 @@ export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse 
  * @returns True if instance has required MCP server methods
  */
 export function validateMcpServerInstance(instance: unknown): boolean {
-  if (
-    isObjectLike(instance) &&
-    'connect' in instance &&
-    (('tool' in instance && 'resource' in instance && 'prompt' in instance) ||
-      ('registerTool' in instance && 'registerResource' in instance && 'registerPrompt' in instance))
-  ) {
+  if (!isObjectLike(instance) || typeof instance.connect !== 'function') {
+    DEBUG_BUILD && debug.warn('Did not patch MCP server. Interface is incompatible.');
+    return false;
+  }
+
+  const hasLegacyFacade =
+    typeof instance.tool === 'function' &&
+    typeof instance.resource === 'function' &&
+    typeof instance.prompt === 'function';
+  const hasModernFacade =
+    typeof instance.registerTool === 'function' &&
+    typeof instance.registerResource === 'function' &&
+    typeof instance.registerPrompt === 'function';
+  const hasLowLevelApi = typeof instance.setRequestHandler === 'function';
+
+  if (hasLegacyFacade || hasModernFacade || hasLowLevelApi) {
     return true;
   }
   DEBUG_BUILD && debug.warn('Did not patch MCP server. Interface is incompatible.');

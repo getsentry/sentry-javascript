@@ -1,5 +1,7 @@
 import { getClient } from '../../currentScopes';
+import { isThenable } from '../../utils/is';
 import { fill } from '../../utils/object';
+import { captureError } from './errorCapture';
 import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
 import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions } from './types';
@@ -37,7 +39,7 @@ const wrappedMcpServerInstances = new WeakSet();
  * server.registerTool('my-tool', schema, handler);
  *
  * // Explicitly control input/output capture
- * const server = Sentry.wrapMcpServerWithSentry(
+ * const serverWithCustomCapture = Sentry.wrapMcpServerWithSentry(
  *   new McpServer({ name: "my-server", version: "1.0.0" }),
  *   { recordInputs: true, recordOutputs: false }
  * );
@@ -91,4 +93,58 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
 
   wrappedMcpServerInstances.add(mcpServerInstance);
   return mcpServerInstance;
+}
+
+/**
+ * Wraps every MCP server produced by a factory with Sentry instrumentation.
+ *
+ * This helper is intended for MCP SDK serving entries which construct a fresh
+ * server per request or connection, such as `createMcpHandler` and `serveStdio`.
+ * It supports synchronous and asynchronous factories while preserving the
+ * factory's arguments, `this` value, return type, and thrown or rejected errors.
+ * Factory failures are captured as protocol Issues before being rethrown unchanged.
+ *
+ * @example
+ * ```typescript
+ * import * as Sentry from '@sentry/node';
+ * import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+ *
+ * const handler = createMcpHandler(
+ *   Sentry.wrapMcpServerFactoryWithSentry(ctx => {
+ *     const server = new McpServer({ name: 'my-server', version: '1.0.0' });
+ *     server.registerTool('my-tool', schema, handler);
+ *     return server;
+ *   }),
+ * );
+ * ```
+ *
+ * @param factory - Factory which creates an MCP server instance
+ * @param options - Optional configuration applied to every created server
+ * @returns A factory with the same call signature and result type
+ */
+export function wrapMcpServerFactoryWithSentry<Factory extends (...args: never[]) => object | PromiseLike<object>>(
+  factory: Factory,
+  options?: McpServerWrapperOptions,
+): Factory {
+  return function (this: ThisParameterType<Factory>, ...args: Parameters<Factory>): ReturnType<Factory> {
+    let result: ReturnType<Factory>;
+    try {
+      result = Reflect.apply(factory, this, args) as ReturnType<Factory>;
+    } catch (error) {
+      captureError(error, 'protocol', { method_name: 'server_factory' });
+      throw error;
+    }
+
+    if (isThenable(result)) {
+      return result.then(
+        (server: object) => wrapMcpServerWithSentry(server, options),
+        (error: unknown) => {
+          captureError(error, 'protocol', { method_name: 'server_factory' });
+          throw error;
+        },
+      ) as ReturnType<Factory>;
+    }
+
+    return wrapMcpServerWithSentry(result, options);
+  } as unknown as Factory;
 }

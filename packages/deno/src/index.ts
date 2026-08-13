@@ -93,6 +93,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  wrapMcpServerFactoryWithSentry,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,

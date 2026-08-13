@@ -16,12 +16,10 @@ import { createMcpHandler } from 'agents/mcp/server';
 import { z } from 'zod';
 
 function createServer() {
-  const server = Sentry.wrapMcpServerWithSentry(
-    new McpServer({
-      name: 'cloudflare-mcp',
-      version: '2.0.0',
-    }),
-  );
+  const server = new McpServer({
+    name: 'cloudflare-mcp',
+    version: '2.0.0',
+  });
 
   server.registerTool(
     'my-tool',
@@ -57,7 +55,7 @@ function createServer() {
   return server;
 }
 
-const mcpHandler = createMcpHandler(createServer, {
+const mcpHandler = createMcpHandler(Sentry.wrapMcpServerFactoryWithSentry(createServer), {
   route: '/mcp',
 });
 

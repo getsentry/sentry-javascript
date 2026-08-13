@@ -1,50 +1,28 @@
 /**
  * Session data management for MCP server instrumentation
  *
- * Uses sessionId as the primary key for stateful transports. This handles the wrapper
- * transport pattern (e.g., NodeStreamableHTTPServerTransport wrapping WebStandardStreamableHTTPServerTransport)
- * where different methods may receive different `this` values but share the same sessionId.
- *
- * Falls back to WeakMap by transport instance for stateless transports (no sessionId).
+ * Session data is scoped to the transport captured by the instrumentation wrapper. Session ids
+ * are peer-controlled and can be reused by independent transports.
  */
 
 import type { MCPTransport, PartyInfo, SessionData } from './types';
 
-/**
- * Session-scoped data storage for stateful transports (with sessionId)
- * @internal Using sessionId as key handles wrapper transport patterns
- */
-const sessionToSessionData = new Map<string, SessionData>();
+const transportToSessionData = new WeakMap<MCPTransport, SessionData>();
 
 /**
- * Transport-scoped data storage fallback for stateless transports (no sessionId)
- * @internal WeakMap allows automatic cleanup when transport is garbage collected
- */
-const statelessSessionData = new WeakMap<MCPTransport, SessionData>();
-
-/**
- * Gets session data for a transport, checking sessionId first then fallback
+ * Gets session data for a transport identity.
  * @internal
  */
 function getSessionData(transport: MCPTransport): SessionData | undefined {
-  const sessionId = transport.sessionId;
-  if (sessionId) {
-    return sessionToSessionData.get(sessionId);
-  }
-  return statelessSessionData.get(transport);
+  return transportToSessionData.get(transport);
 }
 
 /**
- * Sets session data for a transport, using sessionId when available
+ * Sets session data for a transport identity.
  * @internal
  */
 function setSessionData(transport: MCPTransport, data: SessionData): void {
-  const sessionId = transport.sessionId;
-  if (sessionId) {
-    sessionToSessionData.set(sessionId, data);
-  } else {
-    statelessSessionData.set(transport, data);
-  }
+  transportToSessionData.set(transport, data);
 }
 
 /**
@@ -53,8 +31,6 @@ function setSessionData(transport: MCPTransport, data: SessionData): void {
  * @param sessionData - Session data to store
  */
 export function storeSessionDataForTransport(transport: MCPTransport, sessionData: SessionData): void {
-  // For stateful transports, always store (sessionId is the key)
-  // For stateless transports, also store (transport instance is the key)
   setSessionData(transport, sessionData);
 }
 
@@ -100,10 +76,5 @@ export function getSessionDataForTransport(transport: MCPTransport): SessionData
  * @param transport - MCP transport instance
  */
 export function cleanupSessionDataForTransport(transport: MCPTransport): void {
-  const sessionId = transport.sessionId;
-  if (sessionId) {
-    sessionToSessionData.delete(sessionId);
-  }
-  // Note: WeakMap entries are automatically cleaned up when transport is GC'd
-  // No explicit delete needed for statelessSessionData
+  transportToSessionData.delete(transport);
 }

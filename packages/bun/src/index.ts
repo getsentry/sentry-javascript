@@ -166,6 +166,7 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   pinoIntegration,
+  wrapMcpServerFactoryWithSentry,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,

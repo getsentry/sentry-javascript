@@ -249,7 +249,9 @@ describe('instrumentScheduled', () => {
         handler,
       );
 
-      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+      const context = createMockExecutionContext();
+      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, context);
+      await Promise.all(vi.mocked(context.waitUntil).mock.calls.map(([promise]) => promise));
 
       expect(sentryEvent.transaction).toEqual('Scheduled Cron 0 0 0 * * *');
       expect(sentryEvent.spans).toHaveLength(0);

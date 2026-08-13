@@ -6,12 +6,11 @@
  */
 
 import { getClient } from '../../currentScopes';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../../semanticAttributes';
-import { startSpan } from '../../tracing';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { startInactiveSpan, startSpan } from '../../tracing';
+import type { SpanLink } from '../../types/link';
+import type { Span } from '../../types/span';
+import type { StartSpanOptions } from '../../types/startSpanOptions';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
   MCP_FUNCTION_ORIGIN_VALUE,
@@ -19,19 +18,24 @@ import {
   MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE,
   MCP_NOTIFICATION_ORIGIN_VALUE,
   MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE,
-  MCP_ROUTE_SOURCE_VALUE,
   MCP_SERVER_OP_VALUE,
+  SENTRY_KIND_ATTRIBUTE,
 } from './attributes';
 import { extractTargetInfo } from './methodConfig';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
+import { getBoundedMcpString } from './serialization';
 import type {
   ExtraHandlerData,
   JsonRpcNotification,
   JsonRpcRequest,
+  McpAttributes,
   McpSpanConfig,
   MCPTransport,
   ResolvedMcpOptions,
+  SessionData,
 } from './types';
+
+const MCP_CLIENT_OP_VALUE = 'mcp.client';
 
 /**
  * Creates a span name based on the method and target
@@ -53,26 +57,35 @@ function createSpanName(method: string, target?: string): string {
 function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, string> {
   let op: string;
   let origin: string;
+  let spanKind: 'client' | 'server';
 
   switch (type) {
     case 'request':
       op = MCP_SERVER_OP_VALUE;
       origin = MCP_FUNCTION_ORIGIN_VALUE;
+      spanKind = 'server';
+      break;
+    case 'request-outgoing':
+      op = MCP_CLIENT_OP_VALUE;
+      origin = MCP_FUNCTION_ORIGIN_VALUE;
+      spanKind = 'client';
       break;
     case 'notification-incoming':
       op = MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE;
       origin = MCP_NOTIFICATION_ORIGIN_VALUE;
+      spanKind = 'server';
       break;
     case 'notification-outgoing':
       op = MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE;
       origin = MCP_NOTIFICATION_ORIGIN_VALUE;
+      spanKind = 'client';
       break;
   }
 
   return {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
+    [SENTRY_KIND_ATTRIBUTE]: spanKind,
   };
 }
 
@@ -83,39 +96,44 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
  * @returns Created span
  */
 function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback, options } = config;
-  const { method } = message;
+  const { type, message, transport, extra, callback, options, operationSessionData, links, parentSpan } = config;
+  const method = getBoundedMcpString(message.method);
   const params = message.params;
 
   // Determine span name based on type and OTEL conventions
   let spanName: string;
-  if (type === 'request') {
+  if (type === 'request' || type === 'request-outgoing') {
     const targetInfo = extractTargetInfo(method, params || {});
-    spanName = createSpanName(method, targetInfo.target);
+    spanName = createSpanName(method, targetInfo.includeTargetInSpanName ? targetInfo.target : undefined);
   } else {
     // For notifications, use method name directly per OpenTelemetry conventions
     spanName = method;
   }
 
-  const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+  const rawAttributes: McpAttributes = {
+    ...buildTransportAttributes(transport, extra, operationSessionData),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
+    ...buildTypeSpecificAttributes(
+      type === 'request-outgoing' ? 'request' : type,
+      message,
+      params,
+      options?.recordInputs,
+    ),
     ...buildSentryAttributes(type),
   };
 
   const client = getClient();
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
-  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo);
+  const spanOptions: StartSpanOptions = { name: spanName, attributes };
+  if (links) {
+    spanOptions.links = links;
+  }
+  if (parentSpan) {
+    spanOptions.parentSpan = parentSpan;
+  }
 
-  return startSpan(
-    {
-      name: spanName,
-      forceTransaction: true,
-      attributes,
-    },
-    callback,
-  );
+  return startSpan(spanOptions, callback);
 }
 
 /**
@@ -133,6 +151,9 @@ export function createMcpNotificationSpan(
   extra: ExtraHandlerData,
   options: ResolvedMcpOptions,
   callback: () => unknown,
+  operationSessionData?: SessionData,
+  links?: SpanLink[],
+  parentSpan?: Span,
 ): unknown {
   return createMcpSpan({
     type: 'notification-incoming',
@@ -141,6 +162,9 @@ export function createMcpNotificationSpan(
     extra,
     callback,
     options,
+    operationSessionData,
+    links,
+    parentSpan,
   });
 }
 
@@ -157,6 +181,8 @@ export function createMcpOutgoingNotificationSpan(
   transport: MCPTransport,
   options: ResolvedMcpOptions,
   callback: () => unknown,
+  operationSessionData?: SessionData,
+  parentSpan?: Span,
 ): unknown {
   return createMcpSpan({
     type: 'notification-outgoing',
@@ -164,7 +190,40 @@ export function createMcpOutgoingNotificationSpan(
     transport,
     options,
     callback,
+    operationSessionData,
+    parentSpan,
   });
+}
+
+/** Creates a long-lived client span for a server-to-client request. */
+export function createMcpOutgoingRequestSpan(
+  jsonRpcMessage: JsonRpcRequest,
+  transport: MCPTransport,
+  options: ResolvedMcpOptions,
+  operationSessionData?: SessionData,
+  parentSpan?: Span,
+): Span {
+  const { params } = jsonRpcMessage;
+  const method = getBoundedMcpString(jsonRpcMessage.method);
+  const targetInfo = extractTargetInfo(method, params || {});
+  const rawAttributes: McpAttributes = {
+    ...buildTransportAttributes(transport, undefined, operationSessionData),
+    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options.recordInputs),
+    ...buildSentryAttributes('request-outgoing'),
+  };
+  const client = getClient();
+  const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
+  const spanOptions: StartSpanOptions = {
+    name: createSpanName(method, targetInfo.includeTargetInSpanName ? targetInfo.target : undefined),
+    op: MCP_CLIENT_OP_VALUE,
+    attributes: filterMcpPiiFromSpanData(rawAttributes, userInfo),
+  };
+  if (parentSpan) {
+    spanOptions.parentSpan = parentSpan;
+  }
+
+  return startInactiveSpan(spanOptions);
 }
 
 /**
@@ -180,20 +239,18 @@ export function buildMcpServerSpanConfig(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
   options?: ResolvedMcpOptions,
-): {
-  name: string;
-  op: string;
-  forceTransaction: boolean;
-  attributes: Record<string, string | number>;
-} {
-  const { method } = jsonRpcMessage;
+  operationSessionData?: SessionData,
+  links?: SpanLink[],
+  parentSpan?: Span,
+): StartSpanOptions {
+  const method = getBoundedMcpString(jsonRpcMessage.method);
   const params = jsonRpcMessage.params;
 
   const targetInfo = extractTargetInfo(method, params || {});
-  const spanName = createSpanName(method, targetInfo.target);
+  const spanName = createSpanName(method, targetInfo.includeTargetInSpanName ? targetInfo.target : undefined);
 
-  const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+  const rawAttributes: McpAttributes = {
+    ...buildTransportAttributes(transport, extra, operationSessionData),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
     ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options?.recordInputs),
     ...buildSentryAttributes('request'),
@@ -201,12 +258,18 @@ export function buildMcpServerSpanConfig(
 
   const client = getClient();
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
-  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
+  const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo);
 
-  return {
+  const spanOptions: StartSpanOptions = {
     name: spanName,
     op: MCP_SERVER_OP_VALUE,
-    forceTransaction: true,
     attributes,
   };
+  if (links) {
+    spanOptions.links = links;
+  }
+  if (parentSpan) {
+    spanOptions.parentSpan = parentSpan;
+  }
+  return spanOptions;
 }

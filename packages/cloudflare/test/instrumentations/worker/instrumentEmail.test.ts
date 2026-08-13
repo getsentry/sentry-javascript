@@ -255,7 +255,9 @@ describe('instrumentEmail', () => {
       );
 
       const emailMessage = createMockEmailMessage();
-      await wrappedHandler.email?.(emailMessage, MOCK_ENV, createMockExecutionContext());
+      const context = createMockExecutionContext();
+      await wrappedHandler.email?.(emailMessage, MOCK_ENV, context);
+      await Promise.all(vi.mocked(context.waitUntil).mock.calls.map(([promise]) => promise));
 
       expect(sentryEvent.transaction).toEqual(`Handle Email ${emailMessage.to}`);
       expect(sentryEvent.spans).toHaveLength(0);
