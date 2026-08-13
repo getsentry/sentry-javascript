@@ -687,10 +687,20 @@ describe('trackInpAsSpan', () => {
     expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
   });
 
-  it('ignores INP metrics without a matching interaction entry', () => {
+  it('reports INP without an interaction entry to describe it', () => {
+    // web-vitals decides what an INP is. When it reports a value we have no entry for, we still
+    // report the value it gave us rather than second-guessing the library.
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: { value: 120, entries: [{ name: 'scroll', duration: 120 }] } });
-    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'ui.interaction',
+          'browser.web_vital.inp.value': 120,
+        }),
+      }),
+    );
   });
 });
 
@@ -810,20 +820,29 @@ describe('soft navigation web vitals', () => {
     expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
   });
 
-  it('reports no INP when web-vitals has no entry to attribute it to', () => {
+  it('still reports INP when web-vitals has no entry to describe it', () => {
     let inpCallback: (arg: { metric: any }) => void = () => undefined;
     vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {
       inpCallback = cb;
       return () => undefined;
     });
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
 
     trackInpAsSpan(client, true);
 
-    // web-vitals synthesizes an 8ms value with no entries when every interaction of a soft
-    // navigation stayed below the Event Timing threshold.
-    inpCallback({ metric: { value: 8, navigationId: 2, navigationType: 'soft-navigation', entries: [] } });
+    // web-vitals synthesizes a value with no entries when every interaction of a soft navigation
+    // stayed below the Event Timing threshold. The value still belongs on the navigation.
+    inpCallback({
+      metric: { value: 8, navigationId: 2, navigationType: 'soft-navigation', navigationStartTime: 500, entries: [] },
+    });
 
-    expect(vi.mocked(SentryCore.startInactiveSpan)).not.toHaveBeenCalled();
+    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    expect(call.name).toBe('Interaction to next paint');
+    // No entry means no interaction type, so the op stays unqualified rather than guessing one.
+    expect(call.attributes?.['sentry.op']).toBe('ui.interaction');
+    expect(call.attributes?.['browser.web_vital.inp.value']).toBe(8);
+    expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(call.parentSpan).toBe(navigationSpan);
   });
 
   it('does not use the page load report events when soft navigations are on', () => {

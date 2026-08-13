@@ -70,6 +70,9 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
       // it's dropped instead.
       if (navigationSpan) {
         send(metric, navigationSpan, metric.navigationId);
+      } else {
+        DEBUG_BUILD &&
+          debug.log(`[SoftNav] Dropping ${metric.name} for uncorrelated soft navigation ${metric.navigationId}`);
       }
       return;
     }
@@ -251,36 +254,35 @@ export function trackInpAsSpan(client: Client, reportSoftNavs = false): void {
     // navigation span has ended and the interaction cache no longer knows about it. The metric
     // says which navigation it belongs to, so INP is attributed exactly like LCP and CLS.
     trackWebVitalPerNavigation(client, addInpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
-      const entry = findInpEntry(metric);
-      if (entry) {
-        _sendInpSpan(metric.value, entry, standalone, parentSpan, softNavigationId);
+      if (isPlausibleInp(metric)) {
+        _sendInpSpan(metric.value, findInpEntry(metric), standalone, parentSpan, softNavigationId, metric);
       }
     });
     return;
   }
 
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
-    const entry = findInpEntry(metric);
-    if (entry) {
-      _sendInpSpan(metric.value, entry, standalone);
+    if (isPlausibleInp(metric)) {
+      _sendInpSpan(metric.value, findInpEntry(metric), standalone, undefined, undefined, metric);
     }
   };
 
   addInpInstrumentationHandler(onInp);
 }
 
+function isPlausibleInp(metric: InpMetric): boolean {
+  return metric.value != null && msToSec(metric.value) <= MAX_PLAUSIBLE_INP_DURATION;
+}
+
 /**
  * The entry an INP span is built from: the one whose duration the reported value came from.
  *
  * There isn't always one. When every interaction of a soft navigation stayed below the Event Timing
- * threshold, web-vitals reports a synthetic 8ms value with no entries at all. A span needs an entry
- * for its start time, target element and interaction type, so those navigations report no INP.
+ * threshold, web-vitals reports a synthetic value with no entries at all - see
+ * `_estimateP98LongestInteraction`. The span still gets reported in that case, just without the
+ * element and interaction type an entry would have supplied.
  */
 function findInpEntry(metric: InpMetric): PerformanceEventTiming | undefined {
-  if (metric.value == null || msToSec(metric.value) > MAX_PLAUSIBLE_INP_DURATION) {
-    return undefined;
-  }
-
   return metric.entries.find(e => e.duration === metric.value && INP_ENTRY_MAP[e.name]);
 }
 
@@ -289,38 +291,40 @@ function findInpEntry(metric: InpMetric): PerformanceEventTiming | undefined {
  */
 export function _sendInpSpan(
   inpValue: number,
-  entry: PerformanceEventTiming,
+  entry: PerformanceEventTiming | undefined,
   standalone = false,
   attributedSpan?: Span,
   softNavigationId?: number,
+  metric?: InpMetric,
 ): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
+  // is still worth reporting. It just has no element or interaction type to describe, and is placed
+  // at the start of the navigation it belongs to rather than at the interaction.
+  const startTime = msToSec(
+    (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
+  );
   const duration = msToSec(inpValue);
-  const interactionType = INP_ENTRY_MAP[entry.name];
+  const interactionType = entry && INP_ENTRY_MAP[entry.name];
 
-  if (!interactionType) {
-    return;
-  }
-
-  const cachedContext = getCachedInteractionContext(entry.interactionId);
+  const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
   // With soft navigations the caller knows exactly which navigation the metric belongs to. Without
   // them we fall back to the span that was active when the interaction was observed.
   const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
-  const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
+  const name = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : 'Interaction to next paint');
 
   _emitWebVitalSpan({
     name,
-    op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
+    op: interactionType ? INTERACTION_TYPE_TO_SPAN_OP[interactionType] : 'ui.interaction',
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
     },
     startTime,
     endTime: startTime + duration,
