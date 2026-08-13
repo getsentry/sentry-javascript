@@ -16,8 +16,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
-import { bindTracingChannelToSpan } from '../tracing-channel';
+import { DEBUG_BUILD } from '../../debug-build';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Channel names published by mongoose >= 9.7.0 (see mongoose `lib/tracing.js`,
 // `lib/query.js`, `lib/aggregate.js`, `lib/model.js` and `lib/cursor/*`).

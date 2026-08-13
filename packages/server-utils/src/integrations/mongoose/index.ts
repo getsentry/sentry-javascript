@@ -1,15 +1,15 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, getActiveSpan, waitForTracingChannelBinding } from '@sentry/core';
-import { subscribeMongooseDiagnosticChannels } from '../mongoose/mongoose-dc-subscriber';
-import type { MongooseLegacyCollection } from '../mongoose/mongoose-legacy-span';
-import { startMongooseLegacySpan } from '../mongoose/mongoose-legacy-span';
-import { CHANNELS } from '../orchestrion/channels';
-import { MONGOOSE_CONTEXT_CAPTURE_CHANNELS } from '../orchestrion/config/mongoose';
-import type { SentryTracingChannel } from '../tracing-channel';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import { mongooseModuleNames } from '../orchestrion/config/mongoose';
-import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { subscribeMongooseDiagnosticChannels } from './mongoose-dc-subscriber';
+import type { MongooseLegacyCollection } from './mongoose-legacy-span';
+import { startMongooseLegacySpan } from './mongoose-legacy-span';
+import { CHANNELS } from '../../orchestrion/channels';
+import { MONGOOSE_CONTEXT_CAPTURE_CHANNELS } from '../../orchestrion/config/mongoose';
+import type { SentryTracingChannel } from '../../tracing-channel';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { mongooseModuleNames } from '../../orchestrion/config/mongoose';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 
 const INTEGRATION_NAME = 'Mongoose' as const;
 
