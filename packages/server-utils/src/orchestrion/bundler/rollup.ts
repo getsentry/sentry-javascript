@@ -44,10 +44,14 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       return resolveOrchestrionRuntimeRequest(source) ?? null;
     },
     buildStart(this: PluginContext, rollupOptions: NormalizedInputOptions): void {
-      // An externalized dependency never passes through the code transform, so
-      // its diagnostics_channel calls are silently never injected. By the time
-      // buildStart runs, Rollup has normalized `external` (string arrays,
-      // RegExps or user functions) into a single predicate we can probe.
+      // Externalized dependencies do not pass through the code transform, so their
+      // diagnostics_channel calls are never injected. Rollup provides `external` as
+      // a function, but other Rollup-compatible bundlers may not. Skip this optional
+      // warning when the bundler uses a different format (e.g. Rolldown).
+      if (typeof rollupOptions.external !== 'function') {
+        return;
+      }
+
       const externalizedModules = moduleNames.filter(name => rollupOptions.external(name, undefined, false));
       if (externalizedModules.length > 0) {
         this.warn(externalizedModulesWarning(externalizedModules));

@@ -29,7 +29,7 @@ vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
 describe('sentryOrchestrionPlugin (rollup)', () => {
   // Mirrors what Rollup passes to buildStart: `external` is already normalized
   // into a predicate function, regardless of how the user configured it.
-  function runBuildStart(external: (source: string) => boolean): ReturnType<typeof vi.fn> {
+  function runBuildStart(external: unknown): ReturnType<typeof vi.fn> {
     const warn = vi.fn();
     const plugin = rollupPlugin();
     (plugin.buildStart as (this: unknown, options: unknown) => void).call(
@@ -50,6 +50,18 @@ describe('sentryOrchestrionPlugin (rollup)', () => {
   it('does not warn when no instrumented modules are externalized', () => {
     const warn = runBuildStart(source => source === 'some-other-package');
 
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['an absent external option', undefined],
+    ['a string external option', 'mysql'],
+    ['an array external option', ['mysql']],
+    ['a regular expression external option', /^mysql$/],
+  ])('does not check externalized modules for %s', (_description, external) => {
+    const warn = runBuildStart(external);
+
+    // skips the warning when external is not a normalized predicate
     expect(warn).not.toHaveBeenCalled();
   });
 });
