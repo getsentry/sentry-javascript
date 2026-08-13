@@ -1,6 +1,7 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
+  _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
   ServerRuntimeClient,
@@ -46,6 +47,10 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+
+    // Durable Object and waitUntil work can end after the request segment. Deferring static capture
+    // preserves those late children; the strategy is inert for Cloudflare's default stream lifecycle.
+    _INTERNAL_setDeferSegmentSpanCapture(this);
 
     // Track span lifecycle to know when to flush
     this._unsubscribeSpanStart = this.on('spanStart', span => {

@@ -17,9 +17,11 @@ const MOCK_ENV_WITHOUT_DSN = {
   SENTRY_RELEASE: '1.1.1',
 };
 
-function createMockExecutionContext(): ExecutionContext {
+function createMockExecutionContext(waitUntilPromises: Promise<unknown>[] = []): ExecutionContext {
   return {
-    waitUntil: vi.fn(),
+    waitUntil: vi.fn(promise => {
+      waitUntilPromises.push(promise);
+    }),
     passThroughOnException: vi.fn(),
   };
 }
@@ -249,7 +251,13 @@ describe('instrumentScheduled', () => {
         handler,
       );
 
-      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+      const waitUntilPromises: Promise<unknown>[] = [];
+      await wrappedHandler.scheduled?.(
+        createMockScheduledController(),
+        MOCK_ENV,
+        createMockExecutionContext(waitUntilPromises),
+      );
+      await Promise.all(waitUntilPromises);
 
       expect(sentryEvent.transaction).toEqual('Scheduled Cron 0 0 0 * * *');
       expect(sentryEvent.spans).toHaveLength(0);

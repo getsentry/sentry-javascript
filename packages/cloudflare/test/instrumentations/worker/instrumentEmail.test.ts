@@ -17,9 +17,11 @@ const MOCK_ENV_WITHOUT_DSN = {
   SENTRY_RELEASE: '1.1.1',
 };
 
-function createMockExecutionContext(): ExecutionContext {
+function createMockExecutionContext(waitUntilPromises: Promise<unknown>[] = []): ExecutionContext {
   return {
-    waitUntil: vi.fn(),
+    waitUntil: vi.fn(promise => {
+      waitUntilPromises.push(promise);
+    }),
     passThroughOnException: vi.fn(),
   };
 }
@@ -255,7 +257,9 @@ describe('instrumentEmail', () => {
       );
 
       const emailMessage = createMockEmailMessage();
-      await wrappedHandler.email?.(emailMessage, MOCK_ENV, createMockExecutionContext());
+      const waitUntilPromises: Promise<unknown>[] = [];
+      await wrappedHandler.email?.(emailMessage, MOCK_ENV, createMockExecutionContext(waitUntilPromises));
+      await Promise.all(waitUntilPromises);
 
       expect(sentryEvent.transaction).toEqual(`Handle Email ${emailMessage.to}`);
       expect(sentryEvent.spans).toHaveLength(0);
