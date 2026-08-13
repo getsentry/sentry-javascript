@@ -13,7 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { bindTracingChannelToSpan } from '../tracing-channel';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
 // Hardcoded so the subscriber does not have to import mysql2 — the channels

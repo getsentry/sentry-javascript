@@ -1,7 +1,6 @@
 export * from './exports';
 
 // Exports using diagnostics channels
-export { mysql2Integration } from './mysql2';
 export { instrumentPrisma, prismaIntegration } from './prisma';
 export type { PrismaInstrumentationConfig, PrismaOptions } from './prisma';
 export { bindTracingChannelToSpan } from './tracing-channel';

@@ -8,12 +8,12 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { subscribeMysql2DiagnosticChannels } from '../mysql2/mysql2-dc-subscriber';
-import type { ChannelName } from '../orchestrion/channels';
-import { CHANNELS } from '../orchestrion/channels';
-import { bindTracingChannelToSpan } from '../tracing-channel';
-import { mysql2ModuleNames } from '../orchestrion/config/mysql2';
-import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
+import type { ChannelName } from '../../orchestrion/channels';
+import { CHANNELS } from '../../orchestrion/channels';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAME,
   DB_STATEMENT,
