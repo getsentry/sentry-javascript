@@ -42,6 +42,7 @@ import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
+import { copyEventCaptureDecision, notifyEventCaptureDecision } from './utils/eventCaptureDecision';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
@@ -372,6 +373,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
+      notifyEventCaptureDecision(hint, 'rejected');
       return eventId;
     }
 
@@ -379,6 +381,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       event_id: eventId,
       ...hint,
     };
+    copyEventCaptureDecision(hint, hintWithEventId);
 
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
@@ -388,6 +391,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._process(
       () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
       dataCategory,
+      hintWithEventId,
     );
 
     return hintWithEventId.event_id;
@@ -1448,6 +1452,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return finalEvent.event_id;
       },
       reason => {
+        notifyEventCaptureDecision(hint, 'rejected');
         if (DEBUG_BUILD) {
           if (_isDoNotSendEventError(reason)) {
             debug.log(reason.message);
@@ -1583,16 +1588,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory): void {
+  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory, eventHint?: EventHint): void {
     this._numProcessing++;
 
     void this._promiseBuffer.add(taskProducer).then(
       value => {
+        if (eventHint) {
+          // Decision callbacks may synchronously capture follow-up telemetry and need the slot which the
+          // promise buffer's earlier settlement handler has just released.
+          notifyEventCaptureDecision(eventHint, 'accepted');
+        }
         this._numProcessing--;
         return value;
       },
       reason => {
         this._numProcessing--;
+        if (eventHint) {
+          notifyEventCaptureDecision(eventHint, 'rejected');
+        }
 
         if (reason === SENTRY_BUFFER_FULL_ERROR) {
           this.recordDroppedEvent('queue_overflow', dataCategory);
