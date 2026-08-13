@@ -16,7 +16,6 @@ import {
   trackInpAsSpan,
   trackLcpAsSpan,
 } from '../../src/web-vitals/spans';
-import * as utils from '../../src/web-vitals/utils';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -696,19 +695,16 @@ describe('trackInpAsSpan', () => {
 });
 
 describe('soft navigation web vitals', () => {
-  const streamingClient = { getOptions: () => ({ traceLifecycle: 'stream' }), on: vi.fn() } as any;
-
   const mockScope = {
     getScopeData: vi.fn().mockReturnValue({ transactionName: 'test-route' }),
   };
 
   const navigationSpan = { spanContext: () => ({ spanId: 'nav-1' }) } as any;
+  const pageloadSpan = createMockPageloadSpan('pageload-1');
 
   let lcpCallback: (arg: { metric: any }) => void;
   let clsCallback: (arg: { metric: any }) => void;
-  let reportEventCallback: (event: string, spanId: string, span?: any) => void;
-  let hiddenCallback: (() => void) | undefined;
-  let cleanupLcpHandler: () => void;
+  let client: any;
 
   function lcpMetric(navigationId: number, value: number, navigationType = 'soft-navigation') {
     return { value, navigationId, navigationType, entries: [{ startTime: value, element: {} }] };
@@ -726,22 +722,22 @@ describe('soft navigation web vitals', () => {
     vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockImplementation((metric: any) =>
       metric.navigationType === 'soft-navigation' ? navigationSpan : undefined,
     );
-    hiddenCallback = undefined;
-    cleanupLcpHandler = vi.fn();
     vi.spyOn(instrument, 'addLcpInstrumentationHandler').mockImplementation((cb: any) => {
       lcpCallback = cb;
-      return cleanupLcpHandler;
+      return () => undefined;
     });
     vi.spyOn(instrument, 'addClsInstrumentationHandler').mockImplementation((cb: any) => {
       clsCallback = cb;
       return () => undefined;
     });
-    vi.spyOn(reportEvents, 'listenForWebVitalReportEvents').mockImplementation((_client: any, cb: any) => {
-      reportEventCallback = cb;
-    });
-    vi.spyOn(utils, 'onHidden').mockImplementation((cb: any) => {
-      hiddenCallback = cb;
-    });
+    client = {
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+      on: vi.fn((hook: string, cb: any) => {
+        if (hook === 'afterStartPageLoadSpan') {
+          cb(pageloadSpan);
+        }
+      }),
+    };
   });
 
   afterEach(() => {
@@ -749,76 +745,50 @@ describe('soft navigation web vitals', () => {
     vi.clearAllMocks();
   });
 
-  it('reports one LCP span per soft navigation, against its navigation span', () => {
-    trackLcpAsSpan(streamingClient, true);
+  it('sends every reported LCP as a span, against the navigation it belongs to', () => {
+    trackLcpAsSpan(client, true);
 
     lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
-    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
-
     lcpCallback({ metric: lcpMetric(2, 300) });
-    lcpCallback({ metric: lcpMetric(3, 500) });
 
     const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
-    expect(calls[0]![0].parentSpan).toEqual(expect.objectContaining({ spanContext: expect.any(Function) }));
+    expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
     expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
     expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
   });
 
-  it('flushes the last soft navigation LCP on pagehide', () => {
-    trackLcpAsSpan(streamingClient, true);
-
-    lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
-    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
-    lcpCallback({ metric: lcpMetric(2, 300) });
-
-    hiddenCallback?.();
-
-    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
-    expect(calls).toHaveLength(2);
-    expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
-    expect(calls[1]![0].attributes?.['browser.web_vital.lcp.report_event']).toBe('pagehide');
-  });
-
-  it('does not report soft navigation vitals that could not be correlated', () => {
+  it('drops soft navigation vitals that could not be correlated', () => {
     vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockReturnValue(undefined);
 
-    trackLcpAsSpan(streamingClient, true);
+    trackLcpAsSpan(client, true);
 
     lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
-    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
     lcpCallback({ metric: lcpMetric(2, 300) });
-    lcpCallback({ metric: lcpMetric(3, 500) });
-    hiddenCallback?.();
 
     expect(vi.mocked(SentryCore.startInactiveSpan)).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the LCP handler alive for soft navigations but tears it down without them', () => {
-    trackLcpAsSpan(streamingClient, true);
-    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
-    expect(cleanupLcpHandler).not.toHaveBeenCalled();
-    expect(hiddenCallback).toBeDefined();
-
-    trackLcpAsSpan(streamingClient, false);
-    reportEventCallback('navigation', 'pageload-2', createMockPageloadSpan('pageload-2'));
-    expect(cleanupLcpHandler).toHaveBeenCalled();
-  });
-
-  it('reports a CLS of 0 for a soft navigation without layout shifts', () => {
-    trackClsAsSpan(streamingClient, true);
-
-    clsCallback({ metric: { value: 0.1, navigationId: 1, navigationType: 'navigate', entries: [{ sources: [] }] } });
-    reportEventCallback('navigation', 'pageload-1', createMockPageloadSpan('pageload-1'));
+  it('sends a CLS of 0 for a soft navigation without layout shifts', () => {
+    trackClsAsSpan(client, true);
 
     clsCallback({ metric: { value: 0, navigationId: 2, navigationType: 'soft-navigation', entries: [] } });
-    clsCallback({ metric: { value: 0, navigationId: 3, navigationType: 'soft-navigation', entries: [] } });
 
-    const calls = vi.mocked(SentryCore.startInactiveSpan).mock.calls;
-    expect(calls).toHaveLength(2);
-    expect(calls[1]![0].attributes?.['browser.web_vital.cls.value']).toBe(0);
-    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    expect(call.attributes?.['browser.web_vital.cls.value']).toBe(0);
+    expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(call.parentSpan).toBe(navigationSpan);
+  });
+
+  it('does not use the page load report events when soft navigations are on', () => {
+    const listenSpy = vi.spyOn(reportEvents, 'listenForWebVitalReportEvents');
+
+    trackLcpAsSpan(client, true);
+    trackClsAsSpan(client, true);
+
+    expect(listenSpy).not.toHaveBeenCalled();
   });
 });

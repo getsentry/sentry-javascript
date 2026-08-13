@@ -24,7 +24,6 @@ import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
 import { getNavigationSpanForMetric } from './softNavs';
-import { onHidden } from './utils';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
 import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import {
@@ -43,45 +42,61 @@ const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
   press: UI_INTERACTION_PRESS,
 };
 
+type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>[0]>[0]['metric'];
+
+/**
+ * Reports a web vital once per navigation, for browsers reporting soft navigations.
+ *
+ * With `reportSoftNavs`, web-vitals restarts the metric on every soft navigation and force-reports
+ * the previous one just before it does (and again on pagehide). Since we also drop
+ * `reportAllChanges` in this mode, every value we're handed is already the final one for its
+ * navigation, so there is nothing to accumulate: each report is a span.
+ */
+function trackWebVitalPerNavigation(
+  client: Client,
+  addInstrumentationHandler: typeof addLcpInstrumentationHandler,
+  send: (metric: WebVitalMetric, parentSpan: Span | undefined, softNavigationId: number | undefined) => void,
+): void {
+  let pageloadSpan: Span | undefined;
+  client.on('afterStartPageLoadSpan', span => {
+    pageloadSpan = span;
+  });
+
+  addInstrumentationHandler(({ metric }) => {
+    const navigationSpan = getNavigationSpanForMetric(metric);
+    if (metric.navigationType === 'soft-navigation') {
+      // Reporting an uncorrelated soft navigation vital would attribute it to the wrong route, so
+      // it's dropped instead.
+      if (navigationSpan) {
+        send(metric, navigationSpan, metric.navigationId);
+      }
+      return;
+    }
+
+    send(metric, pageloadSpan, undefined);
+  });
+}
+
 /**
  * Tracks LCP as a streamed span.
- *
- * With `reportSoftNavs`, web-vitals restarts LCP on every soft navigation, so we also get one LCP
- * per soft navigation. Each one is finalized at the following soft navigation (or on pagehide) and
- * reported against the navigation span it belongs to.
  */
 export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
-  let lcpValue = 0;
-  let lcpEntry: LargestContentfulPaint | undefined;
-  // The navigation the value above belongs to. `navigationSpan` is only set for soft navigations;
-  // the initial page load reports against the pageload span instead.
-  let navigationId: number | undefined;
-  let navigationSpan: Span | undefined;
-
   if (!supportsWebVital('largest-contentful-paint')) {
     return;
   }
 
-  const flush = (reportEvent: WebVitalReportEvent, parentSpan?: Span): void => {
-    _sendLcpSpan(lcpValue, lcpEntry, parentSpan, reportEvent, navigationSpan ? navigationId : undefined);
-    lcpValue = 0;
-    lcpEntry = undefined;
-  };
+  if (reportSoftNavs) {
+    trackWebVitalPerNavigation(client, addLcpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
+      _sendLcpSpan(metric.value, entry, parentSpan, undefined, softNavigationId);
+    });
+    return;
+  }
+
+  let lcpValue = 0;
+  let lcpEntry: LargestContentfulPaint | undefined;
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
-    if (reportSoftNavs && navigationId !== undefined && metric.navigationId !== navigationId) {
-      // web-vitals finalized the previous navigation's LCP before restarting for this one. The
-      // initial page load is handed over by the report events below, so only soft navigations are
-      // flushed here - and only if we managed to correlate one to a navigation span.
-      if (navigationSpan) {
-        flush('navigation', navigationSpan);
-      }
-      lcpValue = 0;
-      lcpEntry = undefined;
-    }
-    navigationId = metric.navigationId;
-    navigationSpan = getNavigationSpanForMetric(metric);
-
     const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
     if (!entry || !isValidLcpMetric(metric.value)) {
       return;
@@ -91,22 +106,9 @@ export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    flush(reportEvent, pageloadSpan);
-    // Soft navigations keep reporting after the initial page load, so the handler has to stay.
-    if (!reportSoftNavs) {
-      cleanupLcpHandler();
-    }
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent);
+    cleanupLcpHandler();
   });
-
-  if (reportSoftNavs) {
-    // The report events above only fire once, for the initial page load. Without this, the LCP of
-    // the last soft navigation would never be flushed.
-    onHidden(() => {
-      if (navigationSpan) {
-        flush('pagehide', navigationSpan);
-      }
-    });
-  }
 }
 
 /**
@@ -156,42 +158,24 @@ export function _sendLcpSpan(
 
 /**
  * Tracks CLS as a streamed span.
- *
- * With `reportSoftNavs`, layout shifts are attributed to the soft navigation they happened during
- * instead of accumulating over the whole page lifetime, so each soft navigation gets its own CLS.
  */
 export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
-  let clsValue = 0;
-  let clsEntry: LayoutShift | undefined;
-  // Unlike LCP, a CLS of 0 is a meaningful value, so we can't use the value itself to tell whether
-  // there is anything left to report.
-  let hasUnreportedValue = false;
-  let navigationId: number | undefined;
-  let navigationSpan: Span | undefined;
-
   if (!supportsWebVital('layout-shift')) {
     return;
   }
 
-  const flush = (reportEvent: WebVitalReportEvent, parentSpan?: Span): void => {
-    _sendClsSpan(clsValue, clsEntry, parentSpan, reportEvent, navigationSpan ? navigationId : undefined);
-    clsValue = 0;
-    clsEntry = undefined;
-    hasUnreportedValue = false;
-  };
+  if (reportSoftNavs) {
+    trackWebVitalPerNavigation(client, addClsInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      _sendClsSpan(metric.value, entry, parentSpan, undefined, softNavigationId);
+    });
+    return;
+  }
+
+  let clsValue = 0;
+  let clsEntry: LayoutShift | undefined;
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
-    if (reportSoftNavs && navigationId !== undefined && metric.navigationId !== navigationId) {
-      if (navigationSpan && hasUnreportedValue) {
-        flush('navigation', navigationSpan);
-      }
-      clsValue = 0;
-      clsEntry = undefined;
-    }
-    navigationId = metric.navigationId;
-    navigationSpan = getNavigationSpanForMetric(metric);
-    hasUnreportedValue = true;
-
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
@@ -201,19 +185,9 @@ export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    flush(reportEvent, pageloadSpan);
-    if (!reportSoftNavs) {
-      cleanupClsHandler();
-    }
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent);
+    cleanupClsHandler();
   });
-
-  if (reportSoftNavs) {
-    onHidden(() => {
-      if (navigationSpan && hasUnreportedValue) {
-        flush('pagehide', navigationSpan);
-      }
-    });
-  }
 }
 
 /**
