@@ -13,7 +13,7 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration as kafkaIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,

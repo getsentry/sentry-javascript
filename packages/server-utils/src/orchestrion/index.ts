@@ -8,7 +8,7 @@ import { graphqlIntegration } from '../integrations/graphql';
 import { hapiIntegration } from '../integrations/hapi';
 import { koaIntegration } from '../integrations/koa';
 import { redisIntegration } from '../integrations/redis';
-import { kafkajsIntegration } from '../integrations/kafkajs';
+import { kafkaIntegration } from '../integrations/kafkajs';
 import { knexIntegration } from '../integrations/knex';
 import { langChainIntegration } from '../integrations/langchain';
 import { langGraphIntegration } from '../integrations/langgraph';
@@ -47,7 +47,7 @@ export {
   hapiIntegration,
   koaIntegration,
   redisIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -102,7 +102,7 @@ export const channelIntegrations = {
   koaIntegration,
   expressIntegration,
   graphqlIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   tediousIntegration,
   awsIntegration,
   firebaseIntegration,

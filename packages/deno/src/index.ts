@@ -128,7 +128,7 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,

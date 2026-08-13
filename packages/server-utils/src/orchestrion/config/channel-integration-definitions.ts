@@ -36,7 +36,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'hapiIntegration', modules: ['@hapi/hapi'] },
   { exportName: 'expressIntegration', modules: ['express', 'router'] },
   { exportName: 'graphqlIntegration', modules: ['graphql'] },
-  { exportName: 'kafkajsIntegration', modules: ['kafkajs'] },
+  { exportName: 'kafkaIntegration', modules: ['kafkajs'] },
   { exportName: 'redisIntegration', modules: ['redis', '@redis/client', 'ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
