@@ -19,3 +19,10 @@ node_modules/
 
 # potentially containing secrets
 *.local
+
+# stray declaration output at the package root
+# The build emits declarations to `declarations/` (see rollup.config.mjs), but the pre-v2-addon
+# layout emitted them here. Paths are anchored so `src/` is unaffected.
+/*.d.ts
+/utils/*.d.ts
+/instance-initializers/*.d.ts
