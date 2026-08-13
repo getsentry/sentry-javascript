@@ -1,24 +1,19 @@
 /**
  * Sentry-internal base interface for build-time options used in Sentry's meta-framework SDKs (e.g., Next.js, Nuxt, SvelteKit).
  *
- * SDKs should extend this interface to add framework-specific configurations. To include bundler-specific
- * options, combine this type with one of the `Unstable[Bundler]PluginOptions` types, such as
- * `UnstableVitePluginOptions` or `UnstableWebpackPluginOptions`.
+ * SDKs should extend this interface to add framework-specific configurations.
  *
  * If an option from this base interface doesn't apply to an SDK, use the `Omit` utility type to exclude it.
  *
  * @example
  * ```typescript
- * import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
- * import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+ * import type { BuildTimeOptionsBase } from '@sentry/core';
  *
  * // Example of how a framework SDK would define its build-time options
- * type MyFrameworkBuildOptions =
- *   BuildTimeOptionsBase &
- *   UnstableVitePluginOptions<SentryVitePluginOptions> & {
- *     // Framework-specific options can be added here
- *     myFrameworkSpecificOption?: boolean;
- *   };
+ * type MyFrameworkBuildOptions = BuildTimeOptionsBase & {
+ *   // Framework-specific options can be added here
+ *   myFrameworkSpecificOption?: boolean;
+ * };
  * ```
  *
  * @internal Only meant for Sentry-internal SDK usage.
@@ -209,78 +204,6 @@ export interface ReactComponentAnnotationOptions {
    */
   ignoredComponents?: string[];
 }
-
-/**
- * Utility type for adding Vite plugin options to build-time configuration.
- * Use this type to extend your build-time options with Vite-specific plugin configurations.
- *
- * @template PluginOptionsType - The type of Vite plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableVitePluginOptions<SentryVitePluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
- */
-export type UnstableVitePluginOptions<PluginOptionsType> = {
-  /**
-   * Options to be passed directly to the Sentry Vite Plugin (`@sentry/bundler-plugins/vite`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Vite plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryVitePluginOptions?: PluginOptionsType;
-};
-
-/**
- * Utility type for adding Webpack plugin options to build-time configuration.
- * Use this type to extend your build-time options with Webpack-specific plugin configurations.
- *
- * @template PluginOptionsType - The type of Webpack plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableWebpackPluginOptions<SentryWebpackPluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
- */
-export type UnstableWebpackPluginOptions<PluginOptionsType> = {
-  /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryWebpackPluginOptions?: PluginOptionsType;
-};
-
-/**
- * Utility type for adding Rollup plugin options to build-time configuration.
- * Use this type to extend your build-time options with Rollup-specific plugin configurations.
- *
- * @template PluginOptionsType - The type of Rollup plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableRollupPluginOptions<SentryRollupPluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
- */
-export type UnstableRollupPluginOptions<PluginOptionsType> = {
-  /**
-   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/bundler-plugins/rollup`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Rollup plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryRollupPluginOptions?: PluginOptionsType;
-};
 
 interface SourceMapsOptions {
   /**

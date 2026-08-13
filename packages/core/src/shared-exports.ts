@@ -522,9 +522,6 @@ export type {
   ModuleMetadataCallbackArgs,
   ReactComponentAnnotationOptions,
   ResolveSourceMapHook,
-  UnstableVitePluginOptions,
-  UnstableRollupPluginOptions,
-  UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
 export type { RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner } from './utils/randomSafeContext';
 export {
