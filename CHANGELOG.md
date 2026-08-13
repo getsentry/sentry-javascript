@@ -13,6 +13,21 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
+- **feat(browser): Add `bfcacheIntegration` to track back/forward cache health**
+
+  The new opt-in `bfcacheIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
+  measure how often back-button navigation is instant and what's blocking it.
+
+  ```js
+  Sentry.init({
+    integrations: [Sentry.bfcacheIntegration()],
+  });
+  ```
+
+  It emits:
+  - `browser.bfcache.navigation` — a counter split by outcome (`hit`/`miss`).
+  - `browser.bfcache.not_restored` — a counter of the (Chromium-only) `notRestoredReasons` for a miss.
+  - `browser.bfcache.reload.duration` — a distribution of how expensive the fallback reload was on a miss.
 
 ## 10.67.0
 
