@@ -66,9 +66,6 @@ export {
 };
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
-// The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
-// vendored OTel graphql instrumentation (re-exported from here so the two can't drift).
-export type * from '../integrations/graphql/graphql-types';
 
 /**
  * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
