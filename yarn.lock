@@ -15611,10 +15611,10 @@ externality@^1.0.2:
     pathe "^1.1.1"
     ufo "^1.1.2"
 
-fake-indexeddb@^6.2.4:
-  version "6.2.4"
-  resolved "https://registry.yarnpkg.com/fake-indexeddb/-/fake-indexeddb-6.2.4.tgz#cf3860b6b37ddc3b33e7840be00a61ed094486a5"
-  integrity sha512-INKeIKEtSViN4yVtEWEUqbsqmaIy7Ls+MfU0yxQVXg67pOJ/sH1ZxcVrP8XrKULUFohcPD9gnmym+qBfEybACw==
+fake-indexeddb@^6.2.5:
+  version "6.2.5"
+  resolved "https://registry.yarnpkg.com/fake-indexeddb/-/fake-indexeddb-6.2.5.tgz#74285b6821467d6c102af092f0a4517ad5521613"
+  integrity sha512-CGnyrvbhPlWYMngksqrSSUT1BAVP49dZocrHuK0SvtR0D5TMs5wP0o3j7jexDJW01KSadjBp1M/71o/KR3nD1w==
 
 fast-check@^3.23.1:
   version "3.23.2"
@@ -24319,9 +24319,9 @@ rollup-plugin-sourcemaps@^0.6.3:
     source-map-resolve "^0.6.0"
 
 rollup-plugin-visualizer@^6.0.3, rollup-plugin-visualizer@^7.0.1:
-  version "6.0.5"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.5.tgz#9cf774cff88f4ba2887c97354766b68931323280"
-  integrity sha512-9+HlNgKCVbJDs8tVtjQ43US12eqaiHyyiLMdBwQ7vSZPiHMysGNo2E88TAp1si5wx8NAoYriI2A5kuKfIakmJg==
+  version "6.0.11"
+  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.11.tgz#64addb59eb43d560cd1bdc5db91e64c0069b9f71"
+  integrity sha512-TBwVHVY7buHjIKVLqr9scTVFwqZqMXINcCphPwIWKPDCOBIa+jCQfafvbjRJDZgXdq/A996Dy6yGJ/+/NtAXDQ==
   dependencies:
     open "^8.0.0"
     picomatch "^4.0.2"
