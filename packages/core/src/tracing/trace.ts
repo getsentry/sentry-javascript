@@ -162,13 +162,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     ? (callback: () => Span) => withScope(customScope, callback)
     : customParentSpan !== undefined
       ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
-      : getAcs().getActiveSpan
-        ? // When the ACS resolves the active span outside the scope (OTel), fork the scope for the
-          // creation so the captured span scope is a snapshot: mutations of the ambient scope after
-          // span start must not leak into the span. Mirrors the context fork of the previous OTel
-          // implementation.
-          (callback: () => Span) => withScope(callback)
-        : (callback: () => Span) => callback();
+      : (callback: () => Span) => callback();
 
   return wrapper(() => {
     const scope = getCurrentScope();

@@ -887,7 +887,7 @@ describe('trace', () => {
       });
     });
 
-    it('includes the scope at the time the span was started when finished', async () => {
+    it('includes the scope the span was started on when finished', async () => {
       const beforeSendTransaction = vi.fn(event => event);
 
       const client = getClient()!;
@@ -902,8 +902,8 @@ describe('trace', () => {
       withScope(scope => {
         scope.setTag('scope', 1);
         span = startInactiveSpan({ name: 'my-span' });
-        // Set after the span was started: the span captures a snapshot of the scope at start time,
-        // so this later mutation is intentionally not reflected on the transaction.
+        // The span captures the scope it was started on, so later mutations of that scope
+        // are reflected on the transaction.
         scope.setTag('scope_after_span', 2);
       });
 
@@ -916,9 +916,9 @@ describe('trace', () => {
 
       expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
       const transactionEvent = beforeSendTransaction.mock.calls[0]![0];
-      // Only the scope state at span-start is captured: `outer` and `scope: 1`, but not
-      // `scope_after_span` (set later) or `scope: 2` (a different scope active at `end()`).
-      expect(transactionEvent.tags).toEqual({ outer: 'foo', scope: 1 });
+      // The span-start scope is captured: `outer`, `scope: 1`, and `scope_after_span` (set on the
+      // same scope after span start), but not `scope: 2` (a different scope active at `end()`).
+      expect(transactionEvent.tags).toEqual({ outer: 'foo', scope: 1, scope_after_span: 2 });
     });
   });
 
