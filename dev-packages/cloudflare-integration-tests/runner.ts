@@ -8,6 +8,7 @@ import { inspect } from 'util';
 import { expect } from 'vitest';
 
 const CLEANUP_STEPS = new Set<() => void>();
+const STRICT_ENVELOPE_QUIET_WINDOW_MS = 250;
 
 export function cleanupChildProcesses(): void {
   for (const step of CLEANUP_STEPS) {
@@ -161,6 +162,7 @@ export function createRunner(...paths: string[]) {
 
   // controls whether envelopes are expected in predefined order or not
   let unordered = false;
+  let strict = false;
 
   if (!existsSync(testPath)) {
     throw new Error(`Test scenario not found: ${testPath}`);
@@ -193,6 +195,10 @@ export function createRunner(...paths: string[]) {
     },
     unordered: function () {
       unordered = true;
+      return this;
+    },
+    strict: function () {
+      strict = true;
       return this;
     },
     ignore: function (...types: EnvelopeItemType[]) {
@@ -238,8 +244,17 @@ export function createRunner(...paths: string[]) {
       function expectCallbackCalled(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
-          resolve();
+          if (strict) {
+            // Keep the server open briefly so envelopes emitted just after the final match cannot escape cardinality checks.
+            setTimeout(resolve, STRICT_ENVELOPE_QUIET_WINDOW_MS);
+          } else {
+            resolve();
+          }
         }
+      }
+
+      function rejectUnexpectedEnvelope(envelopeItemType: EnvelopeItemType): void {
+        reject(new Error(`Received unexpected ${envelopeItemType} envelope in strict mode`));
       }
 
       function waitForEnvelope(expected: Expected): Promise<void> {
@@ -297,6 +312,9 @@ export function createRunner(...paths: string[]) {
 
             // no match found
             if (matchIndex < 0) {
+              if (strict) {
+                rejectUnexpectedEnvelope(envelopeItemType);
+              }
               return;
             }
 
@@ -307,6 +325,9 @@ export function createRunner(...paths: string[]) {
             const expected = expectedEnvelopes.shift();
 
             if (!expected) {
+              if (strict) {
+                rejectUnexpectedEnvelope(envelopeItemType);
+              }
               return;
             }
 
