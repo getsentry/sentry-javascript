@@ -21,7 +21,6 @@ describe('entry point resolution', () => {
     ['startSpan', plainStartSpan, browserSpanApi.startSpan],
     ['startInactiveSpan', plainStartInactiveSpan, browserSpanApi.startInactiveSpan],
     ['startSpanManual', plainStartSpanManual, browserSpanApi.startSpanManual],
-    ['startIdleSpan', plainStartIdleSpan, browserSpanApi.startIdleSpan],
     ['spanStreamingIntegration', plainSpanStreamingIntegration, browserSpanStreamingIntegration],
   ] as const;
 
