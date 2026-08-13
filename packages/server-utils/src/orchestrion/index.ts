@@ -64,8 +64,6 @@ export {
   expressIntegration,
   firebaseIntegration,
 };
-export type { KoaIntegrationOptions } from '../integrations/koa';
-export type { PostgresJsIntegrationOptions } from '../integrations/postgres-js';
 export type { InstrumentationConfig, CustomTransform } from './apmTypes';
 
 // The structural `graphql` package types are the single source of truth shared with `@sentry/node`'s
