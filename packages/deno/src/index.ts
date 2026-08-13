@@ -111,7 +111,7 @@ export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
-export { denoRedisIntegration } from './integrations/redis';
+
 // The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
 // Most are in the default set; `dataloader` and `knex` are opt-in (add them to
 // `integrations` to enable), matching Node. Re-export every one that `sdk.ts`
@@ -157,6 +157,7 @@ export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';
+export { denoRedisIntegration } from './integrations/redis';
 /* eslint-enable typescript/no-deprecated */
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
