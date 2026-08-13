@@ -14,12 +14,6 @@
  * `modules` must match `module.name` values in `SENTRY_INSTRUMENTATIONS` — e.g.
  * `postgresIntegration` covers both `pg` and `pg-pool`, and `redisIntegration`
  * covers `redis`, `@redis/client` and `ioredis`.
- *
- * `redis`, `ioredis` and `dataloader` are included even though they're not in
- * the node SDK's `channelIntegrations` (they only partially replace an OTel
- * integration there): in a bundler-only runtime like Cloudflare Workers there
- * is no OTel integration to coordinate with, so subscribing whenever the
- * package is bundled is unconditionally correct.
  */
 export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresIntegration', modules: ['pg', 'pg-pool'] },
