@@ -18,9 +18,10 @@ export type SvelteKitTracingConfig = {
  * The location of SvelteKit's native tracing config differs by version:
  * - SvelteKit 2.31+ and early Kit 3 prereleases nest it under `kit.experimental.tracing`
  * - SvelteKit 3 (>= 3.0.0-next.8) promoted it to `kit.tracing`
- * We type (and read) both so detection works across the supported peer range.
+ * - SvelteKit 3 (>= 3.0.0-next.21) dropped the `kit` nesting entirely, leaving `tracing`
+ * We type (and read) all of them so detection works across the supported peer range.
  */
-type BackwardsForwardsCompatibleKitConfig = Config['kit'] &
+export type BackwardsForwardsCompatibleKitConfig = Config['kit'] &
   Pick<SvelteKitTracingConfig, 'tracing'> & { experimental?: SvelteKitTracingConfig };
 
 export interface BackwardsForwardsCompatibleSvelteConfig extends Config {
