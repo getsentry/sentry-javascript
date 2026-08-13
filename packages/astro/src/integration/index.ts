@@ -34,8 +34,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // eslint-disable-next-line typescript/no-deprecated
           sourceMapsUploadOptions,
           sourcemaps,
-          // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
-          // release,
+          release,
           buildTimeInstrumentation,
           bundleSizeOptimizations,
           applicationKey,
@@ -49,17 +48,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           telemetry,
           silent,
           errorHandler,
-          ...deprecatedOptions
         } = options;
-
-        const deprecatedOptionsKeys = Object.keys(deprecatedOptions);
-        if (deprecatedOptionsKeys.length > 0) {
-          logger.warn(
-            `You passed in additional options (${deprecatedOptionsKeys.join(
-              ', ',
-            )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
-          );
-        }
 
         const sdkEnabled = {
           client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
@@ -134,6 +123,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   },
                   ...unstableMerged_sentryVitePluginOptions,
                   debug: debug ?? false,
+                  release: {
+                    ...unstableMerged_sentryVitePluginOptions?.release,
+                    ...release,
+                  },
                   sourcemaps: {
                     ...sourcemaps,
                     // eslint-disable-next-line typescript/no-deprecated

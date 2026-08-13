@@ -8,8 +8,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.client.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initialize with the options
-   * specified in the `sentryAstro` integration or with default options.
+   * If there is no file at the default location either, the SDK will initialize with default options.
    */
   clientInitPath?: string;
 
@@ -18,8 +17,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.server.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initialize with the options
-   * specified in the `sentryAstro` integration or with default options.
+   * If there is no file at the default location either, the SDK will initialize with default options.
    */
   serverInitPath?: string;
 };
@@ -158,25 +156,14 @@ type SdkEnabledOptions = {
 };
 
 /**
- * We accept aribtrary options that are passed through to the Sentry SDK.
- * This is not recommended and will stop working in a future version.
- * Note: Not all options are actually passed through, only a select subset:
- * release, environment, dsn, debug, sampleRate, tracesSampleRate, replaysSessionSampleRate, replaysOnErrorSampleRate
- * @deprecated This will be removed in a future major.
- **/
-type DeprecatedRuntimeOptions = Record<string, unknown>;
-
-/**
- * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
- * Some options (e.g. integrations) are set by default and cannot be changed here.
+ * Options for the `sentryAstro` integration.
  *
- * If you want a more fine-grained control over the SDK, with all options,
- * you can call Sentry.init in `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+ * Build-time options (source maps, release management, etc.) are configured here.
+ * Runtime SDK options must be set in `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)`.
  *
- * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
+ * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored for init.
  */
-export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
-  // todo(v11): `release` and `debug` need to be removed from BuildTimeOptionsBase as it is currently conflicting with `DeprecatedRuntimeOptions`
+export type SentryOptions = BuildTimeOptionsBase &
   UnstableVitePluginOptions<SentryVitePluginOptions> &
   SdkInitPaths &
   InstrumentationOptions &
@@ -192,8 +179,7 @@ export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
      */
     // eslint-disable-next-line typescript/no-deprecated
     sourceMapsUploadOptions?: SourceMapsOptions;
-    // eslint-disable-next-line typescript/no-deprecated
-  } & DeprecatedRuntimeOptions;
+  };
 
 /**
  * Routes inside 'astro:routes:resolved' hook (Astro v5+)

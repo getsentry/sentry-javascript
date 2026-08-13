@@ -6,7 +6,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
 import {
   addVercelAiProcessors,
-  vercelAiIntegration as serverUtilsVercelAiIntegration,
+  vercelAIIntegration as serverUtilsVercelAiIntegration,
   type VercelAiOptions,
 } from '@sentry/server-utils';
 

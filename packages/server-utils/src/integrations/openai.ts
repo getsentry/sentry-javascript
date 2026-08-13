@@ -38,7 +38,7 @@ interface OpenAiChatChannelContext {
   result?: unknown;
 }
 
-const _openaiIntegration = ((options: OpenAiOptions = {}) => {
+const _openAIIntegration = ((options: OpenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -130,4 +130,4 @@ function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: O
  * diagnostics_channels injected into `openai`'s `create` methods (chat completions, responses, embeddings,
  * conversations), so it requires the orchestrion runtime hook or bundler plugin.
  */
-export const openaiIntegration = defineIntegration(_openaiIntegration);
+export const openAIIntegration = defineIntegration(_openAIIntegration);

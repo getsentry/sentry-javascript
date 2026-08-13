@@ -2,14 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from '../../src/integration/snippets';
 import type { SentryOptions } from '../../src/integration/types';
 
-const allSdkOptions: SentryOptions = {
-  dsn: 'my-dsn',
-  release: '1.0.0',
-  environment: 'staging',
-  sampleRate: 0.2,
-  tracesSampleRate: 0.3,
-  replaysOnErrorSampleRate: 0.4,
-  replaysSessionSampleRate: 0.5,
+const buildTimeSdkOptions: SentryOptions = {
+  release: { name: '1.0.0' },
   debug: true,
 };
 
@@ -24,30 +18,29 @@ describe('buildClientSnippet', () => {
         debug: false,
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-        tracesSampleRate: 1,
+        tracesSampleRate: 1.0,
         integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1,
+        replaysOnErrorSampleRate: 1.0,
       });"
     `);
   });
 
-  it('returns a basic Sentry init call with custom options', () => {
-    const snippet = buildClientSnippet(allSdkOptions);
+  it('returns a basic Sentry init call with build-time options', () => {
+    const snippet = buildClientSnippet(buildTimeSdkOptions);
 
     expect(snippet).toMatchInlineSnapshot(`
       "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
-        dsn: "my-dsn",
+        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
         debug: true,
-        environment: "staging",
+        environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: "1.0.0",
-        tracesSampleRate: 0.3,
-        sampleRate: 0.2,
+        tracesSampleRate: 1.0,
         integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-        replaysSessionSampleRate: 0.5,
-        replaysOnErrorSampleRate: 0.4,
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
       });"
     `);
   });
@@ -62,49 +55,13 @@ describe('buildClientSnippet', () => {
         debug: false,
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-        tracesSampleRate: 1,
+        tracesSampleRate: 1.0,
         integrations: [Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1,
+        replaysOnErrorSampleRate: 1.0,
       });"
     `);
   });
-
-  it('still include browserTracingIntegration if tracesSampleRate is 0', () => {
-    const snippet = buildClientSnippet({ tracesSampleRate: 0 });
-    expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from "@sentry/astro";
-
-      Sentry.init({
-        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
-        debug: false,
-        environment: import.meta.env.PUBLIC_VERCEL_ENV,
-        release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-        tracesSampleRate: 0,
-        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1,
-      });"
-    `);
-  });
-});
-
-it('does not include Replay if replay sample ratest are 0', () => {
-  const snippet = buildClientSnippet({ replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 0 });
-  expect(snippet).toMatchInlineSnapshot(`
-    "import * as Sentry from "@sentry/astro";
-
-    Sentry.init({
-      dsn: import.meta.env.PUBLIC_SENTRY_DSN,
-      debug: false,
-      environment: import.meta.env.PUBLIC_VERCEL_ENV,
-      release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-      tracesSampleRate: 1,
-      integrations: [Sentry.browserTracingIntegration()],
-      replaysSessionSampleRate: 0,
-      replaysOnErrorSampleRate: 0,
-    });"
-  `);
 });
 
 describe('buildServerSnippet', () => {
@@ -118,24 +75,23 @@ describe('buildServerSnippet', () => {
         debug: false,
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-        tracesSampleRate: 1,
+        tracesSampleRate: 1.0,
       });"
     `);
   });
 
-  it('returns a basic Sentry init call with custom options', () => {
-    const snippet = buildServerSnippet(allSdkOptions);
+  it('returns a basic Sentry init call with build-time options', () => {
+    const snippet = buildServerSnippet(buildTimeSdkOptions);
 
     expect(snippet).toMatchInlineSnapshot(`
       "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
-        dsn: "my-dsn",
+        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
         debug: true,
-        environment: "staging",
+        environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: "1.0.0",
-        tracesSampleRate: 0.3,
-        sampleRate: 0.2,
+        tracesSampleRate: 1.0,
       });"
     `);
   });

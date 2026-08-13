@@ -69,14 +69,6 @@ describe('Sentry Astro build-time options type', () => {
       autoInstrumentation: {
         requestHandler: true,
       },
-
-      // Deprecated runtime options
-      environment: 'test',
-      dsn: 'https://test@sentry.io/123',
-      sampleRate: 1.0,
-      tracesSampleRate: 1.0,
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,
     };
 
     expectTypeOf(completeOptions).toEqualTypeOf<SentryOptions>();
