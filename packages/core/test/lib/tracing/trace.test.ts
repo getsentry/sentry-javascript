@@ -1397,6 +1397,42 @@ describe('startInactiveSpan', () => {
     client.init();
   });
 
+  it('includes the scope the span was started on when finished', async () => {
+    const beforeSendTransaction = vi.fn(event => event);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, beforeSendTransaction });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    let span: Span | undefined;
+
+    withScope(scope => {
+      scope.setTag('scope', 1);
+      span = startInactiveSpan({ name: 'my-span' });
+      // The span captures the scope it was started on, so later mutations of that scope
+      // are reflected on the transaction.
+      scope.setTag('scope_after_span', 2);
+    });
+
+    withScope(scope => {
+      scope.setTag('scope', 2);
+      span?.end();
+    });
+
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // The span-start scope is captured, including `scope_after_span` (set on the same scope
+        // after span start), but not `scope: 2` (a different scope active at `end()`).
+        tags: { scope: 1, scope_after_span: 2 },
+      }),
+      expect.anything(),
+    );
+  });
+
   it('returns a non recording span if tracing is disabled', () => {
     const options = getDefaultTestClientOptions({});
     client = new TestClient(options);
