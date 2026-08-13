@@ -28,7 +28,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
   { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
   { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
-  { exportName: 'openaiIntegration', modules: ['openai'] },
+  { exportName: 'openAIIntegration', modules: ['openai'] },
   { exportName: 'anthropicIntegration', modules: ['@anthropic-ai/sdk'] },
   { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
   { exportName: 'vercelAiIntegration', modules: ['ai'] },

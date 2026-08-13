@@ -23,7 +23,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
-  openaiIntegration as openAIIntegration,
+  openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
