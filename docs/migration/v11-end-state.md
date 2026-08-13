@@ -897,23 +897,63 @@ The legacy per-transaction profiling sampling options were removed. Configure se
 The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
 moved under the `webpack` option in v10; use the replacement listed below instead:
 
-| Removed option                          | Replacement                                                    |
-| --------------------------------------- | -------------------------------------------------------------- |
-| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                        |
-| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                             |
-| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                           |
-| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                              |
-| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                  |
-| `reactComponentAnnotation`              | `webpack.reactComponentAnnotation`                             |
-| `unstable_sentryWebpackPluginOptions`   | `webpack.unstable_sentryWebpackPluginOptions`                  |
-| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                  |
-| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                         |
-| `disableManifestInjection`              | `routeManifestInjection: false`                                |
-| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds) |
+| Removed option                          | Replacement                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                                 |
+| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                                      |
+| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                                    |
+| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                                       |
+| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                           |
+| `reactComponentAnnotation`              | `webpack.reactComponentAnnotation`                                      |
+| `unstable_sentryWebpackPluginOptions`   | Removed entirely, see [below](#removed-unstable-bundler-plugin-options) |
+| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                           |
+| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                                  |
+| `disableManifestInjection`              | `routeManifestInjection: false`                                         |
+| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds)          |
 
 ### Meta-framework build options
 
 The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/sveltekit`, and `@sentry/react-router`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+
+### Removed `unstable_` bundler plugin options
+
+The `unstable_sentry*PluginOptions` escape hatch was removed from every SDK. It existed because the Sentry
+bundler plugins shipped on a separate release cadence from the SDK; they now live in the SDK monorepo and
+move in lockstep, so every supported plugin option is reachable as a first-class build option.
+
+| SDK                    | Removed option                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `@sentry/astro`        | `unstable_sentryVitePluginOptions` (top-level and inside `sourceMapsUploadOptions`) |
+| `@sentry/nextjs`       | `unstable_sentryWebpackPluginOptions` (top-level and inside `webpack`)              |
+| `@sentry/nuxt`         | `unstable_sentryBundlerPluginOptions`                                               |
+| `@sentry/react-router` | `unstable_sentryVitePluginOptions`                                                  |
+| `@sentry/solidstart`   | `unstable_sentryVitePluginOptions`                                                  |
+| `@sentry/sveltekit`    | `unstable_sentryVitePluginOptions`                                                  |
+
+Set the option you need directly on the Sentry build options instead. Most real-world usage of this escape
+hatch was to set `applicationKey`, which has a top-level equivalent in every SDK:
+
+```js
+// before
+unstable_sentryWebpackPluginOptions: {
+  applicationKey: 'my-app',
+},
+
+// after
+applicationKey: 'my-app',
+```
+
+Passing a removed option logs a build-time warning naming it, because meta-framework build configs are
+often plain JavaScript (for example `next.config.js`) where TypeScript cannot catch it.
+
+`moduleMetadata` and `sourcemaps.resolveSourceMap` were promoted to first-class build options as part of
+this change — they were previously only reachable through the escape hatch. `reactComponentAnnotation`
+remains available on the React-based SDKs (`@sentry/nextjs`, `@sentry/react-router`,
+`@sentry/tanstackstart-react`).
+
+The following bundler plugin options have no first-class equivalent and are no longer reachable:
+`release.uploadLegacySourcemaps`, `_experiments`, and the whole-plugin `disable` flag (use
+`sourcemaps.disable` instead).
 
 ### `@sentry/nuxt`
 
