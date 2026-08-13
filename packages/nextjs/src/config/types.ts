@@ -160,6 +160,8 @@ export type SentryBuildWebpackOptions = {
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   *
+   * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
    */
   reactComponentAnnotation?: {
     /**
@@ -171,7 +173,7 @@ export type SentryBuildWebpackOptions = {
      * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
      */
     ignoredComponents?: string[];
-  };
+  }; // TODO(v12): remove this option
 };
 
 export type SentryBuildOptions = {
@@ -488,6 +490,28 @@ export type SentryBuildOptions = {
   applicationKey?: string;
 
   /**
+   * Options related to react component name annotations.
+   * Disabled by default, unless a value is set for this option.
+   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
+   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in
+   * breadcrumbs and performance monitoring.
+   *
+   * For webpack builds, this is forwarded to `@sentry/bundler-plugins/webpack`.
+   * For Turbopack builds, this applies the annotations via a custom loader and requires Next.js 16+.
+   */
+  reactComponentAnnotation?: {
+    /**
+     * Whether the component name annotate plugin should be enabled or not.
+     */
+    enabled?: boolean;
+
+    /**
+     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     */
+    ignoredComponents?: string[];
+  };
+
+  /**
    * Options to configure various bundle size optimizations related to the Sentry SDK.
    */
   bundleSizeOptimizations?: {
@@ -655,11 +679,13 @@ export type SentryBuildOptions = {
      * When enabled, JSX elements are annotated with `data-sentry-component`,
      * `data-sentry-element`, and `data-sentry-source-file` attributes.
      * Requires Next.js 16+.
+     *
+     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     turbopackReactComponentAnnotation?: {
       enabled?: boolean;
       ignoredComponents?: string[];
-    };
+    }; // TODO(v12): remove this option
   }>;
 
   /**
