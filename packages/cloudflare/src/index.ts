@@ -121,11 +121,11 @@ export { getDefaultIntegrations } from './sdk';
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  vercelAIIntegration,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
