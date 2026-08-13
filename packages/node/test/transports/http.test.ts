@@ -7,6 +7,7 @@ import {
   serializeEnvelope,
 } from '@sentry/core';
 import * as http from 'http';
+import * as nodeHttp from 'node:http';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { createGunzip } from 'zlib';
 import * as httpProxyAgent from '../../src/proxy';
@@ -117,7 +118,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it('allows overriding keepAlive', async () => {
+    it('uses keepAlive by default', async () => {
       await setupTestServer({ statusCode: SUCCESS }, req => {
         expect(req.headers).toEqual(
           expect.objectContaining({
@@ -127,8 +128,22 @@ describe('makeNewHttpTransport()', () => {
         );
       });
 
-      const transport = makeNodeTransport({ keepAlive: true, ...defaultOptions });
+      const transport = makeNodeTransport(defaultOptions);
       await transport.send(EVENT_ENVELOPE);
+    });
+
+    it('allows disabling keepAlive', () => {
+      const AgentSpy = vi.spyOn(nodeHttp, 'Agent');
+
+      try {
+        makeNodeTransport({ keepAlive: false, ...defaultOptions });
+
+        expect(AgentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ keepAlive: false, maxSockets: 30, timeout: 2000 }),
+        );
+      } finally {
+        AgentSpy.mockRestore();
+      }
     });
 
     it('should correctly send user-provided headers to server', async () => {

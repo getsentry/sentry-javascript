@@ -13,6 +13,7 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
+- ref(node)!: Remove legacy incoming HTTP span hooks and default the HTTP transport `keepAlive` to `true`
 
 ## 10.67.0
 

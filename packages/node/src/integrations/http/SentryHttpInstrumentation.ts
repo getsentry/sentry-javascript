@@ -198,8 +198,7 @@ export function instrumentHttpOutgoingRequests(
 let _currentListener: ChannelListener | undefined;
 function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOptions): void {
   const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions(options);
-  // If it was previously subscribed, first unsubscribe it
-  // TODO(v11): We can likely remove this when we drop preload support
+  // Replace a previous subscription so a later call does not stack duplicate listeners.
   if (_currentListener) {
     unsubscribe(HTTP_ON_CLIENT_REQUEST, _currentListener);
   }

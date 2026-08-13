@@ -516,6 +516,47 @@ Two consequences to be aware of when upgrading:
 - **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
 - **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
+### Incoming HTTP span hooks moved to `incomingRequestSpanHook`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `incomingRequestSpanHook` (on `httpIntegration`) or `onSpanCreated` (on `httpServerSpansIntegration`) instead:
+
+```js
+// before
+Sentry.httpIntegration({
+  instrumentation: {
+    requestHook: (span, req) => {
+      span.setAttribute('custom', true);
+    },
+  },
+});
+
+// after
+Sentry.httpIntegration({
+  incomingRequestSpanHook: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+```
+
+`httpIntegration`'s `instrumentation` option is still honored for **outgoing** request spans.
+
+### Node HTTP transport `keepAlive` defaults to `true`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The Node HTTP transport now reuses sockets by default (`keepAlive: true`). The previous default of `false` existed because of a memory leak in Node 8, which is no longer relevant (minimum Node is 20.19.0). Idle sockets are still closed after 2 seconds. Pass `keepAlive: false` in transport options to restore the previous behavior:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  transportOptions: {
+    keepAlive: false,
+  },
+});
+```
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
@@ -796,6 +837,7 @@ Sentry.init({
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
+- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated`, or `httpIntegration({ incomingRequestSpanHook })`, to mutate incoming request spans.
 
 ### `@sentry/cloudflare`
 
