@@ -529,7 +529,7 @@ Affected SDKs: All SDKs.
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
 - `network.*` span attributes were aligned across SDKs.
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents.
-- The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`. This affects every database integration (Postgres, MySQL, MySQL2, Knex, MongoDB, Mongoose, Redis, ioredis, Tedious, DynamoDB and Supabase). `db.user`, `db.connection_string` and `db.sql.table` are unchanged. Spans forwarded from Prisma's own instrumentation keep whatever Prisma emits.
+- The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
