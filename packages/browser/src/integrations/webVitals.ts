@@ -2,8 +2,11 @@ import type { IntegrationFn, Span } from '@sentry/core/browser';
 import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
 import {
   addWebVitalsToSpan,
+  enableSoftNavigationReporting,
   registerInpInteractionListener,
+  startSoftNavigationCorrelation,
   startTrackingWebVitals,
+  supportsSoftNavigations,
   trackClsAsSpan,
   trackInpAsSpan,
   trackLcpAsSpan,
@@ -18,6 +21,22 @@ export interface WebVitalsOptions {
    * Web vitals to skip.
    */
   ignore?: WebVitalName[];
+
+  /**
+   * Experimental. Also report LCP, CLS and INP for soft navigations, using the browser's
+   * [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment).
+   *
+   * Each soft navigation gets its own set of vitals, reported against the navigation span it
+   * belongs to. Turning this on also changes how the initial page load is measured: its vitals are
+   * finalized at the first soft navigation rather than accumulating over the page's lifetime.
+   *
+   * Requires span streaming (`traceLifecycle: 'stream'`), since soft navigation vitals are finalized
+   * long after the navigation span they belong to has ended. Ignored in browsers without support
+   * for the Soft Navigations API.
+   *
+   * Default: `false`
+   */
+  reportSoftNavs?: boolean;
 }
 
 /**
@@ -34,6 +53,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     name: WEB_VITALS_INTEGRATION_NAME,
     setup(client) {
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
+
+      // Soft navigation vitals are finalized at the next soft navigation or on pagehide, long after
+      // the navigation span they belong to has ended. Only span streaming can still send them.
+      const reportSoftNavs = !!options.reportSoftNavs && spanStreamingEnabled && supportsSoftNavigations();
+
+      if (reportSoftNavs) {
+        // Has to run before any web vital observer is instrumented, since web-vitals only reads its
+        // options when the observer is set up.
+        enableSoftNavigationReporting();
+        startSoftNavigationCorrelation(client);
+      }
 
       // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
       // Otherwise, they're recorded as measurements on the pageload span.
@@ -67,17 +97,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
       if (spanStreamingEnabled) {
         if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client);
+          trackLcpAsSpan(client, reportSoftNavs);
         }
         if (!ignored.has('cls')) {
-          trackClsAsSpan(client);
+          trackClsAsSpan(client, reportSoftNavs);
         }
       }
 
       // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
       // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
       if (!ignored.has('inp')) {
-        trackInpAsSpan(client);
+        trackInpAsSpan(client, reportSoftNavs);
       }
     },
     afterAllSetup() {

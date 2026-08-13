@@ -229,6 +229,14 @@ export interface BrowserTracingOptions {
   enableReportPageLoaded: boolean;
 
   /**
+   * Also report LCP, CLS and INP for soft navigations, using the browser's Soft Navigations API.
+   * Forwarded to the auto-registered `webVitalsIntegration` as `reportSoftNavs`.
+   *
+   * Default: false
+   */
+  enableSoftNavWebVitals: boolean;
+
+  /**
    * A callback which is called before a span for a pageload or navigation is started.
    * It receives the options passed to `startSpan`, and expects to return an updated options object.
    */
@@ -263,6 +271,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  enableSoftNavWebVitals: false,
   ignoreResourceSpans: [],
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
@@ -300,6 +309,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
+    enableSoftNavWebVitals,
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -597,6 +607,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         client.addIntegration(
           webVitalsIntegration({
             ignore: enableInp ? [] : ['inp'],
+            reportSoftNavs: enableSoftNavWebVitals,
           }),
         );
       }
