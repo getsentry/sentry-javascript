@@ -13,7 +13,7 @@ import { knexIntegration } from '../integrations/knex';
 import { langChainIntegration } from '../integrations/langchain';
 import { langGraphIntegration } from '../integrations/langgraph';
 import { lruMemoizerIntegration } from '../integrations/lru-memoizer';
-import { mongodbIntegration } from '../integrations/mongodb';
+import { mongoIntegration } from '../integrations/mongodb';
 import { mongooseIntegration } from '../integrations/mongoose';
 import { mysqlIntegration } from '../integrations/mysql';
 import { mysql2Integration } from '../integrations/mysql2';
@@ -52,7 +52,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -85,7 +85,7 @@ export type { InstrumentationConfig } from './apmTypes';
 export const channelIntegrations = {
   postgresIntegration,
   postgresJsIntegration,
-  mongoIntegration: mongodbIntegration,
+  mongoIntegration,
   mysqlIntegration,
   mysql2Integration,
   genericPoolIntegration,

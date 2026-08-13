@@ -134,7 +134,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -152,7 +152,6 @@ export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
 export { denoAmqplibIntegration } from './integrations/amqplib';
 export { denoKoaIntegration } from './integrations/koa';
-export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';

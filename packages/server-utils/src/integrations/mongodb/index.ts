@@ -43,7 +43,7 @@ interface V3CallInfo {
 // emits no killCursors span, and neither should we.
 const V3_DEDICATED_COMMANDS = new Set(['insert', 'update', 'delete', 'find', 'getMore', 'killCursors']);
 
-const _mongodbIntegration = (() => {
+const _mongoIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -175,4 +175,4 @@ function bindV3(channelName: string, extract: (args: unknown[]) => V3CallInfo | 
  * `db.statement`) via the `orchestrion:mongodb:*` diagnostics_channels
  * injected by the orchestrion code transform.
  */
-export const mongodbIntegration = defineIntegration(_mongodbIntegration);
+export const mongoIntegration = defineIntegration(_mongoIntegration);
