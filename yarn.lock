@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@actions/artifact@^6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@actions/artifact/-/artifact-6.1.0.tgz#6d30eb1837b1f047dce2ebe364aa60a7881f202d"
-  integrity sha512-oRn9YhKkboXgIq2TQZ9uj6bhkT5ZUzFtnyTQ0tLGBwImaD0GfWShE5R0tPbN25EJmS3tz5sDd2JnVokAOtNrZQ==
+"@actions/artifact@^6.2.1":
+  version "6.2.1"
+  resolved "https://registry.yarnpkg.com/@actions/artifact/-/artifact-6.2.1.tgz#3f813d42d08d8d105fa46010f6ce2bb35e292b66"
+  integrity sha512-sJGH0mhEbEjBCw7o6SaLhUU66u27aFW8HTfkIb5Tk2/Wy0caUDc+oYQEgnuFN7a0HCpAbQyK0U6U7XUJDgDWrw==
   dependencies:
     "@actions/core" "^3.0.0"
     "@actions/github" "^9.0.0"
@@ -24319,9 +24319,9 @@ rollup-plugin-sourcemaps@^0.6.3:
     source-map-resolve "^0.6.0"
 
 rollup-plugin-visualizer@^6.0.3, rollup-plugin-visualizer@^7.0.1:
-  version "6.0.5"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.5.tgz#9cf774cff88f4ba2887c97354766b68931323280"
-  integrity sha512-9+HlNgKCVbJDs8tVtjQ43US12eqaiHyyiLMdBwQ7vSZPiHMysGNo2E88TAp1si5wx8NAoYriI2A5kuKfIakmJg==
+  version "6.0.11"
+  resolved "https://registry.yarnpkg.com/rollup-plugin-visualizer/-/rollup-plugin-visualizer-6.0.11.tgz#64addb59eb43d560cd1bdc5db91e64c0069b9f71"
+  integrity sha512-TBwVHVY7buHjIKVLqr9scTVFwqZqMXINcCphPwIWKPDCOBIa+jCQfafvbjRJDZgXdq/A996Dy6yGJ/+/NtAXDQ==
   dependencies:
     open "^8.0.0"
     picomatch "^4.0.2"
