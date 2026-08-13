@@ -24,7 +24,7 @@ describe('fs instrumentation', () => {
                     op: 'file',
                     status: 'internal_error',
                     data: {
-                      fs_error: expect.stringMatching('ENOENT: no such file or directory,'),
+                      'error.type': expect.stringMatching('ENOENT: no such file or directory,'),
                       path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
@@ -335,7 +335,7 @@ describe('fs instrumentation', () => {
                     description: 'fs.readFile',
                     op: 'file',
                     status: 'internal_error',
-                    // `path_argument` is recorded, but `fs_error` is NOT, since `recordErrorMessagesAsSpanAttributes` is off
+                    // `path_argument` is recorded, but `error.type` is NOT, since `recordErrorMessagesAsSpanAttributes` is off
                     data: {
                       path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
@@ -372,9 +372,9 @@ describe('fs instrumentation', () => {
                     description: 'fs.readFile',
                     op: 'file',
                     status: 'internal_error',
-                    // `fs_error` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
+                    // `error.type` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
                     data: {
-                      fs_error: expect.stringMatching('ENOENT: no such file or directory,'),
+                      'error.type': expect.stringMatching('ENOENT: no such file or directory,'),
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
                     },
@@ -399,7 +399,7 @@ describe('fs instrumentation', () => {
                     description: 'fs.readFile',
                     op: 'file',
                     status: 'ok',
-                    // Neither `path_argument` nor `fs_error` are recorded
+                    // Neither `path_argument` nor `error.type` are recorded
                     data: {
                       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
