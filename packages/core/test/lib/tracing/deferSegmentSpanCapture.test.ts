@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getCurrentScope,
+  getIsolationScope,
+  Scope,
   setCurrentClient,
   spanStreamingIntegration,
   startInactiveSpan,
   withActiveSpan,
+  withIsolationScope,
   withScope,
 } from '../../../src';
+import { getAsyncContextStrategy, setAsyncContextStrategy } from '../../../src/asyncContext';
+import { getMainCarrier } from '../../../src/carrier';
 import { _INTERNAL_setDeferSegmentSpanCapture } from '../../../src/tracing/deferSegmentSpanCapture';
 import {
   getSegmentSpanCaptureStrategy,
@@ -76,6 +81,7 @@ describe('deferred segment-span capture', () => {
 
   afterEach(() => {
     setSegmentSpanCaptureStrategy(undefined);
+    setAsyncContextStrategy(undefined);
     vi.clearAllMocks();
     vi.useRealTimers();
   });
@@ -782,6 +788,59 @@ describe('deferred segment-span capture', () => {
 
     expect(transactions).toHaveLength(1);
     expect(otherTransactions).toHaveLength(0);
+  });
+
+  it("processes each deferred transaction on its span's captured scope", () => {
+    const baseStrategy = getAsyncContextStrategy(getMainCarrier());
+    let activeIsolationScope = baseStrategy.getIsolationScope();
+    setAsyncContextStrategy({
+      ...baseStrategy,
+      getIsolationScope: () => activeIsolationScope,
+      withSetIsolationScope: (isolationScope, callback) => {
+        const previousIsolationScope = activeIsolationScope;
+        activeIsolationScope = isolationScope;
+        try {
+          return callback(isolationScope);
+        } finally {
+          activeIsolationScope = previousIsolationScope;
+        }
+      },
+    });
+    const observedScopes: Array<{ current: string | undefined; isolation: string | undefined }> = [];
+    client = createDeferredClient(transactions, {
+      beforeSendTransaction: event => {
+        observedScopes.push({
+          current: getCurrentScope().getScopeData().tags['invocation'],
+          isolation: getIsolationScope().getScopeData().tags['invocation'],
+        });
+        return event;
+      },
+    });
+    setCurrentClient(client);
+    const isolationScopeA = new Scope();
+    const isolationScopeB = new Scope();
+    isolationScopeA.setTag('invocation', 'A');
+    isolationScopeB.setTag('invocation', 'B');
+
+    withIsolationScope(isolationScopeA, () => {
+      withScope(scope => {
+        scope.setTag('invocation', 'A');
+        startInactiveSpan({ name: 'request A' }).end();
+      });
+    });
+    withIsolationScope(isolationScopeB, () => {
+      withScope(scope => {
+        scope.setTag('invocation', 'B');
+        startInactiveSpan({ name: 'request B' }).end();
+      });
+    });
+    vi.advanceTimersByTime(100);
+
+    expect(observedScopes).toEqual([
+      { current: 'A', isolation: 'A' },
+      { current: 'B', isolation: 'B' },
+    ]);
+    expect(transactions.map(transaction => transaction.transaction)).toEqual(['request A', 'request B']);
   });
 
   it('emits a late orphan synchronously when its client has no defer queue', () => {

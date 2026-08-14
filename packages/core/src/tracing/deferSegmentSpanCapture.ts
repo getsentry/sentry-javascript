@@ -1,4 +1,5 @@
 import type { Client } from '../client';
+import { withIsolationScope, withScope } from '../currentScopes';
 import type { Scope } from '../scope';
 import type { TransactionEvent } from '../types/event';
 import type { Span } from '../types/span';
@@ -286,7 +287,25 @@ function captureDeferredTransaction(
 
     rejectDeferredSegment(segmentSpan, spansInTransaction);
   });
-  client.captureEvent(transactionEvent, hint);
+  // A shared client can drain deferred work from several invocations in one callback. Re-entering
+  // the span's scopes keeps processors and runtime-specific invocation state attributed to its owner.
+  const { capturedSpanScope, capturedSpanIsolationScope } = transactionEvent.sdkProcessingMetadata ?? {};
+  const capture = (): void => {
+    client.captureEvent(transactionEvent, hint);
+  };
+  const captureOnSpanScope = (): void => {
+    if (capturedSpanScope) {
+      withScope(capturedSpanScope, capture);
+    } else {
+      capture();
+    }
+  };
+
+  if (capturedSpanIsolationScope) {
+    withIsolationScope(capturedSpanIsolationScope, captureOnSpanScope);
+  } else {
+    captureOnSpanScope();
+  }
 }
 
 function drainPendingChildCaptures(spans: Span[]): void {
