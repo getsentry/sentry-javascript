@@ -149,6 +149,31 @@ describe('MCP Server Capture Policy', () => {
     };
   }
 
+  it('defaults to capturing inputs and outputs when an operation has no client', async () => {
+    const transport = await connectWrappedServer('capture-policy-defaults');
+    const scope = new Scope();
+    const span = queueInactiveSpan();
+
+    receiveToolCall(transport, scope, {
+      id: 'default-policy-request',
+      location: 'Paris, France',
+    });
+    await sendToolResult(transport, scope, {
+      id: 'default-policy-request',
+      text: 'Forecast for Paris',
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      buildToolSpanConfig({
+        id: 'default-policy-request',
+        sessionId: 'capture-policy-defaults',
+        location: 'Paris, France',
+      }),
+    );
+    expectToolResult(span, 'Forecast for Paris');
+  });
+
   it('resolves input capture when an operation starts after wrapping without a client', async () => {
     const transport = await connectWrappedServer('capture-policy-input');
     queueInactiveSpan();
