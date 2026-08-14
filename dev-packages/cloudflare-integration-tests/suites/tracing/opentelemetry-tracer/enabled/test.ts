@@ -68,6 +68,31 @@ it('captures spans emitted through @opentelemetry/api and nests them with Sentry
           trace_id: traceId,
           origin: 'manual',
         },
+        // Without an OTel context manager `context.with` cannot restore anything, so the tracer has to
+        // fork the scope itself. Otherwise the finished `otel parent` would stay active and both of
+        // these would hang off it instead of the request span.
+        {
+          data: { [SENTRY_ORIGIN]: 'manual', 'test.attribute': 'after' },
+          description: 'otel after active',
+          parent_span_id: requestSpanId,
+          span_id: SHORT_UUID_MATCHER,
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: traceId,
+          origin: 'manual',
+        },
+        {
+          data: { [SENTRY_ORIGIN]: 'manual' },
+          description: 'sentry after active',
+          parent_span_id: requestSpanId,
+          span_id: SHORT_UUID_MATCHER,
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: traceId,
+          origin: 'manual',
+        },
       ]);
     })
     .start(signal);

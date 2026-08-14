@@ -5,6 +5,7 @@ import {
   _INTERNAL_setSpanForScope,
   startInactiveSpan,
   addChildSpanToSpan,
+  getActiveSpan,
   getCapturedScopesOnSpan,
   getCurrentScope,
   getIsolationScope,
@@ -14,6 +15,7 @@ import {
   spanIsIgnored,
   spanKindToName,
   startNewTrace,
+  withScope,
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
@@ -90,14 +92,37 @@ export class SentryTracer implements Tracer {
     // along with it (cascading the drop down the whole subtree). Leaving the parent active lets the
     // children attach to it and get re-parented instead. An ignored root span has no parent and still
     // becomes active, so its subtree is dropped as intended.
-    if (spanIsIgnored(span) && trace.getSpan(ctx)) {
+    if (spanIsIgnored(span) && this._hasParentSpan(options, explicitCtx)) {
       return context.with(withCapturedIsolationScope(ctx), () => callback(span)) as ReturnType<F>;
     }
 
     return context.with(withCapturedIsolationScope(trace.setSpan(ctx, span)), () => {
+      // Without an OTel context manager (e.g. Cloudflare) `context.with` runs the callback directly and
+      // nothing forks the scope, so setting the span on the current scope would leak it past the callback.
+      // Fork explicitly in that case so the previously active span is restored afterwards.
+      if (trace.getSpan(context.active()) !== span) {
+        return withScope(scope => {
+          _INTERNAL_setSpanForScope(scope, span);
+          return callback(span) as ReturnType<F>;
+        });
+      }
+
       _INTERNAL_setSpanForScope(getCurrentScope(), span);
       return callback(span) as ReturnType<F>;
     });
+  }
+
+  /**
+   * Whether a span started with these arguments gets a parent. Mirrors the parent lookup in `startSpan`
+   * plus core's fallback to the scope's active span, which is what parents the span on runtimes without an
+   * OTel context manager.
+   */
+  private _hasParentSpan(options: SpanOptions, explicitCtx: Context | undefined): boolean {
+    if (options.root) {
+      return false;
+    }
+    const parentSpan = explicitCtx ? trace.getSpan(explicitCtx) : getActiveSpan();
+    return !!parentSpan && isSpanContextValid(parentSpan.spanContext());
   }
 
   private _startSentrySpan(

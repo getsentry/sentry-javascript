@@ -34,6 +34,11 @@ export default Sentry.withSentry(
         },
       );
 
+      // Neither span may attach to the finished `otel parent` once `startActiveSpan` has returned.
+      const otelAfter = tracer.startSpan('otel after active', { attributes: { 'test.attribute': 'after' } });
+      otelAfter.end();
+      await Sentry.startSpan({ name: 'sentry after active' }, async () => {});
+
       return new Response('ok');
     },
   } satisfies ExportedHandler<Env>,

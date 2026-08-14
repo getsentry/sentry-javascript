@@ -1,6 +1,6 @@
 import { trace } from '@opentelemetry/api';
 import type { TransactionEvent } from '@sentry/core';
-import { startSpan } from '@sentry/core';
+import { getActiveSpan, spanToJSON, startSpan } from '@sentry/core';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { init } from '../src/sdk';
 import { resetSdk } from './testUtils';
@@ -201,5 +201,107 @@ describe('opentelemetry compatibility', () => {
     const [transactionEvent] = transactionEvents;
 
     expect(transactionEvent?.transaction).toBe('prisma:client:operation');
+  });
+
+  test('startActiveSpan does not leave the span active after the callback returns', async () => {
+    const transactionEvents: TransactionEvent[] = [];
+
+    const client = init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
+    });
+
+    const tracer = trace.getTracer('test');
+
+    tracer.startActiveSpan('otel span', span => {
+      expect(getActiveSpan()).toBe(span);
+      span.end();
+    });
+
+    expect(getActiveSpan()).toBeUndefined();
+
+    startSpan({ name: 'sentry span' }, () => {});
+
+    await client!.flush();
+
+    expect(transactionEvents).toHaveLength(2);
+    const [otelEvent, sentryEvent] = transactionEvents;
+
+    expect(otelEvent?.transaction).toBe('otel span');
+    expect(sentryEvent?.transaction).toBe('sentry span');
+    expect(sentryEvent?.contexts?.trace?.parent_span_id).toBeUndefined();
+  });
+
+  test('startActiveSpan restores the previously active span after the callback returns', async () => {
+    const transactionEvents: TransactionEvent[] = [];
+
+    const client = init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
+    });
+
+    const tracer = trace.getTracer('test');
+
+    startSpan({ name: 'sentry span' }, parent => {
+      tracer.startActiveSpan('otel span', span => {
+        span.end();
+      });
+
+      expect(getActiveSpan()).toBe(parent);
+
+      startSpan({ name: 'sentry child' }, () => {});
+    });
+
+    await client!.flush();
+
+    expect(transactionEvents).toHaveLength(1);
+    const [transactionEvent] = transactionEvents;
+
+    expect(transactionEvent?.transaction).toBe('sentry span');
+    expect(transactionEvent?.spans).toHaveLength(2);
+    const rootSpanId = transactionEvent?.contexts?.trace?.span_id;
+    expect(transactionEvent?.spans?.map(span => [span.description, span.parent_span_id])).toEqual([
+      ['otel span', rootSpanId],
+      ['sentry child', rootSpanId],
+    ]);
+  });
+
+  test('ignored startActiveSpan child does not become active', () => {
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      enableOpenTelemetrySetup: true,
+      ignoreSpans: ['ignored span'],
+    });
+
+    const tracer = trace.getTracer('test');
+
+    startSpan({ name: 'sentry span' }, parent => {
+      tracer.startActiveSpan('ignored span', span => {
+        expect(span.isRecording()).toBe(false);
+        expect(getActiveSpan()).toBe(parent);
+
+        const child = tracer.startSpan('child span');
+        expect(child.isRecording()).toBe(true);
+        expect(spanToJSON(child).parent_span_id).toBe(parent.spanContext().spanId);
+        child.end();
+        span.end();
+      });
+
+      expect(getActiveSpan()).toBe(parent);
+    });
   });
 });
