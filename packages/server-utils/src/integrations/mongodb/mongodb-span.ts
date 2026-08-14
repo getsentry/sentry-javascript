@@ -1,21 +1,17 @@
-// The `@sentry/conventions` net attribute keys are deprecated (superseded by newer semconv), but we
-// emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-mongodb` produced.
-/* oxlint-disable typescript/no-deprecated */
-
 import {
   DB_COLLECTION_NAME,
   DB_NAMESPACE,
   DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
-// OTel db keys/values not exported by `@sentry/conventions`, inlined to match
+// `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined to match
 // what `@opentelemetry/instrumentation-mongodb` emitted.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_MONGODB = 'mongodb';
@@ -132,10 +128,10 @@ export function getSpanAttributes(
   };
 
   if (host && port) {
-    attributes[NET_PEER_NAME] = host;
+    attributes[SERVER_ADDRESS] = host;
     const portNumber = parseInt(port, 10);
     if (!isNaN(portNumber)) {
-      attributes[NET_PEER_PORT] = portNumber;
+      attributes[SERVER_PORT] = portNumber;
     }
   }
 
@@ -218,8 +214,7 @@ export function getV3SpanAttributes(
 }
 
 /**
- * Start a mongodb client span, with the db attributes on the stable conventions
- * and the net attributes still on the legacy ones.
+ * Start a mongodb client span on the stable conventions.
  *
  * `op: 'db'` is set explicitly rather than relying on `inferDbSpanData`,
  * to support platforms that lack it (ie, Deno).

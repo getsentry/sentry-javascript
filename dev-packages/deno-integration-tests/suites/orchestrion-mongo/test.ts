@@ -60,7 +60,7 @@ Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces
   assertEquals(mongoSpan!.data?.['db.namespace'], 'mydb');
   assertEquals(mongoSpan!.data?.['db.collection.name'], 'users');
   assertEquals(mongoSpan!.data?.['db.operation.name'], 'find');
-  assertEquals(mongoSpan!.data?.['net.peer.name'], '127.0.0.1');
-  assertEquals(mongoSpan!.data?.['net.peer.port'], 27017);
+  assertEquals(mongoSpan!.data?.['server.address'], '127.0.0.1');
+  assertEquals(mongoSpan!.data?.['server.port'], 27017);
   assertEquals(mongoSpan!.data?.['sentry.origin'], 'auto.db.mongo');
 });

@@ -19,9 +19,9 @@ import {
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
@@ -124,9 +124,9 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
     [DB_NAMESPACE]: database || undefined,
     [DB_USER]: user || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_NAME]: host || undefined,
+    [SERVER_ADDRESS]: host || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_PORT]: portIsNumber ? portNumber : undefined,
+    [SERVER_PORT]: portIsNumber ? portNumber : undefined,
   };
 }
 
