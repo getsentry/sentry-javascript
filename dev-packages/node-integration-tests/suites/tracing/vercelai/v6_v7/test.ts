@@ -1,4 +1,4 @@
-import { NODE_VERSION, type Event } from '@sentry/node';
+import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -25,14 +25,10 @@ import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 import { isOrchestrionEnabled } from '../../../../utils';
 
-// On Node 18, we only test v6 as v7 is not supported
-const matrix =
-  NODE_VERSION.major === 18
-    ? ([['6', '^6.0.0']] as const)
-    : ([
-        ['6', '^6.0.0'],
-        ['7', '^7.0.0'],
-      ] as const);
+const matrix = [
+  ['6', '^6.0.0'],
+  ['7', '^7.0.0'],
+] as const;
 
 describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
   afterAll(() => {
