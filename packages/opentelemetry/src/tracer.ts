@@ -63,12 +63,17 @@ export class SentryTracer implements Tracer {
     fn?: F,
   ): ReturnType<F> {
     const options = typeof optionsOrFn === 'function' ? {} : optionsOrFn;
-    const ctx = typeof contextOrFn === 'function' || contextOrFn === undefined ? context.active() : contextOrFn;
+    const explicitCtx = typeof contextOrFn === 'function' || contextOrFn === undefined ? undefined : contextOrFn;
+    const ctx = explicitCtx ?? context.active();
     const callback = (
       typeof optionsOrFn === 'function' ? optionsOrFn : typeof contextOrFn === 'function' ? contextOrFn : fn
     ) as F;
 
-    const span = this.startSpan(name, options, ctx);
+    // Only forward a context the caller actually passed. Forwarding the resolved `context.active()`
+    // instead would read as an explicit root request on runtimes without an OTel context manager
+    // (e.g. Cloudflare), where `context.active()` is always `ROOT_CONTEXT`, detaching every span
+    // from the Sentry active span instead of nesting under it.
+    const span = this.startSpan(name, options, explicitCtx);
 
     // Run the span's callback under the isolation scope captured when the span was created, so scope state
     // used or set during the span (tags, breadcrumbs, captured errors) belongs to that span and stays
