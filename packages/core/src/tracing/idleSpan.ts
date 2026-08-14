@@ -240,7 +240,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    */
   function _restartChildSpanTimeout(endTimestamp?: number): void {
     _cancelChildSpanTimeout();
-    _idleTimeoutID = setTimeout(() => {
+    _childSpanTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
         span.end(endTimestamp);

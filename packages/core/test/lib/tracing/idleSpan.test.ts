@@ -806,6 +806,29 @@ describe('startIdleSpan', () => {
       expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
+    it('measures the idle timeout from the last child end, not from the auto-finish signal', () => {
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true, finalTimeout: 99_999 });
+      const idleSpanId = idleSpan.spanContext().spanId;
+
+      const child = startInactiveSpan({ name: 'inner' });
+
+      vi.advanceTimersByTime(500);
+      getClient()!.emit('idleSpanEnableAutoFinish', idleSpan);
+
+      vi.advanceTimersByTime(700);
+      child!.end();
+
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout - 199);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
+
+      const lateChild = startInactiveSpan({ name: 'late' });
+      expect(spanToJSON(lateChild!).parent_span_id).toBe(idleSpanId);
+
+      lateChild!.end();
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
+    });
+
     it('times out at final timeout if disableAutoFinish=true', () => {
       const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true });
       expect(idleSpan).toBeDefined();
