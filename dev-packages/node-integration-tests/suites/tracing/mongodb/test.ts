@@ -2,11 +2,10 @@ import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('MongoDB auto-instrumentation', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

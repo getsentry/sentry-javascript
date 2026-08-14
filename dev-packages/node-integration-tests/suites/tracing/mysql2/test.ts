@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -9,7 +8,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
 
   // With orchestrion injection enabled (`INJECT_ORCHESTRION`), the diagnostics-channel integration
   // records the spans instead of the OTel patcher, so they carry a different `sentry.origin`.
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.mysql2' : 'auto.db.otel.mysql2';
+  const ORIGIN = 'auto.db.mysql2';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',

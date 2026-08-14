@@ -1,11 +1,10 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 7 so the `contextCaptureFunctions7` version branch is exercised against a real mongoose.
 describe('Mongoose v7 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

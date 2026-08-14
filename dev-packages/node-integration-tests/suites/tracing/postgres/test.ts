@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -9,7 +9,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // `postgresIntegration()` is the diagnostics-channel implementation by default, so query spans carry
   // the orchestrion origin.
-  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.postgres' : 'auto.db.otel.postgres';
+  const QUERY_ORIGIN = 'auto.db.postgres';
 
   describe('default', () => {
     const EXPECTED_TRANSACTION = {

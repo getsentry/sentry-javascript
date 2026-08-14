@@ -1,7 +1,7 @@
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongodb 7 so the >= 6.4 promise-based `Connection.prototype.command`
@@ -22,7 +22,7 @@ conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
 
   // `db.statement` (scrubbed full command doc) and `db.connection_string` vary
   // by driver version, so assert their presence rather than exact content;
