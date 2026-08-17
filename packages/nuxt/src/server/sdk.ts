@@ -113,9 +113,6 @@ function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
         // instead of shipping one client_report envelope per response.
         void flushIfServerless();
       },
-      outgoingResponseHook: () => {
-        void flushIfServerless();
-      },
     }),
   ];
 }
