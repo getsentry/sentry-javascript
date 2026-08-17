@@ -1,6 +1,6 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
+import type { ClientRequest, IncomingMessage } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
 import {
   getHttpClientSubscriptions,
@@ -27,9 +27,7 @@ interface OutgoingHttpRequestInstrumentationOptions {
   breadcrumbs?: boolean;
 
   /**
-   * Whether to create spans for outgoing requests (user preference).
-   * This only takes effect if `createSpansForOutgoingRequests` is not disabled.
-   * If `createSpansForOutgoingRequests` is explicitly set false, this option is ignored.
+   * Whether to create spans for outgoing requests.
    *
    * @default `true`
    */
@@ -40,14 +38,7 @@ interface OutgoingHttpRequestInstrumentationOptions {
    *
    * @default `true`
    */
-  propagateTraceInOutgoingRequests?: boolean;
-
-  /**
-   * @deprecated Use spans option instead.
-   *
-   * @default `true`
-   */
-  createSpansForOutgoingRequests?: boolean;
+  propagateTrace?: boolean;
 
   /**
    * Do not instrument outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -62,7 +53,6 @@ interface OutgoingHttpRequestInstrumentationOptions {
   /**
    * Hooks for outgoing request spans, only called when spans are created for outgoing requests
    * (i.e. when `spans` is enabled).
-   * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
    */
   outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
   outgoingResponseHook?: (span: Span, response: IncomingMessage | HttpIncomingMessage) => void;
@@ -73,82 +63,23 @@ interface OutgoingHttpRequestInstrumentationOptions {
   ) => void;
 }
 
-export type SentryHttpInstrumentationOptions = OutgoingHttpRequestInstrumentationOptions & {
-  // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
-  // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  extractIncomingTraceFromHeader?: boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreStaticAssets?: boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  disableIncomingRequestSpans?: boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  trackIncomingRequestsAsSessions?: boolean;
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  instrumentation?: {
-    requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
-    responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: ClientRequest | IncomingMessage,
-      response: IncomingMessage | ServerResponse,
-    ) => void;
-  };
-
-  /**
-   * @deprecated This no longer does anything.
-   */
-  sessionFlushingDelayMS?: number;
-};
+export type SentryHttpInstrumentationOptions = OutgoingHttpRequestInstrumentationOptions;
 
 /**
  * This instruments the http modules for outgoing requests.
  * It uses the diagnostics channel if available, otherwise it falls back to monkey-patching.
  *
  * The instrumentation will start spans, create breadcrumbs, and propagate trace headers in outgoing requests (depending on the settings).
- *
- * @TODO Cleanup options in v11
  */
 export function instrumentHttpOutgoingRequests(
   instrumentationOptions: OutgoingHttpRequestInstrumentationOptions = {},
 ): void {
   const { outgoingRequestApplyCustomAttributes: applyCustomAttributesOnSpan, ...options } = instrumentationOptions;
   const patchOptions = {
-    propagateTrace: options.propagateTraceInOutgoingRequests ?? true,
     applyCustomAttributesOnSpan,
     ...options,
-    // oxlint-disable-next-line typescript/no-deprecated
-    spans: options.createSpansForOutgoingRequests !== false && (options.spans ?? true),
+    propagateTrace: options.propagateTrace ?? true,
+    spans: options.spans ?? true,
     ignoreOutgoingRequests(url, request) {
       return isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request));
     },

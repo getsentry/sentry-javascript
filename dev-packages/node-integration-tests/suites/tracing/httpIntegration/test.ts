@@ -20,9 +20,9 @@ describe('httpIntegration', () => {
     cleanupChildProcesses();
   });
 
-  describe('instrumentation options', () => {
+  describe('onSpanCreated option', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to configure incomingRequestSpanHook', async () => {
+      test('allows to configure onSpanCreated', async () => {
         const runner = createRunner()
           .expect({
             transaction: {
@@ -33,14 +33,14 @@ describe('httpIntegration', () => {
                   data: {
                     'url.full': expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
-                    incomingRequestSpanHook: 'yes',
+                    onSpanCreated: 'yes',
                   },
                   op: 'http.server',
                   status: 'ok',
                 },
               },
               extra: expect.objectContaining({
-                incomingRequestSpanHookCalled: {
+                onSpanCreatedCalled: {
                   reqUrl: expect.stringMatching(/\/test$/),
                   reqMethod: 'GET',
                   resUrl: expect.stringMatching(/\/test$/),
