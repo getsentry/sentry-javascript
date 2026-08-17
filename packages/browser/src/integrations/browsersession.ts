@@ -1,4 +1,11 @@
-import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core/browser';
+import {
+  captureSession,
+  debug,
+  defineIntegration,
+  getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SESSION_ID,
+  startSession,
+} from '@sentry/core/browser';
 import { addHistoryInstrumentationHandler, whenIdleOrHidden } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -96,6 +103,30 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
           }
         });
       }
+    },
+
+    // Streamed telemetry (spans, logs, metrics) carries the session id as an attribute.
+    setup(client) {
+      const attachSessionId = (item: { attributes?: Record<string, unknown> }): void => {
+        const sid = getIsolationScope().getSession()?.sid;
+        if (sid && item.attributes?.[SEMANTIC_ATTRIBUTE_SESSION_ID] === undefined) {
+          (item.attributes ??= {})[SEMANTIC_ATTRIBUTE_SESSION_ID] = sid;
+        }
+      };
+
+      client.on('processSpan', attachSessionId);
+      client.on('beforeCaptureLog', attachSessionId);
+      client.on('processMetric', attachSessionId);
+    },
+
+    // Errors flow through the event pipeline, not span streaming, so tag them.
+    processEvent(event) {
+      const sid = getIsolationScope().getSession()?.sid;
+      // `!event.type` narrows to error events (transactions/replays are typed).
+      if (sid && !event.type && event.tags?.[SEMANTIC_ATTRIBUTE_SESSION_ID] === undefined) {
+        (event.tags ??= {})[SEMANTIC_ATTRIBUTE_SESSION_ID] = sid;
+      }
+      return event;
     },
   };
 });
