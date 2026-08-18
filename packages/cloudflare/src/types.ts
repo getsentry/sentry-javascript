@@ -1,6 +1,37 @@
 import type { env as cloudflareEnv } from 'cloudflare:workers';
+import type { CloudflareOptions } from './client';
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/**
+ * `CloudflareOptions` for the options *callbacks*, where the excess property check does not reach.
+ *
+ * A plain `CloudflareOptions` parameter already rejects unknown keys when the caller writes a
+ * direct object literal, which is why it is enough everywhere else. That check only applies to
+ * literals TypeScript still sees as "fresh", though, and freshness is lost across a function
+ * boundary — the literal returned from `withSentry(() => ({ dsn, tracesSampleRte: 1 }), handler)`
+ * is compared as part of a function type, so the typo passes. Since `env` only exists at request
+ * time, a callback is the only way to configure these APIs, so the check has to be rebuilt:
+ * inferring the literal into `O` and intersecting it with a `never` map over its extra keys puts
+ * the error back on the offending property.
+ *
+ * `O` is deliberately unconstrained: a `CloudflareOptions` constraint makes inference fail for an
+ * options object whose keys are *all* unknown, and TypeScript then silently falls back to the type
+ * parameter default instead of reporting anything. The `CloudflareOptions` member of the
+ * intersection carries the actual check on known keys.
+ *
+ * The function-rejecting branch keeps "returned the options factory instead of calling it" an
+ * error. A plain `CloudflareOptions` target rejects functions via the weak type check (no shared
+ * properties), but an intersection is only weak-type checked when every member is weak, and the
+ * `Record` member has no properties at all — so without the guard a function would slip through.
+ * `keyof` of a function type is `never`, so the never-map alone cannot catch it.
+ *
+ * Two known gaps: this only covers top level keys, and unlike a plain excess property check it
+ * also rejects a pre-built object carrying extra keys.
+ */
+export type StrictCloudflareOptions<O> = O extends (...args: never[]) => unknown
+  ? never
+  : O & CloudflareOptions & Record<Exclude<keyof O, keyof CloudflareOptions>, never>;
 
 /**
  * A handler method of an `ExportedHandler` (`fetch`, `scheduled`, `queue`, ...).

@@ -282,6 +282,13 @@ interface BaseCloudflareOptions {
   durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
 
   /**
+   * Sets an optional server name (device name).
+   *
+   * This is useful for identifying which server or instance is sending events.
+   */
+  serverName?: string;
+
+  /**
    * If you use Spotlight by Sentry during development, use
    * this option to forward captured Sentry events to Spotlight.
    *
