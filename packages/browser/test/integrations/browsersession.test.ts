@@ -7,6 +7,7 @@ import type { Scope, SessionContext, User } from '@sentry/core/browser';
 import * as SentryCore from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { browserSessionIntegration } from '../../src/integrations/browsersession';
+import { endSession } from '../../src/session/lifecycle';
 import type { PersistedSession } from '../../src/session/persistence';
 import { SESSION_STORAGE_KEY } from '../../src/session/persistence';
 
@@ -211,6 +212,19 @@ describe('browserSessionIntegration', () => {
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(2);
   });
 
+  it('starts and sends a new session when the current one is ended manually', () => {
+    setupBrowserSession({ lifecycle: 'page' });
+
+    endSession();
+
+    expect(SentryCore.startSession).toHaveBeenCalledTimes(2);
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+
+    // The new session was already sent, so the deferred initial capture must not send it again.
+    vi.runAllTimers();
+    expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+  });
+
   describe('`session` lifecycle', () => {
     const IDLE_TIMEOUT = 30 * 60_000;
 
@@ -328,6 +342,32 @@ describe('browserSessionIntegration', () => {
 
       expect(SentryCore.startSession).toHaveBeenCalledTimes(1);
       expect(getStoredSession()?.sid).toBe(stored?.sid);
+    });
+
+    it('replaces the persisted session when the current one is ended manually', () => {
+      setupSessionLifecycle();
+      const ended = getStoredSession();
+
+      elapse(60_000);
+      endSession();
+
+      const started = getStoredSession();
+      expect(SentryCore.startSession).toHaveBeenLastCalledWith({ ignoreDuration: true });
+      expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
+      expect(started).toEqual({
+        sid: expect.not.stringMatching(ended?.sid as string),
+        started: Date.now(),
+        lastActivity: Date.now(),
+      });
+
+      // The ended session must not come back when the page reloads.
+      reload();
+      expect(SentryCore.startSession).toHaveBeenCalledWith({
+        sid: started?.sid,
+        started: (started as PersistedSession).started / 1000,
+        init: false,
+        ignoreDuration: true,
+      });
     });
 
     it.each([{ lifecycle: 'page' } as const, { lifecycle: 'route' } as const, undefined])(

@@ -65,7 +65,6 @@ export {
   parameterize,
   startSession,
   captureSession,
-  endSession,
   spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
@@ -84,6 +83,8 @@ export {
 } from '@sentry/core/browser';
 
 export { WINDOW } from './helpers';
+// Shadows core's `endSession`: in the browser, ending a session also starts the next one.
+export { endSession } from './session/lifecycle';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';
 export { uiProfiler } from './profiling';

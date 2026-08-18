@@ -13,6 +13,7 @@ import {
 } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
+import { setSessionRotator } from '../session/lifecycle';
 import type { PersistedSession, SessionExpiryOptions } from '../session/persistence';
 import { getPersistedSession, isSessionExpired, persistSession } from '../session/persistence';
 
@@ -114,6 +115,10 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // (page-view-like) sessions.
       let initialSessionSent = false;
 
+      // Ends the current session and starts a new one in its place, sending it right away. Expiry,
+      // navigation (in the `'route'` lifecycle) and the public `endSession()` all funnel through here.
+      let rotate: () => void;
+
       if (lifecycle === 'session') {
         const persisted = getPersistedSession();
         const now = Date.now();
@@ -122,16 +127,20 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         );
         let lastPersistedAt = current.lastActivity;
 
+        rotate = () => {
+          current = startAndPersistSession();
+          lastPersistedAt = current.lastActivity;
+          captureSession();
+          // A session has now been sent, so the deferred initial capture (if still pending)
+          // must not re-send this session.
+          initialSessionSent = true;
+        };
+
         const onActivity = (): void => {
           const activityAt = Date.now();
 
           if (isSessionExpired(current, expiry, activityAt)) {
-            current = startAndPersistSession();
-            lastPersistedAt = current.lastActivity;
-            captureSession();
-            // A session has now been sent, so the deferred initial capture (if still pending)
-            // must not re-send this session.
-            initialSessionSent = true;
+            rotate();
             return;
           }
 
@@ -154,7 +163,15 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         // Automatically captured sessions are akin to page views, and thus we
         // discard their duration.
         startSession({ ignoreDuration: true });
+
+        rotate = () => {
+          startSession({ ignoreDuration: true });
+          captureSession();
+          initialSessionSent = true;
+        };
       }
+
+      setSessionRotator(rotate);
 
       whenIdleOrHidden(() => {
         // A navigation (in `'route'` lifecycle) may start and send a new session before this
@@ -198,11 +215,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         addHistoryInstrumentationHandler(({ from, to }) => {
           // Don't create an additional session for the initial route or if the location did not change
           if (from !== to) {
-            startSession({ ignoreDuration: true });
-            captureSession();
-            // A session has now been sent, so the deferred initial capture (if still pending)
-            // must not re-send this navigation session.
-            initialSessionSent = true;
+            rotate();
           }
         });
       }
