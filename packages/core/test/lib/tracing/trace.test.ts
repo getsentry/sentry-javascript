@@ -31,7 +31,6 @@ import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingS
 import { startNewTrace } from '../../../src/tracing/trace';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
-import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -102,8 +101,8 @@ describe('startSpan', () => {
       }
       expect(_span).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).name).toEqual('GET users/[id]');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for transaction to be mutated', async () => {
@@ -120,7 +119,7 @@ describe('startSpan', () => {
         //
       }
 
-      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
@@ -144,9 +143,9 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
+      expect(spanToJSON(spans[1]!).name).toEqual('SELECT * from users');
       expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'error' : 'ok');
     });
 
     it('allows for span to be mutated', async () => {
@@ -171,7 +170,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).op).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -196,17 +195,20 @@ describe('startSpan', () => {
       expect(_span).toBeDefined();
       const jsonSpan = spanToJSON(_span!);
       expect(jsonSpan).toEqual({
-        data: {
+        attributes: {
           'sentry.origin': 'auto.http.browser',
           'sentry.sample_rate': 1,
           'sentry.source': 'custom',
+          ...(isError && { 'sentry.status.message': 'internal_error' }),
         },
-        origin: 'auto.http.browser',
-        description: 'GET users/[id]',
+        name: 'GET users/[id]',
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        parent_span_id: undefined,
         start_timestamp: expect.any(Number),
-        status: isError ? 'internal_error' : 'ok',
-        timestamp: expect.any(Number),
+        end_timestamp: expect.any(Number),
+        is_segment: true,
+        status: isError ? 'error' : 'ok',
+        links: undefined,
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
@@ -306,12 +308,12 @@ describe('startSpan', () => {
     const span = startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
       return span;
     });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
@@ -782,6 +784,27 @@ describe('startSpan', () => {
       });
     });
 
+    it('passes a `sentry.op` attribute to the tracesSampler when `op` is set', () => {
+      tracesSampler.mockReturnValueOnce(true);
+
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer', op: 'test.op', attributes: { test1: 'aa' } }, () => {});
+
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          'sentry.op': 'test.op',
+          test1: 'aa',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
+    });
+
     it.each([false, 0])('returns a negative sampling decision if tracesSampler returns %s', tracesSamplerResult => {
       tracesSampler.mockReturnValueOnce(tracesSamplerResult);
 
@@ -864,30 +887,6 @@ describe('startSpan', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as typeof startSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpan({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startSpanManual', () => {
@@ -933,9 +932,9 @@ describe('startSpanManual', () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
       finish();
-      expect(spanToJSON(span).timestamp).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeDefined();
     });
   });
 
@@ -1382,30 +1381,6 @@ describe('startSpanManual', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as unknown as typeof startSpanManual;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpanManual: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpanManual({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startInactiveSpan', () => {
@@ -1420,6 +1395,42 @@ describe('startInactiveSpan', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+  });
+
+  it('includes the scope the span was started on when finished', async () => {
+    const beforeSendTransaction = vi.fn(event => event);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, beforeSendTransaction });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    let span: Span | undefined;
+
+    withScope(scope => {
+      scope.setTag('scope', 1);
+      span = startInactiveSpan({ name: 'my-span' });
+      // The span captures the scope it was started on, so later mutations of that scope
+      // are reflected on the transaction.
+      scope.setTag('scope_after_span', 2);
+    });
+
+    withScope(scope => {
+      scope.setTag('scope', 2);
+      span?.end();
+    });
+
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // The span-start scope is captured, including `scope_after_span` (set on the same scope
+        // after span start), but not `scope: 2` (a different scope active at `end()`).
+        tags: { scope: 1, scope_after_span: 2 },
+      }),
+      expect.anything(),
+    );
   });
 
   it('returns a non recording span if tracing is disabled', () => {
@@ -1447,11 +1458,11 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(span).toBeInstanceOf(SentrySpan);
-    expect(spanToJSON(span).timestamp).toBeUndefined();
+    expect(spanToJSON(span).end_timestamp).toBeUndefined();
 
     span.end();
 
-    expect(spanToJSON(span).timestamp).toBeDefined();
+    expect(spanToJSON(span).end_timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -1563,7 +1574,7 @@ describe('startInactiveSpan', () => {
     expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
     // sampling decision is inherited
-    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+    expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).attributes['sentry.sample_rate']));
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {
@@ -1872,25 +1883,6 @@ describe('startInactiveSpan', () => {
       const childSpans = Array.from(outerSpan._sentryChildSpans);
       expect(childSpans).toContain(innerSpan);
     });
-  });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions) => {
-      return staticSpan;
-    }) as unknown as typeof startInactiveSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startInactiveSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startInactiveSpan({ name: 'GET users/[id]' });
-    expect(result).toBe(staticSpan);
   });
 });
 
@@ -2354,6 +2346,8 @@ describe('span hooks', () => {
   beforeEach(() => {
     resetGlobals();
 
+    setAsyncContextStrategy(undefined);
+
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
     setCurrentClient(client);
@@ -2369,11 +2363,11 @@ describe('span hooks', () => {
     const endedSpans: string[] = [];
 
     client.on('spanStart', span => {
-      startedSpans.push(spanToJSON(span).description || '');
+      startedSpans.push(spanToJSON(span).name);
     });
 
     client.on('spanEnd', span => {
-      endedSpans.push(spanToJSON(span).description || '');
+      endedSpans.push(spanToJSON(span).name);
     });
 
     startSpan({ name: 'span1' }, () => {

@@ -2,27 +2,21 @@ import type { Context, Span as OpenTelemetrySpan, SpanOptions, Tracer } from '@o
 import { context, isSpanContextValid, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from './utils/suppressTracing';
 import {
-  _INTERNAL_safeMathRandom,
   _INTERNAL_setSpanForScope,
-  _INTERNAL_startInactiveSpan,
+  startInactiveSpan,
   addChildSpanToSpan,
   getCapturedScopesOnSpan,
   getCurrentScope,
-  getDynamicSamplingContextFromSpan,
   getIsolationScope,
   markSpanAsTracerProviderSpan,
-  markSpanForOtelSourceInference,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   setCapturedScopesOnSpan,
   spanIsIgnored,
   spanKindToName,
   startNewTrace,
-  withScope,
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, SENTRY_TRACE_STATE_DSC } from './constants';
-import { getSamplingDecision } from './utils/getSamplingDecision';
+import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
 
 export class SentryTracer implements Tracer {
@@ -46,9 +40,6 @@ export class SentryTracer implements Tracer {
     // are not marked and keep their mutable behavior.
     markSpanAsTracerProviderSpan(span);
 
-    if (options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === undefined) {
-      markSpanForOtelSourceInference(span);
-    }
     return span;
   }
 
@@ -123,49 +114,18 @@ export class SentryTracer implements Tracer {
     }
 
     if (options.root) {
-      return startNewTrace(() => _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: null }));
-    }
-
-    if (parentSpan?.spanContext().isRemote) {
-      return this._startRootSpanWithRemoteParent(sentryOptions, parentSpan);
+      return startNewTrace(() => startInactiveSpan({ ...sentryOptions, parentSpan: null }));
     }
 
     if (parentSpan) {
-      return _INTERNAL_startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
+      // Remote parents are handled by core: it continues their trace and starts a root span.
+      return startInactiveSpan({ ...sentryOptions, parentSpan: parentSpan });
     }
 
     // No parent span and no remote parent: this is a fresh root span.
-    return _INTERNAL_startInactiveSpan({
+    return startInactiveSpan({
       ...sentryOptions,
       parentSpan: hasExplicitContext ? null : undefined,
-    });
-  }
-
-  private _startRootSpanWithRemoteParent(
-    options: Parameters<typeof _INTERNAL_startInactiveSpan>[0],
-    parentSpan: OpenTelemetrySpan,
-  ): Span {
-    const { spanId, traceId, traceState } = parentSpan.spanContext();
-    const dsc = getDynamicSamplingContextFromSpan(parentSpan);
-    const sampleRand = typeof dsc.sample_rand === 'string' ? Number(dsc.sample_rand) : undefined;
-
-    // Only freeze the DSC when the remote parent actually carried one (i.e. there was incoming
-    // baggage). Otherwise leave it unset so it is derived dynamically from the span — picking up the
-    // span's `transaction` name and the generated `sample_rand` — matching the OpenTelemetry SDK.
-    const hasIncomingDsc = !!traceState?.get(SENTRY_TRACE_STATE_DSC);
-
-    return withScope(scope => {
-      scope.setPropagationContext({
-        traceId,
-        parentSpanId: spanId,
-        sampled: getSamplingDecision(parentSpan.spanContext()),
-        dsc: hasIncomingDsc ? dsc : undefined,
-        sampleRand:
-          typeof sampleRand === 'number' && !Number.isNaN(sampleRand) ? sampleRand : _INTERNAL_safeMathRandom(),
-      });
-      _INTERNAL_setSpanForScope(scope, undefined);
-
-      return _INTERNAL_startInactiveSpan({ ...options, parentSpan: null });
     });
   }
 

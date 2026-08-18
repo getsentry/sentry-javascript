@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/node';
 
 let lastTransactionId: string | undefined;
+let lastTransactionTraceId: string | undefined;
+let lastErrorTraceId: string | undefined;
 
 Sentry.init({
   traceLifecycle: 'static',
@@ -8,8 +10,13 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
   tracesSampleRate: 1,
+  beforeSend(event) {
+    lastErrorTraceId = event.contexts?.trace?.trace_id;
+    return event;
+  },
   beforeSendTransaction(event) {
     lastTransactionId = event.event_id;
+    lastTransactionTraceId = event.contexts?.trace?.trace_id;
     return event;
   },
 });
@@ -37,6 +44,7 @@ app.get('/test-transaction', function (req, res) {
 
     res.send({
       transactionId: lastTransactionId,
+      traceId: lastTransactionTraceId,
     });
   });
 });
@@ -46,7 +54,7 @@ app.get('/test-error', async function (req, res) {
 
   await Sentry.flush(2000);
 
-  res.send({ exceptionId });
+  res.send({ exceptionId, traceId: lastErrorTraceId });
 });
 
 app.get('/test-exception/:id', function (req, _res) {

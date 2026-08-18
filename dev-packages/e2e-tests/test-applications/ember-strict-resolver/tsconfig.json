@@ -1,0 +1,9 @@
+{
+  "extends": "@ember/app-tsconfig",
+  "include": ["tests/**/*", "src/**/*"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "lib": ["DOM", "ES2020"],
+    "types": ["ember-source/types", "vite/client", "@embroider/core/virtual", "@glint/ember-tsc/types"]
+  }
+}

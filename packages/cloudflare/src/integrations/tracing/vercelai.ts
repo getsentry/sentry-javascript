@@ -10,10 +10,14 @@
 
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, extendIntegration } from '@sentry/core';
-import { addVercelAiProcessors, vercelAiIntegration, type VercelAiOptions } from '@sentry/server-utils';
+import {
+  addVercelAiProcessors,
+  vercelAIIntegration as channelVercelAIIntegration,
+  type VercelAiOptions,
+} from '@sentry/server-utils';
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
-  const inner = vercelAiIntegration(options);
+  const inner = channelVercelAIIntegration(options);
 
   return extendIntegration(inner, {
     options,

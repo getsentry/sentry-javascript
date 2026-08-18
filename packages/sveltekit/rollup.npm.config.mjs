@@ -13,6 +13,7 @@ export default makeNPMConfigVariants(
       'src/client/svelte5BrowserTracing.ts',
       'src/server/index.ts',
       'src/worker/index.ts',
+      'src/vite/index.ts',
     ],
     packageSpecificConfig: {
       // Keep the variant subpath external so the transpiled output preserves the import for the

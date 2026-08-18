@@ -45,9 +45,9 @@ describe('mysql auto instrumentation', () => {
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
           ...(origin ? { 'sentry.origin': origin } : {}),
-          'db.system': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': port,
+          'db.system.name': 'mysql',
+          'server.address': 'localhost',
+          'server.port': port,
           'db.user': 'root',
         }),
         status: 'ok',
@@ -100,7 +100,7 @@ describe('mysql auto instrumentation', () => {
             // A failing streamed query emits `error`, which marks the span as errored
             status: 'internal_error',
             data: expect.objectContaining({
-              'db.system': 'mysql',
+              'db.system.name': 'mysql',
               'db.user': 'root',
             }),
           }),
@@ -188,7 +188,7 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
         },
-        'db.system': {
+        'db.system.name': {
           type: 'string',
           value: 'mysql',
         },
@@ -196,11 +196,11 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'root',
         },
-        'net.peer.name': {
+        'server.address': {
           type: 'string',
           value: 'localhost',
         },
-        'net.peer.port': {
+        'server.port': {
           type: 'integer',
           value: expect.any(Number),
         },
@@ -260,7 +260,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT 1 + 1 AS solution',
             },
@@ -271,7 +271,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT NOW()',
             },

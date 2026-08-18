@@ -16,13 +16,13 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'mysql2',
-                'db.name': 'tests',
+                'db.system.name': 'mysql2',
+                'db.namespace': 'tests',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 3307,
+                'server.address': 'localhost',
+                'server.port': 3307,
               }),
               status: 'ok',
               description:
@@ -32,13 +32,13 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'mysql2',
-                'db.name': 'tests',
+                'db.system.name': 'mysql2',
+                'db.namespace': 'tests',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 3307,
+                'server.address': 'localhost',
+                'server.port': 3307,
               }),
               status: 'ok',
               description: 'insert into `User` (`email`, `name`) values (?, ?)',
@@ -48,11 +48,11 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'User',
-                'db.system': 'mysql2',
-                'db.name': 'tests',
-                'db.statement': 'select * from `User`',
+                'db.system.name': 'mysql2',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from `User`',
                 'db.user': 'root',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',

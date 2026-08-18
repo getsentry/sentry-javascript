@@ -68,7 +68,7 @@ export function handleResponseError(span: Span, response: AnthropicAiResponse): 
  * Include the system prompt in the messages list, if available
  */
 export function messagesFromParams(params: Record<string, unknown>): unknown[] {
-  const { system, messages, input } = params;
+  const { system, messages, input, prompt } = params;
 
   const systemMessages = typeof system === 'string' ? [{ role: 'system', content: params.system }] : [];
 
@@ -76,7 +76,11 @@ export function messagesFromParams(params: Record<string, unknown>): unknown[] {
 
   const messagesParamMessages = Array.isArray(messages) ? messages : messages != null ? [messages] : [];
 
-  const userMessages = inputParamMessages ?? messagesParamMessages;
+  // The legacy Completions API takes a single raw `prompt` string instead of a message list. Model
+  // it as one user message so it lands on `gen_ai.input.messages` like every other request shape.
+  const promptMessages = prompt != null ? [{ role: 'user', content: stringify(prompt, String) }] : [];
+
+  const userMessages = inputParamMessages ?? (messagesParamMessages.length ? messagesParamMessages : promptMessages);
 
   return [...systemMessages, ...userMessages];
 }

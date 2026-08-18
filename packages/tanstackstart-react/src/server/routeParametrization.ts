@@ -53,7 +53,7 @@ export function updateSpanWithRouteParametrization(method: string, pathname: str
   }
 
   const rootSpan = getRootSpan(activeSpan);
-  const rootSpanData = spanToJSON(rootSpan).data;
+  const rootSpanData = spanToJSON(rootSpan).attributes;
   if (rootSpanData?.[HTTP_ROUTE]) {
     return;
   }

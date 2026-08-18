@@ -44,7 +44,7 @@ test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) =
     if (typeof span.description === 'string' && span.description.startsWith('ai.')) {
       return true;
     }
-    if (span.data?.['ai.operationId'] != null || span.data?.['ai.pipeline.name'] != null) {
+    if (span.data?.['ai.operationId'] != null || span.data?.['gen_ai.pipeline.name'] != null) {
       return true;
     }
     return false;

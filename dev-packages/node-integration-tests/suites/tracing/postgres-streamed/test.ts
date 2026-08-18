@@ -16,11 +16,11 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),
   },
-  'db.name': {
+  'db.namespace': {
     type: 'string',
     value: 'tests',
   },
-  'db.system': {
+  'db.system.name': {
     type: 'string',
     value: 'postgresql',
   },
@@ -28,11 +28,11 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'test',
   },
-  'net.peer.name': {
+  'server.address': {
     type: 'string',
     value: 'localhost',
   },
-  'net.peer.port': {
+  'server.port': {
     type: 'integer',
     value: expect.any(Number),
   },
@@ -102,7 +102,7 @@ function expectedDbSpan({
 }): unknown {
   const attributes: Record<string, unknown> = {
     ...COMMON_DB_ATTRIBUTES,
-    'net.peer.name': {
+    'server.address': {
       type: 'string',
       value: host,
     },
@@ -113,7 +113,7 @@ function expectedDbSpan({
   };
 
   if (statement) {
-    attributes['db.statement'] = {
+    attributes['db.query.text'] = {
       type: 'string',
       value: statement,
     };

@@ -52,14 +52,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-Deno.test('denoRedisIntegration: included in default integrations', () => {
+Deno.test('redisIntegration: included in default integrations', () => {
   resetGlobals();
   const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('DenoRedis'), `DenoRedis should be in defaults, got ${names.join(', ')}`);
+  assert(names.includes('Redis'), `Redis should be in defaults, got ${names.join(', ')}`);
 });
 
-Deno.test('denoRedisIntegration: node-redis:command channel produces a db.query child span', async () => {
+Deno.test('redisIntegration: node-redis:command channel produces a db.query child span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -98,7 +98,7 @@ Deno.test('denoRedisIntegration: node-redis:command channel produces a db.query 
   assertEquals(redisSpan!.data?.['server.port'], 6379);
 });
 
-Deno.test('denoRedisIntegration: errors on the command channel set span status', async () => {
+Deno.test('redisIntegration: errors on the command channel set span status', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({
@@ -135,7 +135,7 @@ Deno.test('denoRedisIntegration: errors on the command channel set span status',
   assertEquals(redisSpan!.status, 'internal_error');
 });
 
-Deno.test('denoRedisIntegration: ioredis:command channel produces a db.query child span', async () => {
+Deno.test('redisIntegration: ioredis:command channel produces a db.query child span', async () => {
   resetGlobals();
   const sink = transactionSink();
   init({

@@ -16,12 +16,12 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 5445,
+                'server.address': 'localhost',
+                'server.port': 5445,
               }),
               status: 'ok',
               description:
@@ -31,12 +31,12 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 5445,
+                'server.address': 'localhost',
+                'server.port': 5445,
               }),
               status: 'ok',
               // In the knex-otel spans, the placeholders (e.g., `$1`) are replaced by a `?`.
@@ -47,11 +47,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'User',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "User"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "User"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),
@@ -63,11 +63,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'DoesNotExist',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "DoesNotExist"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "DoesNotExist"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),

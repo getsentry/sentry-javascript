@@ -1,15 +1,7 @@
-import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
+import type { GenAiOptions } from '../core/utils';
 
-export interface AnthropicAiOptions {
-  /**
-   * Enable or disable input recording.
-   */
-  recordInputs?: boolean;
-  /**
-   * Enable or disable output recording.
-   */
-  recordOutputs?: boolean;
-}
+/** Options for the Anthropic AI integration. */
+export type AnthropicAiOptions = GenAiOptions;
 
 export type Message = {
   role: 'user' | 'assistant';
@@ -55,32 +47,6 @@ type SuccessfulResponse = {
 };
 
 export type AnthropicAiResponse = SuccessfulResponse | MessageError;
-
-/**
- * Basic interface for Anthropic AI client with only the instrumented methods
- * This provides type safety while being generic enough to work with different client implementations
- */
-export interface AnthropicAiClient {
-  messages?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-  };
-  completions?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-  };
-}
-
-/**
- * Anthropic AI Integration interface for type safety
- */
-export interface AnthropicAiIntegration {
-  name: string;
-  options: AnthropicAiOptions;
-}
-
-/**
- * @deprecated This type is no longer used and will be removed in the next major version.
- */
-export type AnthropicAiInstrumentedMethod = keyof typeof ANTHROPIC_METHOD_REGISTRY;
 
 /**
  * Message type for Anthropic AI

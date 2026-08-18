@@ -11,7 +11,6 @@ import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
 export * from './client';
-export * from './vite';
 export * from './server';
 export * from './worker';
 

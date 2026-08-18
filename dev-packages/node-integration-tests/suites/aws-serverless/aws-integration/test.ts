@@ -87,9 +87,9 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'sentry.op': 'db',
       'rpc.method': 'PutItem',
       'rpc.service': 'DynamoDB',
-      'db.system': 'dynamodb',
-      'db.name': 'my-table',
-      'db.operation': 'PutItem',
+      'db.system.name': 'dynamodb',
+      'db.namespace': 'my-table',
+      'db.operation.name': 'PutItem',
       'aws.dynamodb.table_names': ['my-table'],
     }),
   });
@@ -101,7 +101,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Query',
-      'db.operation': 'Query',
+      'db.operation.name': 'Query',
       'aws.dynamodb.count': 1,
       'aws.dynamodb.scanned_count': 1,
     }),

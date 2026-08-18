@@ -56,6 +56,18 @@ describe('remixIntegration (Orchestrion-based)', () => {
       }),
     );
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 200);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('requestHandler: maps an error response code to the span status', async () => {
+    const ctx = { arguments: [makeRequest({ method: 'GET', url: 'http://localhost/users' })] };
+
+    await tracingChannel(remixChannels.REMIX_REQUEST_HANDLER).tracePromise(async () => ({ status: 500 }), ctx);
+
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 500);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 

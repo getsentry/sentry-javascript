@@ -84,11 +84,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { release, environment, enableLogs = true, beforeSendLog } = client.getOptions();
-  if (!enableLogs) {
-    DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
-    return;
-  }
+  const { release, environment, beforeSendLog } = client.getOptions();
 
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
@@ -98,7 +94,7 @@ export function _INTERNAL_captureLog(
 
   const {
     user: { id, email, username },
-    attributes: scopeAttributes = {},
+    attributes: scopeAttributes,
   } = getCombinedScopeData(getIsolationScope(), currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);

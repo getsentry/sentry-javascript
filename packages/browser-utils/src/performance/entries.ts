@@ -10,7 +10,7 @@ import {
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import {
@@ -73,13 +73,13 @@ export function startTrackingLongTasks(): void {
       return;
     }
 
-    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+    const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+      if (parentAttributes[SENTRY_OP] === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
         // Skip adding a span if the long task started before the navigation started.
         // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
         // time, potentially skewing the duration of the actual navigation as reported via our
@@ -117,7 +117,10 @@ export function startTrackingLongAnimationFrames(): void {
 
       const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
-      const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
+      const {
+        start_timestamp: parentStartTimestamp,
+        attributes: { [SENTRY_OP]: parentOp },
+      } = spanToJSON(parent);
 
       if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
         // Skip adding the span if the long animation frame started before the navigation started.
@@ -137,10 +140,10 @@ export function startTrackingLongAnimationFrames(): void {
       attributes['browser.script.invoker'] = invoker;
       attributes['browser.script.invoker_type'] = invokerType;
       if (sourceURL) {
-        attributes['code.filepath'] = sourceURL;
+        attributes[CODE_FILE_PATH] = sourceURL;
       }
       if (sourceFunctionName) {
-        attributes['code.function'] = sourceFunctionName;
+        attributes[CODE_FUNCTION_NAME] = sourceFunctionName;
       }
       if (sourceCharPosition !== -1) {
         attributes['browser.script.source_char_position'] = sourceCharPosition;
@@ -220,7 +223,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   const performanceEntries = performance.getEntries();
 
-  const { op, start_timestamp: transactionStartTime } = spanToJSON(span);
+  const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
     const startTime = msToSec(entry.startTime);
@@ -232,7 +235,11 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       Math.max(0, entry.duration),
     );
 
-    if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
+    if (
+      attributes[SENTRY_OP] === 'navigation' &&
+      transactionStartTime &&
+      timeOrigin + startTime < transactionStartTime
+    ) {
       return;
     }
 
@@ -479,7 +486,7 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
     if (isMeasurementValue(connection.rtt)) {
       if (spanStreamingEnabled) {
         span.setAttribute('network.connection.rtt', connection.rtt);
-      } else if (spanToJSON(span).op === 'pageload') {
+      } else if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
         // Measurements are only recorded on the pageload span, matching the historical
         // behavior where `connection.rtt` was only flushed for pageload transactions.
         setMeasurement('connection.rtt', connection.rtt, 'millisecond');

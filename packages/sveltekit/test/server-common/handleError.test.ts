@@ -95,7 +95,10 @@ describe('handleError (server)', () => {
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
 
-    it('calls waitUntil if available', async () => {
+    it.each([
+      ['context', 'adapter-cloudflare <= 7'],
+      ['ctx', 'adapter-cloudflare 8'],
+    ])('calls waitUntil if available on platform.%s (%s)', async platformKey => {
       const wrappedHandleError = handleErrorWithSentry();
       const mockError = new Error('test');
       const waitUntilSpy = vi.fn();
@@ -105,7 +108,7 @@ describe('handleError (server)', () => {
         event: {
           ...requestEvent,
           platform: {
-            context: {
+            [platformKey]: {
               waitUntil: waitUntilSpy,
             },
           },
@@ -117,6 +120,43 @@ describe('handleError (server)', () => {
       expect(waitUntilSpy).toHaveBeenCalledTimes(1);
       // flush() returns a promise, this is what we expect here
       expect(waitUntilSpy).toHaveBeenCalledWith(expect.any(Promise));
+    });
+
+    it('prefers platform.ctx over platform.context when both are present', async () => {
+      const wrappedHandleError = handleErrorWithSentry();
+      const mockError = new Error('test');
+      const ctxWaitUntilSpy = vi.fn();
+      const contextWaitUntilSpy = vi.fn();
+
+      await wrappedHandleError({
+        error: mockError,
+        event: {
+          ...requestEvent,
+          platform: {
+            ctx: { waitUntil: ctxWaitUntilSpy },
+            context: { waitUntil: contextWaitUntilSpy },
+          },
+        },
+        status: 500,
+        message: 'Internal Error',
+      });
+
+      expect(ctxWaitUntilSpy).toHaveBeenCalledTimes(1);
+      expect(contextWaitUntilSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not throw if the platform exposes no execution context', async () => {
+      const wrappedHandleError = handleErrorWithSentry();
+      const mockError = new Error('test');
+
+      await wrappedHandleError({
+        error: mockError,
+        event: { ...requestEvent, platform: {} },
+        status: 500,
+        message: 'Internal Error',
+      });
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
   });
 });

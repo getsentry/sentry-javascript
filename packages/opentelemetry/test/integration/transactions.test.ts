@@ -7,11 +7,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
+  startInactiveSpan,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
-import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 

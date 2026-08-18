@@ -346,7 +346,7 @@ Sentry.init({
 // After
 Sentry.init({
   beforeSendSpan: span => {
-    if (span.attributes?.['sentry.op'] === 'db.query') {
+    if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
       span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
     }
@@ -458,6 +458,22 @@ Sentry.init({
 ```
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
+
+#### `Sentry.spanToJSON` returns streamed span format
+
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+
+If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
+
+The `spanToStreamedSpanJSON` helper, which returned this format in v10, was removed in favor of `spanToJSON`. Since the two are now equivalent, replace any calls to it:
+
+```js
+// Before (v10)
+const spanJson = Sentry.spanToStreamedSpanJSON(span);
+
+// After (v11)
+const spanJson = Sentry.spanToJSON(span);
+```
 
 ### Logs are enabled by default
 
@@ -626,6 +642,97 @@ Affected SDKs: `@sentry/cloudflare`.
 + import { wrapRequestHandler } from '@sentry/cloudflare/request';
 ```
 
+### Cloudflare: the Vite plugin auto-instruments your Worker by default
+
+Affected SDKs: `@sentry/cloudflare`.
+
+`sentryCloudflareVitePlugin()` now wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched, so no action is required for most users. Opt out with the new top-level `autoInstrumentation` option:
+
+```js
+sentryCloudflareVitePlugin({ autoInstrumentation: false });
+```
+
+The experimental opt-in this replaces was removed:
+
+```diff
+- sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
++ sentryCloudflareVitePlugin();
+```
+
+### `@sentry/ember` is now a v2 addon with manual setup
+
+Affected SDKs: `@sentry/ember`.
+
+`@sentry/ember` is now a [v2 (Embroider) addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/), so it builds cleanly under Embroider and Vite in addition to classic builds. Because v2 addons cannot auto-configure the host app, Sentry is no longer wired up from `config/environment.js` and no longer registers its own initializer. You now call `Sentry.init()` yourself and opt into performance instrumentation explicitly. A full walkthrough lives in [`packages/ember/UPGRADE.md`](./packages/ember/UPGRADE.md).
+
+**1. Initialize Sentry in `app/app.ts` instead of `config/environment.js`.** Remove the `'@sentry/ember'` block from `config/environment.js` and call `init()` before your `Application` class:
+
+```ts
+// config/environment.js
+ENV.sentryDsn = process.env.E2E_TEST_DSN;
+```
+
+```typescript
+// app/app.ts
+import Application from '@ember/application';
+import Resolver from 'ember-resolver';
+import loadInitializers from 'ember-load-initializers';
+import config from 'my-app/config/environment';
+import * as Sentry from '@sentry/ember';
+
+Sentry.init({
+  dsn: config.sentryDsn,
+  tracesSampleRate: 1.0,
+  // all @sentry/browser options are supported
+});
+
+export default class App extends Application {
+  modulePrefix = config.modulePrefix;
+  podModulePrefix = config.podModulePrefix;
+  Resolver = Resolver;
+}
+
+loadInitializers(App, config.modulePrefix);
+```
+
+The former `@sentry/ember` config keys map onto arguments you now pass directly: `sentry` options become `Sentry.init()` options, and the `disable*` performance flags move to `instrumentAppInstancePerformance()` (see below). `disablePerformance` no longer exists as a single switch — omit the instance-initializer entirely to disable performance instrumentation.
+
+**2. Opt into performance instrumentation with an instance-initializer.** Automatic performance instrumentation is gone; add it yourself:
+
+```typescript
+// app/instance-initializers/sentry-performance.ts
+import type ApplicationInstance from '@ember/application/instance';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
+
+export function initialize(appInstance: ApplicationInstance): void {
+  instrumentAppInstancePerformance(appInstance, {
+    // former config/environment flags live here now, e.g.:
+    // disableRunloopPerformance: false,
+    // disableInstrumentComponents: false,
+  });
+}
+
+export default { initialize };
+```
+
+FastBoot is detected automatically, so client-side instrumentation is skipped during server rendering with no extra configuration.
+
+**3. `instrumentRoutePerformance` is unchanged.** Wrapping individual routes works exactly as before:
+
+```typescript
+// app/routes/posts.ts
+import Route from '@ember/routing/route';
+import { instrumentRoutePerformance } from '@sentry/ember';
+
+class PostsRoute extends Route {
+  async model() {
+    return this.store.findAll('post');
+  }
+}
+
+export default instrumentRoutePerformance(PostsRoute);
+```
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
@@ -727,8 +834,6 @@ Sentry.init({
     },
   );
 ```
-
-- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
 
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
@@ -853,6 +958,13 @@ export default defineConfig({
 });
 ```
 
+### `@sentry/server-utils`
+
+- The following exports were removed from `@sentry/server-utils`. They were only reachable by importing from `@sentry/server-utils` directly (no user-facing SDK re-exported them) and were effectively internal; the underlying functionality is unchanged and still used within the SDK.
+  - `instrumentPrisma`: Prisma is instrumented via `prismaIntegration` and works out of the box, so manual instrumentation is no longer exposed.
+  - `defaultDbStatementSerializer`: the default Redis command statement serializer helper.
+  - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
@@ -967,7 +1079,23 @@ Sentry.init({
 
 The same applies when looking the integration up by name, e.g. via `client.getIntegrationByName('OtlpIntegration')`.
 
-## 6. Type Changes
+### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
+
+Affected SDKs: `@sentry/sveltekit`.
+
+The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
+
+```ts
+// vite.config.ts
+
+// before
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+// after
+import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+```
+
+The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
 
 - Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
   `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on

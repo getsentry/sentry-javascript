@@ -3,6 +3,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -206,7 +207,8 @@ export function getHeader(headers: PostgRESTHeaders | undefined, name: string): 
  */
 export function extractOperation(method: string, headers: PostgRESTHeaders = {}): string {
   switch (method) {
-    case 'GET': {
+    case 'GET':
+    case 'QUERY': {
       return 'select';
     }
     case 'POST': {
@@ -275,8 +277,8 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-            'db.system': 'postgresql',
-            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_SYSTEM_NAME]: 'postgresql',
+            [DB_OPERATION_NAME]: `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
@@ -435,8 +437,8 @@ function instrumentPostgRESTFilterBuilder(
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
           'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
-          'db.system': 'postgresql',
-          'db.operation': operation,
+          [DB_SYSTEM_NAME]: 'postgresql',
+          [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };

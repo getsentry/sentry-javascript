@@ -2,6 +2,7 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getSpanStatusFromHttpCode,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -107,6 +108,9 @@ function setResponseStatus(span: Span, result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, status);
     span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
+
+    const spanStatus = getSpanStatusFromHttpCode(status);
+    span.setStatus(spanStatus);
   }
 }
 
@@ -127,7 +131,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
     // oxlint-disable-next-line typescript/no-deprecated
-    const method = spanToJSON(span).data[HTTP_METHOD];
+    const method = spanToJSON(span).attributes[HTTP_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }

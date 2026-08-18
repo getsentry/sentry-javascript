@@ -25,9 +25,9 @@ describe('Mongoose v5 Test', () => {
   const expectedSpan = (operation: string) =>
     expect.objectContaining({
       data: expect.objectContaining({
-        'db.mongodb.collection': 'blogposts',
-        'db.operation': operation,
-        'db.system': 'mongoose',
+        'db.collection.name': 'blogposts',
+        'db.operation.name': operation,
+        'db.system.name': 'mongoose',
       }),
       description: `mongoose.BlogPost.${operation}`,
       op: 'db',

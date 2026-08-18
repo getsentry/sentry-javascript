@@ -28,12 +28,12 @@ describe('MongoDB v5 auto-instrumentation', () => {
       data: expect.objectContaining({
         'sentry.origin': origin,
         'sentry.op': 'db',
-        'db.system': 'mongodb',
-        'db.name': 'admin',
-        'db.mongodb.collection': 'movies',
-        'db.operation': operation,
+        'db.system.name': 'mongodb',
+        'db.namespace': 'admin',
+        'db.collection.name': 'movies',
+        'db.operation.name': operation,
         'db.connection_string': expect.any(String),
-        'db.statement': expect.any(String),
+        'db.query.text': expect.any(String),
       }),
       op: 'db',
       origin,
@@ -61,7 +61,7 @@ describe('MongoDB v5 auto-instrumentation', () => {
               const pooledFinds = spans.filter(
                 s =>
                   s.origin === origin &&
-                  (s.data as Record<string, unknown>)?.['db.operation'] === 'find' &&
+                  (s.data as Record<string, unknown>)?.['db.operation.name'] === 'find' &&
                   opIds.has(s.parent_span_id as string),
               );
               expect(new Set(pooledFinds.map(s => s.parent_span_id)).size).toBe(3);

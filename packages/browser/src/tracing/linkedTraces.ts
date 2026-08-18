@@ -10,6 +10,7 @@ import {
 } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 export interface PreviousTraceInfo {
   /**
@@ -142,7 +143,7 @@ export function addPreviousTraceSpanLink(
   function getSampleRate(): number {
     try {
       const oldSampleRate = Number(
-        spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ?? oldPropagationContext.dsc?.sample_rate,
+        spanJson.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ?? oldPropagationContext.dsc?.sample_rate,
       );
       return Number.isNaN(oldSampleRate) ? 0 : oldSampleRate;
     } catch {
@@ -178,7 +179,7 @@ export function addPreviousTraceSpanLink(
     if (DEBUG_BUILD) {
       debug.log(
         `Adding previous_trace \`${JSON.stringify(previousTraceSpanCtx)}\` link to span \`${JSON.stringify({
-          op: spanJson.op,
+          op: spanJson.attributes[SENTRY_OP],
           ...span.spanContext(),
         })}\``,
       );

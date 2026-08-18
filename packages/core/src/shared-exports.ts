@@ -10,6 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
+export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureException,
@@ -98,8 +99,8 @@ export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
-  spanToStreamedSpanJSON,
   spanIsSampled,
   spanIsSentrySpan,
   spanToTraceContext,
@@ -516,9 +517,11 @@ export type { LegacyCSPReport } from './types/csp';
 export type { SerializedLog, SerializedLogContainer } from './types/log';
 export type {
   BuildTimeOptionsBase,
-  UnstableVitePluginOptions,
-  UnstableRollupPluginOptions,
-  UnstableWebpackPluginOptions,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ModuleMetadataCallbackArgs,
+  ReactComponentAnnotationOptions,
+  ResolveSourceMapHook,
 } from './build-time-plugins/buildTimeOptionsBase';
 export type { RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner } from './utils/randomSafeContext';
 export {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getExtMetadata, getRouteMetadata } from '../../../src/integrations/tracing-channel/hapi-utils';
+import { getExtMetadata, getRouteMetadata } from '../../../src/integrations/hapi-utils';
 
 describe('getRouteMetadata', () => {
   const route = { path: '/users/{id}', method: 'get' } as any;
