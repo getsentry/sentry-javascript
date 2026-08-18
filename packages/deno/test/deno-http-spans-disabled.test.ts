@@ -15,6 +15,7 @@ import type { TransactionEvent } from '@sentry/core';
 import { getIsolationScope, getMainCarrier } from '@sentry/core';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
+import type { DenoClient } from '../build/esm/index.js';
 import { denoHttpIntegration, init, startSpan } from '../build/esm/index.js';
 
 /**
@@ -22,9 +23,9 @@ import { denoHttpIntegration, init, startSpan } from '../build/esm/index.js';
  * everywhere except the HTTP integration. Without it the option would be
  * indistinguishable from tracing being off.
  */
-function initWithSpansDisabled(transactions: TransactionEvent[]): void {
+function initWithSpansDisabled(transactions: TransactionEvent[]): DenoClient {
   getMainCarrier().__SENTRY__ = undefined;
-  init({
+  return init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -33,14 +34,14 @@ function initWithSpansDisabled(transactions: TransactionEvent[]): void {
       transactions.push(event);
       return null;
     },
-  });
+  }) as DenoClient;
 }
 
 Deno.test({
   name: 'denoHttpIntegration: node:http outgoing request creates no http.client span when spans: false',
   async fn() {
     const transactions: TransactionEvent[] = [];
-    initWithSpansDisabled(transactions);
+    const client = initWithSpansDisabled(transactions);
 
     // Deno.serve for the target so this does not depend on the node:http
     // server instrumentation.
@@ -74,6 +75,10 @@ Deno.test({
     abortController.abort();
     await target.finished;
 
+    // Event capture runs through the client's async processing queue, so
+    // drain it before reading the sink -- otherwise these assertions race.
+    await client.flush(5_000);
+
     // The parent span proves tracing itself is live, so an absent
     // http.client span is the option working rather than tracing being off.
     assert(sentryTraceHeader, 'expected an injected sentry-trace header, so the client was instrumented');
@@ -92,7 +97,7 @@ Deno.test({
   name: 'denoHttpIntegration: node:http incoming request creates no http.server transaction when spans: false',
   async fn() {
     const transactions: TransactionEvent[] = [];
-    initWithSpansDisabled(transactions);
+    const client = initWithSpansDisabled(transactions);
 
     // Captured inside the handler so we can tell "spans were disabled" apart
     // from "the request was never instrumented at all".
@@ -110,6 +115,11 @@ Deno.test({
     const response = await fetch(`http://127.0.0.1:${port}/users/42`);
     assertEquals(await response.text(), 'ok');
     await new Promise<void>(resolve => server.close(() => resolve()));
+
+    // Drain the async processing queue first. Without this, "no http.server
+    // transaction yet" and "no http.server transaction at all" look alike,
+    // so the assertion below could pass while spans were still enabled.
+    await client.flush(5_000);
 
     // Request isolation still runs with spans off, so this proves the
     // instrumentation saw the request.
