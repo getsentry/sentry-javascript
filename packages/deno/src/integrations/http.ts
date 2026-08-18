@@ -97,14 +97,15 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
         ...options,
+        // TODO: consolidate confusingly named HTTP instrumentation options
+        onSpanCreated: options.onIncomingSpanCreated,
+        onSpanEnd: options.onIncomingSpanEnd,
         errorMonitor,
       });
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
       const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-        ...options,
         breadcrumbs,
-        // TODO: consolidate confusingly named HTTP instrumentation options
         propagateTrace: tracePropagation,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests
           ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
