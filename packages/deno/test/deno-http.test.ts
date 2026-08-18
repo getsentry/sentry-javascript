@@ -112,7 +112,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: 'denoHttpIntegration: node:http incoming request records a release-health session',
+  name: 'denoHttpIntegration: node:http incoming request records a release-health session by default',
   async fn() {
     resetGlobals();
     const envelopes: Envelope[] = [];

@@ -9,11 +9,12 @@ import {
   getRequestOptions,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
+  type HttpInstrumentationOptions,
 } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
 
-export interface DenoHttpIntegrationOptions {
+export interface DenoHttpIntegrationOptions extends HttpInstrumentationOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
    *
@@ -95,21 +96,15 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
     name: INTEGRATION_NAME,
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
-        // `spans` falls through to the client's tracing config when unset.
-        spans: options.spans,
-        ignoreStaticAssets: options.ignoreStaticAssets,
-        ignoreIncomingRequests: options.ignoreIncomingRequests,
-        maxRequestBodySize: options.maxRequestBodySize,
-        ignoreRequestBody: options.ignoreRequestBody,
-        onSpanCreated: options.onIncomingSpanCreated,
-        onSpanEnd: options.onIncomingSpanEnd,
+        ...options,
         errorMonitor,
       });
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
       const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-        spans: options.spans,
+        ...options,
         breadcrumbs,
+        // TODO: consolidate confusingly named HTTP instrumentation options
         propagateTrace: tracePropagation,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests
           ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
