@@ -64,7 +64,6 @@ describe('NodeClient', () => {
       expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
       expect(client.asyncLocalStorageLookup?.contextSymbol).toBeDefined();
     });
-
   });
 
   it('sets correct metadata', () => {
