@@ -32,12 +32,9 @@ export function orchestrionModuleInjected(moduleName: string, integrationFn?: ()
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
 
   // Runtime guard, not just type narrowing: a banner from another SDK copy or
-  // version may have written a non-array flag here; leave that untouched.
-  if (marker.bundler === undefined || Array.isArray(marker.bundler)) {
-    const bundler = (marker.bundler ??= []);
-    if (!bundler.includes(moduleName)) {
-      bundler.push(moduleName);
-    }
+  // version may have written a non-Set flag here; leave that untouched.
+  if (marker.bundler === undefined || marker.bundler instanceof Set) {
+    (marker.bundler ??= new Set()).add(moduleName);
   }
 
   if (integrationFn) {
