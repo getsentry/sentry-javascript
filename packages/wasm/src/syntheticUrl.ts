@@ -54,7 +54,9 @@ function lengthHashField(byteLength: number): number {
 }
 
 const MASK_64 = (1n << 64n) - 1n;
-const RAPIDHASH_SECRET = [0x2d358dccaa6c78a5n, 0x8bb84b93962eacc9n, 0x4b33a62ed433d4a3n];
+const RAPIDHASH_SECRET_0 = 0x2d358dccaa6c78a5n;
+const RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9n;
+const RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3n;
 
 function rapidMix(a: bigint, b: bigint): bigint {
   const product = a * b;
@@ -64,7 +66,7 @@ function rapidMix(a: bigint, b: bigint): bigint {
 function read64(bytes: Uint8Array, offset: number): bigint {
   let value = 0n;
   for (let i = 7; i >= 0; i--) {
-    value = (value << 8n) | BigInt(bytes[offset + i]!);
+    value = (value << 8n) | BigInt(bytes[offset + i] ?? 0);
   }
   return value;
 }
@@ -72,7 +74,7 @@ function read64(bytes: Uint8Array, offset: number): bigint {
 function read32(bytes: Uint8Array, offset: number): bigint {
   let value = 0n;
   for (let i = 3; i >= 0; i--) {
-    value = (value << 8n) | BigInt(bytes[offset + i]!);
+    value = (value << 8n) | BigInt(bytes[offset + i] ?? 0);
   }
   return value;
 }
@@ -84,7 +86,7 @@ function read32(bytes: Uint8Array, offset: number): bigint {
 function rapidhashHashField(bytes: Uint8Array): number {
   const length = bytes.length;
   const length64 = BigInt(length);
-  let seed = (rapidMix(RAPIDHASH_SECRET[0]!, RAPIDHASH_SECRET[1]!) ^ length64) & MASK_64;
+  let seed = (rapidMix(RAPIDHASH_SECRET_0, RAPIDHASH_SECRET_1) ^ length64) & MASK_64;
   let a: bigint;
   let b: bigint;
   if (length <= 16) {
@@ -99,29 +101,29 @@ function rapidhashHashField(bytes: Uint8Array): number {
       let see1 = seed;
       let see2 = seed;
       do {
-        seed = rapidMix(read64(bytes, p) ^ RAPIDHASH_SECRET[0]!, read64(bytes, p + 8) ^ seed);
-        see1 = rapidMix(read64(bytes, p + 16) ^ RAPIDHASH_SECRET[1]!, read64(bytes, p + 24) ^ see1);
-        see2 = rapidMix(read64(bytes, p + 32) ^ RAPIDHASH_SECRET[2]!, read64(bytes, p + 40) ^ see2);
+        seed = rapidMix(read64(bytes, p) ^ RAPIDHASH_SECRET_0, read64(bytes, p + 8) ^ seed);
+        see1 = rapidMix(read64(bytes, p + 16) ^ RAPIDHASH_SECRET_1, read64(bytes, p + 24) ^ see1);
+        see2 = rapidMix(read64(bytes, p + 32) ^ RAPIDHASH_SECRET_2, read64(bytes, p + 40) ^ see2);
         p += 48;
         remaining -= 48;
       } while (remaining >= 48);
       seed = (seed ^ see1 ^ see2) & MASK_64;
     }
     if (remaining > 16) {
-      seed = rapidMix(read64(bytes, p) ^ RAPIDHASH_SECRET[2]!, read64(bytes, p + 8) ^ seed ^ RAPIDHASH_SECRET[1]!);
+      seed = rapidMix(read64(bytes, p) ^ RAPIDHASH_SECRET_2, read64(bytes, p + 8) ^ seed ^ RAPIDHASH_SECRET_1);
       if (remaining > 32) {
-        seed = rapidMix(read64(bytes, p + 16) ^ RAPIDHASH_SECRET[2]!, read64(bytes, p + 24) ^ seed);
+        seed = rapidMix(read64(bytes, p + 16) ^ RAPIDHASH_SECRET_2, read64(bytes, p + 24) ^ seed);
       }
     }
     a = read64(bytes, p + remaining - 16);
     b = read64(bytes, p + remaining - 8);
   }
-  a = (a ^ RAPIDHASH_SECRET[1]!) & MASK_64;
+  a = (a ^ RAPIDHASH_SECRET_1) & MASK_64;
   b = (b ^ seed) & MASK_64;
   const product = a * b;
   a = product & MASK_64;
   b = (product >> 64n) & MASK_64;
-  const raw = rapidMix((a ^ RAPIDHASH_SECRET[0]! ^ length64) & MASK_64, (b ^ RAPIDHASH_SECRET[1]!) & MASK_64);
+  const raw = rapidMix((a ^ RAPIDHASH_SECRET_0 ^ length64) & MASK_64, (b ^ RAPIDHASH_SECRET_1) & MASK_64);
   let hash = Number(raw & 0x3fffffffn);
   if (hash === 0) {
     hash = 27; // V8 kZeroHash
@@ -192,7 +194,7 @@ export function getModuleName(module: WebAssembly.Module): string | undefined {
       let shift = 0;
       let byte;
       do {
-        byte = bytes[pos++]!;
+        byte = bytes[pos++] ?? 0;
         result |= (byte & 0x7f) << shift;
         shift += 7;
       } while (byte & 0x80);

@@ -62,6 +62,8 @@ export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
     }
   };
 
+  // Double-cast, because the overloaded native signature (buffer vs. module
+  // first argument) cannot be widened to a pass-through shape in one step.
   const origInstantiate = WebAssembly.instantiate as unknown as (
     source: unknown,
     ...rest: unknown[]
