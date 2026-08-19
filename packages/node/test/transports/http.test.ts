@@ -227,9 +227,7 @@ describe('makeNewHttpTransport()', () => {
     });
 
     it('does not retry ECONNRESET when the socket was not reused', async () => {
-      const { httpModule, getRequestCount } = createMockHttpModule([
-        { reusedSocket: false, errorCode: 'ECONNRESET' },
-      ]);
+      const { httpModule, getRequestCount } = createMockHttpModule([{ reusedSocket: false, errorCode: 'ECONNRESET' }]);
 
       const transport = makeNodeTransport({ ...defaultOptions, httpModule });
 
@@ -238,9 +236,7 @@ describe('makeNewHttpTransport()', () => {
     });
 
     it('does not retry a reused socket on a non-ECONNRESET error', async () => {
-      const { httpModule, getRequestCount } = createMockHttpModule([
-        { reusedSocket: true, errorCode: 'ECONNREFUSED' },
-      ]);
+      const { httpModule, getRequestCount } = createMockHttpModule([{ reusedSocket: true, errorCode: 'ECONNREFUSED' }]);
 
       const transport = makeNodeTransport({ ...defaultOptions, httpModule });
 
