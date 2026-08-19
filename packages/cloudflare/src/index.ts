@@ -125,7 +125,6 @@ export {
   otlpIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
-  vercelAIIntegration,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -135,6 +134,7 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
+export { vercelAIIntegration } from '@sentry/server-utils/orchestrion';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 
