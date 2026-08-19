@@ -3,6 +3,7 @@ import type { CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { wrapRequestHandlerWithInit } from './request';
 import { init } from './sdk';
+import type { StrictCloudflareOptions } from './types';
 
 /**
  * Plugin middleware for Cloudflare Pages.
@@ -35,6 +36,31 @@ import { init } from './sdk';
  * @param handlerOrOptions Configuration options or a function that returns configuration options.
  * @returns A plugin function that can be used in Cloudflare Pages.
  */
+// Overloads rather than a union parameter: TypeScript does not infer `O` out of a union member,
+// so a union signature falls back to the default and the unknown-key check never runs. The object
+// overload stays on plain `CloudflareOptions` — a direct object literal is still excess property
+// checked, and a callback cannot match it.
+export function sentryPagesPlugin<
+  // oxlint-disable-next-line typescript/no-explicit-any
+  Env = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Params extends string = any,
+  Data extends Record<string, unknown> = Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PluginParams = any,
+  O = unknown,
+>(
+  handler: (context: EventPluginContext<Env, Params, Data, PluginParams>) => StrictCloudflareOptions<O>,
+): PagesPluginFunction<Env, Params, Data, PluginParams>;
+export function sentryPagesPlugin<
+  // oxlint-disable-next-line typescript/no-explicit-any
+  Env = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Params extends string = any,
+  Data extends Record<string, unknown> = Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PluginParams = any,
+>(options: CloudflareOptions): PagesPluginFunction<Env, Params, Data, PluginParams>;
 export function sentryPagesPlugin<
   // oxlint-disable-next-line typescript/no-explicit-any
   Env = any,

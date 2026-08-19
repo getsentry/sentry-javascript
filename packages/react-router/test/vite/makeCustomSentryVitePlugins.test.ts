@@ -119,8 +119,7 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(sentryVitePlugin).toHaveBeenCalledWith(expect.objectContaining({ moduleMetadata: { team: 'sdk' } }));
   });
 
-  // The plugin creates/finalizes the release in `writeBundle` even with `sourcemaps.disable: true`,
-  // so a self-hosted instance has to be reachable from the Vite plugin, not just from `sentryOnBuildEnd`.
+  // Release creation runs in the plugin's `writeBundle`, so these have to reach the plugin too.
   it('should pass self-hosted and logging options through to sentryVitePlugin', async () => {
     const errorHandler = (): void => undefined;
 
