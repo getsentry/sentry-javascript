@@ -1,5 +1,4 @@
-import type { ChannelListener } from 'node:diagnostics_channel';
-import { subscribe, unsubscribe } from 'node:diagnostics_channel';
+import { subscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
@@ -137,7 +136,6 @@ export type SentryHttpInstrumentationOptions = OutgoingHttpRequestInstrumentatio
  * It uses the diagnostics channel if available, otherwise it falls back to monkey-patching.
  *
  * The instrumentation will start spans, create breadcrumbs, and propagate trace headers in outgoing requests (depending on the settings).
- * This can be called multiple times, where the last invocation will have the current options.
  *
  * @TODO Cleanup options in v11
  */
@@ -195,16 +193,9 @@ export function instrumentHttpOutgoingRequests(
   }
 }
 
-let _currentListener: ChannelListener | undefined;
 function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOptions): void {
   const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions(options);
-  // Replace a previous subscription so a later call does not stack duplicate listeners.
-  if (_currentListener) {
-    unsubscribe(HTTP_ON_CLIENT_REQUEST, _currentListener);
-  }
-
   subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
-  _currentListener = onHttpClientRequestCreated;
 }
 
 /**
