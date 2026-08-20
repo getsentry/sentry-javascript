@@ -32,7 +32,6 @@ import {
   startInactiveSpan,
   startSpan,
   withActiveSpan,
-  hasSpansEnabled,
 } from '@sentry/core';
 import type { FastifyInstance, FastifyRequest } from './types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
@@ -391,10 +390,7 @@ export const instrumentFastify = Object.assign(
     diagnosticsChannel.subscribe('fastify.initialization', message => {
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
-      if (hasSpansEnabled()) {
-        fastifyInstance?.register(fastifyTracingPlugin);
-      }
-
+      fastifyInstance?.register(fastifyTracingPlugin);
       fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
   },
