@@ -26,7 +26,6 @@ import {
 } from '@sentry/conventions/attributes';
 import type {
   Event,
-  HttpClientRequest,
   HttpIncomingMessage,
   HttpServerResponse,
   Integration,
@@ -94,19 +93,6 @@ export interface HttpServerSpansIntegrationOptions {
   ignoreStatusCodes?: (number | [number, number])[];
 
   /**
-   * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
-   */
-  instrumentation?: {
-    requestHook?: (span: Span, req: HttpClientRequest | HttpIncomingMessage) => void;
-    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: HttpClientRequest | HttpIncomingMessage,
-      response: HttpIncomingMessage | HttpServerResponse,
-    ) => void;
-  };
-
-  /**
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */
@@ -124,8 +110,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line typescript/no-deprecated
-  const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
     name: INTEGRATION_NAME,
@@ -203,10 +187,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             },
           });
 
-          // TODO v11: Remove the following three hooks, only onSpanCreated should remain
-          requestHook?.(span, request);
-          responseHook?.(span, response);
-          applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
           return withActiveSpan(span, () => {
