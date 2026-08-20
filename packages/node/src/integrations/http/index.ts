@@ -13,7 +13,7 @@ import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
 import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
 import { httpServerSpansIntegration } from './httpServerSpansIntegration';
-import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
+import type { OutgoingHttpRequestInstrumentationOptions } from './SentryHttpInstrumentation';
 import { instrumentHttpOutgoingRequests } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http' as const;
@@ -67,19 +67,19 @@ interface HttpOptions extends HttpServerIntegrationOptions, HttpServerSpansInteg
    * Called after an outgoing request span is created.
    * Only invoked when spans are created for outgoing requests.
    */
-  outgoingRequestHook?: SentryHttpInstrumentationOptions['outgoingRequestHook'];
+  outgoingRequestHook?: OutgoingHttpRequestInstrumentationOptions['outgoingRequestHook'];
 
   /**
    * Called when the outgoing request receives a response.
    * Only invoked when spans are created for outgoing requests.
    */
-  outgoingResponseHook?: SentryHttpInstrumentationOptions['outgoingResponseHook'];
+  outgoingResponseHook?: OutgoingHttpRequestInstrumentationOptions['outgoingResponseHook'];
 
   /**
    * Called when both the outgoing request and response are available.
    * Only invoked when spans are created for outgoing requests.
    */
-  outgoingRequestApplyCustomAttributes?: SentryHttpInstrumentationOptions['outgoingRequestApplyCustomAttributes'];
+  outgoingRequestApplyCustomAttributes?: OutgoingHttpRequestInstrumentationOptions['outgoingRequestApplyCustomAttributes'];
 }
 
 /**
@@ -105,7 +105,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       server.setupOnce();
 
-      const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+      const outgoingRequestOptions: OutgoingHttpRequestInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
         spans,
         propagateTrace: options.tracePropagation ?? true,
@@ -131,7 +131,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       // breadcrumbs & trace propagation. It uses the diagnostic channels on
       // node versions that support it, falling back to monkey-patching when
       // needed.
-      instrumentHttpOutgoingRequests(sentryHttpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(outgoingRequestOptions);
     },
     processEvent(event) {
       // Always run this, even if spans are disabled

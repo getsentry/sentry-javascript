@@ -18,7 +18,7 @@ const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
   (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
   NODE_VERSION.major >= 24;
 
-interface OutgoingHttpRequestInstrumentationOptions {
+export interface OutgoingHttpRequestInstrumentationOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
    *
@@ -62,8 +62,6 @@ interface OutgoingHttpRequestInstrumentationOptions {
     response: HttpIncomingMessage,
   ) => void;
 }
-
-export type SentryHttpInstrumentationOptions = OutgoingHttpRequestInstrumentationOptions;
 
 /**
  * This instruments the http modules for outgoing requests.
