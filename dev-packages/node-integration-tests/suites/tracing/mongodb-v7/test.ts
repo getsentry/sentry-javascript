@@ -1,13 +1,12 @@
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
+import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongodb 7 so the >= 6.4 promise-based `Connection.prototype.command`
-// band is exercised against a real mongodb. mongodb 7 requires Node >= 20.19, so this suite is
-// skipped on older Node (on Node 18 the driver throws `ReferenceError: crypto is not defined`).
-conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
+// band is exercised against a real mongodb.
+describe('MongoDB v7 auto-instrumentation', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

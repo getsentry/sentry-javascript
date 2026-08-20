@@ -1,6 +1,5 @@
 import type { Event } from '@sentry/core';
-import { afterAll, expect, test } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 const EVENT = {
@@ -35,7 +34,7 @@ const EVENT = {
   ],
 };
 
-conditionalTest({ min: 20 })('should capture process and thread breadcrumbs', () => {
+describe('should capture process and thread breadcrumbs', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
