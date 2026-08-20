@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 /**
  * Name of the custom transform (see `bundler/moduleInjectedTransform.ts`) that

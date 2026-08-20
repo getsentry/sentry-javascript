@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
 
 // firebase 9+ ships firestore as `@firebase/firestore` (matches the OTel integration's range). Only the

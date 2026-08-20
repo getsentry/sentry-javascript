@@ -3,7 +3,8 @@
 
 import { SDK_VERSION } from '@sentry/core';
 import type { Compiler } from 'webpack';
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';

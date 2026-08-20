@@ -1,9 +1,10 @@
 export * from './exports';
 
 // Exports using diagnostics channels
+export { detectOrchestrionSetup } from './orchestrion/detect';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
-export type { InstrumentationConfig } from './orchestrion';
+export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // Runtime target of the bundler-injected module snippet. The snippet imports it
 // from this entry alongside the module's subscriber factory (see
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime

@@ -151,7 +151,7 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     expect(result!.code).toContain('orchestrionModuleInjected("ioredis", redisIntegration)');
     // The library publishes its own channels, so nothing else is injected: no
@@ -167,7 +167,7 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
     );
     expect(result!.code).toContain('orchestrionModuleInjected("ai", vercelAIIntegration)');
     expect(result!.code).not.toContain('diagnostics_channel');

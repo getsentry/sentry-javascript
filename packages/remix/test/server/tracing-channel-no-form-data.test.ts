@@ -8,7 +8,7 @@ import {
   setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 
 // Runs in its own file so the channel subscriptions register with NO form-data capture configured -
 // the default for most apps. `captureActionFormDataKeys` gates only the optional attribute

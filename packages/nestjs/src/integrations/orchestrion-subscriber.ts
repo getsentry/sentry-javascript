@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
-import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { DEBUG_BUILD } from '../debug-build';
 import type { AnyFn } from './helpers';
 import { isWrapped, markWrapped } from './helpers';
@@ -114,8 +114,7 @@ function subscribeFactoryDecorator(channelName: string, wrap: (decorator: AnyFn,
  * Opens the same spans as the OTel `Nest` instrumentation, only with
  * different origin.
  *
- * Called from `nestIntegration`'s `setupOnce` when orchestrion is active
- * (`isOrchestrionInjected()`); requires the runtime hook or bundler plugin.
+ * Called from `nestIntegration`'s `setupOnce` when orchestrion is active.
  */
 export function subscribeToNestChannels(): void {
   if (!diagnosticsChannel.tracingChannel) {

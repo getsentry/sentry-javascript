@@ -286,7 +286,7 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   it.each([
     // Self-references — resolve through this package's own exports map to the CJS build.
     '@sentry/server-utils/orchestrion/register',
-    '@sentry/server-utils/orchestrion',
+    '@sentry/server-utils/orchestrion/config',
     // Dependencies of this package, including subpaths only reachable from its location.
     '@apm-js-collab/tracing-hooks',
     '@apm-js-collab/tracing-hooks/hook.mjs',

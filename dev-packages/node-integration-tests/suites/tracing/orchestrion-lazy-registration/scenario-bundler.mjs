@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { tracingChannel } from 'node:diagnostics_channel';
-import { orchestrionModuleInjected } from '@sentry/server-utils/orchestrion';
+import { orchestrionModuleInjected } from '@sentry/server-utils';
 
 // Reproduces the force-bundled path (vite SSR, nextjs's bundle-safe packages):
 // the module is transformed at BUILD time and inlined, so it is never loaded

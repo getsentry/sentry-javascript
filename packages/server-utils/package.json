@@ -27,11 +27,6 @@
       "import": "./build/esm/index.no-diagnostic-channels.js",
       "require": "./build/cjs/index.no-diagnostic-channels.js"
     },
-    "./orchestrion": {
-      "types": "./build/types/orchestrion/index.d.ts",
-      "import": "./build/esm/orchestrion/index.js",
-      "require": "./build/cjs/orchestrion/index.js"
-    },
     "./orchestrion/config": {
       "types": "./build/types/orchestrion/config/index.d.ts",
       "import": "./build/esm/orchestrion/config/index.js",
