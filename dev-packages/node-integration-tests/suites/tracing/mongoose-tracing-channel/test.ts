@@ -1,14 +1,13 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // mongoose >= 9.7.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
 // to those channels (`subscribeMongooseDiagnosticChannels`) instead of monkey-patching. This suite
 // pins `^9.7` and asserts the diagnostics-channel path: stable OTel DB semconv attributes, redacted
 // query text, span relationships, and that the legacy IITM patcher does NOT also fire (no double
-// instrumentation). mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
-conditionalTest({ min: 20 })('Mongoose tracing channel Test', () => {
+// instrumentation).
+describe('Mongoose tracing channel Test', () => {
   const driverOrigin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 

@@ -11,7 +11,7 @@ import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { hasRpcMeta } from './utils/rpcMeta';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
-import type { DefaultEnv, ResolveEnv } from './types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
 
 /**
@@ -432,7 +432,8 @@ export function instrumentDurableObjectWithSentry<
   T extends DurableObject<any> = DurableObject<Env>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, DurableObjectClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
@@ -494,7 +495,8 @@ export function instrumentAgentWithSentry<
   T extends DurableObject<any> = DurableObject<Env>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, AgentClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, AgentClass: C): C {
   return new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(

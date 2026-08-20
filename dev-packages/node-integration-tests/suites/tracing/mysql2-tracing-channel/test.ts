@@ -1,13 +1,11 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // mysql2 >= 3.20.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
 // to those channels (`subscribeMysql2DiagnosticChannels`) instead of monkey-patching. This suite
 // pins `^3.20.0` and asserts the diagnostics-channel path: stable OTel DB semconv attributes,
 // redacted query text, and that the legacy IITM patcher (gated to `< 3.20.0`) does NOT also fire.
-// `TracingChannel` is only reliable on Node >= 20, so this suite is skipped on older Node.
-conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
+describe('mysql2 tracing channel Test', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
