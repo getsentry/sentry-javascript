@@ -33,6 +33,7 @@ import {
   startInactiveSpan,
   startSpan,
   withActiveSpan,
+  hasSpansEnabled,
 } from '@sentry/core';
 import type { FastifyInstance, FastifyRequest } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -401,13 +402,15 @@ export const instrumentFastify = Object.assign(
     diagnosticsChannel.subscribe('fastify.initialization', message => {
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
-      fastifyInstance?.register(fastifyTracingPlugin).after(err => {
-        if (err) {
-          DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
-        } else if (fastifyInstance) {
-          instrumentOnRequest(fastifyInstance);
-        }
-      });
+      if (hasSpansEnabled()) {
+        fastifyInstance?.register(fastifyTracingPlugin).after(err => {
+          if (err) {
+            DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
+          } else if (fastifyInstance) {
+            instrumentOnRequest(fastifyInstance);
+          }
+        });
+      }
 
       fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
