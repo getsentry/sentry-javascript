@@ -70,11 +70,11 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'fastify.type': 'hook',
       'hook.callback.name': 'anonymous',
-      'hook.name': 'fastify -> @sentry/instrumentation-fastify - onRequest',
+      'hook.name': 'fastify -> @sentry/instrumentation-fastify -> sentry-fastify-error-handler - onRequest',
       'sentry.op': 'middleware',
       'sentry.origin': 'auto.http.fastify',
     },
-    description: '@sentry/instrumentation-fastify - onRequest',
+    description: 'sentry-fastify-error-handler - onRequest',
     op: 'middleware',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
