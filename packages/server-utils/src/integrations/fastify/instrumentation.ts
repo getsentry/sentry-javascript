@@ -395,7 +395,6 @@ export const instrumentFastify = Object.assign(
         fastifyInstance?.register(fastifyTracingPlugin);
       }
 
-      fastifyInstance?.register(fastifySetTransactionNamePlugin);
       fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
   },
@@ -404,29 +403,21 @@ export const instrumentFastify = Object.assign(
 
 const fastifyErrorHandlerPlugin = Object.assign(
   function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
-    fastify.addHook('onError', async (request, reply, error) => {
-      handleFastifyError.call(handleFastifyError, error, request, reply, 'onError-hook');
-    });
-    done();
-  },
-  {
-    [Symbol.for('skip-override')]: true,
-    [Symbol.for('fastify.display-name')]: 'sentry-fastify-error-handler',
-  },
-);
-
-const fastifySetTransactionNamePlugin = Object.assign(
-  function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
     fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
       const routeName = getRequestRouteUrl(request);
       const method = request.method || 'GET';
 
       getIsolationScope().setTransactionName(`${method} ${routeName}`);
     });
+
+    fastify.addHook('onError', async (request, reply, error) => {
+      handleFastifyError.call(handleFastifyError, error, request, reply, 'onError-hook');
+    });
+
     done();
   },
   {
     [Symbol.for('skip-override')]: true,
-    [Symbol.for('fastify.display-name')]: 'sentry-fastify-minimal-tracing',
+    [Symbol.for('fastify.display-name')]: 'sentry-fastify-error-handler',
   },
 );
