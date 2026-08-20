@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import type { Client, Event, EventProcessor } from '@sentry/core';
 import { applySdkMetadata, debug, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, getGlobalScope } from '@sentry/core';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNode } from '@sentry/node';
+import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -22,7 +22,6 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    defaultIntegrations: getDefaultNodeIntegrations(options),
     ...options,
   };
 
