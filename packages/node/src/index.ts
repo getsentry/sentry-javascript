@@ -43,6 +43,7 @@ export {
   instrumentStateGraphCompile,
 } from '@sentry/server-utils';
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
+// oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
   launchDarklyIntegration,

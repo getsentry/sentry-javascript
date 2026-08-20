@@ -2,6 +2,8 @@ export * from './exports';
 
 // Exports using diagnostics channels
 export { detectOrchestrionSetup } from './orchestrion/detect';
+// oxlint-disable-next-line typescript/no-deprecated -- re-exported so the deprecated `setupKoaErrorHandler` can delegate
+export { attachKoaErrorHandler } from './integrations/koa/koa-error-handler';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
