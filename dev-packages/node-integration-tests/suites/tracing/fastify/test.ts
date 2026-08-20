@@ -46,40 +46,38 @@ describe('fastify v5 auto-instrumentation', () => {
       await runner.completed();
     });
 
-    describe('error capture via diagnostics channel', () => {
-      test('captures errors thrown in route handlers', async () => {
-        const runner = createRunner()
-          .ignore('transaction')
-          .expect({
-            event: {
-              exception: {
-                values: [
-                  {
-                    type: 'Error',
-                    value: 'This is an exception with id 123',
-                    mechanism: {
-                      type: 'auto.function.fastify',
-                      handled: false,
-                    },
+    test('captures errors thrown in route handlers', async () => {
+      const runner = createRunner()
+        .ignore('transaction')
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'This is an exception with id 123',
+                  mechanism: {
+                    type: 'auto.function.fastify',
+                    handled: false,
                   },
-                ],
-              },
-              transaction: 'GET /test-exception/:id',
-              // The error must be parented to the fastify request span (not the root `http.server` span),
-              // so the trace context carries a `parent_span_id`.
-              contexts: {
-                trace: {
-                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                  parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
                 },
+              ],
+            },
+            transaction: 'GET /test-exception/:id',
+            // The error must be parented to the fastify request span (not the root `http.server` span),
+            // so the trace context carries a `parent_span_id`.
+            contexts: {
+              trace: {
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
               },
             },
-          })
-          .start();
-        runner.makeRequest('get', '/test-exception/123', { expectError: true });
-        await runner.completed();
-      });
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/test-exception/123', { expectError: true });
+      await runner.completed();
     });
 
     test('propagates trace data to outgoing requests within a request handler', async () => {
@@ -125,6 +123,39 @@ describe('fastify v5 auto-instrumentation', () => {
       await runner.makeRequest('get', '/test-error-not-captured', { expectError: true });
       await runner.makeRequest('get', '/test-exception/123', { expectError: true });
 
+      await runner.completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-no-tracing.mjs', (createRunner, test) => {
+    test('captures errors thrown in route handlers without tracing', async () => {
+      const runner = createRunner()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'This is an exception with id 456',
+                  mechanism: {
+                    type: 'auto.function.fastify',
+                    handled: false,
+                  },
+                },
+              ],
+            },
+            transaction: 'GET /test-exception/:id',
+            // Has no parent_span_id because tracing is disabled
+            contexts: {
+              trace: {
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              },
+            },
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/test-exception/456', { expectError: true });
       await runner.completed();
     });
   });

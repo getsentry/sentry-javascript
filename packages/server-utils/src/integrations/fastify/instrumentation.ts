@@ -26,7 +26,6 @@ import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
-  debug,
   getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -36,7 +35,6 @@ import {
   hasSpansEnabled,
 } from '@sentry/core';
 import type { FastifyInstance, FastifyRequest } from './types';
-import { DEBUG_BUILD } from '../../debug-build';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 import { handleFastifyError } from './errors';
 
@@ -377,15 +375,6 @@ function stripFastifyPrefix(hookName = ''): string {
     .replace(/^@sentry\/instrumentation-fastify -> /, '');
 }
 
-function instrumentOnRequest(fastify: FastifyInstance): void {
-  fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
-    const routeName = getRequestRouteUrl(request);
-    const method = request.method || 'GET';
-
-    getIsolationScope().setTransactionName(`${method} ${routeName}`);
-  });
-}
-
 let _isInstrumented = false;
 
 /**
@@ -403,15 +392,10 @@ export const instrumentFastify = Object.assign(
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
       if (hasSpansEnabled()) {
-        fastifyInstance?.register(fastifyTracingPlugin).after(err => {
-          if (err) {
-            DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
-          } else if (fastifyInstance) {
-            instrumentOnRequest(fastifyInstance);
-          }
-        });
+        fastifyInstance?.register(fastifyTracingPlugin);
       }
 
+      fastifyInstance?.register(fastifySetTransactionNamePlugin);
       fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
   },
@@ -428,5 +412,21 @@ const fastifyErrorHandlerPlugin = Object.assign(
   {
     [Symbol.for('skip-override')]: true,
     [Symbol.for('fastify.display-name')]: 'sentry-fastify-error-handler',
+  },
+);
+
+const fastifySetTransactionNamePlugin = Object.assign(
+  function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
+    fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
+      const routeName = getRequestRouteUrl(request);
+      const method = request.method || 'GET';
+
+      getIsolationScope().setTransactionName(`${method} ${routeName}`);
+    });
+    done();
+  },
+  {
+    [Symbol.for('skip-override')]: true,
+    [Symbol.for('fastify.display-name')]: 'sentry-fastify-minimal-tracing',
   },
 );
