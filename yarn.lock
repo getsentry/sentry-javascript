@@ -20684,12 +20684,10 @@ node-addon-api@^7.0.0:
   resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-7.1.0.tgz#71f609369379c08e251c558527a107107b5e0fdb"
   integrity sha512-mNcltoe1R8o7STTegSOHdnJNN7s5EUvhoS7ShnTHDyOSd+8H+UdWODq6qSv67PjC8Zc5JRT8+oLAMCr0SIXw7g==
 
-node-cron@^3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/node-cron/-/node-cron-3.0.3.tgz#c4bc7173dd96d96c50bdb51122c64415458caff2"
-  integrity sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==
-  dependencies:
-    uuid "8.3.2"
+node-cron@^4.6.0:
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/node-cron/-/node-cron-4.6.0.tgz#5c854d4aeebade26cf6df79a795e8a4bae47583f"
+  integrity sha512-Si/bzYiKRHOB8/a99T2+SDGN582ONDMSTlJr5oCkT6GtnqPjZ2s10eoQRYkW9ZHwjVxONL+W8Fb+qR0AHMQsdg==
 
 node-fetch-native@^1.6.4, node-fetch-native@^1.6.6, node-fetch-native@^1.6.7:
   version "1.6.7"
