@@ -4,7 +4,7 @@ import { registrationOnly } from './registration-only';
 
 export const vercelAiConfig = [
   ...['dist/index.js', 'dist/index.mjs'].map(filePath =>
-    registrationOnly({ name: 'ai', versionRange: '>=7.0.0', filePath }, { functionName: 'embedMany' }),
+    registrationOnly({ name: 'ai', versionRange: '>=7.0.0', filePath }),
   ),
   // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting
   // channels into the top-level entry points. `resolveLanguageModel` is wrapped

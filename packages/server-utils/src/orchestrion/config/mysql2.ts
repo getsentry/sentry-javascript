@@ -22,10 +22,7 @@ import { registrationOnly } from './registration-only';
 // guard) — so `Auto` would crash streamed queries. `Callback` leaves that shape untouched (a rare,
 // row-streaming use that consumes the emitter's events), the tradeoff being it isn't traced.
 export const mysql2Config = [
-  registrationOnly(
-    { name: 'mysql2', versionRange: '>=3.20.0', filePath: 'lib/base/connection.js' },
-    { className: 'BaseConnection', methodName: 'pause' },
-  ),
+  registrationOnly({ name: 'mysql2', versionRange: '>=3.20.0', filePath: 'lib/base/connection.js' }),
   {
     channelName: 'query',
     module: { name: 'mysql2', versionRange: '>=1.4.2 <3.11.5', filePath: 'lib/connection.js' },

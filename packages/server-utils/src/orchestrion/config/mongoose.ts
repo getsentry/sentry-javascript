@@ -38,10 +38,7 @@ const CONTEXT_CAPTURE_QUERY_METHODS = [
 ] as const;
 
 export const mongooseConfig = [
-  registrationOnly(
-    { name: 'mongoose', versionRange: '>=9.7.0', filePath: 'lib/query.js' },
-    { expressionName: 'estimatedDocumentCount' },
-  ),
+  registrationOnly({ name: 'mongoose', versionRange: '>=9.7.0', filePath: 'lib/query.js' }),
   // Query execution
   // the span for most read/write operations. `op`, collection and model are
   // read off the `Query` at exec time.

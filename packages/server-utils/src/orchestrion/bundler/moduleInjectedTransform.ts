@@ -1,6 +1,7 @@
 import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';
+import { MODULE_REGISTRATION_TRANSFORM } from '../config/registration-only';
 
 // Tracks Program nodes we already injected into, so a package with several
 // instrumented files (or several configs pointing at one file) is injected only
@@ -75,6 +76,10 @@ function moduleInjectedSnippet(
  * per file. Requires `@apm-js-collab/code-transformer` >= 0.18.1, where
  * built-ins dispatch through the override map and expose the originals on
  * `state.transforms.defaults`.
+ *
+ * Also carries the registration-only operator, which splices the same snippet
+ * without any channel injection — for library versions whose tracing channels
+ * are native.
  */
 export function moduleInjectedTransforms(
   // A function is read per injected file — the webpack/Turbopack loader uses it
@@ -83,14 +88,11 @@ export function moduleInjectedTransforms(
   // importing file's location).
   importSpecifier?: string | (() => string | undefined),
 ): Record<string, CustomTransform> {
-  const injectModuleInjected: CustomTransform = (state, program, parent, ancestry) => {
-    const { moduleType, module, transforms } = state as {
+  const spliceModuleInjected = (state: unknown, program: unknown): void => {
+    const { moduleType, module } = state as {
       moduleType?: string;
       module?: { name?: string };
-      transforms: { defaults: { tracingChannelImport: CustomTransform } };
     };
-
-    transforms.defaults.tracingChannelImport(state, program, parent, ancestry);
 
     const node = program as ProgramNode;
     if (injectedPrograms.has(node)) {
@@ -116,5 +118,25 @@ export function moduleInjectedTransforms(
     node.body.splice(directiveIndex + 1, 0, ...statements);
   };
 
-  return { tracingChannelImport: injectModuleInjected };
+  const injectModuleInjected: CustomTransform = (state, program, parent, ancestry) => {
+    const { transforms } = state as {
+      transforms: { defaults: { tracingChannelImport: CustomTransform } };
+    };
+
+    transforms.defaults.tracingChannelImport(state, program, parent, ancestry);
+    spliceModuleInjected(state, program);
+  };
+
+  // Operator for registration-only configs (`transform` field, see
+  // `config/registration-only.ts`): dispatched INSTEAD of `traceSync`, so no
+  // channel is declared and no function is wrapped. Their `astQuery: 'Program'`
+  // matches only the file root, so `node` is the Program itself.
+  const injectRegistrationOnly: CustomTransform = (state, node) => {
+    spliceModuleInjected(state, node);
+  };
+
+  return {
+    tracingChannelImport: injectModuleInjected,
+    [MODULE_REGISTRATION_TRANSFORM]: injectRegistrationOnly,
+  };
 }

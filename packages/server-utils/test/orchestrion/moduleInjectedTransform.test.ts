@@ -12,9 +12,9 @@ import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/optio
 
 // The code transformer reads the instrumented package's version from its
 // on-disk `package.json`, so each test package needs a real directory.
-function makePackage(root: string, name: string, version: string, type?: 'module' | 'commonjs'): void {
+function makePackage(root: string, name: string, version: string, type?: 'module' | 'commonjs', subdir = 'lib'): void {
   const dir = join(root, 'node_modules', name);
-  mkdirSync(join(dir, 'lib'), { recursive: true });
+  mkdirSync(join(dir, subdir), { recursive: true });
   writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version, ...(type ? { type } : {}) }));
 }
 
@@ -44,6 +44,8 @@ describe('module-injected transform', () => {
     makePackage(root, 'mysql', '2.18.1', 'commonjs');
     makePackage(root, 'pg', '8.11.0', 'module');
     makePackage(root, 'my-lib', '1.0.0', 'commonjs');
+    makePackage(root, 'ioredis', '5.11.0', 'commonjs', 'built');
+    makePackage(root, 'ai', '7.0.0', 'module', 'dist');
   });
 
   afterAll(() => {
@@ -122,6 +124,38 @@ describe('module-injected transform', () => {
 
     const calls = result!.code.match(/orchestrionModuleInjected\("pg"/g) ?? [];
     expect(calls).toHaveLength(1);
+  });
+
+  it('injects only the registration snippet for a CJS version with native channels', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
+    // No anchor function present — registration must not depend on any library
+    // internals existing (`astQuery: 'Program'` matches the file root).
+    const code = "'use strict';\nclass Redis {}\nmodule.exports = Redis;\n";
+    const result = t.transform(code, join(root, 'node_modules/ioredis/built/Redis.js'));
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(
+      /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+    );
+    expect(result!.code).toContain('orchestrionModuleInjected("ioredis", redisIntegration)');
+    // The library publishes its own channels, so nothing else is injected: no
+    // diagnostics_channel import, no channel declaration, no function wrapper.
+    expect(result!.code).not.toContain('diagnostics_channel');
+    expect(result!.code).not.toContain('tr_ch_apm');
+    expect(result!.code).toContain('class Redis');
+  });
+
+  it('injects only the registration snippet for an ESM version with native channels', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
+    const result = t.transform('export const embed = () => {};\n', join(root, 'node_modules/ai/dist/index.mjs'));
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(
+      /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+    );
+    expect(result!.code).toContain('orchestrionModuleInjected("ai", vercelAIIntegration)');
+    expect(result!.code).not.toContain('diagnostics_channel');
+    expect(result!.code).not.toContain('tr_ch_apm');
   });
 
   it('honors a custom import specifier (Turbopack passes an absolute path)', () => {
