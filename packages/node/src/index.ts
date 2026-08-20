@@ -29,7 +29,7 @@ export {
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,

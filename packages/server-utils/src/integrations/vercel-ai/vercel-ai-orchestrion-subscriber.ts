@@ -8,9 +8,9 @@ import {
   SPAN_STATUS_ERROR,
   withActiveSpan,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
-import { CHANNELS } from '../orchestrion/channels';
-import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../tracing-channel';
+import { DEBUG_BUILD } from '../../debug-build';
+import { CHANNELS } from '../../orchestrion/channels';
+import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../../tracing-channel';
 import {
   captureToolError,
   clearOperationCallId,

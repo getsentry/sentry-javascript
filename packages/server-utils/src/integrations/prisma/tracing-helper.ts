@@ -22,7 +22,7 @@ import {
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 import { DB_STATEMENT, DB_SYSTEM, DB_SYSTEM_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 
