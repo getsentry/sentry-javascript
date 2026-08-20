@@ -1,6 +1,6 @@
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { getClient, captureException } from '@sentry/core';
+import { captureException, getClient } from '@sentry/core';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 
 function getFastifyIntegration(): FastifyIntegration | undefined {
@@ -19,33 +19,22 @@ export function subscribeToFastifyErrorChannel(): void {
       reply: FastifyReply;
     };
 
-    handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
+    handleFastifyError(error, request, reply);
   });
 }
 
 /**
  * Handle a Fastify error, and possibly send it to Sentry.
+ *
+ * On Fastify v5 a route handler error surfaces on both the diagnostics channel
+ * and the `onError` hook, so this runs twice for the same error. That's fine:
+ * `captureException` deduplicates by object identity (`__sentry_captured__`), so
+ * only the first call sends an event. Errors that reach only one path (e.g.
+ * thrown in an `onRequest` hook, or on Fastify v3/v4 which has no channel) are
+ * captured once.
  */
-export function handleFastifyError(
-  this: {
-    diagnosticsChannelExists?: boolean;
-  },
-  error: Error,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  handlerOrigin: 'diagnostics-channel' | 'onError-hook',
-): void {
+export function handleFastifyError(error: Error, request: FastifyRequest, reply: FastifyReply): void {
   const shouldHandleError = getFastifyIntegration()?.getShouldHandleError() || defaultShouldHandleError;
-  // Diagnostics channel runs before the onError hook, so we can use it to check if the handler was already registered
-  if (handlerOrigin === 'diagnostics-channel') {
-    this.diagnosticsChannelExists = true;
-  }
-
-  if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
-    // If the diagnostics channel already exists, we don't need to handle the error again
-    // This is the case on fastivy v5
-    return;
-  }
 
   if (shouldHandleError(error, request, reply)) {
     captureException(error, {

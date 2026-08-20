@@ -407,7 +407,7 @@ const fastifyErrorHandlerPlugin = Object.assign(
     });
 
     fastify.addHook('onError', async (request, reply, error) => {
-      handleFastifyError.call(handleFastifyError, error, request, reply, 'onError-hook');
+      handleFastifyError(error, request, reply);
     });
 
     done();
