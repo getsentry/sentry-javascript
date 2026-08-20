@@ -1,3 +1,5 @@
+import type { Span } from '@sentry/core';
+
 export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
 
 /**
@@ -34,13 +36,17 @@ export interface ExpressResponse {
  * `_sentryCleanup` is ours: a teardown for the `res.on('finish')` listener we
  * register, invoked from `beforeSpanEnd` when the span ends via `next()`.
  * `_sentryStoredLayer` marks that this invocation pushed a layer path (so the
- * matching pop on `asyncStart` stays symmetric).
+ * matching pop on `asyncStart` stays symmetric). `_sentrySpan` is the span bound
+ * for this layer by `bindTracingChannelToSpan`, and `error` is present on the
+ * channel's `error` event.
  */
 export interface HandleChannelContext {
   self?: ExpressLayer;
   arguments?: unknown[];
   _sentryCleanup?: () => void;
   _sentryStoredLayer?: boolean;
+  _sentrySpan?: Span;
+  error?: unknown;
 }
 
 /**

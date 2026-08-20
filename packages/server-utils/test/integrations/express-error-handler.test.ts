@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } fr
 import { captureLayerError } from '../../../src/integrations/express/instrumentation';
 import type { HandleChannelContext } from '../../../src/integrations/express/types';
 
-function makeErrorData(error: unknown): HandleChannelContext {
-  return { error } as unknown as HandleChannelContext;
+function makeErrorData(error: unknown, span?: unknown): HandleChannelContext {
+  return { error, _sentrySpan: span } as unknown as HandleChannelContext;
 }
 
 describe('captureLayerError', () => {
@@ -76,5 +76,30 @@ describe('captureLayerError', () => {
     captureLayerError(makeErrorData(error), false);
 
     expect(captureExceptionSpy).not.toHaveBeenCalled();
+  });
+
+  it('re-activates the bound layer span so the event is parented to the trace', () => {
+    const withActiveSpanSpy = vi
+      .spyOn(SentryCore, 'withActiveSpan')
+      .mockImplementation((_span, fn) => (fn as () => unknown)(undefined as never) as never);
+    const span = { id: 'layer-span' };
+    const error = Object.assign(new Error('boom'), { statusCode: 500 });
+
+    captureLayerError(makeErrorData(error, span), undefined);
+
+    expect(withActiveSpanSpy).toHaveBeenCalledWith(span, expect.any(Function));
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { type: 'auto.http.express', handled: false },
+    });
+  });
+
+  it('captures without a span when none is bound (e.g. unsampled request)', () => {
+    const withActiveSpanSpy = vi.spyOn(SentryCore, 'withActiveSpan');
+    const error = Object.assign(new Error('boom'), { statusCode: 500 });
+
+    captureLayerError(makeErrorData(error), undefined);
+
+    expect(withActiveSpanSpy).not.toHaveBeenCalled();
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
   });
 });

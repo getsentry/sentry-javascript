@@ -14,6 +14,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stringMatchesSomePattern,
+  withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -126,20 +127,32 @@ export function captureLayerError(
     return;
   }
 
-  const error = (data as { error?: unknown }).error;
+  const error = data.error;
 
   // `next('route')` / `next('router')` are Express control-flow signals, not errors.
   if (!error || error === 'route' || error === 'router') {
     return;
   }
 
-  if ((shouldHandleError ?? defaultShouldHandleError)(error as MiddlewareError)) {
+  if (!(shouldHandleError ?? defaultShouldHandleError)(error as MiddlewareError)) {
+    return;
+  }
+
+  const capture = (): string =>
     captureException(error, {
       mechanism: {
         type: 'auto.http.express',
         handled: false,
       },
     });
+
+  // The channel's `error` event runs outside the layer span's async context, so
+  // re-activate the bound span (when present) to parent the error event to the
+  // request's trace instead of capturing it context-free.
+  if (data._sentrySpan) {
+    withActiveSpan(data._sentrySpan, capture);
+  } else {
+    capture();
   }
 }
 
