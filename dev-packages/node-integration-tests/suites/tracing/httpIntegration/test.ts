@@ -56,6 +56,33 @@ describe('httpIntegration', () => {
     });
   });
 
+  describe('outgoing request span hooks', () => {
+    test('runs outgoingRequestHook, outgoingResponseHook and outgoingRequestApplyCustomAttributes', async () => {
+      const [SERVER_URL, closeTestServer] = await createTestServer()
+        .get('/api/users/42', () => {}, 200)
+        .start();
+
+      const runner = createRunner(__dirname, 'server-outgoingHooks.js')
+        .withEnv({ SERVER_URL })
+        .expect({
+          transaction: event => {
+            const clientSpans = event.spans?.filter(span => span.op === 'http.client');
+            expect(clientSpans).toHaveLength(1);
+
+            // All three hooks run before the span ends, so every attribute has to survive to the envelope.
+            const data = clientSpans![0]?.data;
+            expect(data?.['outgoingRequestHook']).toBe('GET');
+            expect(data?.['outgoingResponseHook']).toBe(200);
+            expect(data?.['outgoingRequestApplyCustomAttributes']).toBe('GET 200');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/testOutgoing');
+      await runner.completed();
+      closeTestServer();
+    });
+  });
+
   describe('http.server spans', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
       test('captures correct attributes for GET requests', async () => {
