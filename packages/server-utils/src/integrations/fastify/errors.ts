@@ -1,7 +1,6 @@
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DEBUG_BUILD } from '../../debug-build';
-import { getClient, debug, captureException } from '@sentry/core';
+import { getClient, captureException } from '@sentry/core';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 
 function getFastifyIntegration(): FastifyIntegration | undefined {
@@ -43,13 +42,8 @@ export function handleFastifyError(
   }
 
   if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
-    DEBUG_BUILD &&
-      debug.warn(
-        'Fastify error handler was already registered via diagnostics channel.',
-        'You can safely remove `setupFastifyErrorHandler` call and set `shouldHandleError` on the integration options.',
-      );
-
     // If the diagnostics channel already exists, we don't need to handle the error again
+    // This is the case on fastivy v5
     return;
   }
 

@@ -3,7 +3,7 @@ import { defineIntegration, getClient } from '@sentry/core';
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import { instrumentFastify } from './instrumentation';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
-import { subscribeToFastifyErrorChannel, handleFastifyError as _handleFastifyError } from './errors';
+import { subscribeToFastifyErrorChannel } from './errors';
 
 /**
  * Options for the Fastify integration.

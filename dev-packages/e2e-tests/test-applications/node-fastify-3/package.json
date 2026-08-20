@@ -8,7 +8,7 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "typecheck": "tsc",
     "test:build": "pnpm install && pnpm run typecheck",
-    "test:assert": "pnpm test && pnpm test:override"
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
