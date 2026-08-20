@@ -112,8 +112,7 @@ describe('getDefaultIntegrations', () => {
     // Mirror what the snippet the vite plugin injects into each instrumented
     // module does at runtime: import its factory and `.set` it on the marker map,
     // keyed by module name (so a package split across files registers once).
-    const { mysqlIntegration, postgresIntegration, lruMemoizerIntegration } =
-      await import('@sentry/server-utils/orchestrion');
+    const { mysqlIntegration, postgresIntegration, lruMemoizerIntegration } = await import('@sentry/server-utils');
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: ['mysql', 'pg', 'lru-memoizer'],
       integrations: new Map([
@@ -131,7 +130,7 @@ describe('getDefaultIntegrations', () => {
   });
 
   test('installs an integration registered after init via the module-injected event', async () => {
-    const { mysqlIntegration } = await import('@sentry/server-utils/orchestrion');
+    const { mysqlIntegration } = await import('@sentry/server-utils');
     const client = init({});
     expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
 

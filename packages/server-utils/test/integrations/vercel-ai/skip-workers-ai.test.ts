@@ -8,8 +8,8 @@ import {
   resolvedSyncPromise,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { WORKERS_AI_INTEGRATION_NAME } from '../../src/ai/workers-ai/constants';
-import { createSpanFromMessage } from '../../src/vercel-ai/vercel-ai-dc-subscriber';
+import { WORKERS_AI_INTEGRATION_NAME } from '../../../src/ai/workers-ai/constants';
+import { createSpanFromMessage } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
 
 class TestClient extends Client<any> {
   public eventFromException(): PromiseLike<any> {

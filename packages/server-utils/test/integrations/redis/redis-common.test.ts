@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { defaultDbStatementSerializer } from '../../src/integrations/redis/redis-statement-serializer';
+import { defaultDbStatementSerializer } from '../../../src/integrations/redis/redis-statement-serializer';
 
 describe('defaultDbStatementSerializer()', () => {
   const testCases: Array<{

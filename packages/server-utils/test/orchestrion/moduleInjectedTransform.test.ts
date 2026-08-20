@@ -28,8 +28,8 @@ describe('channel integration definitions', () => {
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
 
-  it('references only real named exports of @sentry/server-utils/orchestrion', async () => {
-    const barrel = await import('../../src/orchestrion/index');
+  it('references only real named exports of @sentry/server-utils', async () => {
+    const barrel = await import('../../src/index');
     for (const { exportName } of CHANNEL_INTEGRATION_DEFINITIONS) {
       expect(typeof (barrel as Record<string, unknown>)[exportName]).toBe('function');
     }
