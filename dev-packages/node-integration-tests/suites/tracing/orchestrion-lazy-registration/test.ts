@@ -1,15 +1,12 @@
 import * as path from 'path';
-import { afterAll, test } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-// The runtime module hook needs Node >= 18.19; gate on 20 to stay on the stable
-// `Module.registerHooks` / `Channel.hasSubscribers` surface.
-conditionalTest({ min: 20 })('orchestrion lazy channel registration', () => {
+describe('orchestrion lazy channel registration', () => {
   // The scenario self-asserts (via `node:assert`) that a default channel
   // integration has NOT subscribed to its channel until the instrumented module
   // is loaded, then that it HAS once loaded. A violation throws, which

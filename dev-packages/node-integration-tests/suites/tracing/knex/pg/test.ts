@@ -1,11 +1,10 @@
 import { describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.knex' : 'auto.db.otel.knex';
+  const ORIGIN = 'auto.db.knex';
 
   describeWithDockerCompose('with `pg` client', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {

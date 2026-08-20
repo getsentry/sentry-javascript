@@ -1,6 +1,5 @@
 import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
-import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 const WORKER_EVENT: Event = {
@@ -44,7 +43,7 @@ describe('should capture child process events', () => {
     cleanupChildProcesses();
   });
 
-  conditionalTest({ min: 20 })('worker', () => {
+  describe('worker', () => {
     test('ESM', async () => {
       await createRunner(__dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start().completed();
     });
@@ -54,7 +53,7 @@ describe('should capture child process events', () => {
     });
   });
 
-  conditionalTest({ min: 20 })('fork', () => {
+  describe('fork', () => {
     test('ESM', async () => {
       await createRunner(__dirname, 'fork.mjs').expect({ event: CHILD_EVENT }).start().completed();
     });

@@ -141,7 +141,8 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 
   /**
-   * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
+   * Hooks for outgoing HTTP request spans.
+   * These no longer run for incoming request spans; use `incomingRequestSpanHook` for those.
    */
   instrumentation?: {
     requestHook?: (span: Span, req: HttpIncomingMessage | HttpClientRequest) => void;
@@ -174,8 +175,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-    // oxlint-disable-next-line typescript/no-deprecated -- pass through the deprecated option for back-compat
-    instrumentation: options.instrumentation,
     onSpanCreated: options.incomingRequestSpanHook,
   };
 

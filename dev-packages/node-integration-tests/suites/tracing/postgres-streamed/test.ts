@@ -2,14 +2,14 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
 // integrations get the diagnostics-channel origin when the generic orchestrion run is enabled (via
 // INJECT_ORCHESTRION), since the OTel `Postgres` integration is then swapped for the channel one. Blocks
 // that pass an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin.
-const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.postgres' : 'auto.db.otel.postgres';
+const QUERY_ORIGIN = 'auto.db.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
   'db.connection_string': {

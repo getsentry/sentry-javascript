@@ -1,11 +1,10 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // See the non-streamed `aws-integration` suite: only the origin differs between the OTel and
 // orchestrion diagnostics-channel runs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
