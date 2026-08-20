@@ -7,7 +7,7 @@ import type { InstrumentationConfig } from '..';
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
-import { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest } from './resolve';
+import { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 import { serializeInstrumentations as serializeInstrumentationsImpl } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 import type { AnyInstrumentationConfig, SerializableInstrumentationConfig } from '../apmTypes';
@@ -47,18 +47,17 @@ function externalizedWebpackModules(externals: unknown, moduleNames: string[]): 
   );
 }
 
-const ORCHESTRION_HELPER_SPECIFIER = '@sentry/server-utils/orchestrion';
-
-// The injected module-injected snippet imports `@sentry/server-utils/orchestrion`
-// from INSIDE transformed `node_modules` files. Under isolated installs (pnpm)
-// that bare specifier doesn't resolve from an instrumented package's location,
-// so map it — exact-match only (the `$` suffix / `onlyModule`) — to this
-// package's own resolution, in whichever alias form the config already uses.
-// A user's own alias for the specifier is left untouched, and externals still
-// win — webpack consults `externals` before resolving — so setups that
-// externalize the runtime (e.g. Next.js) are unaffected.
+// The injected module-injected snippet imports `@sentry/server-utils` from
+// INSIDE transformed `node_modules` files. Under isolated installs (pnpm) that
+// bare specifier doesn't resolve from an instrumented package's location, so map
+// it — exact-match only (the `$` suffix / `onlyModule`) — to this package's own
+// resolution, in whichever alias form the config already uses. Exact-match keeps
+// it from swallowing its own subpaths (e.g. `/orchestrion/vite`), which resolve
+// on their own. A user's own alias for the specifier is left untouched, and
+// externals still win — webpack consults `externals` before resolving — so
+// setups that externalize the runtime (e.g. Next.js) are unaffected.
 function addOrchestrionResolveAlias(compiler: Compiler): void {
-  const resolved = resolveOrchestrionRuntimeRequest(ORCHESTRION_HELPER_SPECIFIER);
+  const resolved = resolveOrchestrionRuntimeRequest(SNIPPET_IMPORT_SPECIFIER);
   if (!resolved) {
     return;
   }
@@ -66,15 +65,15 @@ function addOrchestrionResolveAlias(compiler: Compiler): void {
   const resolveOptions = (compiler.options.resolve ??= {});
   const alias = resolveOptions.alias;
   if (Array.isArray(alias)) {
-    if (!alias.some(entry => entry.name === ORCHESTRION_HELPER_SPECIFIER)) {
-      alias.push({ name: ORCHESTRION_HELPER_SPECIFIER, alias: resolved, onlyModule: true });
+    if (!alias.some(entry => entry.name === SNIPPET_IMPORT_SPECIFIER)) {
+      alias.push({ name: SNIPPET_IMPORT_SPECIFIER, alias: resolved, onlyModule: true });
     }
     return;
   }
 
   const aliasMap = (resolveOptions.alias = alias ?? {});
-  if (!(`${ORCHESTRION_HELPER_SPECIFIER}$` in aliasMap) && !(ORCHESTRION_HELPER_SPECIFIER in aliasMap)) {
-    aliasMap[`${ORCHESTRION_HELPER_SPECIFIER}$`] = resolved;
+  if (!(`${SNIPPET_IMPORT_SPECIFIER}$` in aliasMap) && !(SNIPPET_IMPORT_SPECIFIER in aliasMap)) {
+    aliasMap[`${SNIPPET_IMPORT_SPECIFIER}$`] = resolved;
   }
 }
 

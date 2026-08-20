@@ -4,6 +4,11 @@ export * from './exports';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion';
+// Runtime target of the bundler-injected module snippet. The snippet imports it
+// from this entry alongside the module's subscriber factory (see
+// `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
+// helper with no orchestrion build-time dependency.
+export { orchestrionModuleInjected } from './utils/moduleInjected';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated

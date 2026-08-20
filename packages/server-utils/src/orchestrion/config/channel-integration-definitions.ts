@@ -1,7 +1,7 @@
 /**
  * Build-time metadata mapping each channel-subscriber integration — by the
- * `exportName` it is published under from `@sentry/server-utils/orchestrion` —
- * to the instrumented packages (orchestrion `module.name`) whose channels it
+ * `exportName` it is published under from `@sentry/server-utils` — to the
+ * instrumented packages (orchestrion `module.name`) whose channels it
  * consumes.
  *
  * Kept in a separate, factory-free module on purpose: the module-injected
@@ -10,7 +10,7 @@
  * not drag any subscriber code — or its `@sentry/core` span machinery — into
  * the plugin's own build to do so.
  *
- * `exportName` must be a named export of `@sentry/server-utils/orchestrion`.
+ * `exportName` must be a named export of `@sentry/server-utils`.
  * `modules` must match `module.name` values in `SENTRY_INSTRUMENTATIONS` — e.g.
  * `postgresIntegration` covers both `pg` and `pg-pool`, and `redisIntegration`
  * covers `redis`, `@redis/client` and `ioredis`.

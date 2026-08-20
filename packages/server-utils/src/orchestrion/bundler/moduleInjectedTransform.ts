@@ -13,7 +13,11 @@ interface ProgramNode {
   body: Array<{ type: string; directive?: string }>;
 }
 
-const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils/orchestrion';
+// Where the injected snippet imports from: the `orchestrionModuleInjected`
+// helper and the module's channel-subscriber factory both live on the main
+// `@sentry/server-utils` entry, so a single import serves both. The ESM barrel
+// tree-shakes to just the helper and the factories actually referenced.
+const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils';
 
 /**
  * Entry-chunk banner that marks "the bundler plugin ran" for
@@ -29,11 +33,11 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
 /**
  * Snippet injected into each instrumented module. It imports the
  * `orchestrionModuleInjected` helper — plus the module's channel-subscriber
- * factory, when it has one — from `@sentry/server-utils/orchestrion` and calls
- * the helper with the module's real name. The helper records the module on the
- * global marker, stores the factory, and emits the `orchestrion.module-injected`
- * client event, so it runs exactly when the module is evaluated — the moment
- * its channels can start publishing. That per-module timing is what keeps
+ * factory, when it has one — from `@sentry/server-utils` and calls the helper
+ * with the module's real name. The helper records the module on the global
+ * marker, stores the factory, and emits the `orchestrion.module-injected` client
+ * event, so it runs exactly when the module is evaluated — the moment its
+ * channels can start publishing. That per-module timing is what keeps
  * subscriptions lazy (Node caps diagnostics channels in use at 1024).
  *
  * Importing the single named factory (rather than a central dispatch that pulls
