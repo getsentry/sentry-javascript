@@ -37,6 +37,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
+import { handleFastifyError } from './errors';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=3.21.0 <6';
@@ -101,7 +102,7 @@ function isFastifyRequest(arg: any): boolean {
  * The Fastify plugin that wires up the request/hook/handler spans. It is registered on every Fastify
  * instance via the `fastify.initialization` diagnostics channel.
  */
-function fastifyOtelPlugin(this: unknown, instance: any, _opts: unknown, done: () => void): void {
+function fastifyTracingPlugin(this: unknown, instance: any, _opts: unknown, done: () => void): void {
   instance.decorate(kAddHookOriginal, instance.addHook);
   instance.decorate(kSetNotFoundOriginal, instance.setNotFoundHandler);
   instance.decorateRequest('opentelemetry', function opentelemetry(this: any) {
@@ -109,7 +110,7 @@ function fastifyOtelPlugin(this: unknown, instance: any, _opts: unknown, done: (
   });
   instance.decorateRequest(kRequestSpan, null);
 
-  instance.addHook('onRoute', otelWireRoute);
+  instance.addHook('onRoute', onRoute);
   instance.addHook('onRequest', startRequestSpanHook);
   instance.addHook('onResponse', finalizeNotFoundSpanHook);
 
@@ -119,7 +120,7 @@ function fastifyOtelPlugin(this: unknown, instance: any, _opts: unknown, done: (
   done();
 }
 
-const pluginSymbols = fastifyOtelPlugin as unknown as Record<symbol, unknown>;
+const pluginSymbols = fastifyTracingPlugin as unknown as Record<symbol, unknown>;
 pluginSymbols[Symbol.for('skip-override')] = true;
 pluginSymbols[Symbol.for('fastify.display-name')] = PACKAGE_NAME;
 pluginSymbols[Symbol.for('plugin-meta')] = {
@@ -127,7 +128,7 @@ pluginSymbols[Symbol.for('plugin-meta')] = {
   name: PACKAGE_NAME,
 };
 
-function otelWireRoute(this: any, routeOptions: any): void {
+function onRoute(this: any, routeOptions: any): void {
   if (routeOptions.config?.otel === false) {
     return;
   }
@@ -388,9 +389,7 @@ let _isInstrumented = false;
 
 /**
  * Set up the Fastify (>= 3.21.0 < 6) instrumentation by subscribing to the `fastify.initialization`
- * diagnostics channel and registering the span-creating plugin on every Fastify instance.
- *
- * Idempotent and exposes an `id` so it can participate in the OpenTelemetry preload list.
+ * diagnostics channel and registering the span-creating & error handler plugin on every Fastify instance.
  */
 export const instrumentFastify = Object.assign(
   function instrumentFastify(): void {
@@ -402,14 +401,29 @@ export const instrumentFastify = Object.assign(
     diagnosticsChannel.subscribe('fastify.initialization', message => {
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
-      fastifyInstance?.register(fastifyOtelPlugin).after(err => {
+      fastifyInstance?.register(fastifyTracingPlugin).after(err => {
         if (err) {
           DEBUG_BUILD && debug.error('Failed to setup Fastify instrumentation', err);
         } else if (fastifyInstance) {
           instrumentOnRequest(fastifyInstance);
         }
       });
+
+      fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
   },
   { id: 'Fastify.v5' },
+);
+
+const fastifyErrorHandlerPlugin = Object.assign(
+  function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
+    fastify.addHook('onError', async (request, reply, error) => {
+      handleFastifyError.call(handleFastifyError, error, request, reply, 'onError-hook');
+    });
+    done();
+  },
+  {
+    [Symbol.for('skip-override')]: true,
+    [Symbol.for('fastify.display-name')]: 'sentry-fastify-error-handler',
+  },
 );

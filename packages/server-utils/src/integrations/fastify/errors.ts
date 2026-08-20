@@ -6,7 +6,7 @@ import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 
 function getFastifyIntegration(): FastifyIntegration | undefined {
   const client = getClient();
-  return client?.getIntegrationByName(INTEGRATION_NAME);
+  return client?.getIntegrationByName(INTEGRATION_NAME) as FastifyIntegration | undefined;
 }
 
 /**
