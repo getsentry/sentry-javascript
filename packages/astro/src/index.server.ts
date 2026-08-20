@@ -37,6 +37,7 @@ export {
   dedupeIntegration,
   defaultStackParser,
   endSession,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
   expressIntegration,
   extraErrorDataIntegration,
@@ -124,6 +125,7 @@ export {
   setTags,
   setAttribute,
   setAttributes,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
   // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,

@@ -27,6 +27,10 @@
  * limitations under the License.
  */
 
+// This whole module backs the deprecated Express exports (superseded by `expressIntegration()`), so it
+// references its own deprecated types/functions throughout.
+/* oxlint-disable typescript/no-deprecated */
+
 import { debug } from '../../utils/debug-logger';
 import { captureException } from '../../exports';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -67,6 +71,9 @@ import { getDefaultExport } from '../../utils/get-default-export';
  *
  * Sentry.patchExpressModule(express, () => ({}));
  * ```
+ *
+ * @deprecated Express is now instrumented automatically via `expressIntegration()`. This export is
+ * no longer used and will be removed in the next major version.
  */
 export function patchExpressModule(
   moduleExports: ExpressModuleExport,
@@ -160,6 +167,9 @@ export function patchExpressModule(
 
 /**
  * An Express-compatible error handler, used by setupExpressErrorHandler
+ *
+ * @deprecated `expressIntegration()` now captures errors automatically. This export is deprecated
+ * and will be removed in the next major version.
  */
 export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
@@ -208,6 +218,10 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
  *
  * app.listen(3000);
  * ```
+ *
+ * @deprecated `expressIntegration()` now captures errors automatically, so calling this is no longer
+ * necessary. To customize which errors are captured, pass `shouldHandleError` to `expressIntegration()`.
+ * This export is deprecated and will be removed in the next major version.
  */
 export function setupExpressErrorHandler(
   app: {

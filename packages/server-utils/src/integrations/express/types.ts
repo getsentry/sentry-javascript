@@ -54,10 +54,50 @@ export interface RegistrationChannelContext {
   arguments?: unknown[];
 }
 
+/** An Express error carrying an optional HTTP status, in the various shapes middleware use. */
+export interface MiddlewareError extends Error {
+  status?: number | string;
+  statusCode?: number | string;
+  status_code?: number | string;
+  output?: {
+    statusCode?: number | string;
+  };
+}
+
+/** Callback deciding whether an error should be captured; `false` disables capture entirely. */
+export type ExpressShouldHandleError = ((error: MiddlewareError) => boolean) | false;
+
 type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
 export interface ExpressIntegrationOptions {
   /** Ignore specific based on their name */
   ignoreLayers?: IgnoreMatcher[];
   /** Ignore specific layers based on their type */
   ignoreLayersType?: ExpressLayerType[];
+  /**
+   * Callback deciding whether an error thrown from a route handler should be
+   * captured and sent to Sentry.
+   *
+   * By default, 5xx errors (and errors without a resolvable status) are sent,
+   * while 3xx and 4xx errors are not. Errors are captured as soon as they are
+   * thrown — before any user error-handling middleware runs.
+   *
+   * Set to `false` to disable Sentry's automatic error capture entirely; you can
+   * then capture errors yourself from your own error handler via
+   * `Sentry.captureException`.
+   *
+   * @example
+   *
+   * ```javascript
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.expressIntegration({
+   *       shouldHandleError(error) {
+   *         return (error.statusCode ?? 500) >= 500;
+   *       },
+   *     }),
+   *   ],
+   * });
+   * ```
+   */
+  shouldHandleError?: ExpressShouldHandleError;
 }

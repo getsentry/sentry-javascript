@@ -3,6 +3,7 @@ import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  captureException,
   debug,
   getActiveSpan,
   getClient,
@@ -32,9 +33,12 @@ import type {
   ExpressLayerType,
   ExpressRequest,
   ExpressResponse,
+  ExpressShouldHandleError,
   HandleChannelContext,
+  MiddlewareError,
   RegistrationChannelContext,
 } from './types';
+import { defaultShouldHandleError } from './utils';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 const ORIGIN = 'auto.http.express';
@@ -91,13 +95,50 @@ export function instrumentExpress(
     // Pop the layer path when the layer hands off via `next`. `asyncStart` fires
     // when `next` is called and *before* the downstream layer runs, so the
     // per-request path chain reflects only the current chain when each layer
-    // reconstructs its route. Only `asyncStart` is relevant here.
+    // reconstructs its route. The `error` event captures throws at the layer
+    // level (see `captureLayerError`), before any user error-handling middleware.
     channel.subscribe({
       start: NOOP,
       asyncEnd: NOOP,
       end: NOOP,
-      error: NOOP,
+      error: data => captureLayerError(data, options.shouldHandleError),
       asyncStart: popLayerPathForLayer,
+    });
+  }
+}
+
+/**
+ * Capture an error surfaced on a layer's `handle_request` channel — the throw
+ * site, which runs before any user error-handling middleware. Duplicate captures
+ * (the error bubbling through parent layers, or a user also calling
+ * `setupExpressErrorHandler`) are collapsed by `captureException`'s per-object
+ * dedup, so only the first send survives.
+ *
+ * `shouldHandleError` is the raw integration option: `false` disables capture
+ * entirely, a function customizes the gate, and `undefined` falls back to
+ * {@link defaultShouldHandleError}.
+ */
+export function captureLayerError(
+  data: HandleChannelContext,
+  shouldHandleError: ExpressShouldHandleError | undefined,
+): void {
+  if (shouldHandleError === false) {
+    return;
+  }
+
+  const error = (data as { error?: unknown }).error;
+
+  // `next('route')` / `next('router')` are Express control-flow signals, not errors.
+  if (!error || error === 'route' || error === 'router') {
+    return;
+  }
+
+  if ((shouldHandleError ?? defaultShouldHandleError)(error as MiddlewareError)) {
+    captureException(error, {
+      mechanism: {
+        type: 'auto.http.express',
+        handled: false,
+      },
     });
   }
 }

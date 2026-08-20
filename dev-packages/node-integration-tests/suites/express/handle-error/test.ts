@@ -31,7 +31,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -68,7 +68,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -106,7 +106,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -148,7 +148,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -187,7 +187,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -235,7 +235,7 @@ describe('express error handling', () => {
                 values: [
                   {
                     mechanism: {
-                      type: 'auto.middleware.express',
+                      type: 'auto.http.express',
                       handled: false,
                     },
                     type: 'Error',
@@ -265,30 +265,35 @@ describe('express error handling', () => {
     });
   });
 
-  describe('setupExpressErrorHandler options', () => {
-    createCjsTests(__dirname, 'scenario-should-handle-error.mjs', 'instrument-no-tracing.mjs', (createRunner, test) => {
-      test('allows to pass options to setupExpressErrorHandler', async () => {
-        const runner = createRunner()
-          .expect({
-            event: {
-              exception: {
-                values: [
-                  {
-                    value: 'error_2',
-                  },
-                ],
+  describe('expressIntegration shouldHandleError option', () => {
+    createCjsTests(
+      __dirname,
+      'scenario-should-handle-error.mjs',
+      'instrument-should-handle-error.mjs',
+      (createRunner, test) => {
+        test('captures only errors for which shouldHandleError returns true', async () => {
+          const runner = createRunner()
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      value: 'error_2',
+                    },
+                  ],
+                },
               },
-            },
-          })
-          .start();
+            })
+            .start();
 
-        // this error is filtered & ignored
-        runner.makeRequest('get', '/test1', { expectError: true });
-        // this error is actually captured
-        runner.makeRequest('get', '/test2', { expectError: true });
+          // this error is filtered & ignored
+          runner.makeRequest('get', '/test1', { expectError: true });
+          // this error is actually captured
+          runner.makeRequest('get', '/test2', { expectError: true });
 
-        await runner.completed();
-      });
-    });
+          await runner.completed();
+        });
+      },
+    );
   });
 });

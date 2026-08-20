@@ -21,7 +21,7 @@ test('Sends correct error event', async ({ baseURL }) => {
   const exception = errorEvent.exception?.values?.[0];
   expect(exception?.value).toBe('This is an exception with id 123');
   expect(exception?.mechanism).toEqual({
-    type: 'auto.middleware.express',
+    type: 'auto.http.express',
     handled: false,
   });
 
