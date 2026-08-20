@@ -1,6 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // mongoose >= 9.7.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
@@ -9,7 +8,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // query text, span relationships, and that the legacy IITM patcher does NOT also fire (no double
 // instrumentation).
 describe('Mongoose tracing channel Test', () => {
-  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const driverOrigin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

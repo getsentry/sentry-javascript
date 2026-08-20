@@ -23,7 +23,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../../utils';
 
 const matrix = [
   ['6', '^6.0.0'],
@@ -35,11 +34,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     cleanupChildProcesses();
   });
 
-  const usesChannels = version === '7' || isOrchestrionEnabled();
-
-  // in v7 and orchestrion mode, we use the channel-based integration
-  // else, we use the OTel processor
-  const expectedOrigin = usesChannels ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+  const expectedOrigin = 'auto.vercelai.channel';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup

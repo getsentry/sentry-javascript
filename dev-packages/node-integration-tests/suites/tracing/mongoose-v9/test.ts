@@ -1,13 +1,12 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins the highest mongoose 9 below 9.7, the top of the IITM patcher's `>=5.9.7 <9.7.0` range, so the
 // monkey-patch path is exercised against a real mongoose 9. mongoose >= 9.7 publishes via
 // diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
 describe('Mongoose v9 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

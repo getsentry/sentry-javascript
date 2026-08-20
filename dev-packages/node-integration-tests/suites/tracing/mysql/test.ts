@@ -4,7 +4,6 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { isOrchestrionEnabled } from '../../../utils';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
@@ -218,7 +217,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.mysql' : 'auto.db.otel.mysql',
+          value: 'auto.db.mysql',
         },
         'sentry.release': {
           type: 'string',

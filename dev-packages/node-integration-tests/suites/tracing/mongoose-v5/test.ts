@@ -1,13 +1,12 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 5.9.7
 // the bottom of the IITM patcher's `>=5.9.7 <9.7.0` range, so the oldest
 // supported major is exercised against a real mongoose.
 describe('Mongoose v5 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
