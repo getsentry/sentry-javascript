@@ -524,7 +524,7 @@ Two consequences to be aware of when upgrading:
 
 Affected SDKs: `@sentry/node` and dependents.
 
-The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `onSpanCreated` instead. Outgoing request spans use `outgoingRequestHook`, `outgoingResponseHook`, and `outgoingRequestApplyCustomAttributes`.
+The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `onSpanCreated` instead. For outgoing request spans, `httpIntegration` has `outgoingRequestHook`, `outgoingResponseHook`, and `outgoingRequestApplyCustomAttributes`.
 
 ```js
 // before
@@ -949,7 +949,7 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
-- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` to mutate incoming request spans, or `outgoingRequestHook` / `outgoingResponseHook` / `outgoingRequestApplyCustomAttributes` for outgoing request spans.
+- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.
 
 #### `httpIntegration` options were consolidated
 
@@ -965,38 +965,6 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 | `instrumentation.requestHook`                 | `onSpanCreated` (incoming) or `outgoingRequestHook` (outgoing)                  |
 | `instrumentation.responseHook`                | `onSpanCreated` (incoming) or `outgoingResponseHook` (outgoing)                 |
 | `instrumentation.applyCustomAttributesOnSpan` | `onSpanCreated` (incoming) or `outgoingRequestApplyCustomAttributes` (outgoing) |
-
-```js
-// before
-Sentry.httpIntegration({
-  trackIncomingRequestsAsSessions: false,
-  maxIncomingRequestBodySize: 'small',
-  ignoreIncomingRequestBody: url => url.includes('/health'),
-  dropSpansForIncomingRequestStatusCodes: [404],
-  incomingRequestSpanHook: (span, req, res) => {
-    span.setAttribute('custom', true);
-  },
-  instrumentation: {
-    responseHook: () => {
-      void flushIfServerless();
-    },
-  },
-});
-
-// after
-Sentry.httpIntegration({
-  sessions: false,
-  maxRequestBodySize: 'small',
-  ignoreRequestBody: url => url.includes('/health'),
-  ignoreStatusCodes: [404],
-  onSpanCreated: (span, req, res) => {
-    span.setAttribute('custom', true);
-  },
-  outgoingResponseHook: () => {
-    void flushIfServerless();
-  },
-});
-```
 
 ### `@sentry/cloudflare`
 
