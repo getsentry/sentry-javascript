@@ -32,7 +32,7 @@ import { onUnhandledRejectionIntegration } from '../integrations/onunhandledreje
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
-import { getAutoPerformanceIntegrations } from '../integrations/tracing';
+import { AUTO_PERFORMANCE_INTEGRATION_NAMES, getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { getEntryPointType } from '../utils/entry-point';
@@ -87,6 +87,20 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // But `transactionName` will not be set automatically
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
+}
+
+/**
+ * Whether the user explicitly configured a channel-based (orchestrion) integration via the
+ * `integrations` option. These integrations (e.g. `expressIntegration()`) can capture errors even
+ * with tracing off, so their diagnostics-channel module hooks must be installed regardless of spans.
+ */
+function hasUserConfiguredChannelIntegration(options: NodeClientOptions): boolean {
+  if (!Array.isArray(options.integrations)) {
+    return false;
+  }
+  return options.integrations.some(integration =>
+    (AUTO_PERFORMANCE_INTEGRATION_NAMES as readonly string[]).includes(integration.name),
+  );
 }
 
 /**
@@ -154,19 +168,21 @@ function _init(
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // Gate channel-based (orchestrion diagnostics-channel) instrumentation on span recording: the
-  // channel integrations only produce spans, so with tracing off there are no subscribers and
-  // injecting the module hooks would be pointless work. Install the hooks as early as possible,
-  // before the app imports its instrumented modules.
-  const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
-  if (useChannelInjection) {
-    registerDiagnosticsChannelInjection();
-  }
-
   // Only use Node SDK defaults if none provided.
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
+
+  // Gate channel-based (orchestrion diagnostics-channel) instrumentation. Register the module hooks
+  // when tracing is on (the channel integrations produce spans) OR when the user explicitly added a
+  // channel-based integration (e.g. `expressIntegration()`) via `integrations` — those can capture
+  // errors even with tracing off, so their subscribers must fire regardless of spans. Install the
+  // hooks as early as possible, before the app imports its instrumented modules.
+  const useChannelInjection =
+    hasSpansEnabled(optionsWithResolvedTracing) || hasUserConfiguredChannelIntegration(clientOptions);
+  if (useChannelInjection) {
+    registerDiagnosticsChannelInjection();
+  }
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
