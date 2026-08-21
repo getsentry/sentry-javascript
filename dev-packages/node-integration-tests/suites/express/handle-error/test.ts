@@ -301,7 +301,7 @@ describe('express error handling', () => {
     createCjsTests(
       __dirname,
       'scenario-setup-error-handler.mjs',
-      'instrument-should-handle-error.mjs',
+      'instrument-setup-error-handler.mjs',
       (createRunner, test) => {
         test('captures only errors for which shouldHandleError returns true', async () => {
           const runner = createRunner()
