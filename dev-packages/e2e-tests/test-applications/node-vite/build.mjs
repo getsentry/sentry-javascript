@@ -19,6 +19,9 @@ function run(name, plugins) {
       outDir: join(__dirname, 'dist', name),
       emptyOutDir: true,
       minify: true,
+      // Node target so top-level await (used in the entry) is allowed; Vite otherwise defaults to a
+      // browser target that rejects it.
+      target: 'esnext',
       lib: { entry: join(__dirname, 'src', 'entry.mjs'), formats: ['es'], fileName: 'main' },
       rollupOptions: { external: [...builtinModules, ...builtinModules.map(m => `node:${m}`)] },
     },
