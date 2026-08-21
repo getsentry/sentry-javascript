@@ -105,7 +105,7 @@ describe('valid options keep compiling', () => {
         dsn: env.SENTRY_DSN,
         tracesSampleRate: 1,
         serverName: 'my-worker',
-        enableRpcTracePropagation: false,
+        rpcTracePropagationTargets: ['ORDERS', /^SVC_/],
         durableObjectSqlSpanAllowlist: ['cf_my_table', /^cf_reports_/],
         beforeSend: event => event,
         integrations: [],

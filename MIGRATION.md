@@ -1322,16 +1322,26 @@ Sentry.httpIntegration({
   );
 ```
 
-- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
+- The `enableRpcTracePropagation` option was removed. Trace context is no longer propagated to every binding on `env`. List the bindings you call in `rpcTracePropagationTargets` instead. Strings match a binding name exactly, regular expressions match by pattern. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
 
-- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
+```diff
+  export default Sentry.withSentry(
+    (env) => ({
+      dsn: env.SENTRY_DSN,
+-     enableRpcTracePropagation: true,
++     rpcTracePropagationTargets: ['ORDERS', /^SVC_/],
+    }),
+    handler,
+  );
+```
+
+- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object instruments its RPC methods unconditionally now, so there is nothing to replace it with on the receiver.
 
 ```diff
   export const MyDO = Sentry.instrumentDurableObjectWithSentry(
     (env) => ({
       dsn: env.SENTRY_DSN,
 -     instrumentPrototypeMethods: true,
-+     enableRpcTracePropagation: true,
     }),
     MyDOBase,
   );
