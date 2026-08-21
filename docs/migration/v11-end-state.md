@@ -542,6 +542,21 @@ Sentry.httpIntegration({
 
 `httpIntegration`'s `instrumentation` option is still honored for **outgoing** request spans.
 
+### Deno `node:http` server requests are tracked as sessions
+
+Affected SDKs: `@sentry/deno`.
+
+`denoHttpIntegration` now creates [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming `node:http` requests, matching the other server SDKs. In v10 it disabled them unconditionally, so release health reported no session data for Deno servers. If you have a `release` configured, you will start seeing session aggregates for incoming requests. Pass `sessions: false` to restore the previous behavior:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [Sentry.denoHttpIntegration({ sessions: false })],
+});
+```
+
+`sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
+
 ### Node HTTP transport `keepAlive` defaults to `true`
 
 Affected SDKs: `@sentry/node` and dependents.
@@ -1267,6 +1282,33 @@ Several default integrations were renamed to match the names used by the other S
 - `DenoMongoose` => `Mongoose`
 - `DenoMysql` => `Mysql`
 - `DenoPostgres` => `Postgres`
+
+### `denoHttpIntegration` incoming span hooks renamed
+
+Affected SDKs: `@sentry/deno`.
+
+The incoming-span hooks on `denoHttpIntegration` were renamed to match `httpIntegration` in the other server SDKs. Their arguments are typed as `HttpIncomingMessage` / `HttpServerResponse` now, instead of `unknown`.
+
+| Removed option          | Replacement     |
+| ----------------------- | --------------- |
+| `onIncomingSpanCreated` | `onSpanCreated` |
+| `onIncomingSpanEnd`     | `onSpanEnd`     |
+
+```js
+// before
+Sentry.denoHttpIntegration({
+  onIncomingSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+
+// after
+Sentry.denoHttpIntegration({
+  onSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+```
 
 ### `OtlpIntegration` integration renamed to `Otlp`
 
