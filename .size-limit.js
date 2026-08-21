@@ -414,8 +414,16 @@ module.exports = [
     path: ['packages/server-utils/build/esm/orchestrion/runtime/hook.js', 'packages/node/build/import-hook.mjs'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '5 KB',
+    limit: '87 KB',
     disablePlugins: ['@size-limit/esbuild'],
+    modifyWebpackConfig: function (config) {
+      // Both packages declare `sideEffects: false`, which lets webpack
+      // drop the side-effecting `--import` entry and report 0 bytes.
+      // Keep side effects so this measures what Node really loads.
+      config.optimization = { ...config.optimization, sideEffects: false };
+
+      return config;
+    },
   },
   {
     name: '@sentry/node - without tracing',
