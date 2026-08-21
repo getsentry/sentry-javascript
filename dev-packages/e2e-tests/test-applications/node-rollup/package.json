@@ -1,0 +1,25 @@
+{
+  "name": "node-rollup",
+  "description": "ensure the Sentry rollup plugin excludes runtime channel injection by default",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && node ./build.mjs",
+    "test:assert": "node ./assert.mjs"
+  },
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+  },
+  "devDependencies": {
+    "rollup": "4.62.3",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-commonjs": "^28.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
