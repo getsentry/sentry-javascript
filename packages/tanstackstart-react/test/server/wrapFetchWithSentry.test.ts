@@ -165,6 +165,31 @@ describe('wrapFetchWithSentry', () => {
     expect(html).toContain('data-content="<head>ignore"');
   });
 
+  it('injects meta tags only once when a later chunk has <head> inside a quoted attribute', async () => {
+    const encoder = new TextEncoder();
+    const chunks = ['<head></head><body><div data-content="junk', '<head>junk"></div></body>'];
+    const body = new ReadableStream({
+      start(controller) {
+        for (const c of chunks) controller.enqueue(encoder.encode(c));
+        controller.close();
+      },
+    });
+    const mockResponse = new Response(body, {
+      headers: new Headers({ 'content-type': 'text/html' }),
+    });
+    const fetchFn = vi.fn().mockResolvedValue(mockResponse);
+
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+    const request = new Request('http://localhost:3000/');
+
+    const response = await serverEntry.fetch(request);
+    const html = await response.text();
+
+    expect(html.match(/name="sentry-trace"/g)).toHaveLength(1);
+    expect(html).toContain('<head><meta name="sentry-trace"');
+    expect(html).toContain('data-content="junk<head>junk"');
+  });
+
   it('captures exception when HTML response body stream errors', async () => {
     const streamError = new Error('stream read error');
     const body = new ReadableStream({

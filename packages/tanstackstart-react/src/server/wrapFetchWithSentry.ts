@@ -77,11 +77,24 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
           }
         }
 
+        // Once we've injected, pass later chunks through untouched so a <head> inside a
+        // quoted attribute in a later chunk isn't matched again.
+        let injected = false;
+
         let errored = false;
         try {
           for await (const chunk of bodyReporter()) {
             const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+
+            if (injected) {
+              controller.enqueue(new TextEncoder().encode(html));
+              continue;
+            }
+
             const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
+            if (modifiedHtml !== html) {
+              injected = true;
+            }
             controller.enqueue(new TextEncoder().encode(modifiedHtml));
           }
         } catch (e) {
