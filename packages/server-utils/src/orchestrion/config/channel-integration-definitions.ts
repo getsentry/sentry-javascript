@@ -20,7 +20,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresJsIntegration', modules: ['postgres'] },
   { exportName: 'mysqlIntegration', modules: ['mysql'] },
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
-  { exportName: 'mongodbIntegration', modules: ['mongodb'] },
+  { exportName: 'mongoIntegration', modules: ['mongodb'] },
   { exportName: 'mongooseIntegration', modules: ['mongoose'] },
   { exportName: 'knexIntegration', modules: ['knex'] },
   { exportName: 'tediousIntegration', modules: ['tedious'] },
