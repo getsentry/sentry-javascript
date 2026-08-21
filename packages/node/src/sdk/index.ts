@@ -16,7 +16,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
-import { detectOrchestrionSetup } from '@sentry/server-utils';
+import { detectOrchestrionSetup, expressIntegration, hapiIntegration, koaIntegration } from '@sentry/server-utils';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
@@ -41,6 +41,7 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
+import { fastifyIntegration } from '../integrations/tracing/fastify';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -69,6 +70,11 @@ function getBaseDefaultIntegrations(): Integration[] {
     workerThreadsIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
+    // Framework-level integrations
+    expressIntegration(),
+    fastifyIntegration(),
+    hapiIntegration(),
+    koaIntegration(),
   ];
 }
 
@@ -147,20 +153,20 @@ function _init(
     }
   }
 
-  // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both
-  // the span-enablement gate below and default-integration selection see the final values. Without
-  // this, enabling tracing purely via env would leave `hasSpansEnabled` false at this point and skip
-  // the performance integrations. `getClientOptions` resolves the remaining options later.
+  // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that
+  // default-integration selection sees the final values. Without this, enabling tracing purely via
+  // env would leave `hasSpansEnabled` false at this point and skip the performance integrations.
+  // `getClientOptions` resolves the remaining options later.
   const optionsWithResolvedTracing = {
     ...options,
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // Gate channel-based (orchestrion diagnostics-channel) instrumentation on span recording: the
-  // channel integrations only produce spans, so with tracing off there are no subscribers and
-  // injecting the module hooks would be pointless work. Install the hooks as early as possible,
-  // before the app imports its instrumented modules.
-  const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
+  // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks by default,
+  // independent of tracing — the channel integrations also capture errors, not just spans. Opt out
+  // with `enableRuntimeChannelInjection: false`. Install as early as possible, before the app imports
+  // its instrumented modules.
+  const useChannelInjection = options.enableRuntimeChannelInjection !== false;
   if (useChannelInjection) {
     registerDiagnosticsChannelInjection();
   }
