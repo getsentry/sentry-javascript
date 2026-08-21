@@ -1,6 +1,6 @@
 {
-  "name": "node-orchestrion-webpack",
-  "description": "ensure that orchestrion is not bundled inappropriately",
+  "name": "node-webpack",
+  "description": "ensure the Sentry webpack plugin excludes runtime channel injection by default",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
   },
   "devDependencies": {
     "webpack": "5.107.2"

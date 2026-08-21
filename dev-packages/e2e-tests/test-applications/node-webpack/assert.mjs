@@ -1,7 +1,6 @@
 /**
- * Asserts the orchestrion subtree is bundled by default. Channel-based (orchestrion
- * diagnostics-channel) instrumentation is the v11 default, so `Sentry.init()` pulls in the
- * orchestrion code path unconditionally — there is no longer an opt-in to tree-shake it away.
+ * Asserts that the Sentry webpack plugin excludes the *runtime* diagnostics-channel injection by
+ * default (because it instruments at build time instead), while a plain build keeps it.
  *
  * @module
  */
@@ -11,10 +10,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// `orchestrion:mysql:query` lives only in @sentry/server-utils' orchestrion
-// subtree (channels.ts), never in @sentry/node — so finding it in a bundle
-// means the orchestrion code path was pulled in.
-const MARKER = 'orchestrion:mysql:query';
+// This string literal lives only in `@sentry/server-utils`' runtime injection module
+// (`orchestrion/runtime/register.ts`) — the code `registerDiagnosticsChannelInjection()` pulls in.
+// Its presence means the runtime injection was bundled; its absence means it was tree-shaken.
+const RUNTIME_INJECTION_MARKER = 'Registered diagnostics-channel injection';
 
 function bundleText(name) {
   const dir = join(__dirname, 'dist', name);
@@ -30,9 +29,17 @@ function check(condition, message) {
   if (!condition) failed = true;
 }
 
-const app = bundleText('entry');
+const plain = bundleText('plain');
+const plugin = bundleText('plugin');
 
-check(app.includes(MARKER), 'orchestrion is bundled by default when Sentry.init() runs');
+check(
+  plain.includes(RUNTIME_INJECTION_MARKER),
+  'plain build (no plugin) bundles the runtime channel injection by default',
+);
+check(
+  !plugin.includes(RUNTIME_INJECTION_MARKER),
+  'sentryWebpackPlugin excludes the runtime channel injection by default (build-time instrumentation)',
+);
 
 if (failed) {
   process.exit(1);
