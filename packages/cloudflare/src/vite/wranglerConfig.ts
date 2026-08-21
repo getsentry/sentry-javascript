@@ -18,6 +18,17 @@ export interface WranglerConfig {
    * an export on a *different* worker, which this build can't wrap.
    */
   workerEntrypoints: string[];
+  /**
+   * Bindings whose RPC receiver lives in this worker, so this build instruments it. An `undefined`
+   * `className` means the default export. Not deduped by class, two bindings may point at the same
+   * class and both names have to be listed.
+   */
+  sameWorkerBindings: SameWorkerBinding[];
+}
+
+export interface SameWorkerBinding {
+  bindingName: string;
+  className?: string;
 }
 
 /**
@@ -62,6 +73,7 @@ export function resolveWranglerConfig(
       durableObjects: collectClassBindings(raw.durable_objects?.bindings),
       workflows: collectClassBindings(raw.workflows),
       workerEntrypoints: collectSelfBoundEntrypoints(raw),
+      sameWorkerBindings: collectSameWorkerBindings(raw),
     },
     configDir: dirname(raw.configPath ?? configPath),
   };
@@ -84,6 +96,32 @@ function collectSelfBoundEntrypoints(raw: Unstable_Config): string[] {
     }
   }
   return [...entrypoints];
+}
+
+/**
+ * Bindings with a `script_name` or naming another worker target a class this build does not wrap,
+ * so they are excluded and stay opt-in.
+ */
+function collectSameWorkerBindings(raw: Unstable_Config): SameWorkerBinding[] {
+  const bindings: SameWorkerBinding[] = [];
+
+  for (const binding of raw.durable_objects?.bindings ?? []) {
+    if (typeof binding?.name === 'string' && typeof binding.class_name === 'string' && !binding.script_name) {
+      bindings.push({ bindingName: binding.name, className: binding.class_name });
+    }
+  }
+
+  for (const binding of raw.services ?? []) {
+    // A service binding is only ours when `service` names this worker; without a `name` none can be.
+    if (raw.name && binding?.service === raw.name && typeof binding.binding === 'string') {
+      bindings.push({
+        bindingName: binding.binding,
+        className: typeof binding.entrypoint === 'string' ? binding.entrypoint : undefined,
+      });
+    }
+  }
+
+  return bindings;
 }
 
 /**

@@ -460,3 +460,114 @@ describe('unstable_readConfig: service-binding entrypoint semantics', () => {
     expect(raw.topLevelName).toBeUndefined();
   });
 });
+
+describe('sameWorkerBindings', () => {
+  function sameWorkerBindings(files: Record<string, string>) {
+    return resolveWranglerConfig(writeTempDir(files))!.config.sameWorkerBindings;
+  }
+
+  it('includes Durable Object bindings declared by this worker', () => {
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          durable_objects: { bindings: [{ name: 'COUNTER', class_name: 'Counter' }] },
+        }),
+      }),
+    ).toEqual([{ bindingName: 'COUNTER', className: 'Counter' }]);
+  });
+
+  it('keeps every binding name pointing at the same Durable Object class', () => {
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          durable_objects: {
+            bindings: [
+              { name: 'COUNTER', class_name: 'Counter' },
+              { name: 'COUNTER_ALIAS', class_name: 'Counter' },
+            ],
+          },
+        }),
+      }),
+    ).toEqual([
+      { bindingName: 'COUNTER', className: 'Counter' },
+      { bindingName: 'COUNTER_ALIAS', className: 'Counter' },
+    ]);
+  });
+
+  it('excludes Durable Object bindings owned by another worker', () => {
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          durable_objects: {
+            bindings: [{ name: 'REMOTE_DO', class_name: 'Other', script_name: 'other-worker' }],
+          },
+        }),
+      }),
+    ).toEqual([]);
+  });
+
+  it('excludes a Durable Object binding carrying this worker as `script_name`', () => {
+    // A `script_name` binding is never wrapped by this build, propagation would target an uninstrumented receiver.
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          durable_objects: {
+            bindings: [{ name: 'SELF_DO', class_name: 'Counter', script_name: 'my-worker' }],
+          },
+        }),
+      }),
+    ).toEqual([]);
+  });
+
+  it('includes self service bindings and excludes bindings to other workers', () => {
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          services: [
+            { binding: 'SELF', service: 'my-worker', entrypoint: 'AdminEntry' },
+            { binding: 'DEFAULT_SELF', service: 'my-worker' },
+            { binding: 'EXTERNAL', service: 'other-worker' },
+          ],
+        }),
+      }),
+    ).toEqual([
+      { bindingName: 'SELF', className: 'AdminEntry' },
+      { bindingName: 'DEFAULT_SELF', className: undefined },
+    ]);
+  });
+
+  it('derives nothing from service bindings when the config omits `name`', () => {
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          main: 'src/index.ts',
+          services: [{ binding: 'SELF', service: 'my-worker', entrypoint: 'AdminEntry' }],
+        }),
+      }),
+    ).toEqual([]);
+  });
+
+  it('never includes workflow bindings or tail consumers', () => {
+    // Workflow bindings never reach the RPC instrumentation, tail consumers are not `env` bindings.
+    expect(
+      sameWorkerBindings({
+        'wrangler.json': JSON.stringify({
+          name: 'my-worker',
+          main: 'src/index.ts',
+          workflows: [{ name: 'MY_WF', binding: 'MY_WF', class_name: 'MyWorkflow' }],
+          tail_consumers: [{ service: 'my-worker' }],
+        }),
+      }),
+    ).toEqual([]);
+  });
+});

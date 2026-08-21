@@ -1,5 +1,8 @@
 import MagicString from 'magic-string';
+import type { SameWorkerBinding } from './wranglerConfig';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
+
+const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';
 
 // ---------------------------------------------------------------------------
 // Minimal ESTree node types for the AST nodes we inspect.
@@ -108,6 +111,8 @@ export interface TransformContext {
   optionsFn: string;
   /** Import statement prepended when `optionsFn` references a separate module. */
   optionsImport?: string;
+  /** @see {@link import('./wranglerConfig').WranglerConfig.sameWorkerBindings} */
+  sameWorkerBindings?: readonly SameWorkerBinding[];
 }
 
 export interface TransformResult {
@@ -144,6 +149,7 @@ export function applyAutoInstrumentTransforms(
 ): TransformResult | undefined {
   const ms = new MagicString(code);
   const topLevelClasses = collectTopLevelClasses(ast);
+  const sameWorkerBindings = ctx.sameWorkerBindings ?? [];
   const state: TransformState = {
     ms,
     needsImport: false,
@@ -153,6 +159,9 @@ export function applyAutoInstrumentTransforms(
     classWrappers: ctx.classWrappers,
     agentClasses: ctx.agentClasses ?? new Set<string>(),
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
+    // The identifier must be chosen before wrapping, which bindings survive is only known after.
+    optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
+    autoWrapped: new Set<string | undefined>(),
   };
   const { wrappedClasses } = state;
 
@@ -179,6 +188,10 @@ export function applyAutoInstrumentTransforms(
     return { code, map: ms.generateMap({ hires: true }), wrappedClasses };
   }
 
+  // `prepend` inserts before earlier prepends, yielding: Sentry import, options import, declaration.
+  if (sameWorkerBindings.length > 0) {
+    ms.prepend(buildMergedOptionsDeclaration(sameWorkerBindings, ctx.optionsFn, state));
+  }
   if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
   ms.prepend("import * as __SENTRY__ from '@sentry/cloudflare';\n");
 
@@ -212,6 +225,39 @@ interface TransformState {
    * so they can be wrapped without a config entry.
    */
   workerEntrypointClasses: Set<string>;
+  optionsFn: string;
+  /**
+   * Exported names this transform wrapped itself, unlike `wrappedClasses` which also counts
+   * hand-wrapped classes. `undefined` marks the default export, mirroring
+   * {@link SameWorkerBinding.className}.
+   */
+  autoWrapped: Set<string | undefined>;
+}
+
+/**
+ * Builds the callback that merges same-worker binding names into `rpcTracePropagationBindings` at
+ * runtime, the options object only exists once the callback runs with `env`. Only bindings whose
+ * class this transform wrapped survive, a hand-wrapped class runs on its own options.
+ */
+function buildMergedOptionsDeclaration(
+  sameWorkerBindings: readonly SameWorkerBinding[],
+  optionsFn: string,
+  state: TransformState,
+): string {
+  const bindingNames = sameWorkerBindings
+    .filter(({ className }) => state.autoWrapped.has(className))
+    .map(({ bindingName }) => bindingName);
+
+  if (!bindingNames.length) {
+    return `const ${MERGED_OPTIONS_IDENTIFIER} = ${optionsFn};\n`;
+  }
+
+  const names = bindingNames.map(name => JSON.stringify(name)).join(', ');
+  return (
+    `const ${MERGED_OPTIONS_IDENTIFIER} = (env) => { ` +
+    `const opts = (${optionsFn})(env); ` +
+    `return { ...opts, rpcTracePropagationBindings: [${names}, ...(opts?.rpcTracePropagationBindings ?? [])] }; };\n`
+  );
 }
 
 /**
@@ -263,8 +309,9 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
   // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
   // MagicString positions are always relative to the original source.
   state.ms.overwrite(node.start, decl.start, 'const __SENTRY_DEFAULT_EXPORT__ = ');
-  state.ms.append(`\nexport default __SENTRY__.withSentry(${ctx.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
+  state.ms.append(`\nexport default __SENTRY__.withSentry(${state.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
   state.needsImport = true;
+  state.autoWrapped.add(undefined);
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
@@ -336,10 +383,11 @@ function wrapInlineClassExport(
   // Insert the wrapped re-export after the class body
   state.ms.appendLeft(
     exportNode.end,
-    `\nexport const ${className} = __SENTRY__.${WRAPPER_METHODS[kind]}(${ctx.optionsFn}, ${renamedClass});\n`,
+    `\nexport const ${className} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
   );
 
   state.wrappedClasses.add(className);
+  state.autoWrapped.add(className);
   state.renamedLocals.add(className);
   state.needsImport = true;
 }
@@ -357,6 +405,7 @@ function wrapSpecifierExport(specifier: ExportSpecifierNode, ctx: TransformConte
   if (!localName || !localClass?.id) return;
 
   state.wrappedClasses.add(exportedName);
+  state.autoWrapped.add(exportedName);
   state.needsImport = true;
   if (state.renamedLocals.has(localName)) return;
   state.renamedLocals.add(localName);
@@ -367,6 +416,6 @@ function wrapSpecifierExport(specifier: ExportSpecifierNode, ctx: TransformConte
   // wrapped) `localName` binding, so the wrapper is NOT exported here.
   state.ms.appendLeft(
     localClass.end,
-    `\nconst ${localName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${ctx.optionsFn}, ${renamedClass});\n`,
+    `\nconst ${localName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
   );
 }
