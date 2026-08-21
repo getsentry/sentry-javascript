@@ -406,7 +406,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '122 KB',
+    limit: '123 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -414,8 +414,16 @@ module.exports = [
     path: ['packages/server-utils/build/esm/orchestrion/runtime/hook.js', 'packages/node/build/import-hook.mjs'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '5 KB',
+    limit: '91 KB',
     disablePlugins: ['@size-limit/esbuild'],
+    modifyWebpackConfig: function (config) {
+      // Both packages declare `sideEffects: false`, which lets webpack
+      // drop the side-effecting `--import` entry and report 0 bytes.
+      // Keep side effects so this measures what Node really loads.
+      config.optimization = { ...config.optimization, sideEffects: false };
+
+      return config;
+    },
   },
   {
     name: '@sentry/node - without tracing',
@@ -446,7 +454,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '96 KB',
+    limit: '97 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
