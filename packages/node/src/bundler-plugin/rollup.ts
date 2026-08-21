@@ -1,6 +1,7 @@
 import { sentryRollupPlugin as sentryRollupBundlerPlugin } from '@sentry/bundler-plugins/rollup';
 import type { SentryRollupPluginOptions as SentryRollupPluginOptionsBase } from '@sentry/bundler-plugins/rollup';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import { withChannelInjectionExclusionDefault } from './common';
 
 export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
   /**
@@ -36,6 +37,6 @@ type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryRollupPlugin(options?: SentryRollupPluginOptions): RollupPlugin[] {
-  const bundlerPlugins = sentryRollupBundlerPlugin(options);
+  const bundlerPlugins = sentryRollupBundlerPlugin(withChannelInjectionExclusionDefault(options));
   return [...bundlerPlugins, sentryOrchestrionPlugin(options)];
 }

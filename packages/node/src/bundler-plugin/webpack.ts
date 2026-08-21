@@ -1,6 +1,7 @@
 import { sentryWebpackPlugin as sentryWebpackBundlerPlugin } from '@sentry/bundler-plugins/webpack';
 import type { SentryWebpackPluginOptions as SentryWebpackPluginOptionsBase } from '@sentry/bundler-plugins/webpack';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
+import { withChannelInjectionExclusionDefault } from './common';
 
 export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
   /**
@@ -37,7 +38,9 @@ type WebpackCompiler = Parameters<ReturnType<typeof sentryWebpackBundlerPlugin>[
 export function sentryWebpackPlugin(options?: SentryWebpackPluginOptions): {
   apply: (compiler: WebpackCompiler) => void;
 } {
-  const bundlerPlugin = sentryWebpackBundlerPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
+  const bundlerPlugin = sentryWebpackBundlerPlugin(withChannelInjectionExclusionDefault(options)) as {
+    apply: (compiler: WebpackCompiler) => void;
+  };
   const orchestrionPlugin = sentryOrchestrionWebpackPlugin(options) as { apply: (compiler: WebpackCompiler) => void };
 
   return {
