@@ -1,6 +1,7 @@
 import { sentryEsbuildPlugin as sentryEsbuildBundlerPlugin } from '@sentry/bundler-plugins/esbuild';
 import type { SentryEsbuildPluginOptions as SentryEsbuildPluginOptionsBase } from '@sentry/bundler-plugins/esbuild';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/esbuild';
+import { withChannelInjectionExclusionDefault } from './common';
 
 export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
   /**
@@ -35,7 +36,7 @@ type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryEsbuildPlugin(options?: SentryEsbuildPluginOptions): EsbuildPlugin {
-  const bundlerPlugin = sentryEsbuildBundlerPlugin(options) as EsbuildPlugin;
+  const bundlerPlugin = sentryEsbuildBundlerPlugin(withChannelInjectionExclusionDefault(options)) as EsbuildPlugin;
   const orchestrionPlugin = sentryOrchestrionPlugin(options);
 
   return {

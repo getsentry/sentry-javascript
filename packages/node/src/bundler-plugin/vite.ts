@@ -1,6 +1,7 @@
 import { sentryVitePlugin as sentryViteBundlerPlugin } from '@sentry/bundler-plugins/vite';
 import type { SentryVitePluginOptions as SentryVitePluginOptionsBase } from '@sentry/bundler-plugins/vite';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
+import { withChannelInjectionExclusionDefault } from './common';
 
 export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
   /**
@@ -37,6 +38,6 @@ type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
  * ```
  */
 export function sentryVitePlugin(options?: SentryVitePluginOptions): VitePlugin[] {
-  const bundlerPlugins = sentryViteBundlerPlugin(options);
+  const bundlerPlugins = sentryViteBundlerPlugin(withChannelInjectionExclusionDefault(options));
   return [...bundlerPlugins, sentryOrchestrionPlugin(options)];
 }
