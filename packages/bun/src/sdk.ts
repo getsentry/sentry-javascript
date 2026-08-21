@@ -12,9 +12,13 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
+  expressIntegration,
+  fastifyIntegration,
   getAutoPerformanceIntegrations,
+  hapiIntegration,
   httpIntegration,
   init as initNode,
+  koaIntegration,
   modulesIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -64,6 +68,12 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     modulesIntegration(),
     processSessionIntegration(),
+    // Framework-level integrations. These are not performance-only: they also handle error capture, so
+    // they are added by default rather than gated behind tracing (matching the Node SDK).
+    expressIntegration(),
+    fastifyIntegration(),
+    hapiIntegration(),
+    koaIntegration(),
     // Bun Specific
     bunServerIntegration(),
     bunHttpServerIntegration(),
