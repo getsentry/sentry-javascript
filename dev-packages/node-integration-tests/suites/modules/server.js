@@ -18,6 +18,4 @@ app.get('/test1', () => {
   throw new Error('error_1');
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

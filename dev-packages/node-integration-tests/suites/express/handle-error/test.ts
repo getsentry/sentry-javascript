@@ -296,4 +296,40 @@ describe('express error handling', () => {
       },
     );
   });
+
+  describe('setupExpressErrorHandler', () => {
+    createCjsTests(
+      __dirname,
+      'scenario-setup-error-handler.mjs',
+      'instrument-should-handle-error.mjs',
+      (createRunner, test) => {
+        test('captures only errors for which shouldHandleError returns true', async () => {
+          const runner = createRunner()
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      mechanism: {
+                        type: 'auto.middleware.express',
+                        handled: false,
+                      },
+                      value: 'error_2',
+                    },
+                  ],
+                },
+              },
+            })
+            .start();
+
+          // this error is filtered & ignored
+          runner.makeRequest('get', '/test1', { expectError: true });
+          // this error is actually captured
+          runner.makeRequest('get', '/test2', { expectError: true });
+
+          await runner.completed();
+        });
+      },
+    );
+  });
 });

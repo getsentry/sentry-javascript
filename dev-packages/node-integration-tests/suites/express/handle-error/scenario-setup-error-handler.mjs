@@ -29,4 +29,7 @@ app.get('/test/withIsolationScope', () => {
   });
 });
 
+// Deprecated but still supported
+Sentry.setupExpressErrorHandler(app);
+
 startExpressServerAndSendPortToRunner(app);

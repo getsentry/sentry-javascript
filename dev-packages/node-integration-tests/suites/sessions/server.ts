@@ -46,6 +46,4 @@ app.get('/test/error_handled', (_req, res) => {
   res.send('Crash!');
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);
