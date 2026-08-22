@@ -22,7 +22,7 @@
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
-    "vite": "7.3.2",
+    "vite": "7.3.5",
     "wrangler": "^4.86.0",
     "ws": "^8.18.3"
   },
