@@ -33,6 +33,7 @@ import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
+import { workerThreadsIntegration } from '../integrations/workerThreads';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { getEntryPointType } from '../utils/entry-point';
@@ -65,6 +66,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
+    workerThreadsIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
   ];

@@ -102,6 +102,7 @@ export {
   getOtlpTracesEndpoint,
   processSessionIntegration,
   childProcessIntegration,
+  workerThreadsIntegration,
   createSentryWinstonTransport,
   redisIntegration,
   requestDataIntegration,
