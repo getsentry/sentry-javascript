@@ -115,7 +115,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {
@@ -146,7 +146,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {
@@ -178,7 +178,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {

@@ -31,9 +31,9 @@ function captureWorkerThreadEvents(worker: Worker): void {
     .on('error', error => {
       captureException(error, {
         mechanism: {
-          type: 'auto.worker_thread',
+          type: 'auto.node.worker_threads',
           handled: false,
-          data: { ...(threadId !== undefined ? { threadId: String(threadId) } : {}) },
+          data: threadId !== undefined ? { threadId: String(threadId) } : undefined,
         },
       });
     });

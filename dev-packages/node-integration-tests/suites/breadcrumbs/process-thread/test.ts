@@ -9,7 +9,7 @@ const WORKER_ERROR_EVENT = {
         type: 'Error',
         value: 'Worker error',
         mechanism: {
-          type: 'auto.worker_thread',
+          type: 'auto.node.worker_threads',
           handled: false,
         },
       },
@@ -39,7 +39,7 @@ const TEST_ERROR_EVENT = {
   ],
 };
 
-conditionalTest({ min: 20 })('should capture child process breadcrumbs and worker thread errors', () => {
+describe('should capture child process breadcrumbs and worker thread errors', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
