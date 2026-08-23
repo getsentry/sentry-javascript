@@ -135,7 +135,7 @@ export function initWithDefaultIntegrations(
 
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 
-  if (cacheEnabled && client && options.dsn) {
+  if (cacheEnabled && client) {
     cacheClient(client);
   }
 
