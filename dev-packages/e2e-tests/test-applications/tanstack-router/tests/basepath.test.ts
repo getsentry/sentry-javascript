@@ -31,17 +31,21 @@ test.describe('router basepath', () => {
     expect(traceData).toHaveProperty(['url.template'], '/posts/$postId');
   });
 
-  // The scope transaction is set when the pageload span starts, and the later `updateName` in
-  // `onResolved` does not rewrite it — so a wrong initial match mislabelled every error for the
-  // whole page lifetime. This is the part of the bug the transaction name alone does not reveal.
+  // The first test only checks the span. The scope transaction is a separate value: it is set once
+  // when the pageload span starts, and the later `updateName` in `onResolved` does not rewrite it.
+  // So even when the sent transaction name is correct, errors captured after the pageload still
+  // carry the name from the initial match. This test checks that scope transaction.
   test('attributes errors to the matched route for the whole page lifetime', async ({ page }) => {
+    const transactionPromise = waitForTransaction('tanstack-router', async transactionEvent => {
+      return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
     const errorPromise = waitForError('tanstack-router', async errorEvent => {
       return errorEvent.exception?.values?.[0]?.value === 'Error thrown after pageload';
     });
 
     await page.goto(`${BASE}/posts/456`);
+    await transactionPromise;
 
-    await page.waitForTimeout(1000);
     await page.evaluate(() => {
       setTimeout(() => {
         throw new Error('Error thrown after pageload');
