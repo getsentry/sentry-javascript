@@ -13,6 +13,7 @@
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "tsx": "^4.23.0",
     "typescript": "^5.6.3"
