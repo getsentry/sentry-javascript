@@ -3,7 +3,8 @@ import {
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import type { Integration, StartSpanOptions } from '@sentry/core';
-import { instrumentVueRouter } from './router';
+import { setRouteProvider } from '@sentry/core';
+import { createVueRouteProvider, instrumentVueRouter } from './router';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
@@ -61,6 +62,13 @@ export function browserTracingIntegration(options: VueBrowserTracingIntegrationO
 
   return {
     ...integration,
+    setup(client) {
+      // Registered before `afterAllSetup` so the provider is in place by the time the pageload span
+      // is named, rather than only once the router reports its first navigation.
+      setRouteProvider(createVueRouteProvider(router), client);
+
+      integration.setup?.(client);
+    },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 

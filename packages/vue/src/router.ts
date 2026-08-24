@@ -8,8 +8,9 @@ import {
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
-import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
+import type { RouteProvider, Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
+  createUrlRouteProvider,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -47,6 +48,45 @@ interface VueRouter {
   // Vue Router 3 exposes a `mode` property ('hash' | 'history' | 'abstract').
   // Vue Router 4+ replaced it with `options.history`. Used for version detection.
   mode?: string;
+  // Vue Router 3 resolves to `{ route }`, Vue Router 4+ returns the route itself. Optional because
+  // this interface is hand-rolled across Vue Router 2, 3 and 4+ rather than taken from the library.
+  resolve?: (to: string) => Route | { route: Route };
+}
+
+/**
+ * Builds a route provider backed by the Vue router's own matcher.
+ */
+export function createVueRouteProvider(router: VueRouter): RouteProvider {
+  return createUrlRouteProvider(url => {
+    const resolved = router.resolve?.(`${url.pathname}${url.search}${url.hash}`);
+    if (!resolved) {
+      return undefined;
+    }
+
+    const route = 'matched' in resolved ? resolved : resolved.route;
+
+    // Always the matched path, never `route.name`, even under `routeLabel: 'name'`. Callers set
+    // `url.template` from this and a route name is not a template. The navigation instrumentation
+    // still names the span after the route name when the user asked for it.
+    return route.matched[route.matched.length - 1]?.path;
+  });
+}
+
+/**
+ * The label for a matched route and where it came from, or `undefined` when nothing matched and only
+ * the raw path is left.
+ */
+function getRouteLabel(
+  route: Route,
+  routeLabel: 'name' | 'path',
+): { name: string; source: TransactionSource } | undefined {
+  if (route.name && routeLabel !== 'path') {
+    return { name: route.name.toString(), source: 'custom' };
+  }
+
+  const matchedPath = route.matched[route.matched.length - 1]?.path;
+
+  return matchedPath ? { name: matchedPath, source: 'route' } : undefined;
 }
 
 /**
@@ -96,17 +136,9 @@ export function instrumentVueRouter(
     }
 
     // Determine a name for the routing transaction and where that name came from
-    let spanName: string = to.path;
-    let transactionSource: TransactionSource = 'url';
-    if (to.name && options.routeLabel !== 'path') {
-      spanName = to.name.toString();
-      transactionSource = 'custom';
-    } else if (to.matched.length > 0) {
-      const lastIndex = to.matched.length - 1;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      spanName = to.matched[lastIndex]!.path;
-      transactionSource = 'route';
-    }
+    const routeLabel = getRouteLabel(to, options.routeLabel);
+    const spanName = routeLabel?.name ?? to.path;
+    const transactionSource: TransactionSource = routeLabel?.source ?? 'url';
 
     if (transactionSource === 'route') {
       attributes[URL_TEMPLATE] = spanName;
