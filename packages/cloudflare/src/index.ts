@@ -121,7 +121,6 @@ export { getDefaultIntegrations } from './sdk';
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -135,6 +134,7 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
+export { vercelAIIntegration } from '@sentry/server-utils/orchestrion';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 

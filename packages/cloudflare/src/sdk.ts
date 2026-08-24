@@ -4,10 +4,6 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 
 /**
  * Get the default integrations for the Cloudflare SDK.
- *
- * This is the full set and requires the `nodejs_compat` compatibility flag. Runtimes that cannot
- * enable it (e.g. Shopify Oxygen) go through `wrapRequestHandler`, which only sets up
- * `getBaseDefaultIntegrations`.
  */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   return getBaseDefaultIntegrations(options);
