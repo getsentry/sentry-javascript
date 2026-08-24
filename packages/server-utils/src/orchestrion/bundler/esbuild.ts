@@ -1,5 +1,7 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/esbuild';
 import type { Plugin } from 'esbuild';
+
+export type { Plugin as EsbuildPlugin } from 'esbuild';
 import { escapeStringForRegex } from '@sentry/core';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';

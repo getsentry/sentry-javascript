@@ -2,7 +2,7 @@ import { sentryRollupPlugin as sentryRollupBundlerPlugin } from '@sentry/bundler
 import type { SentryRollupPluginOptions as SentryRollupPluginOptionsBase } from '@sentry/bundler-plugins/rollup';
 import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
-import type { Plugin as RollupPlugin } from 'rollup';
+import type { RollupPlugin } from '@sentry/server-utils/orchestrion/rollup';
 
 export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
   /**

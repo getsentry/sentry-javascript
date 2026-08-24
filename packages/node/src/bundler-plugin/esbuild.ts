@@ -2,7 +2,7 @@ import { sentryEsbuildPlugin as sentryEsbuildBundlerPlugin } from '@sentry/bundl
 import type { SentryEsbuildPluginOptions as SentryEsbuildPluginOptionsBase } from '@sentry/bundler-plugins/esbuild';
 import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/esbuild';
-import type { Plugin as EsbuildPlugin } from 'esbuild';
+import type { EsbuildPlugin } from '@sentry/server-utils/orchestrion/esbuild';
 
 export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
   /**

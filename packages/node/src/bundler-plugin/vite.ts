@@ -2,7 +2,7 @@ import { sentryVitePlugin as sentryViteBundlerPlugin } from '@sentry/bundler-plu
 import type { SentryVitePluginOptions as SentryVitePluginOptionsBase } from '@sentry/bundler-plugins/vite';
 import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
-import type { Plugin as VitePlugin } from 'vite';
+import type { VitePlugin } from '@sentry/server-utils/orchestrion/vite';
 
 export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
   /**
