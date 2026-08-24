@@ -119,10 +119,6 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'url',
     },
-    'sentry.segment.name.source': {
-      type: 'string',
-      value: 'url',
-    },
     'server.address': {
       type: 'string',
       value: expect.any(String),
