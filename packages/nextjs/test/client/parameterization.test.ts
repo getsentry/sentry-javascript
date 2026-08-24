@@ -643,6 +643,30 @@ describe('maybeParameterizeRoute', () => {
       // Catch-all should be used when no more specific routes match
       expect(maybeParameterizeRoute('/some/random/path')).toBe('/:catchall*');
     });
+
+    it('should prefer a longer route over a shorter catch-all that also matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/:notFound*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['locale', 'notFound'],
+          },
+          {
+            path: '/:locale/guides/:category/:rest*',
+            regex: '^/([^/]+)/guides/([^/]+)/(.+)$',
+            paramNames: ['locale', 'category', 'rest'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/fr/guides/renting/foo')).toBe('/:locale/guides/:category/:rest*');
+
+      // The catch-all still wins where nothing narrower matches
+      expect(maybeParameterizeRoute('/fr/anything/else')).toBe('/:locale/:notFound*');
+    });
   });
 
   describe('i18n routing with optional prefix', () => {
