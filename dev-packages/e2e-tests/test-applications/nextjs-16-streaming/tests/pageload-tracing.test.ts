@@ -17,7 +17,7 @@ test('Server and client pageload spans should share the same trace', async ({ pa
   expect(pageloadSpan.trace_id).toBeTruthy();
   expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
   expect(pageloadSpan.attributes).toMatchObject({
-    ['sentry.segment.name.source']: 'url',
-    ['url.pathname']: '/pageload-tracing',
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.pathname']: { value: '/pageload-tracing', type: 'string' },
   });
 });

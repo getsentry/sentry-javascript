@@ -81,8 +81,8 @@ test('Prerendered shell does not stitch the pageload onto a stale trace', async 
   const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
   expect(pageloadSpan.attributes).toMatchObject({
-    ['sentry.segment.name.source']: 'url',
-    ['url.pathname']: '/pageload-tracing',
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.pathname']: { value: '/pageload-tracing', type: 'string' },
   });
   // Under Cache Components the can be prerendered and rendered in a context detached from the
   // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The

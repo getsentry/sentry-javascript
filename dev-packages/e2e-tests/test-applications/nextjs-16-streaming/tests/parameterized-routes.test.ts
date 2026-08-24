@@ -29,8 +29,8 @@ test('should create a static streamed span when the `app` directory is used and 
   expect(span.name).toBe('Pageload');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(span.attributes).toMatchObject({
-    ['sentry.segment.name.source']: 'url',
-    ['url.pathname']: '/parameterized/static',
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.pathname']: { value: '/parameterized/static', type: 'string' },
   });
 });
 
