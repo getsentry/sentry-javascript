@@ -10,7 +10,7 @@ import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { startSpanManual } from './tracing/trace';
-import { setSegmentNameSourceIfSegment } from './utils/spanUtils';
+import { INTERNAL_setSegmentNameSourceIfSegment } from './utils/spanUtils';
 import { normalize } from './utils/normalize';
 import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
 
@@ -107,7 +107,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         async span => {
           // The procedure path names the segment only when tRPC is not nested in another span,
           // e.g. an incoming HTTP request span.
-          setSegmentNameSourceIfSegment(span, 'route');
+          INTERNAL_setSegmentNameSourceIfSegment(span, 'route');
 
           try {
             const nextResult = await next();

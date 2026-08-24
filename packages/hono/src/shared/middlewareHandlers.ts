@@ -5,7 +5,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  setSegmentNameSourceIfSegment,
+  INTERNAL_setSegmentNameSourceIfSegment,
   updateSpanName,
   type Scope,
   winterCGRequestToRequestData,
@@ -110,7 +110,7 @@ function updateSpanRouteName(isolationScope: Scope, context: Context): void {
 
     const rootSpan = getRootSpan(activeSpan);
     updateSpanName(rootSpan, routeName);
-    setSegmentNameSourceIfSegment(rootSpan, 'route');
+    INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
     rootSpan.setAttribute(HTTP_ROUTE, route);
   }
 

@@ -494,14 +494,14 @@ export function updateSpanName(span: Span, name: string): void {
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
   });
-  setSegmentNameSourceIfSegment(span, 'custom');
+  INTERNAL_setSegmentNameSourceIfSegment(span, 'custom');
 }
 
 /**
  * Sets `sentry.segment.name.source` only when `span` is the segment span.
  * No-op for child spans — the attribute must exclusively live on the segment.
  */
-export function setSegmentNameSourceIfSegment(span: Span, source: TransactionSource): void {
+export function INTERNAL_setSegmentNameSourceIfSegment(span: Span, source: TransactionSource): void {
   if (spanIsSegment(span)) {
     span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
   }

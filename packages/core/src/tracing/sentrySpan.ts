@@ -35,7 +35,7 @@ import {
   getSpanDescendants,
   getStatusMessage,
   getStreamedSpanLinks,
-  setSegmentNameSourceIfSegment,
+  INTERNAL_setSegmentNameSourceIfSegment,
   spanIsSegment,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
@@ -181,8 +181,7 @@ export class SentrySpan implements Span {
     if (key === SENTRY_SEGMENT_NAME_SOURCE && value !== undefined && !spanIsSegment(this)) {
       DEBUG_BUILD &&
         debug.warn(
-          `[Tracing] Ignoring \`${SENTRY_SEGMENT_NAME_SOURCE}\` on a non-segment span: the attribute is only valid on segment spans. ` +
-            'Set it on the segment span instead, or use `setSegmentNameSourceIfSegment()`.',
+          `[Tracing] Ignoring \`${SENTRY_SEGMENT_NAME_SOURCE}\` on a child span: this attribute is only valid on the root span.`,
         );
       return this;
     }
@@ -237,7 +236,7 @@ export class SentrySpan implements Span {
       return this;
     }
     this._name = name;
-    setSegmentNameSourceIfSegment(this, 'custom');
+    INTERNAL_setSegmentNameSourceIfSegment(this, 'custom');
 
     return this;
   }

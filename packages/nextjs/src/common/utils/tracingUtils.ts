@@ -1,7 +1,7 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
-import { isObjectLike, Scope, setSegmentNameSourceIfSegment } from '@sentry/core';
+import { isObjectLike, Scope, INTERNAL_setSegmentNameSourceIfSegment } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
@@ -114,5 +114,5 @@ export function maybeEnhanceServerComponentSpanName(
   });
   // Usually a child of the request root span, in which case this no-ops and the root keeps the name
   // source it got from `handleOnSpanStart` / `enhanceHandleRequestRootSpan`.
-  setSegmentNameSourceIfSegment(activeSpan, 'route');
+  INTERNAL_setSegmentNameSourceIfSegment(activeSpan, 'route');
 }

@@ -114,7 +114,7 @@ export {
   addChildSpanToSpan,
   spanTimeInputToSeconds,
   updateSpanName,
-  setSegmentNameSourceIfSegment,
+  INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
