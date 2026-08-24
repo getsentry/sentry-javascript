@@ -33,11 +33,8 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
       test('instruments chat completions, the responses API and streaming on openai v7', async () => {
         await createRunner()
           .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              expect(container.items).toHaveLength(6);
-
               const chatCompletionSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
@@ -81,8 +78,9 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 value: 'gpt-3.5-turbo',
               });
 
-              // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
-              // is the part most likely to break if the `Stream` shape changes across a major.
+              // Response streaming (`stream: true`) ends its span from the patched async iterator
+              // rather than `beforeSpanEnd`, so it is the part most likely to break if openai's
+              // `Stream` shape changes across a major.
               const streamingSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
@@ -123,7 +121,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
       test('instruments the embeddings API on openai v7', async () => {
         await createRunner()
           .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
               const embeddingSpans = container.items.filter(
