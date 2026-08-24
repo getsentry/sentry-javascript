@@ -207,7 +207,6 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
 
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params).forEach(([key, value]) => {
-    paramAttributes[`url.path.params.${key}`] = value; // TODO(v11): remove attribute which does not adhere to Sentry's semantic convention
     paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
     paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
