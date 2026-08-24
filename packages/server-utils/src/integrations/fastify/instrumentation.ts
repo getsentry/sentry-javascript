@@ -336,7 +336,9 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     const op =
       hookType === HOOK_TYPE_INSTANCE ? HOOK_OP : hookType === HOOK_TYPE_HANDLER ? REQUEST_HANDLER_OP : undefined;
 
-    const name = op ? stripFastifyPrefix(spanAttributes[ATTRIBUTE_HOOK_NAME]) : `${hookName} - ${handlerName}`;
+    const hookName = spanAttributes[ATTRIBUTE_HOOK_NAME];
+
+    const name = op && typeof hookName === 'string' ? hookName : `${hookName} - ${handlerName}`;
 
     return startSpan(
       {
@@ -351,17 +353,6 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
       () => handler.call(this, ...args),
     );
   };
-}
-
-/**
- * Strip the framework/plugin prefixes from a Fastify `hook.name` to derive a readable span name.
- * This is a bit of a hack and does not always work for all spans, but it's the best we can do without a proper API.
- */
-function stripFastifyPrefix(hookName = ''): string {
-  return hookName
-    .replace(/^fastify -> /, '')
-    .replace(/^@fastify\/otel -> /, '')
-    .replace(/^@sentry\/instrumentation-fastify -> /, '');
 }
 
 let _isInstrumented = false;
