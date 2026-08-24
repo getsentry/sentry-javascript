@@ -7,7 +7,7 @@ test('Server and client pageload spans should share the same trace', async ({ pa
   });
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
-    return span.name === 'Pageload' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/pageload-tracing`);
@@ -17,7 +17,7 @@ test('Server and client pageload spans should share the same trace', async ({ pa
   expect(pageloadSpan.trace_id).toBeTruthy();
   expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
   expect(pageloadSpan.attributes).toMatchObject({
-    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['sentry.segment.name.source']: { value: 'route', type: 'string' },
     ['url.path']: { value: '/pageload-tracing', type: 'string' },
   });
 });
