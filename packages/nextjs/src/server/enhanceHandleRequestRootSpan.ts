@@ -1,4 +1,4 @@
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
+import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, HTTP_TARGET, URL_PATH } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
@@ -41,9 +41,11 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   }
 
   // eslint-disable-next-line typescript/no-deprecated
-  const method = attributes[HTTP_METHOD] ?? attributes[HTTP_REQUEST_METHOD];
+  const method = attributes[HTTP_REQUEST_METHOD] ?? attributes[HTTP_METHOD];
+  // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
+  // still emits the old semantic conventions; the SDK sets `url.path`.
   // eslint-disable-next-line typescript/no-deprecated
-  const target = attributes[HTTP_TARGET];
+  const target = attributes[URL_PATH] ?? attributes[HTTP_TARGET];
   const route = attributes[HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
 

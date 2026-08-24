@@ -243,13 +243,13 @@ describe('_addResourceSpans', () => {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-          ['http.decoded_response_content_length']: entry.decodedBodySize,
-          ['http.response_content_length']: entry.encodedBodySize,
-          ['http.response_transfer_size']: entry.transferSize,
+          ['http.response.body.decoded_size']: entry.decodedBodySize,
+          ['http.response.body.size']: entry.encodedBodySize,
+          ['http.response.size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
-          ['url.same_origin']: true,
+          ['http.request.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '1.1',
@@ -309,7 +309,7 @@ describe('_addResourceSpans', () => {
     const json = spanToJSON(spans[0]!);
     expect(json.name).toBe('https://cdn.example.org/static/logo.png');
     expect(json.attributes['url.full']).toBe('https://cdn.example.org/static/logo.png');
-    expect(json.attributes['url.same_origin']).toBe(false);
+    expect(json.attributes['http.request.same_origin']).toBe(false);
   });
 
   it('creates a variety of resource spans', () => {
@@ -425,13 +425,13 @@ describe('_addResourceSpans', () => {
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-          ['http.decoded_response_content_length']: entry.decodedBodySize,
-          ['http.response_content_length']: entry.encodedBodySize,
-          ['http.response_transfer_size']: entry.transferSize,
+          ['http.response.body.decoded_size']: entry.decodedBodySize,
+          ['http.response.body.size']: entry.encodedBodySize,
+          ['http.response.size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
-          ['url.same_origin']: true,
+          ['http.request.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '2',
@@ -464,7 +464,7 @@ describe('_addResourceSpans', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
-          'url.same_origin': true,
+          'http.request.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
@@ -515,7 +515,7 @@ describe('_addResourceSpans', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
-          'url.same_origin': true,
+          'http.request.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
@@ -748,7 +748,7 @@ describe('_setResourceRequestAttributes', () => {
     });
 
     _setResourceRequestAttributes(entry, attributes, [
-      ['transferSize', 'http.response_transfer_size'],
+      ['transferSize', 'http.response.size'],
       ['deliveryType', 'http.response_delivery_type'],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
       ['responseStatus', 'http.response.status_code'],
@@ -757,7 +757,7 @@ describe('_setResourceRequestAttributes', () => {
     ]);
 
     expect(attributes).toEqual({
-      'http.response_transfer_size': 0,
+      'http.response.size': 0,
       'http.request.redirect_start': 100,
       'http.response.start': 200,
       'http.response.status_code': 200,
@@ -775,10 +775,10 @@ describe('_setResourceRequestAttributes', () => {
       renderBlockingStatus: 'non-blocking',
     });
 
-    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response_transfer_size']]);
+    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response.size']]);
 
     expect(attributes).toEqual({
-      'http.response_transfer_size': 0,
+      'http.response.size': 0,
     });
   });
 
@@ -794,7 +794,7 @@ describe('_setResourceRequestAttributes', () => {
     });
 
     _setResourceRequestAttributes(entry, attributes, [
-      ['transferSize', 'http.response_transfer_size'],
+      ['transferSize', 'http.response.size'],
       ['deliveryType', 'http.response_delivery_type'],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
     ]);

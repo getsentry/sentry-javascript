@@ -115,7 +115,7 @@ test.describe('distributed tracing', () => {
           type: 'fetch',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
         }),
       }),
     );

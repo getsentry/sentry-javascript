@@ -6,8 +6,7 @@ import {
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import type { Span } from '../../../../src/types/span';
 import {
-  HTTP_METHOD,
-  HTTP_TARGET,
+  HTTP_REQUEST_METHOD,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -16,6 +15,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
+  URL_PATH,
 } from '@sentry/conventions/attributes';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
@@ -76,20 +76,15 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.name).toMatch(/^POST /);
   });
 
-  it('includes URL_FULL, HTTP_METHOD, HTTP_TARGET, and server endpoint attributes', () => {
+  it('includes URL_FULL, HTTP_REQUEST_METHOD, URL_PATH, and server endpoint attributes', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
     expect(result.attributes).toMatchObject({
       [URL_FULL]: 'http://example.com/api/test',
-      [HTTP_METHOD]: 'GET',
-      [HTTP_TARGET]: '/api/test',
+      [HTTP_REQUEST_METHOD]: 'GET',
+      [URL_PATH]: '/api/test',
       [SERVER_ADDRESS]: 'example.com',
       [SERVER_PORT]: 80,
     });
-  });
-
-  it('falls back to "/" for http.target when path is not set', () => {
-    const result = getOutgoingRequestSpanData(makeMockRequest({ path: undefined }));
-    expect(result.attributes!['http.target']).toBe('/');
   });
 
   it('includes user_agent.original when user-agent header is set', () => {
@@ -125,15 +120,15 @@ describe('setIncomingResponseSpanData', () => {
   it('sets network.protocol.version and http.flavor from httpVersion', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ httpVersion: '2.0' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'network.protocol.version': '2.0', 'http.flavor': '2.0' }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'network.protocol.version': '2.0' }));
   });
 
-  it('sets http.status_text from statusMessage', () => {
+  it('sets http.response.status_text from statusMessage', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ statusMessage: 'Created' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.status_text': 'CREATED' }));
+    expect(span.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({ 'http.response.status_text': 'CREATED' }),
+    );
   });
 
   it('uses tcp transport for non-QUIC connections', () => {
@@ -164,23 +159,21 @@ describe('setIncomingResponseSpanData', () => {
     );
   });
 
-  it('includes uncompressed content-length when content-encoding is identity', () => {
+  it('includes content-length as the encoded body size when content-encoding is identity', () => {
     const span = makeMockSpan();
     const response = makeMockResponse({
       headers: { 'content-length': '42', 'content-encoding': 'identity' },
     });
     setIncomingResponseSpanData(response, span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'http.response_content_length_uncompressed': 42 }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.size': 42 }));
   });
 
-  it('includes compressed content-length when content-encoding is gzip', () => {
+  it('includes content-length as the encoded body size when content-encoding is gzip', () => {
     const span = makeMockSpan();
     const response = makeMockResponse({
       headers: { 'content-length': '100', 'content-encoding': 'gzip' },
     });
     setIncomingResponseSpanData(response, span);
-    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response_content_length': 100 }));
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.size': 100 }));
   });
 });

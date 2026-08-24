@@ -27,15 +27,11 @@ describe('outgoing http spans - strip query', () => {
             expect(txn.spans?.[0]).toMatchObject({
               data: {
                 'url.full': `${SERVER_URL}/api/v0/users?id=1`,
-                'http.target': '/api/v0/users?id=1',
-                'http.flavor': '1.1',
-                'http.host': expect.stringMatching(/localhost:\d+$/),
-                'http.method': 'GET',
+                'http.request.method': 'GET',
                 'url.query': 'id=1',
                 'http.response.status_code': 200,
-                'http.response_content_length_uncompressed': 0,
-                'http.status_code': 200,
-                'http.status_text': 'OK',
+                'http.response.body.size': 0,
+                'http.response.status_text': 'OK',
                 'network.peer.address': '::1',
                 'server.address': 'localhost',
                 'network.peer.port': expect.any(Number),

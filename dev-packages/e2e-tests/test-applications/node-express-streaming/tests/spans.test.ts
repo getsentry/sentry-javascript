@@ -74,7 +74,7 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
   expect(rootSpan.name).toBe('GET /test-exception/:id');
   expect(getSpanOp(rootSpan)).toBe('http.server');
   expect(rootSpan.status).toBe('error');
-  expect(rootSpan.attributes['http.status_code']?.value).toBe(500);
+  expect(rootSpan.attributes['http.response.status_code']?.value).toBe(500);
 });
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {

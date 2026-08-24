@@ -22,13 +22,10 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'http.response.status_code': 200,
       'url.full': 'http://localhost:3030/test-success',
       'url.path': '/test-success',
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': '/test-success',
-      'http.user_agent': 'node',
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
+      'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -39,8 +36,7 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-success',
       'http.request.header.accept': '*/*',
       'http.request.header.accept_encoding': 'gzip, deflate',
@@ -77,7 +73,7 @@ test('Sends successful transaction', async ({ baseURL }) => {
     {
       data: {
         'hapi.type': 'router',
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'http.route': '/test-success',
         'sentry.op': 'router',
         'sentry.origin': 'auto.http.hapi',
@@ -134,13 +130,13 @@ test('Isolates requests', async ({ baseURL }) => {
   const transaction1Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/888'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/888'
     );
   });
   const transaction2Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/999'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/999'
     );
   });
 

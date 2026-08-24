@@ -9,7 +9,21 @@ import {
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  CODE_FILE_PATH,
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_SAME_ORIGIN,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_CONNECTION_EFFECTIVE_TYPE,
+  NETWORK_CONNECTION_RTT,
+  NETWORK_CONNECTION_TYPE,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_FULL,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
 import { BROWSER_PAINT, UI_LONG_ANIMATION_FRAME, UI_LONG_TASK } from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
@@ -385,24 +399,24 @@ export function _addResourceSpans(
   const parsedUrl = parseUrl(resourceUrl);
 
   if (parsedUrl.protocol) {
-    attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+    attributes[URL_SCHEME] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
   if (parsedUrl.host) {
-    attributes['server.address'] = parsedUrl.host;
+    attributes[SERVER_ADDRESS] = parsedUrl.host;
   }
 
-  attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+  attributes[HTTP_REQUEST_SAME_ORIGIN] = resourceUrl.includes(WINDOW.location.origin);
 
   attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
-    ['responseStatus', 'http.response.status_code'],
+    ['responseStatus', HTTP_RESPONSE_STATUS_CODE],
 
-    ['transferSize', 'http.response_transfer_size'],
-    ['encodedBodySize', 'http.response_content_length'],
-    ['decodedBodySize', 'http.decoded_response_content_length'],
+    ['transferSize', HTTP_RESPONSE_SIZE],
+    ['encodedBodySize', HTTP_RESPONSE_BODY_SIZE],
+    ['decodedBodySize', 'http.response.body.decoded_size'],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/renderBlockingStatus
     ['renderBlockingStatus', 'resource.render_blocking_status'],
@@ -438,18 +452,18 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   if (connection) {
     if (connection.effectiveType) {
       span.setAttribute(
-        spanStreamingEnabled ? 'network.connection.effective_type' : 'effectiveConnectionType',
+        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : 'effectiveConnectionType',
         connection.effectiveType,
       );
     }
 
     if (connection.type) {
-      span.setAttribute(spanStreamingEnabled ? 'network.connection.type' : 'connectionType', connection.type);
+      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : 'connectionType', connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
       if (spanStreamingEnabled) {
-        span.setAttribute('network.connection.rtt', connection.rtt);
+        span.setAttribute(NETWORK_CONNECTION_RTT, connection.rtt);
       } else if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
         // Measurements are only recorded on the pageload span, matching the historical
         // behavior where `connection.rtt` was only flushed for pageload transactions.

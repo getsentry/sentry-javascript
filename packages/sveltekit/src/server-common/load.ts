@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
 } from '@sentry/core';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
@@ -111,7 +111,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
               [CODE_FUNCTION_NAME]: 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-              'http.method': event.request.method,
+              [HTTP_REQUEST_METHOD]: event.request.method,
             },
             name: routeId ? routeId : event.url.pathname,
           },

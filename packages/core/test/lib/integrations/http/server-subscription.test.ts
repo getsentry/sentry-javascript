@@ -12,6 +12,7 @@ import {
   SERVER_PORT,
   URL_FULL,
   URL_PATH,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -117,10 +118,8 @@ describe('getHttpServerSubscriptions', () => {
         op: 'http.server',
         origin: 'auto.http.server',
         data: expect.objectContaining({
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'http.response.status_code': 200,
-          'http.status_code': 200,
-          'http.target': '/users/42?foo=bar',
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
@@ -138,6 +137,7 @@ describe('getHttpServerSubscriptions', () => {
           [NETWORK_PROTOCOL_NAME]: 'http',
           [NETWORK_PROTOCOL_VERSION]: '1.1',
           [NETWORK_TRANSPORT]: 'tcp',
+          [URL_QUERY]: 'foo=bar',
         }),
       }),
     );
@@ -182,24 +182,11 @@ describe('getHttpServerSubscriptions', () => {
     const data = transaction.contexts?.trace?.data;
     expect(data).not.toHaveProperty(CLIENT_ADDRESS);
     expect(data).not.toHaveProperty(NETWORK_PEER_ADDRESS);
-    // the deprecated alias of `client.address` carries the same IP, so it has to be gated too
-    expect(data).not.toHaveProperty('http.client_ip');
   });
 
-  it('reports the forwarded client address on the deprecated `http.client_ip` alias too', async () => {
-    server = http.createServer((_req, res) => res.end('ok'));
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-    instrument(true);
-
-    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7, 198.51.100.1' });
-    const transaction = await waitForTransaction();
-
-    expect(transaction.contexts?.trace?.data).toEqual(expect.objectContaining({ 'http.client_ip': '203.0.113.7' }));
-  });
-
-  // `http.target` is the deprecated alias of `url.full` and carries the same query string, so it has to
-  // respect `dataCollection.urlQueryParams` too.
-  it('filters sensitive query params in `http.target` and `url.full`', async () => {
+  // `url.query` and `url.full` both carry the query string, so both have to respect
+  // `dataCollection.urlQueryParams`.
+  it('filters sensitive query params in `url.query` and `url.full`', async () => {
     server = http.createServer((_req, res) => res.end('ok'));
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
     instrument(true);
@@ -209,7 +196,7 @@ describe('getHttpServerSubscriptions', () => {
 
     expect(transaction.contexts?.trace?.data).toEqual(
       expect.objectContaining({
-        'http.target': '/users/42?token=[Filtered]&foo=bar',
+        [URL_QUERY]: 'token=[Filtered]&foo=bar',
         [URL_FULL]: expect.stringMatching(/\/users\/42\?token=\[Filtered\]&foo=bar$/),
         [URL_PATH]: '/users/42',
       }),

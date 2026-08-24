@@ -608,6 +608,49 @@ If you reference these attributes in custom instrumentation, `beforeSendSpan`, d
 
 The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
 
+#### HTTP attributes
+
+Legacy HTTP span attributes were replaced by their current semantic-convention equivalents:
+
+| v10 attribute                 | v11 attribute               |
+| ----------------------------- | --------------------------- |
+| `http.method`                 | `http.request.method`       |
+| `http.status_code`            | `http.response.status_code` |
+| `http.status_text`            | `http.response.status_text` |
+| `http.scheme`                 | `url.scheme`                |
+| `http.user_agent`             | `user_agent.original`       |
+| `http.host`                   | `server.address`            |
+| `http.flavor`                 | `network.protocol.version`  |
+| `http.client_ip`              | `client.address`            |
+| `http.response_transfer_size` | `http.response.size`        |
+| `url.same_origin`             | `http.request.same_origin`  |
+
+`SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now keys the request method as `http.request.method` instead of `http.method`.
+
+##### Body size attributes
+
+Five body size attributes collapse into three:
+
+| v10 attribute                               | v11 attribute                     |
+| ------------------------------------------- | --------------------------------- |
+| `http.request_content_length`               | `http.request.body.size`          |
+| `http.request_content_length_uncompressed`  | `http.request.body.size`          |
+| `http.response_content_length`              | `http.response.body.size`         |
+| `http.response_content_length_uncompressed` | `http.response.body.size`         |
+| `http.decoded_response_content_length`      | `http.response.body.decoded_size` |
+
+Each `_uncompressed` attribute maps to the same v11 attribute as its counterpart. In v10 the SDK read a single value — the `content-length` header — and then reported it under one of the two names depending on whether the request or response carried a `content-encoding` header. Neither name was set on every span, so querying either one saw only part of your traffic.
+
+`content-length` is the encoded (on-the-wire) size whether or not a content encoding is applied, so it now always maps to `http.request.body.size` and `http.response.body.size`. Query those for body sizes on HTTP spans.
+
+`http.response.body.decoded_size` is the size after content decoding. It cannot be derived from `content-length`, so only browser resource spans report it, where the Resource Timing API measures it directly. Node HTTP spans no longer report a decoded body size.
+
+##### `http.target`
+
+The `http.target` span attribute is no longer set. It held the pathname and the query string, which are now on `url.path` and `url.query`. Server spans in `@sentry/core` set `url.query` and `url.fragment` for this, which previously only the `@sentry/node` server spans did.
+
+If you match on `http.target` in `ignoreSpans`, `beforeSendSpan`, dashboards, or alerts, match on `url.path` instead — and on `url.query` wherever you matched against the query string.
+
 #### Network attributes
 
 Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:

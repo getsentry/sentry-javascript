@@ -14,7 +14,7 @@ describe('hapi auto-instrumentation', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'http.route': '/',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'hapi.type': 'router',
           'sentry.origin': origin,
           'sentry.op': 'router',

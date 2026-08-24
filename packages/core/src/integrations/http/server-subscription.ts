@@ -25,9 +25,14 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
-import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
+import {
+  getContentLengthFromHeaders,
+  headersToDict,
+  httpHeadersToSpanAttributes,
+  httpRequestToRequestData,
+} from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
-import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
+import { getUrlFragment, getUrlQuery, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
@@ -39,11 +44,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -51,13 +57,18 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
-  SENTRY_KIND,
+  URL_QUERY,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
-import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
+import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -291,8 +302,8 @@ function buildServerSpanWrap(
       const name = `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
       const httpVersion = request.httpVersion;
+      const ips = headers['x-forwarded-for'];
       const host = headers.host as undefined | string;
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
@@ -321,24 +332,20 @@ function buildServerSpanWrap(
             [CLIENT_PORT]: remotePort,
             [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
             [NETWORK_PEER_PORT]: remotePort,
-            'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-            // Old Semantic Conventions attributes for compatibility
+            [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-            'http.method': method,
-            'http.target': filterCollectedUrl(
-              urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-              client,
-            ),
-            'http.host': host,
+            // The query and fragment used to only reach the span folded into the deprecated
+            // `http.target`; they get their own attributes now, matching the node server spans.
+            [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(urlObj?.search), client),
+            [URL_FRAGMENT]: getUrlFragment(urlObj?.hash),
+            [HTTP_REQUEST_METHOD]: method,
             [NETWORK_PROTOCOL_NAME]: 'http',
             [NETWORK_PROTOCOL_VERSION]: httpVersion,
-            'http.client_ip': collectClientAddress ? getForwardedClientAddress(ips) : undefined,
-            'http.user_agent': userAgent,
-            'http.scheme': scheme,
-            'http.flavor': httpVersion,
+            [USER_AGENT_ORIGINAL]: userAgent,
+            [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-            ...getRequestContentLengthAttribute(request),
+            'http.request.body.size': getContentLengthFromHeaders(request.headers),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
@@ -356,9 +363,8 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.status_text': response.statusMessage?.toUpperCase(),
-              'http.response.status_code': response.statusCode,
-              'http.status_code': response.statusCode,
+              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
@@ -442,16 +448,4 @@ export function isStaticAssetRequest(urlPath: string): boolean {
 function isKnownPrefetchRequest(req: HttpIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
   return req.headers['next-router-prefetch'] === '1';
-}
-
-function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const { headers } = request;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { 'http.request_content_length': length }
-      : { 'http.request_content_length_uncompressed': length }
-    : {};
 }

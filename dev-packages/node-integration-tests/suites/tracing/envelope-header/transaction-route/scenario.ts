@@ -15,7 +15,7 @@ Sentry.startSpan(
   {
     name: 'GET /route',
     attributes: {
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.route': '/route',
       [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
       [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',

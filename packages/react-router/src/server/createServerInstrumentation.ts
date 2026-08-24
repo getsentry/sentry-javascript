@@ -82,7 +82,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: pathname,
                 });
               }
@@ -109,7 +109,7 @@ export function createSentryServerInstrumentation(
                   if (result.status === 'error' && result.error instanceof Error) {
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                     captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                      'http.method': info.request.method,
+                      [HTTP_REQUEST_METHOD]: info.request.method,
                       [URL_FULL]: pathname,
                     });
                   }
@@ -149,7 +149,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.loader', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
@@ -177,7 +177,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.action', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
@@ -225,7 +225,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
