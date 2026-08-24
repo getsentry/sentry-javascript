@@ -38,7 +38,6 @@ import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRo
 import { handleFastifyError } from './errors';
 
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
-const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
 const ORIGIN = 'auto.http.fastify';
 const HOOK_OP = MIDDLEWARE;
@@ -80,14 +79,6 @@ function getRequestRouteUrl(request: any): string | undefined {
 }
 
 /**
- * Read the per-route config off a request. Fastify >=4 exposes it on `request.routeOptions.config`,
- * while v3 uses `request.routeConfig`. Used to honor the `{ config: { otel: false } }` opt-out.
- */
-function getRequestRouteConfig(request: any): { otel?: boolean } | undefined {
-  return request.routeOptions?.config ?? request.routeConfig;
-}
-
-/**
  * Detect whether one of a wrapped handler's arguments is the Fastify request. We can't rely on a
  * single property since the route metadata moved from `routerPath` (v3) to `routeOptions` (>=4),
  * so we accept either shape.
@@ -97,10 +88,15 @@ function isFastifyRequest(arg: any): boolean {
 }
 
 /**
- * The Fastify plugin that wires up the request/hook/handler spans. It is registered on every Fastify
- * instance via the `fastify.initialization` diagnostics channel.
+ * Wire up the request/hook/handler spans and error handling on a Fastify instance.
+ *
+ * This runs synchronously from the `fastify.initialization` diagnostics channel, which fires while
+ * `Fastify()` is still constructing the instance, before any user code runs. Doing it synchronously
+ * (rather than via `instance.register()`, which defers the work until the boot phase) is what lets us
+ * patch `addHook`/`setNotFoundHandler` in time: `addHook` runs immediately, so hooks a user adds
+ * synchronously before `listen()`/`ready()` would otherwise slip through un-instrumented.
  */
-function fastifyTracingPlugin(this: unknown, instance: FastifyInstance, _opts: unknown, done: () => void): void {
+function instrumentFastifyInstance(instance: FastifyInstance): void {
   // oxlint-disable-next-line typescript/unbound-method
   instance.decorate(kAddHookOriginal, instance.addHook);
   instance.decorate(kSetNotFoundOriginal, instance.setNotFoundHandler);
@@ -112,27 +108,18 @@ function fastifyTracingPlugin(this: unknown, instance: FastifyInstance, _opts: u
   instance.addHook('onRoute', onRoute);
   instance.addHook('onRequest', startRequestSpanHook);
   instance.addHook('onResponse', finalizeNotFoundSpanHook);
-  instance.addHook('onError', handleFastifyError);
+  // Must be an async hook: a sync (callback-style) `onError` hook would have to invoke Fastify's
+  // `done` callback, and Fastify's argument order is `(request, reply, error)`.
+  instance.addHook('onError', async (request, reply, error) => {
+    handleFastifyError(request, reply, error);
+  });
 
+  // Patch last, so the hooks we add above go through the original (un-wrapped) `addHook`.
   instance.addHook = addHookPatched;
   instance.setNotFoundHandler = setNotFoundHandlerPatched;
-
-  done();
 }
 
-const pluginSymbols = fastifyTracingPlugin as unknown as Record<symbol, unknown>;
-pluginSymbols[Symbol.for('skip-override')] = true;
-pluginSymbols[Symbol.for('fastify.display-name')] = PACKAGE_NAME;
-pluginSymbols[Symbol.for('plugin-meta')] = {
-  fastify: SUPPORTED_VERSIONS,
-  name: PACKAGE_NAME,
-};
-
 function onRoute(this: any, routeOptions: any): void {
-  if (routeOptions.config?.otel === false) {
-    return;
-  }
-
   for (const hook of FASTIFY_HOOKS) {
     const handlerLike = routeOptions[hook];
 
@@ -182,10 +169,6 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
   const method = request.method || 'GET';
 
   getIsolationScope().setTransactionName(`${method} ${routeName}`);
-
-  if (getRequestRouteConfig(request)?.otel === false) {
-    return hookDone();
-  }
 
   const attributes: Record<string, string> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
@@ -342,7 +325,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
   return function handlerWrapped(this: any, ...args: any[]) {
     const request = getRequestFromArgs(args);
 
-    if (request === null || getRequestRouteConfig(request)?.otel === false) {
+    if (!request) {
       return handler.call(this, ...args);
     }
 
@@ -385,7 +368,7 @@ let _isInstrumented = false;
 
 /**
  * Set up the Fastify (>= 3.21.0 < 6) instrumentation by subscribing to the `fastify.initialization`
- * diagnostics channel and registering the span-creating & error handler plugin on every Fastify instance.
+ * diagnostics channel and synchronously instrumenting every Fastify instance as it is created.
  */
 export const instrumentFastify = Object.assign(
   function instrumentFastify(): void {
@@ -397,7 +380,9 @@ export const instrumentFastify = Object.assign(
     diagnosticsChannel.subscribe('fastify.initialization', message => {
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
-      fastifyInstance?.register(fastifyTracingPlugin);
+      if (fastifyInstance) {
+        instrumentFastifyInstance(fastifyInstance);
+      }
     });
   },
   { id: 'Fastify.v5' },
