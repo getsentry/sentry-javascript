@@ -756,9 +756,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     // invocation state (and eager sends would have no `waitUntil` to attach to).
     const foreignStep: WorkflowStep = {
       ...mockStep,
-      do: vi.fn().mockImplementation(async (_name: string, callback: (...args: unknown[]) => Promise<unknown>) =>
-        withIsolationScope(getDefaultIsolationScope(), () => callback(MOCK_STEP_CTX)),
-      ),
+      do: vi
+        .fn()
+        .mockImplementation(async (_name: string, callback: (...args: unknown[]) => Promise<unknown>) =>
+          withIsolationScope(getDefaultIsolationScope(), () => callback(MOCK_STEP_CTX)),
+        ),
     };
     let tagInsideStep: unknown;
     let hasInvocationStateInsideStep = false;
