@@ -24,7 +24,7 @@ import {
   wrapTransportOnMessage,
   wrapTransportSend,
 } from '../../../../src/integrations/mcp-server/transport';
-import * as tracingModule from '../../../../src/tracing';
+import * as tracingModule from '../../../../src/tracing/trace';
 import {
   createMockClient,
   createMockMcpServer,

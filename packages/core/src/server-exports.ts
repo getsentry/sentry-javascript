@@ -4,6 +4,10 @@
  * @module
  */
 
+export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
+export { startIdleSpan } from './tracing/idleSpan';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
+
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export type { ServerRuntimeOptions } from './types/options';
