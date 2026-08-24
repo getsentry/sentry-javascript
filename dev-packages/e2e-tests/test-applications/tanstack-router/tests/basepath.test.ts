@@ -24,10 +24,10 @@ test.describe('router basepath', () => {
     // match already set, so the stale `a`/`b`/`c` params survive on the span. Keys are passed as
     // arrays because `toHaveProperty` would otherwise read the dots as a nested lookup.
     const traceData = rootSpan.contexts?.trace?.data;
-    expect(traceData).not.toHaveProperty(['url.path.params.a']);
-    expect(traceData).not.toHaveProperty(['url.path.params.b']);
-    expect(traceData).not.toHaveProperty(['url.path.params.c']);
-    expect(traceData).toHaveProperty(['url.path.params.postId'], '456');
+    expect(traceData).not.toHaveProperty(['url.path.parameter.a']);
+    expect(traceData).not.toHaveProperty(['url.path.parameter.b']);
+    expect(traceData).not.toHaveProperty(['url.path.parameter.c']);
+    expect(traceData).toHaveProperty(['url.path.parameter.postId'], '456');
     expect(traceData).toHaveProperty(['url.template'], '/posts/$postId');
   });
 
