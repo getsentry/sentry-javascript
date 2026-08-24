@@ -391,12 +391,15 @@ export function _addResourceSpans(
     attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
-  if (parsedUrl.host) {
-    attributes['server.address'] = parsedUrl.host;
+  // `host` is the URL authority, so it can carry userinfo, which doesn't belong on either attribute.
+  const host = parsedUrl.host?.replace(/^.*@/, '');
+
+  if (host) {
+    attributes['server.address'] = host;
   }
 
-  // `host` carries the port, which `url.domain` doesn't.
-  const domain = parsedUrl.host?.replace(/:\d+$/, '');
+  // Unlike `server.address`, `url.domain` excludes the port.
+  const domain = host?.replace(/:\d+$/, '');
 
   if (domain) {
     attributes[URL_DOMAIN] = domain;

@@ -576,9 +576,10 @@ describe('_addResourceSpans', () => {
 
   describe('with span streaming enabled', () => {
     it.each([
-      ['https://example.com/assets/to/css', 'example.com'],
-      ['https://cdn.example.org:8443/static/logo.png', 'cdn.example.org'],
-    ])('names the span after the resource domain (%s)', (url, expectedName) => {
+      ['https://example.com/assets/to/css', 'example.com', 'example.com'],
+      ['https://cdn.example.org:8443/static/logo.png', 'cdn.example.org', 'cdn.example.org:8443'],
+      ['https://user:pass@example.com:8443/static/logo.png', 'example.com', 'example.com:8443'],
+    ])('names the span after the resource domain (%s)', (url, expectedName, expectedAddress) => {
       const spans: Span[] = [];
 
       getClient()?.on('spanEnd', span => {
@@ -593,7 +594,10 @@ describe('_addResourceSpans', () => {
       expect(spanToJSON(spans[0]!)).toEqual(
         expect.objectContaining({
           name: expectedName,
-          attributes: expect.objectContaining({ 'url.domain': expectedName }),
+          attributes: expect.objectContaining({
+            'url.domain': expectedName,
+            'server.address': expectedAddress,
+          }),
         }),
       );
     });
