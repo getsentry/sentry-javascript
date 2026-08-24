@@ -6,7 +6,6 @@ import {
   defineIntegration,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
@@ -20,6 +19,7 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
@@ -502,7 +502,7 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
     attributes: {
       [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
       [SENTRY_KIND]: 'consumer',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
       [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
       [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,

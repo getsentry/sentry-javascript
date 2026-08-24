@@ -1,4 +1,4 @@
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import type { PropagationContext } from '@sentry/core';
 import {
@@ -6,7 +6,6 @@ import {
   flush,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
   withIsolationScope,
   withScope,
@@ -134,7 +133,7 @@ class WrappedWorkflowStep implements WorkflowStep {
             'cloudflare.workflow.retries.limit': config?.retries?.limit,
             'cloudflare.workflow.attempt': attempt,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           },
         },
         async span => {

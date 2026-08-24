@@ -2,6 +2,7 @@
 import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_CLIENT_IP,
   HTTP_FLAVOR,
   HTTP_HOST,
@@ -46,7 +47,6 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
@@ -165,7 +165,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: filterCollectedUrl(fullUrl, client),

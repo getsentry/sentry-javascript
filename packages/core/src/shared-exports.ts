@@ -10,6 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
+export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
@@ -112,6 +113,7 @@ export {
   addChildSpanToSpan,
   spanTimeInputToSeconds,
   updateSpanName,
+  setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';

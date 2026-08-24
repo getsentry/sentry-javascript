@@ -97,7 +97,6 @@ export {
   setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   Scope,
@@ -209,6 +208,7 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
+export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

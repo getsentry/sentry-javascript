@@ -10,10 +10,9 @@ import {
   hasSpanStreamingEnabled,
   PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * Returns the value of a meta-tag
@@ -49,7 +48,7 @@ export function browserTracingIntegration(
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
             startTime: origin ? origin / 1000 : undefined,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+              [SENTRY_SEGMENT_NAME_SOURCE]: source,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',
               ...(source === 'route' && { [URL_TEMPLATE]: name }),
             },

@@ -30,7 +30,6 @@ import {
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
@@ -52,7 +51,7 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -387,7 +386,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'custom';
     }
 
     finalStartSpanOptions.attributes = attributes;
@@ -403,7 +402,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     }
 
     latestRoute.name = finalStartSpanOptions.name;
-    latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    latestRoute.source = attributes[SENTRY_SEGMENT_NAME_SOURCE];
 
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
@@ -644,7 +643,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
             startTime: origin ? origin / 1000 : undefined,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
@@ -677,7 +676,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               {
                 name: parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
@@ -833,7 +832,7 @@ function registerInteractionListener(
         name: latestRoute.name,
         op,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: latestRoute.source || 'url',
         },
       },
       {

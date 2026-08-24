@@ -1,10 +1,5 @@
 import type { Client, Span } from '@sentry/core';
-import {
-  hasSpanStreamingEnabled,
-  PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -12,7 +7,7 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
@@ -44,7 +39,7 @@ function _instrumentPageLoad(client: Client): void {
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     },
   });
 
@@ -57,7 +52,7 @@ function _instrumentPageLoad(client: Client): void {
   onPageRouteChange(routeId => {
     if (routeId) {
       pageLoadSpan.updateName(routeId);
-      pageLoadSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
+      pageLoadSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
       getCurrentScope().setTransactionName(routeId);
     }
   });
@@ -103,7 +98,7 @@ function _instrumentNavigations(client: Client): void {
         op: 'navigation',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
           ...(parameterizedRouteDestination && { [URL_TEMPLATE]: parameterizedRouteDestination }),
           ...navigationInfo,
         },

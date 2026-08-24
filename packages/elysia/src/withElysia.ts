@@ -1,4 +1,4 @@
-import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
@@ -10,7 +10,6 @@ import {
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startInactiveSpan,
   startSpanManual,
@@ -66,7 +65,7 @@ function updateRouteTransactionName(request: Request, method: string, route: str
   function applyRouteToSpan(span: Span): void {
     updateSpanName(span, transactionName);
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [HTTP_ROUTE]: route,
     });
   }
@@ -207,7 +206,7 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
                   name: `${request.method} ${new URL(request.url).pathname}`,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [URL_FULL]: filterCollectedUrl(request.url),
                     [URL_PATH]: new URL(request.url).pathname,
                   },
