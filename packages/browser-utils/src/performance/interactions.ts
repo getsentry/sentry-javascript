@@ -16,8 +16,8 @@ import {
   getComponentName,
   getRootSpan,
   spanToJSON,
-  startIdleSpan,
 } from '@sentry/core';
+import { startIdleSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
