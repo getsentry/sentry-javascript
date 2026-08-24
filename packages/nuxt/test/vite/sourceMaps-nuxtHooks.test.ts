@@ -1,7 +1,25 @@
 import type { Nuxt } from '@nuxt/schema';
 import type { Plugin, UserConfig } from 'vite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SourceMapSetting } from '../../src/vite/sourceMaps';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setupSourceMaps, type SourceMapSetting } from '../../src/vite/sourceMaps';
+
+const { mockSentryVitePlugin, mockSentryRollupPlugin, mockDeleteArtifacts, mockCreateSentryBuildPluginManager } =
+  vi.hoisted(() => {
+    const deleteArtifacts = vi.fn().mockResolvedValue(undefined);
+
+    return {
+      mockSentryVitePlugin: vi.fn(() => [{ name: 'sentry-vite-plugin' }]),
+      mockSentryRollupPlugin: vi.fn(() => ({ name: 'sentry-rollup-plugin' })),
+      mockDeleteArtifacts: deleteArtifacts,
+      mockCreateSentryBuildPluginManager: vi.fn(() => ({ deleteArtifacts })),
+    };
+  });
+
+vi.mock('@sentry/bundler-plugins/core', () => ({
+  createSentryBuildPluginManager: mockCreateSentryBuildPluginManager,
+}));
+vi.mock('@sentry/bundler-plugins/vite', () => ({ sentryVitePlugin: mockSentryVitePlugin }));
+vi.mock('@sentry/bundler-plugins/rollup', () => ({ sentryRollupPlugin: mockSentryRollupPlugin }));
 
 function createMockAddVitePlugin() {
   let capturedPlugins: Plugin[] | null = null;
@@ -54,32 +72,12 @@ describe('setupSourceMaps hooks', () => {
     '.*/**/function/**/*.map',
   ];
 
-  const mockSentryVitePlugin = vi.fn(() => [{ name: 'sentry-vite-plugin' }]);
-  const mockSentryRollupPlugin = vi.fn(() => ({ name: 'sentry-rollup-plugin' }));
-  const mockDeleteArtifacts = vi.fn().mockResolvedValue(undefined);
-  const mockCreateSentryBuildPluginManager = vi.fn(() => ({ deleteArtifacts: mockDeleteArtifacts }));
-
   const consoleLogSpy = vi.spyOn(console, 'log');
   const consoleWarnSpy = vi.spyOn(console, 'warn');
-
-  beforeAll(() => {
-    vi.doMock('@sentry/bundler-plugins/core', () => ({
-      createSentryBuildPluginManager: mockCreateSentryBuildPluginManager,
-    }));
-    vi.doMock('@sentry/bundler-plugins/vite', () => ({
-      sentryVitePlugin: mockSentryVitePlugin,
-    }));
-    vi.doMock('@sentry/bundler-plugins/rollup', () => ({
-      sentryRollupPlugin: mockSentryRollupPlugin,
-    }));
-  });
 
   afterAll(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
-    vi.doUnmock('@sentry/bundler-plugins/core');
-    vi.doUnmock('@sentry/bundler-plugins/vite');
-    vi.doUnmock('@sentry/bundler-plugins/rollup');
   });
 
   beforeEach(() => {
@@ -95,7 +93,6 @@ describe('setupSourceMaps hooks', () => {
     // `getPluginOptions` runs once per bundler (Vite and Nitro's Rollup), so warning there emitted
     // the same message twice. This pins it to exactly one.
     it('warns exactly once, even though both bundler plugins are set up', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({});
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -114,7 +111,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('does not warn for a config without removed options', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({});
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -126,7 +122,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('vite plugin registration', () => {
     it('calls `addVitePlugin` when setupSourceMaps is called', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
 
@@ -147,7 +142,6 @@ describe('setupSourceMaps hooks', () => {
         nuxtOptions: { dev: true },
       },
     ])('does not add plugins to vite config in $label', async ({ nuxtOptions }) => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -158,7 +152,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('does not add plugins when source maps are disabled via `sourcemaps.disable`', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({});
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -172,7 +165,6 @@ describe('setupSourceMaps hooks', () => {
       { label: 'server (SSR) build', buildConfig: { build: { ssr: true }, plugins: [] } },
       { label: 'client build', buildConfig: { build: { ssr: false }, plugins: [] } },
     ])('adds sentry vite plugin to vite config for $label in production', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin, getCapturedPlugins } = createMockAddVitePlugin();
 
@@ -187,7 +179,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('sentry vite plugin calls', () => {
     it('calls sentryVitePlugin in production mode', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -200,7 +191,6 @@ describe('setupSourceMaps hooks', () => {
       { label: 'prepare mode', nuxtOptions: { _prepare: true }, viteMode: 'production' as const },
       { label: 'dev mode', nuxtOptions: { dev: true }, viteMode: 'development' as const },
     ])('does not call sentryVitePlugin in $label', async ({ nuxtOptions }) => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -212,7 +202,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('shouldDeleteFilesFallback passed to getPluginOptions in Vite plugin', () => {
     it('does not pass fallback deletion patterns to the Vite plugin', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -247,7 +236,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('sentryRollupPlugin is called without filesToDeleteAfterUpload when source maps are explicitly enabled', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -271,7 +259,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('close hook', () => {
     it('deletes source maps after the build using fallback patterns', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -293,7 +280,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('uses user-provided deletion patterns after the build', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -316,7 +302,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('does not create a manager when deletion is not configured', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -336,7 +321,6 @@ describe('setupSourceMaps hooks', () => {
       { label: 'prepare mode', nuxtOptions: { _prepare: true, dev: false } },
       { label: 'dev mode', nuxtOptions: { _prepare: false, dev: true } },
     ])('does not delete source maps in $label', async ({ nuxtOptions }) => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -353,7 +337,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('nitro:config hook', () => {
     it('adds sentryRollupPlugin to nitro rollup config in production mode', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -375,7 +358,6 @@ describe('setupSourceMaps hooks', () => {
       },
       { label: 'dev mode', nuxtOptions: { dev: true }, nitroConfig: { rollupConfig: { plugins: [] }, dev: true } },
     ])('does not add sentryRollupPlugin to nitro rollup config in $label', async ({ nuxtOptions, nitroConfig }) => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
@@ -389,7 +371,6 @@ describe('setupSourceMaps hooks', () => {
 
   describe('debug logging', () => {
     it('logs a [Sentry] message in production mode', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
 
@@ -413,7 +394,6 @@ describe('setupSourceMaps hooks', () => {
     });
 
     it('does not log a [Sentry] messages in prepare mode', async () => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: true });
       const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
 
