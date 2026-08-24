@@ -1,0 +1,44 @@
+{
+  "name": "nuxt-4-sourcemaps",
+  "description": "E2E test app asserting what the Nuxt SDK uploads to Sentry and what it leaves behind in `.output`.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & nuxt ${NUXT_COMMAND:-build} > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
+    "clean": "npx nuxi cleanup",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts",
+    "test:build:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:build",
+    "test:assert:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:assert",
+    "test:build:static": "NUXT_COMMAND=generate pnpm test:build",
+    "test:assert:static": "NUXT_COMMAND=generate pnpm test:assert"
+  },
+  "dependencies": {
+    "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "nuxt": "^4.1.2"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^18.19.1",
+    "ts-node": "10.9.1",
+    "typescript": "~5.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.20.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:keep-client-sourcemaps",
+        "assert-command": "pnpm test:assert:keep-client-sourcemaps",
+        "label": "nuxt-4-sourcemaps (client source maps kept)"
+      },
+      {
+        "build-command": "pnpm test:build:static",
+        "assert-command": "pnpm test:assert:static",
+        "label": "nuxt-4-sourcemaps (static / nuxt generate)"
+      }
+    ]
+  }
+}
