@@ -13,13 +13,17 @@ export const SPAN_NAME_VALIDATE = 'graphql.validate';
 export const SPAN_NAME_EXECUTE = 'graphql.execute';
 export const SPAN_NAME_RESOLVE = 'graphql.resolve';
 
-// Span names used when span streaming is enabled, mirroring the same block in the native subscriber.
-// The conventions name graphql spans `GraphQL {graphql.operation.type}`, and these phases are being
-// added to that attribute's values, so a parse, validate or resolve span keeps a name of its own
-// rather than taking the generic `GRAPHQL_SPAN_NAME_FALLBACK`.
-export const STREAMED_SPAN_NAME_PARSE = 'GraphQL parse';
-export const STREAMED_SPAN_NAME_VALIDATE = 'GraphQL validate';
-export const STREAMED_SPAN_NAME_RESOLVE = 'GraphQL resolve';
+// Which part of request processing a span covers. Low-cardinality span names cannot carry the phase,
+// so consumers read it here instead. Inlined until `@sentry/conventions` ships it
+// (https://github.com/getsentry/sentry-conventions/pull/572).
+export const GRAPHQL_PROCESSING_TYPE = 'graphql.processing.type';
+
+export const PROCESSING_TYPE_PARSE = 'parse';
+export const PROCESSING_TYPE_VALIDATE = 'validate';
+// graphql-js `subscribe()` runs a subscription operation, so it is an execute too; the operation
+// itself is told apart by `graphql.operation.type`.
+export const PROCESSING_TYPE_EXECUTE = 'execute';
+export const PROCESSING_TYPE_RESOLVE = 'resolve';
 
 // Field-level resolver-span attributes; not in `@sentry/conventions`.
 export const GRAPHQL_FIELD_NAME = 'graphql.field.name';

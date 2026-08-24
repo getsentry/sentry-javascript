@@ -4,8 +4,14 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/r
 
 type StreamedSpan = SerializedStreamedSpanContainer['items'][number];
 
+// Scoped to the `Test Transaction` segment: creating the server parses the schema's typeDefs, which
+// emits a parse span under `Test Server Start`.
 function graphqlSpans(container: SerializedStreamedSpanContainer): StreamedSpan[] {
-  return container.items.filter(item => item.attributes['sentry.op']?.value === 'graphql');
+  return container.items.filter(
+    item =>
+      item.attributes['sentry.op']?.value === 'graphql' &&
+      item.attributes['sentry.segment.name']?.value === 'Test Transaction',
+  );
 }
 
 describe('GraphQL/Apollo Tests > span streaming', () => {
@@ -27,16 +33,38 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
             // reach the span name.
             const resolveSpans = spans.filter(span => span.attributes['graphql.field.path']);
             expect(resolveSpans.map(span => span.attributes['graphql.field.path']?.value)).toEqual(['hello', 'login']);
-            expect(resolveSpans.map(span => span.name)).toEqual(['GraphQL resolve', 'GraphQL resolve']);
 
-            // Parse and validate spans have no operation type, so they are named after the phase.
-            const otherSpans = spans.filter(span => !executeSpans.includes(span) && !resolveSpans.includes(span));
-            expect(otherSpans.length).toBeGreaterThan(0);
-            expect(otherSpans.every(span => ['GraphQL parse', 'GraphQL validate'].includes(span.name))).toBe(true);
+            // Parse, validate and resolve spans have no operation type to name them after.
+            const fallbackSpans = spans.filter(span => !executeSpans.includes(span));
+            expect(fallbackSpans.every(span => span.name === 'GraphQL Operation')).toBe(true);
 
             expect(spans.some(span => span.name.includes('GetHello') || span.name.includes('TestMutation'))).toBe(
               false,
             );
+          },
+        })
+        .start()
+        .completed();
+    });
+
+    test('marks every graphql span with its processing type', async () => {
+      await createTestRunner()
+        .expect({
+          span: container => {
+            const processingTypes = graphqlSpans(container).map(
+              span => span.attributes['graphql.processing.type']?.value,
+            );
+
+            expect(processingTypes.sort()).toEqual([
+              'execute',
+              'execute',
+              'parse',
+              'parse',
+              'resolve',
+              'resolve',
+              'validate',
+              'validate',
+            ]);
           },
         })
         .start()

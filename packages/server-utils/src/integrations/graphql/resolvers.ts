@@ -10,6 +10,7 @@ import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
+  GRAPHQL_SPAN_NAME_FALLBACK,
   hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -25,9 +26,10 @@ import {
   GRAPHQL_FIELD_TYPE,
   GRAPHQL_PARENT_NAME,
   GRAPHQL_PATCHED_SYMBOL,
+  GRAPHQL_PROCESSING_TYPE,
   ORIGIN,
+  PROCESSING_TYPE_RESOLVE,
   SPAN_NAME_RESOLVE,
-  STREAMED_SPAN_NAME_RESOLVE,
 } from './constants';
 import type {
   DefinitionNode,
@@ -183,6 +185,7 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+    [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_RESOLVE,
     [GRAPHQL_FIELD_NAME]: info.fieldName,
     [GRAPHQL_FIELD_PATH]: path.join('.'),
     [GRAPHQL_FIELD_TYPE]: info.returnType.toString(),
@@ -194,7 +197,7 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
   return startInactiveSpan({
     // The field path is unbounded, so with span streaming it stays on `graphql.field.path` only.
     name:
-      client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_RESOLVE : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
+      client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
     attributes,
     parentSpan,
   });

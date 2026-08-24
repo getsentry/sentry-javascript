@@ -622,14 +622,16 @@ If you [opt out of span streaming](#opting-out-of-span-streaming), span names re
 
 The following span names were adjusted:
 
-| Span op    | Before                                                                                                                      | After                                                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                                              |
-| `graphql`  | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type or the phase (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`), or `GraphQL Operation` where the SDK has neither |
+| Span op    | Before                                                                                                                      | After                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                 |
+| `graphql`  | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | `GraphQL <operation type>` (`GraphQL query`), or `GraphQL Operation` for parse, validate and resolve spans |
 
 Some consequences to be aware of:
 
 The graphql operation name and the resolver field path are supplied by the client, so they are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
+
+Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart. The attribute is set in both trace lifecycles.
 
 For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute.
 

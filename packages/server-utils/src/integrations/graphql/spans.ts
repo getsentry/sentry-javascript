@@ -21,12 +21,14 @@ import type { GraphqlDocumentNode } from './types';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 import {
   GRAPHQL_DATA_SYMBOL,
+  GRAPHQL_PROCESSING_TYPE,
   ORIGIN,
+  PROCESSING_TYPE_EXECUTE,
+  PROCESSING_TYPE_PARSE,
+  PROCESSING_TYPE_VALIDATE,
   SPAN_NAME_EXECUTE,
   SPAN_NAME_PARSE,
   SPAN_NAME_VALIDATE,
-  STREAMED_SPAN_NAME_PARSE,
-  STREAMED_SPAN_NAME_VALIDATE,
 } from './constants';
 import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
@@ -47,8 +49,10 @@ export function startParseSpan(): Span {
   const client = getClient();
 
   return startInactiveSpan({
-    name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_PARSE : SPAN_NAME_PARSE,
-    attributes: { ...BASE_ATTRIBUTES },
+    // No operation type is available here, so with span streaming the span takes the static fallback
+    // and `graphql.processing.type` is what tells it apart from the other phases.
+    name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
+    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE },
   });
 }
 
@@ -57,8 +61,12 @@ export function startValidateSpan(documentAST: unknown): Span {
   const client = getClient();
 
   return startInactiveSpan({
-    name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_VALIDATE : SPAN_NAME_VALIDATE,
-    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode) },
+    name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_VALIDATE,
+    attributes: {
+      ...BASE_ATTRIBUTES,
+      [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_VALIDATE,
+      [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode),
+    },
   });
 }
 
@@ -180,6 +188,7 @@ export function startExecuteSpan(
         : getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
     attributes: {
       ...BASE_ATTRIBUTES,
+      [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_EXECUTE,
       [GRAPHQL_OPERATION_TYPE]: operationType,
       [GRAPHQL_OPERATION_NAME]: operationName || undefined,
       [GRAPHQL_DOCUMENT]: collectGraphqlDocument(document),

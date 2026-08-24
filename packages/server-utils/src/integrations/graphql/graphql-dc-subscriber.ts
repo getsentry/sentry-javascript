@@ -31,13 +31,17 @@ const SPAN_NAME_EXECUTE = 'graphql.execute';
 const SPAN_NAME_SUBSCRIBE = 'graphql.subscribe';
 const SPAN_NAME_RESOLVE = 'graphql.resolve';
 
-// Span names used when span streaming is enabled. The conventions name graphql spans
-// `GraphQL {graphql.operation.type}`, and these phases are being added to that attribute's values, so
-// a parse, validate or resolve span keeps a name of its own rather than taking the generic
-// `GRAPHQL_SPAN_NAME_FALLBACK`.
-const STREAMED_SPAN_NAME_PARSE = 'GraphQL parse';
-const STREAMED_SPAN_NAME_VALIDATE = 'GraphQL validate';
-const STREAMED_SPAN_NAME_RESOLVE = 'GraphQL resolve';
+// Which part of request processing a span covers. Low-cardinality span names cannot carry the phase,
+// so consumers read it here instead. Inlined until `@sentry/conventions` ships it
+// (https://github.com/getsentry/sentry-conventions/pull/572).
+const GRAPHQL_PROCESSING_TYPE = 'graphql.processing.type';
+
+const PROCESSING_TYPE_PARSE = 'parse';
+const PROCESSING_TYPE_VALIDATE = 'validate';
+// graphql-js `subscribe()` runs a subscription operation, so it is an execute too; the operation
+// itself is told apart by `graphql.operation.type`.
+const PROCESSING_TYPE_EXECUTE = 'execute';
+const PROCESSING_TYPE_RESOLVE = 'resolve';
 
 // Field-level attributes for resolver spans. Not in `@sentry/conventions`; these match the keys the
 // vendored OTel instrumentation emits so there is no drift between the two paths.
@@ -163,10 +167,13 @@ function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
     const client = getClient();
 
     return startInactiveSpan({
-      name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_PARSE : SPAN_NAME_PARSE,
+      // No operation type is available here, so with span streaming the span takes the static
+      // fallback and `graphql.processing.type` is what tells it apart from the other phases.
+      name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+        [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE,
       },
     });
   });
@@ -179,10 +186,11 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
       const client = getClient();
 
       return startInactiveSpan({
-        name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_VALIDATE : SPAN_NAME_VALIDATE,
+        name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_VALIDATE,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+          [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_VALIDATE,
           [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
         },
       });
@@ -220,6 +228,7 @@ function setupOperationChannel(
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+          [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_EXECUTE,
           [GRAPHQL_OPERATION_TYPE]: data.operationType,
           [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
           [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
@@ -257,11 +266,12 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
       // The field path is unbounded, so with span streaming it stays on `graphql.field.path` only.
       name:
         client && hasSpanStreamingEnabled(client)
-          ? STREAMED_SPAN_NAME_RESOLVE
+          ? GRAPHQL_SPAN_NAME_FALLBACK
           : `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+        [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_RESOLVE,
         [GRAPHQL_FIELD_NAME]: data.fieldName,
         [GRAPHQL_FIELD_PATH]: data.fieldPath,
         [GRAPHQL_FIELD_TYPE]: data.fieldType,

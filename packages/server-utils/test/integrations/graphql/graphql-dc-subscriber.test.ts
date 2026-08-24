@@ -105,7 +105,11 @@ function installTestAsyncContextStrategy(): void {
 async function traceOperation(
   channelName: string,
   data: Record<string, unknown>,
-): Promise<{ spanName: string | undefined; enclosingSpanName: string | undefined }> {
+): Promise<{
+  spanName: string | undefined;
+  processingType: unknown;
+  enclosingSpanName: string | undefined;
+}> {
   const channel = tracingChannel(channelName);
   let span: Span | undefined;
   let enclosingSpanName: string | undefined;
@@ -117,7 +121,13 @@ async function traceOperation(
     enclosingSpanName = spanToJSON(enclosing).name;
   });
 
-  return { spanName: span && spanToJSON(span).name, enclosingSpanName };
+  const spanJson = span && spanToJSON(span);
+
+  return {
+    spanName: spanJson?.name,
+    processingType: spanJson?.attributes['graphql.processing.type'],
+    enclosingSpanName,
+  };
 }
 
 const factory = tracingChannel as GraphqlTracingChannelFactory;
@@ -144,25 +154,17 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
 
   describe('with span streaming', () => {
     it.each([
-      [GRAPHQL_DC_CHANNEL_PARSE, {}, 'GraphQL parse'],
-      [GRAPHQL_DC_CHANNEL_VALIDATE, {}, 'GraphQL validate'],
+      [GRAPHQL_DC_CHANNEL_PARSE, {}],
+      [GRAPHQL_DC_CHANNEL_VALIDATE, {}],
       [
         GRAPHQL_DC_CHANNEL_RESOLVE,
         { fieldName: 'name', parentType: 'User', fieldType: 'String', fieldPath: 'user.0.name' },
-        'GraphQL resolve',
       ],
-    ])('names the %s span after the phase, dropping the field path', async (channel, data, expected) => {
+      [GRAPHQL_DC_CHANNEL_EXECUTE, { operationName: 'GetUser' }],
+    ])('names the %s span with the static fallback when no operation type is available', async (channel, data) => {
       initTestClient('stream');
 
       const { spanName } = await traceOperation(channel, data);
-
-      expect(spanName).toBe(expected);
-    });
-
-    it('names an operation span with the static fallback when no operation type is available', async () => {
-      initTestClient('stream');
-
-      const { spanName } = await traceOperation(GRAPHQL_DC_CHANNEL_EXECUTE, { operationName: 'GetUser' });
 
       expect(spanName).toBe('GraphQL Operation');
     });
@@ -188,6 +190,28 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
       });
 
       expect(enclosingSpanName).toBe('GET /graphql');
+    });
+  });
+
+  describe.each(['stream', 'static'] as const)('graphql.processing.type (%s)', traceLifecycle => {
+    it.each([
+      [GRAPHQL_DC_CHANNEL_PARSE, {}, 'parse'],
+      [GRAPHQL_DC_CHANNEL_VALIDATE, {}, 'validate'],
+      [GRAPHQL_DC_CHANNEL_EXECUTE, { operationType: 'query' }, 'execute'],
+      // graphql-js `subscribe()` runs an operation, so it is an execute; `graphql.operation.type`
+      // is what marks it as a subscription.
+      [GRAPHQL_DC_CHANNEL_SUBSCRIBE, { operationType: 'subscription' }, 'execute'],
+      [
+        GRAPHQL_DC_CHANNEL_RESOLVE,
+        { fieldName: 'name', parentType: 'User', fieldType: 'String', fieldPath: 'user.0.name' },
+        'resolve',
+      ],
+    ])('marks the %s span', async (channel, data, expected) => {
+      initTestClient(traceLifecycle);
+
+      const { processingType } = await traceOperation(channel, data);
+
+      expect(processingType).toBe(expected);
     });
   });
 
