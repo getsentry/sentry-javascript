@@ -10,7 +10,6 @@ import type {
 } from '@sentry/core/browser';
 import {
   addNonEnumerableProperty,
-  browserPerformanceTimeOrigin,
   consoleSandbox,
   dateTimestampInSeconds,
   debug,
@@ -37,6 +36,7 @@ import {
   startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
+  browserPerformanceTimeOrigin,
 } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
@@ -636,13 +636,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
-          const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
             // With span streaming, span names have to be low cardinality, and there is no route
             // information available here.
             name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
-            // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: origin ? origin / 1000 : undefined,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -720,12 +717,23 @@ export function startBrowserTracingPageLoadSpan(
   spanOptions: StartSpanOptions,
   traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
 ): Span | undefined {
-  client.emit('startPageLoadSpan', spanOptions, traceOptions);
-
   // `Pageload` is a low-cardinality span name, not a description of the page. The scope's
   // transaction name is what error events are grouped by, so it keeps the URL instead.
   const isFallbackSpanName = spanOptions.name === PAGELOAD_SPAN_NAME_FALLBACK;
   getCurrentScope().setTransactionName(isFallbackSpanName ? WINDOW.location?.pathname : spanOptions.name);
+  // A pageload span always covers the entire page load, no matter how late the SDK or a routing
+  // instrumentation gets around to starting it. Everything that happened before (DNS, TLS, TTFB,
+  // HTML parsing, chunk loading) is part of the page load and the performance child spans we attach
+  // later are anchored at the time origin anyway.
+  const timeOrigin = browserPerformanceTimeOrigin();
+  const pageloadSpanOptions: StartSpanOptions = {
+    ...spanOptions,
+    // startTime needs to be in seconds, not ms
+    startTime: spanOptions.startTime ?? (timeOrigin ? timeOrigin / 1000 : undefined),
+  };
+
+  client.emit('startPageLoadSpan', pageloadSpanOptions, traceOptions);
+  getCurrentScope().setTransactionName(pageloadSpanOptions.name);
 
   const pageloadSpan = getActiveIdleSpan(client);
 
