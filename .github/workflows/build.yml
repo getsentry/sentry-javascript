@@ -544,7 +544,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
@@ -934,7 +934,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: 'v2.8.3'
       - name: Restore caches
@@ -1044,7 +1044,7 @@ jobs:
           matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
           'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql' ||
           matrix.test-application == 'deno-pg'
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
@@ -1167,7 +1167,7 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Deno
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
