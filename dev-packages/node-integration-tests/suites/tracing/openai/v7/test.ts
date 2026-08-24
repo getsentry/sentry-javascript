@@ -33,8 +33,11 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
       test('instruments chat completions, the responses API and streaming on openai v7', async () => {
         await createRunner()
           .ignore('event')
+          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              expect(container.items).toHaveLength(6);
+
               const chatCompletionSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
@@ -78,9 +81,8 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 value: 'gpt-3.5-turbo',
               });
 
-              // Response streaming (`stream: true`) ends its span from the patched async iterator
-              // rather than `beforeSpanEnd`, so it is the part most likely to break if openai's
-              // `Stream` shape changes across a major.
+              // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
+              // is the part most likely to break if the `Stream` shape changes across a major.
               const streamingSpan = container.items.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
@@ -121,6 +123,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
       test('instruments the embeddings API on openai v7', async () => {
         await createRunner()
           .ignore('event')
+          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
               const embeddingSpans = container.items.filter(
@@ -148,6 +151,48 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               const errorEmbeddingSpan = embeddingSpans.find(span => span.name === 'embeddings error-model');
               expect(errorEmbeddingSpan).toBeDefined();
               expect(errorEmbeddingSpan!.status).not.toBe('ok');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        openai: '7.5.0',
+      },
+    },
+  );
+  // Span streaming is the default trace lifecycle, so cover it too. The span buffer flushes on a 5s
+  // timer per trace, which splits this scenario's spans across envelopes under CI load, and the
+  // runner asserts against one envelope at a time — so this only asserts on the first call's span,
+  // which is always in the first flush. The exhaustive assertions above stay on the static lifecycle,
+  // where every span arrives in a single envelope.
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-chat.mjs',
+    'instrument-span-streaming.mjs',
+    (createRunner, test) => {
+      test('instruments chat completions on openai v7 with span streaming enabled', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            span: container => {
+              const chatCompletionSpan = container.items.find(
+                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              );
+              expect(chatCompletionSpan).toBeDefined();
+              expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
+              expect(chatCompletionSpan!.status).toBe('ok');
+              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+                type: 'string',
+                value: 'gen_ai.chat',
+              });
+              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+                type: 'string',
+                value: 'auto.ai.openai',
+              });
+              expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
             },
           })
           .start()
