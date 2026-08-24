@@ -316,7 +316,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           "import { MyAgent } from './agent';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(() => undefined, MyAgent);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, () => undefined, MyAgent);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );
@@ -333,7 +333,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './agent';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(() => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, () => undefined, __SENTRY_REEXPORT_MyAgent__);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );
@@ -353,7 +353,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './do';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentDurableObjectWithSentry(() => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, () => undefined, __SENTRY_REEXPORT_MyAgent__);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );

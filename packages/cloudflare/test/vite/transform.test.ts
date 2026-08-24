@@ -216,7 +216,7 @@ describe('Durable Object class wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { MyDurableObject } from './do';",
-        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), MyDurableObject);',
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), MyDurableObject);',
         'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
       ].join('\n'),
     );
@@ -231,7 +231,7 @@ describe('Durable Object class wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
-        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
         'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
       ].join('\n'),
     );
@@ -246,7 +246,7 @@ describe('Durable Object class wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { Internal as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
-        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
         'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
       ].join('\n'),
     );
@@ -260,7 +260,7 @@ describe('Durable Object class wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import __SENTRY_REEXPORT_MyDurableObject__ from './do';",
-        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
         'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
       ].join('\n'),
     );
@@ -274,7 +274,7 @@ describe('Durable Object class wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
-        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
         'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
         "export { Helper, other as Other } from './do';",
       ].join('\n'),
@@ -304,7 +304,7 @@ describe('Durable Object class wrapping', () => {
         'const LocalDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_LocalDO__);',
         '',
         'const unrelated = 1;',
-        'const __SENTRY_WRAPPED_ImportedDO__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), ImportedDO);',
+        'const __SENTRY_WRAPPED_ImportedDO__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), ImportedDO);',
         'export { __SENTRY_WRAPPED_ImportedDO__ as ImportedDO };',
         'export { LocalDO, unrelated };',
       ].join('\n'),
@@ -407,7 +407,7 @@ describe('Workflow class wrapping', () => {
     const result = transform(code, ctx)!;
     expect(result.code).toContain("import { MyWorkflow as __SENTRY_REEXPORT_MyWorkflow__ } from './workflow';");
     expect(result.code).toContain(
-      'const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__.instrumentWorkflowWithSentry((env) => ({}), __SENTRY_REEXPORT_MyWorkflow__);',
+      'const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentWorkflowWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyWorkflow__);',
     );
     expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
     expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
@@ -551,7 +551,7 @@ describe('WorkerEntrypoint class wrapping (config fallback)', () => {
     const result = transform(code, ctx)!;
     expect(result.code).toContain("import { AdminEntry as __SENTRY_REEXPORT_AdminEntry__ } from './admin';");
     expect(result.code).toContain(
-      'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_REEXPORT_AdminEntry__);',
+      'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_AdminEntry__);',
     );
     expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
   });

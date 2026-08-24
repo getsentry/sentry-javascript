@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import MagicString from 'magic-string';
 import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './wranglerConfig';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
@@ -534,7 +535,11 @@ function wrapCrossModuleSpecifier(
 
   const wrappedName = `__SENTRY_WRAPPED_${exportedName}__`;
 
-  prelude.push(`const ${wrappedName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${ctx.optionsFn}, ${target});`);
+  // The class may already be hand-wrapped in its own module, which this transform cannot see. The
+  // emitted guard returns such a class as-is instead of nesting a second wrapper around it.
+  prelude.push(
+    `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${ctx.optionsFn}, ${target});`,
+  );
   state.wrappedClasses.add(exportedName);
   state.autoWrapped.add(exportedName);
   state.needsImport = true;

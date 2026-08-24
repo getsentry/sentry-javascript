@@ -111,6 +111,7 @@ export { instrumentPostgresJsSql, trpcMiddleware, wrapMcpServerWithSentry } from
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';

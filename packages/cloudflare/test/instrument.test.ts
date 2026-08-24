@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getInstrumented, markAsInstrumented } from '../src/instrument';
+import { _INTERNAL_wrapUnlessInstrumented, getInstrumented, markAsInstrumented } from '../src/instrument';
 
 // Clean up the global WeakMap between tests to avoid cross-test pollution
 const GLOBAL_KEY = '__SENTRY_INSTRUMENTED_MAP__' as const;
@@ -191,6 +191,34 @@ describe('instrument', () => {
       // if getInstrumented returns something, use it; otherwise create new proxy
       const existing = getInstrumented(proxy);
       expect(existing).toBe(proxy);
+    });
+  });
+
+  // The guard the Vite auto-instrumentation emits around classes it cannot prove unwrapped at
+  // build time: a hand-wrapped class (marked by its wrapper) passes through untouched, anything
+  // else is wrapped. Only original-marked-as-itself counts, an original that merely *has* a
+  // wrapped counterpart must still be wrapped, wrapping the same base twice on purpose is valid.
+  describe('_INTERNAL_wrapUnlessInstrumented', () => {
+    const wrap = (_cb: unknown, cls: object): object => new Proxy(cls, {});
+
+    it('returns an already-instrumented class unchanged without calling the wrapper', () => {
+      const HandWrapped = class {};
+      markAsInstrumented(HandWrapped);
+
+      expect(_INTERNAL_wrapUnlessInstrumented(wrap, () => ({}), HandWrapped)).toBe(HandWrapped);
+    });
+
+    it('wraps a plain class', () => {
+      const Plain = class {};
+
+      expect(_INTERNAL_wrapUnlessInstrumented(wrap, () => ({}), Plain)).not.toBe(Plain);
+    });
+
+    it('wraps an original that only has an instrumented counterpart', () => {
+      const Original = class {};
+      markAsInstrumented(Original, class {});
+
+      expect(_INTERNAL_wrapUnlessInstrumented(wrap, () => ({}), Original)).not.toBe(Original);
     });
   });
 });

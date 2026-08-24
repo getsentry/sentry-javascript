@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from '../src';
-import { getInstrumented } from '../src/instrument';
+import { _INTERNAL_wrapUnlessInstrumented, getInstrumented } from '../src/instrument';
 import { resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectWithSentry', () => {
@@ -688,5 +688,15 @@ describe('instrumentDurableObjectWithSentry', () => {
 
     // Verify that exactly one flush call was made during this test
     expect(delta).toBe(1);
+  });
+
+  // The wrappers mark what they return, so the guard the Vite auto-instrumentation emits can
+  // recognize a hand-wrapped class and hand it back instead of nesting a second wrapper.
+  it('marks returned classes so auto-instrumentation does not wrap them again', () => {
+    const optionsCallback = vi.fn().mockReturnValue({});
+    for (const wrap of [instrumentDurableObjectWithSentry, instrumentAgentWithSentry]) {
+      const HandWrapped = wrap(optionsCallback, class {} as any);
+      expect(_INTERNAL_wrapUnlessInstrumented(wrap as any, optionsCallback, HandWrapped)).toBe(HandWrapped);
+    }
   });
 });
