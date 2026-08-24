@@ -10,6 +10,5 @@ export * from './browser-exports';
 // `server-exports` and `browser-exports` both export these APIs.
 // We need to re-export them here to disambiguate the exports for anyone importing
 // from `@sentry/core`. Server exports win over browser exports.
-export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
-export { startIdleSpan } from './tracing/idleSpan';
-export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { startSpan, startInactiveSpan, startSpanManual } from './server-exports';
+export { spanStreamingIntegration } from './server-exports';

@@ -5,7 +5,6 @@ import { spanStreamingIntegration as browserSpanStreamingIntegration } from '../
 import { spanStreamingIntegration as plainSpanStreamingIntegration } from '../src/integrations/spanStreaming';
 import * as serverEntry from '../src/server';
 import * as browserSpanApi from '../src/tracing/browserSpanApi';
-import { startIdleSpan as plainStartIdleSpan } from '../src/tracing/idleSpan';
 import {
   startInactiveSpan as plainStartInactiveSpan,
   startSpan as plainStartSpan,
@@ -21,7 +20,6 @@ describe('entry point resolution', () => {
     ['startSpan', plainStartSpan, browserSpanApi.startSpan],
     ['startInactiveSpan', plainStartInactiveSpan, browserSpanApi.startInactiveSpan],
     ['startSpanManual', plainStartSpanManual, browserSpanApi.startSpanManual],
-    ['startIdleSpan', plainStartIdleSpan, browserSpanApi.startIdleSpan],
     ['spanStreamingIntegration', plainSpanStreamingIntegration, browserSpanStreamingIntegration],
   ] as const;
 
