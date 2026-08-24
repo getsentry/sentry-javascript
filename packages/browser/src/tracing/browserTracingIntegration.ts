@@ -733,7 +733,6 @@ export function startBrowserTracingPageLoadSpan(
   };
 
   client.emit('startPageLoadSpan', pageloadSpanOptions, traceOptions);
-  getCurrentScope().setTransactionName(pageloadSpanOptions.name);
 
   const pageloadSpan = getActiveIdleSpan(client);
 
