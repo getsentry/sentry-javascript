@@ -18,12 +18,14 @@ import {
 import { NAVIGATION } from '@sentry/conventions/op';
 import type { Client, Integration, Span } from '@sentry/core';
 import {
+  createCachedRouteProvider,
   getClient,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
+  setRouteProvider,
 } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
@@ -39,6 +41,11 @@ import { createEffect, mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+
+// Solid Router only exposes matches through `useCurrentMatches()` inside a component, so there is no
+// matcher the integration could call. The provider answers from patterns the router root has already
+// reported instead.
+const ROUTE_PROVIDER = createCachedRouteProvider();
 
 function locationToSpanUrlAttributes(pathname: string, search: string = '', hash: string = ''): Record<string, string> {
   const pathWithSearch = `${pathname}${search}${hash}`;
@@ -134,6 +141,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
 
       if (lastMatch) {
         const parametrizedRoute = lastMatch.route.pattern || name;
+        ROUTE_PROVIDER.record(name, lastMatch.route.pattern);
         rootSpan.updateName(parametrizedRoute);
         rootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -181,6 +189,10 @@ export function solidRouterBrowserTracingIntegration(
 
   return {
     ...integration,
+    setup(client) {
+      setRouteProvider(ROUTE_PROVIDER, client);
+      integration.setup?.(client);
+    },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
