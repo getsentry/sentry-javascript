@@ -4,6 +4,7 @@ import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plu
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -86,7 +87,7 @@ export function setupSourceMaps(
       [
         validateSourceMapsOptionsPlugin({ nuxt, moduleOptions, sourceMapsEnabled }),
         // Vite plugin is added on the client and server side (plugin runs for both builds)
-        ...sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+        ...sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       ],
       { dev: false, build: true }, // Only add source map plugin during build
     );
@@ -113,8 +114,14 @@ export function setupSourceMaps(
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+        sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       );
+    }
+  });
+
+  nuxt.hook('close', async () => {
+    if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
+      await deleteSourceMapsAfterBuild(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
 }

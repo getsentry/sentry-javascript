@@ -55,6 +55,7 @@
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "10.70.0",
+    "@sentry/bundler-plugin-core": "^5.3.0",
     "@sentry/cloudflare": "10.70.0",
     "@sentry/core": "10.70.0",
     "@sentry/node": "10.70.0",
