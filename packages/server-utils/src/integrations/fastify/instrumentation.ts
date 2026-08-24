@@ -37,8 +37,6 @@ import type { FastifyInstance } from './types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 import { handleFastifyError } from './errors';
 
-const PACKAGE_NAME = '@sentry/instrumentation-fastify';
-
 const ORIGIN = 'auto.http.fastify';
 const HOOK_OP = MIDDLEWARE;
 // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
@@ -57,7 +55,6 @@ const FASTIFY_HOOKS = [
 const ATTRIBUTE_HOOK_NAME = 'hook.name' as const;
 const ATTRIBUTE_FASTIFY_TYPE = 'fastify.type' as const;
 const ATTRIBUTE_HOOK_CALLBACK_NAME = 'hook.callback.name' as const;
-const ATTRIBUTE_FASTIFY_ROOT = 'fastify.root' as const;
 
 const HOOK_TYPE_ROUTE = 'route-hook' as const;
 const HOOK_TYPE_INSTANCE = 'hook' as const;
@@ -106,10 +103,10 @@ function instrumentFastifyInstance(instance: FastifyInstance): void {
   instance.decorateRequest(kRequestSpan, null);
 
   instance.addHook('onRoute', onRoute);
-  instance.addHook('onRequest', startRequestSpanHook);
-  instance.addHook('onResponse', finalizeNotFoundSpanHook);
+  instance.addHook('onRequest', onRequest);
+  instance.addHook('onResponse', onResponse);
   // Must be an async hook: a sync (callback-style) `onError` hook would have to invoke Fastify's
-  // `done` callback, and Fastify's argument order is `(request, reply, error)`.
+  // `done` callback
   instance.addHook('onError', async (request, reply, error) => {
     handleFastifyError(request, reply, error);
   });
@@ -164,7 +161,7 @@ function appendRouteHook(existing: AnyFn | AnyFn[] | undefined, hook: AnyFn): An
   return Array.isArray(existing) ? [...existing, hook] : [existing, hook];
 }
 
-function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: () => void): void {
+function onRequest(this: any, request: any, _reply: any, hookDone: () => void): void {
   const routeName = getRequestRouteUrl(request);
   const method = request.method || 'GET';
 
@@ -173,7 +170,6 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
   const attributes: Record<string, string> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     [SENTRY_OP]: REQUEST_HANDLER_OP,
-    [ATTRIBUTE_FASTIFY_ROOT]: PACKAGE_NAME,
     [HTTP_REQUEST_METHOD]: request.method,
     [URL_PATH]: request.url,
   };
@@ -199,7 +195,7 @@ function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: ()
   });
 }
 
-function finalizeNotFoundSpanHook(request: any, reply: any, hookDone: () => void): void {
+function onResponse(request: any, reply: any, hookDone: () => void): void {
   const span = request[kRequestSpan] as Span | null;
 
   if (span != null) {

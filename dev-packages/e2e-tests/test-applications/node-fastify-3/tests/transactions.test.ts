@@ -71,13 +71,10 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
 
   const spans = transactionEvent.spans || [];
 
-  /* TODO(v11): Uncomment this. This only works on fastify v3.21.0, not worth it to test this here */
-  /*
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.fastify',
       'sentry.op': 'handler',
-      'fastify.root': '@sentry/instrumentation-fastify',
       'http.request.method': 'GET',
       'url.path': '/test-transaction',
       'http.route': '/test-transaction',
@@ -93,7 +90,6 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.fastify',
   });
-  */
 
   expect(spans).toContainEqual({
     data: expect.objectContaining({
