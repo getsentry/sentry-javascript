@@ -527,7 +527,7 @@ request, such as `'myApi.com'` or `/^myApi\.com/`, could therefore never match a
 
 ```js
 Sentry.init({
-  // In v10 neither of these matched a request to `https://myApi.com`. In v11 both do.
+  // In a browser, neither of these matched a request to `https://myApi.com` in v10. In v11 both do.
   tracePropagationTargets: ['myApi.com', /^https:\/\/myApi\.com/],
 });
 ```
