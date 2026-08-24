@@ -1,0 +1,31 @@
+{
+  "name": "nitro-3-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "preview": "wrangler dev --port 3030 --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "latest || *",
+    "@sentry/nitro": "latest || *"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
+    "nitro": "^3.0.260522-beta",
+    "rolldown": "latest",
+    "vite": "latest",
+    "wrangler": "^4.72.0"
+  },
+  "volta": {
+    "node": "22.20.0",
+    "extends": "../../package.json"
+  }
+}
