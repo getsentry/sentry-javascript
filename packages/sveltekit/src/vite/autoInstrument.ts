@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
+import type { BackwardsForwardsCompatibleKitConfig, BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
 
 const AcornParser = acorn.Parser.extend(tsPlugin());
 
@@ -132,9 +132,18 @@ function isNativeServerTracingEnabled(plugins: readonly Plugin[] | undefined): b
   }
 
   for (const plugin of plugins) {
-    const options = (plugin?.api as { options?: BackwardsForwardsCompatibleSvelteConfig } | undefined)?.options;
-    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
-    if (options?.kit?.tracing?.server || options?.kit?.experimental?.tracing?.server) {
+    const options = (
+      plugin?.api as
+        | { options?: BackwardsForwardsCompatibleSvelteConfig & BackwardsForwardsCompatibleKitConfig }
+        | undefined
+    )?.options;
+
+    // SvelteKit 3 flattened the plugin config: what used to live under `kit` now sits
+    // at the top level of the exposed options.
+    const kitConfig = options?.kit ?? options;
+
+    // SvelteKit 3 promoted `tracing` out of `experimental`; older versions nest it there.
+    if (kitConfig?.tracing?.server || kitConfig?.experimental?.tracing?.server) {
       return true;
     }
   }

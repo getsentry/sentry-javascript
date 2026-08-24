@@ -55,5 +55,5 @@ test('errors and transactions get a unique traceId per request, when tracing is 
     expect(traceId).toMatch(/^[a-f\d]{32}$/);
   }
 
-  expect(eventTraceIds).toEqual(transactionTraceIds);
+  expect(eventTraceIds.sort()).toEqual(transactionTraceIds.sort());
 });

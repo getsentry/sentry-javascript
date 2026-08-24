@@ -1,4 +1,4 @@
-import { knexIntegration } from '@sentry/server-utils/orchestrion';
+import { knexIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `knex` queries under Deno. Not a default; add it to

@@ -5,31 +5,31 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tr
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export {
   amqplibIntegration,
-  anthropicIntegration as anthropicAIIntegration,
+  anthropicAIIntegration,
   dataloaderIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration as graphqlIntegration,
+  graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration as kafkaIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration as mongoIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
-  openaiIntegration as openAIIntegration,
+  openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  redisIntegration,
   tediousIntegration,
-  vercelAiIntegration as vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
-export { redisIntegration } from './integrations/tracing/redis';
+  vercelAIIntegration,
+} from '@sentry/server-utils';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -202,6 +202,7 @@ export { pinoIntegration } from './integrations/pino';
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { createSentryWinstonTransport } from './integrations/winston';
+export { workerThreadsIntegration } from './integrations/workerThreads';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';

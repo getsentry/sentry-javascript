@@ -10,7 +10,7 @@ import {
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import {
@@ -140,10 +140,10 @@ export function startTrackingLongAnimationFrames(): void {
       attributes['browser.script.invoker'] = invoker;
       attributes['browser.script.invoker_type'] = invokerType;
       if (sourceURL) {
-        attributes['code.filepath'] = sourceURL;
+        attributes[CODE_FILE_PATH] = sourceURL;
       }
       if (sourceFunctionName) {
-        attributes['code.function'] = sourceFunctionName;
+        attributes[CODE_FUNCTION_NAME] = sourceFunctionName;
       }
       if (sourceCharPosition !== -1) {
         attributes['browser.script.source_char_position'] = sourceCharPosition;

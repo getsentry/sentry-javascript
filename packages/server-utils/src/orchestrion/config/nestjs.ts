@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector

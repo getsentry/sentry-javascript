@@ -1,20 +1,6 @@
 import { debug, GLOBAL_OBJ } from '@sentry/core';
 
 /**
- * Whether orchestrion has injected the diagnostics channels into this process,
- * either by the runtime `--import` hook / init-time registration (`runtime`)
- * or a bundler plugin (`bundler`). Both injectors set a flag on the
- * `globalThis.__SENTRY_ORCHESTRION__` marker.
- *
- * Use this to avoid wiring up channel-subscriber integrations when nothing
- * will ever publish to those channels.
- */
-export function isOrchestrionInjected(): boolean {
-  const marker = GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
-  return !!(marker?.runtime || marker?.bundler || marker?.integrations);
-}
-
-/**
  * The module names (e.g. `mysql`, `@hapi/hapi`) orchestrion has already injected
  * into this process — from the runtime `--import` hook (`runtime`) and/or the
  * snippets a bundler transform spliced into each transformed module (`bundler`).

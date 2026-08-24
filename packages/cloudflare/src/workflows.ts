@@ -30,7 +30,7 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
-import type { DefaultEnv, ResolveEnv } from './types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -213,7 +213,8 @@ export function instrumentWorkflowWithSentry<
     // oxlint-disable-next-line typescript/no-explicit-any
     env: any,
   ) => T, // Constructor type of the WorkflowEntrypoint class
->(optionsCallback: (env: ResolveEnv<C, E>) => CloudflareOptions, WorkFlowClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, E>) => StrictCloudflareOptions<O>, WorkFlowClass: C): C {
   return new Proxy(WorkFlowClass, {
     // oxlint-disable-next-line typescript/no-explicit-any
     construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {

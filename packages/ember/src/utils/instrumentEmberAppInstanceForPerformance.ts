@@ -13,7 +13,15 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import { SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { filterCollectedUrl, getCurrentScope, spanToJSON, type Client, type Span } from '@sentry/core';
+import {
+  filterCollectedUrl,
+  getCurrentScope,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+  spanToJSON,
+  type Client,
+  type Span,
+} from '@sentry/core';
 import { getBackburner } from './utils.ts';
 
 interface EmberRouterMain {
@@ -56,7 +64,12 @@ export function instrumentEmberAppInstanceForPerformance(
     const routeInfo = url ? routerService.recognize(url) : undefined;
 
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
-      name: routeInfo ? `route:${routeInfo.name}` : url || WINDOW.location.pathname,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      name: routeInfo
+        ? `route:${routeInfo.name}`
+        : hasSpanStreamingEnabled(client)
+          ? PAGELOAD_SPAN_NAME_FALLBACK
+          : url || WINDOW.location.pathname,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',

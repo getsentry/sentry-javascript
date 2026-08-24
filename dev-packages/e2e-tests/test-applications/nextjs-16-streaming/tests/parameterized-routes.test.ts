@@ -15,7 +15,7 @@ test('should create a parameterized streamed span when the `app` directory is us
   expect(span.attributes['sentry.source']?.value).toBe('route');
 });
 
-test('should create a static streamed span when the `app` directory is used and the route is not parameterized', async ({
+test('should create a streamed span named after the static route when the `app` directory is used', async ({
   page,
 }) => {
   const spanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
@@ -28,7 +28,28 @@ test('should create a static streamed span when the `app` directory is used and 
 
   expect(span.name).toBe('/parameterized/static');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes['sentry.source']?.value).toBe('url');
+  expect(span.attributes).toMatchObject({
+    ['sentry.segment.name.source']: { value: 'route', type: 'string' },
+    ['url.template']: { value: '/parameterized/static', type: 'string' },
+    ['url.path']: { value: '/parameterized/static', type: 'string' },
+  });
+});
+
+test('should fall back to a low cardinality span name for routes the manifest does not know', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
+    return span.name === 'Pageload' && getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+
+  await page.goto('/this-route-does-not-exist');
+
+  const span = await spanPromise;
+
+  expect(span.name).toBe('Pageload');
+  expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(span.attributes).toMatchObject({
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.path']: { value: '/this-route-does-not-exist', type: 'string' },
+  });
 });
 
 test('should create a partially parameterized streamed span when the `app` directory is used', async ({ page }) => {

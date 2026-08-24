@@ -1,6 +1,5 @@
-import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
+import { addBreadcrumb, captureException, startSpan, withIsolationScope, withScope } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
-import { startSpan } from '../../src/trace';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {

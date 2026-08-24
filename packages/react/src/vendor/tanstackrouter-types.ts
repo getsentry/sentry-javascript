@@ -45,6 +45,7 @@ interface VendoredTanstackRouterHistory {
 interface VendoredTanstackRouterState {
   matches: Array<VendoredTanstackRouterRouteMatch>;
   pendingMatches?: Array<VendoredTanstackRouterRouteMatch>;
+  location?: VendoredTanstackRouterLocation;
 }
 
 export interface VendoredTanstackRouterRouteMatch {

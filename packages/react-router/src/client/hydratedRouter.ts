@@ -49,12 +49,14 @@ export function instrumentHydratedRouter(): void {
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
-        const pageloadName = spanToJSON(pageloadSpan).name;
+        // Matched against `url.path` rather than the span name: with span streaming, the pageload
+        // span is named `Pageload` until a route is resolved, so the name may not hold the pathname.
+        const pageloadPath = spanToJSON(pageloadSpan).attributes[URL_PATH];
         const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
-          pageloadName &&
+          typeof pageloadPath === 'string' &&
           // this event is for the currently active pageload
-          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName)
+          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
           pageloadSpan.updateName(parameterizePageloadRoute);
           pageloadSpan.setAttributes({

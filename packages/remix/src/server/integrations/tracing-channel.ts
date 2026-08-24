@@ -27,7 +27,7 @@ import {
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
 

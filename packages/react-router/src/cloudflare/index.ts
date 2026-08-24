@@ -14,6 +14,11 @@ export function injectTraceMetaTags(body: ReadableStream): ReadableStream {
   const headClosingTag = '</head>';
 
   const reader = body.getReader();
+  const encoder = new TextEncoder();
+  // A single streaming decoder carries incomplete multi-byte sequences across chunk
+  // boundaries. A fresh, non-streaming decoder per chunk would flush a split character
+  // as U+FFFD, corrupting the response (see https://github.com/whatwg/encoding/issues/184).
+  const decoder = new TextDecoder();
   const stream = new ReadableStream({
     async pull(controller) {
       const { done, value } = await reader.read();
@@ -23,8 +28,7 @@ export function injectTraceMetaTags(body: ReadableStream): ReadableStream {
         return;
       }
 
-      const encoder = new TextEncoder();
-      const html = value instanceof Uint8Array ? new TextDecoder().decode(value) : String(value);
+      const html = value instanceof Uint8Array ? decoder.decode(value, { stream: true }) : String(value);
 
       if (html.includes(headClosingTag)) {
         const modifiedHtml = html.replace(headClosingTag, `${getTraceMetaTags()}${headClosingTag}`);

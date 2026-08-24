@@ -578,6 +578,107 @@ describe('sentryMiddleware', () => {
   });
 });
 
+describe('parametrized route resolution', () => {
+  const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+
+  beforeEach(() => {
+    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(
+      () =>
+        ({
+          setPropagationContext: vi.fn(),
+          getSpan: () => undefined,
+          setSDKProcessingMetadata: vi.fn(),
+          getPropagationContext: () => ({}),
+        }) as any,
+    );
+    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(() => undefined);
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+      () =>
+        ({
+          getOptions: () => ({}),
+          getDataCollectionOptions: () => ({ httpHeaders: { request: false, response: false } }),
+        }) as unknown as Client,
+    );
+    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(() => '');
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Astro lowercases `routePattern`, so the manifest segments are the only way
+  // to recover the author's casing. Astro 7 dropped the lowercasing and, from
+  // 7.2.3, the manifest symbols too.
+  const MANIFEST_SEGMENTS = [
+    [{ content: 'catchAll', dynamic: false, spread: false }],
+    [{ content: '...path', dynamic: true, spread: true }],
+  ];
+
+  function runMiddleware(ctx: Record<string, unknown>): string | undefined {
+    const middleware = handleRequest();
+    const next = vi.fn(() => Promise.resolve(new Response(null, { status: 200, headers: new Headers() })));
+    // @ts-expect-error, a partial ctx object is fine here
+    middleware({ ...DYNAMIC_REQUEST_CONTEXT, ...ctx }, next);
+    return startSpanSpy.mock.lastCall?.[0]?.name;
+  }
+
+  const CATCH_ALL_CTX = {
+    request: { method: 'GET', url: '/catchAll/a/b', headers: new Headers() },
+    url: new URL('https://myDomain.io/catchAll/a/b'),
+    params: { path: 'a/b' },
+    routePattern: '/catchAll/[...path]',
+  };
+
+  it.each([
+    ['Astro 5', Symbol.for('context.routes')],
+    ['Astro 6', Symbol.for('astro.pipeline')],
+  ])('reads the route from the %s manifest, preserving casing', (_label, symbol) => {
+    const name = runMiddleware({
+      ...CATCH_ALL_CTX,
+      // Astro lowercases `routePattern`, so this differs from the manifest casing.
+      routePattern: '/catchall/[...path]',
+      [symbol]: {
+        manifest: { routes: [{ routeData: { route: '/catchall/[...path]', segments: MANIFEST_SEGMENTS } }] },
+      },
+    });
+
+    expect(name).toBe('GET /catchAll/[...path]');
+  });
+
+  // Astro 7.2.3 removed the last manifest symbol. `routePattern` keeps the
+  // author's casing there, so it is the correct source once the manifest is gone.
+  it('falls back to `routePattern` when no manifest is reachable', () => {
+    expect(runMiddleware(CATCH_ALL_CTX)).toBe('GET /catchAll/[...path]');
+  });
+
+  it('prefers `routePattern` over interpolating a rest param out of the URL', () => {
+    // Interpolation reverse-maps param values found in the URL, so it cannot
+    // recover the `...` of a rest param.
+    expect(interpolateRouteFromUrlAndParams('/catchAll/a/b', { path: 'a/b' })).toBe('/catchAll/[path]');
+    expect(runMiddleware(CATCH_ALL_CTX)).toBe('GET /catchAll/[...path]');
+  });
+
+  it('falls back to `routePattern` when the manifest holds no matching route', () => {
+    const name = runMiddleware({
+      ...CATCH_ALL_CTX,
+      [Symbol.for('astro.pipeline')]: { manifest: { routes: [{ routeData: { route: '/other', segments: [] } }] } },
+    });
+
+    expect(name).toBe('GET /catchAll/[...path]');
+  });
+
+  // Astro 4 has no `routePattern`, so interpolation stays the last resort.
+  it('interpolates from the URL when `routePattern` is absent', () => {
+    const name = runMiddleware({
+      request: { method: 'GET', url: '/users/123/details', headers: new Headers() },
+      url: new URL('https://myDomain.io/users/123/details'),
+      params: { id: '123' },
+    });
+
+    expect(name).toBe('GET /users/[id]/details');
+  });
+});
+
 describe('interpolateRouteFromUrlAndParams', () => {
   it.each([
     ['/', {}, '/'],

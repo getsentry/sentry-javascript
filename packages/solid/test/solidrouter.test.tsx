@@ -71,7 +71,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/',
+        name: 'Pageload',
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -102,7 +102,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
 
     expect(spanStartMock).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/',
+        name: 'Pageload',
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',

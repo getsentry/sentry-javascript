@@ -1,4 +1,4 @@
-import { koaIntegration } from '@sentry/server-utils/orchestrion';
+import { koaIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `koa` middleware/router layers under Deno. Included in the
@@ -7,4 +7,4 @@ import { koaIntegration } from '@sentry/server-utils/orchestrion';
  * @deprecated Use `koaIntegration` instead. This alias will be removed
  * in a future major.
  */
-export const denoKoaIntegration = koaIntegration;
+export const denoKoaIntegration: typeof koaIntegration = koaIntegration;
