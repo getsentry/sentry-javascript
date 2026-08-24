@@ -103,7 +103,10 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, test: true });
       const client = new TestClient(options);
 
-      expect(client.getOptions()).toEqual(options);
+      expect(client.getOptions()).toEqual({
+        ...options,
+        enableLogs: true,
+      });
     });
   });
 
@@ -2243,7 +2246,7 @@ describe('Client', () => {
         .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
         .mockImplementation(() => undefined);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
       await client.close();
@@ -3134,32 +3137,32 @@ describe('Client', () => {
   });
 
   describe('enableLogs', () => {
-    it('defaults to  `undefined`', () => {
+    it('defaults to `true`', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBeUndefined();
-    });
-
-    it('can be set as a top-level option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
-      const client = new TestClient(options);
       expect(client.getOptions().enableLogs).toBe(true);
     });
 
-    it('can be set as an experimental option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+    it('can be disabled via the top-level option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: false });
       const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
+      expect(client.getOptions().enableLogs).toBe(false);
+    });
+
+    it('can be disabled via the experimental option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: false } });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(false);
     });
 
     test('top-level option takes precedence over experimental option', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
-        _experiments: { enableLogs: false },
+        enableLogs: false,
+        _experiments: { enableLogs: true },
       });
       const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
+      expect(client.getOptions().enableLogs).toBe(false);
     });
   });
 
@@ -3175,7 +3178,6 @@ describe('Client', () => {
     it('flushes logs when weight exceeds 800KB', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3193,7 +3195,6 @@ describe('Client', () => {
     it('accumulates log weight without flushing when under threshold', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3211,7 +3212,6 @@ describe('Client', () => {
     it('flushes logs after idle timeout', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3233,7 +3233,6 @@ describe('Client', () => {
     it('does not reset idle timeout when new logs are captured', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3260,7 +3259,6 @@ describe('Client', () => {
     it('starts new timer after timeout completes and flushes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3292,7 +3290,6 @@ describe('Client', () => {
     it('flushes logs on flush event', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3313,6 +3310,7 @@ describe('Client', () => {
     it('does not flush logs when logs are disabled', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
+        enableLogs: false,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3332,7 +3330,6 @@ describe('Client', () => {
 
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3350,9 +3347,7 @@ describe('Client', () => {
 
     it('flush() drains the log buffer when client has no transport', async () => {
       // Client without DSN — _transport is undefined
-      const options = getDefaultTestClientOptions({
-        enableLogs: true,
-      });
+      const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);

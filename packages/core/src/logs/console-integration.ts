@@ -95,7 +95,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
 }) satisfies IntegrationFn;
 
 /**
- * Captures calls to the `console` API as logs in Sentry. Requires the `enableLogs` option to be enabled.
+ * Captures calls to the `console` API as logs in Sentry.
  *
  * @experimental This feature is experimental and may be changed or removed in future versions.
  *
@@ -109,7 +109,6 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
  * import * as Sentry from '@sentry/browser';
  *
  * Sentry.init({
- *   enableLogs: true,
  *   integrations: [Sentry.consoleLoggingIntegration({ levels: ['error', 'warn'] })],
  * });
  * ```

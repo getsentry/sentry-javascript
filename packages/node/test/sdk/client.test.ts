@@ -53,6 +53,7 @@ describe('NodeClient', () => {
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
       tracesSampleRate: 1,
+      enableLogs: true,
     });
   });
 
@@ -301,7 +302,7 @@ describe('NodeClient', () => {
 
   describe('log capture', () => {
     it('adds server name to log attributes', () => {
-      const options = getDefaultNodeClientOptions({ enableLogs: true });
+      const options = getDefaultNodeClientOptions();
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: {} };
@@ -314,7 +315,7 @@ describe('NodeClient', () => {
 
     it('preserves existing log attributes', () => {
       const serverName = 'test-server';
-      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
+      const options = getDefaultNodeClientOptions({ serverName });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };

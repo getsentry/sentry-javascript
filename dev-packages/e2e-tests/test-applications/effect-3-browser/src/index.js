@@ -19,7 +19,6 @@ const AppLayer = Layer.mergeAll(
     release: 'e2e-test',
     environment: 'qa',
     tunnel: 'http://localhost:3031',
-    enableLogs: true,
   }),
   Layer.setTracer(Sentry.SentryEffectTracer),
   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
