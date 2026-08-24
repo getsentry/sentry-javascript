@@ -294,6 +294,16 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
+
+      // matching is case-insensitive in both directions, because `new URL()` lower-cases the origin
+      ['https://MY-ORIGIN.com', 'my-origin', true],
+      ['https://my-origin.com', 'MY-ORIGIN', true],
+      ['https://my-origin.com', /^https:\/\/MY-ORIGIN\.com/, true],
+      ['https://MY-ORIGIN.com', /^https:\/\/my-origin\.com/, true],
+      ['https://my-origin.com/API/my-route', '/api/', true],
+      ['https://my-origin.com/api/my-route', '/API/', true],
+      ['https://my-origin.com/API/my-route', /^\/api\//, true],
+      ['https://MY-ORIGIN.com', 'not-my-origin', false], // still no match on a genuinely different target
     ])(
       'for url %j and tracePropagationTarget %j on page "https://my-origin.com/api/my-route" should return %j',
       (url, matcher, result) => {
@@ -439,6 +449,13 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
+
+      // matching is case-insensitive in both directions, because `new URL()` lower-cases the origin
+      ['https://MY-ORIGIN.com', 'my-origin', true],
+      ['https://my-origin.com', 'MY-ORIGIN', true],
+      ['https://my-origin.com', /^https:\/\/MY-ORIGIN\.com/, true],
+      ['https://MY-ORIGIN.com', /^https:\/\/my-origin\.com/, true],
+      ['https://MY-ORIGIN.com', 'not-my-origin', false], // still no match on a genuinely different target
     ])('for url %j and tracePropagationTarget %j should return %j', (url, matcher, result) => {
       expect(shouldAttachHeaders(url, [matcher])).toBe(result);
     });

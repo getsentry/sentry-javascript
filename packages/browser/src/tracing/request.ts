@@ -19,6 +19,7 @@ import {
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   instrumentFetchRequest,
+  matchesTracePropagationTargets,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -27,7 +28,6 @@ import {
   spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
-  stringMatchesSomePattern,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
@@ -281,7 +281,7 @@ export function shouldAttachHeaders(
     if (!tracePropagationTargets) {
       return isRelativeSameOriginRequest;
     } else {
-      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+      return matchesTracePropagationTargets(targetUrl, tracePropagationTargets);
     }
   } else {
     let resolvedUrl;
@@ -300,8 +300,8 @@ export function shouldAttachHeaders(
       return isSameOriginRequest;
     } else {
       return (
-        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
-        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+        matchesTracePropagationTargets(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && matchesTracePropagationTargets(resolvedUrl.pathname, tracePropagationTargets))
       );
     }
   }
