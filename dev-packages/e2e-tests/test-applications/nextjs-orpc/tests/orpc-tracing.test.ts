@@ -21,7 +21,7 @@ test('should trace orpc server component', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
       'sentry.op': 'pageload',
-      'sentry.source': 'url',
+      'sentry.source': 'route',
     },
     op: 'pageload',
     origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -77,7 +77,7 @@ test('should trace orpc client component', async ({ page }) => {
     data: {
       'sentry.op': 'navigation',
       'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
-      'sentry.source': 'url',
+      'sentry.source': 'route',
       'sentry.previous_trace': expect.any(String),
     },
     op: 'navigation',
