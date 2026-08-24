@@ -4,12 +4,13 @@ import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  RESOURCE_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
 import { BROWSER_PAINT, UI_LONG_ANIMATION_FRAME, UI_LONG_TASK } from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
@@ -225,6 +226,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           duration,
           timeOrigin,
           ignoreResourceSpans,
+          spanStreamingEnabled,
         );
         break;
       }
@@ -366,6 +368,7 @@ export function _addResourceSpans(
   duration: number,
   timeOrigin: number,
   ignoredResourceSpanOps?: Array<string>,
+  spanStreamingEnabled?: boolean,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -390,6 +393,13 @@ export function _addResourceSpans(
 
   if (parsedUrl.host) {
     attributes['server.address'] = parsedUrl.host;
+  }
+
+  // `host` carries the port, which `url.domain` doesn't.
+  const domain = parsedUrl.host?.replace(/:\d+$/, '');
+
+  if (domain) {
+    attributes[URL_DOMAIN] = domain;
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
@@ -417,7 +427,10 @@ export function _addResourceSpans(
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
-    name: resourceUrl.replace(WINDOW.location.origin, ''),
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: spanStreamingEnabled
+      ? domain || RESOURCE_SPAN_NAME_FALLBACK
+      : resourceUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });

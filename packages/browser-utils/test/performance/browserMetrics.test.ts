@@ -249,6 +249,7 @@ describe('_addResourceSpans', () => {
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
+          ['url.domain']: 'example.com',
           ['url.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
@@ -431,6 +432,7 @@ describe('_addResourceSpans', () => {
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
+          ['url.domain']: 'example.com',
           ['url.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
@@ -464,6 +466,7 @@ describe('_addResourceSpans', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
+          'url.domain': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
@@ -515,6 +518,7 @@ describe('_addResourceSpans', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
+          'url.domain': 'example.com',
           'url.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
@@ -569,6 +573,48 @@ describe('_addResourceSpans', () => {
       });
     },
   );
+
+  describe('with span streaming enabled', () => {
+    it.each([
+      ['https://example.com/assets/to/css', 'example.com'],
+      ['https://cdn.example.org:8443/static/logo.png', 'cdn.example.org'],
+    ])('names the span after the resource domain (%s)', (url, expectedName) => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry = mockPerformanceResourceTiming({ initiatorType: 'css', nextHopProtocol: 'h2' });
+
+      _addResourceSpans(span, entry, url, 100, 23, 345, undefined, true);
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!)).toEqual(
+        expect.objectContaining({
+          name: expectedName,
+          attributes: expect.objectContaining({ 'url.domain': expectedName }),
+        }),
+      );
+    });
+
+    it('falls back to a static name when the resource URL has no domain', () => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry = mockPerformanceResourceTiming({ initiatorType: 'script', nextHopProtocol: 'h2' });
+
+      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, 345, undefined, true);
+
+      expect(spans).toHaveLength(1);
+      const spanJson = spanToJSON(spans[0]!);
+      expect(spanJson.name).toBe('Resource');
+      expect(spanJson.attributes['url.domain']).toBeUndefined();
+    });
+  });
 });
 
 describe('_addNavigationSpans', () => {
