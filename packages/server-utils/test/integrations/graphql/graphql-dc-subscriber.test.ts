@@ -100,7 +100,7 @@ function installTestAsyncContextStrategy(): void {
 
 /**
  * Publishes one channel operation inside an enclosing span (the subscriber only creates a span when
- * one is active) and returns the name of the span it bound, plus the enclosing span's final name.
+ * one is active) and returns the span it bound, plus the enclosing span's final name and operations.
  */
 async function traceOperation(
   channelName: string,
@@ -109,16 +109,21 @@ async function traceOperation(
   spanName: string | undefined;
   processingType: unknown;
   enclosingSpanName: string | undefined;
+  enclosingOperations: unknown;
 }> {
   const channel = tracingChannel(channelName);
   let span: Span | undefined;
   let enclosingSpanName: string | undefined;
+  let enclosingOperations: unknown;
 
   await startSpan({ name: 'GET /graphql' }, async enclosing => {
     await channel.tracePromise(async () => {
       span = getActiveSpan();
     }, data);
-    enclosingSpanName = spanToJSON(enclosing).name;
+
+    const enclosingJson = spanToJSON(enclosing);
+    enclosingSpanName = enclosingJson.name;
+    enclosingOperations = enclosingJson.attributes['sentry.graphql.operation'];
   });
 
   const spanJson = span && spanToJSON(span);
@@ -127,6 +132,7 @@ async function traceOperation(
     spanName: spanJson?.name,
     processingType: spanJson?.attributes['graphql.processing.type'],
     enclosingSpanName,
+    enclosingOperations,
   };
 }
 
@@ -184,12 +190,13 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
     it('records the operation on the root span without renaming it', async () => {
       initTestClient('stream');
 
-      const { enclosingSpanName } = await traceOperation(GRAPHQL_DC_CHANNEL_EXECUTE, {
+      const { enclosingSpanName, enclosingOperations } = await traceOperation(GRAPHQL_DC_CHANNEL_EXECUTE, {
         operationType: 'query',
         operationName: 'GetUser',
       });
 
       expect(enclosingSpanName).toBe('GET /graphql');
+      expect(enclosingOperations).toBe('query GetUser');
     });
   });
 
@@ -237,12 +244,13 @@ describe('subscribeGraphqlDiagnosticChannels', () => {
     it('renames the root span with the operation', async () => {
       initTestClient('static');
 
-      const { enclosingSpanName } = await traceOperation(GRAPHQL_DC_CHANNEL_EXECUTE, {
+      const { enclosingSpanName, enclosingOperations } = await traceOperation(GRAPHQL_DC_CHANNEL_EXECUTE, {
         operationType: 'query',
         operationName: 'GetUser',
       });
 
       expect(enclosingSpanName).toBe('GET /graphql (query GetUser)');
+      expect(enclosingOperations).toBe('query GetUser');
     });
   });
 });

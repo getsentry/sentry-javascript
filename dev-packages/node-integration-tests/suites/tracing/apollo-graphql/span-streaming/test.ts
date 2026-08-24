@@ -79,7 +79,11 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
             const segmentSpan = container.items.find(item => item.is_segment && item.name === 'Test Transaction');
 
             expect(segmentSpan).toBeDefined();
-            expect(segmentSpan?.attributes['sentry.graphql.operation']).toBeDefined();
+            // Both operations are recorded here rather than in the name.
+            expect(segmentSpan?.attributes['sentry.graphql.operation']?.value).toEqual([
+              'query GetHello',
+              'mutation TestMutation',
+            ]);
           },
         })
         .start()
