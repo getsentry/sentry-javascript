@@ -19,7 +19,7 @@ export function subscribeToFastifyErrorChannel(): void {
       reply: FastifyReply;
     };
 
-    handleFastifyError(error, request, reply);
+    handleFastifyError(request, reply, error);
   });
 }
 
@@ -33,7 +33,7 @@ export function subscribeToFastifyErrorChannel(): void {
  * thrown in an `onRequest` hook, or on Fastify v3/v4 which has no channel) are
  * captured once.
  */
-export function handleFastifyError(error: Error, request: FastifyRequest, reply: FastifyReply): void {
+export function handleFastifyError(request: FastifyRequest, reply: FastifyReply, error: Error): void {
   const shouldHandleError = getFastifyIntegration()?.getShouldHandleError() || defaultShouldHandleError;
 
   if (shouldHandleError(error, request, reply)) {

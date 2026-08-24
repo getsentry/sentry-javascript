@@ -33,7 +33,7 @@ import {
   startSpan,
   withActiveSpan,
 } from '@sentry/core';
-import type { FastifyInstance, FastifyRequest } from './types';
+import type { FastifyInstance } from './types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 import { handleFastifyError } from './errors';
 
@@ -100,7 +100,8 @@ function isFastifyRequest(arg: any): boolean {
  * The Fastify plugin that wires up the request/hook/handler spans. It is registered on every Fastify
  * instance via the `fastify.initialization` diagnostics channel.
  */
-function fastifyTracingPlugin(this: unknown, instance: any, _opts: unknown, done: () => void): void {
+function fastifyTracingPlugin(this: unknown, instance: FastifyInstance, _opts: unknown, done: () => void): void {
+  // oxlint-disable-next-line typescript/unbound-method
   instance.decorate(kAddHookOriginal, instance.addHook);
   instance.decorate(kSetNotFoundOriginal, instance.setNotFoundHandler);
   instance.decorateRequest('opentelemetry', function opentelemetry(this: any) {
@@ -111,6 +112,7 @@ function fastifyTracingPlugin(this: unknown, instance: any, _opts: unknown, done
   instance.addHook('onRoute', onRoute);
   instance.addHook('onRequest', startRequestSpanHook);
   instance.addHook('onResponse', finalizeNotFoundSpanHook);
+  instance.addHook('onError', handleFastifyError);
 
   instance.addHook = addHookPatched;
   instance.setNotFoundHandler = setNotFoundHandlerPatched;
@@ -176,6 +178,11 @@ function appendRouteHook(existing: AnyFn | AnyFn[] | undefined, hook: AnyFn): An
 }
 
 function startRequestSpanHook(this: any, request: any, _reply: any, hookDone: () => void): void {
+  const routeName = getRequestRouteUrl(request);
+  const method = request.method || 'GET';
+
+  getIsolationScope().setTransactionName(`${method} ${routeName}`);
+
   if (getRequestRouteConfig(request)?.otel === false) {
     return hookDone();
   }
@@ -253,7 +260,7 @@ function recordErrorInSpanHook(request: any, _reply: any, error: any, hookDone: 
   hookDone();
 }
 
-function addHookPatched(this: any, name: string, hook: AnyFn): unknown {
+function addHookPatched(this: any, name: string, hook: AnyFn): FastifyInstance {
   const addHookOriginal = this[kAddHookOriginal];
 
   if (FASTIFY_HOOKS.includes(name)) {
@@ -391,29 +398,7 @@ export const instrumentFastify = Object.assign(
       const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
 
       fastifyInstance?.register(fastifyTracingPlugin);
-      fastifyInstance?.register(fastifyErrorHandlerPlugin);
     });
   },
   { id: 'Fastify.v5' },
-);
-
-const fastifyErrorHandlerPlugin = Object.assign(
-  function (fastify: FastifyInstance, _options: unknown, done: () => void): void {
-    fastify.addHook('onRequest', async (request: FastifyRequest, _reply) => {
-      const routeName = getRequestRouteUrl(request);
-      const method = request.method || 'GET';
-
-      getIsolationScope().setTransactionName(`${method} ${routeName}`);
-    });
-
-    fastify.addHook('onError', async (request, reply, error) => {
-      handleFastifyError(error, request, reply);
-    });
-
-    done();
-  },
-  {
-    [Symbol.for('skip-override')]: true,
-    [Symbol.for('fastify.display-name')]: 'sentry-fastify-error-handler',
-  },
 );
