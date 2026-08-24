@@ -13,8 +13,8 @@ import {
   startSpan,
   updateSpanName,
 } from '@sentry/core';
+import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import { getMiddlewareName } from './serverBuild';
 import { markInstrumentationApiUsed } from './serverGlobals';
@@ -46,7 +46,7 @@ export function createSentryServerInstrumentation(
   DEBUG_BUILD && debug.log('React Router server instrumentation created.');
 
   return {
-    handler(handler: InstrumentableRequestHandler) {
+    handler(handler) {
       // Mark the instrumentation API active only when React Router actually invokes this
       markInstrumentationApiUsed();
       handler.instrument({
@@ -116,7 +116,7 @@ export function createSentryServerInstrumentation(
       });
     },
 
-    route(route: InstrumentableRoute) {
+    route(route) {
       // Also mark active here, in case route registration runs (mirrors the handler callback above).
       markInstrumentationApiUsed();
       const routeId = route.id;

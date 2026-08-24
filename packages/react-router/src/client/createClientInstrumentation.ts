@@ -15,8 +15,8 @@ import {
   startSpan,
   updateSpanName,
 } from '@sentry/core';
+import type { ClientInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import {
   resolveNavigateAbsoluteUrl,
@@ -70,7 +70,7 @@ export function createSentryClientInstrumentation(
   DEBUG_BUILD && debug.log('React Router client instrumentation API created.');
 
   return {
-    router(router: InstrumentableRouter) {
+    router(router) {
       // Set the flag when React Router actually invokes our instrumentation.
       // This ensures the flag is only set in Library Mode (where hooks run),
       // not in Framework Mode (where hooks are never called).
@@ -239,7 +239,7 @@ export function createSentryClientInstrumentation(
       });
     },
 
-    route(route: InstrumentableRoute) {
+    route(route) {
       const routeId = route.id;
 
       route.instrument({
