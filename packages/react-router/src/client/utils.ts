@@ -1,6 +1,12 @@
 import { getAbsoluteUrl } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { GLOBAL_OBJ, filterCollectedUrl } from '@sentry/core';
+import {
+  getClient,
+  GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  filterCollectedUrl,
+} from '@sentry/core';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { DataRouter, RouterState } from 'react-router';
 
@@ -102,7 +108,9 @@ export function updateNavigationSpanUrlFromLocation(span: Span): void {
   const { pathname, search = '', hash = '' } = WINDOW.location;
   const destinationUrl = getAbsoluteUrl(`${pathname}${search}${hash}`);
 
-  span.updateName(pathname);
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+  const client = getClient();
+  span.updateName(client && hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname);
   span.setAttributes({
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [URL_PATH]: pathname,

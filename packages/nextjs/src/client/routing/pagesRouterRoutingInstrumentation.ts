@@ -2,6 +2,7 @@ import type { Client, TransactionSource } from '@sentry/core';
 import {
   debug,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -164,7 +165,8 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
     startBrowserTracingNavigationSpan(
       client,
       {
-        name: newLocation,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name: spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',

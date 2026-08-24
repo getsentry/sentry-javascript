@@ -6,7 +6,9 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   isThenable,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -189,7 +191,9 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
   return startBrowserTracingNavigationSpan(
     client,
     {
-      name,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // The route is resolved once the router settles, which updates the span name then.
+      name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
