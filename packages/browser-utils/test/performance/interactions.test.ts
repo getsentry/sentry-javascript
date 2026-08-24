@@ -115,7 +115,9 @@ describe('interactionsIntegration', () => {
     click();
     flushIdleSpan();
 
-    expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({ 'sentry.source': 'route' });
+    expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({
+      'sentry.segment.name.source': 'route',
+    });
   });
 
   it('falls back to a url source when the route span has none', () => {
@@ -125,7 +127,9 @@ describe('interactionsIntegration', () => {
     click();
     flushIdleSpan();
 
-    expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({ 'sentry.source': 'url' });
+    expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({
+      'sentry.segment.name.source': 'url',
+    });
   });
 
   it('picks up the route name a router set after the route span started', () => {

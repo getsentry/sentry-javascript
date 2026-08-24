@@ -6,14 +6,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_SOURCE,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -101,11 +102,11 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'Pageload',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+      [SENTRY_SOURCE]: {
         type: 'string',
-        value: 'url',
+        value: 'custom',
       },
-      'sentry.segment.name.source': {
+      [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',
         value: 'url',
       },
