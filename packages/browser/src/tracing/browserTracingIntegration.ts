@@ -6,7 +6,6 @@ import type {
   ResponseHookInfo,
   Span,
   StartSpanOptions,
-  TransactionSource,
 } from '@sentry/core/browser';
 import {
   addNonEnumerableProperty,
@@ -41,7 +40,7 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
-  startTrackingInteractions,
+  isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
@@ -55,27 +54,6 @@ import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from
 import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
-
-/**
- * We don't want to start a bunch of idle timers and PerformanceObservers
- * for web crawlers, as they may prevent the page from being seen as "idle"
- * by the crawler's rendering engine (e.g. Googlebot's headless Chromium).
- */
-const BOT_USER_AGENT_RE =
-  /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
-
-export function isBotUserAgent(): boolean {
-  const nav = WINDOW.navigator as Navigator | undefined;
-  if (!nav?.userAgent) {
-    return false;
-  }
-  return BOT_USER_AGENT_RE.test(nav.userAgent);
-}
-
-interface RouteInfo {
-  name: string | undefined;
-  source: TransactionSource | undefined;
-}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -249,15 +227,6 @@ export interface BrowserTracingOptions {
   enableReportPageLoaded: boolean;
 
   /**
-   * _experiments allows the user to send options to define how this integration works.
-   *
-   * Default: undefined
-   */
-  _experiments: Partial<{
-    enableInteractions: boolean;
-  }>;
-
-  /**
    * A callback which is called before a span for a pageload or navigation is started.
    * It receives the options passed to `startSpan`, and expects to return an updated options object.
    */
@@ -297,7 +266,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   enableReportPageLoaded: false,
-  _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -320,11 +288,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     });
   }
 
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
-
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
@@ -335,7 +298,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -402,9 +364,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       return;
     }
 
-    latestRoute.name = finalStartSpanOptions.name;
-    latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
@@ -456,10 +415,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         startTrackingLongAnimationFrames();
       } else if (enableLongTask) {
         startTrackingLongTasks();
-      }
-
-      if (enableInteractions) {
-        startTrackingInteractions();
       }
 
       if (detectRedirects && optionalWindowDocument) {
@@ -688,10 +643,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         registerBackgroundTabDetection();
       }
 
-      if (enableInteractions) {
-        registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
-      }
-
       instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
@@ -794,66 +745,6 @@ export function getServerTiming(name: string): string | undefined {
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;
-}
-
-/** Start listener for interaction transactions */
-function registerInteractionListener(
-  client: Client,
-  idleTimeout: BrowserTracingOptions['idleTimeout'],
-  finalTimeout: BrowserTracingOptions['finalTimeout'],
-  childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: RouteInfo,
-): void {
-  /**
-   * This is just a small wrapper that makes `document` optional.
-   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
-   */
-  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
-  let inflightInteractionSpan: Span | undefined;
-  const registerInteractionTransaction = (): void => {
-    const op = 'ui.action.click';
-
-    const activeIdleSpan = getActiveIdleSpan(client);
-    if (activeIdleSpan) {
-      const currentRootSpanOp = spanToJSON(activeIdleSpan).attributes[SENTRY_OP];
-      if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
-        DEBUG_BUILD &&
-          debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
-        return undefined;
-      }
-    }
-
-    if (inflightInteractionSpan) {
-      inflightInteractionSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'interactionInterrupted');
-      inflightInteractionSpan.end();
-      inflightInteractionSpan = undefined;
-    }
-
-    if (!latestRoute.name) {
-      DEBUG_BUILD && debug.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
-      return undefined;
-    }
-
-    inflightInteractionSpan = startIdleSpan(
-      {
-        name: latestRoute.name,
-        op,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
-        },
-      },
-      {
-        idleTimeout,
-        finalTimeout,
-        childSpanTimeout,
-      },
-    );
-  };
-
-  if (optionalWindowDocument) {
-    addEventListener('click', registerInteractionTransaction, { capture: true });
-  }
 }
 
 // We store the active idle span on the client object, so we can access it from exported functions

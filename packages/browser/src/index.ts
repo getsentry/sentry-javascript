@@ -29,11 +29,10 @@ export { getFeedback, sendFeedback } from '@sentry/feedback';
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
-export { elementTimingIntegration, getAbsoluteUrl } from '@sentry/browser-utils';
+export { elementTimingIntegration, getAbsoluteUrl, isBotUserAgent } from '@sentry/browser-utils';
 export { normalizeStringifyValue } from './normalizeStringifyValue';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
@@ -42,6 +41,7 @@ export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPer
 export { webVitalsIntegration } from './integrations/webVitals';
 export { userTimingIntegration } from './integrations/usertiming';
 export { bfcacheIntegration } from './integrations/bfcache';
+export { interactionsIntegration } from './integrations/interactions';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
