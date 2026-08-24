@@ -3,10 +3,12 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Integration, TransactionSource } from '@sentry/core';
+import type { Client, Integration, TransactionSource } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -40,7 +42,7 @@ export function browserTracingIntegration(
         if (options.instrumentPageLoad != false) {
           const origin = browserPerformanceTimeOrigin();
 
-          const { name, source } = getPageloadSpanName();
+          const { name, source } = getPageloadSpanName(client);
 
           startBrowserTracingPageLoadSpan(client, {
             name,
@@ -58,7 +60,7 @@ export function browserTracingIntegration(
   };
 }
 
-function getPageloadSpanName(): { name: string; source: TransactionSource } {
+function getPageloadSpanName(client: Client): { name: string; source: TransactionSource } {
   try {
     const routeNameFromMetaTags = getMetaContent('sentry-route-name');
     if (routeNameFromMetaTags) {
@@ -75,7 +77,8 @@ function getPageloadSpanName(): { name: string; source: TransactionSource } {
     // fail silently if decoding or reading the meta tag fails
   }
   return {
-    name: WINDOW.location.pathname,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
     source: 'url',
   };
 }

@@ -171,7 +171,7 @@ describe('browserTracingIntegration', () => {
     expect(span).toBeDefined();
     expect(spanIsSampled(span!)).toBe(true);
     expect(spanToJSON(span!)).toEqual({
-      name: '/',
+      name: 'Pageload',
       status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -260,7 +260,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span)).toBe(true);
     expect(span.isRecording()).toBe(true);
     expect(spanToJSON(span)).toEqual({
-      name: '/',
+      name: 'Pageload',
       status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -381,7 +381,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span)).toBe(true);
     expect(span.isRecording()).toBe(true);
     expect(spanToJSON(span)).toEqual({
-      name: '/',
+      name: 'Pageload',
       status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -602,6 +602,22 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingPageLoadSpan(client, { name: 'test pageload span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test pageload span');
+    });
+
+    it("never sets the low-cardinality 'Pageload' span name on `scope.transactionName`", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // The pageload span the integration starts is named 'Pageload' with span streaming enabled,
+      // but errors have to stay grouped by the actual page.
+      expect(spanToJSON(getActiveSpan()!).name).toBe('Pageload');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/');
     });
 
     it('removes the readystatechange listener once the auto-finish signal is emitted', () => {

@@ -71,7 +71,7 @@ test('Prerendered shell does not stitch the pageload onto a stale trace', async 
   });
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
-    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === 'Pageload' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/pageload-tracing');
@@ -80,6 +80,10 @@ test('Prerendered shell does not stitch the pageload onto a stale trace', async 
 
   const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
+  expect(pageloadSpan.attributes).toMatchObject({
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.path']: { value: '/pageload-tracing', type: 'string' },
+  });
   // Under Cache Components the can be prerendered and rendered in a context detached from the
   // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The
   // SDK therefore does not enable the trace meta tags, and the browser pageload starts a fresh trace

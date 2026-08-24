@@ -64,6 +64,8 @@ describe('_emitWebVitalSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    // A root span is its own root, which is what the web vital spans are parented to.
+    vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
     vi.mocked(SentryCore.getClient).mockReturnValue({ getIntegrationByName: () => undefined } as any);
   });
 
@@ -101,6 +103,31 @@ describe('_emitWebVitalSpan', () => {
     );
 
     expect(mockSpan.end).toHaveBeenCalledWith(1.5);
+  });
+
+  it("takes 'sentry.segment.name' from the span it is parented to, not from the scope", () => {
+    const parentSpan = { spanContext: () => ({ spanId: 'pageload-1' }) } as any;
+    vi.mocked(SentryCore.getRootSpan).mockReturnValue(parentSpan);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ name: 'Pageload', attributes: {} } as any);
+
+    _emitWebVitalSpan({
+      name: 'Test Vital',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
+      value: 100,
+      startTime: 1.5,
+      parentSpan,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.segment.name': 'Pageload',
+          'sentry.transaction': 'Pageload',
+        }),
+      }),
+    );
   });
 
   it('marks the span as standalone when standalone is set', () => {
@@ -187,6 +214,8 @@ describe('_emitWebVitalSpan', () => {
   it('includes pageload span id when parentSpan is a pageload span', () => {
     const mockPageloadSpan = createMockPageloadSpan('abc123');
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
+      // The web vital span takes its segment name off the pageload span it is parented to.
+      name: 'test-route',
       attributes: { 'sentry.op': 'pageload' },
     } as any);
 
@@ -308,6 +337,8 @@ describe('_sendLcpSpan', () => {
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
+      // The web vital span takes its segment name off the pageload span it is parented to.
+      name: 'test-route',
       attributes: { 'sentry.op': 'pageload' },
     } as any);
   });
@@ -395,6 +426,8 @@ describe('_sendClsSpan', () => {
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
+      // The web vital span takes its segment name off the pageload span it is parented to.
+      name: 'test-route',
       attributes: { 'sentry.op': 'pageload' },
     } as any);
   });
@@ -478,6 +511,8 @@ describe('_sendInpSpan', () => {
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    // A root span is its own root, which is what the web vital spans are parented to.
+    vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
   });
 
   afterEach(() => {
@@ -595,6 +630,8 @@ describe('trackInpAsSpan', () => {
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    // A root span is its own root, which is what the web vital spans are parented to.
+    vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
     vi.spyOn(instrument, 'addInpInstrumentationHandler').mockImplementation((cb: any) => {

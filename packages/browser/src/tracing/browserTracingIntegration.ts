@@ -23,6 +23,7 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
@@ -637,7 +638,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         if (instrumentPageLoad) {
           const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
-            name: WINDOW.location.pathname,
+            // With span streaming, span names have to be low cardinality, and there is no route
+            // information available here.
+            name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
             startTime: origin ? origin / 1000 : undefined,
             attributes: {
@@ -718,7 +721,11 @@ export function startBrowserTracingPageLoadSpan(
   traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
 ): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
-  getCurrentScope().setTransactionName(spanOptions.name);
+
+  // `Pageload` is a low-cardinality span name, not a description of the page. The scope's
+  // transaction name is what error events are grouped by, so it keeps the URL instead.
+  const isFallbackSpanName = spanOptions.name === PAGELOAD_SPAN_NAME_FALLBACK;
+  getCurrentScope().setTransactionName(isFallbackSpanName ? WINDOW.location?.pathname : spanOptions.name);
 
   const pageloadSpan = getActiveIdleSpan(client);
 

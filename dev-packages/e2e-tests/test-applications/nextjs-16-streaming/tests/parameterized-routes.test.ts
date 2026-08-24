@@ -19,16 +19,19 @@ test('should create a static streamed span when the `app` directory is used and 
   page,
 }) => {
   const spanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
-    return span.name === '/parameterized/static' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return span.name === 'Pageload' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/parameterized/static`);
 
   const span = await spanPromise;
 
-  expect(span.name).toBe('/parameterized/static');
+  expect(span.name).toBe('Pageload');
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(span.attributes['sentry.source']?.value).toBe('url');
+  expect(span.attributes).toMatchObject({
+    ['sentry.segment.name.source']: { value: 'url', type: 'string' },
+    ['url.path']: { value: '/parameterized/static', type: 'string' },
+  });
 });
 
 test('should create a partially parameterized streamed span when the `app` directory is used', async ({ page }) => {

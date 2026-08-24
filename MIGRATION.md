@@ -610,6 +610,37 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 | `browser.TLS/SSL`               | `browser.tls_ssl`                  |
 | `browser.DNS`                   | `browser.dns`                      |
 
+### Span name changes
+
+Affected SDKs: All SDKs running in the browser.
+
+With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
+
+In v11, this only affects `pageload` spans. Further ops will follow in future releases.
+If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
+
+The following span names were adjusted:
+
+| Span op    | Before                                                                                      | After                                                      |
+| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`) | The parameterized route, or `Pageload` if the SDK has none |
+
+Some consequences to be aware of:
+
+Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+
+`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Match on attributes instead:
+
+```js
+Sentry.init({
+  // Before
+  ignoreSpans: ['/health'],
+
+  // After
+  ignoreSpans: [{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
+});
+```
+
 ### LangGraph no longer emits `create_agent` spans
 
 Affected SDKs: All server-side SDKs.

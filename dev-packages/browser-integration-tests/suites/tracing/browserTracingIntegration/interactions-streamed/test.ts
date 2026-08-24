@@ -99,7 +99,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: '/index.html',
+        value: 'Pageload',
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
         type: 'string',
@@ -116,7 +116,8 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
     },
     end_timestamp: expect.any(Number),
     is_segment: true,
-    name: '/index.html',
+    // Interaction spans are named after the current route, which is the pageload span's name.
+    name: 'Pageload',
     span_id: interactionSegmentSpan!.span_id,
     start_timestamp: expect.any(Number),
     status: 'ok',
@@ -155,7 +156,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: '/index.html',
+        value: 'Pageload',
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
         type: 'string',
