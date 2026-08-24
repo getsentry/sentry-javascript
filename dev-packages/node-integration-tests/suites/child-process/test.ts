@@ -9,7 +9,7 @@ const WORKER_EVENT: Event = {
         type: 'Error',
         value: 'Test error',
         mechanism: {
-          type: 'auto.child_process.worker_thread',
+          type: 'auto.node.worker_threads',
           handled: false,
           data: {
             threadId: expect.any(String),

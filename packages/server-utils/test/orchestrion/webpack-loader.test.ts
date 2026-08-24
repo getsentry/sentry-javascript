@@ -62,7 +62,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(error).toBeNull();
     expect(code).toContain('orchestrion:mysql:query');
     expect(code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     expect(code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
   });
@@ -70,24 +70,24 @@ describe('orchestrion webpack/Turbopack loader', () => {
   it('honors a fixed importSpecifier option', () => {
     const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
       instrumentations,
-      importSpecifier: 'my-custom-orchestrion-helper',
+      importSpecifier: 'my-custom-server-utils',
     });
 
-    expect(code).toContain('require("my-custom-orchestrion-helper")');
-    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
+    expect(code).toContain('require("my-custom-server-utils")');
+    expect(code).not.toContain('require("@sentry/server-utils")');
   });
 
   it('derives a per-file relative specifier from importHelperPath (Turbopack)', () => {
     // Turbopack rejects absolute-path imports and bare specifiers that don't
-    // resolve from the importing file, so the snippet must import relatively.
-    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/orchestrion/index.js');
+    // resolve from the importing file, so the snippet import must be relative.
+    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/index.js');
     const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
       instrumentations,
       importHelperPath,
     });
 
-    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/orchestrion/index.js")');
-    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
+    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/index.js")');
+    expect(code).not.toContain('require("@sentry/server-utils")');
   });
 
   it('passes through files of packages that are not instrumented', () => {

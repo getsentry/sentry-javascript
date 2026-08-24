@@ -3,7 +3,7 @@ import type { Plugin, ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
-import { resolveOrchestrionRuntimeRequest } from './resolve';
+import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?: boolean }) => unknown;
 
@@ -59,14 +59,14 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   return {
     ...upstream,
     transform: ssrOnlyTransform(upstream.transform),
-    // The module-injected snippet imports `@sentry/server-utils/orchestrion`
-    // from INSIDE transformed `node_modules` files. Under isolated installs
-    // (pnpm) that bare specifier doesn't resolve from an instrumented package's
-    // location, so when normal resolution fails, fall back to this package's
-    // own resolution so the helper gets bundled from its real on-disk path.
-    // SSR-gated like the transform: the specifier only exists in SSR modules.
+    // The module-injected snippet imports `@sentry/server-utils` from INSIDE
+    // transformed `node_modules` files. Under isolated installs (pnpm) that bare
+    // specifier doesn't resolve from an instrumented package's location, so when
+    // normal resolution fails, fall back to this package's own resolution so it
+    // gets bundled from its real on-disk path. SSR-gated like the transform: the
+    // specifier only appears in SSR modules.
     async resolveId(source, importer, resolveOptions) {
-      if (source !== '@sentry/server-utils/orchestrion' || !resolveOptions?.ssr) {
+      if (source !== SNIPPET_IMPORT_SPECIFIER || !resolveOptions?.ssr) {
         return null;
       }
       const resolved = await this.resolve(source, importer, { ...resolveOptions, skipSelf: true });

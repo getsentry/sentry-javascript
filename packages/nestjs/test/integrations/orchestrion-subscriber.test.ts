@@ -15,7 +15,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { subscribeToNestChannels } from '../../src/integrations/orchestrion-subscriber';
 
 // Mirrors harness in `tracing-channel.test.ts`: `bindTracingChannelToSpan`

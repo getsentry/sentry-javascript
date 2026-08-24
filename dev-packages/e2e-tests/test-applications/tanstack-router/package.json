@@ -9,7 +9,9 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
+    "test:build:basepath": "E2E_TEST_BASEPATH=/app pnpm test:build",
+    "test:assert:basepath": "E2E_TEST_BASEPATH=/app pnpm test:assert"
   },
   "dependencies": {
     "@sentry/react": "file:../../packed/sentry-react-packed.tgz",
@@ -30,5 +32,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:basepath",
+        "assert-command": "pnpm test:assert:basepath",
+        "label": "tanstack-router (basepath)"
+      }
+    ]
   }
 }

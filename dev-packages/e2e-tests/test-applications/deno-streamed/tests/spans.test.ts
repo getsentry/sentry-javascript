@@ -67,6 +67,10 @@ const SEGMENT_SPAN = {
       type: 'integer',
       value: expect.any(Number),
     },
+    'network.protocol.name': {
+      type: 'string',
+      value: 'http',
+    },
     'os.name': {
       type: 'string',
       value: expect.any(String),

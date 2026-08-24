@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Claude triage
         id: triage
-        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1
+        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1
         env:
           ANTHROPIC_BASE_URL: https://openrouter.ai/api
         with:

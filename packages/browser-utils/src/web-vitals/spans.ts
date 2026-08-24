@@ -11,9 +11,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
-  startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
@@ -90,7 +90,12 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     standalone,
   } = options;
 
-  const routeName = getCurrentScope().getScopeData().transactionName;
+  // Taken off the segment span itself, so it can't diverge from it: a routing instrumentation may
+  // rename that span (a pageload span is named `Pageload` until its route resolves), and the scope's
+  // transaction name is deliberately not kept in sync with it. Only a standalone span, which is sent
+  // without its segment span, has to fall back to the scope.
+  const segmentSpan = parentSpan && getRootSpan(parentSpan);
+  const segmentName = segmentSpan ? spanToJSON(segmentSpan).name : getCurrentScope().getScopeData().transactionName;
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
@@ -98,8 +103,8 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
     // oxlint-disable-next-line typescript-eslint/no-deprecated
-    [SENTRY_TRANSACTION]: routeName,
-    [SENTRY_SEGMENT_NAME]: routeName,
+    [SENTRY_TRANSACTION]: segmentName,
+    [SENTRY_SEGMENT_NAME]: segmentName,
     // Web vital score calculation relies on the user agent
     'user_agent.original': WINDOW.navigator?.userAgent,
     ...passedAttributes,
@@ -343,7 +348,6 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
   const spanToUse = cachedContext?.span || rootSpan;
-  const routeName = spanToUse ? spanToJSON(spanToUse).name : getCurrentScope().getScopeData().transactionName;
   const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
 
   _emitWebVitalSpan({
@@ -354,9 +358,6 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
     value: inpValue,
     attributes: {
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-      // oxlint-disable-next-line typescript-eslint/no-deprecated
-      [SENTRY_TRANSACTION]: routeName,
-      [SENTRY_SEGMENT_NAME]: routeName,
     },
     startTime,
     endTime: startTime + duration,

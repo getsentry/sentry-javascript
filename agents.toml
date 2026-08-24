@@ -85,3 +85,7 @@ source = "path:.agents/skills/track-framework-updates"
 [[skills]]
 name = "write-tests"
 source = "path:.agents/skills/write-tests"
+
+[[skills]]
+name = "port-span-names"
+source = "path:.agents/skills/port-span-names"

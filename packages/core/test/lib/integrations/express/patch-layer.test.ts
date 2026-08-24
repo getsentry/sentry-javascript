@@ -140,6 +140,9 @@ vi.mock('../../../../src/tracing', () => ({
     expect(span).toBe(parentSpan);
     return cb();
   },
+}));
+
+vi.mock('../../../../src/tracing/trace', () => ({
   startSpanManual<T = unknown>(options: StartSpanOptions, callback: (span: Span) => T): T {
     const span = new MockSpan(options);
     mockSpans.push(span);

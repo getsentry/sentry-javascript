@@ -8,7 +8,7 @@ import {
   setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 
 describe('remixIntegration (Orchestrion-based)', () => {
   let startInactiveSpanSpy: MockInstance;

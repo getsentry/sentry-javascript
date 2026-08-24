@@ -40,9 +40,7 @@ test('should create a parameterized transaction when the `app` directory is used
   });
 });
 
-test('should create a static transaction when the `app` directory is used and the route is not parameterized', async ({
-  page,
-}) => {
+test('should create a transaction named after the static route when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/static' && transactionEvent.contexts?.trace?.op === 'pageload'
@@ -60,7 +58,8 @@ test('should create a static transaction when the `app` directory is used and th
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.source': 'route',
+          'url.template': '/parameterized/static',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -76,7 +75,7 @@ test('should create a static transaction when the `app` directory is used and th
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     transaction: '/parameterized/static',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });

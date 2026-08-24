@@ -19,7 +19,7 @@ test('Sends a pageload transaction', async ({ page }) => {
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: '/',
-      transaction_info: { source: 'url' },
+      transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: expect.objectContaining({
         react: {
@@ -37,9 +37,10 @@ test('Sends a pageload transaction', async ({ page }) => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
             'url.path': '/',
+            'url.template': '/',
           }),
         },
       }),
@@ -51,8 +52,6 @@ test('Sends a pageload transaction', async ({ page }) => {
       },
     }),
   );
-
-  expect(transactionEvent.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('Should send a transaction for instrumented server actions', async ({ page }) => {

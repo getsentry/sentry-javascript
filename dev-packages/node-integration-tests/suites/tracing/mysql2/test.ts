@@ -72,9 +72,18 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
-      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-    });
-  });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
+    },
+    // mysql2 >= 3.20.0 publishes its own diagnostics channels, which the SDK subscribes to instead
+    // of the orchestrion path asserted here. That range is covered by `mysql2-tracing-channel`, so
+    // this suite pins a version below the boundary regardless of the version the workspace installs.
+    { additionalDependencies: { mysql2: '3.19.1' } },
+  );
 });

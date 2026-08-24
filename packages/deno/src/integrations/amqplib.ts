@@ -1,4 +1,4 @@
-import { amqplibIntegration } from '@sentry/server-utils/orchestrion';
+import { amqplibIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `amqplib` publish/consume operations under Deno. Included in

@@ -9,7 +9,7 @@ import { WEB_SERVER_RPC_SPAN_OP } from '@sentry/conventions/op';
 import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
-import { startSpanManual } from './tracing';
+import { startSpanManual } from './tracing/trace';
 import { normalize } from './utils/normalize';
 import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
 

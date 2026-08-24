@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 // `dataloader` ships a single transpiled CommonJS `index.js`. Its class methods are emitted as
 // `_proto.<name> = function <name>() {}` (named function *expressions*), so they match on

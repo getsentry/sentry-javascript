@@ -142,7 +142,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old

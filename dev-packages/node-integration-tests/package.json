@@ -81,7 +81,7 @@
     "mongodb-memory-server-global": "^11.0.1",
     "mongoose": "^6.13.10",
     "mysql": "^2.18.1",
-    "mysql2": "^3.19.1",
+    "mysql2": "^3.23.3",
     "nock": "^14.0.17",
     "node-cron": "^4.6.0",
     "node-schedule": "^2.1.1",

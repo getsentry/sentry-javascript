@@ -36,7 +36,7 @@ import {
   tediousIntegration,
   vercelAIIntegration,
   redisIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
