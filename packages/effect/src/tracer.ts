@@ -1,9 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import {
-  GENERAL_FUNCTION_SPAN_OP,
-  WEB_SERVER_HTTP_CLIENT_SPAN_OP,
-  WEB_SERVER_HTTP_SERVER_SPAN_OP,
-} from '@sentry/conventions/op';
+import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
 import type * as Context from 'effect/Context';
@@ -26,14 +22,14 @@ function deriveOrigin(name: string): string {
  */
 function deriveOp(name: string): string {
   if (name.startsWith('http.server')) {
-    return WEB_SERVER_HTTP_SERVER_SPAN_OP;
+    return HTTP_SERVER;
   }
 
   if (name.startsWith('http.client')) {
-    return WEB_SERVER_HTTP_CLIENT_SPAN_OP;
+    return HTTP_CLIENT;
   }
 
-  return GENERAL_FUNCTION_SPAN_OP;
+  return FUNCTION;
 }
 
 type HrTime = [number, number];

@@ -18,11 +18,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import {
-  MESSAGING_QUEUE_PROCESS_SPAN_OP,
-  MESSAGING_QUEUE_PUBLISH_SPAN_OP,
-  MESSAGING_QUEUE_RECEIVE_SPAN_OP,
-} from '@sentry/conventions/op';
+import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
   getTraceData,
@@ -111,7 +107,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
     name: `${operationName} ${topic}`,
     links,
     attributes: {
-      [SENTRY_OP]: isBatchReceive ? MESSAGING_QUEUE_RECEIVE_SPAN_OP : MESSAGING_QUEUE_PROCESS_SPAN_OP,
+      [SENTRY_OP]: isBatchReceive ? QUEUE_RECEIVE : QUEUE_PROCESS,
       [SENTRY_KIND]: isBatchReceive ? 'client' : 'consumer',
       ...attributes,
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
@@ -133,7 +129,7 @@ export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
     attributes: {
-      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
+      [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
