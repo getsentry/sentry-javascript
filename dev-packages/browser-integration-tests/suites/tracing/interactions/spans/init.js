@@ -5,12 +5,6 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [
-    Sentry.browserTracingIntegration({
-      enableLongTask: false,
-    }),
-    interactionsIntegration(),
-    Sentry.spanStreamingIntegration(),
-  ],
+  integrations: [Sentry.browserTracingIntegration(), interactionsIntegration(), Sentry.spanStreamingIntegration()],
   tracesSampleRate: 1,
 });
