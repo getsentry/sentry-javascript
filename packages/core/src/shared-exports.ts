@@ -10,6 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
+export * from './tracing/spans/spanNames';
 export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
@@ -136,7 +137,7 @@ export {
   MAX_BODY_BYTE_LENGTH,
 } from './utils/request';
 export type { MaxRequestBodySize } from './utils/request';
-export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, PAGELOAD_SPAN_NAME_FALLBACK } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { spanKindToName } from './spanKind';
 export type { SpanKind, SpanKindNumber } from './spanKind';
 export { addBreadcrumb } from './breadcrumbs';
