@@ -83,6 +83,16 @@ export {
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/core/browser';
 
+export {
+  createCachedRouteProvider,
+  createUrlRouteProvider,
+  resolveCurrentRoute,
+  getRouteProvider,
+  resolveRoute,
+  setRouteProvider,
+} from '@sentry/core/browser';
+export type { CachedRouteProvider, RouteProvider } from '@sentry/core/browser';
+
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';

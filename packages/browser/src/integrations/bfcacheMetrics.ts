@@ -7,7 +7,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core/browser';
-import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core/browser';
+import { debug, defineIntegration, getCurrentScope, metrics, resolveCurrentRoute } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -129,14 +129,20 @@ function _captureBFCacheReason({ reason, frame }: CollectedReason, routeName?: s
 }
 
 /**
- * The segment name for a bfcache navigation, read from the scope rather than any span.
+ * The segment name for a bfcache navigation.
  *
- * A hit restore is silent to tracing (no pageload span), but the frozen scope still holds the last
- * transaction name a downstream SDK (Vue/React/etc.) set before the freeze, so we reuse that. On a miss the
- * page reloads with a fresh scope, so this is the new pageload name. Falls back to the raw pathname when unset.
+ * A registered route provider is preferred because it is parameterized, which matters more here than
+ * elsewhere: this ends up as a metric dimension, where a raw URL is unbounded cardinality.
+ *
+ * Without one we fall back to the scope. A hit restore is silent to tracing (no pageload span), but the
+ * frozen scope still holds the last transaction name a downstream SDK (Vue/React/etc.) set before the
+ * freeze, so we reuse that. On a miss the page reloads with a fresh scope, so this is the new pageload
+ * name. Falls back to the raw pathname when unset.
+ *
+ * Exported for tests only.
  */
-function _getSegmentName(): string | undefined {
-  return getCurrentScope().getScopeData().transactionName || WINDOW.location?.pathname;
+export function _getSegmentName(): string | undefined {
+  return resolveCurrentRoute() || getCurrentScope().getScopeData().transactionName || WINDOW.location?.pathname;
 }
 
 /**
