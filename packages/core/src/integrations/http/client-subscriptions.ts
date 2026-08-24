@@ -21,9 +21,9 @@ import {
   isTracingSuppressed,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_UNSET,
-  startInactiveSpan,
   withActiveSpan,
 } from '../../tracing';
+import { startInactiveSpan } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import { LRUMap } from '../../utils/lru';
 import { getOutgoingRequestSpanData, setIncomingResponseSpanData } from './get-outgoing-span-data';

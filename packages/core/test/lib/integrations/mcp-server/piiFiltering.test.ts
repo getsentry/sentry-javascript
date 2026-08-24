@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { filterMcpPiiFromSpanData } from '../../../../src/integrations/mcp-server/piiFiltering';
-import * as tracingModule from '../../../../src/tracing';
+import * as tracingModule from '../../../../src/tracing/trace';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP Server PII Filtering', () => {
