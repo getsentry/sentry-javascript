@@ -10,8 +10,8 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { postgresIntegration } from '../../src/orchestrion';
-import { CHANNELS } from '../../src/orchestrion/channels';
+import { postgresIntegration } from '../../../src/integrations/postgres';
+import { CHANNELS } from '../../../src/orchestrion/channels';
 
 interface TestStore {
   scope: Scope;

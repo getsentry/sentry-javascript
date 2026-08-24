@@ -133,8 +133,8 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentCreateReactAgent,
+  vercelAIIntegration,
 } from '@sentry/server-utils';
-export { vercelAIIntegration } from '@sentry/server-utils/orchestrion';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 

@@ -7,7 +7,7 @@ import {
   REMOVE_COMMANDS,
   SET_COMMANDS,
   shouldConsiderForCache,
-} from '../../src/integrations/redis/redis-cache';
+} from '../../../src/integrations/redis/redis-cache';
 
 describe('redis cache', () => {
   describe('applyRedisCacheAttributes', () => {

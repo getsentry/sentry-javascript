@@ -1,7 +1,7 @@
 import type { Client, Integration } from '@sentry/core';
 import { getCurrentScope, GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { orchestrionModuleInjected } from '../../src/orchestrion/moduleInjected';
+import { orchestrionModuleInjected } from '../../src/utils/moduleInjected';
 
 describe('orchestrionModuleInjected', () => {
   const factory = (name: string) => (): Integration => ({ name, setupOnce: () => undefined });

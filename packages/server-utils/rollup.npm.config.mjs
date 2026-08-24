@@ -100,12 +100,10 @@ export default [
       // plugins are loaded via dedicated subpath exports (`.../orchestrion/config`,
       // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
       // we list them as separate entrypoints to guarantee they end up in build/esm
-      // and build/cjs. `src/orchestrion/index.ts` backs the `./orchestrion`
-      // subpath export.
+      // and build/cjs.
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
-        'src/orchestrion/index.ts',
         'src/orchestrion/config/index.ts',
         // `src/orchestrion/runtime/register.ts` backs the `./orchestrion/register`
         // subpath export; the Node SDK `require`s it synchronously from

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { instrumentPrisma } from '../src/prisma';
-import type { TracingHelper } from '../src/prisma/types';
+import { instrumentPrisma } from '../../src/integrations/prisma';
+import type { TracingHelper } from '../../src/integrations/prisma/types';
 
 type PrismaGlobal = typeof globalThis & {
   PRISMA_INSTRUMENTATION?: { helper?: TracingHelper };

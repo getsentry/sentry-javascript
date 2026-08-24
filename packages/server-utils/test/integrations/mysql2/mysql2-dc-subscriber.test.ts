@@ -25,7 +25,7 @@ import {
   MYSQL2_DC_CHANNEL_QUERY,
   type MySQL2TracingChannelFactory,
   subscribeMysql2DiagnosticChannels,
-} from '../../src/integrations/mysql2/mysql2-dc-subscriber';
+} from '../../../src/integrations/mysql2/mysql2-dc-subscriber';
 
 interface TestStore {
   scope: Scope;

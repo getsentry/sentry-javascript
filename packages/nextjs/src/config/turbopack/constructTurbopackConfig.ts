@@ -154,13 +154,14 @@ function maybeAddOrchestrionRule(
     return rules;
   }
 
-  // The loader's transform splices an import of the `@sentry/server-utils/orchestrion` helper into
-  // each instrumented module. Turbopack rejects absolute-path imports ("server relative imports are
-  // not implemented yet"), and under isolated installs (pnpm) the bare specifier emitted inside a
-  // bundled package doesn't resolve from that package's location — so pass the helper's absolute
-  // on-disk path and let the loader derive a per-file RELATIVE specifier, which Turbopack resolves
-  // from the importing file and bundles at build time.
-  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
+  // The loader's transform splices an import of `@sentry/server-utils` (the module-injected helper
+  // plus the module's subscriber factory) into each instrumented module. Turbopack rejects
+  // absolute-path imports ("server relative imports are not implemented yet"), and under isolated
+  // installs (pnpm) the bare specifier emitted inside a bundled package doesn't resolve from that
+  // package's location — so pass the entry's absolute on-disk path and let the loader derive a
+  // per-file RELATIVE specifier, which Turbopack resolves from the importing file and bundles at
+  // build time.
+  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',

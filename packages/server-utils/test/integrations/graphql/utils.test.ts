@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@sentry/core';
-import { collectGraphqlDocument } from '../../src/integrations/graphql/utils';
-import type { GraphqlDocumentNode } from '../../src/integrations/graphql/types';
+import { collectGraphqlDocument } from '../../../src/integrations/graphql/utils';
+import type { GraphqlDocumentNode } from '../../../src/integrations/graphql/types';
 
 vi.spyOn(core, 'getClient');
 

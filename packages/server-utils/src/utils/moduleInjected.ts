@@ -4,9 +4,14 @@ import { getClient, GLOBAL_OBJ } from '@sentry/core';
 /**
  * Record a bundler-injected module and notify channel integrations. This is the
  * runtime target of the snippet the `tracingChannelImport` override splices
- * into every instrumented module (see `bundler/moduleInjectedTransform.ts`), so
- * it runs when that module is first evaluated — the moment its diagnostics
- * channels can start publishing.
+ * into every instrumented module (see
+ * `orchestrion/bundler/moduleInjectedTransform.ts`), so it runs when that module
+ * is first evaluated — the moment its diagnostics channels can start publishing.
+ *
+ * Lives on the main `@sentry/server-utils` entry, not the orchestrion one: it is
+ * a plain runtime helper (reads the global marker, emits a client event) with no
+ * dependency on the orchestrion bundler/config code, and the injected snippet
+ * imports it from the same entry as the subscriber factories.
  *
  * It records the module name on the global orchestrion marker, stores the
  * module's channel-subscriber integration factory (when the module has one)

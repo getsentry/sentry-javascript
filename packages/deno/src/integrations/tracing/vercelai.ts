@@ -1,1 +1,1 @@
-export { vercelAIIntegration } from '@sentry/server-utils/orchestrion';
+export { vercelAIIntegration } from '@sentry/server-utils';
