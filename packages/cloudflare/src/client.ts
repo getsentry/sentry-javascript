@@ -200,19 +200,33 @@ interface BaseCloudflareOptions {
    * - Create spans for each RPC method invocation
    * - Capture errors thrown by RPC methods
    *
-   * **Important:** This option is enabled by default. Set it to `false` to opt out, e.g. if you
-   * do not want trace context to leave your Worker via RPC calls.
+   * **Important:** This option should be enabled on **both sides** for full trace propagation.
    *
-   * @default true
+   * @default false
    * @example
    * ```ts
-   * // Opt out of RPC trace propagation
+   * // Worker side (caller)
    * export default Sentry.withSentry(
    *   (env) => ({
    *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: false,
+   *     enableRpcTracePropagation: true,
    *   }),
    *   handler,
+   * );
+   *
+   * // Durable Object side (receiver)
+   * export const MyDO = Sentry.instrumentDurableObjectWithSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     enableRpcTracePropagation: true,
+   *   }),
+   *   MyDOBase,
+   * );
+   *
+   * // WorkerEntrypoint side (receiver)
+   * export const MyEntrypoint = Sentry.withSentry(
+   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
+   *   MyEntrypointBase,
    * );
    * ```
    */
@@ -266,6 +280,13 @@ interface BaseCloudflareOptions {
    * ```
    */
   durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
+
+  /**
+   * Sets an optional server name (device name).
+   *
+   * This is useful for identifying which server or instance is sending events.
+   */
+  serverName?: string;
 
   /**
    * If you use Spotlight by Sentry during development, use

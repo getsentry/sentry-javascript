@@ -25,8 +25,8 @@ import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so it is statically detectable by turbopack
-export { pinoIntegration } from '@sentry/node';
+// Explicitly re-export so these are statically detectable by turbopack
+export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 

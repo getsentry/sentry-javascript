@@ -20,14 +20,15 @@ test('should create a correctly named pageload transaction for a static route', 
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.source': 'route',
+          'url.template': '/static-page',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/static-page',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
@@ -80,14 +81,15 @@ test('should create a correctly named pageload transaction for a static nested r
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.source': 'route',
+          'url.template': '/parameterized/static',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/parameterized/static',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
@@ -134,14 +136,15 @@ test('should create a correctly named pageload transaction for the home page', a
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.source': 'route',
+          'url.template': '/',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });

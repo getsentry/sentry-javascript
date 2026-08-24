@@ -2,7 +2,7 @@ import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
-import type { DefaultEnv, ResolveEnv } from '../types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
 import { extractRpcMeta } from '../utils/rpcMeta';
 import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
@@ -94,7 +94,7 @@ function instrumentMethod(
     true,
   );
 
-  if (options.enableRpcTracePropagation === false) {
+  if (!options.enableRpcTracePropagation) {
     return captureMethod;
   }
 
@@ -155,7 +155,8 @@ export function instrumentWorkerEntrypoint<
   T extends WorkerEntrypoint<any, any> = WorkerEntrypoint<Env, Props>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (ctx: ExecutionContext, env: any) => T = new (ctx: ExecutionContext, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions | undefined, WorkerEntrypointClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O> | undefined, WorkerEntrypointClass: C): C {
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request
   // This is critical - calling this per-request would create a new AsyncLocalStorage
   // each time, breaking scope isolation for concurrent requests

@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -10,19 +9,13 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
   // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
-  const origin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
-  const redisSpanOp = isOrchestrionEnabled() ? 'db.query' : 'db';
-  const redisData = isOrchestrionEnabled()
-    ? {
-        'db.system.name': 'redis',
-        'server.address': 'localhost',
-        'server.port': 6380,
-      }
-    : {
-        'db.system': 'redis',
-        'net.peer.name': 'localhost',
-        'net.peer.port': 6380,
-      };
+  const origin = 'auto.db.redis';
+  const redisSpanOp = 'db.query';
+  const redisData = {
+    'db.system.name': 'redis',
+    'server.address': 'localhost',
+    'server.port': 6380,
+  };
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',

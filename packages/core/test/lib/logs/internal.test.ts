@@ -43,21 +43,6 @@ describe('_INTERNAL_captureLog', () => {
     );
   });
 
-  it('does not capture logs when enableLogs is disabled', () => {
-    const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: false });
-    const client = new TestClient(options);
-    const scope = new Scope();
-    scope.setClient(client);
-
-    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, scope);
-
-    expect(logWarnSpy).toHaveBeenCalledWith('logging option not enabled, log will not be captured.');
-    expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
-
-    logWarnSpy.mockRestore();
-  });
-
   it('includes trace context when available', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);

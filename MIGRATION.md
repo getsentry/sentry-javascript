@@ -523,6 +523,7 @@ Two consequences to be aware of when upgrading:
 Affected SDKs: All SDKs.
 
 - The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+- The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -610,6 +611,37 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 | `browser.TLS/SSL`               | `browser.tls_ssl`                  |
 | `browser.DNS`                   | `browser.dns`                      |
 
+### Span name changes
+
+Affected SDKs: All SDKs running in the browser.
+
+With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
+
+In v11, this only affects `pageload` spans. Further ops will follow in future releases.
+If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
+
+The following span names were adjusted:
+
+| Span op    | Before                                                                                      | After                                                      |
+| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`) | The parameterized route, or `Pageload` if the SDK has none |
+
+Some consequences to be aware of:
+
+Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+
+`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Match on attributes instead:
+
+```js
+Sentry.init({
+  // Before
+  ignoreSpans: ['/health'],
+
+  // After
+  ignoreSpans: [{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
+});
+```
+
 ### LangGraph no longer emits `create_agent` spans
 
 Affected SDKs: All server-side SDKs.
@@ -619,6 +651,8 @@ The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
+
+**Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
 
@@ -835,8 +869,6 @@ Sentry.init({
   );
 ```
 
-- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
-
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
 
 ```diff
@@ -873,7 +905,10 @@ Sentry.init({
 - The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute was removed.
 - (Vercel AI) The internal JSON-stringify workaround for array span attributes was removed.
 - AI integrations are no longer available in the browser SDK. They remain available in the server-side SDKs.
-- The AI instrumentation code moved out of `@sentry/core` into `@sentry/server-utils`. If you imported any AI helper **directly from `@sentry/core`**, import it from `@sentry/server-utils` instead (or keep importing it from your platform SDK, e.g. `@sentry/node`, if it re-exported that helper before — platform SDK availability is unchanged from v10). Affected helpers: `instrumentOpenAiClient`, `instrumentAnthropicAiClient`, `instrumentGoogleGenAIClient`, `instrumentWorkersAiClient`, `createLangChainCallbackHandler`, `instrumentLangChainEmbeddings`, `instrumentStateGraph`, `instrumentStateGraphCompile`, `instrumentCreateReactAgent`, `addVercelAiProcessors`.
+- The AI instrumentation code moved out of `@sentry/core` into `@sentry/server-utils`. If you imported any AI helper **directly from `@sentry/core`**, import it from `@sentry/server-utils` instead (or keep importing it from your platform SDK, e.g. `@sentry/node`, if it re-exported that helper before — platform SDK availability is unchanged from v10). Affected helpers: `instrumentOpenAiClient`, `instrumentAnthropicAiClient`, `instrumentGoogleGenAIClient`, `instrumentWorkersAiClient`, `createLangChainCallbackHandler`, `instrumentLangChainEmbeddings`, `instrumentStateGraph`, `instrumentStateGraphCompile`, `instrumentCreateReactAgent`.
+- The `addVercelAiProcessors` helper was removed. It was an internal building block for setting up Vercel AI span processing by hand; `vercelAIIntegration()` now wires this up on its own, so add that integration instead of calling `addVercelAiProcessors` directly.
+- (Vercel Edge) `vercelAIIntegration` was removed from `@sentry/vercel-edge`; Vercel AI is not instrumented on the Edge runtime. `@sentry/nextjs` keeps the export on its Edge build as a no-op (so `import { vercelAIIntegration }` from `@sentry/nextjs` still resolves in edge-compiled instrumentation files), with the real instrumentation running only in the Node runtime.
+- (Cloudflare & Deno) `vercelAIIntegration` no longer post-processes the OpenTelemetry spans emitted by the `ai` SDK. Instrumentation now goes solely through the channel-based instrumentation, the same as the other server SDKs.
 - The following low-level AI exports are no longer part of the public API (they were provider-instrumentation internals exported from `@sentry/core`):
   - Attribute/stream/util helpers: `extractOpenAiRequestAttributes`, `addOpenAiRequestAttributes`, `addOpenAiResponseAttributes`, `extractOpenAiRequestParameters`, `instrumentOpenAiStream`, `extractAnthropicRequestAttributes`, `addAnthropicRequestAttributes`, `addAnthropicResponseAttributes`, `instrumentAsyncIterableStream`, `instrumentMessageStream`, `extractGoogleGenAIRequestAttributes`, `addGoogleGenAIRequestAttributes`, `addGoogleGenAIResponseAttributes`, `instrumentGoogleGenAIStream`, `getProviderMetadataAttributes`, `getTruncatedJsonString`, `shouldEnableTruncation`, `resolveAIRecordingOptions`, `wrapToolsWithSpans`, `extractLLMFromParams`, `extractAgentNameFromParams`, `instrumentCompiledGraphInvoke`.
   - Integration-name constants: `OPENAI_INTEGRATION_NAME`, `ANTHROPIC_AI_INTEGRATION_NAME`, `GOOGLE_GENAI_INTEGRATION_NAME`, `LANGCHAIN_INTEGRATION_NAME`, `LANGGRAPH_INTEGRATION_NAME`.
@@ -960,6 +995,13 @@ export default defineConfig({
 });
 ```
 
+### `@sentry/server-utils`
+
+- The following exports were removed from `@sentry/server-utils`. They were only reachable by importing from `@sentry/server-utils` directly (no user-facing SDK re-exported them) and were effectively internal; the underlying functionality is unchanged and still used within the SDK.
+  - `instrumentPrisma`: Prisma is instrumented via `prismaIntegration` and works out of the box, so manual instrumentation is no longer exposed.
+  - `defaultDbStatementSerializer`: the default Redis command statement serializer helper.
+  - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
+
 ## 4. Package Removals
 
 ### `@sentry/types` is no longer published
@@ -1040,6 +1082,34 @@ import { instrumentLangGraph } from '@sentry/node';
 // after
 import { instrumentStateGraph } from '@sentry/node';
 ```
+
+### `childProcess` integration split into `childProcess` and `workerThreads`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The `childProcessIntegration` was split into a `childProcessIntegration` (for `child_process`) and a separate `workerThreadsIntegration` (for `worker_threads`).
+
+Both integrations are enabled by default, so no change is needed to keep the previous behavior.
+
+The deprecated `captureWorkerErrors` option was removed. Worker thread errors are always captured as events now. To opt out, remove `workerThreadsIntegration` instead:
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.childProcessIntegration({ captureWorkerErrors: false })],
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'WorkerThreads'),
+});
+```
+
+Note that `captureWorkerErrors: false` used to downgrade worker thread errors to a `worker_thread` breadcrumb. That breadcrumb is gone, so removing the integration drops worker thread errors entirely.
+
+The `includeChildProcessArgs` option stays on `childProcessIntegration`. Disabling `childProcessIntegration` no longer disables worker thread error capture, since that now lives in `workerThreadsIntegration`.
+
+The mechanism type of worker thread errors changed from `auto.child_process.worker_thread` to `auto.node.worker_threads`. Adjust any alerts or filters that match on it.
 
 ### Deno default integrations renamed to match the other SDKs
 

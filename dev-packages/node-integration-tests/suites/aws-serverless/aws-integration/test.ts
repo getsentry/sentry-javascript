@@ -1,12 +1,11 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
 // orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
 // same spans; only the origin differs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -87,9 +86,9 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'sentry.op': 'db',
       'rpc.method': 'PutItem',
       'rpc.service': 'DynamoDB',
-      'db.system': 'dynamodb',
-      'db.name': 'my-table',
-      'db.operation': 'PutItem',
+      'db.system.name': 'dynamodb',
+      'db.namespace': 'my-table',
+      'db.operation.name': 'PutItem',
       'aws.dynamodb.table_names': ['my-table'],
     }),
   });
@@ -101,7 +100,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Query',
-      'db.operation': 'Query',
+      'db.operation.name': 'Query',
       'aws.dynamodb.count': 1,
       'aws.dynamodb.scanned_count': 1,
     }),

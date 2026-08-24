@@ -20,12 +20,7 @@ class LoopbackEntrypointBase extends WorkerEntrypoint<Env> {
 }
 
 export const LoopbackEntrypoint = Sentry.withSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
-    tracesSampleRate: 0,
-    enableRpcTracePropagation: false,
-  }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 0 }),
   LoopbackEntrypointBase,
 );
 

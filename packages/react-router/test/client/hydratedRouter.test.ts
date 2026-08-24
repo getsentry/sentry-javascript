@@ -64,8 +64,11 @@ describe('instrumentHydratedRouter', () => {
     (core.getRootSpan as any).mockImplementation((span: any) => span);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
       name: '/foo/bar',
-      // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
-      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload' },
+      attributes: {
+        // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
+        'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload',
+        'url.path': '/foo/bar',
+      },
     }));
     (core.getClient as any).mockReturnValue({});
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);

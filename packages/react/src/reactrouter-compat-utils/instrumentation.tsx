@@ -14,6 +14,8 @@ import {
   debug,
   getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -722,7 +724,9 @@ export function createReactRouterV6CompatibleTracingIntegration(
       const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
-          name: initPathName,
+          // With span streaming, span names have to be low cardinality. The route is only resolved
+          // once the router renders, which updates the span name then.
+          name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initPathName,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -1131,7 +1135,10 @@ function updatePageloadTransaction({
     getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
-      activeRootSpan.updateName(name);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      activeRootSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
       if (source === 'route') {
         activeRootSpan.setAttribute(URL_TEMPLATE, name);
@@ -1230,7 +1237,11 @@ function tryUpdateSpanNameBeforeEnd(
     const spanNotEnded = spanType === 'pageload' || !spanJson.end_timestamp;
 
     if (isImprovement && spanNotEnded) {
-      span.updateName(name);
+      // With span streaming, a pageload span name has to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedPageload =
+        spanType === 'pageload' && source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      span.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
       if (source === 'route') {
         span.setAttribute(URL_TEMPLATE, name);

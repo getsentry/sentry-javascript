@@ -1,4 +1,4 @@
-import { isThenable } from '@sentry/core';
+import { isThenable, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { ExportedNextConfig as NextConfig, NextConfigFunction, SentryBuildOptions } from '../types';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
 import { getFinalConfigObject } from './getFinalConfigObject';
@@ -15,6 +15,9 @@ export { DEFAULT_SERVER_EXTERNAL_PACKAGES };
  * @returns The wrapped Next.js config (same shape as the input)
  */
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
+  warnOnRemovedBuildOptions(sentryBuildOptions, ['unstable_sentryWebpackPluginOptions']);
+  warnOnRemovedBuildOptions(sentryBuildOptions.webpack, ['unstable_sentryWebpackPluginOptions']);
+
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {

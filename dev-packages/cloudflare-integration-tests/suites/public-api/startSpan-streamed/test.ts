@@ -276,7 +276,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'network.protocol.name': {
             type: 'string',
-            value: 'HTTP/1.1',
+            value: 'http',
+          },
+          'network.protocol.version': {
+            type: 'string',
+            value: '1.1',
           },
         },
         is_segment: true,

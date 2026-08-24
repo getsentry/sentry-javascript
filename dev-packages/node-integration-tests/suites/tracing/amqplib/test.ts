@@ -1,20 +1,17 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
 // The scenarios all publish via `sendToQueue`, which delegates to `publish('', queue, ...)` — i.e. the
 // default (empty) exchange with the queue name as the routing key.
-const orchestrionMessagingAttributes = isOrchestrionEnabled() ? { 'messaging.operation.name': 'send' } : {};
-
 const expectedProducerSpan = (routingKey: string) =>
   expect.objectContaining({
     op: 'queue.publish',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
-      ...orchestrionMessagingAttributes,
+      'messaging.operation.name': 'send',
       'messaging.operation.type': 'send',
       'messaging.destination.name': '',
       'messaging.rabbitmq.destination.routing_key': routingKey,
@@ -30,8 +27,6 @@ const expectedProducerSpan = (routingKey: string) =>
     status: 'ok',
   });
 
-const consumerMessagingAttributes = isOrchestrionEnabled() ? { 'messaging.operation.name': 'process' } : {};
-
 const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'queue.process',
   data: expect.objectContaining({
@@ -39,7 +34,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
     // The consumer reads the default exchange ('') off the delivered message and the queue name as the routing key.
     'messaging.destination.name': '',
     'messaging.rabbitmq.destination.routing_key': 'queue1',
-    ...consumerMessagingAttributes,
+    'messaging.operation.name': 'process',
     'messaging.operation.type': 'process',
     'sentry.kind': 'consumer',
     'sentry.op': 'queue.process',

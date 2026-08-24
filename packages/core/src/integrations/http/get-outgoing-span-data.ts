@@ -9,7 +9,15 @@ import {
   HTTP_HOST,
   HTTP_METHOD,
   HTTP_TARGET,
-  NET_PEER_NAME,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
   URL_FULL,
   USER_AGENT_ORIGINAL,
@@ -41,7 +49,8 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       /* eslint-disable typescript/no-deprecated */
       [HTTP_METHOD]: request.method,
       [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
-      [NET_PEER_NAME]: request.host,
+      [SERVER_ADDRESS]: request.host,
+      [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
       [HTTP_HOST]: request.getHeader('host') as string | undefined,
       /* eslint-enable typescript/no-deprecated */
       [USER_AGENT_ORIGINAL]: userAgent || undefined,
@@ -56,16 +65,16 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
  */
 export function setIncomingResponseSpanData(response: HttpIncomingMessage, span: Span): void {
   const { statusCode, statusMessage, httpVersion, socket } = response;
-  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'ip_tcp' : 'ip_udp';
+  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'tcp' : 'udp';
 
   span.setAttributes({
     'http.response.status_code': statusCode,
-    'network.protocol.version': httpVersion,
+    [NETWORK_PROTOCOL_NAME]: 'http',
+    [NETWORK_PROTOCOL_VERSION]: httpVersion,
     // TODO(v11): Update these to the Sentry semantic attributes for urls.
     // https://getsentry.github.io/sentry-conventions/attributes/
     'http.flavor': httpVersion,
-    'network.transport': transport,
-    'net.transport': transport,
+    [NETWORK_TRANSPORT]: transport,
     'http.status_text': statusMessage?.toUpperCase(),
     'http.status_code': statusCode,
     ...getResponseContentLengthAttributes(response),
@@ -75,12 +84,12 @@ export function setIncomingResponseSpanData(response: HttpIncomingMessage, span:
 
 function getSocketAttrs(socket: HttpIncomingMessage['socket']): SpanAttributes {
   if (!socket) return {};
-  const { remoteAddress, remotePort } = socket;
+  const { localAddress, localPort, remoteAddress, remotePort } = socket;
   return {
-    'network.peer.address': remoteAddress,
-    'network.peer.port': remotePort,
-    'net.peer.ip': remoteAddress,
-    'net.peer.port': remotePort,
+    [NETWORK_LOCAL_ADDRESS]: localAddress,
+    [NETWORK_LOCAL_PORT]: localPort,
+    [NETWORK_PEER_ADDRESS]: remoteAddress,
+    [NETWORK_PEER_PORT]: remotePort,
   };
 }
 

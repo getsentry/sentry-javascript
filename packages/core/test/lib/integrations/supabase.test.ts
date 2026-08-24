@@ -513,7 +513,7 @@ describe('Supabase Integration', () => {
         attributes: Record<string, unknown>;
       };
       expect(spanOptions.name).toMatch(/^upsert\(\.\.\.\)/);
-      expect(spanOptions.attributes['db.operation']).toBe('upsert');
+      expect(spanOptions.attributes['db.operation.name']).toBe('upsert');
     });
   });
 });

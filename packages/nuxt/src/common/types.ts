@@ -1,7 +1,5 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { init as initNode } from '@sentry/node';
-import type { SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { init as initVue } from '@sentry/vue';
 
 // Omitting Vue 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
@@ -91,12 +89,4 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    * @default ['default', 'handler', 'server']
    */
   experimental_entrypointWrappedFunctions?: string[];
-
-  /**
-   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/bundler-plugins/rollup`) and Sentry Vite Plugin (`@sentry/bundler-plugins/vite`) that ship with the Sentry Nuxt SDK.
-   * You can use this option to override any options the SDK passes to the Vite (for Nuxt) and Rollup (for Nitro) plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryBundlerPluginOptions?: SentryRollupPluginOptions & SentryVitePluginOptions;
 };

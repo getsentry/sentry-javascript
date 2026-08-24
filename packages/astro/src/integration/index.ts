@@ -1,4 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { warnOnRemovedBuildOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
@@ -34,12 +35,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // eslint-disable-next-line typescript/no-deprecated
           sourceMapsUploadOptions,
           sourcemaps,
-          // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
-          // release,
+          release,
           buildTimeInstrumentation,
           bundleSizeOptimizations,
           applicationKey,
-          unstable_sentryVitePluginOptions,
+          moduleMetadata,
           debug,
           org,
           project,
@@ -49,17 +49,14 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           telemetry,
           silent,
           errorHandler,
-          ...deprecatedOptions
         } = options;
 
-        const deprecatedOptionsKeys = Object.keys(deprecatedOptions);
-        if (deprecatedOptionsKeys.length > 0) {
-          logger.warn(
-            `You passed in additional options (${deprecatedOptionsKeys.join(
-              ', ',
-            )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
-          );
-        }
+        warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions'], message => logger.warn(message));
+        // The nested spelling is not covered by the check above.
+        // eslint-disable-next-line typescript/no-deprecated
+        warnOnRemovedBuildOptions(options.sourceMapsUploadOptions, ['unstable_sentryVitePluginOptions'], message =>
+          logger.warn(message),
+        );
 
         const sdkEnabled = {
           client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
@@ -67,14 +64,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        // eslint-disable-next-line typescript/no-deprecated
-        const { unstable_sentryVitePluginOptions: deprecatedVitePluginOptions, ...uploadOptions } =
-          sourceMapsUploadOptions || {};
-
-        const unstableMerged_sentryVitePluginOptions = {
-          ...deprecatedVitePluginOptions,
-          ...unstable_sentryVitePluginOptions,
-        };
+        const uploadOptions = sourceMapsUploadOptions || {};
 
         const shouldUploadSourcemaps =
           (sourceMapsNeeded &&
@@ -114,6 +104,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               plugins: [
                 sentryVitePlugin({
                   applicationKey,
+                  moduleMetadata,
                   // Priority: top-level options > deprecated options > env vars
                   // eslint-disable-next-line typescript/no-deprecated
                   org: org ?? uploadOptions.org ?? env.SENTRY_ORG,
@@ -132,8 +123,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       metaFramework: 'astro',
                     },
                   },
-                  ...unstableMerged_sentryVitePluginOptions,
                   debug: debug ?? false,
+                  release,
                   sourcemaps: {
                     ...sourcemaps,
                     // eslint-disable-next-line typescript/no-deprecated
@@ -143,11 +134,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       // eslint-disable-next-line typescript/no-deprecated
                       uploadOptions?.filesToDeleteAfterUpload ??
                       updatedFilesToDeleteAfterUpload,
-                    ...unstableMerged_sentryVitePluginOptions?.sourcemaps,
                   },
                   bundleSizeOptimizations: {
                     ...bundleSizeOptimizations,
-                    ...unstableMerged_sentryVitePluginOptions?.bundleSizeOptimizations,
                   },
                 }),
               ],

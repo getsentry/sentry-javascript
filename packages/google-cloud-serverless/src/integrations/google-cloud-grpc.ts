@@ -96,34 +96,29 @@ export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodNa
   if (callType != 'unary call') {
     return;
   }
-  fill(
-    stub,
-    methodName,
-    (orig: GrpcFunction): GrpcFunction =>
-      (...args) => {
-        const ret = orig.apply(stub, args);
-        if (typeof ret?.on !== 'function' || !SETUP_CLIENTS.has(getClient() as Client)) {
-          return ret;
-        }
-        const span = startInactiveSpan({
-          name: `${callType} ${methodName}`,
-          onlyIfParent: true,
-          attributes: {
-            [SENTRY_OP]: FAAS_GRPC_SPAN_OP,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
-            [RPC_SYSTEM_NAME]: 'grpc',
-            [RPC_SERVICE]: serviceIdentifier,
-            [RPC_METHOD]: methodName,
-          },
-        });
-        ret.on('status', () => {
-          if (span) {
-            span.end();
-          }
-        });
-        return ret;
+  fill(stub, methodName, (orig: GrpcFunction): GrpcFunction => (...args) => {
+    const ret = orig.apply(stub, args);
+    if (typeof ret?.on !== 'function' || !SETUP_CLIENTS.has(getClient() as Client)) {
+      return ret;
+    }
+    const span = startInactiveSpan({
+      name: `${callType} ${methodName}`,
+      onlyIfParent: true,
+      attributes: {
+        [SENTRY_OP]: FAAS_GRPC_SPAN_OP,
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+        [RPC_SYSTEM_NAME]: 'grpc',
+        [RPC_SERVICE]: serviceIdentifier,
+        [RPC_METHOD]: methodName,
       },
-  );
+    });
+    ret.on('status', () => {
+      if (span) {
+        span.end();
+      }
+    });
+    return ret;
+  });
 }
 
 /** Identifies service by its address */

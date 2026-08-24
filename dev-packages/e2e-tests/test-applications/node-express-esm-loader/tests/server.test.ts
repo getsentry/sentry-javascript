@@ -45,12 +45,12 @@ test('Should record a transaction for route with parameters', async ({ request }
       'http.target': '/test-transaction/1',
       'url.full': 'http://localhost:3030/test-transaction/1',
       'http.user_agent': expect.any(String),
-      'net.host.ip': expect.any(String),
-      'net.host.name': 'localhost',
-      'net.host.port': 3030,
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'net.transport': 'ip_tcp',
+      'network.local.address': expect.any(String),
+      'server.address': 'localhost',
+      'network.local.port': 3030,
+      'network.peer.address': expect.any(String),
+      'network.peer.port': expect.any(Number),
+      'network.transport': 'tcp',
       'sentry.kind': 'server',
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.otel.http',
@@ -114,4 +114,35 @@ test('Should record a transaction for route with parameters', async ({ request }
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
+});
+
+test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /test-mysql';
+  });
+
+  await fetch(`${baseURL}/test-mysql`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
+  expect(transactionEvent.transaction).toEqual('GET /test-mysql');
+  expect(transactionEvent.contexts?.trace?.status).toEqual('ok');
+  expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(200);
+
+  const spans = transactionEvent.spans || [];
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      op: 'db',
+      origin: 'auto.db.mysql',
+      description: 'SELECT 1 + 1 AS solution',
+    }),
+  );
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      op: 'db',
+      origin: 'auto.db.mysql',
+      description: 'SELECT NOW()',
+    }),
+  );
 });

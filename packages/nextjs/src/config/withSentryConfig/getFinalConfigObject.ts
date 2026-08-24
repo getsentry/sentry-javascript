@@ -10,6 +10,7 @@ import {
   maybeEnableTurbopackSourcemaps,
   maybeSetUpRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook,
+  maybeWarnAboutTurbopackModuleMetadata,
   maybeWarnAboutUnsupportedTurbopack,
   resolveBuildTimeInstrumentationOption,
   resolveUseRunAfterProductionCompileHookOption,
@@ -56,6 +57,7 @@ export function getFinalConfigObject(
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo);
+  maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook(nextJsVersion, userSentryOptions, bundlerInfo);
 
   const turboPackConfig = maybeConstructTurbopackConfig(

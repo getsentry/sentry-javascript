@@ -5,8 +5,8 @@ import { devices } from '@playwright/test';
  */
 const config = {
   testDir: './tests',
-  /* Maximum time one test can run for. */
-  timeout: 150_000,
+  /* Maximum time one test can run for. Spans take ~2min to become queryable via the trace endpoint. */
+  timeout: 210_000,
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.

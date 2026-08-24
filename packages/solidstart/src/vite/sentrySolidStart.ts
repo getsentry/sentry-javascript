@@ -1,5 +1,4 @@
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
-import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
+import { type BuildTimeOptionsBase, warnOnRemovedBuildOptions } from '@sentry/core';
 import { setupSentryNitroModule } from '@sentry/nitro';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin, UserConfig } from 'vite';
@@ -8,7 +7,7 @@ import { makeAddSentryVitePluginSolidStart2, makeEnableSourceMapsVitePlugin } fr
 /**
  * Build-time options for the Sentry SolidStart SDK on SolidStart 2.
  */
-export type SentrySolidStartOptions = BuildTimeOptionsBase & UnstableVitePluginOptions<SentryVitePluginOptions>;
+export type SentrySolidStartOptions = BuildTimeOptionsBase;
 
 /**
  * Vite plugins for the Sentry SolidStart SDK. Requires SolidStart 2.
@@ -39,6 +38,8 @@ export type SentrySolidStartOptions = BuildTimeOptionsBase & UnstableVitePluginO
  * @returns An array of Vite plugins
  */
 export function sentrySolidStart(options: SentrySolidStartOptions = {}): Plugin[] {
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
   const plugins: Plugin[] = [makeSentryNitroPlugin(options)];
 
   // Only the Nitro plugin is dev-safe; its module handles `dev` itself.

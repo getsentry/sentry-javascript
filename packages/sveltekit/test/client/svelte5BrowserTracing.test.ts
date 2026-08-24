@@ -63,7 +63,7 @@ describe('svelte5 browser tracing', () => {
     () => ({ setTransactionName: setTransactionNameSpy }) as unknown as ReturnType<typeof SentrySvelte.getCurrentScope>,
   );
 
-  const client = {} as Parameters<typeof instrumentSvelteKitTracing>[0];
+  const client = { getOptions: () => ({}) } as Parameters<typeof instrumentSvelteKitTracing>[0];
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -47,13 +47,25 @@ function createMockNuxt(options: {
 }
 
 describe('setupSourceMaps hooks', () => {
+  const defaultFilesToDeleteAfterUpload = [
+    '.*/**/public/**/*.map',
+    '.*/**/server/**/*.map',
+    '.*/**/output/**/*.map',
+    '.*/**/function/**/*.map',
+  ];
+
   const mockSentryVitePlugin = vi.fn(() => [{ name: 'sentry-vite-plugin' }]);
   const mockSentryRollupPlugin = vi.fn(() => ({ name: 'sentry-rollup-plugin' }));
+  const mockDeleteArtifacts = vi.fn().mockResolvedValue(undefined);
+  const mockCreateSentryBuildPluginManager = vi.fn(() => ({ deleteArtifacts: mockDeleteArtifacts }));
 
   const consoleLogSpy = vi.spyOn(console, 'log');
   const consoleWarnSpy = vi.spyOn(console, 'warn');
 
   beforeAll(() => {
+    vi.doMock('@sentry/bundler-plugins/core', () => ({
+      createSentryBuildPluginManager: mockCreateSentryBuildPluginManager,
+    }));
     vi.doMock('@sentry/bundler-plugins/vite', () => ({
       sentryVitePlugin: mockSentryVitePlugin,
     }));
@@ -65,6 +77,7 @@ describe('setupSourceMaps hooks', () => {
   afterAll(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+    vi.doUnmock('@sentry/bundler-plugins/core');
     vi.doUnmock('@sentry/bundler-plugins/vite');
     vi.doUnmock('@sentry/bundler-plugins/rollup');
   });
@@ -74,6 +87,41 @@ describe('setupSourceMaps hooks', () => {
     consoleWarnSpy.mockClear();
     mockSentryVitePlugin.mockClear();
     mockSentryRollupPlugin.mockClear();
+    mockCreateSentryBuildPluginManager.mockClear();
+    mockDeleteArtifacts.mockClear();
+  });
+
+  describe('removed `unstable_sentryBundlerPluginOptions`', () => {
+    // `getPluginOptions` runs once per bundler (Vite and Nitro's Rollup), so warning there emitted
+    // the same message twice. This pins it to exactly one.
+    it('warns exactly once, even though both bundler plugins are set up', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps(
+        // @ts-expect-error - removed in v11, but JS configs get no type checking
+        { unstable_sentryBundlerPluginOptions: { org: 'override-org' } },
+        mockNuxt as unknown as Nuxt,
+        mockAddVitePlugin,
+      );
+      await mockNuxt.triggerHook('nitro:config', { rollupConfig: {} });
+
+      const removalWarnings = consoleWarnSpy.mock.calls.filter(([message]) =>
+        String(message).includes('unstable_sentryBundlerPluginOptions'),
+      );
+      expect(removalWarnings).toHaveLength(1);
+    });
+
+    it('does not warn for a config without removed options', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({});
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ org: 'my-org' }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('unstable_'));
+    });
   });
 
   describe('vite plugin registration', () => {
@@ -163,14 +211,7 @@ describe('setupSourceMaps hooks', () => {
   });
 
   describe('shouldDeleteFilesFallback passed to getPluginOptions in Vite plugin', () => {
-    const defaultFilesToDeleteAfterUpload = [
-      '.*/**/public/**/*.map',
-      '.*/**/server/**/*.map',
-      '.*/**/output/**/*.map',
-      '.*/**/function/**/*.map',
-    ];
-
-    it('sentryVitePlugin is called with fallback filesToDeleteAfterUpload when source maps are unset', async () => {
+    it('does not pass fallback deletion patterns to the Vite plugin', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
@@ -181,13 +222,28 @@ describe('setupSourceMaps hooks', () => {
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
 
-      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourcemaps: expect.objectContaining({
-            filesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload,
-          }),
-        }),
-      );
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith({
+        applicationKey: undefined,
+        org: undefined,
+        project: undefined,
+        authToken: undefined,
+        telemetry: true,
+        url: undefined,
+        headers: undefined,
+        debug: false,
+        silent: false,
+        errorHandler: undefined,
+        bundleSizeOptimizations: undefined,
+        release: { name: undefined },
+        _metaOptions: { telemetry: { metaFramework: 'nuxt' } },
+        sourcemaps: {
+          disable: undefined,
+          assets: undefined,
+          ignore: undefined,
+          filesToDeleteAfterUpload: undefined,
+          rewriteSources: expect.any(Function),
+        },
+      });
     });
 
     it('sentryRollupPlugin is called without filesToDeleteAfterUpload when source maps are explicitly enabled', async () => {
@@ -205,10 +261,93 @@ describe('setupSourceMaps hooks', () => {
       const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
-      const pluginOptions = (mockSentryRollupPlugin?.mock?.calls?.[0] as unknown[])?.[0] as {
-        sourcemaps?: { filesToDeleteAfterUpload?: string[] };
-      };
-      expect(pluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+      expect(mockSentryRollupPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: undefined }),
+        }),
+      );
+    });
+  });
+
+  describe('close hook', () => {
+    it('deletes source maps after the build using fallback patterns', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({
+        _prepare: false,
+        dev: false,
+        sourcemap: { client: undefined, server: undefined },
+      });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload }),
+        }),
+        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+      );
+      expect(mockDeleteArtifacts).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses user-provided deletion patterns after the build', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({
+        _prepare: false,
+        dev: false,
+        sourcemap: { client: true, server: true },
+      });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+      const filesToDeleteAfterUpload = ['.output/**/*.map'];
+
+      setupSourceMaps({ sourcemaps: { filesToDeleteAfterUpload } }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload }),
+        }),
+        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+      );
+      expect(mockDeleteArtifacts).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not create a manager when deletion is not configured', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({
+        _prepare: false,
+        dev: false,
+        sourcemap: { client: true, server: true },
+      });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
+      expect(mockDeleteArtifacts).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { label: 'prepare mode', nuxtOptions: { _prepare: true, dev: false } },
+      { label: 'dev mode', nuxtOptions: { _prepare: false, dev: true } },
+    ])('does not delete source maps in $label', async ({ nuxtOptions }) => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt(nuxtOptions);
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps(
+        { sourcemaps: { filesToDeleteAfterUpload: ['.output/**/*.map'] } },
+        mockNuxt as unknown as Nuxt,
+        mockAddVitePlugin,
+      );
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
     });
   });
 

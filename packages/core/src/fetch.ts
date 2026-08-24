@@ -1,5 +1,12 @@
 /* eslint-disable max-lines */
-import { HTTP_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  HTTP_METHOD,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
 import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
@@ -365,7 +372,8 @@ function getFetchSpanAttributes(
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
       attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href), client);
-      attributes[SERVER_ADDRESS] = parsedUrl.host;
+      attributes[SERVER_ADDRESS] = parsedUrl.hostname;
+      attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
     attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);

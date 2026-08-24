@@ -87,12 +87,12 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
         description: 'SELECT 1 + 1 AS solution',
         status: 'ok',
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT 1 + 1 AS solution',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT 1 + 1 AS solution',
           'db.user': 'root',
           'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': 3306,
+          'server.address': expect.any(String),
+          'server.port': 3306,
         }),
       }),
     );
@@ -103,12 +103,12 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
         description: 'SELECT NOW()',
         status: 'ok',
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT NOW()',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT NOW()',
           'db.user': 'root',
           'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': 3306,
+          'server.address': expect.any(String),
+          'server.port': 3306,
         }),
       }),
     );
