@@ -25,7 +25,7 @@ describe('maybeParameterizeRoute', () => {
   });
 
   describe('when manifest has static routes', () => {
-    it('should return the route itself for static routes', () => {
+    it('returns the route itself for static routes', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
         dynamicRoutes: [],
@@ -78,7 +78,7 @@ describe('maybeParameterizeRoute', () => {
       expect(maybeParameterizeRoute('/users/john-doe/settings')).toBe('/users/:id/settings');
     });
 
-    it('should return the route itself for static routes even when dynamic routes exist', () => {
+    it('returns the route itself for static routes even when dynamic routes exist', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/dynamic/static' }, { path: '/static/nested' }],
         dynamicRoutes: [
