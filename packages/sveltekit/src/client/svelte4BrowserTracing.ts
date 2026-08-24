@@ -19,6 +19,7 @@ import type { Navigation, Page } from '@sveltejs/kit';
 // eslint-disable-next-line typescript/no-deprecated
 import { navigating, page } from '$app/stores';
 import type { Readable } from 'svelte/store';
+import { recordRouteId } from './routeCache';
 
 /**
  * SvelteKit 2 / Svelte 4 browser tracing (`$app/stores`). Selected at build time, so it's only
@@ -64,6 +65,8 @@ function _instrumentPageload(client: Client, pageStore: Readable<Page>): void {
 
     const routeId = pageState.route?.id;
 
+    recordRouteId(pageState.url?.pathname, routeId);
+
     if (routeId) {
       pageloadSpan.updateName(routeId);
       pageloadSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
@@ -106,6 +109,8 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
 
     const parameterizedRouteOrigin = from?.route.id;
     const parameterizedRouteDestination = to?.route.id;
+
+    recordRouteId(to?.url.pathname, parameterizedRouteDestination);
 
     if (routingSpan) {
       // If a routing span is still open from a previous navigation, we finish it.

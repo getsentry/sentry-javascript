@@ -17,6 +17,7 @@ import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/con
 import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
+import { recordRouteId } from './routeCache';
 
 /**
  * SvelteKit 3 / Svelte 5 browser tracing (`$app/state` runes). Selected at build time, so it's only
@@ -57,6 +58,8 @@ function _instrumentPageLoad(client: Client): void {
   // `page.route.id` isn't available synchronously when we set up (during `Sentry.init`), so we react
   // to it and upgrade the pageload span from `url` to the parameterized `route` once it resolves.
   onPageRouteChange(routeId => {
+    recordRouteId(WINDOW.location?.pathname, routeId);
+
     if (routeId) {
       pageLoadSpan.updateName(routeId);
       pageLoadSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
@@ -89,6 +92,8 @@ function _instrumentNavigations(client: Client): void {
 
     const parameterizedRouteOrigin = from?.route.id;
     const parameterizedRouteDestination = to?.route.id;
+
+    recordRouteId(to?.url.pathname, parameterizedRouteDestination);
 
     routingSpan?.end();
 

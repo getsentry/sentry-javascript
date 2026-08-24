@@ -1,5 +1,7 @@
 import type { Integration } from '@sentry/core';
+import { setRouteProvider } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/svelte';
+import { routeProvider } from './routeCache';
 // The `sentrySvelteKit()` Vite plugin redirects this to the Svelte 4 or Svelte 5 variant per Kit
 // version; without the plugin it resolves via `exports` to the Svelte 4 variant, so builds don't break.
 import { instrumentSvelteKitTracing } from '@sentry/sveltekit/browser-tracing-variant';
@@ -20,6 +22,10 @@ export function browserTracingIntegration(
 
   return {
     ...integration,
+    setup: client => {
+      setRouteProvider(routeProvider, client);
+      integration.setup?.(client);
+    },
     afterAllSetup: client => {
       integration.afterAllSetup(client);
       instrumentSvelteKitTracing(client, options);
