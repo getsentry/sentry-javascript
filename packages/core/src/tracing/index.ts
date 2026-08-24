@@ -18,9 +18,6 @@ export {
   SPAN_STATUS_UNSET,
 } from './spanstatus';
 export {
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   continueTrace,
   withActiveSpan,
   suppressTracing,
