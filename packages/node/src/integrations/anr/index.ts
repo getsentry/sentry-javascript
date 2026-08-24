@@ -60,12 +60,17 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
 
 const INTEGRATION_NAME = 'Anr' as const;
 
-type AnrInternal = { startWorker: () => void; stopWorker: () => void };
+type AnrInternal = {
+  startWorker: () => void;
+  stopWorker: () => void;
+  waitUntilWorkerReady: () => Promise<void>;
+};
 
 // eslint-disable-next-line typescript/no-deprecated
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
+  let workerReady: Promise<void> | undefined;
 
   // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
   // debugger when it pauses
@@ -79,12 +84,16 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
         return;
       }
 
-      if (client) {
-        worker = _startWorker(client, options);
+      const initializedClient = client;
+      if (initializedClient) {
+        workerReady = new Promise<void>(resolve => {
+          worker = _startWorker(initializedClient, options, resolve);
+        });
       }
     },
     stopWorker: () => {
       if (worker) {
+        workerReady = undefined;
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         worker.then(stop => {
           stop();
@@ -92,6 +101,7 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
         });
       }
     },
+    waitUntilWorkerReady: () => workerReady ?? Promise.resolve(),
     async setup(initClient: NodeClient) {
       client = initClient;
 
@@ -157,6 +167,7 @@ async function _startWorker(
   client: NodeClient,
   // eslint-disable-next-line typescript/no-deprecated
   integrationOptions: Partial<AnrIntegrationOptions>,
+  onReady?: () => void,
 ): Promise<() => void> {
   const dsn = client.getDsn();
 
@@ -234,6 +245,8 @@ async function _startWorker(
     if (msg === 'session-ended') {
       log('ANR event sent from ANR worker. Clearing session in this thread.');
       getIsolationScope().setSession(undefined);
+    } else if (msg === 'worker-ready') {
+      onReady?.();
     }
   });
 

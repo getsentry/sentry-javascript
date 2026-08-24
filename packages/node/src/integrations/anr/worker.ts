@@ -328,3 +328,9 @@ parentPort?.on('message', (msg: { session: Session | undefined; debugImages?: Re
 
   poll();
 });
+
+// Signal that the worker is fully set up: the inspector session (when capturing stack traces) is
+// connected to the main thread and the watchdog is armed. Consumers that restart the worker can wait
+// for this before blocking the event loop, since the main-thread inspector stays open across restarts
+// and gives no signal that the new worker has reconnected.
+parentPort?.postMessage('worker-ready');
