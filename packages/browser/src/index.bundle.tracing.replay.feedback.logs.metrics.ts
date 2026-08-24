@@ -22,10 +22,10 @@ export {
 
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { isBotUserAgent } from '@sentry/browser-utils';
 export { elementTimingIntegration } from '@sentry/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';

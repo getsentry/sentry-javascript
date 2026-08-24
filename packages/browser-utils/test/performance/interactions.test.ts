@@ -76,6 +76,18 @@ describe('interactionsIntegration', () => {
     expect(window.addEventListener).toHaveBeenCalledWith('click', expect.any(Function), { capture: true });
   });
 
+  it('does not set up anything for bot user agents', () => {
+    const addHandlerSpy = vi.spyOn(performanceObserver, 'addPerformanceInstrumentationHandler');
+    vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    );
+
+    interactionsIntegration().setup?.(client);
+
+    expect(window.addEventListener).not.toHaveBeenCalledWith('click', expect.any(Function), { capture: true });
+    expect(addHandlerSpy).not.toHaveBeenCalledWith('event', expect.any(Function));
+  });
+
   it('starts an interaction span named after the last route', () => {
     interactionsIntegration().setup?.(client);
     completeRouteSpan(new SentrySpan({ op: 'pageload', name: '/users/:id', sampled: true }));

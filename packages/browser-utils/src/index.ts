@@ -20,6 +20,8 @@ export { elementTimingIntegration, startTrackingElementTiming } from './performa
 
 export { interactionsIntegration } from './performance/interactions';
 
+export { isBotUserAgent } from './isBotUserAgent';
+
 export { userTimingIntegration } from './performance/userTiming';
 
 export { extractNetworkProtocol } from './performance/utils';

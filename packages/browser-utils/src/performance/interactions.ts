@@ -20,6 +20,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
+import { isBotUserAgent } from '../isBotUserAgent';
 import { WINDOW } from '../types';
 import { msToSec, startAndEndSpan } from './utils';
 
@@ -60,6 +61,10 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      if (isBotUserAgent()) {
+        return;
+      }
+
       const latestRoute: RouteInfo = { name: undefined, source: undefined };
       // The pageload/navigation span that is currently in progress, if any. Clicks that happen while one
       // is open are not turned into interaction spans, as they'd compete with the route span for children.

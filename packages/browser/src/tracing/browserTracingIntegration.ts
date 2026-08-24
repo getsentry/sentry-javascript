@@ -40,6 +40,7 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
@@ -53,22 +54,6 @@ import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from
 import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
-
-/**
- * We don't want to start a bunch of idle timers and PerformanceObservers
- * for web crawlers, as they may prevent the page from being seen as "idle"
- * by the crawler's rendering engine (e.g. Googlebot's headless Chromium).
- */
-const BOT_USER_AGENT_RE =
-  /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
-
-export function isBotUserAgent(): boolean {
-  const nav = WINDOW.navigator as Navigator | undefined;
-  if (!nav?.userAgent) {
-    return false;
-  }
-  return BOT_USER_AGENT_RE.test(nav.userAgent);
-}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
