@@ -17,5 +17,6 @@ module.exports = {
     'no-skipped-tests': require('./rules/no-skipped-tests'),
     'no-unsafe-random-apis': require('./rules/no-unsafe-random-apis'),
     'no-unfiltered-url-attributes': require('./rules/no-unfiltered-url-attributes'),
+    'no-unguarded-span-apis': require('./rules/no-unguarded-span-apis'),
   },
 };

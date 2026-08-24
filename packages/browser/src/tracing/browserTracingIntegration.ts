@@ -8,6 +8,7 @@ import type {
   StartSpanOptions,
 } from '@sentry/core/browser';
 import {
+  _INTERNAL_ensureBrowserSpanStreaming,
   addNonEnumerableProperty,
   consoleSandbox,
   dateTimestampInSeconds,
@@ -571,6 +572,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       if (_isBot) {
         return;
       }
+
+      // Technically, every startSpan call already ensures that `spanStreamingIntegration` is installed,
+      // but we do it here anyway for the edge case that users disabled pageload and navigation spans and
+      // purely rely on manual startSpan calls.
+      _INTERNAL_ensureBrowserSpanStreaming(client);
 
       // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
       // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
