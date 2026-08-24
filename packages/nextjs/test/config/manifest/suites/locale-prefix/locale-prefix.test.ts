@@ -40,6 +40,13 @@ describe('locale-prefix', () => {
       expect(maybeParameterizeRoute('/fr/guides/renting/foo')).toBe('/:lng/guides/:category/:rest*');
       expect(maybeParameterizeRoute('/does/not/exist')).toBe('/:lng/:notFound*');
     });
+
+    test('parameterizes the locale root as the locale page, not the catch-all', () => {
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/')).toBe('/:lng');
+      expect(maybeParameterizeRoute('/fr')).toBe('/:lng');
+    });
   });
 
   describe('custom locale param names', () => {

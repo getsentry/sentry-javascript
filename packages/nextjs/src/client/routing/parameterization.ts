@@ -12,27 +12,40 @@ let cachedManifestString: string | undefined = undefined;
 const compiledRegexCache: Map<string, RegExp> = new Map();
 const routeResultCache: Map<string, string | undefined> = new Map();
 
+// Specificity ranks for a single route segment, from most to least specific. `END` is the rank of
+// the position just past the last segment of a route, so that a route which stops is compared
+// against whatever the longer route continues with.
+const SEGMENT_STATIC = 0;
+const SEGMENT_DYNAMIC = 1;
+const SEGMENT_END = 2;
+const SEGMENT_CATCH_ALL = 3;
+const SEGMENT_OPTIONAL_CATCH_ALL = 4;
+
 /**
- * Calculate the specificity score for a single route segment.
- * Lower scores indicate more specific segments.
+ * Calculate the specificity rank for a single route segment.
+ * Lower ranks indicate more specific segments.
  */
-function getSegmentSpecificity(segment: string): number {
+function getSegmentSpecificity(segment: string | undefined): number {
+  if (segment === undefined) {
+    // The route has no more segments
+    return SEGMENT_END;
+  }
   if (!segment.startsWith(':')) {
     // Static segment: matches exactly one known value
-    return 0;
+    return SEGMENT_STATIC;
   }
 
   const paramName = segment.substring(1);
   if (paramName.endsWith('*?')) {
     // Optional catch-all: [[...param]]
-    return 3;
+    return SEGMENT_OPTIONAL_CATCH_ALL;
   }
   if (paramName.endsWith('*')) {
     // Required catch-all: [...param]
-    return 2;
+    return SEGMENT_CATCH_ALL;
   }
   // Regular dynamic segment: [param]
-  return 1;
+  return SEGMENT_DYNAMIC;
 }
 
 /**
@@ -42,22 +55,24 @@ function getSegmentSpecificity(segment: string): number {
  * winner. Comparing aggregate scores instead would rank a short catch-all like '/:locale/:rest*'
  * above a longer but strictly narrower route like '/:locale/guides/:category/:rest*', because the
  * longer route accumulates more score simply by having more segments.
+ *
+ * Routes of differing lengths are compared one segment past the shorter one, where `SEGMENT_END`
+ * decides whether continuing narrows the route or widens it: '/:locale/foo' is more specific than
+ * '/:locale', but '/:locale' is more specific than '/:locale/:rest*'.
  */
 function compareRouteSpecificity(routePathA: string, routePathB: string): number {
   const segmentsA = routePathA.split('/').filter(Boolean);
   const segmentsB = routePathB.split('/').filter(Boolean);
 
-  const sharedSegmentCount = Math.min(segmentsA.length, segmentsB.length);
-  for (let i = 0; i < sharedSegmentCount; i++) {
-    const difference = getSegmentSpecificity(segmentsA[i] as string) - getSegmentSpecificity(segmentsB[i] as string);
+  const comparedSegmentCount = Math.min(segmentsA.length, segmentsB.length) + 1;
+  for (let i = 0; i < comparedSegmentCount; i++) {
+    const difference = getSegmentSpecificity(segmentsA[i]) - getSegmentSpecificity(segmentsB[i]);
     if (difference !== 0) {
       return difference;
     }
   }
 
-  // All shared segments are equally specific, so the route with more segments is the narrower match,
-  // e.g. '/:locale/foo' is more specific than '/:locale'
-  return segmentsB.length - segmentsA.length;
+  return 0;
 }
 
 /**
