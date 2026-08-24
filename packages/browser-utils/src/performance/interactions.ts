@@ -3,6 +3,8 @@ import {
   SENTRY_ORIGIN,
   SENTRY_IDLE_SPAN_FINISH_REASON,
   UI_COMPONENT_NAME,
+  SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
 import { BROWSER_UI_INTERACTION_CLICK_SPAN_OP, BROWSER_UI_ACTION_CLICK_SPAN_OP } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
@@ -13,7 +15,6 @@ import {
   getActiveSpan,
   getComponentName,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startIdleSpan,
 } from '@sentry/core';
@@ -73,7 +74,10 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
       function trackRoute(span: Span): void {
         const { name, attributes } = spanToJSON(span);
         latestRoute.name = name;
-        latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+        // oxlint-disable-next-line typescript/no-deprecated
+        latestRoute.source = (attributes[SENTRY_SOURCE] || attributes[SENTRY_SEGMENT_NAME_SOURCE]) as
+          | TransactionSource
+          | undefined;
       }
 
       client.on('spanStart', span => {
@@ -175,7 +179,7 @@ function registerInteractionListener(
           name: latestRoute.name,
           attributes: {
             [SENTRY_OP]: BROWSER_UI_ACTION_CLICK_SPAN_OP,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: latestRoute.source || 'url',
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
           },
         },
