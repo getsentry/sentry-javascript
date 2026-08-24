@@ -71,7 +71,7 @@ describe('matchesTracePropagationTargets', () => {
   });
 
   it('matches consistently across repeated calls for the same regex', () => {
-    const target = /myApi\.com\//g;
+    const target = /^https:\/\/myApi\.com\//g;
 
     expect(matchesTracePropagationTargets('https://myapi.com/v1', [target])).toBe(true);
     expect(matchesTracePropagationTargets('https://myapi.com/v2', [target])).toBe(true);
