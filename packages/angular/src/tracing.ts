@@ -31,11 +31,13 @@ import {
 import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
+  createCachedRouteProvider,
   debug,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   ROUTER_SPAN_NAME_FALLBACK,
+  setRouteProvider,
   stripUrlQueryAndFragment,
   timestampInSeconds,
   filterCollectedUrl,
@@ -48,6 +50,11 @@ import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
 let instrumentationInitialized: boolean;
+
+// The parameterized route only exists on Angular's `ResolveEnd` event, resolved from the router
+// state snapshot, so there is no matcher the integration could call. `TraceService` records each
+// route as it resolves and the provider answers from that.
+const ROUTE_PROVIDER = createCachedRouteProvider();
 
 /**
  * A custom browser tracing integration for Angular.
@@ -63,10 +70,18 @@ export function browserTracingIntegration(
     instrumentationInitialized = true;
   }
 
-  return originalBrowserTracingIntegration({
+  const integration = originalBrowserTracingIntegration({
     ...options,
     instrumentNavigation: false,
   });
+
+  return {
+    ...integration,
+    setup(client) {
+      setRouteProvider(ROUTE_PROVIDER, client);
+      integration.setup?.(client);
+    },
+  };
 }
 
 /**
@@ -182,6 +197,7 @@ export class TraceService implements OnDestroy {
       );
 
       if (route) {
+        ROUTE_PROVIDER.record(stripUrlQueryAndFragment(event.urlAfterRedirects), route);
         getCurrentScope().setTransactionName(route);
       }
 
