@@ -103,6 +103,9 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
 /**
  * Captures user interactions as spans.
  *
+ * Important: This integration is considered experimental and might lead to noisy spans. Use at your own risk.
+ *
+ *
  * Clicks that happen outside of an in-progress pageload or navigation start an idle `ui.action.click` span,
  * named after the last known route, which collects everything the interaction triggers (requests, child spans,
  * …). Additionally, `ui.interaction.click` spans are recorded for the browser's own `event` timing entries.
