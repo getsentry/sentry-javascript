@@ -9,7 +9,7 @@ const kErrorCaptured = Symbol('sentry.fastifyErrorCaptured');
 
 function getFastifyIntegration(): FastifyIntegration | undefined {
   const client = getClient();
-  return client?.getIntegrationByName(INTEGRATION_NAME) as FastifyIntegration | undefined;
+  return client?.getIntegrationByName(INTEGRATION_NAME);
 }
 
 /**

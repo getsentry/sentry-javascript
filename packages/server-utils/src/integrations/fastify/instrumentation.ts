@@ -357,20 +357,17 @@ let _isInstrumented = false;
  * Set up the Fastify (>= 3.21.0 < 6) instrumentation by subscribing to the `fastify.initialization`
  * diagnostics channel and synchronously instrumenting every Fastify instance as it is created.
  */
-export const instrumentFastify = Object.assign(
-  function instrumentFastify(): void {
-    if (_isInstrumented) {
-      return;
+export function instrumentFastify(): void {
+  if (_isInstrumented) {
+    return;
+  }
+  _isInstrumented = true;
+
+  diagnosticsChannel.subscribe('fastify.initialization', message => {
+    const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
+
+    if (fastifyInstance) {
+      instrumentFastifyInstance(fastifyInstance);
     }
-    _isInstrumented = true;
-
-    diagnosticsChannel.subscribe('fastify.initialization', message => {
-      const fastifyInstance = (message as { fastify?: FastifyInstance }).fastify;
-
-      if (fastifyInstance) {
-        instrumentFastifyInstance(fastifyInstance);
-      }
-    });
-  },
-  { id: 'Fastify.v5' },
-);
+  });
+}

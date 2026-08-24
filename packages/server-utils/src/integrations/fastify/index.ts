@@ -9,8 +9,6 @@ import { subscribeToFastifyErrorChannel } from './errors';
  * Options for the Fastify integration.
  *
  * `shouldHandleError` - Callback method deciding whether error should be captured and sent to Sentry
- * This is used on Fastify v5 where Sentry handles errors in the diagnostics channel.
- * Fastify v3 and v4 use `setupFastifyErrorHandler` instead.
  *
  * @example
  *
@@ -54,7 +52,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
     setShouldHandleError(shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean) {
       _shouldHandleError = shouldHandleError;
     },
-  };
+  } satisfies FastifyIntegration;
 }) satisfies IntegrationFn;
 
 /**
