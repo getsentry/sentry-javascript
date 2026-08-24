@@ -25,7 +25,7 @@ describe('maybeParameterizeRemixRoute', () => {
   });
 
   describe('when manifest has static routes', () => {
-    it('should return the route itself for static routes', () => {
+    it('returns the route itself for static routes', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }, { path: '/blog/posts' }],
         dynamicRoutes: [],
