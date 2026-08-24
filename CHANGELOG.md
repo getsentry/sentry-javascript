@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **fix(v10/core)!: Enable logs by default ([#23311](https://github.com/getsentry/sentry-javascript/pull/23311))**
+
+The `enableLogs` client option now defaults to `true`, so Sentry Logs work without any manual opt-in. Nothing is captured unless you call the `Sentry.logger.*` APIs or add a log-forwarding integration (such as `consoleLoggingIntegration`, `pinoIntegration`, or the winston transport), and you can set `enableLogs: false` to opt out. Although a default change like this would normally land in a major release, we are shipping it in a minor after careful consideration, since it sends no data on its own and only takes effect once you actively use the logging APIs or a logging integration.
+
 ## 10.70.0
 
 - feat(v10/core): Support stable MCP SDK v2 ([#22986](https://github.com/getsentry/sentry-javascript/pull/22986))

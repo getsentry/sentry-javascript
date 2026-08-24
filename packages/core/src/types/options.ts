@@ -581,7 +581,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   /**
    * If logs support should be enabled.
    *
-   * @default false
+   * @default true
    */
   enableLogs?: boolean;
 

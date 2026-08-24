@@ -6,7 +6,6 @@ const client = new Sentry.NodeClient({
   transport: loggingTransport,
   stackParser: Sentry.defaultStackParser,
   integrations: [],
-  enableLogs: true,
   dataCollection: { userInfo: true },
 });
 
