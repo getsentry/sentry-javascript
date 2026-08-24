@@ -74,9 +74,9 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
 
     const dataCollection = client.getDataCollectionOptions();
-    const clientAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
-    const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
     if (dataCollection.userInfo) {
+      const clientAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
+      const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
       assignIfSet(attributes, CLIENT_ADDRESS, clientAddress);
       assignIfSet(attributes, CLIENT_PORT, clientPort);
     }

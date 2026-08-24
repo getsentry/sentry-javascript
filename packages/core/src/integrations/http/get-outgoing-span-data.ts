@@ -50,7 +50,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       [HTTP_METHOD]: request.method,
       [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
       [SERVER_ADDRESS]: request.host,
-      [SERVER_PORT]: typeof request.port === 'number' ? request.port : undefined,
+      [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
       [HTTP_HOST]: request.getHeader('host') as string | undefined,
       /* eslint-enable typescript/no-deprecated */
       [USER_AGENT_ORIGINAL]: userAgent || undefined,

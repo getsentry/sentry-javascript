@@ -91,8 +91,8 @@ function instrumentMysql(): void {
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
           ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
-          ...(host ? { [SERVER_ADDRESS]: host } : {}),
-          ...(portIsNumber ? { [SERVER_PORT]: portNumber } : {}),
+          [SERVER_ADDRESS]: host,
+          [SERVER_PORT]: portIsNumber ? portNumber : undefined,
         },
       });
     },
