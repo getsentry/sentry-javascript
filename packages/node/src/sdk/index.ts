@@ -90,9 +90,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
-    // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
-    // This means that generally request isolation will work (because that is done by httpIntegration)
-    // But `transactionName` will not be set automatically
+    // Note that integrations like `httpIntegration` or `expressIntegration` are always added,
+    // because they also handle non-tracing related functionality.
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
