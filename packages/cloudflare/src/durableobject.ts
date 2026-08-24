@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { WEB_SERVER_WEBSOCKET_SPAN_OP } from '@sentry/conventions/op';
 import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -11,7 +12,7 @@ import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { hasRpcMeta } from './utils/rpcMeta';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
-import type { DefaultEnv, ResolveEnv } from './types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
 
 /**
@@ -195,21 +196,39 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
 
   if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {
     obj.webSocketMessage = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketMessage', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketMessage',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketMessage.bind(obj),
     );
   }
 
   if (obj.webSocketClose && typeof obj.webSocketClose === 'function') {
     obj.webSocketClose = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketClose', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketClose',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketClose.bind(obj),
     );
   }
 
   if (obj.webSocketError && typeof obj.webSocketError === 'function') {
     obj.webSocketError = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketError', origin: 'auto.faas.cloudflare.durable_object' },
+      {
+        options,
+        context,
+        spanName: 'webSocketError',
+        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
       obj.webSocketError.bind(obj),
       (_, error) =>
         captureException(error, {
@@ -432,7 +451,8 @@ export function instrumentDurableObjectWithSentry<
   T extends DurableObject<any> = DurableObject<Env>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, DurableObjectClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
@@ -494,7 +514,8 @@ export function instrumentAgentWithSentry<
   T extends DurableObject<any> = DurableObject<Env>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions, AgentClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, AgentClass: C): C {
   return new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(

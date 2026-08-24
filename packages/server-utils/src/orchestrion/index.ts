@@ -8,7 +8,7 @@ import { graphqlIntegration } from '../integrations/graphql';
 import { hapiIntegration } from '../integrations/hapi';
 import { koaIntegration } from '../integrations/koa';
 import { redisIntegration } from '../integrations/redis';
-import { kafkajsIntegration } from '../integrations/kafkajs';
+import { kafkaIntegration } from '../integrations/kafkajs';
 import { knexIntegration } from '../integrations/knex';
 import { langChainIntegration } from '../integrations/langchain';
 import { langGraphIntegration } from '../integrations/langgraph';
@@ -47,7 +47,7 @@ export {
   hapiIntegration,
   koaIntegration,
   redisIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -65,46 +65,3 @@ export {
   firebaseIntegration,
 };
 export type { InstrumentationConfig } from './apmTypes';
-
-/**
- * The canonical set of orchestrion diagnostics-channel integrations, keyed by their public
- * (OTel-parity) factory name.
- *
- * Single source of truth: add a new channel integration here and every consumer that spreads this map
- * into its default integrations picks it up automatically, so there's no separate list to keep in sync.
- *
- * Framework SDKs that own their own channel listener (e.g. `@sentry/nestjs`'s `Nest`) are NOT here
- * either: their transform config is still in `SENTRY_INSTRUMENTATIONS`, but the listener lives in
- * their package and picks the channel-vs-OTel path itself at `setupOnce`, so it needs no central swap.
- *
- * NOTE: `dataloaderIntegration` is also NOT here. Everything in this map is auto-appended to
- * the default integrations, but the OTel `Dataloader` integration is opt-in (never a default). Like
- * `@sentry/nestjs`'s `Nest`, its `@sentry/node` factory picks the channel-vs-OTel path itself at
- * `setupOnce` (via `isOrchestrionInjected()`), so there's nothing for the central swap to do.
- */
-export const channelIntegrations = {
-  postgresIntegration,
-  postgresJsIntegration,
-  mongoIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  genericPoolIntegration,
-  mongooseIntegration,
-  lruMemoizerIntegration,
-  openAIIntegration,
-  anthropicAIIntegration,
-  googleGenAIIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  vercelAIIntegration,
-  amqplibIntegration,
-  hapiIntegration,
-  koaIntegration,
-  expressIntegration,
-  graphqlIntegration,
-  kafkajsIntegration,
-  tediousIntegration,
-  awsIntegration,
-  firebaseIntegration,
-  redisIntegration,
-} as const;

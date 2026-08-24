@@ -1046,6 +1046,34 @@ import { instrumentLangGraph } from '@sentry/node';
 import { instrumentStateGraph } from '@sentry/node';
 ```
 
+### `childProcess` integration split into `childProcess` and `workerThreads`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The `childProcessIntegration` was split into a `childProcessIntegration` (for `child_process`) and a separate `workerThreadsIntegration` (for `worker_threads`).
+
+Both integrations are enabled by default, so no change is needed to keep the previous behavior.
+
+The deprecated `captureWorkerErrors` option was removed. Worker thread errors are always captured as events now. To opt out, remove `workerThreadsIntegration` instead:
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.childProcessIntegration({ captureWorkerErrors: false })],
+});
+
+// after
+Sentry.init({
+  integrations: integrations => integrations.filter(integration => integration.name !== 'WorkerThreads'),
+});
+```
+
+Note that `captureWorkerErrors: false` used to downgrade worker thread errors to a `worker_thread` breadcrumb. That breadcrumb is gone, so removing the integration drops worker thread errors entirely.
+
+The `includeChildProcessArgs` option stays on `childProcessIntegration`. Disabling `childProcessIntegration` no longer disables worker thread error capture, since that now lives in `workerThreadsIntegration`.
+
+The mechanism type of worker thread errors changed from `auto.child_process.worker_thread` to `auto.node.worker_threads`. Adjust any alerts or filters that match on it.
+
 ### Deno default integrations renamed to match the other SDKs
 
 Affected SDKs: `@sentry/deno`.

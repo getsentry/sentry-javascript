@@ -1,14 +1,8 @@
-/* eslint-disable @typescript-eslint/no-deprecated -- we intentionally emit the OLD db/net semconv
-   to match `@opentelemetry/instrumentation-redis`. TODO(v11): switch to the non-deprecated
-   `db.system.name`/`db.query.text`/`server.address`/`server.port` conventions and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_OPERATION_BATCH_SIZE,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
@@ -114,9 +108,9 @@ function removeCredentialsFromConnectionString(url: string | undefined): string 
 
 function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanAttributes {
   return {
-    [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-    [NET_PEER_NAME]: options?.socket?.host,
-    [NET_PEER_PORT]: options?.socket?.port,
+    [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+    [SERVER_ADDRESS]: options?.socket?.host,
+    [SERVER_PORT]: options?.socket?.port,
     [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromConnectionString(options?.url),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
@@ -130,7 +124,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
       [SENTRY_KIND]: 'client',
       ...attributes,
       [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
-      [DB_STATEMENT]: dbStatement,
+      [DB_QUERY_TEXT]: dbStatement,
     },
   });
 }
@@ -159,12 +153,12 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       }
       const client = data.self as LegacyRedisClient | undefined;
       const attributes: SpanAttributes = {
-        [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       };
 
-      attributes[NET_PEER_NAME] = client?.connection_options?.host;
-      attributes[NET_PEER_PORT] = client?.connection_options?.port;
+      attributes[SERVER_ADDRESS] = client?.connection_options?.host;
+      attributes[SERVER_PORT] = client?.connection_options?.port;
 
       if (client?.address) {
         attributes[ATTR_DB_CONNECTION_STRING] = `redis://${client.address}`;

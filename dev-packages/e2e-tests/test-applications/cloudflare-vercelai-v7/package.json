@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
-    "build": "wrangler deploy --dry-run",
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview --port 38787",
     "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod",
@@ -17,11 +17,13 @@
     "ai": "^7.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.52.0",
     "@playwright/test": "~1.56.0",
     "@cloudflare/workers-types": "^4.20260426.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
-    "wrangler": "4.86.0",
+    "vite": "7.3.5",
+    "wrangler": "^4.86.0",
     "ws": "^8.18.3"
   },
   "volta": {

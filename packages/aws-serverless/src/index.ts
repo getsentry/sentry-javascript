@@ -119,6 +119,7 @@ export {
   otlpIntegration,
   getOtlpTracesEndpoint,
   childProcessIntegration,
+  workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,

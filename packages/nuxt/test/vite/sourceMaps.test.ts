@@ -194,33 +194,17 @@ describe('getPluginOptions', () => {
     });
   });
 
-  it('merges with unstable_sentryBundlerPluginOptions correctly', () => {
-    const options: SentryNuxtModuleOptions = {
-      org: 'base-org',
-      bundleSizeOptimizations: {
-        excludeDebugStatements: false,
-      },
-      unstable_sentryBundlerPluginOptions: {
-        org: 'override-org',
-        release: { name: 'override-release' },
-        sourcemaps: { assets: ['override/**/*'] },
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-      },
-    };
+  it('passes moduleMetadata and sourcemaps.resolveSourceMap through to the plugin', () => {
+    const resolveSourceMap = (artifactPath: string): string => `${artifactPath}.map`;
 
-    const result = getPluginOptions(options);
+    const result = getPluginOptions({
+      moduleMetadata: { team: 'sdk' },
+      sourcemaps: { resolveSourceMap },
+    });
 
     expect(result).toMatchObject({
-      org: 'override-org',
-      release: { name: 'override-release' },
-      sourcemaps: expect.objectContaining({
-        assets: ['override/**/*'],
-      }),
-      bundleSizeOptimizations: {
-        excludeDebugStatements: true,
-      },
+      moduleMetadata: { team: 'sdk' },
+      sourcemaps: expect.objectContaining({ resolveSourceMap }),
     });
   });
 

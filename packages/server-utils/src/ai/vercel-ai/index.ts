@@ -15,10 +15,12 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PIPELINE_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
@@ -421,7 +423,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
-  span.setAttribute('ai.pipeline.name', nameWthoutAi);
+  span.setAttribute(GEN_AI_PIPELINE_NAME, nameWthoutAi);
   span.updateName(nameWthoutAi);
 
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
@@ -434,7 +436,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL, attributes[AI_MODEL_ID_ATTRIBUTE]);
   }
-  span.setAttribute('ai.streaming', name.includes('stream'));
+  span.setAttribute(GEN_AI_RESPONSE_STREAMING, name.includes('stream'));
 
   // Set the op based on the operation name registry
   const operationName = SPAN_TO_OPERATION_NAME.get(name);

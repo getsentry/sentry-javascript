@@ -83,10 +83,13 @@ export function tanstackRouterBrowserTracingIntegration(
 
       const initialWindowLocation = WINDOW.location;
       if (instrumentPageLoad && initialWindowLocation) {
-        const routeMatch = resolveRouteMatch(
-          initialWindowLocation.pathname,
-          castRouterInstance.options.parseSearch(initialWindowLocation.search),
-        );
+        const initialRouterLocation = castRouterInstance.state?.location;
+        const routeMatch = initialRouterLocation
+          ? resolveRouteMatch(initialRouterLocation.pathname, initialRouterLocation.search)
+          : resolveRouteMatch(
+              initialWindowLocation.pathname,
+              castRouterInstance.options.parseSearch(initialWindowLocation.search),
+            );
 
         const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
           name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,

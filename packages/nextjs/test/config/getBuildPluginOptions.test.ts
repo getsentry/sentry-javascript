@@ -813,24 +813,18 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
-    it('merges webpack plugin release options correctly', () => {
+    it('passes release options through to the plugin', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
         release: {
           create: true,
           vcsRemote: 'origin',
-        },
-        webpack: {
-          unstable_sentryWebpackPluginOptions: {
-            release: {
-              setCommits: {
-                auto: true,
-              },
-              deploy: {
-                env: 'production',
-              },
-            },
+          setCommits: {
+            auto: true,
+          },
+          deploy: {
+            env: 'production',
           },
         },
       };
@@ -842,9 +836,9 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // The webpack.unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
       expect(result.release).toHaveProperty('setCommits.auto', true);
       expect(result.release).toHaveProperty('deploy.env', 'production');
+      expect(result.release).toHaveProperty('vcsRemote', 'origin');
     });
   });
 
@@ -901,18 +895,14 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
-    it('merges react component annotation options correctly for webpack builds', () => {
+    it('passes react component annotation options through for webpack builds', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
         webpack: {
           reactComponentAnnotation: {
             enabled: true,
-          },
-          unstable_sentryWebpackPluginOptions: {
-            reactComponentAnnotation: {
-              enabled: false, // This will override the base setting
-            },
+            ignoredComponents: ['MyComponent'],
           },
         },
       };
@@ -924,8 +914,8 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // The unstable options override the base options - in this case enabled should be false
-      expect(result.reactComponentAnnotation).toHaveProperty('enabled', false);
+      expect(result.reactComponentAnnotation).toHaveProperty('enabled', true);
+      expect(result.reactComponentAnnotation).toHaveProperty('ignoredComponents', ['MyComponent']);
     });
 
     it('sets react component annotation to undefined for after-production-compile builds', () => {
@@ -997,17 +987,16 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
-    it('merges unstable webpack plugin options correctly', () => {
+    it('passes top-level applicationKey, moduleMetadata and sourcemaps through to the plugin', () => {
+      const resolveSourceMap = (artifactPath: string): string => `${artifactPath}.map`;
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        webpack: {
-          unstable_sentryWebpackPluginOptions: {
-            applicationKey: 'test-app-key',
-            sourcemaps: {
-              disable: false,
-            },
-          },
+        applicationKey: 'test-app-key',
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: {
+          disable: false,
+          resolveSourceMap,
         },
       };
 
@@ -1020,8 +1009,10 @@ describe('getBuildPluginOptions', () => {
 
       expect(result).toMatchObject({
         applicationKey: 'test-app-key',
+        moduleMetadata: { team: 'sdk' },
         sourcemaps: expect.objectContaining({
           disable: false,
+          resolveSourceMap,
         }),
       });
     });

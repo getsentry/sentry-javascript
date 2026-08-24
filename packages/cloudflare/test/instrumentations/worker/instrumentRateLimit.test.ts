@@ -41,7 +41,7 @@ describe('instrumentRateLimit', () => {
       expect(outcome).toEqual({ success: false });
     });
 
-    test('starts a span with the binding name and origin', async () => {
+    test('starts a span with the binding name, op and origin', async () => {
       const wrapped = instrumentRateLimit(createMockRateLimit(true), 'MY_RATE_LIMITER');
       await wrapped.limit({ key: 'user-123' });
 
@@ -50,7 +50,9 @@ describe('instrumentRateLimit', () => {
         {
           name: 'rate_limit MY_RATE_LIMITER',
           attributes: {
+            'sentry.op': 'rpc',
             'sentry.origin': 'auto.faas.cloudflare.rate_limit',
+            'rpc.service': 'cloudflare.rate_limit',
           },
         },
         expect.any(Function),

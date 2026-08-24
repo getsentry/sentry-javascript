@@ -1,5 +1,4 @@
-import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
@@ -97,22 +96,6 @@ type SourceMapsOptions = {
    * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` instead
    */
   filesToDeleteAfterUpload?: string | Array<string>;
-
-  /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
-   * Options specified in this object take precedence over all other options.
-   *
-   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
-   *
-   * Warning: Options within this object are subject to change at any time.
-   * We DO NOT guarantee semantic versioning for these options, meaning breaking
-   * changes can occur at any time within a major SDK version.
-   *
-   * Furthermore, some options are untested with Astro specifically. Use with caution.
-   *
-   * @deprecated Use top-level `unstable_sentryVitePluginOptions` instead
-   */
-  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
 type InstrumentationOptions = {
@@ -164,7 +147,6 @@ type SdkEnabledOptions = {
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored for init.
  */
 export type SentryOptions = BuildTimeOptionsBase &
-  UnstableVitePluginOptions<SentryVitePluginOptions> &
   SdkInitPaths &
   InstrumentationOptions &
   SdkEnabledOptions & {
