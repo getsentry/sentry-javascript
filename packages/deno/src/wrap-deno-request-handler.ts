@@ -75,9 +75,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
 
     const dataCollection = client.getDataCollectionOptions();
     if (dataCollection.userInfo) {
-      const clientAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address.
+      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+      const socketAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
       const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
-      assignIfSet(attributes, CLIENT_ADDRESS, clientAddress);
+      assignIfSet(attributes, CLIENT_ADDRESS, forwardedFor || socketAddress);
       assignIfSet(attributes, CLIENT_PORT, clientPort);
     }
 

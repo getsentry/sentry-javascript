@@ -183,7 +183,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SERVER_ADDRESS]: hostname,
               [NETWORK_PROTOCOL_NAME]: 'http',
               [NETWORK_PROTOCOL_VERSION]: httpVersion,
-              [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              [HTTP_CLIENT_IP]: client.getDataCollectionOptions().userInfo ? getForwardedClientAddress(ips) : undefined,
               [HTTP_USER_AGENT]: userAgent,
               [HTTP_SCHEME]: scheme,
               [HTTP_FLAVOR]: httpVersion,
@@ -387,6 +387,14 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
   return !!encoding && encoding !== 'identity';
 }
 
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
+}
+
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
@@ -404,12 +412,18 @@ function getIncomingRequestAttributesOnResponse(
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
+  if (collectClientAddress) {
+    // `client.address` is the originating client, so a forwarding header wins over the socket, which
+    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
+    newAttributes[CLIENT_ADDRESS] =
+      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+  }
+
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
     newAttributes[SERVER_PORT] = localPort;
     newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
     newAttributes[NETWORK_LOCAL_PORT] = localPort;
-    newAttributes[CLIENT_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
     newAttributes[CLIENT_PORT] = remotePort;
     newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
     newAttributes[NETWORK_PEER_PORT] = remotePort;

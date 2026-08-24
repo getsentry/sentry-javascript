@@ -298,6 +298,9 @@ function buildServerSpanWrap(
       const { socket } = request;
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
       const collectClientAddress = client.getDataCollectionOptions().userInfo;
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address. `network.peer.address` keeps the socket value.
+      const clientAddress = getForwardedClientAddress(ips) ?? remoteAddress;
 
       return startSpanManual(
         {
@@ -313,7 +316,7 @@ function buildServerSpanWrap(
             [SERVER_PORT]: localPort,
             [NETWORK_LOCAL_ADDRESS]: localAddress,
             [NETWORK_LOCAL_PORT]: localPort,
-            [CLIENT_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
             [CLIENT_PORT]: remotePort,
             [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
             [NETWORK_PEER_PORT]: remotePort,
@@ -329,7 +332,7 @@ function buildServerSpanWrap(
             'http.host': host,
             [NETWORK_PROTOCOL_NAME]: 'http',
             [NETWORK_PROTOCOL_VERSION]: httpVersion,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+            'http.client_ip': collectClientAddress ? getForwardedClientAddress(ips) : undefined,
             'http.user_agent': userAgent,
             'http.scheme': scheme,
             'http.flavor': httpVersion,
@@ -378,6 +381,14 @@ function buildServerSpanWrap(
       );
     }
   };
+}
+
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function shouldIgnoreSpansForIncomingRequest(

@@ -55,7 +55,11 @@ describe('getHttpServerSubscriptions', () => {
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
-  async function makeRequest(path: string, method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET'): Promise<void> {
+  async function makeRequest(
+    path: string,
+    method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET',
+    extraHeaders: Record<string, string> = {},
+  ): Promise<void> {
     const { port } = server.address() as AddressInfo;
     return new Promise<void>((resolve, reject) => {
       // Connection: close so the server-side `response.once('close', ...)`
@@ -67,7 +71,7 @@ describe('getHttpServerSubscriptions', () => {
           port,
           path,
           method,
-          headers: { Connection: 'close' },
+          headers: { Connection: 'close', ...extraHeaders },
         },
         res => {
           // throw away response body
@@ -137,6 +141,60 @@ describe('getHttpServerSubscriptions', () => {
         }),
       }),
     );
+  });
+
+  it('prefers the forwarded client over the socket for `client.address`', async () => {
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7, 198.51.100.1' });
+    const transaction = await waitForTransaction();
+
+    expect(transaction.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        // the originating client, as reported by the outermost proxy
+        [CLIENT_ADDRESS]: '203.0.113.7',
+        // the immediate peer stays the socket, i.e. the proxy itself
+        [NETWORK_PEER_ADDRESS]: '127.0.0.1',
+      }),
+    );
+  });
+
+  it('does not report a forwarded client address when userInfo collection is disabled', async () => {
+    client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, dataCollection: { userInfo: false } }));
+    const originalSendEvent = client.sendEvent.bind(client);
+    client.sendEvent = (event, hint) => {
+      events.push(event);
+      return originalSendEvent(event, hint);
+    };
+    setCurrentClient(client);
+    client.init();
+    getIsolationScope().setClient(client);
+
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7' });
+    const transaction = await waitForTransaction();
+
+    const data = transaction.contexts?.trace?.data;
+    expect(data).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(data).not.toHaveProperty(NETWORK_PEER_ADDRESS);
+    // the deprecated alias of `client.address` carries the same IP, so it has to be gated too
+    expect(data).not.toHaveProperty('http.client_ip');
+  });
+
+  it('reports the forwarded client address on the deprecated `http.client_ip` alias too', async () => {
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7, 198.51.100.1' });
+    const transaction = await waitForTransaction();
+
+    expect(transaction.contexts?.trace?.data).toEqual(expect.objectContaining({ 'http.client_ip': '203.0.113.7' }));
   });
 
   // `http.target` is the deprecated alias of `url.full` and carries the same query string, so it has to
