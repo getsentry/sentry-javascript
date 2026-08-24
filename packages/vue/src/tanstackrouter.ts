@@ -17,9 +17,11 @@ import {
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Integration } from '@sentry/core';
 import {
+  createUrlRouteProvider,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
+  setRouteProvider,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -58,19 +60,29 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
 
   const { instrumentPageLoad = true, instrumentNavigation = true } = options;
 
+  const resolveRouteMatch = (pathname: string, search: unknown): RouteMatch | undefined => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const matchedRoutes = router.matchRoutes(pathname, search as any, { preload: false, throwOnError: false });
+    const lastMatch = matchedRoutes[matchedRoutes.length - 1];
+    // If we only match __root__, we ended up not matching any route at all, so
+    // we fall back to the pathname.
+    return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+  };
+
   return {
     ...browserTracingIntegrationInstance,
+    setup(client) {
+      // Registered before `afterAllSetup` so the provider is in place by the time the pageload span
+      // is named.
+      setRouteProvider(
+        createUrlRouteProvider(url => resolveRouteMatch(url.pathname, router.options.parseSearch(url.search))?.routeId),
+        client,
+      );
+
+      browserTracingIntegrationInstance.setup?.(client);
+    },
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
-
-      const resolveRouteMatch = (pathname: string, search: unknown): RouteMatch | undefined => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const matchedRoutes = router.matchRoutes(pathname, search as any, { preload: false, throwOnError: false });
-        const lastMatch = matchedRoutes[matchedRoutes.length - 1];
-        // If we only match __root__, we ended up not matching any route at all, so
-        // we fall back to the pathname.
-        return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
-      };
 
       const applyRouteMatch = (
         span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,

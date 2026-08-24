@@ -7,10 +7,12 @@ import {
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core/browser';
 import {
+  createUrlRouteProvider,
   filterCollectedUrl,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
+  setRouteProvider,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
@@ -54,21 +56,33 @@ export function tanstackRouterBrowserTracingIntegration(
 
   const { instrumentPageLoad = true, instrumentNavigation = true } = options;
 
+  const resolveRouteMatch = (pathname: string, search: unknown): VendoredTanstackRouterRouteMatch | undefined => {
+    const matchedRoutes = castRouterInstance.matchRoutes(pathname, search as {}, {
+      preload: false,
+      throwOnError: false,
+    });
+    const lastMatch = matchedRoutes[matchedRoutes.length - 1];
+    // If we only match __root__, we ended up not matching any route at all, so
+    // we fall back to the pathname.
+    return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
+  };
+
   return {
     ...browserTracingIntegrationInstance,
+    setup(client) {
+      // Registered before `afterAllSetup` so the provider is in place by the time the pageload span
+      // is named.
+      setRouteProvider(
+        createUrlRouteProvider(
+          url => resolveRouteMatch(url.pathname, castRouterInstance.options.parseSearch(url.search))?.routeId,
+        ),
+        client,
+      );
+
+      browserTracingIntegrationInstance.setup?.(client);
+    },
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
-
-      const resolveRouteMatch = (pathname: string, search: unknown): VendoredTanstackRouterRouteMatch | undefined => {
-        const matchedRoutes = castRouterInstance.matchRoutes(pathname, search as {}, {
-          preload: false,
-          throwOnError: false,
-        });
-        const lastMatch = matchedRoutes[matchedRoutes.length - 1];
-        // If we only match __root__, we ended up not matching any route at all, so
-        // we fall back to the pathname.
-        return lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
-      };
 
       const applyRouteMatch = (
         span: NonNullable<ReturnType<typeof startBrowserTracingPageLoadSpan>>,
