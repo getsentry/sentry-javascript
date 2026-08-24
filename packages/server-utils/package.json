@@ -70,9 +70,6 @@
   },
   "typesVersions": {
     "*": {
-      "orchestrion": [
-        "build/types/orchestrion/index.d.ts"
-      ],
       "orchestrion/config": [
         "build/types/orchestrion/config/index.d.ts"
       ],
