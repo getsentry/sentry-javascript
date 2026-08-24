@@ -2,7 +2,14 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  setRouteProvider,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -13,6 +20,7 @@ import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
 import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
+import { createNextRouteProvider } from './routing/routeProvider';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
@@ -83,6 +91,11 @@ export function init(options: BrowserOptions): Client | undefined {
   ];
 
   const client = reactInit(opts);
+
+  // Registered here rather than from `browserTracingIntegration` so route parameterization does not
+  // depend on tracing: the route manifests are injected at build time, so anything that needs a route
+  // name (bfcache metrics, web vitals) can resolve one even with tracing disabled.
+  setRouteProvider(createNextRouteProvider(), client);
 
   const filterNextRedirectError: EventProcessor = (event, hint) =>
     isRedirectNavigationError(hint?.originalException) || event.exception?.values?.[0]?.value === 'NEXT_REDIRECT'

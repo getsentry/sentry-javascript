@@ -179,7 +179,12 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
   });
 }
 
-function getNextRouteFromPathname(pathname: string): string | undefined {
+/**
+ * Matches a pathname against the Pages Router build manifest, e.g. `/users/1` -> `/users/[id]`.
+ *
+ * Expects a pathname without `basePath`, which is what Next reports internally.
+ */
+export function getNextRouteFromPathname(pathname: string): string | undefined {
   const pageRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
