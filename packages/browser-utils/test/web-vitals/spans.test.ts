@@ -129,7 +129,7 @@ describe('_emitWebVitalSpan', () => {
       parentSpan,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.segment.name': 'Pageload',
