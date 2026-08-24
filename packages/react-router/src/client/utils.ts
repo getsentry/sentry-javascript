@@ -133,7 +133,7 @@ export function normalizePathname(pathname: string): string {
  * relative to their parent, and index and layout routes carry none at all, so the leaf on its own
  * is either a fragment of the route (`edit`) or missing entirely.
  */
-function getRouteTemplate(routerState: RouterState): string | undefined {
+export function getRouteTemplate(routerState: RouterState): string | undefined {
   const { matches } = routerState;
 
   if (!matches.length) {

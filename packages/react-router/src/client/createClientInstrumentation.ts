@@ -18,6 +18,7 @@ import {
 import { startSpan } from '@sentry/core/browser';
 import type { ClientInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { routeProvider } from './routeCache';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import {
   resolveNavigateAbsoluteUrl,
@@ -264,7 +265,7 @@ export function createSentryClientInstrumentation(
           const routePattern = pattern || urlPath;
           // Parameterize the active navigation root span. (Route hooks don't fire on initial
           // pageload, so this only affects navigations.)
-          updateRootSpanRoute(routePattern, !!pattern);
+          updateRootSpanRoute(routePattern, !!pattern, urlPath);
 
           await startSpan(
             {
@@ -291,7 +292,7 @@ export function createSentryClientInstrumentation(
           const urlPath = getPathFromRequest(info.request);
           const pattern = normalizeRoutePath(getPattern(info));
           const routePattern = pattern || urlPath;
-          updateRootSpanRoute(routePattern, !!pattern);
+          updateRootSpanRoute(routePattern, !!pattern, urlPath);
 
           await startSpan(
             {
@@ -377,12 +378,18 @@ export function createSentryClientInstrumentation(
 
 /**
  * Updates the active navigation/pageload root span name with the parameterized route, so the
- * transaction reflects the parameterized route pattern (e.g. `/users/:id`).
+ * transaction reflects the parameterized route pattern (e.g. `/users/:id`), and records the route
+ * against `urlPath` for the route provider.
  */
-function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
+function updateRootSpanRoute(routeName: string, hasPattern: boolean, urlPath: string): void {
   if (!hasPattern) {
     return;
   }
+
+  // The instrumentation API resolves routes the hydrated router subscription never sees, so feed the
+  // provider from here too. Keyed on the request path rather than `location`, because route hooks
+  // run during the navigation, before the URL commits.
+  routeProvider.record(urlPath, routeName);
 
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan && getRootSpan(activeSpan);

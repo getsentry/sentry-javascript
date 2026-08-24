@@ -15,8 +15,10 @@ import {
 import type { DataRouter } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
+import { routeProvider } from './routeCache';
 import {
   finalizeNavigationSpanFromRouterState,
+  getRouteTemplate,
   normalizePathname,
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
@@ -47,6 +49,8 @@ export function instrumentHydratedRouter(): void {
 
     if (router) {
       // The first time we hit the router, we try to update the pageload transaction
+      routeProvider.record(router.state.location.pathname, getRouteTemplate(router.state));
+
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
@@ -117,6 +121,8 @@ export function instrumentHydratedRouter(): void {
       // whose route info only became available after `trySubscribe`, e.g. lazy routes) with the
       // parameterized route.
       router.subscribe(newState => {
+        routeProvider.record(newState.location.pathname, getRouteTemplate(newState));
+
         const rootSpan = getActiveRootSpan();
 
         if (!rootSpan) {

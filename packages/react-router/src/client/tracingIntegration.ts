@@ -1,11 +1,13 @@
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
+import { setRouteProvider } from '@sentry/core';
 import type { ClientInstrumentation } from 'react-router';
 import {
   createSentryClientInstrumentation,
   type CreateSentryClientInstrumentationOptions,
 } from './createClientInstrumentation';
 import { instrumentHydratedRouter } from './hydratedRouter';
+import { routeProvider } from './routeCache';
 
 /**
  * Options for the React Router tracing integration.
@@ -53,6 +55,10 @@ export function reactRouterTracingIntegration(
   return {
     ...browserTracingIntegrationInstance,
     name: 'ReactRouterTracingIntegration',
+    setup(client) {
+      setRouteProvider(routeProvider, client);
+      browserTracingIntegrationInstance.setup?.(client);
+    },
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
       instrumentHydratedRouter();
