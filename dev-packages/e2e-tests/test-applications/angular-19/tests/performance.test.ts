@@ -3,6 +3,10 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // Cannot use @sentry/angular here due to build stuff
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
+// The `angular-19 (streamed)` variant builds the app with `traceLifecycle: 'stream'`, which emits
+// spans instead of transactions. See `streamed-performance.test.ts` for that variant.
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'stream', 'transactions are not emitted with span streaming');
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
