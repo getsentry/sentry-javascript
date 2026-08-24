@@ -4,11 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.71.0
+
 ### Important Changes
 
-- **fix(v10/core)!: Enable logs by default ([#23311](https://github.com/getsentry/sentry-javascript/pull/23311))**
+- **feat(v10/core)!: Enable logs by default ([#23311](https://github.com/getsentry/sentry-javascript/pull/23311))**
 
 The `enableLogs` client option now defaults to `true`, so Sentry Logs work without any manual opt-in. Nothing is captured unless you call the `Sentry.logger.*` APIs or add a log-forwarding integration (such as `consoleLoggingIntegration`, `pinoIntegration`, or the winston transport), and you can set `enableLogs: false` to opt out. Although a default change like this would normally land in a major release, we are shipping it in a minor after careful consideration, since it sends no data on its own and only takes effect once you actively use the logging APIs or a logging integration.
+
+### Other Changes
+
+- feat(v10/core): Deprecate `scope.clear()` method ([#23231](https://github.com/getsentry/sentry-javascript/pull/23231))
+- fix(v10/core): Bound child span tracking on long-lived spans ([#23406](https://github.com/getsentry/sentry-javascript/pull/23406))
+- fix(v10/core): Read Supabase PostgREST headers from `Headers` instances ([#23241](https://github.com/getsentry/sentry-javascript/pull/23241))
+- fix(v10/hono): Use `captureException` from scope, not from `Client` ([#23280](https://github.com/getsentry/sentry-javascript/pull/23280))
+- fix(v10/nuxt): Delete source maps after Nitro finishes building ([#23508](https://github.com/getsentry/sentry-javascript/pull/23508))
+- fix(v10/react-router): Carry multi-byte UTF-8 across SSR stream chunk boundaries ([#23421](https://github.com/getsentry/sentry-javascript/pull/23421))
+- fix(v10/react): Match TanStack Router pageload against the router location ([#23494](https://github.com/getsentry/sentry-javascript/pull/23494))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/nextjs): Add e2e app for a user-owned OpenTelemetry setup ([#23278](https://github.com/getsentry/sentry-javascript/pull/23278))
+
+</details>
 
 ## 10.70.0
 
