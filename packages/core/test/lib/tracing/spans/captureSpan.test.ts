@@ -97,10 +97,6 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        ['sentry.segment.name.source']: {
-          value: 'custom',
-          type: 'string',
-        },
         [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
@@ -195,10 +191,6 @@ describe('captureSpan', () => {
         },
         [SENTRY_SEGMENT_ID]: {
           value: span.spanContext().spanId,
-          type: 'string',
-        },
-        ['sentry.segment.name.source']: {
-          value: 'custom',
           type: 'string',
         },
         [SENTRY_SEGMENT_NAME_SOURCE]: {
@@ -297,10 +289,6 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        ['sentry.segment.name.source']: {
-          value: 'custom',
-          type: 'string',
-        },
         [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
@@ -367,7 +355,6 @@ describe('captureSpan', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
-        ['sentry.segment.name.source']: { value: 'custom', type: 'string' },
         [SENTRY_SEGMENT_NAME_SOURCE]: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
