@@ -112,9 +112,12 @@ function findMatchingRoutes(
 ): string[] {
   const matches: string[] = [];
 
-  // Static routes don't need parameterization - return empty to keep source as 'url'
+  // A static route is its own template. Returning it rather than nothing lets callers tell
+  // "known route, zero params" apart from "we could not resolve this path at all" (no manifest,
+  // 404, route missed by the scanner), which is the difference between a low- and high-cardinality
+  // span name.
   if (staticRoutes.some(r => r.path === route)) {
-    return matches;
+    return [route];
   }
 
   // Check dynamic routes
@@ -139,10 +142,10 @@ export function hasManifest(): boolean {
 }
 
 /**
- * Parameterize a route using the route manifest.
+ * Resolve the route template for a concrete route using the route manifest.
  *
- * @param route - The route to parameterize.
- * @returns The parameterized route or undefined if no parameterization is needed.
+ * @param route - The route to resolve.
+ * @returns The route template, or undefined if the route could not be resolved from the manifest.
  */
 export const maybeParameterizeRemixRoute = (route: string): string | undefined => {
   const manifest = getManifest();

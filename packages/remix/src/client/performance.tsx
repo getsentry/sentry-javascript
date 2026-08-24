@@ -62,8 +62,8 @@ function getInitPathName(): string | undefined {
 /**
  * Determines the transaction name and source for a route.
  * Handles three cases:
- * 1. Dynamic routes with manifest (Vite apps): Use parameterized path with source 'route'
- * 2. Static routes with manifest (Vite apps): Use pathname with source 'url'
+ * 1. Routes resolved from the manifest (Vite apps): Use the route template with source 'route'
+ * 2. Routes the manifest doesn't know, e.g. 404s (Vite apps): Use pathname with source 'url'
  * 3. Legacy apps without manifest: Use route ID with source 'route'
  */
 function getTransactionNameAndSource(
@@ -73,13 +73,11 @@ function getTransactionNameAndSource(
   const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
 
   if (parameterizedRoute) {
-    // We have a parameterized route from the manifest (dynamic route)
     return { name: parameterizedRoute, source: 'route' };
   }
 
   if (hasManifest()) {
-    // We have a manifest but no parameterization (static route)
-    // Use the pathname with source 'url'
+    // The manifest doesn't know this route, so the pathname may well be high cardinality.
     return { name: pathname || routeId, source: 'url' };
   }
 
