@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreBrowser from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
 import * as inpModule from '../../src/web-vitals/inp';
@@ -20,10 +21,18 @@ vi.mock('@sentry/core', async () => {
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
     getClient: vi.fn(),
-    startInactiveSpan: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
     spanToJSON: vi.fn(),
+  };
+});
+
+// `startInactiveSpan` comes from `@sentry/core/browser`, not the root entry - see `browserSpanApi.ts`.
+vi.mock('@sentry/core/browser', async () => {
+  const actual = await vi.importActual('@sentry/core/browser');
+  return {
+    ...actual,
+    startInactiveSpan: vi.fn(),
   };
 });
 
@@ -62,7 +71,7 @@ describe('_emitWebVitalSpan', () => {
 
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     // A root span is its own root, which is what the web vital spans are parented to.
     vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
@@ -83,7 +92,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.5,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith({
       name: 'Test Vital',
       attributes: {
         'sentry.origin': 'auto.http.browser.lcp',
@@ -98,7 +107,7 @@ describe('_emitWebVitalSpan', () => {
     });
 
     // No standalone flag
-    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
       expect.objectContaining({ experimental: expect.anything() }),
     );
 
@@ -120,7 +129,7 @@ describe('_emitWebVitalSpan', () => {
       parentSpan,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.segment.name': 'Pageload',
@@ -141,7 +150,7 @@ describe('_emitWebVitalSpan', () => {
       standalone: true,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({ experimental: { standalone: true } }),
     );
   });
@@ -161,7 +170,7 @@ describe('_emitWebVitalSpan', () => {
       standalone: true,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.replay_id': 'replay-123',
@@ -186,7 +195,7 @@ describe('_emitWebVitalSpan', () => {
       standalone: true,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({ 'sentry._internal.replay_is_buffering': true }),
       }),
@@ -207,7 +216,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.5,
     });
 
-    const attributes = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0].attributes!;
+    const attributes = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0].attributes!;
     expect(attributes['sentry.replay_id']).toBeUndefined();
   });
 
@@ -229,7 +238,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.0,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.pageload.span_id': 'abc123',
@@ -255,7 +264,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.0,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.not.objectContaining({
           'sentry.pageload.span_id': expect.anything(),
@@ -275,7 +284,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.0,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'browser.web_vital.cls.report_event': 'pagehide',
@@ -295,7 +304,7 @@ describe('_emitWebVitalSpan', () => {
       startTime: 1.0,
     });
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'custom.attr': 'value',
@@ -305,7 +314,7 @@ describe('_emitWebVitalSpan', () => {
   });
 
   it('handles when startInactiveSpan returns undefined', () => {
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(undefined as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(undefined as any);
 
     expect(() => {
       _emitWebVitalSpan({
@@ -335,7 +344,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       // The web vital span takes its segment name off the pageload span it is parented to.
       name: 'test-route',
@@ -362,7 +371,7 @@ describe('_sendLcpSpan', () => {
 
     _sendLcpSpan(250, mockEntry, mockPageloadSpan as any, 'pagehide');
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '<img>',
         attributes: expect.objectContaining({
@@ -392,7 +401,7 @@ describe('_sendLcpSpan', () => {
   it('sends a streamed LCP span without entry data', () => {
     _sendLcpSpan(250, undefined);
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Largest contentful paint',
         startTime: 1, // timeOrigin: 1000 / 1000
@@ -404,7 +413,7 @@ describe('_sendLcpSpan', () => {
     _sendLcpSpan(0, undefined);
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
 
-    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
   });
 });
 
@@ -424,7 +433,7 @@ describe('_sendClsSpan', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({
       // The web vital span takes its segment name off the pageload span it is parented to.
       name: 'test-route',
@@ -462,7 +471,7 @@ describe('_sendClsSpan', () => {
 
     _sendClsSpan(0.1, mockEntry, mockPageloadSpan as any, 'navigation');
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '<div>',
         attributes: expect.objectContaining({
@@ -484,7 +493,7 @@ describe('_sendClsSpan', () => {
     _sendClsSpan(0, undefined);
 
     expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Layout shift',
         startTime: 1.5,
@@ -508,7 +517,7 @@ describe('_sendInpSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue(mockSpan as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     // A root span is its own root, which is what the web vital spans are parented to.
@@ -533,7 +542,7 @@ describe('_sendInpSpan', () => {
     _sendInpSpan(120, mockEntry);
 
     // startTime = (1000 + 500) / 1000 = 1.5
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '<button>',
         startTime: 1.5,
@@ -564,7 +573,7 @@ describe('_sendInpSpan', () => {
 
     _sendInpSpan(80, mockEntry);
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.op': 'ui.interaction.press',
@@ -596,7 +605,7 @@ describe('_sendInpSpan', () => {
 
     expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(42);
 
-    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'body > CachedButton',
         attributes: expect.objectContaining({
@@ -628,7 +637,7 @@ describe('trackInpAsSpan', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
-    vi.mocked(SentryCore.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
     // A root span is its own root, which is what the web vital spans are parented to.
     vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
@@ -648,7 +657,7 @@ describe('trackInpAsSpan', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: validMetric });
 
-    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    const call = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0];
     expect(call.experimental).toBeUndefined();
     expect(call.attributes?.['sentry.op']).toBe('ui.interaction.click');
   });
@@ -658,25 +667,25 @@ describe('trackInpAsSpan', () => {
     trackInpAsSpan(staticClient);
     inpCallback({ metric: validMetric });
 
-    const call = vi.mocked(SentryCore.startInactiveSpan).mock.calls[0]![0];
+    const call = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0];
     expect(call.experimental).toEqual({ standalone: true });
   });
 
   it('ignores INP metrics without a value', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: { value: null, entries: [] } });
-    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
   });
 
   it('ignores implausibly long INP durations', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: { value: (inpModule.MAX_PLAUSIBLE_INP_DURATION + 1) * 1000, entries: validMetric.entries } });
-    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
   });
 
   it('ignores INP metrics without a matching interaction entry', () => {
     trackInpAsSpan(streamingClient);
     inpCallback({ metric: { value: 120, entries: [{ name: 'scroll', duration: 120 }] } });
-    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
   });
 });

@@ -730,6 +730,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /**
+   * Register a callback for after an envelope has been accepted by the transport.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterEnvelope', callback: (envelope: Envelope) => void): () => void;
+
+  /**
    * Register a callback that runs when stack frame metadata should be applied to an event.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -881,6 +887,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'flush', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when spans of a single trace should be flushed eagerly,
+   * ahead of the trace's regular flush point. Only runtimes with a span streaming
+   * buffer (e.g. the Cloudflare SDK) listen to this hook.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushTraceSpans', callback: (traceId: string) => void): () => void;
 
   /**
    * A hook that is called when the client is closing
@@ -1056,6 +1070,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /**
+   * Fire a hook event after an envelope has been accepted by the transport.
+   */
+  public emit(hook: 'afterEnvelope', envelope: Envelope): void;
+
+  /**
    * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
    */
   public emit(hook: 'applyFrameMetadata', event: Event): void;
@@ -1180,6 +1199,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flush'): void;
 
   /**
+   * Fire a hook event indicating that spans of a single trace should be flushed eagerly.
+   */
+  public emit(hook: 'flushTraceSpans', traceId: string): void;
+
+  /**
    * Emit a hook event for client close
    */
   public emit(hook: 'close'): void;
@@ -1262,7 +1286,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (this._isEnabled() && this._transport) {
       try {
-        return await this._transport.send(envelope);
+        const result = await this._transport.send(envelope);
+        this.emit('afterEnvelope', envelope);
+        return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};

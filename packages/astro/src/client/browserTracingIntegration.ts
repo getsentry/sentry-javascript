@@ -5,7 +5,6 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
   hasSpanStreamingEnabled,
   PAGELOAD_SPAN_NAME_FALLBACK,
@@ -39,14 +38,10 @@ export function browserTracingIntegration(
 
       if (WINDOW.location) {
         if (options.instrumentPageLoad != false) {
-          const origin = browserPerformanceTimeOrigin();
-
           const { name, source } = getPageloadSpanName(client);
 
           startBrowserTracingPageLoadSpan(client, {
             name,
-            // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: origin ? origin / 1000 : undefined,
             attributes: {
               [SENTRY_SEGMENT_NAME_SOURCE]: source,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',

@@ -889,6 +889,26 @@ Sentry.init({
 });
 ```
 
+- The experimental `_experiments.enableInteractions` option was removed from `browserTracingIntegration`. Interaction spans (`ui.action.click` and `ui.interaction.click`) now live in the standalone `interactionsIntegration`. Since this was the only experimental option, `browserTracingIntegration` no longer accepts an `_experiments` object at all.
+
+```js
+// before
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      _experiments: { enableInteractions: true },
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
+});
+```
+
+The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction spans are no longer inherited from `browserTracingIntegration` and are configured on `interactionsIntegration` instead, using the same defaults as before.
+
 ### `@sentry/node` / Server-side SDKs
 
 - `SentryContextManager` is no longer exported. It is no longer needed now that Sentry does not set up OpenTelemetry by default.

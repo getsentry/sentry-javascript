@@ -497,6 +497,41 @@ describe('browserTracingIntegration', () => {
       expect(spanIsSampled(span!)).toBe(true);
     });
 
+    it('starts the span at the time origin if no start time is provided', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // Simulate the SDK (and therefore the routing instrumentation) only starting up 5s into the page load
+      vi.setSystemTime(browserPerformanceTimeOrigin()! + 5_000);
+
+      const span = startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      expect(spanToJSON(span!).start_timestamp).toBe(browserPerformanceTimeOrigin()! / 1000);
+    });
+
+    it('respects an explicitly passed start time', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const startTime = browserPerformanceTimeOrigin()! / 1000 + 12;
+
+      const span = startBrowserTracingPageLoadSpan(client, { name: 'test span', startTime });
+
+      expect(spanToJSON(span!).start_timestamp).toBe(startTime);
+    });
+
     it('allows to overwrite properties', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({

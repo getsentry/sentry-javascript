@@ -13,8 +13,8 @@ import {
   SentryNonRecordingSpan,
   SentrySpan,
   setCapturedScopesOnSpan,
-  startInactiveSpan,
 } from '../../../src/tracing';
+import { startInactiveSpan } from '../../../src/tracing/trace';
 import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';

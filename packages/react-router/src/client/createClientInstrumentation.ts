@@ -11,10 +11,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   SPAN_STATUS_ERROR,
-  startSpan,
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';

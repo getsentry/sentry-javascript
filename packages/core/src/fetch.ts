@@ -10,7 +10,8 @@ import {
 import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored } from './tracing';
+import { startInactiveSpan } from './tracing/trace';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 import type { FetchBreadcrumbHint } from './types/breadcrumb';

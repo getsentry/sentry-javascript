@@ -11,7 +11,7 @@ Span names must be low cardinality, per the [Sentry span name conventions](https
 This only applies when span streaming is enabled. With `traceLifecycle: 'static'` every span name must stay byte-identical to before.
 
 `pageload` was ported first. Read it as the reference implementation before starting:
-`packages/core/src/spanNames.ts` (the constant), `packages/browser/src/tracing/browserTracingIntegration.ts`
+`packages/core/src/tracing/spans/spanNames.ts` (the constant), `packages/browser/src/tracing/browserTracingIntegration.ts`
 (a start site plus the scope guard in `startBrowserTracingPageLoadSpan`), and
 `grep -rn PAGELOAD_SPAN_NAME_FALLBACK packages/*/src` for the full set of call sites.
 
@@ -32,14 +32,14 @@ These are non-negotiable. Every one of them was arrived at by rejecting the alte
 4. **Only the name changes.** Do not touch `sentry.source`, `url.template`, `http.route`, or any other attribute. They keep describing where the name came from.
 5. **Do not derive the name from attributes in code.** The conventions describe names as attribute templates, but you implement them by reusing the value the site _already_ has for `url.template` / `http.route`. No attribute lookups, no generic template resolver.
 6. **No helpers, no abstraction.** An inline ternary at each site. A shared `const` for the fallback string is fine (and required, see rule 6); a function that sets names or attributes is not.
-7. **The fallback must never reach `scope.setTransactionName`.** The scope's transaction name is what error events are grouped by, so it keeps the raw URL or the parameterized route — never `Pageload`/`Navigation`/etc. Export the fallback as a constant from `packages/core/src/spanNames.ts` so the guard cannot drift.
+7. **The fallback must never reach `scope.setTransactionName`.** The scope's transaction name is what error events are grouped by, so it keeps the raw URL or the parameterized route — never `Pageload`/`Navigation`/etc. Export the fallback as a constant from `packages/core/src/tracing/spans/spanNames.ts` so the guard cannot drift.
 8. **`sentry.segment.name` must never diverge from the segment span's name.** Any code that stamps it on a child span has to read it off the segment span, not off the scope.
 
 ## 1. Look up the convention
 
 Read <https://getsentry.github.io/sentry-conventions/names/> and find the op. Each op lists attribute templates in priority order, ending in a static fallback — that fallback is your name. Examples: `pageload` → `Pageload`, `navigation` → `Navigation`, database ops → `Database operation`.
 
-Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/spanNames.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
+Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/tracing/spans/spanNames.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
 
 ## 2. Find every site that names a span with this op
 

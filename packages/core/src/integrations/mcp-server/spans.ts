@@ -8,7 +8,7 @@
 import { getClient } from '../../currentScopes';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { startSpan } from '../../tracing';
+import { startSpan } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
   MCP_FUNCTION_ORIGIN_VALUE,

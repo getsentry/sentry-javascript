@@ -3,8 +3,8 @@ import {
   handleCallbackErrors,
   objectify,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
 import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';
