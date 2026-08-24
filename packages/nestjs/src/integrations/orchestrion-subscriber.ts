@@ -121,7 +121,7 @@ export function subscribeToNestChannels(): void {
     return;
   }
 
-  DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
+  DEBUG_BUILD && debug.log('[instrumentation:nestjs] subscribing to @nestjs channels');
 
   // App-creation span: `bindTracingChannelToSpan` opens the span on
   // `start`, makes it the active context for the bootstrap, and ends it

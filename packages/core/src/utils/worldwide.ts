@@ -56,7 +56,7 @@ export type InternalGlobal = {
   _sentryModuleMetadata?: Record<string, any>;
   _sentryWrappedDepth?: number;
   /**
-   * Orchestrion bundler and runtime detection.
+   * Bundler and runtime instrumentation detection.
    */
   __SENTRY_ORCHESTRION__?: {
     /** Empty array signifies runtime hooked */

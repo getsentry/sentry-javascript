@@ -401,7 +401,7 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
 /**
  * Sets connection context attributes on a span.
  *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ * @internal Exported for the diagnostics-channel integration.
  */
 export function _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
   if (!connectionContext) {
@@ -426,7 +426,7 @@ export function _setConnectionAttributes(span: Span, connectionContext: Postgres
 /**
  * Extracts DB operation name from SQL query and sets it on the span.
  *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ * @internal Exported for the diagnostics-channel integration.
  */
 export function _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
   if (command) {
@@ -444,7 +444,7 @@ export function _setOperationName(span: Span, sanitizedQuery: string | undefined
  * Builds a {@link PostgresConnectionContext} from postgres.js' parsed options
  * (which store `host`/`port` as arrays). Defaults to 'localhost'/5432.
  *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ * @internal Exported for the diagnostics-channel integration.
  */
 export function _buildConnectionContext(options: {
   host?: string[];

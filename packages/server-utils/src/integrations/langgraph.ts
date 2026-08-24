@@ -76,7 +76,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
         wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
       }
     } catch (error) {
-      DEBUG_BUILD && debug.error('[orchestrion:langgraph] failed to wrap createReactAgent tools', error);
+      DEBUG_BUILD && debug.error('[instrumentation:langgraph] failed to wrap createReactAgent tools', error);
     }
   });
   reactAgentChannel.end.subscribe(message => {
@@ -128,8 +128,8 @@ function wrapCompiledGraphInvoke(
 }
 
 /**
- * Orchestrion-driven LangGraph integration. Subscribes to the diagnostics_channels
+ * Diagnostics-channel-based LangGraph integration. Subscribes to the diagnostics_channels
  * injected into `@langchain/langgraph`'s `StateGraph.compile` and `createReactAgent`, so it requires
- * the orchestrion runtime hook or bundler plugin.
+ * the Sentry runtime hook or bundler plugin.
  */
 export const langGraphIntegration = defineIntegration(_langGraphIntegration);

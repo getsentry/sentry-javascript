@@ -1,5 +1,5 @@
 /**
- * orchestrion code-transform plugin for Bun's bundler (`bun build`).
+ * Sentry code-transform plugin for Bun's bundler (`bun build`).
  *
  * Usage:
  *
@@ -17,7 +17,7 @@
  *
  * When https://github.com/oven-sh/bun/pull/31770 lands, we can revisit.
  *
- * Until then, Bun apps must bundle to get orchestrion instrumentation. In dev
+ * Until then, Bun apps must bundle to get build-time instrumentation. In dev
  * (ie, `bun run`) there is simply no instrumentation, which is clearer than
  * partial/inconsistent coverage.
  *
@@ -52,7 +52,7 @@ interface BunPluginBuilder {
 }
 
 /**
- * Returns the orchestrion code-transform plugin for Bun's bundler, configured
+ * Returns the Sentry code-transform plugin for Bun's bundler, configured
  * with the central `SENTRY_INSTRUMENTATIONS`. The plugin injects
  * `diagnostics_channel.tracingChannel` calls into the instrumented libraries as
  * `bun build` bundles them — plus, via the module-injected transform, the

@@ -1,12 +1,14 @@
 import { sentryRollupPlugin as sentryRollupBundlerPlugin } from '@sentry/bundler-plugins/rollup';
 import type { SentryRollupPluginOptions as SentryRollupPluginOptionsBase } from '@sentry/bundler-plugins/rollup';
+import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import type { Plugin as RollupPlugin } from 'rollup';
 
 export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
   /**
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
-  instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+  instrumentations?: InstrumentationConfig[];
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.
@@ -17,8 +19,6 @@ export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
    */
   buildTimeInstrumentation?: boolean;
 };
-
-type RollupPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 
 /**
  * Rollup plugin that bundles the Sentry Rollup bundler plugin (source maps,

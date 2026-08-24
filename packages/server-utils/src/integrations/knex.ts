@@ -109,7 +109,7 @@ const _knexIntegration = (() => {
         return;
       }
 
-      DEBUG_BUILD && debug.log(`[orchestrion:knex] subscribing to channel "${CHANNELS.KNEX_QUERY}"`);
+      DEBUG_BUILD && debug.log(`[instrumentation:knex] subscribing to channel "${CHANNELS.KNEX_QUERY}"`);
 
       waitForTracingChannelBinding(() => {
         subscribeBuilder(CHANNELS.KNEX_QUERY_BUILDER);
@@ -306,10 +306,10 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
 }
 
 /**
- * Orchestrion-driven knex integration.
+ * Diagnostics-channel-based knex integration.
  *
- * Subscribes to the `orchestrion:knex:*` diagnostics_channels that the orchestrion code transform
+ * Subscribes to the `orchestrion:knex:*` diagnostics_channels that Sentry's code transform
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span
- * bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
+ * bookkeeping). Requires the Sentry runtime hook or bundler plugin to be active.
  */
 export const knexIntegration = defineIntegration(_knexIntegration);

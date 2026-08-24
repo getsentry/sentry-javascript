@@ -596,10 +596,10 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
 }
 
 /**
- * Orchestrion-driven `amqplib` integration.
+ * Diagnostics-channel-based `amqplib` integration.
  *
- * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that the orchestrion code transform
- * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or
+ * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that Sentry's code transform
+ * injects into `amqplib`'s channel/connection methods. Requires the Sentry runtime hook or
  * bundler plugin to be active.
  */
 export const amqplibIntegration = defineIntegration(_amqplibIntegration);

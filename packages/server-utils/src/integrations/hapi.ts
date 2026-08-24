@@ -63,8 +63,8 @@ function instrumentHapi(): void {
 }
 
 /**
- * Orchestrion-driven hapi integration. Subscribes to the
+ * Diagnostics-channel-based hapi integration. Subscribes to the
  * `orchestrion:@hapi/hapi:route` / `:ext` channels injected into `@hapi/hapi`'s
- * `lib/server.js`. Requires the orchestrion runtime hook or bundler plugin.
+ * `lib/server.js`. Requires the Sentry runtime hook or bundler plugin.
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
