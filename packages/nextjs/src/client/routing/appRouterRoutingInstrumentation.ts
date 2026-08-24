@@ -13,7 +13,7 @@ import {
   WINDOW,
   getAbsoluteUrl,
 } from '@sentry/react';
-import { maybeParameterizeRoute } from './parameterization';
+import { maybeParameterizeRoute, stripTrailingSlash } from './parameterization';
 import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -22,14 +22,6 @@ import {
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
-
-/**
- * Strips trailing slash from a pathname, unless it's the root path.
- * This normalizes paths like '/about/' to '/about' to handle Next.js `trailingSlash: true` config.
- */
-function stripTrailingSlash(pathname: string): string {
-  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-}
 
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({

@@ -1,6 +1,21 @@
 import type { Integration } from '@sentry/core';
+import { createUrlRouteProvider, setRouteProvider } from '@sentry/core/browser';
 import { browserTracingIntegration as originalBrowserTracingIntegration, isBotUserAgent } from '@sentry/react';
+import { maybeParameterizeRoute, stripBasePath, stripTrailingSlash, withBasePath } from './routing/parameterization';
+import { getNextRouteFromPathname } from './routing/pagesRouterRoutingInstrumentation';
 import { nextRouterInstrumentNavigation, nextRouterInstrumentPageLoad } from './routing/nextRoutingInstrumentation';
+
+/**
+ * Resolves a URL against whichever router manifest the app ships.
+ *
+ * The two want the pathname differently: App Router routes are generated with `basePath` baked in,
+ * while Next strips it internally for the Pages Router.
+ */
+function resolveNextRoute(url: URL): string | undefined {
+  const pathname = stripTrailingSlash(url.pathname);
+
+  return maybeParameterizeRoute(withBasePath(pathname)) ?? getNextRouteFromPathname(stripBasePath(pathname));
+}
 
 /**
  * A custom browser tracing integration for Next.js.
@@ -28,6 +43,14 @@ export function browserTracingIntegration(
 
   return {
     ...browserTracingIntegrationInstance,
+    setup(client) {
+      // Registered here rather than in `afterAllSetup` so it is in place before the pageload span is
+      // named. The build-time route manifest is already on the global object at this point, so nothing
+      // has to wait for the router itself.
+      setRouteProvider(createUrlRouteProvider(resolveNextRoute), client);
+
+      browserTracingIntegrationInstance.setup?.(client);
+    },
     afterAllSetup(client) {
       if (isBotUserAgent()) {
         return;

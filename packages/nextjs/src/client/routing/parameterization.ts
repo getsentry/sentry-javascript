@@ -12,6 +12,46 @@ let cachedManifestString: string | undefined = undefined;
 const compiledRegexCache: Map<string, RegExp> = new Map();
 const routeResultCache: Map<string, string | undefined> = new Map();
 
+const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  _sentryBasePath: string | undefined;
+};
+
+/**
+ * Strips trailing slash from a pathname, unless it's the root path.
+ * This normalizes paths like '/about/' to '/about' to handle Next.js `trailingSlash: true` config.
+ */
+export function stripTrailingSlash(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
+function getBasePath(): string | undefined {
+  return process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
+}
+
+/**
+ * Prefixes a pathname with the configured `basePath` when it is missing.
+ *
+ * The App Router manifest is generated with `basePath` baked into every route, so a pathname that
+ * lacks it matches nothing.
+ */
+export function withBasePath(pathname: string): string {
+  const basePath = getBasePath();
+
+  return basePath && !pathname.startsWith(basePath) ? `${basePath}${pathname}` : pathname;
+}
+
+/**
+ * Removes the configured `basePath` from a pathname.
+ *
+ * The opposite of {@link withBasePath}, because Next strips `basePath` internally for the Pages
+ * Router: `__BUILD_MANIFEST.sortedPages` holds routes without it.
+ */
+export function stripBasePath(pathname: string): string {
+  const basePath = getBasePath();
+
+  return basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
+}
+
 // Specificity ranks for a single route segment, from most to least specific. `END` is the rank of
 // the position just past the last segment of a route, so that a route which stops is compared
 // against whatever the longer route continues with.
