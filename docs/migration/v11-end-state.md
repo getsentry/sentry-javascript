@@ -297,6 +297,10 @@ Affected SDKs: `@sentry/node` and all dependents.
 
 The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
 
+#### `vercelAIIntegration` changes
+
+One integration to call out specifically here is the `vercelAIIntegration`. This integration no longer works on Vercel Edge (as that does not support diagnostics channel), and we also removed the capabilities to enhance native OTEL spans emitted by the `ai` package - you can only capture these as-is and may loose some advanced agent monitoring capabilities. On the other hand, the integration will now work much better out of the box in many environments than it used to before.
+
 ### Initializing via `--require` is no longer supported
 
 Affected SDKs: `@sentry/node` and all dependents.
