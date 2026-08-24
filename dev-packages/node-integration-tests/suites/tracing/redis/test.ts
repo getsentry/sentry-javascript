@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -10,7 +9,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
   // Under orchestrion, ioredis <5.11 is instrumented by the diagnostics-channel
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
-  const origin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
+  const origin = 'auto.db.redis';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Span',
@@ -22,10 +21,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'server.address': 'localhost',
           'server.port': 6380,
-          'db.statement': 'set test-key [1 other arguments]',
+          'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
       expect.objectContaining({
@@ -35,10 +34,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'server.address': 'localhost',
           'server.port': 6380,
-          'db.statement': 'get test-key',
+          'db.query.text': 'get test-key',
         }),
       }),
       // a failing command produces a span with an error status
@@ -50,10 +49,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         data: expect.objectContaining({
           'sentry.op': 'db',
           'sentry.origin': origin,
-          'db.system': 'redis',
+          'db.system.name': 'redis',
           'server.address': 'localhost',
           'server.port': 6380,
-          'db.statement': 'incr test-key',
+          'db.query.text': 'incr test-key',
         }),
       }),
     ]),

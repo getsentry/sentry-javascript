@@ -1,4 +1,7 @@
-/* oxlint-disable typescript/no-deprecated -- legacy database attributes remain for compatibility. */
+// The `@sentry/conventions` db/net attribute keys are deprecated (superseded by newer semconv), but we
+// emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-knex` produced.
+/* oxlint-disable typescript/no-deprecated */
+
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
@@ -12,15 +15,15 @@ import {
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import {
-  DB_NAME,
-  DB_OPERATION,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
   DB_USER,
   NETWORK_TRANSPORT,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
@@ -31,7 +34,7 @@ import { bindTracingChannelToSpan } from '../tracing-channel';
 const INTEGRATION_NAME = 'Knex' as const;
 const ORIGIN = 'auto.db.knex';
 
-// Max length of the query text captured in `db.statement`; "..." is appended when truncated, so the
+// Max length of the query text captured in `db.query.text`; "..." is appended when truncated, so the
 // truncated statement caps at 1024 chars (1 KiB), matching `@opentelemetry/instrumentation-knex`.
 const MAX_QUERY_LENGTH = 1021;
 
@@ -168,15 +171,15 @@ function subscribeQuery(): void {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
-        [DB_SYSTEM]: mapSystem(client?.driverName),
+        [DB_SYSTEM_NAME]: mapSystem(client?.driverName),
         [ATTR_DB_SQL_TABLE]: table,
-        [DB_OPERATION]: operation,
+        [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
-        [DB_NAME]: name,
+        [DB_NAMESPACE]: name,
         [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
-        [DB_STATEMENT]: dbStatement,
+        [DB_QUERY_TEXT]: dbStatement,
       };
 
       return startInactiveSpan({

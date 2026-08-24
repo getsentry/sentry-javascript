@@ -1,11 +1,10 @@
 import { describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.knex' : 'auto.db.otel.knex';
+  const ORIGIN = 'auto.db.knex';
 
   describeWithDockerCompose('with `pg` client', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -16,8 +15,8 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
@@ -31,8 +30,8 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.system': 'postgresql',
-                'db.name': 'tests',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
                 'server.address': 'localhost',
@@ -47,11 +46,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'User',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "User"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "User"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),
@@ -63,11 +62,11 @@ describe('knex auto instrumentation', () => {
             expect.objectContaining({
               data: expect.objectContaining({
                 'knex.version': KNEX_VERSION,
-                'db.operation': 'select',
+                'db.operation.name': 'select',
                 'db.sql.table': 'DoesNotExist',
-                'db.system': 'postgresql',
-                'db.name': 'tests',
-                'db.statement': 'select * from "DoesNotExist"',
+                'db.system.name': 'postgresql',
+                'db.namespace': 'tests',
+                'db.query.text': 'select * from "DoesNotExist"',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
               }),

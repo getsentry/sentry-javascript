@@ -15,8 +15,6 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup } from '@sentry/server-utils/orchestrion';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
@@ -35,6 +33,7 @@ import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
+import { workerThreadsIntegration } from '../integrations/workerThreads';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { getEntryPointType } from '../utils/entry-point';
@@ -67,6 +66,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
+    workerThreadsIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
   ];
@@ -170,19 +170,6 @@ function _init(
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
 
-  // When Sentry does not own an OpenTelemetry tracer provider, scope isolation runs on a pure
-  // AsyncLocalStorage strategy instead of the OpenTelemetry context strategy. Instrumentation still
-  // emits spans via core `startSpan`; there is just no OTel provider or propagator behind them.
-  let asyncLocalStorageLookup: ReturnType<typeof setOpenTelemetryContextAsyncContextStrategy> | undefined;
-  if (!clientOptions.enableOpenTelemetrySetup) {
-    // The ALS store already is the `{ scope, isolationScope }` object, so no `contextSymbol` is needed
-    // to reach it (unlike the OTel context strategy, where it is nested under the OTel context).
-    const asyncLocalStorage = setAsyncLocalStorageAsyncContextStrategy();
-    asyncLocalStorageLookup = { asyncLocalStorage };
-  } else {
-    asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
-  }
-
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
 
@@ -199,7 +186,6 @@ function _init(
   getCurrentScope().setClient(client);
 
   client.init();
-  client.asyncLocalStorageLookup = asyncLocalStorageLookup;
 
   /*! rollup-include-cjs-only */
   debug.log(`SDK initialized from CommonJS`);

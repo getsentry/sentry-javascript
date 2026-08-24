@@ -97,24 +97,40 @@ export function constructTurbopackConfig({
   }
 
   // Add component annotation loader for react component name annotation in Turbopack builds.
-  // This is only added when turbopackReactComponentAnnotation.enabled is set AND the Next.js
-  // version supports the `condition` field in Turbopack rules (Next.js 16+).
-  const turbopackReactComponentAnnotation = userSentryOptions?._experimental?.turbopackReactComponentAnnotation;
-  if (turbopackReactComponentAnnotation?.enabled && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
-    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-      matcher: '*.{tsx,jsx}',
-      rule: {
-        condition: { not: 'foreign' },
-        loaders: [
-          {
-            loader: path.resolve(__dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
-            options: {
-              ignoredComponents: turbopackReactComponentAnnotation.ignoredComponents ?? [],
+  // This is only added when annotation is enabled AND the Next.js version supports the
+  // `condition` field in Turbopack rules (Next.js 16+).
+  // Typed as the unified option so reads below resolve to the non-deprecated declarations.
+  const reactComponentAnnotation: NonNullable<SentryBuildOptions['reactComponentAnnotation']> = {
+    ...userSentryOptions?.reactComponentAnnotation,
+    // eslint-disable-next-line typescript/no-deprecated
+    ...userSentryOptions?._experimental?.turbopackReactComponentAnnotation,
+  };
+  if (reactComponentAnnotation.enabled) {
+    if (nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
+      newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+        matcher: '*.{tsx,jsx}',
+        rule: {
+          condition: { not: 'foreign' },
+          loaders: [
+            {
+              loader: path.resolve(__dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
+              options: {
+                ignoredComponents: reactComponentAnnotation.ignoredComponents ?? [],
+              },
             },
-          },
-        ],
-      },
-    });
+          ],
+        },
+      });
+    } else {
+      // Without this warning the option silently no-ops, which is indistinguishable from
+      // annotation being broken.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] \`reactComponentAnnotation\` is enabled but React component annotation requires Next.js 16+ on Turbopack builds${
+          nextJsVersion ? ` (detected ${nextJsVersion})` : ''
+        }. Your components will not be annotated.`,
+      );
+    }
   }
 
   newConfig.rules = maybeAddOrchestrionRule(newConfig.rules, userSentryOptions, nextJsVersion);

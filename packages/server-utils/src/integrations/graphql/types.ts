@@ -31,3 +31,19 @@ export interface GraphqlResolvedConfig {
   ignoreTrivialResolveSpans: boolean;
   useOperationNameForRootSpan: boolean;
 }
+
+/** Minimal shape of a graphql-js lexer token, enough to locate literal spans for redaction. */
+export interface GraphqlToken {
+  kind: string;
+  start: number;
+  end: number;
+  next?: GraphqlToken | null;
+}
+
+/** Minimal shape of a parsed graphql-js `DocumentNode`, enough to read its source and tokens. */
+export interface GraphqlDocumentNode {
+  loc?: {
+    startToken?: GraphqlToken;
+    source?: { body?: string };
+  };
+}

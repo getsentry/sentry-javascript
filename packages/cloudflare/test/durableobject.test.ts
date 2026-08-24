@@ -242,6 +242,32 @@ describe('instrumentDurableObjectWithSentry', () => {
     }
   });
 
+  it.each(['webSocketMessage', 'webSocketClose', 'webSocketError'])('%s creates a websocket span', async methodName => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const testClass = class {
+      webSocketMessage() {}
+
+      webSocketClose() {}
+
+      webSocketError() {}
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+    const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+
+    await (obj as any)[methodName]();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: methodName,
+        attributes: {
+          'sentry.op': 'websocket',
+          'sentry.origin': 'auto.faas.cloudflare.durable_object',
+        },
+      },
+      expect.any(Function),
+    );
+  });
+
   it('Built-in durable object methods are own properties and not wrapped as RPC', () => {
     const testClass = class {
       fetch() {
@@ -317,24 +343,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(getInstrumented(obj.alarm)).toBeTruthy();
   });
 
-  it('Does not instrument RPC methods when enableRpcTracePropagation is false', () => {
-    const testClass = class {
-      rpcMethod() {
-        return 'result';
-      }
-    };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: false }),
-      testClass as any,
-    );
-    const obj = Reflect.construct(instrumented, []);
-
-    // RPC method should not be wrapped
-    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
-    expect(obj.rpcMethod()).toBe('result');
-  });
-
-  it('instruments RPC methods by default when enableRpcTracePropagation is not set', () => {
+  it('Does not instrument RPC methods when enableRpcTracePropagation is not set', () => {
     const testClass = class {
       rpcMethod() {
         return 'result';
@@ -343,8 +352,8 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
-    // RPC method should be wrapped on the prototype by default
-    expect(getInstrumented(obj.rpcMethod)).toBeTruthy();
+    // RPC method should not be wrapped
+    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
     expect(obj.rpcMethod()).toBe('result');
   });
 

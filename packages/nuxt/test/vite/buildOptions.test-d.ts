@@ -20,7 +20,10 @@ describe('Sentry Nuxt build-time options type', () => {
         assets: ['./dist/**/*'],
         ignore: ['./dist/*.map'],
         filesToDeleteAfterUpload: ['./dist/*.map'],
+        rewriteSources: (source: string) => source,
+        resolveSourceMap: (artifactPath: string) => `${artifactPath}.map`,
       },
+      moduleMetadata: { team: 'sdk' },
       release: {
         name: 'test-release-1.0.0',
         create: true,
@@ -58,19 +61,20 @@ describe('Sentry Nuxt build-time options type', () => {
       autoInjectServerSentry: 'experimental_dynamic-import',
       configDir: '~/custom-config',
       experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],
-      unstable_sentryBundlerPluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
     };
 
     expectTypeOf(completeOptions).toEqualTypeOf<SentryNuxtModuleOptions>();
+  });
+
+  it('rejects the removed `unstable_sentryBundlerPluginOptions`', () => {
+    const options: SentryNuxtModuleOptions = {
+      // @ts-expect-error - removed in v11, use the top-level build options instead
+      unstable_sentryBundlerPluginOptions: {
+        sourcemaps: { assets: './dist/**/*' },
+      },
+    };
+
+    expectTypeOf(options).toEqualTypeOf<SentryNuxtModuleOptions>();
   });
 
   it('allows partial configuration', () => {

@@ -2,11 +2,10 @@ import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('MongoDB auto-instrumentation', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -25,14 +24,14 @@ describe('MongoDB auto-instrumentation', () => {
     data: {
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.name': 'admin',
-      'db.mongodb.collection': 'movies',
-      'db.operation': 'find',
+      'db.system.name': 'mongodb',
+      'db.namespace': 'admin',
+      'db.collection.name': 'movies',
+      'db.operation.name': 'find',
       'db.connection_string': expect.any(String),
       'server.address': expect.any(String),
       'server.port': expect.any(Number),
-      'db.statement': '{"title":"?"}',
+      'db.query.text': '{"title":"?"}',
       'sentry.kind': 'client',
     },
     description: '{"title":"?"}',
@@ -44,14 +43,14 @@ describe('MongoDB auto-instrumentation', () => {
     data: {
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.name': 'admin',
-      'db.mongodb.collection': 'movies',
-      'db.operation': 'insert',
+      'db.system.name': 'mongodb',
+      'db.namespace': 'admin',
+      'db.collection.name': 'movies',
+      'db.operation.name': 'insert',
       'db.connection_string': expect.any(String),
       'server.address': expect.any(String),
       'server.port': expect.any(Number),
-      'db.statement': '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
+      'db.query.text': '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
       'sentry.kind': 'client',
     },
     description: '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
@@ -63,14 +62,14 @@ describe('MongoDB auto-instrumentation', () => {
     data: {
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.name': 'admin',
-      'db.mongodb.collection': '$cmd',
-      'db.operation': 'isMaster',
+      'db.system.name': 'mongodb',
+      'db.namespace': 'admin',
+      'db.collection.name': '$cmd',
+      'db.operation.name': 'isMaster',
       'db.connection_string': expect.any(String),
       'server.address': expect.any(String),
       'server.port': expect.any(Number),
-      'db.statement':
+      'db.query.text':
         '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
       'sentry.kind': 'client',
     },
@@ -84,14 +83,14 @@ describe('MongoDB auto-instrumentation', () => {
     data: {
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.name': 'admin',
-      'db.mongodb.collection': 'movies',
-      'db.operation': 'update',
+      'db.system.name': 'mongodb',
+      'db.namespace': 'admin',
+      'db.collection.name': 'movies',
+      'db.operation.name': 'update',
       'db.connection_string': expect.any(String),
       'server.address': expect.any(String),
       'server.port': expect.any(Number),
-      'db.statement': '{"title":"?"}',
+      'db.query.text': '{"title":"?"}',
       'sentry.kind': 'client',
     },
     description: '{"title":"?"}',
@@ -104,9 +103,9 @@ describe('MongoDB auto-instrumentation', () => {
     data: expect.objectContaining({
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.operation': 'find',
-      'db.statement': '{"$thisOperatorDoesNotExist":"?"}',
+      'db.system.name': 'mongodb',
+      'db.operation.name': 'find',
+      'db.query.text': '{"$thisOperatorDoesNotExist":"?"}',
       'sentry.kind': 'client',
     }),
     description: '{"$thisOperatorDoesNotExist":"?"}',
@@ -119,13 +118,13 @@ describe('MongoDB auto-instrumentation', () => {
     data: {
       'sentry.origin': origin,
       'sentry.op': 'db',
-      'db.system': 'mongodb',
-      'db.name': 'admin',
-      'db.mongodb.collection': '$cmd',
+      'db.system.name': 'mongodb',
+      'db.namespace': 'admin',
+      'db.collection.name': '$cmd',
       'db.connection_string': expect.any(String),
       'server.address': expect.any(String),
       'server.port': expect.any(Number),
-      'db.statement': '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
+      'db.query.text': '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
       'sentry.kind': 'client',
     },
     description: '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
@@ -154,9 +153,10 @@ describe('MongoDB auto-instrumentation', () => {
             // `db.statement` as a fallback.
             const operationCounts = spans.reduce<Record<string, number>>((acc, span) => {
               const data = (span.data ?? {}) as Record<string, unknown>;
-              let op = typeof data['db.operation'] === 'string' ? (data['db.operation'] as string) : undefined;
+              let op =
+                typeof data['db.operation.name'] === 'string' ? (data['db.operation.name'] as string) : undefined;
               if (!op) {
-                const stmt = data['db.statement'];
+                const stmt = data['db.query.text'];
                 const match = typeof stmt === 'string' ? stmt.match(/^\{"(\w+)"/) : null;
                 op = match ? match[1] : 'unknown';
               }

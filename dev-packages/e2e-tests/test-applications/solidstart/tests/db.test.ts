@@ -20,8 +20,8 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
       description: 'set test-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'redis',
-        'db.statement': 'set test-key [1 other arguments]',
+        'db.system.name': 'redis',
+        'db.query.text': 'set test-key [1 other arguments]',
       }),
     }),
   );
@@ -32,8 +32,8 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
       description: 'get test-key',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'redis',
-        'db.statement': 'get test-key',
+        'db.system.name': 'redis',
+        'db.query.text': 'get test-key',
       }),
     }),
   );
@@ -58,8 +58,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
       description: 'SELECT 1 + 1 AS solution',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'mysql',
-        'db.statement': 'SELECT 1 + 1 AS solution',
+        'db.system.name': 'mysql',
+        'db.query.text': 'SELECT 1 + 1 AS solution',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),
@@ -74,8 +74,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
       description: 'SELECT NOW()',
       status: 'ok',
       data: expect.objectContaining({
-        'db.system': 'mysql',
-        'db.statement': 'SELECT NOW()',
+        'db.system.name': 'mysql',
+        'db.query.text': 'SELECT NOW()',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),

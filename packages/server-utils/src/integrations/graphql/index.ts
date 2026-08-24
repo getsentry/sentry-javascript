@@ -1,8 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { Client, IntegrationFn } from '@sentry/core';
-import { defineIntegration, extendIntegration } from '@sentry/core';
-import { graphqlIntegration as graphqlNativeIntegration } from '../../graphql';
-import type { GraphqlDiagnosticChannelsOptions } from '../../graphql/graphql-dc-subscriber';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
+import { subscribeGraphqlDiagnosticChannels, type GraphQLOptions } from './graphql-dc-subscriber';
 import { CHANNELS } from '../../orchestrion/channels';
 import { graphqlModuleNames } from '../../orchestrion/config/graphql';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -28,7 +27,7 @@ interface GraphqlChannelContext {
   error?: unknown;
 }
 
-function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): GraphqlResolvedConfig {
+function getOptionsWithDefaults(options: GraphQLOptions): GraphqlResolvedConfig {
   return {
     ignoreResolveSpans: options.ignoreResolveSpans !== false,
     ignoreTrivialResolveSpans: options.ignoreTrivialResolveSpans !== false,
@@ -36,7 +35,7 @@ function getOptionsWithDefaults(options: GraphqlDiagnosticChannelsOptions): Grap
   };
 }
 
-const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) => {
+const _graphqlIntegration = ((options: GraphQLOptions = {}) => {
   const config = getOptionsWithDefaults(options);
   const getConfig = (): GraphqlResolvedConfig => config;
 
@@ -44,6 +43,9 @@ const _graphqlIntegration = ((options: GraphqlDiagnosticChannelsOptions = {}) =>
     name: INTEGRATION_NAME,
     setup(client) {
       invokeOrchestrionInstrumentation(client, graphqlModuleNames, instrumentGraphql, [config, getConfig]);
+    },
+    setupOnce() {
+      setupNativeGraphQLInstrumentation(options);
     },
   };
 }) satisfies IntegrationFn;
@@ -66,30 +68,20 @@ function instrumentGraphql(config: GraphqlResolvedConfig, getConfig: () => Graph
   );
 }
 
-/**
- * Orchestrion-driven graphql integration for graphql v14–16 (v17 publishes native
- * `diagnostics_channel` events handled by `@sentry/server-utils`'s graphql integration instead).
- *
- * Subscribes to the `orchestrion:graphql:{parse,validate,execute}` channels the orchestrion code
- * transform injects into `graphql`'s `language/parser.js`, `validation/validate.js` and
- * `execution/execute.js`, emitting spans identical to the native path. Requires the orchestrion
- * runtime hook or bundler plugin.
- */
-export const graphqlIntegration = defineIntegration(_graphqlIntegration);
+function setupNativeGraphQLInstrumentation(options: GraphQLOptions) {
+  if (!diagnosticsChannel.tracingChannel) {
+    return;
+  }
+
+  // Subscribe to graphql's native tracing channels (graphql >= 17).
+  // This is a no-op on versions that don't publish to the channels, so it is always safe to call.
+  waitForTracingChannelBinding(() => {
+    subscribeGraphqlDiagnosticChannels(diagnosticsChannel.tracingChannel, options);
+  });
+}
 
 /**
- * The complete graphql diagnostics-channel integration: the native subscriber (graphql v17) composed
- * with the orchestrion subscriber (v14–16), so opting into injection instruments every supported
- * version via diagnostics channels without the OTel patcher. Reuses the OTel `Graphql` name so
- * enabling injection swaps this in for it.
+ * Instrument the graphql library.
+ * This works for graphql v14-v17.
  */
-export const graphqlDiagnosticsIntegration = (options?: GraphqlDiagnosticChannelsOptions) => {
-  const orchestrion = graphqlIntegration(options);
-  // The native half is the base integration's own `setupOnce`; the orchestrion half
-  // registers lazily via `setup` (only once `graphql` is injected), so it isn't
-  // merged onto the base `setupOnce` — both run.
-  return extendIntegration(graphqlNativeIntegration(options), {
-    name: INTEGRATION_NAME,
-    setup: (client: Client) => orchestrion.setup?.(client),
-  });
-};
+export const graphqlIntegration = defineIntegration(_graphqlIntegration);

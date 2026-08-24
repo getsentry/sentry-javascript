@@ -56,10 +56,10 @@ Deno.test('mongoose instrumentation: orchestrion:mongoose:model_save channel pro
   const mongooseSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mongooseSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(mongooseSpan!.description, 'mongoose.BlogPost.save');
-  assertEquals(mongooseSpan!.data?.['db.system'], 'mongoose');
-  assertEquals(mongooseSpan!.data?.['db.name'], 'mydb');
-  assertEquals(mongooseSpan!.data?.['db.mongodb.collection'], 'blogposts');
-  assertEquals(mongooseSpan!.data?.['db.operation'], 'save');
+  assertEquals(mongooseSpan!.data?.['db.system.name'], 'mongoose');
+  assertEquals(mongooseSpan!.data?.['db.namespace'], 'mydb');
+  assertEquals(mongooseSpan!.data?.['db.collection.name'], 'blogposts');
+  assertEquals(mongooseSpan!.data?.['db.operation.name'], 'save');
   assertEquals(mongooseSpan!.data?.['db.user'], 'root');
   assertEquals(mongooseSpan!.data?.['server.address'], '127.0.0.1');
   assertEquals(mongooseSpan!.data?.['server.port'], 27017);

@@ -1,7 +1,9 @@
 import type { InstrumentationConfig } from '..';
 import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 export const ioredisConfig = [
+  registrationOnly({ name: 'ioredis', versionRange: '>=5.11.0', filePath: 'built/Redis.js' }),
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)
   ...['lib/redis.js', 'built/redis.js', 'built/redis/index.js'].flatMap((filePath): InstrumentationConfig[] => [
     {

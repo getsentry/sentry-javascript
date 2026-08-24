@@ -47,6 +47,25 @@ export function maybeWarnAboutUnsupportedTurbopack(nextJsVersion: string | undef
 }
 
 /**
+ * Warns if `moduleMetadata` is set on a Turbopack build, where it currently has no effect.
+ *
+ * The Turbopack metadata loader only injects `applicationKey`; arbitrary `moduleMetadata` is
+ * webpack-only for now. Without this warning the option would be a silent no-op on Next.js 16+,
+ * where Turbopack is the default.
+ */
+export function maybeWarnAboutTurbopackModuleMetadata(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (bundlerInfo.isTurbopack && userSentryOptions.moduleMetadata) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] WARNING: `moduleMetadata` is currently only applied on webpack builds and has no effect on Turbopack builds. Use `applicationKey` if you need `thirdPartyErrorFilterIntegration` support, which works on both bundlers.',
+    );
+  }
+}
+
+/**
  * Warns if `useRunAfterProductionCompileHook` is enabled in webpack mode but the Next.js version is unsupported.
  */
 export function maybeWarnAboutUnsupportedRunAfterProductionCompileHook(

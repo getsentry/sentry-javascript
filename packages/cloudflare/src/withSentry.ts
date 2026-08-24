@@ -1,12 +1,11 @@
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
-import type { CloudflareOptions } from './client';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
 import { isCloudflareClass } from './utils/isCloudflareClass';
-import type { AnyExportedHandler, DefaultEnv, ResolveEnv } from './types';
+import type { AnyExportedHandler, DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 import {
   instrumentWorkerEntrypoint,
   type WorkerEntrypointConstructor,
@@ -31,7 +30,8 @@ export function withSentry<
   T extends AnyExportedHandler | WorkerEntrypointConstructor<any, any> =
     | ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>
     | WorkerEntrypointConstructor<Env>,
->(optionsCallback: (env: ResolveEnv<T, Env>) => CloudflareOptions | undefined, handler: T): T {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<T, Env>) => StrictCloudflareOptions<O> | undefined, handler: T): T {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
     // oxlint-disable-next-line typescript/no-explicit-any
     return instrumentWorkerEntrypoint(optionsCallback as any, handler);

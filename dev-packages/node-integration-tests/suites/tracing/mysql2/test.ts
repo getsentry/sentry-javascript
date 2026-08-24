@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -9,7 +8,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
 
   // With orchestrion injection enabled (`INJECT_ORCHESTRION`), the diagnostics-channel integration
   // records the spans instead of the OTel patcher, so they carry a different `sentry.origin`.
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.mysql2' : 'auto.db.otel.mysql2';
+  const ORIGIN = 'auto.db.mysql2';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
@@ -19,8 +18,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT 1 + 1 AS solution',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT 1 + 1 AS solution',
           'server.address': 'localhost',
           'server.port': 3306,
           'db.user': 'root',
@@ -32,8 +31,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT ? as a, ? as b, NOW() as c',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT ? as a, ? as b, NOW() as c',
           'server.address': 'localhost',
           'server.port': 3306,
           'db.user': 'root',
@@ -45,8 +44,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT ? AS scalar_value',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT ? AS scalar_value',
         }),
       }),
       // `execute` is instrumented the same way as `query`
@@ -55,8 +54,8 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT 42 AS answer',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT 42 AS answer',
         }),
       }),
       // a failing query produces a span with an error status
@@ -66,16 +65,25 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         status: 'internal_error',
         origin: ORIGIN,
         data: expect.objectContaining({
-          'db.system': 'mysql',
-          'db.statement': 'SELECT * FROM does_not_exist',
+          'db.system.name': 'mysql',
+          'db.query.text': 'SELECT * FROM does_not_exist',
         }),
       }),
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
-      await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-    });
-  });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
+    },
+    // mysql2 >= 3.20.0 publishes its own diagnostics channels, which the SDK subscribes to instead
+    // of the orchestrion path asserted here. That range is covered by `mysql2-tracing-channel`, so
+    // this suite pins a version below the boundary regardless of the version the workspace installs.
+    { additionalDependencies: { mysql2: '3.19.1' } },
+  );
 });

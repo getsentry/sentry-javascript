@@ -40,7 +40,7 @@ sentryTest(
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
-          'code.filepath': 'https://sentry-test-site.example/path/to/script.js',
+          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
           'browser.script.source_char_position': 0,
           'browser.script.invoker': 'https://sentry-test-site.example/path/to/script.js',
           'browser.script.invoker_type': 'classic-script',
@@ -97,7 +97,7 @@ sentryTest(
         data: {
           'browser.script.invoker': 'BUTTON#clickme.onclick',
           'browser.script.invoker_type': 'event-listener',
-          'code.filepath': 'https://sentry-test-site.example/path/to/script.js',
+          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long_animation_frame',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },

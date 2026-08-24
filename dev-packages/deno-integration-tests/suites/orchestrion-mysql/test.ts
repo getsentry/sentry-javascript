@@ -90,8 +90,8 @@ Deno.test('mysql instrumentation: orchestrion:mysql:query channel produces a nes
   const mysqlSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mysqlSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(mysqlSpan!.description, 'SELECT 1 AS solution');
-  assertEquals(mysqlSpan!.data?.['db.system'], 'mysql');
-  assertEquals(mysqlSpan!.data?.['db.statement'], 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.data?.['db.system.name'], 'mysql');
+  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');
   assertEquals(mysqlSpan!.data?.['server.port'], 3306);
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
