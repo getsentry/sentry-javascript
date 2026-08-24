@@ -11,12 +11,17 @@ import {
   HTTP_STATUS_CODE,
   HTTP_TARGET,
   HTTP_USER_AGENT,
-  NET_HOST_IP,
-  NET_HOST_NAME,
-  NET_HOST_PORT,
-  NET_PEER_IP,
-  NET_PEER_PORT,
-  NET_TRANSPORT,
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_HTTP_PREFETCH,
   URL_FRAGMENT,
   URL_FULL,
@@ -175,12 +180,14 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
                 client,
               ),
               [HTTP_HOST]: host,
-              [NET_HOST_NAME]: hostname,
-              [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              [SERVER_ADDRESS]: hostname,
+              [NETWORK_PROTOCOL_NAME]: 'http',
+              [NETWORK_PROTOCOL_VERSION]: httpVersion,
+              [HTTP_CLIENT_IP]: client.getDataCollectionOptions().userInfo ? getForwardedClientAddress(ips) : undefined,
               [HTTP_USER_AGENT]: userAgent,
               [HTTP_SCHEME]: scheme,
               [HTTP_FLAVOR]: httpVersion,
-              [NET_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
               /* eslint-enable typescript/no-deprecated */
               ...getRequestContentLengthAttribute(request),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
@@ -203,7 +210,11 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
               isEnded = true;
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              const newAttributes = getIncomingRequestAttributesOnResponse(
+                request,
+                response,
+                client.getDataCollectionOptions().userInfo,
+              );
               span.setAttributes(newAttributes);
               span.setStatus(status);
               span.end();
@@ -376,9 +387,18 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
   return !!encoding && encoding !== 'identity';
 }
 
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
+}
+
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
+  collectClientAddress: boolean,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -392,16 +412,21 @@ function getIncomingRequestAttributesOnResponse(
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
+  if (collectClientAddress) {
+    // `client.address` is the originating client, so a forwarding header wins over the socket, which
+    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
+    newAttributes[CLIENT_ADDRESS] =
+      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+  }
+
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_IP] = localAddress;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_PORT] = localPort;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_IP] = remoteAddress;
-    // oxlint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_PORT] = remotePort;
+    newAttributes[SERVER_PORT] = localPort;
+    newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
+    newAttributes[NETWORK_LOCAL_PORT] = localPort;
+    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
+    newAttributes[NETWORK_PEER_PORT] = remotePort;
   }
 
   return newAttributes;

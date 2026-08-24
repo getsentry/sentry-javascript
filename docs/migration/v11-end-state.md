@@ -586,11 +586,39 @@ String and regular-expression matching for `tracePropagationTargets` is now case
 
 Affected SDKs: All SDKs.
 
-- The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-- The `net.peer.name` and `net.peer.port` span attributes on database and messaging client spans were replaced by `server.address` and `server.port`, and `net.transport` by `network.transport`.
-- `network.*` span attributes were aligned across SDKs.
+If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+
+#### URL attributes
+
+The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+
+#### Network attributes
+
+Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:
+
+| v10 attribute   | v11 attribute           |
+| --------------- | ----------------------- |
+| `net.host.name` | `server.address`        |
+| `net.host.ip`   | `network.local.address` |
+| `net.host.port` | `network.local.port`    |
+| `net.peer.name` | `server.address`        |
+| `net.peer.ip`   | `network.peer.address`  |
+| `net.peer.port` | `network.peer.port`     |
+| `net.transport` | `network.transport`     |
+
+On database and messaging client spans, `net.peer.name` and `net.peer.port` were replaced by `server.address` and `server.port`.
+
+Transport values also change from `ip_tcp` and `ip_udp` to `tcp` and `udp`. HTTP instrumentation reports the application protocol as `network.protocol.name: "http"` and reports its version separately in `network.protocol.version`.
+
+Attribute availability remains runtime-dependent. For example, browser and Worker APIs do not expose socket peer details, so those spans only include the network information their runtime provides. Client IP address collection remains controlled by `dataCollection.userInfo` where the runtime exposes it.
+
+#### Messaging and database attributes
+
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
+
+#### GenAI attributes
+
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -600,11 +628,16 @@ Affected SDKs: All SDKs.
 - The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - The `ai.pipeline.name` and `ai.streaming` span attributes on Vercel AI spans were renamed to `gen_ai.pipeline.name` and `gen_ai.response.streaming`.
 - The `gen_ai.prompt` span attribute is no longer set by the Anthropic integration. The legacy Completions API's `prompt` is now reported as a user message on `gen_ai.input.messages`, like every other request shape.
+
+#### Other attributes
+
 - The `code.filepath` and `code.function` span attributes on `ui.long_animation_frame` spans were renamed to `code.file.path` and `code.function.name`.
 - The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
-- Span attributes now use the shared `@sentry/conventions` package under the hood.
 
-If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+#### Attribute constants
+
+Span attributes now use the shared `@sentry/conventions` package under the hood.
+The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### Span operation (`op`) changes
 
@@ -939,10 +972,6 @@ Sentry.init({
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
-
-### `@sentry/core` span attributes
-
-- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### AI integrations
 
