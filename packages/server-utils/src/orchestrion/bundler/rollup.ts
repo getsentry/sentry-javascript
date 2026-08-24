@@ -3,7 +3,7 @@ import type { NormalizedInputOptions, Plugin, PluginContext } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalizedModulesWarning, orchestrionTransformOptions } from './options';
-import { resolveOrchestrionRuntimeRequest } from './resolve';
+import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 /**
  * Rollup plugin that runs the orchestrion code transform on the bundled output.
@@ -28,13 +28,13 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
 
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
-    // The module-injected snippet imports `@sentry/server-utils/orchestrion`
-    // from INSIDE transformed `node_modules` files. Under isolated installs
-    // (pnpm) that bare specifier doesn't resolve from an instrumented package's
-    // location, so when normal resolution fails, fall back to this package's
-    // own resolution so the helper gets bundled from its real on-disk path.
+    // The module-injected snippet imports `@sentry/server-utils` from INSIDE
+    // transformed `node_modules` files. Under isolated installs (pnpm) that bare
+    // specifier doesn't resolve from an instrumented package's location, so when
+    // normal resolution fails, fall back to this package's own resolution so it
+    // gets bundled from its real on-disk path.
     async resolveId(this: PluginContext, source: string, importer: string | undefined) {
-      if (source !== '@sentry/server-utils/orchestrion') {
+      if (source !== SNIPPET_IMPORT_SPECIFIER) {
         return null;
       }
       const resolved = await this.resolve(source, importer, { skipSelf: true });

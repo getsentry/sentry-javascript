@@ -191,3 +191,52 @@ test.skip('server trace includes form action span', async ({ page }) => {
     ]),
   );
 });
+
+test('server trace for a `QUERY` server route includes the wrapped route handler span', async ({ request }) => {
+  const serverTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
+    return txnEvent?.transaction === 'QUERY /query-server-route';
+  });
+
+  const response = await request.fetch('/query-server-route', {
+    method: 'QUERY',
+    headers: { 'content-type': 'application/json' },
+    data: { term: 'sentry' },
+  });
+
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({ term: 'sentry', results: ['alice', 'bob'] });
+
+  const serverTxnEvent = await serverTxnEventPromise;
+
+  expect(serverTxnEvent).toMatchObject({
+    transaction: 'QUERY /query-server-route',
+    transaction_info: { source: 'route' },
+    type: 'transaction',
+    contexts: {
+      trace: {
+        op: 'http.server',
+        origin: 'auto.http.sveltekit',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          'http.method': 'QUERY',
+          'http.route': '/query-server-route',
+        },
+      },
+    },
+  });
+
+  expect(serverTxnEvent.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'QUERY /query-server-route',
+        origin: 'auto.function.sveltekit',
+        data: expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          'code.function.name': 'QUERY',
+          'http.request.method': 'QUERY',
+        }),
+      }),
+    ]),
+  );
+});

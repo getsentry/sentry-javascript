@@ -25,17 +25,17 @@ describe('maybeParameterizeRemixRoute', () => {
   });
 
   describe('when manifest has static routes', () => {
-    it('should return undefined for static routes', () => {
+    it('returns the route itself for static routes', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }, { path: '/blog/posts' }],
         dynamicRoutes: [],
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/contact')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/blog/posts')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
+      expect(maybeParameterizeRemixRoute('/about')).toBe('/about');
+      expect(maybeParameterizeRemixRoute('/contact')).toBe('/contact');
+      expect(maybeParameterizeRemixRoute('/blog/posts')).toBe('/blog/posts');
     });
   });
 
@@ -84,8 +84,8 @@ describe('maybeParameterizeRemixRoute', () => {
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
+      expect(maybeParameterizeRemixRoute('/about')).toBe('/about');
     });
 
     it('should handle splat/catch-all routes', () => {
@@ -222,7 +222,7 @@ describe('maybeParameterizeRemixRoute', () => {
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
     });
 
     it('should handle complex nested dynamic routes', () => {
@@ -246,10 +246,10 @@ describe('maybeParameterizeRemixRoute', () => {
 
   describe('realistic Remix patterns', () => {
     it.each([
-      ['/', undefined],
-      ['/about', undefined],
-      ['/contact', undefined],
-      ['/blog/posts', undefined],
+      ['/', '/'],
+      ['/about', '/about'],
+      ['/contact', '/contact'],
+      ['/blog/posts', '/blog/posts'],
 
       ['/users/123', '/users/:id'],
       ['/users/john-doe', '/users/:id'],

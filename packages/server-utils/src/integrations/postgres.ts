@@ -1,5 +1,13 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
@@ -22,15 +30,9 @@ const INTEGRATION_NAME = 'Postgres' as const;
 // so they default to 'manual').
 const ORIGIN = 'auto.db.postgres';
 
-// OpenTelemetry "OLD" db/net semantic-conventions, inlined to keep this
-// integration free of `@opentelemetry/*` deps.
-const ATTR_DB_SYSTEM = 'db.system';
-const ATTR_DB_NAME = 'db.name';
+// `db.connection_string` is not part of `@sentry/conventions`, so it stays
+// inlined, keeping this integration free of `@opentelemetry/*` deps.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
-const ATTR_DB_USER = 'db.user';
-const ATTR_DB_STATEMENT = 'db.statement';
-const ATTR_NET_PEER_NAME = 'net.peer.name';
-const ATTR_NET_PEER_PORT = 'net.peer.port';
 const ATTR_PG_PLAN = 'db.postgresql.plan';
 const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
@@ -41,8 +43,8 @@ const DB_SYSTEM_POSTGRESQL = 'postgresql';
 // processor, which only runs in the node SDK, so setting them here is what
 // makes the spans correct on the other runtimes
 //
-// The user-visible span is identical to OTel: query spans are named after
-// `db.statement`; connect/pool-connect spans keep these names.
+// The user-visible span is identical to OTel: query spans are named after the
+// SQL statement; connect/pool-connect spans keep these names.
 const SPAN_QUERY_FALLBACK = 'pg.query';
 const SPAN_CONNECT = 'pg.connect';
 const SPAN_POOL_CONNECT = 'pg-pool.connect';
@@ -178,7 +180,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; at
     attributes: {
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [ATTR_DB_STATEMENT]: queryConfig?.text || undefined,
+      [DB_QUERY_TEXT]: queryConfig?.text || undefined,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };
@@ -216,12 +218,12 @@ function extractQueryConfig(args: unknown[]): { text: string; name?: unknown } |
 
 function getConnectionAttributes(params: PgConnectionParams): SpanAttributes {
   return {
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_POSTGRESQL,
+    [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
-    [ATTR_DB_NAME]: params.database,
-    [ATTR_DB_USER]: params.user,
-    [ATTR_NET_PEER_NAME]: params.host,
-    [ATTR_NET_PEER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
+    [DB_NAMESPACE]: params.database,
+    [DB_USER]: params.user,
+    [SERVER_ADDRESS]: params.host,
+    [SERVER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
   };
 }
 
@@ -240,15 +242,15 @@ function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
   const port = Number(url?.port) || (Number.isInteger(opts.port) ? opts.port : undefined);
   const user = url?.username || opts.user;
   return {
-    [ATTR_DB_SYSTEM]: DB_SYSTEM_POSTGRESQL,
+    [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
     [ATTR_DB_CONNECTION_STRING]: getConnectionString(opts),
     [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis,
     [ATTR_PG_MAX_CLIENT]: opts.max,
-    [ATTR_DB_NAME]: database,
-    [ATTR_NET_PEER_PORT]: port,
+    [DB_NAMESPACE]: database,
+    [SERVER_PORT]: port,
     // these two come from a url parse and slice, can be ''
-    [ATTR_NET_PEER_NAME]: host || undefined,
-    [ATTR_DB_USER]: user || undefined,
+    [SERVER_ADDRESS]: host || undefined,
+    [DB_USER]: user || undefined,
   };
 }
 

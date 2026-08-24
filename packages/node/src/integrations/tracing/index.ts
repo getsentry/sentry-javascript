@@ -1,43 +1,41 @@
 import type { Integration } from '@sentry/core';
-import { prismaIntegration } from '@sentry/server-utils';
 import {
+  prismaIntegration,
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
   openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  redisIntegration,
   tediousIntegration,
-  vercelAiIntegration,
-} from '@sentry/server-utils/orchestrion';
+  vercelAIIntegration,
+} from '@sentry/server-utils';
 import { fastifyIntegration } from './fastify';
-import { redisIntegration } from './redis';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
   return [
     expressIntegration(),
     fastifyIntegration(),
-    graphqlDiagnosticsIntegration(),
-    mongodbIntegration(),
+    graphqlIntegration(),
+    mongoIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),
-    // Redis keeps the node wrapper: it wires the cache `responseHook` into the channel subscribers
-    // and covers all redis client versions (native diagnostics_channel + orchestrion fallbacks).
     redisIntegration(),
     postgresIntegration(),
     prismaIntegration(),
@@ -45,16 +43,16 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     koaIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
-    kafkajsIntegration(),
+    kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
     // AI providers
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
     langGraphIntegration(),
-    vercelAiIntegration(),
+    vercelAIIntegration(),
     openAIIntegration(),
-    anthropicIntegration(),
+    anthropicAIIntegration(),
     googleGenAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),

@@ -6,7 +6,7 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
@@ -139,7 +139,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -167,7 +167,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -211,7 +211,7 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+                [SENTRY_OP]: MIDDLEWARE,
                 [CODE_FUNCTION_NAME]: 'middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
@@ -238,7 +238,7 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },

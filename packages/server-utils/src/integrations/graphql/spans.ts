@@ -6,7 +6,7 @@
  */
 
 import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
-import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
+import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -14,13 +14,8 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import type { GraphqlDocumentNode } from '../../graphql/utils';
-import {
-  collectGraphqlDocument,
-  getOperationSpanName,
-  hasResultErrors,
-  renameRootSpanWithOperation,
-} from '../../graphql/utils';
+import type { GraphqlDocumentNode } from './types';
+import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
 import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
@@ -34,7 +29,7 @@ import type {
 
 const BASE_ATTRIBUTES = {
   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
 } as const;
 
 export function startParseSpan(): Span {

@@ -11,14 +11,11 @@ import {
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
-// eslint-disable-next-line typescript/no-deprecated -- NET_PEER_* emitted alongside SERVER_* for backwards compatibility (TODO(v11): remove)
 import {
   MESSAGING_SYSTEM,
   MESSAGING_MESSAGE_ID,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_DESTINATION_NAME,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   SENTRY_KIND,
@@ -27,7 +24,7 @@ import {
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { MESSAGING_QUEUE_PROCESS_SPAN_OP, MESSAGING_QUEUE_PUBLISH_SPAN_OP } from '@sentry/conventions/op';
+import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { amqplibModuleNames } from '../orchestrion/config/amqplib';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { CHANNELS } from '../orchestrion/channels';
@@ -465,7 +462,7 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const span = startInactiveSpan({
     name: `publish ${normalizeExchange(exchange)}`,
     attributes: {
-      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
+      [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
@@ -503,7 +500,7 @@ function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLi
   return startInactiveSpan({
     name: `${queue} process`,
     attributes: {
-      [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
+      [SENTRY_OP]: QUEUE_PROCESS,
       [SENTRY_KIND]: 'consumer',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
@@ -568,11 +565,6 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
 
     attributes[SERVER_ADDRESS] = hostname;
     attributes[SERVER_PORT] = port;
-    // TODO(v11): remove deprecated options
-    // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
-    attributes[NET_PEER_NAME] = hostname;
-    // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
-    attributes[NET_PEER_PORT] = port;
   } else if (typeof resolvedUrl === 'string') {
     const censoredUrl = censorPassword(resolvedUrl);
     attributes[ATTR_MESSAGING_URL] = censoredUrl; // todo(v11) remove this attribute
@@ -590,10 +582,6 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
 
       attributes[SERVER_ADDRESS] = hostname;
       attributes[SERVER_PORT] = port;
-      // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
-      attributes[NET_PEER_NAME] = hostname;
-      // eslint-disable-next-line typescript/no-deprecated -- emitted alongside SERVER_ADDRESS/SERVER_PORT for backwards compatibility
-      attributes[NET_PEER_PORT] = port;
     } catch {
       // best-effort: a malformed url simply yields fewer connection attributes
     }

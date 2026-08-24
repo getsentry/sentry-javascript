@@ -1,11 +1,10 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // See the non-streamed `aws-integration` suite: only the origin differs between the OTel and
 // orchestrion diagnostics-channel runs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -101,9 +100,9 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
     attributes: expect.objectContaining({
       'rpc.method': { value: 'PutItem', type: 'string' },
       'rpc.service': { value: 'DynamoDB', type: 'string' },
-      'db.system': { value: 'dynamodb', type: 'string' },
-      'db.name': { value: 'my-table', type: 'string' },
-      'db.operation': { value: 'PutItem', type: 'string' },
+      'db.system.name': { value: 'dynamodb', type: 'string' },
+      'db.namespace': { value: 'my-table', type: 'string' },
+      'db.operation.name': { value: 'PutItem', type: 'string' },
       'aws.dynamodb.table_names': { value: ['my-table'], type: 'array' },
     }),
   });
@@ -113,7 +112,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
     name: 'DynamoDB.Query',
     attributes: expect.objectContaining({
       'rpc.method': { value: 'Query', type: 'string' },
-      'db.operation': { value: 'Query', type: 'string' },
+      'db.operation.name': { value: 'Query', type: 'string' },
       'aws.dynamodb.count': { value: 1, type: 'integer' },
       'aws.dynamodb.scanned_count': { value: 1, type: 'integer' },
     }),

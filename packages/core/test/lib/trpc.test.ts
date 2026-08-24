@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { type Client, setCurrentClient, type Span, trpcMiddleware } from '../../src';
 import * as currentScopes from '../../src/currentScopes';
 import * as exports from '../../src/exports';
-import * as tracing from '../../src/tracing';
+import * as tracing from '../../src/tracing/trace';
 import { resolveDataCollectionOptions } from '../../src/utils/data-collection/resolveDataCollectionOptions';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 

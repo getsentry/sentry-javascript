@@ -39,6 +39,11 @@
       "require": "./build/cjs/cloudflare/index.js",
       "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "publishConfig": {
@@ -48,7 +53,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@sentry/browser": "10.67.0",
     "@sentry/cli": "^2.58.6",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",

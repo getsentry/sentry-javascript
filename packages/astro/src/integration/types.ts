@@ -1,5 +1,4 @@
-import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
-import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
@@ -8,8 +7,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.client.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initialize with the options
-   * specified in the `sentryAstro` integration or with default options.
+   * If there is no file at the default location either, the SDK will initialize with default options.
    */
   clientInitPath?: string;
 
@@ -18,8 +16,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.server.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initialize with the options
-   * specified in the `sentryAstro` integration or with default options.
+   * If there is no file at the default location either, the SDK will initialize with default options.
    */
   serverInitPath?: string;
 };
@@ -99,22 +96,6 @@ type SourceMapsOptions = {
    * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` instead
    */
   filesToDeleteAfterUpload?: string | Array<string>;
-
-  /**
-   * Options to further customize the Sentry Vite Plugin (@sentry/bundler-plugins/vite) behavior directly.
-   * Options specified in this object take precedence over all other options.
-   *
-   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
-   *
-   * Warning: Options within this object are subject to change at any time.
-   * We DO NOT guarantee semantic versioning for these options, meaning breaking
-   * changes can occur at any time within a major SDK version.
-   *
-   * Furthermore, some options are untested with Astro specifically. Use with caution.
-   *
-   * @deprecated Use top-level `unstable_sentryVitePluginOptions` instead
-   */
-  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
 type InstrumentationOptions = {
@@ -158,26 +139,14 @@ type SdkEnabledOptions = {
 };
 
 /**
- * We accept aribtrary options that are passed through to the Sentry SDK.
- * This is not recommended and will stop working in a future version.
- * Note: Not all options are actually passed through, only a select subset:
- * release, environment, dsn, debug, sampleRate, tracesSampleRate, replaysSessionSampleRate, replaysOnErrorSampleRate
- * @deprecated This will be removed in a future major.
- **/
-type DeprecatedRuntimeOptions = Record<string, unknown>;
-
-/**
- * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
- * Some options (e.g. integrations) are set by default and cannot be changed here.
+ * Options for the `sentryAstro` integration.
  *
- * If you want a more fine-grained control over the SDK, with all options,
- * you can call Sentry.init in `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+ * Build-time options (source maps, release management, etc.) are configured here.
+ * Runtime SDK options must be set in `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)`.
  *
- * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
+ * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored for init.
  */
-export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
-  // todo(v11): `release` and `debug` need to be removed from BuildTimeOptionsBase as it is currently conflicting with `DeprecatedRuntimeOptions`
-  UnstableVitePluginOptions<SentryVitePluginOptions> &
+export type SentryOptions = BuildTimeOptionsBase &
   SdkInitPaths &
   InstrumentationOptions &
   SdkEnabledOptions & {
@@ -192,8 +161,7 @@ export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
      */
     // eslint-disable-next-line typescript/no-deprecated
     sourceMapsUploadOptions?: SourceMapsOptions;
-    // eslint-disable-next-line typescript/no-deprecated
-  } & DeprecatedRuntimeOptions;
+  };
 
 /**
  * Routes inside 'astro:routes:resolved' hook (Astro v5+)

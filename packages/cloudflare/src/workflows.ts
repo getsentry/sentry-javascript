@@ -1,5 +1,5 @@
 import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
@@ -30,7 +30,7 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
-import type { DefaultEnv, ResolveEnv } from './types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -123,7 +123,7 @@ class WrappedWorkflowStep implements WorkflowStep {
           name,
           scope: scopeForStep,
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [CODE_FUNCTION_NAME]: name,
             'workflow.step.name': name,
             'cloudflare.workflow.timeout': config?.timeout,
@@ -213,7 +213,8 @@ export function instrumentWorkflowWithSentry<
     // oxlint-disable-next-line typescript/no-explicit-any
     env: any,
   ) => T, // Constructor type of the WorkflowEntrypoint class
->(optionsCallback: (env: ResolveEnv<C, E>) => CloudflareOptions, WorkFlowClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, E>) => StrictCloudflareOptions<O>, WorkFlowClass: C): C {
   return new Proxy(WorkFlowClass, {
     // oxlint-disable-next-line typescript/no-explicit-any
     construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {

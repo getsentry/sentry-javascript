@@ -18,8 +18,6 @@ const expectedProducerSpan = (routingKey: string) =>
       'messaging.url': 'amqp://sentry:***@localhost:5672/',
       'messaging.protocol': 'AMQP',
       'messaging.protocol_version': '0.9.1',
-      'net.peer.name': 'localhost',
-      'net.peer.port': 5672,
       'messaging.operation.type': 'send',
       'messaging.destination.name': '',
       'messaging.rabbitmq.destination.routing_key': routingKey,

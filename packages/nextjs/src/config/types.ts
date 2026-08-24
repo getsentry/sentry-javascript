@@ -1,5 +1,10 @@
-import type { GLOBAL_OBJ } from '@sentry/core';
-import type { SentryWebpackPluginOptions } from '@sentry/bundler-plugins/webpack';
+import type {
+  GLOBAL_OBJ,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ReactComponentAnnotationOptions,
+  ResolveSourceMapHook,
+} from '@sentry/core';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -147,14 +152,6 @@ export type SentryBuildWebpackOptions = {
   };
 
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
-
-  /**
    * Options related to react component name annotations.
    * Disabled by default, unless a value is set for this option.
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
@@ -163,21 +160,7 @@ export type SentryBuildWebpackOptions = {
    *
    * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
    */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     *
-     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
-     */
-    enabled?: boolean;
-
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     *
-     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
-     */
-    ignoredComponents?: string[];
-  }; // TODO(v12): remove this option
+  reactComponentAnnotation?: ReactComponentAnnotationOptions; // TODO(v12): remove this option
 };
 
 export type SentryBuildOptions = {
@@ -317,6 +300,16 @@ export type SentryBuildOptions = {
      */
     // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
     rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
+
+    /**
+     * Hook to customize source map file resolution.
+     *
+     * Mostly helpful for complex builds with custom source map generation. For example, if source maps
+     * are written to a separate directory and the `//# sourceMappingURL=` comment is rewritten to
+     * something other than a relative path, Sentry is unable to locate the source map for a given
+     * build artifact. This hook lets you implement the resolution process yourself.
+     */
+    resolveSourceMap?: ResolveSourceMapHook;
   };
 
   /**
@@ -503,17 +496,20 @@ export type SentryBuildOptions = {
    * For webpack builds, this is forwarded to `@sentry/bundler-plugins/webpack`.
    * For Turbopack builds, this applies the annotations via a custom loader and requires Next.js 16+.
    */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     */
-    enabled?: boolean;
+  reactComponentAnnotation?: ReactComponentAnnotationOptions;
 
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     */
-    ignoredComponents?: string[];
-  };
+  /**
+   * Metadata that should be associated with the built application.
+   *
+   * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
+   * `beforeSend`, event processors, or the transport), allowing for custom event filtering logic or
+   * routing of events. Read it at runtime via `moduleMetadataIntegration`.
+   *
+   * Note: This currently only applies to webpack builds. On Turbopack builds it has no effect and
+   * the SDK warns at build time. For `thirdPartyErrorFilterIntegration` support use
+   * `applicationKey`, which works on both bundlers.
+   */
+  moduleMetadata?: ModuleMetadata | ModuleMetadataCallback;
 
   /**
    * Options to configure various bundle size optimizations related to the Sentry SDK.

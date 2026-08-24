@@ -1,7 +1,7 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
 import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
-import { BROWSER_UI_RENDER_SPAN_OP, BROWSER_UI_TASK_SPAN_OP, GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { UI_RENDER, UI_TASK, FUNCTION } from '@sentry/conventions/op';
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
@@ -90,7 +90,7 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
           startInactiveSpan({
             attributes: {
-              [SENTRY_OP]: BROWSER_UI_TASK_SPAN_OP,
+              [SENTRY_OP]: UI_TASK,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
               'ember.runloop.queue': queue,
             },
@@ -183,12 +183,7 @@ function _instrumentComponents(config: {
       },
 
       after(_name: string, _timestamp: number, payload: object) {
-        _processComponentRenderAfter(
-          payload as Payload,
-          beforeEntries,
-          BROWSER_UI_RENDER_SPAN_OP,
-          minComponentDuration,
-        );
+        _processComponentRenderAfter(payload as Payload, beforeEntries, UI_RENDER, minComponentDuration);
       },
     });
     if (enableComponentDefinitions) {
@@ -198,12 +193,7 @@ function _instrumentComponents(config: {
         },
 
         after(_name: string, _timestamp: number, payload: object) {
-          _processComponentRenderAfter(
-            payload as Payload,
-            beforeComponentDefinitionEntries,
-            GENERAL_FUNCTION_SPAN_OP,
-            0,
-          );
+          _processComponentRenderAfter(payload as Payload, beforeComponentDefinitionEntries, FUNCTION, 0);
         },
       });
     }

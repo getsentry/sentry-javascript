@@ -2,7 +2,7 @@ import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
+import { UI_RENDER } from '@sentry/conventions/op';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 
@@ -117,7 +117,7 @@ class Profiler extends React.Component<ProfilerProps> {
           name: `<${name}>`,
           startTime,
           attributes: {
-            [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
+            [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
             'ui.component_name': name,
           },
@@ -221,7 +221,7 @@ function useProfiler(
           onlyIfParent: true,
           startTime,
           attributes: {
-            [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
+            [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
             'ui.component_name': name,
           },

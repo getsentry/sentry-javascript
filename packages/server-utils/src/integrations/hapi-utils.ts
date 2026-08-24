@@ -11,7 +11,7 @@
 
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import type {
   LifecycleMethod,
   PatchableExtMethod,
@@ -111,7 +111,7 @@ export const getExtMetadata = (
 const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
   [HapiLayerType.PLUGIN]: 'handler',
   [HapiLayerType.ROUTER]: 'router',
-  [HapiLayerType.EXT]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  [HapiLayerType.EXT]: MIDDLEWARE,
 };
 
 function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unknown {

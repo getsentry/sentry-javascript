@@ -111,30 +111,30 @@ export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
-export { denoRedisIntegration } from './integrations/redis';
-export type { DenoRedisIntegrationOptions } from './integrations/redis';
+
 // The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
 // Most are in the default set; `dataloader` and `knex` are opt-in (add them to
 // `integrations` to enable), matching Node. Re-export every one that `sdk.ts`
 // adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
 export {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   dataloaderIntegration,
+  redisIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
+  graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -142,8 +142,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-  vercelAiIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
@@ -153,10 +152,10 @@ export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
 export { denoAmqplibIntegration } from './integrations/amqplib';
 export { denoKoaIntegration } from './integrations/koa';
-export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';
+export { denoRedisIntegration } from './integrations/redis';
 /* eslint-enable typescript/no-deprecated */
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';

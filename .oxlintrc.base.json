@@ -69,6 +69,15 @@
       }
     },
     {
+      // The rule itself decides which files are browser-facing (see `no-unguarded-span-apis.js`);
+      // oxlint resolves `files` globs relative to each package's own config, so scoping it to
+      // individual packages here is not possible.
+      "files": ["**/src/**/*.ts", "**/src/**/*.tsx", "**/addon/**/*.ts"],
+      "rules": {
+        "sdk/no-unguarded-span-apis": "error"
+      }
+    },
+    {
       "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
       "rules": {
         "typescript/ban-ts-comment": "error",

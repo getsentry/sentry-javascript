@@ -4,7 +4,7 @@ import type { HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
 import { SentryNonRecordingSpan } from '../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../src/types/span';
-import * as tracing from '../../src/tracing';
+import * as tracing from '../../src/tracing/trace';
 import * as spanUtils from '../../src/utils/spanUtils';
 import * as traceData from '../../src/utils/traceData';
 

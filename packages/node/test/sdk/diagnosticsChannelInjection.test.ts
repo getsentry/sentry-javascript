@@ -9,7 +9,7 @@ const { registerDiagnosticsChannelInjection, detectOrchestrionSetup } = vi.hoist
 vi.mock('@sentry/server-utils/orchestrion/register', () => ({
   registerDiagnosticsChannelInjection,
 }));
-vi.mock('@sentry/server-utils/orchestrion', async importOriginal => {
+vi.mock('@sentry/server-utils', async importOriginal => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return { ...actual, detectOrchestrionSetup };
 });

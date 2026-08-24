@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@sentry/browser-utils": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/feedback": "10.67.0",
     "@sentry/replay": "10.67.0",
     "@sentry/replay-canvas": "10.67.0",
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "10.67.0",
-    "fake-indexeddb": "^6.2.4"
+    "fake-indexeddb": "^6.2.5"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",

@@ -1,8 +1,11 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { ProxyTracer } from '@opentelemetry/api';
 import type { Event, EventHint, Log } from '@sentry/core';
-import { getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
+import { getAsyncContextStrategy, getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
 import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import * as SentryOpentelemetry from '@sentry/opentelemetry';
+import * as SentryServerUtils from '@sentry/server-utils';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
@@ -18,6 +21,49 @@ describe('NodeClient', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     cleanupOtel();
+  });
+
+  describe('init', () => {
+    beforeEach(() => {
+      // Undo the OTel strategy the outer `beforeEach` installs, so each test observes what `init()`
+      // does in a fresh process (the ALS installer would otherwise reuse the OTel manager's storage).
+      getMainCarrier().__SENTRY__ = undefined;
+      cleanupOtel();
+    });
+
+    it('installs the AsyncLocalStorage context strategy by default', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
+      const client = new NodeClient(getDefaultNodeClientOptions());
+
+      expect(alsStrategySpy).not.toHaveBeenCalled();
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+
+      client.init();
+
+      expect(alsStrategySpy).toHaveBeenCalledTimes(1);
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+      expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
+      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeUndefined();
+      // The lookup points at the same ALS the installed strategy hands to channel-based integrations
+      expect(getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage).toBe(
+        client.asyncLocalStorageLookup?.asyncLocalStorage,
+      );
+    });
+
+    it('installs the OpenTelemetry context strategy with `enableOpenTelemetrySetup`', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
+      const client = new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: true }));
+      client.init();
+
+      expect(otelStrategySpy).toHaveBeenCalledTimes(1);
+      expect(alsStrategySpy).not.toHaveBeenCalled();
+      expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
+      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeDefined();
+    });
   });
 
   it('sets correct metadata', () => {

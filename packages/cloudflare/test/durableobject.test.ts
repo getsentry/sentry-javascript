@@ -242,6 +242,32 @@ describe('instrumentDurableObjectWithSentry', () => {
     }
   });
 
+  it.each(['webSocketMessage', 'webSocketClose', 'webSocketError'])('%s creates a websocket span', async methodName => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const testClass = class {
+      webSocketMessage() {}
+
+      webSocketClose() {}
+
+      webSocketError() {}
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+    const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+
+    await (obj as any)[methodName]();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: methodName,
+        attributes: {
+          'sentry.op': 'websocket',
+          'sentry.origin': 'auto.faas.cloudflare.durable_object',
+        },
+      },
+      expect.any(Function),
+    );
+  });
+
   it('Built-in durable object methods are own properties and not wrapped as RPC', () => {
     const testClass = class {
       fetch() {
