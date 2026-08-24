@@ -23,6 +23,6 @@ const client = Sentry.getClient();
 Sentry.startBrowserTracingPageLoadSpan(client, {
   name: 'test-url',
   attributes: {
-    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    ['sentry.segment.name.source']: 'url',
   },
 });

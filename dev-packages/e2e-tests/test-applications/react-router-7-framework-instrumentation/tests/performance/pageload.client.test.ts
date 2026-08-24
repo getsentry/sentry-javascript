@@ -49,7 +49,7 @@ test.describe('client - instrumentation API pageload', () => {
         trace: {
           op: 'pageload',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/some-param',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/some-param$/),

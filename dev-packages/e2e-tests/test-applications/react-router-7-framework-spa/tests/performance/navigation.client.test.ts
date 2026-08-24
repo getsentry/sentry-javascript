@@ -29,7 +29,7 @@ test.describe('client - navigation performance', () => {
           data: {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),

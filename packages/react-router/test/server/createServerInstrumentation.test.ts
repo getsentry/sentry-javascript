@@ -20,7 +20,6 @@ vi.mock('@sentry/core', async () => {
     GLOBAL_OBJ: globalThis,
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
-    SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   };
 });
 
@@ -99,7 +98,7 @@ describe('createSentryServerInstrumentation', () => {
     expect(mockSetAttributes).toHaveBeenCalledWith({
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.react_router.instrumentation_api',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       [URL_FULL]: 'http://example.com/test-path',
       [URL_PATH]: '/test-path',
     });
@@ -131,7 +130,7 @@ describe('createSentryServerInstrumentation', () => {
         attributes: expect.objectContaining({
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.react_router.instrumentation_api',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'http.request.method': 'GET',
           'url.path': '/api/users',
           'url.full': 'http://example.com/api/users',
@@ -381,7 +380,7 @@ describe('createSentryServerInstrumentation', () => {
     expect(mockSetAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
         'http.route': '/users/:id',
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
       }),
     );
   });

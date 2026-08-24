@@ -36,7 +36,7 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
+        'sentry.segment.name.source': 'custom',
         'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
@@ -107,7 +107,7 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
+        'sentry.segment.name.source': 'custom',
         'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
@@ -233,7 +233,7 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
+        'sentry.segment.name.source': 'custom',
         'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',

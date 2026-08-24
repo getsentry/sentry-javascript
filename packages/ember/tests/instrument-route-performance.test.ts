@@ -7,7 +7,6 @@ vi.mock('@sentry/browser', () => ({
 }));
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
 }));
 
 describe('instrumentRoutePerformance', () => {

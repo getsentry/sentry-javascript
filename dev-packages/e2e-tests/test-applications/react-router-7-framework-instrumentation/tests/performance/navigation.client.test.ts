@@ -38,7 +38,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'router.navigate',
@@ -79,7 +79,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'router.navigate',
@@ -119,7 +119,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
@@ -214,7 +214,7 @@ test.describe('client - hybrid navigation (instrumentation API span + legacy par
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'router.back',
@@ -260,7 +260,7 @@ test.describe('client - instrumentation API navigation (upstream limitation)', (
           data: {
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
           },
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',
@@ -297,7 +297,7 @@ test.describe('client - instrumentation API navigation (upstream limitation)', (
           data: {
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
           },
           op: 'navigation',
           origin: 'auto.navigation.react_router.instrumentation_api',

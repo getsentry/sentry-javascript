@@ -22,7 +22,7 @@ test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => 
 
   // Should get full parameterized route
   expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
 });
 
@@ -46,7 +46,7 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
 
   // Should wait for routes to load (up to finalTimeout) and get full route
   expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
 });
 
@@ -69,7 +69,7 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
   const event = await transactionPromise;
 
   expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
 
   // Transaction should wait for full idle timeout (5+ seconds)
@@ -99,7 +99,7 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
 
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
   expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
   // Transaction should finish quickly (< 200ms)
   const duration = event.timestamp! - event.start_timestamp;
@@ -121,6 +121,6 @@ test('idleTimeout: Pageload on deeply nested route', async ({ page }) => {
   const pageloadEvent = await pageloadPromise;
 
   expect(pageloadEvent.transaction).toBe('/deep/level2/level3/:id');
-  expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(pageloadEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(pageloadEvent.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
 });

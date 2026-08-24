@@ -20,7 +20,7 @@ test('should create a correctly named pageload transaction for a static route', 
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/static-page',
         },
         op: 'pageload',
@@ -50,7 +50,7 @@ test('should create a correctly named pageload transaction for a parameterized r
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -81,7 +81,7 @@ test('should create a correctly named pageload transaction for a static nested r
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/parameterized/static',
         },
         op: 'pageload',
@@ -109,7 +109,7 @@ test('should create a correctly named pageload transaction for the catch-all rou
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -136,7 +136,7 @@ test('should create a correctly named pageload transaction for the home page', a
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
         },
         op: 'pageload',

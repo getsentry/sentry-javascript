@@ -22,6 +22,7 @@ describe('trpcMiddleware', () => {
 
   const mockSpan = {
     end: vi.fn(),
+    setAttribute: vi.fn(),
   } as unknown as Span;
 
   const mockScope = {
@@ -62,7 +63,6 @@ describe('trpcMiddleware', () => {
         attributes: {
           'sentry.op': 'rpc',
           'sentry.origin': 'auto.rpc.trpc',
-          'sentry.source': 'route',
           'rpc.system.name': 'trpc',
           'rpc.method': 'test.procedure',
           'trpc.procedure_path': 'test.procedure',
@@ -72,6 +72,15 @@ describe('trpcMiddleware', () => {
       },
       expect.any(Function),
     );
+  });
+
+  test('sets the segment name source when the tRPC span is the segment', async () => {
+    const middleware = trpcMiddleware();
+    const next = vi.fn().mockResolvedValue({ ok: true });
+
+    await middleware({ path: 'test.procedure', type: 'query', next });
+
+    expect(mockSpan.setAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
   });
 
   test('captures error when next() returns error result', async () => {

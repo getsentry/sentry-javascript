@@ -261,7 +261,7 @@ describe('instrumentScheduled', () => {
           'faas.time': expect.any(String),
           'faas.trigger': 'timer',
           'sentry.sample_rate': 1,
-          'sentry.source': 'task',
+          'sentry.segment.name.source': 'task',
         },
         op: 'function',
         origin: 'auto.faas.cloudflare.scheduled',

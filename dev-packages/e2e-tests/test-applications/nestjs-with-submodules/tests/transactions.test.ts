@@ -15,7 +15,7 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,

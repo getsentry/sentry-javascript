@@ -17,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/views/:viewId/:detailId',
           'url.path': '/projects/123/views/234/567',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/234\/567$/),
@@ -47,7 +47,7 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
           'url.path': '/projects/234/old-views/234/567',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/234\/old-views\/234\/567$/),
@@ -79,7 +79,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -103,7 +103,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/views/:viewId/:detailId',
           'url.path': '/projects/123/views/456/789',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/456\/789$/),
@@ -135,7 +135,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -159,7 +159,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
           'url.path': '/projects/123/old-views/345/654',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/old-views\/345\/654$/),

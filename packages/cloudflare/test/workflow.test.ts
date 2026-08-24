@@ -160,7 +160,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function',
-                  'sentry.source': 'task',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
                 op: 'function',
@@ -406,7 +406,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function',
-                  'sentry.source': 'task',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
                 op: 'function',
@@ -483,7 +483,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function',
-                  'sentry.source': 'task',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
                 op: 'function',
@@ -526,7 +526,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
                   'sentry.op': 'function',
-                  'sentry.source': 'task',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
                 op: 'function',

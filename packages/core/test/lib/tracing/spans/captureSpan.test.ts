@@ -9,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -28,10 +27,11 @@ import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/sco
 import type { TestClientOptions } from '../../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 import {
-  SENTRY_SEGMENT_ID,
-  SENTRY_SEGMENT_NAME,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 
@@ -101,7 +101,7 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
@@ -201,7 +201,7 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
@@ -301,7 +301,7 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
@@ -368,7 +368,7 @@ describe('captureSpan', () => {
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
         ['sentry.segment.name.source']: { value: 'custom', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { value: 'custom', type: 'string' },
+        [SENTRY_SEGMENT_NAME_SOURCE]: { value: 'custom', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
         [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },

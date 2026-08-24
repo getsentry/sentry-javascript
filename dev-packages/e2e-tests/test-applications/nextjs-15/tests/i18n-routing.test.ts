@@ -16,7 +16,7 @@ test('should create consistent parameterized transaction for i18n routes - local
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -43,7 +43,7 @@ test('should create consistent parameterized transaction for i18n routes - local
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',

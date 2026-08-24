@@ -77,7 +77,7 @@ describe('opentelemetry compatibility', () => {
     expect(transactionEvent?.contexts?.trace?.data).toEqual({
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
-      'sentry.source': 'custom',
+      'sentry.segment.name.source': 'custom',
     });
 
     expect(transactionEvent2?.spans?.length).toBe(1);
@@ -85,7 +85,7 @@ describe('opentelemetry compatibility', () => {
     expect(transactionEvent2?.contexts?.trace?.data).toEqual({
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
-      'sentry.source': 'custom',
+      'sentry.segment.name.source': 'custom',
       'test.attribute': 'test',
     });
 
@@ -131,7 +131,7 @@ describe('opentelemetry compatibility', () => {
     expect(transactionEvent?.contexts?.trace?.data).toEqual({
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
-      'sentry.source': 'custom',
+      'sentry.segment.name.source': 'custom',
     });
 
     expect(transactionEvent?.spans).toEqual([
