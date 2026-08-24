@@ -11,7 +11,7 @@ Span names must be low cardinality, per the [Sentry span name conventions](https
 This only applies when span streaming is enabled. With `traceLifecycle: 'static'` every span name must stay byte-identical to before.
 
 `pageload` was ported first. Read it as the reference implementation before starting:
-`packages/core/src/constants.ts` (the constant), `packages/browser/src/tracing/browserTracingIntegration.ts`
+`packages/core/src/spanNames.ts` (the constant), `packages/browser/src/tracing/browserTracingIntegration.ts`
 (a start site plus the scope guard in `startBrowserTracingPageLoadSpan`), and
 `grep -rn PAGELOAD_SPAN_NAME_FALLBACK packages/*/src` for the full set of call sites.
 
@@ -28,17 +28,18 @@ These are non-negotiable. Every one of them was arrived at by rejecting the alte
 
 1. **Gate on span streaming at each site.** `hasSpanStreamingEnabled(client)` (from `@sentry/core`) must appear inline where the name is chosen, so a reader can see the gate without following a call chain. Never gate centrally.
 2. **Set the low-cardinality name when the span _starts_** — and at every later site that could write a high-cardinality name onto it. Never rewrite names retroactively (not in `captureSpan`, not in `spanToJSON`, not in a `processSpan`/`preprocessSpan` hook). A span must never carry a raw URL.
-3. **Only the name changes.** Do not touch `sentry.source`, `url.template`, `http.route`, or any other attribute. They keep describing where the name came from.
-4. **Do not derive the name from attributes in code.** The conventions describe names as attribute templates, but you implement them by reusing the value the site _already_ has for `url.template` / `http.route`. No attribute lookups, no generic template resolver.
-5. **No helpers, no abstraction.** An inline ternary at each site. A shared `const` for the fallback string is fine (and required, see rule 6); a function that sets names or attributes is not.
-6. **The fallback must never reach `scope.setTransactionName`.** The scope's transaction name is what error events are grouped by, so it keeps the raw URL or the parameterized route — never `Pageload`/`Navigation`/etc. Export the fallback as a constant from `packages/core/src/constants.ts` so the guard cannot drift.
-7. **`sentry.segment.name` must never diverge from the segment span's name.** Any code that stamps it on a child span has to read it off the segment span, not off the scope.
+3. **Check span name updates** to ensure every name update is low-cardinality if span streaming is enabled.
+4. **Only the name changes.** Do not touch `sentry.source`, `url.template`, `http.route`, or any other attribute. They keep describing where the name came from.
+5. **Do not derive the name from attributes in code.** The conventions describe names as attribute templates, but you implement them by reusing the value the site _already_ has for `url.template` / `http.route`. No attribute lookups, no generic template resolver.
+6. **No helpers, no abstraction.** An inline ternary at each site. A shared `const` for the fallback string is fine (and required, see rule 6); a function that sets names or attributes is not.
+7. **The fallback must never reach `scope.setTransactionName`.** The scope's transaction name is what error events are grouped by, so it keeps the raw URL or the parameterized route — never `Pageload`/`Navigation`/etc. Export the fallback as a constant from `packages/core/src/constants.ts` so the guard cannot drift.
+8. **`sentry.segment.name` must never diverge from the segment span's name.** Any code that stamps it on a child span has to read it off the segment span, not off the scope.
 
 ## 1. Look up the convention
 
 Read <https://getsentry.github.io/sentry-conventions/names/> and find the op. Each op lists attribute templates in priority order, ending in a static fallback — that fallback is your name. Examples: `pageload` → `Pageload`, `navigation` → `Navigation`, database ops → `Database operation`.
 
-Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/constants.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
+Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/spanNames.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
 
 ## 2. Find every site that names a span with this op
 
@@ -57,7 +58,16 @@ grep -rn "\.updateName(\|updateSpanName(" packages/*/src
 grep -rn "spanToJSON(.*)\.name" packages/*/src
 ```
 
-Classify each write site: does it set a **known route/template**, or a **raw URL fallback**? Only the fallback branch changes — when a route is known the name is identical in both lifecycles.
+Classify each write site: does it set a low cardinality value? Low cardinality values are for example:
+
+- a paramterized route (i.e. one without dynamic parameters)
+- an http origin without url path, query or fragment parameters
+- a component name
+- a static string
+
+In cases, where we already set a low-cardinality value, likely only the fallback branch changes. For example, when a route is known the name is identical in both lifecycles. But when it's unknown, transaction mode falls back to the raw URL. Span streaming mode falls back to a static "Pageload" string.
+
+Note: For a lot of route/URL cases, the `sentry.source` attribute having the value `"url"` strongly hints that the span name is high-cardinality. Use this as a strong indicator but not as definitive proof. Sometimes this attribute is incorrectly set. If you find such a case, flag it rather than following the rule.
 
 ## 3. Apply the fallback
 
@@ -68,7 +78,7 @@ The whole change per site is the else-branch of a ternary:
 name: parameterizedRoute ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname),
 ```
 
-Where a site computes `[name, source]` together, gate on the source:
+Where a site computes `[name, source]` together, gate on the source (but see the note above!):
 
 ```ts
 name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
