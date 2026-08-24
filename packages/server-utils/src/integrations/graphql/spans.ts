@@ -9,6 +9,9 @@ import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from
 import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  getClient,
+  GRAPHQL_SPAN_NAME_FALLBACK,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -16,7 +19,15 @@ import {
 } from '@sentry/core';
 import type { GraphqlDocumentNode } from './types';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
-import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
+import {
+  GRAPHQL_DATA_SYMBOL,
+  ORIGIN,
+  SPAN_NAME_EXECUTE,
+  SPAN_NAME_PARSE,
+  SPAN_NAME_VALIDATE,
+  STREAMED_SPAN_NAME_PARSE,
+  STREAMED_SPAN_NAME_VALIDATE,
+} from './constants';
 import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
   DocumentNode,
@@ -33,13 +44,20 @@ const BASE_ATTRIBUTES = {
 } as const;
 
 export function startParseSpan(): Span {
-  return startInactiveSpan({ name: SPAN_NAME_PARSE, attributes: { ...BASE_ATTRIBUTES } });
+  const client = getClient();
+
+  return startInactiveSpan({
+    name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_PARSE : SPAN_NAME_PARSE,
+    attributes: { ...BASE_ATTRIBUTES },
+  });
 }
 
 /** `documentAST` is the 2nd argument to `validate(schema, documentAST, …)`. */
 export function startValidateSpan(documentAST: unknown): Span {
+  const client = getClient();
+
   return startInactiveSpan({
-    name: SPAN_NAME_VALIDATE,
+    name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_VALIDATE : SPAN_NAME_VALIDATE,
     attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode) },
   });
 }
@@ -150,8 +168,16 @@ export function startExecuteSpan(
   const operationType = operation?.operation;
   const operationName = operation?.name?.value ?? args.operationName ?? undefined;
 
+  const client = getClient();
+  // The operation name is supplied by the client, so with span streaming only the operation type may
+  // reach the span name.
+  const streamedName = operationType ? `GraphQL ${operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
+
   const span = startInactiveSpan({
-    name: getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? streamedName
+        : getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
     attributes: {
       ...BASE_ATTRIBUTES,
       [GRAPHQL_OPERATION_TYPE]: operationType,

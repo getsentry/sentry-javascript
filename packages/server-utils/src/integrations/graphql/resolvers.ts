@@ -9,6 +9,8 @@
 import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -25,6 +27,7 @@ import {
   GRAPHQL_PATCHED_SYMBOL,
   ORIGIN,
   SPAN_NAME_RESOLVE,
+  STREAMED_SPAN_NAME_RESOLVE,
 } from './constants';
 import type {
   DefinitionNode,
@@ -186,7 +189,15 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
     [GRAPHQL_PARENT_NAME]: info.parentType.name,
   };
 
-  return startInactiveSpan({ name: `${SPAN_NAME_RESOLVE} ${path.join('.')}`, attributes, parentSpan });
+  const client = getClient();
+
+  return startInactiveSpan({
+    // The field path is unbounded, so with span streaming it stays on `graphql.field.path` only.
+    name:
+      client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_RESOLVE : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
+    attributes,
+    parentSpan,
+  });
 }
 
 function addField(contextValue: ObjectWithGraphQLData, path: string[], field: { span: Span }): void {

@@ -2,6 +2,9 @@ import type { TracingChannel } from 'node:diagnostics_channel';
 import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
 import { GRAPHQL } from '@sentry/conventions/op';
 import {
+  getClient,
+  GRAPHQL_SPAN_NAME_FALLBACK,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -27,6 +30,14 @@ const SPAN_NAME_VALIDATE = 'graphql.validate';
 const SPAN_NAME_EXECUTE = 'graphql.execute';
 const SPAN_NAME_SUBSCRIBE = 'graphql.subscribe';
 const SPAN_NAME_RESOLVE = 'graphql.resolve';
+
+// Span names used when span streaming is enabled. The conventions name graphql spans
+// `GraphQL {graphql.operation.type}`, and these phases are being added to that attribute's values, so
+// a parse, validate or resolve span keeps a name of its own rather than taking the generic
+// `GRAPHQL_SPAN_NAME_FALLBACK`.
+const STREAMED_SPAN_NAME_PARSE = 'GraphQL parse';
+const STREAMED_SPAN_NAME_VALIDATE = 'GraphQL validate';
+const STREAMED_SPAN_NAME_RESOLVE = 'GraphQL resolve';
 
 // Field-level attributes for resolver spans. Not in `@sentry/conventions`; these match the keys the
 // vendored OTel instrumentation emits so there is no drift between the two paths.
@@ -101,6 +112,9 @@ export interface GraphQLOptions {
   /**
    * Rename the enclosing root span to include the operation name(s), e.g.
    * `GET /graphql` -> `GET /graphql (query GetUser)`. Defaults to `true`.
+   *
+   * With span streaming the root span is not renamed, because the operation name is supplied by the
+   * client. The operations are recorded on its `sentry.graphql.operation` attribute either way.
    */
   useOperationNameForRootSpan?: boolean;
 }
@@ -145,23 +159,27 @@ export function subscribeGraphqlDiagnosticChannels(
 }
 
 function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
-  bindTracingChannelToSpan(tracingChannel<GraphqlParseData>(GRAPHQL_DC_CHANNEL_PARSE), () =>
-    startInactiveSpan({
-      name: SPAN_NAME_PARSE,
+  bindTracingChannelToSpan(tracingChannel<GraphqlParseData>(GRAPHQL_DC_CHANNEL_PARSE), () => {
+    const client = getClient();
+
+    return startInactiveSpan({
+      name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_PARSE : SPAN_NAME_PARSE,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
       },
-    }),
-  );
+    });
+  });
 }
 
 function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): void {
   bindTracingChannelToSpan(
     tracingChannel<GraphqlValidateData>(GRAPHQL_DC_CHANNEL_VALIDATE),
     data => {
+      const client = getClient();
+
       return startInactiveSpan({
-        name: SPAN_NAME_VALIDATE,
+        name: client && hasSpanStreamingEnabled(client) ? STREAMED_SPAN_NAME_VALIDATE : SPAN_NAME_VALIDATE,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
@@ -189,8 +207,16 @@ function setupOperationChannel(
   bindTracingChannelToSpan(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
+      const client = getClient();
+      // The operation name is supplied by the client, so with span streaming only the operation type
+      // may reach the span name.
+      const streamedName = data.operationType ? `GraphQL ${data.operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
+
       const span = startInactiveSpan({
-        name: getOperationSpanName(data.operationType, data.operationName, fallbackName),
+        name:
+          client && hasSpanStreamingEnabled(client)
+            ? streamedName
+            : getOperationSpanName(data.operationType, data.operationName, fallbackName),
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
@@ -225,8 +251,14 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
       return undefined;
     }
 
+    const client = getClient();
+
     return startInactiveSpan({
-      name: `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
+      // The field path is unbounded, so with span streaming it stays on `graphql.field.path` only.
+      name:
+        client && hasSpanStreamingEnabled(client)
+          ? STREAMED_SPAN_NAME_RESOLVE
+          : `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
