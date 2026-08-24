@@ -147,7 +147,6 @@ export class TraceService implements OnDestroy {
                 // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
                 [SENTRY_OP]: 'router',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
-                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,
