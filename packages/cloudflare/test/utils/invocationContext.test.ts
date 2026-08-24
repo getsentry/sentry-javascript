@@ -1,8 +1,8 @@
-import { getDefaultIsolationScope, getIsolationScope, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
+import { debug, getDefaultIsolationScope, getIsolationScope, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
 import { AsyncLocalStorage } from 'async_hooks';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getInvocationState, setInvocationState } from '../../src/utils/invocationContext';
+import { getInvocationState, getInvocationWaitUntil, setInvocationState } from '../../src/utils/invocationContext';
 import { withInvocationIsolationScope } from '../../src/utils/invocationScope';
 
 describe('invocation state', () => {
@@ -19,6 +19,21 @@ describe('invocation state', () => {
     withIsolationScope(getDefaultIsolationScope().clone(), () => {
       expect(getInvocationState()).toBeUndefined();
     });
+  });
+
+  it('never attaches state to the default isolation scope and warns', () => {
+    // The stack async-context strategy does not fork, so a wrapper can end up handing the
+    // default isolation scope to setInvocationState. State on it would be shared by every
+    // invocation in the isolate, so it must be dropped and read back as "no invocation".
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+    const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+    setInvocationState(getDefaultIsolationScope(), { ctx });
+
+    expect(getInvocationState()).toBeUndefined();
+    withIsolationScope(getDefaultIsolationScope(), () => {
+      expect(getInvocationState()).toBeUndefined();
+    });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot track this invocation'));
   });
 
   it('exposes state attached to the active isolation scope', () => {
@@ -72,5 +87,47 @@ describe('invocation state', () => {
 
     expect(getIsolationScope()).toBe(getDefaultIsolationScope());
     expect(getInvocationState()).toBeUndefined();
+  });
+
+  it('resolves the context waitUntil once and caches it bound on the state', () => {
+    const waitUntil = vi.fn();
+    const readWaitUntil = vi.fn(() => waitUntil);
+    const ctx = {
+      passThroughOnException: vi.fn(),
+      get waitUntil() {
+        return readWaitUntil();
+      },
+    };
+    const state = { ctx };
+
+    const first = getInvocationWaitUntil(state);
+    const second = getInvocationWaitUntil(state);
+
+    expect(second).toBe(first);
+    expect(readWaitUntil).toHaveBeenCalledTimes(1);
+    const promise = Promise.resolve();
+    first?.(promise);
+    expect(waitUntil).toHaveBeenCalledWith(promise);
+  });
+
+  it('caches "no usable waitUntil" when reading it throws', () => {
+    const readWaitUntil = vi.fn(() => {
+      throw new Error('torn down');
+    });
+    const ctx = {
+      passThroughOnException: vi.fn(),
+      get waitUntil(): never {
+        return readWaitUntil() as never;
+      },
+    };
+    const state = { ctx };
+
+    expect(getInvocationWaitUntil(state)).toBeUndefined();
+    expect(getInvocationWaitUntil(state)).toBeUndefined();
+    expect(readWaitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns undefined for a state without a context', () => {
+    expect(getInvocationWaitUntil({ ctx: undefined })).toBeUndefined();
   });
 });

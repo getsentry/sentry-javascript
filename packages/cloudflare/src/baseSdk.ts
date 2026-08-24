@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { getCurrentScope, setCurrentClient } from '@sentry/core';
+import { debug, getCurrentScope, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -17,6 +17,7 @@ import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
 import { cacheClient, getCachedClient } from './clientCache';
+import { DEBUG_BUILD } from './debug-build';
 import { fetchIntegration } from './integrations/fetch';
 import { httpServerIntegration } from './integrations/httpServer';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
@@ -90,16 +91,18 @@ export function initWithDefaultIntegrations(
   options: CloudflareOptions,
   getDefaultIntegrationsImpl: (options: CloudflareOptions) => Integration[],
 ): CloudflareClient | undefined {
+  const cached = getCachedClient();
   const cacheEnabled = options.cacheClient !== false;
 
-  if (cacheEnabled) {
-    const cached = getCachedClient();
-    if (cached?.getTransport()) {
-      getCurrentScope().update(options.initialScope);
-      setCurrentClient(cached);
-      cached.setExecutionContext(options.ctx);
-      return cached;
+  if (cacheEnabled && cached) {
+    if (DEBUG_BUILD && cached.getOptions().dsn !== options.dsn) {
+      debug.warn(
+        '[Sentry] init() was called with a different DSN than the cached client of this isolate; the cached client keeps its DSN. Pass `cacheClient: false` for per-invocation options.',
+      );
     }
+    getCurrentScope().update(options.initialScope);
+    setCurrentClient(cached);
+    return cached;
   }
 
   if (options.defaultIntegrations === undefined) {
@@ -120,7 +123,6 @@ export function initWithDefaultIntegrations(
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
     flushLock,
-    invocationContext,
   };
 
   /*! rollup-include-development-only */

@@ -283,21 +283,35 @@ it('cacheClient: true - post-response waitUntil work delivers spans, log, metric
 
 // One request fans out into N sequential DO RPC calls. Each RPC span must be
 // delivered and must belong to the worker request's trace (RPC trace propagation).
-it('cacheClient: true - burst DO RPC span shares the worker request trace', async ({ signal }) => {
+it('cacheClient: true - burst DO RPC spans share the worker request trace', async ({ signal }) => {
   let workerTraceId: string | undefined;
+  let echoSpanCount = 0;
   const echoTraceIds = new Set<string>();
 
+  // Every RPC call is its own invocation with its own boundary flush, so each echo span
+  // arrives in its own envelope; the invariant is that all of them carry the worker trace.
+  const echoEnvelope = (envelope: Envelope): void => {
+    const payload = envelope[1]?.[0]?.[1] as SpanV2Payload;
+    const echoSpans = (payload.items ?? []).filter(span => span.name === 'echo');
+
+    expect(echoSpans.length).toBeGreaterThan(0);
+
+    for (const span of echoSpans) {
+      expect(span.attributes?.['sentry.op']?.value).toBe('rpc');
+      expect(span.trace_id).toBeDefined();
+      echoTraceIds.add(span.trace_id!);
+      echoSpanCount++;
+    }
+  };
+
   const runner = createRunner(__dirname)
-    .expect((envelope: Envelope) => {
-      const payload = envelope[1]?.[0]?.[1] as SpanV2Payload;
-      const echoSpans = (payload.items ?? []).filter(span => span.name === 'echo');
-      expect(echoSpans.length).toBeGreaterThan(0);
-      for (const span of echoSpans) {
-        expect(span.attributes?.['sentry.op']?.value).toBe('rpc');
-        expect(span.trace_id).toBeDefined();
-        echoTraceIds.add(span.trace_id!);
-      }
-    })
+    .expect(echoEnvelope)
+    .expect(echoEnvelope)
+    .expect(echoEnvelope)
+    .expect(echoEnvelope)
+    .expect(echoEnvelope);
+
+  const started = runner
     .expect((envelope: Envelope) => {
       const payload = envelope[1]?.[0]?.[1] as SpanV2Payload;
       const root = payload.items?.find(span => span.name === 'GET /burst');
@@ -308,10 +322,11 @@ it('cacheClient: true - burst DO RPC span shares the worker request trace', asyn
     .unordered()
     .start(signal);
 
-  await runner.makeRequest('get', '/burst?n=1&id=fanout');
-  await runner.completed();
+  await started.makeRequest('get', `/burst?n=5&id=fanout`);
+  await started.completed();
 
   expect(workerTraceId).toBeDefined();
+  expect(echoSpanCount).toBe(5);
   expect(echoTraceIds.size).toBe(1);
   expect([...echoTraceIds][0]).toBe(workerTraceId);
 });

@@ -121,6 +121,20 @@ describe('cacheClient', () => {
     expect(second).toBe(first);
   });
 
+  test('warns when a later init passes a different DSN than the cached client', () => {
+    const warn = vi.spyOn(SentryCore.debug, 'warn').mockImplementation(() => undefined);
+
+    const first = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    expect(warn).not.toHaveBeenCalled();
+
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    expect(warn).not.toHaveBeenCalled();
+
+    const second = init({ dsn: 'https://other@dsn.ingest.sentry.io/4242' });
+    expect(second).toBe(first);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('different DSN'));
+  });
+
   test('re-binds the cached client to the current scope on repeated init', () => {
     const options = {
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -137,18 +151,25 @@ describe('cacheClient', () => {
     expect(getClient()).toBe(cached);
   });
 
-  test('creates a fresh client when the cached one was disposed', () => {
-    const options = {
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-    } as const;
+  test('caches a client without a DSN and reuses it', () => {
+    // A disabled (DSN-less) client is still created once per isolate, not per invocation.
+    const first = init({});
+    const second = init({});
 
-    const cached = init({ ...options });
-    cached?.dispose();
+    expect(first).toBeDefined();
+    expect(second).toBe(first);
+    expect(first?.isCachedClient).toBe(true);
+  });
 
-    const again = init({ ...options });
-    expect(again).toBeDefined();
-    expect(again).not.toBe(cached);
-    expect(again?.getTransport()).toBeDefined();
+  test('keeps the cached DSN-less client when a later init passes a DSN', () => {
+    // First init wins for the isolate, so an isolate whose first init had no DSN (a missing env
+    // var on one route) stays disabled. `cacheClient: false` is the escape hatch.
+    const first = init({});
+    const second = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+    expect(second).toBe(first);
+    expect(second?.getOptions().dsn).toBeUndefined();
+    expect(second?.getTransport()).toBeUndefined();
   });
 
   test('flushes eagerly when an envelope is sent on a cached client', async () => {
@@ -220,7 +241,7 @@ describe('cacheClient', () => {
       await vi.waitFor(() => expect(itemTypes(envelopes)).toContain('trace_metric'));
     });
 
-    test('coalesces a synchronous burst of logs into a single envelope', async () => {
+    test('delivers each log captured outside an invocation in its own envelope', async () => {
       const { envelopes } = initWithCapturingTransport();
 
       for (let i = 0; i < 5; i++) {
@@ -228,7 +249,7 @@ describe('cacheClient', () => {
       }
 
       await vi.waitFor(() => expect(itemTypes(envelopes)).toContain('log'));
-      expect(itemTypes(envelopes).filter(type => type === 'log')).toHaveLength(1);
+      expect(itemTypes(envelopes).filter(type => type === 'log')).toHaveLength(5);
     });
 
     test('keeps batching logs until flush for a non-cached client', async () => {
