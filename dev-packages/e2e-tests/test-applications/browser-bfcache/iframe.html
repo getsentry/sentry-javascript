@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BFCache E2E - iframe</title>
+    <script>
+      // A same-origin child frame. With ?blocker=unload it registers an unload listener, which makes
+      // the *whole* embedding page bfcache-ineligible - the not-restored reason then comes from this
+      // child frame (frame: 'child').
+      if (new URLSearchParams(window.location.search).get('blocker') === 'unload') {
+        window.addEventListener('unload', () => {});
+      }
+    </script>
+  </head>
+  <body>
+    iframe
+  </body>
+</html>

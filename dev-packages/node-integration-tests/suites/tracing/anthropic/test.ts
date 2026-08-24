@@ -19,24 +19,12 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
-
-  const EXPECTED_MODEL_ERROR = {
-    exception: {
-      values: [
-        {
-          type: 'Error',
-          value: '404 Model not found',
-        },
-      ],
-    },
-  };
 
   const EXPECTED_STREAM_EVENT_HANDLER_MESSAGE = {
     message: 'stream event from user-added event listener captured',
@@ -83,12 +71,6 @@ describe('Anthropic integration', () => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
       const runner = createRunner();
 
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
-
       await runner
         .expect({ transaction: { transaction: 'main' } })
         .expect({
@@ -123,12 +105,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
       const runner = createRunner();
-
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
 
       await runner
         .expect({ transaction: { transaction: 'main' } })
@@ -193,12 +169,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
       const runner = createRunner();
-
-      // The orchestrion path only marks the errored span; unlike the OTel path it does not
-      // capture the handled `error-model` rejection as an event.
-      if (!isOrchestrionEnabled()) {
-        runner.expect({ event: EXPECTED_MODEL_ERROR });
-      }
 
       await runner
         .expect({ transaction: { transaction: 'main' } })

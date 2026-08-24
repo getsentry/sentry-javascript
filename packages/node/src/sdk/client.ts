@@ -15,7 +15,9 @@ import {
   type AsyncLocalStorageLookup,
   registerPrepareSpanScope,
   type SentryTracerProvider,
+  setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -80,6 +82,19 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // Same constructor anchoring as above: every client must continue incoming (remote) traces,
     // also manually constructed ones that never run `initOtel`.
     registerPrepareSpanScope(this);
+  }
+
+  /** @inheritDoc */
+  public init(): void {
+    // Must run before `super.init()`: channel-based integrations capture the strategy's
+    // AsyncLocalStorage via `getTracingChannelBinding()` during integration setup.
+    if (this.getOptions().enableOpenTelemetrySetup) {
+      this.asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+    } else {
+      this.asyncLocalStorageLookup = { asyncLocalStorage: setAsyncLocalStorageAsyncContextStrategy() };
+    }
+
+    super.init();
   }
 
   /** Get the OTEL tracer. */

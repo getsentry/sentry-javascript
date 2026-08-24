@@ -23,6 +23,11 @@
     "rolldown": "latest",
     "vite": "latest"
   },
+  "pnpm": {
+    "overrides": {
+      "unstorage": "2.0.0-alpha.7"
+    }
+  },
   "volta": {
     "extends": "../../package.json"
   }

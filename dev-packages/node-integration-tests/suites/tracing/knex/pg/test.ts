@@ -1,11 +1,10 @@
 import { describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../../utils';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
 describe('knex auto instrumentation', () => {
   // Update this if another knex version is installed
   const KNEX_VERSION = '2.5.1';
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.knex' : 'auto.db.otel.knex';
+  const ORIGIN = 'auto.db.knex';
 
   describeWithDockerCompose('with `pg` client', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -20,8 +19,8 @@ describe('knex auto instrumentation', () => {
                 'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 5445,
+                'server.address': 'localhost',
+                'server.port': 5445,
               }),
               status: 'ok',
               description:
@@ -35,8 +34,8 @@ describe('knex auto instrumentation', () => {
                 'db.namespace': 'tests',
                 'sentry.origin': ORIGIN,
                 'sentry.op': 'db',
-                'net.peer.name': 'localhost',
-                'net.peer.port': 5445,
+                'server.address': 'localhost',
+                'server.port': 5445,
               }),
               status: 'ok',
               // In the knex-otel spans, the placeholders (e.g., `$1`) are replaced by a `?`.

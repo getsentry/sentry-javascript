@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-deprecated -- the net attributes are still on the OLD semconv,
-   matching `@opentelemetry/instrumentation-ioredis`. TODO(v11): switch to `server.address`/`server.port`
-   and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_QUERY_TEXT, DB_SYSTEM_NAME, NET_PEER_NAME, NET_PEER_PORT } from '@sentry/conventions/attributes';
+import { DB_QUERY_TEXT, DB_SYSTEM_NAME, SERVER_ADDRESS, SERVER_PORT } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -43,8 +40,8 @@ function connectionAttributes(host: string | undefined, port: number | undefined
   return {
     [DB_SYSTEM_NAME]: 'redis',
     [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-    [NET_PEER_NAME]: host,
-    [NET_PEER_PORT]: port,
+    [SERVER_ADDRESS]: host,
+    [SERVER_PORT]: port,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }

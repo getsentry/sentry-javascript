@@ -40,9 +40,8 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     release,
     silent,
     telemetry: telemetry ?? true,
-    // The plugin creates, finalizes and sets commits on the release in `writeBundle` regardless of
-    // `sourcemaps.disable`, so self-hosted setups need the URL here too - not just on the
-    // `sentryOnBuildEnd` CLI instance.
+    // Release creation runs in the plugin's `writeBundle` even with `sourcemaps.disable` set below,
+    // so the plugin needs its own URL rather than relying on the `sentryOnBuildEnd` CLI instance.
     url: sentryUrl,
     _metaOptions: {
       telemetry: {

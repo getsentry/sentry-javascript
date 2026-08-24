@@ -1,5 +1,18 @@
 import { createRequire } from 'node:module';
 
+/**
+ * The specifier the module-injected snippet imports from — the
+ * `orchestrionModuleInjected` helper and the module's channel-subscriber factory
+ * both live on the main `@sentry/server-utils` entry. It is emitted INSIDE
+ * transformed `node_modules` files, where a bare specifier can't resolve from
+ * the importing package's location under isolated installs (pnpm), so every
+ * bundler plugin gives it build-time resolution help.
+ */
+export const SNIPPET_IMPORT_SPECIFIER = '@sentry/server-utils';
+
+/** esbuild `onResolve` filter matching the snippet import specifier exactly. */
+export const SNIPPET_IMPORT_SPECIFIER_FILTER = /^@sentry\/server-utils$/;
+
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
 function getOrchestrionRequire(): ReturnType<typeof createRequire> {

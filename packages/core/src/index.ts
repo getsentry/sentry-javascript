@@ -6,3 +6,9 @@ export * from './shared-exports';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
 export * from './server-exports';
 export * from './browser-exports';
+
+// `server-exports` and `browser-exports` both export these APIs.
+// We need to re-export them here to disambiguate the exports for anyone importing
+// from `@sentry/core`. Server exports win over browser exports.
+export { startSpan, startInactiveSpan, startSpanManual } from './server-exports';
+export { spanStreamingIntegration } from './server-exports';

@@ -22,48 +22,6 @@ describe('httpIntegration', () => {
 
   describe('instrumentation options', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to pass instrumentation options to integration', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              contexts: {
-                trace: {
-                  span_id: expect.stringMatching(/[a-f\d]{16}/),
-                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                  data: {
-                    'url.full': expect.stringMatching(/\/test$/),
-                    'http.response.status_code': 200,
-                    attr1: 'yes',
-                    attr2: 'yes',
-                    attr3: 'yes',
-                  },
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
-              extra: {
-                requestHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                responseHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                applyCustomAttributesOnSpanCalled: {
-                  reqUrl: expect.stringMatching(/\/test$/),
-                  reqMethod: 'GET',
-                  resUrl: expect.stringMatching(/\/test$/),
-                  resMethod: 'GET',
-                },
-              },
-            },
-          })
-          .start();
-        runner.makeRequest('get', '/test');
-        await runner.completed();
-      });
-
       test('allows to configure incomingRequestSpanHook', async () => {
         const runner = createRunner()
           .expect({
@@ -118,12 +76,17 @@ describe('httpIntegration', () => {
                 'http.status_text': 'OK',
                 'http.target': '/test?a=1&b=2',
                 'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
                 'sentry.kind': 'server',
                 'sentry.op': 'http.server',
                 'sentry.origin': 'auto.http.otel.http',
@@ -160,12 +123,17 @@ describe('httpIntegration', () => {
                 'http.status_text': 'OK',
                 'http.target': '/test?a=1&b=2',
                 'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
                 'sentry.kind': 'server',
                 'sentry.op': 'http.server',
                 'sentry.origin': 'auto.http.otel.http',

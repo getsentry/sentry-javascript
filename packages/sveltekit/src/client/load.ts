@@ -4,8 +4,8 @@ import {
   objectify,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
 import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';

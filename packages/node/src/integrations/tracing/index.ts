@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { prismaIntegration } from '@sentry/server-utils';
 import {
+  prismaIntegration,
   amqplibIntegration,
   anthropicAIIntegration,
   expressIntegration,
@@ -9,7 +9,7 @@ import {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -24,7 +24,7 @@ import {
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 import { fastifyIntegration } from './fastify';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
@@ -43,7 +43,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     koaIntegration(),
     tediousIntegration(),
     genericPoolIntegration(),
-    kafkajsIntegration(),
+    kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
     // AI providers

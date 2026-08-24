@@ -297,6 +297,10 @@ Affected SDKs: `@sentry/node` and all dependents.
 
 The new channel-based instrumentations (using `orchestrion` instead of `import-in-the-middle`) are now the default. They were available opt-in in v10. This unlocks instrumenting at run and build time, which enables instrumentation at deployment targets like Vercel and Netlify, as well as using instrumentations on non-Node runtimes like Cloudflare, Bun and Deno. For most users this requires no changes.
 
+#### `vercelAIIntegration` changes
+
+One integration to call out specifically here is the `vercelAIIntegration`. This integration no longer works on Vercel Edge (as that does not support diagnostics channel), and we also removed the capabilities to enhance native OTEL spans emitted by the `ai` package - you can only capture these as-is and may loose some advanced agent monitoring capabilities. On the other hand, the integration will now work much better out of the box in many environments than it used to before.
+
 ### Initializing via `--require` is no longer supported
 
 Affected SDKs: `@sentry/node` and all dependents.
@@ -516,6 +520,62 @@ Two consequences to be aware of when upgrading:
 - **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
 - **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
+### Incoming HTTP span hooks moved to `incomingRequestSpanHook`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `incomingRequestSpanHook` (on `httpIntegration`) or `onSpanCreated` (on `httpServerSpansIntegration`) instead:
+
+```js
+// before
+Sentry.httpIntegration({
+  instrumentation: {
+    requestHook: (span, req) => {
+      span.setAttribute('custom', true);
+    },
+  },
+});
+
+// after
+Sentry.httpIntegration({
+  incomingRequestSpanHook: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+```
+
+`httpIntegration`'s `instrumentation` option is still honored for **outgoing** request spans.
+
+### Deno `node:http` server requests are tracked as sessions
+
+Affected SDKs: `@sentry/deno`.
+
+`denoHttpIntegration` now creates [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming `node:http` requests, matching the other server SDKs. In v10 it disabled them unconditionally, so release health reported no session data for Deno servers. If you have a `release` configured, you will start seeing session aggregates for incoming requests. Pass `sessions: false` to restore the previous behavior:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [Sentry.denoHttpIntegration({ sessions: false })],
+});
+```
+
+`sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
+
+### Node HTTP transport `keepAlive` defaults to `true`
+
+Affected SDKs: `@sentry/node` and dependents.
+
+The Node HTTP transport now reuses sockets by default (`keepAlive: true`). The previous default of `false` existed because of a memory leak in Node 8, which is no longer relevant (minimum Node is 20.19.0). Idle sockets are still closed after 2 seconds. Pass `keepAlive: false` in transport options to restore the previous behavior:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  transportOptions: {
+    keepAlive: false,
+  },
+});
+```
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
@@ -542,10 +602,39 @@ matching stateful via `lastIndex`, so a target like `/myApi\.com/g` previously m
 
 Affected SDKs: All SDKs.
 
-- The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-- `network.*` span attributes were aligned across SDKs.
+If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+
+#### URL attributes
+
+The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
+
+#### Network attributes
+
+Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:
+
+| v10 attribute   | v11 attribute           |
+| --------------- | ----------------------- |
+| `net.host.name` | `server.address`        |
+| `net.host.ip`   | `network.local.address` |
+| `net.host.port` | `network.local.port`    |
+| `net.peer.name` | `server.address`        |
+| `net.peer.ip`   | `network.peer.address`  |
+| `net.peer.port` | `network.peer.port`     |
+| `net.transport` | `network.transport`     |
+
+On database and messaging client spans, `net.peer.name` and `net.peer.port` were replaced by `server.address` and `server.port`.
+
+Transport values also change from `ip_tcp` and `ip_udp` to `tcp` and `udp`. HTTP instrumentation reports the application protocol as `network.protocol.name: "http"` and reports its version separately in `network.protocol.version`.
+
+Attribute availability remains runtime-dependent. For example, browser and Worker APIs do not expose socket peer details, so those spans only include the network information their runtime provides. Client IP address collection remains controlled by `dataCollection.userInfo` where the runtime exposes it.
+
+#### Messaging and database attributes
+
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
+
+#### GenAI attributes
+
 - The gen_ai cache token attributes `gen_ai.usage.cache_creation_input_tokens` and `gen_ai.usage.cache_read_input_tokens` were renamed to `gen_ai.usage.cache_creation.input_tokens` and `gen_ai.usage.cache_read.input_tokens`.
 - The `gen_ai.system` span attribute was renamed to `gen_ai.provider.name` across all AI integrations.
 - The `gen_ai.request.available_tools` span attribute was renamed to `gen_ai.tool.definitions` across all AI integrations.
@@ -555,9 +644,16 @@ Affected SDKs: All SDKs.
 - The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - The `ai.pipeline.name` and `ai.streaming` span attributes on Vercel AI spans were renamed to `gen_ai.pipeline.name` and `gen_ai.response.streaming`.
 - The `gen_ai.prompt` span attribute is no longer set by the Anthropic integration. The legacy Completions API's `prompt` is now reported as a user message on `gen_ai.input.messages`, like every other request shape.
-- Span attributes now use the shared `@sentry/conventions` package under the hood.
 
-If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
+#### Other attributes
+
+- The `code.filepath` and `code.function` span attributes on `ui.long_animation_frame` spans were renamed to `code.file.path` and `code.function.name`.
+- The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
+
+#### Attribute constants
+
+Span attributes now use the shared `@sentry/conventions` package under the hood.
+The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### Span operation (`op`) changes
 
@@ -702,6 +798,24 @@ Affected SDKs: `@sentry/cloudflare`.
 + import { wrapRequestHandler } from '@sentry/cloudflare/request';
 ```
 
+### React Router: Vite plugin moved to `@sentry/react-router/vite`
+
+Affected SDKs: `@sentry/react-router`.
+
+`sentryReactRouter`, `sentryOnBuildEnd`, `makeConfigInjectorPlugin` and the `SentryReactRouterBuildOptions` type are no longer available from the main `@sentry/react-router` entry point. Import them from the dedicated subpath instead:
+
+```diff
+// vite.config.ts
+- import { sentryReactRouter } from '@sentry/react-router';
++ import { sentryReactRouter } from '@sentry/react-router/vite';
+```
+
+```diff
+// react-router.config.ts
+- import { sentryOnBuildEnd } from '@sentry/react-router';
++ import { sentryOnBuildEnd } from '@sentry/react-router/vite';
+```
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
@@ -789,6 +903,26 @@ Sentry.init({
 });
 ```
 
+- The experimental `_experiments.enableInteractions` option was removed from `browserTracingIntegration`. Interaction spans (`ui.action.click` and `ui.interaction.click`) now live in the standalone `interactionsIntegration`. Since this was the only experimental option, `browserTracingIntegration` no longer accepts an `_experiments` object at all.
+
+```js
+// before
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      _experiments: { enableInteractions: true },
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
+});
+```
+
+The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction spans are no longer inherited from `browserTracingIntegration` and are configured on `interactionsIntegration` instead, using the same defaults as before.
+
 ### `@sentry/node` / Server-side SDKs
 
 - `SentryContextManager` is no longer exported. It is no longer needed now that Sentry does not set up OpenTelemetry by default.
@@ -815,6 +949,7 @@ Sentry.init({
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
+- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated`, or `httpIntegration({ incomingRequestSpanHook })`, to mutate incoming request spans.
 
 ### `@sentry/cloudflare`
 
@@ -873,10 +1008,6 @@ Sentry.init({
 - The `@opentelemetry/core` peer dependency was removed; its APIs are now vendored internally.
 - `getSentryResource` was removed.
 - OpenTelemetry resources are no longer collected, and `contexts.otel.resource` was dropped from events. As a result, the `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` environment variables are no longer read by the SDK.
-
-### `@sentry/core` span attributes
-
-- The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 
 ### AI integrations
 
@@ -1238,6 +1369,33 @@ Several default integrations were renamed to match the names used by the other S
 - `DenoMongoose` => `Mongoose`
 - `DenoMysql` => `Mysql`
 - `DenoPostgres` => `Postgres`
+
+### `denoHttpIntegration` incoming span hooks renamed
+
+Affected SDKs: `@sentry/deno`.
+
+The incoming-span hooks on `denoHttpIntegration` were renamed to match `httpIntegration` in the other server SDKs. Their arguments are typed as `HttpIncomingMessage` / `HttpServerResponse` now, instead of `unknown`.
+
+| Removed option          | Replacement     |
+| ----------------------- | --------------- |
+| `onIncomingSpanCreated` | `onSpanCreated` |
+| `onIncomingSpanEnd`     | `onSpanEnd`     |
+
+```js
+// before
+Sentry.denoHttpIntegration({
+  onIncomingSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+
+// after
+Sentry.denoHttpIntegration({
+  onSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+```
 
 ### `OtlpIntegration` integration renamed to `Otlp`
 

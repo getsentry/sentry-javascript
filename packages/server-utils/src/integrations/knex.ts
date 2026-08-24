@@ -20,10 +20,10 @@ import {
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
-  NET_TRANSPORT,
+  NETWORK_TRANSPORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
@@ -176,9 +176,9 @@ function subscribeQuery(): void {
         [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
         [DB_NAMESPACE]: name,
-        [NET_PEER_NAME]: connection?.host ?? extractHostFromConnectionString(connectionString),
-        [NET_PEER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
-        [NET_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
+        [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
+        [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
+        [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
         [DB_QUERY_TEXT]: dbStatement,
       };
 

@@ -1,4 +1,5 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import {
   captureException,
   continueTrace,
@@ -121,7 +122,9 @@ export function wrapRequestHandlerWithInit(
       addCultureContext(isolationScope, request.cf);
 
       if (typeof request.cf.httpProtocol === 'string') {
-        attributes['network.protocol.name'] = request.cf.httpProtocol;
+        const [protocolName, protocolVersion] = request.cf.httpProtocol.toLowerCase().split('/');
+        attributes[NETWORK_PROTOCOL_NAME] = protocolName;
+        attributes[NETWORK_PROTOCOL_VERSION] = protocolVersion;
       }
     }
 

@@ -21,7 +21,7 @@ import {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
@@ -36,7 +36,7 @@ import {
   tediousIntegration,
   vercelAIIntegration,
   redisIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -81,7 +81,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     genericPoolIntegration(),
     googleGenAIIntegration(),
     hapiIntegration(),
-    kafkajsIntegration(),
+    kafkaIntegration(),
     koaIntegration(),
     langChainIntegration(),
     langGraphIntegration(),

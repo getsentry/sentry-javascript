@@ -13,7 +13,7 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration as kafkaIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
@@ -29,7 +29,7 @@ export {
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -202,6 +202,7 @@ export { pinoIntegration } from './integrations/pino';
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { createSentryWinstonTransport } from './integrations/winston';
+export { workerThreadsIntegration } from './integrations/workerThreads';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';

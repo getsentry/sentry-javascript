@@ -130,9 +130,9 @@ function findMatchingRoutes(
 ): string[] {
   const matches: string[] = [];
 
-  // Static path: no parameterization needed, return empty array
+  // Static path: no parameterization needed, return the route itself as already parameterized
   if (staticRoutes.some(r => r.path === route)) {
-    return matches;
+    return [route];
   }
 
   // Dynamic path: find the route pattern that matches the concrete route

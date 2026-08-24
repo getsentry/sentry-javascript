@@ -1,18 +1,16 @@
 /* eslint-disable max-lines */
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
-  getComponentName,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
-import { htmlTreeAsString } from '../htmlTreeAsString';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -140,10 +138,10 @@ export function startTrackingLongAnimationFrames(): void {
       attributes['browser.script.invoker'] = invoker;
       attributes['browser.script.invoker_type'] = invokerType;
       if (sourceURL) {
-        attributes['code.filepath'] = sourceURL;
+        attributes[CODE_FILE_PATH] = sourceURL;
       }
       if (sourceFunctionName) {
-        attributes['code.function'] = sourceFunctionName;
+        attributes[CODE_FUNCTION_NAME] = sourceFunctionName;
       }
       if (sourceCharPosition !== -1) {
         attributes['browser.script.source_char_position'] = sourceCharPosition;
@@ -158,40 +156,6 @@ export function startTrackingLongAnimationFrames(): void {
   });
 
   observer.observe({ type: 'long-animation-frame', buffered: true });
-}
-
-/**
- * Start tracking interaction events.
- */
-export function startTrackingInteractions(): void {
-  addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    const parent = getActiveSpan();
-    if (!parent) {
-      return;
-    }
-    for (const entry of entries) {
-      if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
-        const duration = msToSec(entry.duration);
-
-        const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
-          name: htmlTreeAsString(entry.target),
-          op: `ui.interaction.${entry.name}`,
-          startTime: startTime,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-          },
-        };
-
-        const componentName = getComponentName(entry.target);
-        if (componentName) {
-          spanOptions.attributes['ui.component_name'] = componentName;
-        }
-
-        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
-      }
-    }
-  });
 }
 
 interface AddPerformanceEntriesOptions {

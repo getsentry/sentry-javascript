@@ -25,7 +25,7 @@ test('pg queries emit a db span with orchestrion-channel attributes', async ({ b
   expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.postgres');
   expect(firstQuery!.data?.['db.system.name']).toBe('postgresql');
   expect(firstQuery!.data?.['db.query.text']).toBe('SELECT 1 + 1 AS solution');
-  expect(firstQuery!.data?.['net.peer.port']).toBe(5432);
+  expect(firstQuery!.data?.['server.port']).toBe(5432);
   expect(firstQuery!.data?.['db.user']).toBe('postgres');
 });
 
