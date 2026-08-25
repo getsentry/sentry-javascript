@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 import {
   captureException,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -227,9 +229,13 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes['langchain.chain.inputs'] = JSON.stringify(inputs);
       }
 
+      const client = getClient();
+
       startSpanManual(
         {
-          name: `chain ${chainName}`,
+          // With span streaming, the name follows the `{operation}` agent template. The chain
+          // name stays available on `langchain.chain.name`.
+          name: client && hasSpanStreamingEnabled(client) ? 'invoke_agent' : `chain ${chainName}`,
           op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,

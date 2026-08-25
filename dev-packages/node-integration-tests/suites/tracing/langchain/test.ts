@@ -420,4 +420,26 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('uses invoke_agent for chain spans when span streaming is enabled', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            const chainSpans = container.items.filter(
+              span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+            );
+            expect(chainSpans.map(span => span.name).sort()).toEqual(['invoke_agent', 'invoke_agent', 'invoke_agent']);
+            expect(chainSpans.map(span => span.attributes['langchain.chain.name']?.value).sort()).toEqual([
+              'format_prompt',
+              'parse_output',
+              'unknown_chain',
+            ]);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

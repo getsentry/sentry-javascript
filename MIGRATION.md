@@ -619,15 +619,16 @@ Affected SDKs: All SDKs.
 
 With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
-In v11, this affects `pageload` and `graphql` spans. Further ops will follow in future releases.
+In v11, this affects `pageload`, `graphql`, and `gen_ai.invoke_agent` spans. Further ops will follow in future releases.
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
 The following span names were adjusted:
 
-| Span op    | Before                                                                                                                      | After                                                                                                                |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                           |
-| `graphql`  | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`) |
+| Span op                                 | Before                                                                                                                                                              | After                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pageload`                              | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                                                         | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                       |
+| `graphql`                               | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`)                                         | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                             |
+| `gen_ai.invoke_agent`, `gen_ai.handoff` | `{operation} {agent}` (`invoke_agent weather_assistant`), `chain {chainName}` (`chain format_prompt`), or `{operation} {functionId}` (`invoke_agent weather_agent`) | `{operation} {agent}` when the agent name is known, or `{operation}` if the SDK has none (`invoke_agent`). Chain names stay on `langchain.chain.name`; function ids stay on `gen_ai.function.id` |
 
 Some consequences to be aware of:
 
@@ -639,7 +640,9 @@ For the same reason, `useOperationNameForRootSpan` no longer renames the enclosi
 
 Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 
-`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Match on attributes instead:
+Resolved low-cardinality values are kept in both lifecycles: a known agent name stays in the name (`invoke_agent weather_assistant`).
+
+`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Filters matching `chain format_prompt` or `invoke_agent weather_agent` no longer apply to a streamed agent span (`'invoke_agent'`). Match on attributes instead:
 
 ```js
 Sentry.init({
