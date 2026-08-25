@@ -633,6 +633,7 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 | `http.response_content_length`         | `http.response.body.size`         |
 | `http.decoded_response_content_length` | `http.response.body.decoded_size` |
 | `http.response_transfer_size`          | `http.response.size`              |
+| `http.target`                          | `url.path` + `url.query`          |
 | `url.same_origin`                      | `http.request.same_origin`        |
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
