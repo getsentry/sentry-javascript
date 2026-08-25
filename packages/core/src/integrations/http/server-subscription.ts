@@ -293,8 +293,8 @@ function buildServerSpanWrap(
       const name = `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
       const httpVersion = request.httpVersion;
+      const ips = headers['x-forwarded-for'];
       const host = headers.host as undefined | string;
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
