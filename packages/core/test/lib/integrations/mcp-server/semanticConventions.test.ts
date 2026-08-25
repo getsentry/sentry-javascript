@@ -616,4 +616,44 @@ describe('MCP Server Semantic Conventions', () => {
       expect(lastCall?.[0]?.attributes).not.toHaveProperty('mcp.logging.message');
     });
   });
+
+  describe('Span names with span streaming', () => {
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockTransport: ReturnType<typeof createMockTransport>;
+
+    beforeEach(() => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      wrappedMcpServer = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: true, recordOutputs: true });
+      mockTransport = createMockTransport();
+      mockTransport.sessionId = 'test-session-123';
+    });
+
+    it('drops the resource URI from the name, keeping it on the attribute', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.(
+        { jsonrpc: '2.0', method: 'resources/read', id: 'req-1', params: { uri: 'file:///docs/api.md' } },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'resources/read',
+          attributes: expect.objectContaining({ 'mcp.resource.uri': 'file:///docs/api.md' }),
+        }),
+      );
+    });
+
+    it.each([
+      ['tools/call', { name: 'get-weather' }, 'tools/call get-weather'],
+      ['prompts/get', { name: 'analyze-code' }, 'prompts/get analyze-code'],
+      ['initialize', {}, 'initialize'],
+    ])('keeps the %s span name, which is already low cardinality', async (method, params, expected) => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method, id: 'req-1', params }, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: expected }));
+    });
+  });
 });
