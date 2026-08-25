@@ -584,7 +584,7 @@ describe('withSentryConfig', () => {
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
     });
 
-    it('still generates source maps when upload is disabled via `disable: "disable-upload"`', () => {
+    it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
@@ -593,14 +593,15 @@ describe('withSentryConfig', () => {
 
       const sentryOptions: SentryBuildOptions = {
         sourcemaps: {
-          disable: 'disable-upload' as const,
+          disable: 'disable-upload',
         },
       };
 
       const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
-      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
-      // The source maps are meant to be uploaded manually later on, so they must not be deleted
+      // The SDK must not generate source maps it will neither upload nor delete - they would be served
+      // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
       expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 

@@ -416,8 +416,8 @@ type SentryBuildSourceMapsOptions = Omit<NonNullable<BuildTimeOptionsBase['sourc
    * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being
    * uploaded to Sentry.
    *
-   * Has no effect when `disable` is set to `"disable-upload"`, since nothing is uploaded in that case and the source
-   * maps are kept around for a manual upload.
+   * Only applies to source maps the SDK generated itself. Setting `disable` to `true` or `"disable-upload"` leaves
+   * source map generation entirely to your Next.js config, so nothing is auto-deleted either.
    *
    * Defaults to `true`.
    */
