@@ -9,6 +9,8 @@
 import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -23,7 +25,9 @@ import {
   GRAPHQL_FIELD_TYPE,
   GRAPHQL_PARENT_NAME,
   GRAPHQL_PATCHED_SYMBOL,
+  GRAPHQL_PROCESSING_TYPE,
   ORIGIN,
+  PROCESSING_TYPE_RESOLVE,
   SPAN_NAME_RESOLVE,
 } from './constants';
 import type {
@@ -180,13 +184,23 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+    [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_RESOLVE,
     [GRAPHQL_FIELD_NAME]: info.fieldName,
     [GRAPHQL_FIELD_PATH]: path.join('.'),
     [GRAPHQL_FIELD_TYPE]: info.returnType.toString(),
     [GRAPHQL_PARENT_NAME]: info.parentType.name,
   };
 
-  return startInactiveSpan({ name: `${SPAN_NAME_RESOLVE} ${path.join('.')}`, attributes, parentSpan });
+  const client = getClient();
+
+  return startInactiveSpan({
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? `GraphQL ${PROCESSING_TYPE_RESOLVE}`
+        : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
+    attributes,
+    parentSpan,
+  });
 }
 
 function addField(contextValue: ObjectWithGraphQLData, path: string[], field: { span: Span }): void {
