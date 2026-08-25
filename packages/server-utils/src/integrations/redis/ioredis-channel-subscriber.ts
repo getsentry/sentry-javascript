@@ -8,7 +8,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
+import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -81,7 +81,7 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
     attributes: {
       [SENTRY_KIND]: 'client',
       ...connectionAttributes(host, port),
-      [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+      [SENTRY_OP]: DB_QUERY,
       [DB_OPERATION_NAME]: command.name,
       [DB_QUERY_TEXT]: statement,
     },
@@ -125,7 +125,7 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
         attributes: {
           [SENTRY_KIND]: 'client',
           ...connectionAttributes(host, port),
-          [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+          [SENTRY_OP]: DB,
         },
       });
     },
