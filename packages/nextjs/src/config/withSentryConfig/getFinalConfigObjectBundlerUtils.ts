@@ -235,7 +235,7 @@ export function maybeEnableTurbopackSourcemaps(
   bundlerInfo: BundlerInfo,
 ): void {
   // Enable source maps for turbopack builds
-  if (!bundlerInfo.isTurbopackSupported || !bundlerInfo.isTurbopack || userSentryOptions.sourcemaps?.disable) {
+  if (!bundlerInfo.isTurbopackSupported || !bundlerInfo.isTurbopack || userSentryOptions.sourcemaps?.disable === true) {
     return;
   }
 
@@ -250,8 +250,12 @@ export function maybeEnableTurbopackSourcemaps(
   }
   incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
-  // Enable source map deletion if not explicitly disabled
-  if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload !== undefined) {
+  // Enable source map deletion if not explicitly disabled - with `'disable-upload'` the source maps are kept around
+  // on purpose, so that they can be uploaded manually later on
+  if (
+    userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload !== undefined ||
+    userSentryOptions.sourcemaps?.disable === 'disable-upload'
+  ) {
     return;
   }
 

@@ -93,6 +93,40 @@ describe('constructWebpackConfigFunction()', () => {
     getBuildPluginOptionsSpy.mockRestore();
   });
 
+  it('still generates source maps but keeps them when upload is disabled via `disable: "disable-upload"`', async () => {
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
+    const finalWebpackConfig = await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: clientWebpackConfig,
+      incomingWebpackBuildContext: clientBuildContext,
+      sentryBuildTimeOptions: {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      },
+    });
+
+    expect(finalWebpackConfig.devtool).toEqual('hidden-source-map');
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // The source maps are meant to be uploaded manually later on, so they must not be deleted
+        sentryBuildOptions: expect.objectContaining({
+          sourcemaps: {
+            disable: 'disable-upload',
+          },
+        }),
+      }),
+    );
+
+    getBuildPluginOptionsSpy.mockRestore();
+  });
+
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({

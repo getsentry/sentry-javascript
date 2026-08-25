@@ -359,7 +359,7 @@ export function constructWebpackConfigFunction({
         loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
-        if (!userSentryOptions.sourcemaps?.disable) {
+        if (userSentryOptions.sourcemaps?.disable !== true) {
           // Source maps can be configured in 3 ways:
           // 1. (next config): productionBrowserSourceMaps
           // 2. (next config): experimental.serverSourceMaps
@@ -381,8 +381,13 @@ export function constructWebpackConfigFunction({
             }
           }
 
-          // enable source map deletion if not explicitly disabled
-          if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
+          // enable source map deletion if not explicitly disabled - with `'disable-upload'` the source maps are
+          // kept around on purpose, so that they can be uploaded manually later on
+          if (
+            !isServer &&
+            userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined &&
+            userSentryOptions.sourcemaps?.disable !== 'disable-upload'
+          ) {
             debug.warn(
               '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
             );
