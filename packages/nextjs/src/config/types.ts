@@ -163,8 +163,7 @@ export type SentryBuildWebpackOptions = {
   reactComponentAnnotation?: ReactComponentAnnotationOptions; // TODO(v12): remove this option
 };
 
-// TODO: `silent` and `debug` are currently only respected by the bundler plugin, not by the SDK's own
-// build-time code.
+// TODO: `silent` is only forwarded to the bundler plugin - the SDK's own build-time logging ignores it.
 /**
  * Build-time options for the Sentry Next.js SDK, passed as the second argument to `withSentryConfig`.
  *
