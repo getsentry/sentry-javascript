@@ -399,7 +399,10 @@ export type SentryBuildOptions = Omit<
   webpack?: SentryBuildWebpackOptions;
 };
 
-type SentryBuildSourceMapsOptions = Omit<NonNullable<BuildTimeOptionsBase['sourcemaps']>, 'ignore'> & {
+type SentryBuildSourceMapsOptions = Omit<
+  NonNullable<BuildTimeOptionsBase['sourcemaps']>,
+  'ignore' | 'filesToDeleteAfterUpload'
+> & {
   /**
    * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
    *
@@ -411,6 +414,24 @@ type SentryBuildSourceMapsOptions = Omit<NonNullable<BuildTimeOptionsBase['sourc
    * Use the `debug` option to print information about which files end up being uploaded.
    */
   ignore?: string | string[];
+
+  /**
+   * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
+   *
+   * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
+   *
+   * Use this option when you need fine-grained control over which source maps are deleted.
+   *
+   * @example
+   * ```javascript
+   * withSentryConfig(nextConfig, {
+   *   sourcemaps: {
+   *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
+   *   },
+   * });
+   * ```
+   */
+  filesToDeleteAfterUpload?: string | string[];
 
   /**
    * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being
