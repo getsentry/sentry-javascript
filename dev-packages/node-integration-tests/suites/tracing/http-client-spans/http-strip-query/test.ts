@@ -27,7 +27,6 @@ describe('outgoing http spans - strip query', () => {
             expect(txn.spans?.[0]).toMatchObject({
               data: {
                 'url.full': `${SERVER_URL}/api/v0/users?id=1`,
-                'http.target': '/api/v0/users?id=1',
                 'http.request.method': 'GET',
                 'url.query': 'id=1',
                 'http.response.status_code': 200,

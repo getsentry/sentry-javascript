@@ -27,8 +27,8 @@ test.describe('low-quality transaction filter', () => {
     await page.evaluate(() => fetch('/__sentry-flush'));
 
     const targetIsManifest = (t: (typeof serverTxns)[number]) =>
-      typeof t.contexts?.trace?.data?.['http.target'] === 'string' &&
-      (t.contexts.trace.data['http.target'] as string).includes('/__manifest');
+      typeof t.contexts?.trace?.data?.['url.path'] === 'string' &&
+      (t.contexts.trace.data['url.path'] as string).includes('/__manifest');
     expect(serverTxns.some(targetIsManifest)).toBe(false);
   });
 });

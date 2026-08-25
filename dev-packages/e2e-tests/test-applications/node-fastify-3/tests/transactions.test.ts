@@ -31,7 +31,6 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': '/test-transaction',
       'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),

@@ -23,7 +23,7 @@ test('Should record a transaction for a parameterless route', async ({ request }
 
 test('Should record a transaction for route with parameters', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
-    return transactionEvent.contexts?.trace?.data?.['http.target'] === '/test-transaction/1';
+    return transactionEvent.contexts?.trace?.data?.['url.path'] === '/test-transaction/1';
   });
 
   await request.get('/test-transaction/1');
@@ -39,7 +39,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'http.route': '/test-transaction/:param',
       'url.scheme': 'http',
       'http.response.status_text': 'OK',
-      'http.target': '/test-transaction/1',
       'url.full': 'http://localhost:3030/test-transaction/1',
       'user_agent.original': expect.any(String),
       'network.local.address': expect.any(String),

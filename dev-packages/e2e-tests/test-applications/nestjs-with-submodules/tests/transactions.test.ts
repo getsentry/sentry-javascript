@@ -26,7 +26,6 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': '/example-module/transaction',
       'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
