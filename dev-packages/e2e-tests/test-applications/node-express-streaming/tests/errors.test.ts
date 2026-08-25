@@ -1,14 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express-streaming', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
+  // In streaming mode there is no transaction event; the request's spans are streamed individually.
+  // The root segment span flushes last, so collecting until it arrives captures the whole trace.
+  const spansPromise = collectStreamedSpans('node-express-streaming', spans =>
+    spans.some(span => span.name === 'GET /test-exception/:id' && span.is_segment),
+  );
+
   await fetch(`${baseURL}/test-exception/123`);
 
   const errorEvent = await errorEventPromise;
+  const spans = await spansPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   const exception = errorEvent.exception?.values?.[0];
@@ -31,6 +38,14 @@ test('Sends correct error event', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  // The error is attached to the same trace as the streamed request spans, and to a
+  // span that belongs to that trace (its root segment span or one of its children).
+  const rootSpan = spans.find(span => span.name === 'GET /test-exception/:id' && span.is_segment);
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(rootSpan?.trace_id);
+
+  const spanIds = spans.map(span => span.span_id);
+  expect(spanIds).toContain(errorEvent.contexts?.trace?.span_id);
 });
 
 test('Should record caught exceptions with local variable', async ({ baseURL }) => {

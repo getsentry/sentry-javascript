@@ -11,11 +11,7 @@ const AppLayer = Layer.mergeAll(
   Sentry.effectLayer({
     traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
-    integrations: [
-      Sentry.browserTracingIntegration({
-        _experiments: { enableInteractions: true },
-      }),
-    ],
+    integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
     tracesSampleRate: 1.0,
     release: 'e2e-test',
     environment: 'qa',

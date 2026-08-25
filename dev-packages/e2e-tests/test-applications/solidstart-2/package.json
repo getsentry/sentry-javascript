@@ -21,7 +21,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^1.0.0",
-    "@solidjs/start": "2.0.0",
+    "@solidjs/start": "2.0.2",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/user-event": "^14.5.2",

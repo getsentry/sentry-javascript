@@ -3,6 +3,18 @@
  *
  * @module
  */
+
+export {
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  _INTERNAL_ensureBrowserSpanStreaming,
+} from './tracing/browserSpanApi';
+
+export { startIdleSpan } from './tracing/idleSpan';
+
+export { spanStreamingIntegration } from './integrations/browserSpanStreaming';
+
 export {
   getComponentName,
   getLocationHref,

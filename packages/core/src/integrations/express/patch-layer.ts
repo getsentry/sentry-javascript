@@ -28,10 +28,11 @@
  */
 
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR, startSpanManual, withActiveSpan } from '../../tracing';
+import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
+import { startSpanManual } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import type { SpanAttributes } from '../../types/span';
 import { getActiveSpan } from '../../utils/spanUtils';
@@ -62,7 +63,7 @@ import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 
 // TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
-  [ExpressLayerType_MIDDLEWARE]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  [ExpressLayerType_MIDDLEWARE]: MIDDLEWARE,
   [ExpressLayerType_REQUEST_HANDLER]: 'handler',
   [ExpressLayerType_ROUTER]: 'router',
 };

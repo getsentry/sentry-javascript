@@ -115,6 +115,8 @@ Sentry registers a minimal OpenTelemetry-compatible tracer provider, context man
 
 Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter and no OTLP output. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
 
+`@sentry/cloudflare/request` does not support this option. That entry point exists for runtimes that cannot enable the `nodejs_compat` compatibility flag (e.g. Shopify Oxygen) and sets up a reduced client without the OpenTelemetry tracer. Use the main `@sentry/cloudflare` entry point if you need setup 2.
+
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
 Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:

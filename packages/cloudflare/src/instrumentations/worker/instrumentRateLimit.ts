@@ -1,6 +1,6 @@
 import type { RateLimit, RateLimitOptions, RateLimitOutcome } from '@cloudflare/workers-types';
 import { RPC_SERVICE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_RPC_SPAN_OP } from '@sentry/conventions/op';
+import { RPC } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.rate_limit';
@@ -23,7 +23,7 @@ export function instrumentRateLimit<T extends RateLimit>(rateLimit: T, bindingNa
           {
             name: `rate_limit ${bindingName}`,
             attributes: {
-              [SENTRY_OP]: WEB_SERVER_RPC_SPAN_OP,
+              [SENTRY_OP]: RPC,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
               [RPC_SERVICE]: RATE_LIMIT_SERVICE,
             },

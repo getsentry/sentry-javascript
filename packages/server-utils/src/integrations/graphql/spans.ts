@@ -6,7 +6,7 @@
  */
 
 import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
-import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
+import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -29,7 +29,7 @@ import type {
 
 const BASE_ATTRIBUTES = {
   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
 } as const;
 
 export function startParseSpan(): Span {

@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@opentelemetry/instrumentation-http": "0.220.0",
-    "@sentry/conventions": "0.19.0",
+    "@sentry/conventions": "0.20.0",
     "@sentry-internal/test-utils": "10.67.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

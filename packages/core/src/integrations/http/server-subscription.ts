@@ -31,7 +31,8 @@ import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/ur
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpanManual } from '../../tracing/trace';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,

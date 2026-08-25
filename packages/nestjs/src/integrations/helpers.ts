@@ -1,5 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -91,7 +91,7 @@ export function getMiddlewareSpanOptions(
   return {
     name: name ?? target.name ?? 'unknown',
     attributes: {
-      [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+      [SENTRY_OP]: MIDDLEWARE,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: middlewareOrigin(componentType),
     },
   };
@@ -108,7 +108,7 @@ export function getEventSpanOptions(event: string): {
   return {
     name: `event ${event}`,
     attributes: {
-      [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+      [SENTRY_OP]: FUNCTION,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
     },
     forceTransaction: true,

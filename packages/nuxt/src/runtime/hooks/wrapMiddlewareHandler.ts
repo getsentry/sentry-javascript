@@ -1,5 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
@@ -165,7 +165,7 @@ function getSpanAttributes(
   index?: number,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+    [SENTRY_OP]: MIDDLEWARE,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nuxt',
     'nuxt.middleware.name': middlewareName,
