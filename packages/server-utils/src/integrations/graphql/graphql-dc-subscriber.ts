@@ -11,6 +11,23 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import {
+  GRAPHQL_FIELD_NAME,
+  GRAPHQL_FIELD_PATH,
+  GRAPHQL_FIELD_TYPE,
+  GRAPHQL_PARENT_NAME,
+  GRAPHQL_PROCESSING_TYPE,
+  ORIGIN,
+  PROCESSING_TYPE_EXECUTE,
+  PROCESSING_TYPE_PARSE,
+  PROCESSING_TYPE_RESOLVE,
+  PROCESSING_TYPE_VALIDATE,
+  SPAN_NAME_EXECUTE,
+  SPAN_NAME_PARSE,
+  SPAN_NAME_RESOLVE,
+  SPAN_NAME_SUBSCRIBE,
+  SPAN_NAME_VALIDATE,
+} from './constants';
 import type { GraphqlDocumentNode } from './types';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
 
@@ -22,33 +39,6 @@ export const GRAPHQL_DC_CHANNEL_VALIDATE = 'graphql:validate';
 export const GRAPHQL_DC_CHANNEL_EXECUTE = 'graphql:execute';
 export const GRAPHQL_DC_CHANNEL_SUBSCRIBE = 'graphql:subscribe';
 export const GRAPHQL_DC_CHANNEL_RESOLVE = 'graphql:resolve';
-
-const ORIGIN = 'auto.graphql.diagnostic_channel';
-
-const SPAN_NAME_PARSE = 'graphql.parse';
-const SPAN_NAME_VALIDATE = 'graphql.validate';
-const SPAN_NAME_EXECUTE = 'graphql.execute';
-const SPAN_NAME_SUBSCRIBE = 'graphql.subscribe';
-const SPAN_NAME_RESOLVE = 'graphql.resolve';
-
-// Which part of request processing a span covers. Low-cardinality span names cannot carry the phase,
-// so consumers read it here instead. Inlined until `@sentry/conventions` ships it
-// (https://github.com/getsentry/sentry-conventions/pull/572).
-const GRAPHQL_PROCESSING_TYPE = 'graphql.processing.type';
-
-const PROCESSING_TYPE_PARSE = 'parse';
-const PROCESSING_TYPE_VALIDATE = 'validate';
-// graphql-js `subscribe()` runs a subscription operation, so it is an execute too; the operation
-// itself is told apart by `graphql.operation.type`.
-const PROCESSING_TYPE_EXECUTE = 'execute';
-const PROCESSING_TYPE_RESOLVE = 'resolve';
-
-// Field-level attributes for resolver spans. Not in `@sentry/conventions`; these match the keys the
-// vendored OTel instrumentation emits so there is no drift between the two paths.
-const GRAPHQL_FIELD_NAME = 'graphql.field.name';
-const GRAPHQL_FIELD_PATH = 'graphql.field.path';
-const GRAPHQL_FIELD_TYPE = 'graphql.field.type';
-const GRAPHQL_PARENT_NAME = 'graphql.parent.name';
 
 /** Context published on the sync-only `graphql:parse` channel. */
 export interface GraphqlParseData {
