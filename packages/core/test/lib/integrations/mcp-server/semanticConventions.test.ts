@@ -355,6 +355,38 @@ describe('MCP Server Semantic Conventions', () => {
       );
     });
 
+    it('should keep the method name as the notification span name when span streaming is enabled', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: 'notifications/tools/list_changed', params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'notifications/tools/list_changed' }),
+        expect.any(Function),
+      );
+    });
+
+    it('should fall back to a low cardinality notification span name when the method name is missing', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: null, params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'MCP notification' }),
+        expect.any(Function),
+      );
+    });
+
+    it('should not fall back to a low cardinality notification span name in static trace lifecycle mode', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: null, params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: null }), expect.any(Function));
+    });
+
     it('should instrument tool call results and complete span with enriched attributes', async () => {
       await wrappedMcpServer.connect(mockTransport);
 
