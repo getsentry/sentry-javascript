@@ -15,7 +15,7 @@ test('sends a pageload transaction', async ({ page }) => {
         op: 'pageload',
         origin: 'auto.pageload.browser',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -44,7 +44,7 @@ test('sends a navigation transaction with parametrized route', async ({ page }) 
         op: 'navigation',
         origin: 'auto.navigation.solidstart.solidrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id',
           'url.path': '/users/5',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/5$/),
@@ -76,7 +76,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
         op: 'navigation',
         origin: 'auto.navigation.solidstart.solidrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id',
           'url.path': '/users/6',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/6$/),
@@ -104,7 +104,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
         op: 'navigation',
         origin: 'auto.navigation.solidstart.solidrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/back-navigation',
           'url.path': '/back-navigation',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/back-navigation$/),

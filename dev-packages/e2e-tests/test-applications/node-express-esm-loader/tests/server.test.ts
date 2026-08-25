@@ -55,7 +55,7 @@ test('Should record a transaction for route with parameters', async ({ request }
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
     }),
   );
 

@@ -1,4 +1,5 @@
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -13,7 +14,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
   spanToStaticSpanJSON,
 } from '@sentry/core';
@@ -68,7 +68,7 @@ describe('instrumentWorkersAiClient', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
       [GEN_AI_OPERATION_NAME]: 'chat',
       [GEN_AI_REQUEST_MODEL]: MODEL,

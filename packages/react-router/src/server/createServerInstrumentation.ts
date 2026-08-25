@@ -1,4 +1,5 @@
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
@@ -15,7 +16,6 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
@@ -72,7 +72,7 @@ export function createSentryServerInstrumentation(
             existingRootSpan.setAttributes({
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [URL_FULL]: filterCollectedUrl(info.request.url),
               [URL_PATH]: pathname,
             });
@@ -97,7 +97,7 @@ export function createSentryServerInstrumentation(
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_PATH]: pathname,
                   [URL_FULL]: filterCollectedUrl(info.request.url),
@@ -276,7 +276,7 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
   updateSpanName(rootSpan, transactionName);
   rootSpan.setAttributes({
     [HTTP_ROUTE]: routeName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: hasPattern ? 'route' : 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: hasPattern ? 'route' : 'url',
   });
 
   // Also update the scope's transaction name so errors captured during this request

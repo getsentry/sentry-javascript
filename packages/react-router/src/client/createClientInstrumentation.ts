@@ -9,7 +9,6 @@ import {
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   SPAN_STATUS_ERROR,
   updateSpanName,
@@ -25,7 +24,13 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  URL_FULL,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -108,7 +113,7 @@ export function createSentryClientInstrumentation(
             {
               name: pathname,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                 'navigation.type': 'browser.popstate',
@@ -151,7 +156,7 @@ export function createSentryClientInstrumentation(
                 {
                   name: currentPathname,
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                     'navigation.type': navigationType,
@@ -196,7 +201,7 @@ export function createSentryClientInstrumentation(
               {
                 name: toPath,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                   'navigation.type': 'router.navigate',
@@ -385,7 +390,7 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
   }
 
   updateSpanName(rootSpan, routeName);
-  rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
+  rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
 }
 
 /**

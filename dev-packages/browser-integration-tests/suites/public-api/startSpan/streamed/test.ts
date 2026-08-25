@@ -6,13 +6,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SDK_NAME,
@@ -255,11 +255,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-            type: 'string',
-            value: 'custom',
-          },
-          'sentry.segment.name.source': {
+          [SENTRY_SEGMENT_NAME_SOURCE]: {
             type: 'string',
             value: 'custom',
           },

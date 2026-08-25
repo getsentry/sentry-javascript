@@ -34,6 +34,7 @@ const mockGetClient = vi.fn(() => ({
   on: vi.fn(),
 }));
 const mockRootSpan = {
+  setAttribute: vi.fn(),
   setAttributes: vi.fn(),
   updateName: vi.fn(),
 };
@@ -109,7 +110,7 @@ describe('withElysia', () => {
       });
 
       expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
         [HTTP_ROUTE]: '/users/:id',
       });
     });

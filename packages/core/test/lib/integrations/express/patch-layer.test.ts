@@ -52,9 +52,14 @@ const defaultIsolationScope = {
     this._scopeData.sdkProcessingMetadata = data;
   },
 };
+let spanStreamingEnabled = false;
+beforeEach(() => (spanStreamingEnabled = false));
 vi.mock('../../../../src/currentScopes', () => ({
   getIsolationScope() {
     return inDefaultIsolationScope ? defaultIsolationScope : notDefaultIsolationScope;
+  },
+  getClient() {
+    return { getOptions: () => ({ traceLifecycle: spanStreamingEnabled ? 'stream' : 'static' }) };
   },
 }));
 vi.mock('../../../../src/defaultScopes', () => ({
@@ -466,6 +471,75 @@ describe('patchLayer', () => {
     res.emit('finish');
     expect(span?.ended).toBe(true);
     checkSpans([]);
+  });
+
+  it('names router spans after their route when span streaming is enabled', () => {
+    spanStreamingEnabled = true;
+    const options: ExpressPatchLayerOptions = {};
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/a/b/c',
+    }) as unknown as ExpressRequest;
+
+    const layer = {
+      name: 'router',
+      handle: vi.fn(),
+    } as unknown as ExpressLayer;
+
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+
+    storeLayer(req, '/a');
+    storeLayer(req, '/b');
+
+    patchLayer(() => options, layer, '/c');
+    layer.handle(req, res);
+
+    checkSpans([
+      {
+        status: { code: 0, message: 'OK' },
+        data: {
+          'express.name': '/c',
+          'express.type': 'router',
+          'http.route': '/a/b/c',
+          'sentry.op': 'router',
+          'sentry.origin': 'auto.http.express',
+        },
+        description: '/a/b/c',
+      },
+    ]);
+  });
+
+  it('falls back to a static router span name when the route is unknown', () => {
+    spanStreamingEnabled = true;
+    const options: ExpressPatchLayerOptions = {};
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/abcdef',
+    }) as unknown as ExpressRequest;
+
+    const layer = {
+      name: 'router',
+      handle: vi.fn(),
+    } as unknown as ExpressLayer;
+
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+
+    storeLayer(req, '/a');
+    storeLayer(req, '/b');
+
+    patchLayer(() => options, layer, '/c');
+    layer.handle(req, res);
+
+    checkSpans([
+      {
+        status: { code: 0, message: 'OK' },
+        data: {
+          'express.name': '/c',
+          'express.type': 'router',
+          'sentry.op': 'router',
+          'sentry.origin': 'auto.http.express',
+        },
+        description: 'Router',
+      },
+    ]);
   });
 
   it('handles case when route does not match url', () => {

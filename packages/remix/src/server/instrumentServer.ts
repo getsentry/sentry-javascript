@@ -27,7 +27,6 @@ import {
   loadModule,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -41,7 +40,14 @@ import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/util
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
-import { CODE_FUNCTION_NAME, HTTP_ROUTE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 type AppData = unknown;
@@ -181,7 +187,7 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
     rootSpan.updateName(newSpanName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
     if (source === 'route') {
       rootSpan.setAttribute(HTTP_ROUTE, transactionName);
     }
@@ -356,7 +362,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
           const rootSpan = getRootSpan(parentSpan);
           rootSpan?.updateName(name);
           rootSpan?.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
             ...(source === 'route' && {
               [HTTP_ROUTE]: name,
             }),
@@ -380,13 +386,13 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
             const parentSpan = getActiveSpan();
             const rootSpan = parentSpan && getRootSpan(parentSpan);
             rootSpan?.updateName(name);
-            rootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+            rootSpan?.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
             return startSpan(
               {
                 name,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                  [SENTRY_SEGMENT_NAME_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                   [URL_FULL]: filterCollectedUrl(url.href),
                   [URL_PATH]: url.pathname,

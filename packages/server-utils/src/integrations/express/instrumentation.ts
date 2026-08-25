@@ -5,8 +5,11 @@ import type { Span } from '@sentry/core';
 import {
   debug,
   getActiveSpan,
+  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  hasSpanStreamingEnabled,
+  ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stringMatchesSomePattern,
@@ -207,7 +210,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     } else {
       DEBUG_BUILD &&
         debug.warn(
-          '[orchestrion:express] Isolation scope is still default isolation scope - skipping transaction name',
+          '[instrumentation:express] Isolation scope is still default isolation scope - skipping transaction name',
         );
     }
   }
@@ -224,8 +227,12 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     return undefined;
   }
 
+  const client = getClient();
+  // With span streaming, span names have to be low cardinality, so router spans are named after their route.
+  const isStreamedRouterSpan = type === 'router' && !!client && hasSpanStreamingEnabled(client);
+
   const span = startInactiveSpan({
-    name,
+    name: isStreamedRouterSpan ? matchedRoute || ROUTER_SPAN_NAME_FALLBACK : name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],

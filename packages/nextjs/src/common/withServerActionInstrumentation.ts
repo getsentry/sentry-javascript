@@ -8,7 +8,6 @@ import {
   getIsolationScope,
   handleCallbackErrors,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
@@ -17,7 +16,7 @@ import {
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 interface Options {
@@ -119,7 +118,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               attributes: {
                 [SENTRY_KIND]: 'server',
                 [SENTRY_OP]: FUNCTION,
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },
             },

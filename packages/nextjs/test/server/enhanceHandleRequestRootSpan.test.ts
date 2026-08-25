@@ -1,5 +1,10 @@
-import { HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  HTTP_STATUS_CODE,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../../src/common/span-attributes-with-logic-attached';
@@ -47,7 +52,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(getOp()).toBe('http.server');
     expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
     expect(getName()).toBe('GET /api/users/[id]');
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(span.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/users/[id]');
     expect(span.attributes[HTTP_ROUTE]).toBe('/api/users/[id]');
   });
@@ -138,7 +143,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
     expect(getName()).toBe('GET /posts/[slug]');
     expect(span.attributes[HTTP_ROUTE]).toBe('/posts/[slug]');
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(span.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
 
   it('does not apply the backfill for the special GET /_app transaction', () => {
@@ -169,7 +174,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
     expect(getName()).toBe('middleware POST');
     expect(getOp()).toBe('middleware');
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(span.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
 
   it('writes the middleware op into attributes when the adapter mirrors op writes (streamed shape)', () => {

@@ -19,7 +19,7 @@ test('should create a parameterized transaction when the `app` directory is used
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -58,7 +58,7 @@ test('should create a transaction named after the static route when the `app` di
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/parameterized/static',
         },
         op: 'pageload',
@@ -98,7 +98,7 @@ test('should create a partially parameterized transaction when the `app` directo
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -138,7 +138,7 @@ test('should create a nested parameterized transaction when the `app` directory 
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',

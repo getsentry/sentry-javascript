@@ -18,7 +18,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
   expect(getSpanOp(rootSpan!)).toBe('http.server');
   expect(rootSpan!.status).toBe('ok');
   expect(rootSpan!.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(rootSpan!.attributes['sentry.source']?.value).toBe('route');
+  expect(rootSpan!.attributes['sentry.segment.name.source']?.value).toBe('route');
   expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.otel.http');
   expect(rootSpan!.attributes['http.response.status_code']?.value).toBe(200);
 

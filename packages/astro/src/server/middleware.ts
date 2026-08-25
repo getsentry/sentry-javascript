@@ -1,5 +1,13 @@
 /* eslint-disable max-lines */
-import { HTTP_ROUTE, SENTRY_OP, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -24,7 +32,6 @@ import {
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   winterCGHeadersToDict,
@@ -212,7 +219,7 @@ async function instrumentRequestStartHttpServerSpan(
 
           const attributes: SpanAttributes = {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,

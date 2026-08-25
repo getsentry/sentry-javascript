@@ -31,7 +31,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
           op: 'pageload',
           origin: 'auto.pageload.astro',
@@ -76,7 +76,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.sample_rate': 1,
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringContaining('/test-ssr'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
@@ -211,7 +211,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
           data: {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
       },
@@ -228,7 +228,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringContaining('/user-page/myUsername123'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
@@ -266,7 +266,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringContaining('/api/user/myUsername123.json'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate',
@@ -307,7 +307,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
           data: {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
       },
@@ -323,7 +323,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringContaining('/catchAll/hell0/whatever-do'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
@@ -364,7 +364,7 @@ test.describe('parametrized vs static paths', () => {
           data: {
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
       },
@@ -380,7 +380,7 @@ test.describe('parametrized vs static paths', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringContaining('/user-page/settings'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',

@@ -6,9 +6,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SDK_NAME,
@@ -161,11 +161,7 @@ sentryTest(
           type: 'string',
           value: 'Pageload',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-          type: 'string',
-          value: 'url',
-        },
-        'sentry.segment.name.source': {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           type: 'string',
           value: 'url',
         },

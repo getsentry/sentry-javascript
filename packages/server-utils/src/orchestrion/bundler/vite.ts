@@ -1,5 +1,7 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import type { Plugin, ResolvedConfig } from 'vite';
+
+export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';

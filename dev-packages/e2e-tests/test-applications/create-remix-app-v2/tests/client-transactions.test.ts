@@ -13,7 +13,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
       'url.path': '/',
       'url.template': '/',
@@ -36,7 +36,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
       'url.path': '/user/5',
       'url.template': '/user/:id',
