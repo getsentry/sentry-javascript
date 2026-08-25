@@ -34,6 +34,7 @@
     "clean": "rimraf dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "prepack": "rollup --config",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
