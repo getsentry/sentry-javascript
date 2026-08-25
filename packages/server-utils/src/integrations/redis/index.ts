@@ -8,7 +8,7 @@ import {
   SERVER_PORT,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
+import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
@@ -123,7 +123,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
-      [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+      [SENTRY_OP]: DB_QUERY,
       [DB_QUERY_TEXT]: dbStatement,
     },
   });
@@ -250,7 +250,7 @@ function bindNodeRedisConnectChannel(): void {
       attributes: {
         [SENTRY_KIND]: 'client',
         ...nodeRedisAttributes(options),
-        [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+        [SENTRY_OP]: DB,
       },
     });
   });
@@ -270,7 +270,7 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
       attributes: {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+        [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
         ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),

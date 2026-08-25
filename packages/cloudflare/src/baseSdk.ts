@@ -18,7 +18,6 @@ import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
 import { httpServerIntegration } from './integrations/httpServer';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
-import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
@@ -31,7 +30,6 @@ import { defaultStackParser } from './vendor/stacktrace';
  * The marker is read directly instead of importing the factories, so a worker
  * built without the plugin — where the channels never fire — ships none of this
  * code.
- * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default.
  */
 function getRegisteredChannelIntegrations(): Integration[] {
   const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
@@ -94,9 +92,6 @@ export function initWithDefaultIntegrations(
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
-    // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
-    // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
-    enableOpenTelemetrySetup: options.enableOpenTelemetrySetup ?? false,
     flushLock,
   };
 
@@ -109,12 +104,6 @@ export function initWithDefaultIntegrations(
     );
   }
   /*! rollup-include-development-only-end */
-
-  // Opt-in only: when `enableOpenTelemetrySetup` is `true`, set up a custom trace provider so spans
-  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
-  if (clientOptions.enableOpenTelemetrySetup) {
-    setupOpenTelemetryTracer();
-  }
 
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 

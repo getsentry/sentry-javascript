@@ -1,5 +1,5 @@
 import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
@@ -122,7 +122,7 @@ class WrappedWorkflowStep implements WorkflowStep {
           name,
           scope: scopeForStep,
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [CODE_FUNCTION_NAME]: name,
             'workflow.step.name': name,
             'cloudflare.workflow.timeout': config?.timeout,

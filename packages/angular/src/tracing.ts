@@ -28,7 +28,7 @@ import {
   URL_PATH,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
@@ -40,7 +40,7 @@ import {
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP } from './constants';
+import { UI_MOUNT } from '@sentry/conventions/op';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
@@ -307,7 +307,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
         startInactiveSpan({
           name: `<${this.componentName}>`,
           attributes: {
-            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
           },
         }),
@@ -358,7 +358,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
           onlyIfParent: true,
           name: `<${options?.name || 'unnamed'}>`,
           attributes: {
-            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
           },
         }),
@@ -404,7 +404,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
           name: `<${options?.name ? options.name : 'unnamed'}>`,
           startTime: now,
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
             [CODE_FUNCTION_NAME]: String(propertyKey),
           },

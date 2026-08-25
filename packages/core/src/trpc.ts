@@ -5,7 +5,7 @@ import {
   TRPC_PROCEDURE_PATH,
   TRPC_PROCEDURE_TYPE,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_RPC_SPAN_OP } from '@sentry/conventions/op';
+import { RPC } from '@sentry/conventions/op';
 import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
@@ -95,7 +95,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         {
           name: `trpc/${path}`,
           attributes: {
-            [SENTRY_OP]: WEB_SERVER_RPC_SPAN_OP,
+            [SENTRY_OP]: RPC,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
             [RPC_SYSTEM_NAME]: 'trpc',
             [RPC_METHOD]: String(path),

@@ -6,7 +6,7 @@ import {
 } from '@sentry/core';
 import { startSpan } from '@sentry/core/browser';
 import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
@@ -78,7 +78,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       return startSpan(
         {
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [CODE_FUNCTION_NAME]: 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',

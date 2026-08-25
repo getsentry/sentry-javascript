@@ -17,7 +17,7 @@ import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 
 interface Options {
   formData?: FormData;
@@ -117,7 +117,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               forceTransaction: true,
               attributes: {
                 [SENTRY_KIND]: 'server',
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },

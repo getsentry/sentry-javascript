@@ -1,6 +1,6 @@
 import { startSpan } from '@sentry/browser';
 import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 import type Route from '@ember/routing/route';
@@ -42,7 +42,7 @@ export function instrumentRoutePerformance<T extends RouteConstructor>(BaseRoute
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
-          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: hookName,
         },
         name,

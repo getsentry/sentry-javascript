@@ -34,7 +34,7 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { enhanceRunHandlerRootSpan } from './enhanceRunHandlerRootSpan';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -142,7 +142,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP);
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, MIDDLEWARE);
       span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     }
 

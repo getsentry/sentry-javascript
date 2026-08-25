@@ -13,7 +13,7 @@ import {
   SENTRY_OP,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 
 /**
@@ -49,7 +49,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
       {
         name: serverActionName,
         attributes: {
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
         },

@@ -1,4 +1,4 @@
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 import { stripUrlQueryAndFragment } from '@sentry/core';
@@ -29,7 +29,7 @@ export function enhanceMiddlewareRootSpan(span: MutableMiddlewareRootSpan): void
     return;
   }
 
-  span.setOp(WEB_SERVER_MIDDLEWARE_SPAN_OP);
+  span.setOp(MIDDLEWARE);
 
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
   if (typeof spanName !== 'string' || !spanName || !span.getName()) {

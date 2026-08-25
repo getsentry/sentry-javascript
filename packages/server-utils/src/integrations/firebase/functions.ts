@@ -5,7 +5,7 @@ import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
-import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
@@ -64,7 +64,7 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
       [FAAS_TRIGGER]: triggerType,
       'faas.provider': 'firebase',
       [SENTRY_KIND]: 'server',
-      [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+      [SENTRY_OP]: FUNCTION_GCP,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
     };
 
