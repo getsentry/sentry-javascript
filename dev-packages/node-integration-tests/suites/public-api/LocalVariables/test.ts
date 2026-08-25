@@ -7,6 +7,10 @@ import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 // So we increase the timeout here
 // vi.setTimeout(45_000);
 
+function findFrameByFunctionName(frames: Array<{ function?: string }>, functionName: string) {
+  return frames.find(frame => frame.function === functionName || frame.function === `Object.${functionName}`);
+}
+
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
     values: [
@@ -187,12 +191,14 @@ module.exports = { out_of_app_function };`,
         event: event => {
           const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
 
-          const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
-          const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
+          const inAppFrame = findFrameByFunctionName(frames, 'in_app_function');
+          const outOfAppFrame = findFrameByFunctionName(frames, 'out_of_app_function');
 
+          expect(inAppFrame).toBeDefined();
           expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
           expect(inAppFrame?.in_app).toEqual(true);
 
+          expect(outOfAppFrame).toBeDefined();
           expect(outOfAppFrame?.vars).toEqual({
             outOfAppVar: 'out of app value modified value',
             passedArg: 'in app value modified value',
@@ -210,12 +216,14 @@ module.exports = { out_of_app_function };`,
         event: event => {
           const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
 
-          const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
-          const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
+          const inAppFrame = findFrameByFunctionName(frames, 'in_app_function');
+          const outOfAppFrame = findFrameByFunctionName(frames, 'out_of_app_function');
 
+          expect(inAppFrame).toBeDefined();
           expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
           expect(inAppFrame?.in_app).toEqual(true);
 
+          expect(outOfAppFrame).toBeDefined();
           expect(outOfAppFrame?.vars).toBeUndefined();
           expect(outOfAppFrame?.in_app).toEqual(false);
         },
