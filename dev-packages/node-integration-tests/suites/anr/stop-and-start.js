@@ -52,7 +52,11 @@ setTimeout(() => {
     setTimeout(() => {
       anr.startWorker();
 
-      setTimeout(() => {
+      // Wait for the restarted worker to reconnect its debugger session before blocking the event
+      // loop. The main-thread inspector stays open across restarts, so there is no main-thread signal
+      // that the new worker is ready; without this, on slow CI `longWork` can run before the worker
+      // is sampling and the ANR is missed entirely.
+      anr.waitUntilWorkerReady().then(() => {
         longWork();
       });
     }, 2000);
