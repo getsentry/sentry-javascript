@@ -638,7 +638,7 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
 
-The `http.target` span attribute is no longer set. It held the pathname and the query string, which are now on `url.path` and `url.query`.
+On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
 
 #### Network attributes
 

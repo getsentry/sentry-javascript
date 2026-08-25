@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
-import type { IncomingHttpHeaders } from 'node:http';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_REQUEST_METHOD,
@@ -39,6 +38,7 @@ import {
   debug,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
+  getContentLengthFromHeaders,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -173,7 +173,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [NETWORK_PROTOCOL_NAME]: 'http',
               [NETWORK_PROTOCOL_VERSION]: httpVersion,
               [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-              ...getRequestContentLengthAttribute(request),
+              'http.request.body.size': getContentLengthFromHeaders(request.headers),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
           });
@@ -336,39 +336,6 @@ function shouldIgnoreSpansForIncomingRequest(
   }
 
   return false;
-}
-
-function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const length = getContentLength(request.headers);
-  if (length == null) {
-    return {};
-  }
-
-  if (isCompressed(request.headers)) {
-    return {
-      ['http.request.body.size']: length,
-    };
-  } else {
-    return {
-      ['http.request.body.decoded_size']: length,
-    };
-  }
-}
-
-function getContentLength(headers: IncomingHttpHeaders): number | null {
-  const contentLengthHeader = headers['content-length'];
-  if (contentLengthHeader === undefined) return null;
-
-  const contentLength = parseInt(contentLengthHeader, 10);
-  if (isNaN(contentLength)) return null;
-
-  return contentLength;
-}
-
-function isCompressed(headers: IncomingHttpHeaders): boolean {
-  const encoding = headers['content-encoding'];
-
-  return !!encoding && encoding !== 'identity';
 }
 
 /**

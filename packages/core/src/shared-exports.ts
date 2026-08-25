@@ -135,6 +135,7 @@ export {
   extractQueryParamsFromUrl,
   headersToDict,
   httpHeadersToSpanAttributes,
+  getContentLengthFromHeaders,
   getMaxBodyByteLength,
   MAX_BODY_BYTE_LENGTH,
 } from './utils/request';

@@ -30,7 +30,7 @@ describe('outgoing http spans - strip query', () => {
                 'http.request.method': 'GET',
                 'url.query': 'id=1',
                 'http.response.status_code': 200,
-                'http.response.body.decoded_size': 0,
+                'http.response.body.size': 0,
                 'http.response.status_text': 'OK',
                 'network.peer.address': '::1',
                 'server.address': 'localhost',

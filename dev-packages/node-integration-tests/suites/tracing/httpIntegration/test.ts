@@ -136,7 +136,7 @@ describe('httpIntegration', () => {
               expect(transaction.contexts?.trace?.data).toEqual({
                 'http.request.method': 'POST',
                 'url.query': 'a=1&b=2',
-                'http.request.body.decoded_size': 9,
+                'http.request.body.size': 9,
                 'http.response.status_code': 200,
                 'http.route': '/test',
                 'url.scheme': 'http',
