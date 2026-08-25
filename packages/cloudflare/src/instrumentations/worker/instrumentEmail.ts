@@ -11,6 +11,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -24,6 +25,8 @@ function wrapEmailHandler(
 ): unknown {
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
+
+    setInvocationState(isolationScope, { ctx: context });
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);

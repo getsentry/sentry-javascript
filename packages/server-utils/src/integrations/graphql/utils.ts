@@ -1,6 +1,6 @@
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_GRAPHQL_OPERATION } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributeValue } from '@sentry/core';
-import { getClient, isObjectLike, getRootSpan, spanToJSON } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, isObjectLike, getRootSpan, spanToJSON } from '@sentry/core';
 import type { GraphqlDocumentNode, GraphqlToken } from './types';
 
 // Same key the OTel path uses, so renames stay consistent across both.
@@ -12,7 +12,8 @@ const ORIGINAL_DESCRIPTION_ATTRIBUTE = 'original-description';
 const REDACTED_LITERAL_KINDS = new Set(['Int', 'Float', 'String', 'BlockString']);
 
 /**
- * Rename the enclosing root span to include the operation name(s), e.g. `GET /graphql (query GetUser)`.
+ * Record the operation name(s) on the enclosing root span and, unless span streaming is enabled,
+ * rename it to include them, e.g. `GET /graphql (query GetUser)`.
  */
 export function renameRootSpanWithOperation(span: Span, operationType: string, operationName?: string): void {
   const rootSpan = getRootSpan(span);
@@ -36,6 +37,11 @@ export function renameRootSpanWithOperation(span: Span, operationType: string, o
     operations = newOperation;
   }
   rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, operations);
+
+  const client = getClient();
+  if (client && hasSpanStreamingEnabled(client)) {
+    return;
+  }
 
   // Keep the pre-rename name so repeated renames don't compound.
   const originalDescription =

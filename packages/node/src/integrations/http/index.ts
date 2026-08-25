@@ -1,5 +1,5 @@
-import type { RequestOptions } from 'node:http';
-import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
+import type { ClientRequest, RequestOptions } from 'node:http';
+import type { Span } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';
 import { defineIntegration, getRequestUrlFromClientRequest, hasSpansEnabled, stripDataUrlContent } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
@@ -7,14 +7,12 @@ import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
 import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
 import { httpServerSpansIntegration } from './httpServerSpansIntegration';
-import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
+import type { OutgoingHttpRequestInstrumentationOptions } from './SentryHttpInstrumentation';
 import { instrumentHttpOutgoingRequests } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http' as const;
 
-// TODO(v11): Consolidate all the various HTTP integration options into one,
-// and deprecate the duplicated and aliased options.
-interface HttpOptions {
+interface HttpOptions extends HttpServerIntegrationOptions, HttpServerSpansIntegrationOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
    * Defaults to true
@@ -29,21 +27,6 @@ interface HttpOptions {
    * Defaults to `true` when tracing is enabled.
    */
   spans?: boolean;
-
-  /**
-   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
-   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
-   *
-   * Defaults to `true`.
-   */
-  trackIncomingRequestsAsSessions?: boolean;
-
-  /**
-   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
-   *
-   * Defaults to `60000` (60s).
-   */
-  sessionFlushingDelayMS?: number;
 
   /**
    * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
@@ -69,84 +52,28 @@ interface HttpOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
-   * Spans will be non recording if tracing is disabled.
-   *
-   * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
-   * For example: `'/users/details?id=123'`
-   *
-   * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
-   * You can use it to filter on additional properties like method, headers, etc.
-   */
-  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
-
-  /**
-   * A hook that can be used to mutate the span for incoming requests.
-   * This is triggered after the span is created, but before it is recorded.
-   */
-  incomingRequestSpanHook?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
-
-  /**
-   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
-   * This helps reduce noise in your transactions.
-   *
-   * @default `true`
-   */
-  ignoreStaticAssets?: boolean;
-
-  /**
-   * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
-   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
-   *
-   * @default `[[401, 404], [301, 303], [305, 399]]`
-   */
-  dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
-
-  /**
-   * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
-   * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
-   *
-   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
-   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
-   */
-  ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
-
-  /**
-   * Controls the maximum size of incoming HTTP request bodies attached to events.
-   *
-   * Available options:
-   * - 'none': No request bodies will be attached
-   * - 'small': Request bodies up to 1,000 bytes will be attached
-   * - 'medium': Request bodies up to 10,000 bytes will be attached (default)
-   * - 'always': Request bodies will always be attached
-   *
-   * Note that even with 'always' setting, bodies exceeding 1MB will never be attached
-   * for performance and security reasons.
-   *
-   * @default 'medium'
-   */
-  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
-
-  /**
    * If true, do not generate spans for incoming requests at all.
    * This is used by Remix to avoid generating spans for incoming requests, as it generates its own spans.
    */
   disableIncomingRequestSpans?: boolean;
 
   /**
-   * Hooks for outgoing HTTP request spans.
-   * These no longer run for incoming request spans; use `incomingRequestSpanHook` for those.
+   * Called after an outgoing request span is created.
+   * Only invoked when spans are created for outgoing requests.
    */
-  instrumentation?: {
-    requestHook?: (span: Span, req: HttpIncomingMessage | HttpClientRequest) => void;
-    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: HttpIncomingMessage | HttpClientRequest,
-      response: HttpIncomingMessage | HttpServerResponse,
-    ) => void;
-  };
+  outgoingRequestHook?: OutgoingHttpRequestInstrumentationOptions['outgoingRequestHook'];
+
+  /**
+   * Called when the outgoing request receives a response.
+   * Only invoked when spans are created for outgoing requests.
+   */
+  outgoingResponseHook?: OutgoingHttpRequestInstrumentationOptions['outgoingResponseHook'];
+
+  /**
+   * Called when both the outgoing request and response are available.
+   * Only invoked when spans are created for outgoing requests.
+   */
+  outgoingRequestApplyCustomAttributes?: OutgoingHttpRequestInstrumentationOptions['outgoingRequestApplyCustomAttributes'];
 }
 
 /**
@@ -155,25 +82,10 @@ interface HttpOptions {
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const spans = options.spans ?? true;
-  const disableIncomingRequestSpans = options.disableIncomingRequestSpans;
-  const enableServerSpans = spans && !disableIncomingRequestSpans;
+  const enableServerSpans = spans && !options.disableIncomingRequestSpans;
 
-  const serverOptions = {
-    sessions: options.trackIncomingRequestsAsSessions,
-    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
-    ignoreRequestBody: options.ignoreIncomingRequestBody,
-    maxRequestBodySize: options.maxIncomingRequestBodySize,
-  } satisfies HttpServerIntegrationOptions;
-
-  const serverSpansOptions: HttpServerSpansIntegrationOptions = {
-    ignoreIncomingRequests: options.ignoreIncomingRequests,
-    ignoreStaticAssets: options.ignoreStaticAssets,
-    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-    onSpanCreated: options.incomingRequestSpanHook,
-  };
-
-  const server = httpServerIntegration(serverOptions);
-  const serverSpans = httpServerSpansIntegration(serverSpansOptions);
+  const server = httpServerIntegration(options);
+  const serverSpans = httpServerSpansIntegration(options);
 
   return {
     name: INTEGRATION_NAME,
@@ -187,14 +99,12 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       server.setupOnce();
 
-      const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+      const outgoingRequestOptions: OutgoingHttpRequestInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
         spans,
-        propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
-        // oxlint-disable-next-line typescript/no-deprecated -- deprecated alias kept until removal
-        createSpansForOutgoingRequests: spans,
+        propagateTrace: options.tracePropagation ?? true,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-        outgoingRequestHook: (span: Span, request: HttpClientRequest) => {
+        outgoingRequestHook: (span: Span, request: ClientRequest) => {
           // Sanitize data URLs to prevent long base64 strings in span attributes
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
@@ -204,17 +114,17 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
               [URL_FULL]: sanitizedUrl,
             });
           }
-          options.instrumentation?.requestHook?.(span, request);
+          options.outgoingRequestHook?.(span, request);
         },
-        outgoingResponseHook: options.instrumentation?.responseHook,
-        outgoingRequestApplyCustomAttributes: options.instrumentation?.applyCustomAttributesOnSpan,
+        outgoingResponseHook: options.outgoingResponseHook,
+        outgoingRequestApplyCustomAttributes: options.outgoingRequestApplyCustomAttributes,
       };
 
       // This is Sentry-specific instrumentation for outgoing request
       // breadcrumbs & trace propagation. It uses the diagnostic channels on
       // node versions that support it, falling back to monkey-patching when
       // needed.
-      instrumentHttpOutgoingRequests(sentryHttpInstrumentationOptions);
+      instrumentHttpOutgoingRequests(outgoingRequestOptions);
     },
     processEvent(event) {
       // Always run this, even if spans are disabled

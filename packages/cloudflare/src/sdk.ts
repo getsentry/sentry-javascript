@@ -3,6 +3,9 @@ import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseS
 import type { CloudflareClient, CloudflareOptions } from './client';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 
+// Test-only helper, re-exported here so tests can reset the global client cache.
+export { _clearGlobalClientCache } from './clientCache';
+
 /**
  * Get the default integrations for the Cloudflare SDK.
  */
