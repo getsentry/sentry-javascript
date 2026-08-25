@@ -157,8 +157,7 @@ function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
     const client = getClient();
 
     return startInactiveSpan({
-      // No operation type is available here, so with span streaming the span takes the static
-      // fallback and `graphql.processing.type` is what tells it apart from the other phases.
+      // No operation type here, so streaming falls back; the phase lives on the attribute instead.
       name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
@@ -206,8 +205,7 @@ function setupOperationChannel(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
       const client = getClient();
-      // The operation name is supplied by the client, so with span streaming only the operation type
-      // may reach the span name.
+      // The operation name comes from the client, so only the operation type may reach the name.
       const streamedName = data.operationType ? `GraphQL ${data.operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
 
       const span = startInactiveSpan({

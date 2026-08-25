@@ -45,8 +45,7 @@ export function renameRootSpanWithOperation(span: Span, operationType: string, o
   }
   rootSpan.setAttribute(SENTRY_GRAPHQL_OPERATION, operations);
 
-  // The operation name comes from the client, so appending it would make the root span name high
-  // cardinality. With span streaming the `sentry.graphql.operation` attribute carries it instead.
+  // The operation name comes from the client, so `sentry.graphql.operation` carries it instead.
   const client = getClient();
   if (client && hasSpanStreamingEnabled(client)) {
     return;

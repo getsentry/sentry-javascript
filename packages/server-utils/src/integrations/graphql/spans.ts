@@ -49,8 +49,7 @@ export function startParseSpan(): Span {
   const client = getClient();
 
   return startInactiveSpan({
-    // No operation type is available here, so with span streaming the span takes the static fallback
-    // and `graphql.processing.type` is what tells it apart from the other phases.
+    // No operation type here, so streaming falls back; the phase lives on the attribute instead.
     name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
     attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE },
   });
@@ -177,8 +176,7 @@ export function startExecuteSpan(
   const operationName = operation?.name?.value ?? args.operationName ?? undefined;
 
   const client = getClient();
-  // The operation name is supplied by the client, so with span streaming only the operation type may
-  // reach the span name.
+  // The operation name comes from the client, so only the operation type may reach the name.
   const streamedName = operationType ? `GraphQL ${operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
 
   const span = startInactiveSpan({
