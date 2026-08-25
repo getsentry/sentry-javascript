@@ -181,7 +181,7 @@ export class SentrySpan implements Span {
     if (key === SENTRY_SEGMENT_NAME_SOURCE && value !== undefined && !spanIsSegment(this)) {
       DEBUG_BUILD &&
         debug.warn(
-          `[Tracing] Ignoring \`${SENTRY_SEGMENT_NAME_SOURCE}\` on a child span: this attribute is only valid on the root span.`,
+          '[Tracing] Ignoring name source on a child span: this attribute is only valid on the root span.',
         );
       return this;
     }

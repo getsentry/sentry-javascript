@@ -3,7 +3,6 @@ import {
   NET_PEER_PORT,
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
@@ -201,7 +200,6 @@ export function applyRedisCacheAttributes(
   const spanDescription = safeKey.join(', ');
 
   span.updateName(options.maxCacheKeyLength ? truncate(spanDescription, options.maxCacheKeyLength) : spanDescription);
-  span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, undefined);
 }
 
 type NestedArray<T> = Array<NestedArray<T> | T>;
