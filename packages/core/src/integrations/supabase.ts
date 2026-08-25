@@ -11,6 +11,7 @@ import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpan } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
@@ -433,6 +434,11 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
+        // With span streaming, span names have to be low cardinality — the description carries the
+        // filter list, which can hold user values — so `{db.operation.name} {db.collection.name}` is
+        // used instead. The filters are still reported via the `db.query` attribute.
+        const streamedName = client && hasSpanStreamingEnabled(client) ? `${operation} ${table}` : undefined;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
@@ -454,7 +460,7 @@ function instrumentPostgRESTFilterBuilder(
 
         return startSpan(
           {
-            name: description,
+            name: streamedName ?? description,
             attributes,
           },
           span => {
