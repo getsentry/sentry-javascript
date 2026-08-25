@@ -25,7 +25,8 @@ test('tracePropagationTargets match regardless of casing', async () => {
   await createRunner(__dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
-      transaction: {},
+      // The specific envelope contents are covered elsewhere; this suite is about the request headers above.
+      span: {},
     })
     .start()
     .completed();
