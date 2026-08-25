@@ -30,7 +30,6 @@ import { defaultStackParser } from './vendor/stacktrace';
  * The marker is read directly instead of importing the factories, so a worker
  * built without the plugin — where the channels never fire — ships none of this
  * code.
- * TODO(v11): Use `@sentry/server-utils/orchestrion` once we move to `nodejs_compat` by default.
  */
 function getRegisteredChannelIntegrations(): Integration[] {
   const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
