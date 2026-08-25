@@ -60,10 +60,12 @@ describe('instrumentDurableObjectWithSentry', () => {
       .mockReturnValueOnce({
         orgId: 1,
         enableRpcTracePropagation: true,
+        cacheClient: false,
       })
       .mockReturnValueOnce({
         orgId: 2,
         enableRpcTracePropagation: true,
+        cacheClient: false,
       });
     const testClass = class {
       method() {}
@@ -98,7 +100,10 @@ describe('instrumentDurableObjectWithSentry', () => {
     const mockEnv = {} as any;
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-    const options = vi.fn().mockReturnValueOnce({ orgId: 1 }).mockReturnValueOnce({ orgId: 2 });
+    const options = vi
+      .fn()
+      .mockReturnValueOnce({ orgId: 1, cacheClient: false })
+      .mockReturnValueOnce({ orgId: 2, cacheClient: false });
 
     const testClass = class {
       webSocketMessage() {}
