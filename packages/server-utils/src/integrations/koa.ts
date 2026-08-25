@@ -236,9 +236,9 @@ function getMiddlewareMetadata(
 }
 
 /**
- * Orchestrion-driven koa integration. Subscribes to the
+ * Diagnostics-channel-based koa integration. Subscribes to the
  * `orchestrion:koa:use` channel injected into `Application.prototype.use` and
  * wraps each registered middleware/router layer in a span-creating proxy.
- * Requires the orchestrion runtime hook or bundler plugin.
+ * Requires the Sentry runtime hook or bundler plugin.
  */
 export const koaIntegration = defineIntegration(_koaIntegration);

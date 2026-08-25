@@ -172,7 +172,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
         _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery, command);
         span.end();
       } catch (e) {
-        DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in resolve:', e);
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
       }
       return originalResolve.apply(this, resolveArgs);
     };
@@ -190,7 +190,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
         _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery);
         span.end();
       } catch (e) {
-        DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in reject:', e);
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in reject:', e);
       }
       return originalReject.apply(this, rejectArgs);
     };
@@ -289,7 +289,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
           requestHook(span, sanitizedSqlQuery, context);
         } catch (e) {
           span.setAttribute('sentry.hook.error', 'requestHook failed');
-          DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error in requestHook:', e);
+          DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error in requestHook:', e);
         }
       }
 
@@ -318,12 +318,12 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 }
 
 /**
- * Orchestrion-driven postgres.js (`postgres` v3.x) integration.
+ * Diagnostics-channel-based postgres.js (`postgres` v3.x) integration.
  *
  * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
  * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
  * and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`) and creates db
- * spans matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
+ * spans matching the OTel `postgresJsIntegration`. Requires the Sentry runtime
  * hook or bundler plugin.
  */
 export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

@@ -237,11 +237,11 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
 }
 
 /**
- * Orchestrion-driven aws-sdk (v3) integration.
+ * Diagnostics-channel-based aws-sdk (v3) integration.
  *
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
- * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
+ * Sentry's code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration. Requires the
- * orchestrion runtime hook or bundler plugin.
+ * Sentry runtime hook or bundler plugin.
  */
 export const awsIntegration = defineIntegration(_awsIntegration);

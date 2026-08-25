@@ -210,7 +210,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
     } else {
       DEBUG_BUILD &&
         debug.warn(
-          '[orchestrion:express] Isolation scope is still default isolation scope - skipping transaction name',
+          '[instrumentation:express] Isolation scope is still default isolation scope - skipping transaction name',
         );
     }
   }

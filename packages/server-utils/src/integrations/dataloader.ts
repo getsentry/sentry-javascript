@@ -113,7 +113,7 @@ const _dataloaderIntegration = (() => {
         return;
       }
 
-      DEBUG_BUILD && debug.log('[orchestrion:dataloader] subscribing to dataloader tracing channels');
+      DEBUG_BUILD && debug.log('[instrumentation:dataloader] subscribing to dataloader tracing channels');
 
       waitForTracingChannelBinding(() => {
         subscribeConstruct();
@@ -193,10 +193,10 @@ function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation:
 }
 
 /**
- * Orchestrion-driven `dataloader` integration.
+ * Diagnostics-channel-based `dataloader` integration.
  *
- * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that the orchestrion code
- * transform injects into `dataloader`'s constructor and prototype methods. Requires the orchestrion
+ * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that Sentry's code
+ * transform injects into `dataloader`'s constructor and prototype methods. Requires the Sentry
  * runtime hook or bundler plugin to be active.
  */
 export const dataloaderIntegration = defineIntegration(_dataloaderIntegration);
