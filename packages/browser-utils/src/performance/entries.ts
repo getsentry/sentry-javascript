@@ -10,7 +10,7 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
-import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
+import { BROWSER_PAINT } from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -250,7 +250,7 @@ function _addPaintSpan(
   startAndEndSpan(span, startTimestamp, startTimestamp + duration, {
     name: entry.name,
     attributes: {
-      [SENTRY_OP]: BROWSER_BROWSER_PAINT_SPAN_OP,
+      [SENTRY_OP]: BROWSER_PAINT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
     },
   });

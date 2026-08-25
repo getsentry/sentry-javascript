@@ -6,7 +6,7 @@ import {
   SENTRY_SOURCE,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
-import { BROWSER_UI_INTERACTION_CLICK_SPAN_OP, BROWSER_UI_ACTION_CLICK_SPAN_OP } from '@sentry/conventions/op';
+import { UI_INTERACTION_CLICK, UI_ACTION_CLICK } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
@@ -155,7 +155,7 @@ function registerInteractionListener(
       if (getInflightRouteSpan()) {
         DEBUG_BUILD &&
           debug.warn(
-            `[Tracing] Did not create ${BROWSER_UI_ACTION_CLICK_SPAN_OP} span because a pageload or navigation span is in progress.`,
+            `[Tracing] Did not create ${UI_ACTION_CLICK} span because a pageload or navigation span is in progress.`,
           );
         return;
       }
@@ -168,9 +168,7 @@ function registerInteractionListener(
 
       if (!latestRoute.name) {
         DEBUG_BUILD &&
-          debug.warn(
-            `[Tracing] Did not create ${BROWSER_UI_ACTION_CLICK_SPAN_OP} span because the latest route name is missing.`,
-          );
+          debug.warn(`[Tracing] Did not create ${UI_ACTION_CLICK} span because the latest route name is missing.`);
         return;
       }
 
@@ -178,7 +176,7 @@ function registerInteractionListener(
         {
           name: latestRoute.name,
           attributes: {
-            [SENTRY_OP]: BROWSER_UI_ACTION_CLICK_SPAN_OP,
+            [SENTRY_OP]: UI_ACTION_CLICK,
             [SENTRY_SEGMENT_NAME_SOURCE]: latestRoute.source || 'url',
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
           },
@@ -208,7 +206,7 @@ function trackInteractionsAsSpans(): void {
           name: htmlTreeAsString(entry.target),
           startTime: startTime,
           attributes: {
-            [SENTRY_OP]: BROWSER_UI_INTERACTION_CLICK_SPAN_OP,
+            [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
           },
         };
