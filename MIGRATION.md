@@ -619,7 +619,6 @@ Affected SDKs: All SDKs.
 
 With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
-In v11, this affects `pageload`, `graphql` and `resource.*` spans. Further ops will follow in future releases.
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
 The following span names were adjusted:
