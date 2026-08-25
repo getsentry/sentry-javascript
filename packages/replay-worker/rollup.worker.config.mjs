@@ -2,7 +2,7 @@
 
 import { treeShakePreset } from '@sentry-internal/rollup-utils';
 import { defineConfig } from 'rolldown';
-import { minifySync } from 'rolldown/experimental';
+import { minifySync } from 'rolldown/utils';
 
 const config = defineConfig([
   {
