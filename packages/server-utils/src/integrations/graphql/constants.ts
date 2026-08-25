@@ -14,7 +14,6 @@ export const GRAPHQL_PROCESSING_TYPE = 'graphql.processing.type';
 
 export const PROCESSING_TYPE_PARSE = 'parse';
 export const PROCESSING_TYPE_VALIDATE = 'validate';
-// `subscribe()` runs an operation too; `graphql.operation.type` is what marks it as a subscription.
 export const PROCESSING_TYPE_EXECUTE = 'execute';
 export const PROCESSING_TYPE_RESOLVE = 'resolve';
 

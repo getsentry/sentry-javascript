@@ -195,7 +195,6 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
   const client = getClient();
 
   return startInactiveSpan({
-    // The field path is unbounded, so with span streaming it stays on `graphql.field.path` only.
     name:
       client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
     attributes,
