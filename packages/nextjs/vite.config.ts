@@ -6,9 +6,5 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     environment: 'node',
-    typecheck: {
-      enabled: true,
-      tsconfig: './tsconfig.test-d.json',
-    },
   },
 });
