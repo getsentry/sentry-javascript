@@ -1,8 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { setCurrentClient } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
 import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi-utils';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
   const route = { path: '/users/{id}', method: 'get' } as any;
+
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
 
   it('describes a directly-registered route as a router layer', () => {
     expect(getRouteMetadata(route)).toEqual({
@@ -25,6 +31,20 @@ describe('getRouteMetadata', () => {
         'hapi.plugin.name': 'my-plugin',
       },
     });
+  });
+
+  it('drops the method from the router span name when span streaming is enabled', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    expect(getRouteMetadata(route).name).toBe('/users/{id}');
+  });
+
+  it('keeps the plugin span name when span streaming is enabled', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    expect(getRouteMetadata(route, 'my-plugin').name).toBe('GET /users/{id}');
   });
 });
 

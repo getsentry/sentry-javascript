@@ -2,6 +2,7 @@ import type { Client, Span } from '@sentry/core';
 import {
   hasSpanStreamingEnabled,
   PAGELOAD_SPAN_NAME_FALLBACK,
+  ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -132,7 +133,9 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
     );
 
     routingSpan = startInactiveSpan({
-      name: 'SvelteKit Route Change',
+      // With span streaming, span names have to be low cardinality, and this span carries no route
+      // of its own, so it's the fallback.
+      name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : 'SvelteKit Route Change',
       attributes: {
         // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
         [SENTRY_OP]: 'router',

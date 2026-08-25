@@ -9,7 +9,14 @@
  * is replaced with `getActiveSpan()`.
  */
 
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
+  ROUTER_SPAN_NAME_FALLBACK,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type {
@@ -74,7 +81,17 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
     attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.ROUTER;
   }
 
-  return { attributes, name: `${route.method.toUpperCase()} ${route.path}` };
+  const client = getClient();
+  // With span streaming, span names have to be low cardinality, so router spans are named after their
+  // route alone, without the method prefix.
+  const isStreamedRouterSpan = !pluginName && !!client && hasSpanStreamingEnabled(client);
+
+  return {
+    attributes,
+    name: isStreamedRouterSpan
+      ? route.path || ROUTER_SPAN_NAME_FALLBACK
+      : `${route.method.toUpperCase()} ${route.path}`,
+  };
 };
 
 /** Build the span name and attributes for a Hapi server extension. */
