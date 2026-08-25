@@ -3,7 +3,6 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import {
-  _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
@@ -177,14 +176,5 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
-  }
-
-  /** @inheritDoc */
-  protected _setupIntegrations(): void {
-    // Clear AI provider skip registrations before setting up integrations
-    // This ensures a clean state between different client initializations
-    // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
-    _INTERNAL_clearAiProviderSkips();
-    super._setupIntegrations();
   }
 }

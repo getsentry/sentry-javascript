@@ -231,6 +231,42 @@ describe('LangChain integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-direct-after-langchain-express.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('keeps instrumenting direct provider calls in requests after a LangChain request', async () => {
+        const runner = createRunner()
+          // The transaction and span envelopes of a request can arrive in either order.
+          .unordered()
+          .expect({ transaction: { transaction: 'GET /langchain' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(1);
+              expect(container.items[0]!.name).toBe('chat claude-3-5-sonnet-20241022');
+              expect(container.items[0]!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            },
+          })
+          .expect({ transaction: { transaction: 'GET /direct' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(1);
+              expect(container.items[0]!.name).toBe('chat claude-3-5-sonnet-20241022');
+              expect(container.items[0]!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+            },
+          })
+          .start();
+
+        // The LangChain request marks Anthropic as skipped for its own invocation only; the direct
+        // call of the next request must still get its span.
+        await runner.makeRequest('get', '/langchain');
+        await runner.makeRequest('get', '/direct');
+        await runner.completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {

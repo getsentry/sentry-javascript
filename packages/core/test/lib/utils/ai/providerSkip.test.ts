@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Scope } from '../../../../src/index';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
+  getAsyncContextStrategy,
+  getDefaultIsolationScope,
+  getMainCarrier,
+  setAsyncContextStrategy,
 } from '../../../../src/index';
 
 const OPENAI_INTEGRATION_NAME = 'OpenAI';
@@ -46,6 +51,80 @@ describe('AI Provider Skip', () => {
     it('returns true after marking provider to be skipped', () => {
       _INTERNAL_skipAiProviderWrapping([ANTHROPIC_AI_INTEGRATION_NAME]);
       expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
+    });
+  });
+
+  describe('isolation scope binding', () => {
+    // The stack strategy never forks the isolation scope, so the tests install one that does,
+    // the way the Node and Cloudflare strategies fork one per invocation.
+    let isolationScope: Scope;
+
+    function withInvocation<T>(callback: () => T): T {
+      const previous = isolationScope;
+      isolationScope = previous.clone();
+      try {
+        return callback();
+      } finally {
+        isolationScope = previous;
+      }
+    }
+
+    beforeEach(() => {
+      isolationScope = getDefaultIsolationScope();
+      setAsyncContextStrategy({
+        ...getAsyncContextStrategy(getMainCarrier()),
+        getIsolationScope: () => isolationScope,
+      });
+    });
+
+    afterEach(() => {
+      setAsyncContextStrategy(undefined);
+      _INTERNAL_clearAiProviderSkips();
+    });
+
+    it('binds a skip registered inside an invocation to that invocation', () => {
+      withInvocation(() => {
+        _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+      });
+
+      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+      withInvocation(() => {
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+      });
+    });
+
+    it('applies a skip registered outside any invocation inside every invocation', () => {
+      _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+
+      withInvocation(() => {
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(false);
+      });
+    });
+
+    it('does not let a skip from one invocation leak into a nested one', () => {
+      withInvocation(() => {
+        _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+
+        withInvocation(() => {
+          expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+        });
+
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+      });
+    });
+
+    it('clears only the current and the default isolation scope', () => {
+      withInvocation(() => {
+        _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+
+        withInvocation(() => {
+          _INTERNAL_clearAiProviderSkips();
+        });
+
+        expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+      });
     });
   });
 
