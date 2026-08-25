@@ -46,3 +46,5 @@ export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
 export { firebaseIntegration } from './integrations/firebase';
+
+export { getTracingIntegrations, getErrorIntegrations } from './integrations';
