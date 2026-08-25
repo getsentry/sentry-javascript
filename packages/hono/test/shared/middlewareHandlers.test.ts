@@ -1,15 +1,12 @@
 import * as SentryCore from '@sentry/core';
 import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestHandler, responseHandler } from '../../src/shared/middlewareHandlers';
 
 vi.mock('hono/route', () => ({
   routePath: () => '/test',
   matchedRoutes: () => [{ basePath: '/', path: '/test', method: 'GET', handler: (_c: unknown) => undefined }],
-}));
-
-vi.mock('../../src/utils/hono-context', () => ({
-  hasFetchEvent: () => false,
 }));
 
 const mockSetTransactionName = vi.fn();
@@ -44,12 +41,14 @@ vi.mock('@sentry/core', async () => {
     })),
     getClient: vi.fn(() => undefined),
     captureException: vi.fn(),
+    winterCGRequestToRequestData: vi.fn(actual.winterCGRequestToRequestData),
   };
 });
 
 const getClientMock = SentryCore.getClient as ReturnType<typeof vi.fn>;
 const captureExceptionMock = SentryCore.captureException as ReturnType<typeof vi.fn>;
 const getActiveSpanMock = SentryCore.getActiveSpan as ReturnType<typeof vi.fn>;
+const winterCGRequestToRequestDataMock = SentryCore.winterCGRequestToRequestData as ReturnType<typeof vi.fn>;
 
 function createMockContext(status: number, error?: Error): unknown {
   return {
@@ -330,5 +329,47 @@ describe('requestHandler — connection info', () => {
 
     expect(rootSpanAttributes['client.port']).toBeUndefined();
     expect(mockSetUser).not.toHaveBeenCalled();
+  });
+});
+
+describe('requestHandler — request metadata', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('uses the raw request without reading the event getter', () => {
+    const raw = new Request('http://localhost/test?source=raw');
+    const eventGetter = vi.fn(() => {
+      throw new Error('This context has no FetchEvent');
+    });
+    const context = createMockContext(200) as ReturnType<typeof createMockContext> & {
+      req: { raw: Request };
+    };
+    context.req.raw = raw;
+    Object.defineProperty(context, 'event', { get: eventGetter });
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    requestHandler(context as any);
+
+    expect(winterCGRequestToRequestDataMock).toHaveBeenCalledWith(raw);
+    expect(eventGetter).not.toHaveBeenCalled();
+  });
+
+  it('uses the same request exposed by a legacy FetchEvent context', () => {
+    const request = new Request('http://localhost/test?source=event');
+    const context = new Context(request, {
+      env: {},
+      executionCtx: {
+        request,
+        respondWith: vi.fn(),
+        passThroughOnException: vi.fn(),
+        waitUntil: vi.fn(),
+      },
+    });
+
+    requestHandler(context);
+
+    expect(context.event.request).toBe(context.req.raw);
+    expect(winterCGRequestToRequestDataMock).toHaveBeenCalledWith(request);
   });
 });

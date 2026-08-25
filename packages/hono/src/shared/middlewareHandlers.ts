@@ -11,7 +11,6 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Context } from 'hono';
-import { hasFetchEvent } from '../utils/hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from '../shared/types';
@@ -29,7 +28,7 @@ export function requestHandler(context: Context, getConnInfo?: GetConnInfo): voi
   updateSpanRouteName(isolationScope, context);
 
   isolationScope.setSDKProcessingMetadata({
-    normalizedRequest: winterCGRequestToRequestData(hasFetchEvent(context) ? context.event.request : context.req.raw),
+    normalizedRequest: winterCGRequestToRequestData(context.req.raw),
   });
 
   if (getConnInfo) {
