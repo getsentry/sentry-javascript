@@ -519,8 +519,9 @@ describe('instrumentWorkerEntrypoint', () => {
 
         webSocketMessage() {}
       };
+      // A per-invocation client makes every instrumented method call visible as its own init.
       const obj = Reflect.construct(
-        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
+        instrumentWorkerEntrypoint(() => ({ cacheClient: false }), TestClass as unknown as WorkerEntrypointConstructor),
         [createMockExecutionContext(), {}],
       );
 

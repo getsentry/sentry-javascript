@@ -7,6 +7,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
   });
 
   const redisOrigin = 'auto.db.redis';
+  const redisSpanOp = 'db.query';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -14,10 +15,10 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            'sentry.op': redisSpanOp,
             'db.system.name': 'redis',
             'server.address': 'localhost',
             'server.port': 6383,
@@ -26,10 +27,10 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         }),
         expect.objectContaining({
           description: 'get test-key',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            'sentry.op': redisSpanOp,
             'db.system.name': 'redis',
             'server.address': 'localhost',
             'server.port': 6383,

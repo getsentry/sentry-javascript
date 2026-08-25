@@ -1,5 +1,14 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_QUERY_TEXT, DB_SYSTEM_NAME, SERVER_ADDRESS, SERVER_PORT } from '@sentry/conventions/attributes';
+import {
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -10,8 +19,7 @@ import { defaultDbStatementSerializer } from './redis-statement-serializer';
 
 const ORIGIN = 'auto.db.redis';
 
-// todo(v11): Let's drop this as this is already covered with host and port
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
+const DB_SYSTEM_VALUE_REDIS = 'redis';
 
 /** Structural type for the command object ioredis passes to `sendCommand`. */
 interface RedisCommand {
@@ -38,10 +46,9 @@ function getConnectionOptions(self: RedisClientLike | undefined): { host?: strin
 
 function connectionAttributes(host: string | undefined, port: number | undefined): Record<string, unknown> {
   return {
-    [DB_SYSTEM_NAME]: 'redis',
-    [ATTR_DB_CONNECTION_STRING]: `redis://${host}:${port}`,
-    [SERVER_ADDRESS]: host,
-    [SERVER_PORT]: port,
+    [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+    ...(host != null ? { [SERVER_ADDRESS]: host } : {}),
+    ...(port != null ? { [SERVER_PORT]: port } : {}),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
@@ -71,8 +78,13 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
   const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
   return startInactiveSpan({
     name: statement,
-    op: 'db',
-    attributes: { ...connectionAttributes(host, port), [DB_QUERY_TEXT]: statement },
+    attributes: {
+      [SENTRY_KIND]: 'client',
+      ...connectionAttributes(host, port),
+      [SENTRY_OP]: DB_QUERY,
+      [DB_OPERATION_NAME]: command.name,
+      [DB_QUERY_TEXT]: statement,
+    },
   });
 }
 
@@ -110,8 +122,11 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
       const { host, port } = getConnectionOptions(data.self);
       return startInactiveSpan({
         name: 'connect',
-        op: 'db',
-        attributes: { ...connectionAttributes(host, port), [DB_QUERY_TEXT]: 'connect' },
+        attributes: {
+          [SENTRY_KIND]: 'client',
+          ...connectionAttributes(host, port),
+          [SENTRY_OP]: DB,
+        },
       });
     },
     { requiresParentSpan: true },
