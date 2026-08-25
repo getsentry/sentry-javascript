@@ -4,6 +4,7 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../../src/config/diagnosticsChannelInjection';
+import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
@@ -581,6 +582,27 @@ describe('withSentryConfig', () => {
       // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+    });
+
+    it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions: SentryBuildOptions = {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      // The SDK must not generate source maps it will neither upload nor delete - they would be served
+      // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
