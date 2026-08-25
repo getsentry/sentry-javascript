@@ -3,7 +3,8 @@
  */
 
 import { spanToJSON } from '@sentry/core';
-import { describe, expect, it as baseIt, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
 import type { App } from 'vue';
 import { createApp, h } from 'vue';
 import * as Sentry from '../../src';
@@ -210,5 +211,69 @@ describe('tracing mixin span creation', () => {
 
       expect(app.config.errorHandler).toBeDefined();
     });
+  });
+});
+
+describe('Options API detection guard', () => {
+  const OPTIONS_API_WARNING = expect.stringContaining('The Vue Options API is disabled');
+
+  let consoleWarn: MockInstance<Console['warn']>;
+
+  beforeEach(() => {
+    consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarn.mockRestore();
+  });
+
+  it('warns when the app dropped the tracing mixin', ({ app, initSentry }) => {
+    app.mixin = () => app;
+
+    initSentry();
+
+    expect(consoleWarn).toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  it('points a plain Vue app at its bundler config', ({ app, initSentry }) => {
+    app.mixin = () => app;
+
+    initSentry();
+
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('`define` config of your bundler'));
+    expect(consoleWarn).not.toHaveBeenCalledWith(expect.stringContaining('nuxt.config.ts'));
+  });
+
+  // `createNuxtApp()` sets `$nuxt` on the Vue app before the `app:created` hook the Nuxt SDK uses.
+  it('points a Nuxt app at `nuxt.config.ts`', ({ app, initSentry }) => {
+    app.mixin = () => app;
+    Object.defineProperty(app, '$nuxt', { get: () => ({}) });
+
+    initSentry();
+
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('`vue: { optionsApi: true }`'));
+  });
+
+  it('does not warn when the app accepted the tracing mixin', ({ initSentry }) => {
+    initSentry();
+
+    expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  it('does not warn when tracing is disabled, because no mixin is registered', ({ app, initSentry }) => {
+    app.mixin = () => app;
+
+    initSentry({ sdk: { tracesSampleRate: undefined } });
+
+    expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  // A Vue 2 constructor has no `_context`, so the guard has nothing to read back and must stay quiet.
+  it('does not warn for a Vue 2 constructor', ({ initSentry }) => {
+    const vue2Constructor = { config: {}, mixin: () => {} };
+
+    initSentry({ sdk: { app: undefined, Vue: vue2Constructor } });
+
+    expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
   });
 });
