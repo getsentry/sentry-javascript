@@ -180,9 +180,7 @@ export class SentrySpan implements Span {
     // Allow `undefined` so `addChildSpanToSpan` can strip a leaked constructor-time value.
     if (key === SENTRY_SEGMENT_NAME_SOURCE && value !== undefined && !spanIsSegment(this)) {
       DEBUG_BUILD &&
-        debug.warn(
-          '[Tracing] Ignoring name source on a child span: this attribute is only valid on the root span.',
-        );
+        debug.warn('[Tracing] Ignoring name source on a child span: this attribute is only valid on the root span.');
       return this;
     }
 
