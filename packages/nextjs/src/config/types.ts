@@ -306,6 +306,11 @@ export type SentryBuildOptions = Omit<
    * routeManifestInjection: {
    *   exclude: (route) => route.includes('hidden')
    * }
+   *
+   * // Treat a custom param name as an optional i18n prefix
+   * routeManifestInjection: {
+   *   localeParamNames: ['lng']
+   * }
    * ```
    */
   routeManifestInjection?:
@@ -325,6 +330,20 @@ export type SentryBuildOptions = Omit<
          * - A function that receives a route path and returns `true` to exclude it
          */
         exclude?: Array<string | RegExp> | ((route: string) => boolean);
+
+        /**
+         * Route param names that represent an i18n locale prefix, e.g. the `lng` in `app/[lng]/page.tsx`.
+         *
+         * Routes whose first param matches one of these names are also matched against paths that omit
+         * the prefix, so that unprefixed default-locale URLs (e.g. next-intl's `localePrefix: 'as-needed'`)
+         * are parameterized as the localized route instead of falling through to a catch-all.
+         *
+         * This replaces the built-in list rather than extending it. Pass an empty array to disable
+         * optional prefix matching entirely.
+         *
+         * @default ['locale', 'lang', 'language', 'lng']
+         */
+        localeParamNames?: string[];
       };
 
   /**

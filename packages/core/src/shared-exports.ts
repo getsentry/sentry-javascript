@@ -178,7 +178,6 @@ export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
-export { spanStreamingIntegration } from './integrations/spanStreaming';
 export type { FeatureFlag } from './utils/featureFlags';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,

@@ -13,8 +13,8 @@ const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImpl
 
 const mockStartSpan = vi.fn();
 
-vi.mock('@sentry/core', async () => {
-  const original = (await vi.importActual('@sentry/core')) as any;
+vi.mock('@sentry/core/browser', async () => {
+  const original = (await vi.importActual('@sentry/core/browser')) as any;
   return {
     ...original,
     startSpan: (...args: unknown[]) => {

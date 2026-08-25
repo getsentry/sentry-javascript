@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
-import { startSpan } from '../../tracing';
+import { startSpan } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
   MCP_FUNCTION_ORIGIN_VALUE,
