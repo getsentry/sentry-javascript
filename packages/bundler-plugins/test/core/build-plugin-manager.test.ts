@@ -414,6 +414,7 @@ describe('createSentryBuildPluginManager', () => {
         dist: '1',
         ext: undefined,
         ignore: undefined,
+        ignoreFile: undefined,
         urlPrefix: undefined,
       });
     });
@@ -691,6 +692,75 @@ describe('createSentryBuildPluginManager', () => {
         const options = call[0] as { headers?: Record<string, string> };
         expect(options).not.toHaveProperty('headers');
       }
+    });
+  });
+
+  describe('uploadLegacySourcemaps', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      _resetDeployedReleasesForTesting();
+      mockSourcemapUpload.mockResolvedValue(undefined);
+    });
+
+    function createManagerWithLegacyUpload(uploadLegacySourcemaps: unknown) {
+      return createSentryBuildPluginManager(
+        {
+          authToken: 'test-token',
+          org: 'test-org',
+          project: 'test-project',
+          release: {
+            name: 'test-release',
+            uploadLegacySourcemaps: uploadLegacySourcemaps as string,
+          },
+        },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+    }
+
+    it('forwards urlPrefix and ignoreFile from an include entry', async () => {
+      const manager = createManagerWithLegacyUpload({
+        paths: ['./dist'],
+        urlPrefix: '~/static/js',
+        ignoreFile: '.sentryignore',
+      });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          directory: './dist',
+          urlPrefix: '~/static/js',
+          ignoreFile: '.sentryignore',
+        }),
+      );
+    });
+
+    it('ignores node_modules when neither ignore nor ignoreFile is set', async () => {
+      const manager = createManagerWithLegacyUpload('./dist');
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ directory: './dist', ignore: 'node_modules' }),
+      );
+    });
+
+    it('does not apply the node_modules default when an ignoreFile is set', async () => {
+      const manager = createManagerWithLegacyUpload({ paths: ['./dist'], ignoreFile: '.sentryignore' });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ directory: './dist', ignore: undefined, ignoreFile: '.sentryignore' }),
+      );
+    });
+
+    it('prefers configured ignore globs over the node_modules default', async () => {
+      const manager = createManagerWithLegacyUpload({ paths: ['./dist'], ignore: ['foo', 'bar'] });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ ignore: 'foo,bar' }));
     });
   });
 

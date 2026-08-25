@@ -14,12 +14,30 @@ function serializeIgnore(ignore: string | string[] | undefined): string | undefi
   return patterns.length > 0 ? patterns.join(',') : undefined;
 }
 
+/**
+ * The CLI's `SENTRY_CUSTOM_HEADERS` format: semicolon-separated `Name: Value` pairs. A value
+ * that contains the separator would be split into a bogus second header, so it is rejected.
+ */
+export function serializeCustomHeaders(headers: Record<string, string>): string | undefined {
+  const entries = Object.entries(headers);
+  if (entries.length === 0) {
+    return undefined;
+  }
+  for (const [name, value] of entries) {
+    if (/[;\r\n]/.test(value)) {
+      throw new Error(`Invalid value for header "${name}": it must not contain ";" or line breaks.`);
+    }
+  }
+  return entries.map(([name, value]) => `${name}: ${value}`).join('; ');
+}
+
 /** A single sourcemap directory to upload plus the flags that apply to it. */
 interface UploadTarget {
   directory: string;
   dist?: string;
   ext?: string[];
   ignore?: string | string[];
+  ignoreFile?: string;
   urlPrefix?: string;
 }
 
@@ -51,8 +69,18 @@ export class SentryCliAdapter {
     // stored `sentry auth login`, then the env token. Without the flag, a developer's personal login
     // silently replaces the configured token. The SDK only consults `process.env` when a command
     // runs, so setting it here is enough; with no configured token nothing changes.
+    // TODO: Remove once https://github.com/getsentry/cli/issues/1463 is fixed in the minimum CLI version.
     if (this.#options.authToken) {
       process.env['SENTRY_FORCE_ENV_TOKEN'] = '1';
+    }
+
+    // `createSentrySDK` has no `headers` option yet, but the CLI reads `SENTRY_CUSTOM_HEADERS`
+    // from `process.env` on every request. The CLI only applies them to self-hosted URLs.
+    // TODO: Remove once https://github.com/getsentry/cli/pull/1465 is in the minimum CLI version and pass
+    // `headers` to `createSentrySDK` instead.
+    const customHeaders = this.#options.headers && serializeCustomHeaders(this.#options.headers);
+    if (customHeaders) {
+      process.env['SENTRY_CUSTOM_HEADERS'] = customHeaders;
     }
 
     return createSentrySDK({
@@ -149,6 +177,7 @@ export class SentryCliAdapter {
           dist: target.dist ?? this.#options.release.dist,
           ext: target.ext?.join(','),
           ignore: serializeIgnore(target.ignore),
+          ignoreFile: target.ignoreFile,
           urlPrefix: target.urlPrefix,
         });
       }

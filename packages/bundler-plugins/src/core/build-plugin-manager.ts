@@ -464,7 +464,14 @@ export function createSentryBuildPluginManager(
                 ext: includeEntry.ext
                   ? includeEntry.ext.map(extension => `.${extension.replace(/^\./, '')}`)
                   : ['.js', '.map', '.jsbundle', '.bundle'],
-                ignore: includeEntry.ignore ? arrayify(includeEntry.ignore) : undefined,
+                // The old CLI only skipped `node_modules` when neither ignore source was configured.
+                ignore: includeEntry.ignore
+                  ? arrayify(includeEntry.ignore)
+                  : includeEntry.ignoreFile
+                    ? undefined
+                    : ['node_modules'],
+                ignoreFile: includeEntry.ignoreFile,
+                urlPrefix: includeEntry.urlPrefix,
               })),
             );
 
