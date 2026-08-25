@@ -114,7 +114,6 @@ export const CacheDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableLogs: true,
     enableRpcTracePropagation: true,
   }),
   CacheDurableObjectBase,
@@ -134,7 +133,6 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableLogs: true,
     enableRpcTracePropagation: true,
   }),
   {
