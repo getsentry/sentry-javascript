@@ -2,7 +2,7 @@ import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } fr
 import type { Span } from '@sentry/core';
 import { debug, timestampInSeconds, uniq } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
+import { UI_RENDER } from '@sentry/conventions/op';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
@@ -96,7 +96,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             startInactiveSpan({
               name: 'Application Render',
               attributes: {
-                [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
+                [SENTRY_OP]: UI_RENDER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
               onlyIfParent: true,

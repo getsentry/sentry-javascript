@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { WEB_SERVER_WEBSOCKET_SPAN_OP } from '@sentry/conventions/op';
+import { WEBSOCKET } from '@sentry/conventions/op';
 import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -7,7 +7,7 @@ import type { CloudflareOptions } from './client';
 import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
-import { wrapRequestHandlerWithInit } from './request';
+import { wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import { hasRpcMeta } from './utils/rpcMeta';
@@ -200,7 +200,7 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
         options,
         context,
         spanName: 'webSocketMessage',
-        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        spanOp: WEBSOCKET,
         origin: 'auto.faas.cloudflare.durable_object',
       },
       obj.webSocketMessage.bind(obj),
@@ -213,7 +213,7 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
         options,
         context,
         spanName: 'webSocketClose',
-        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        spanOp: WEBSOCKET,
         origin: 'auto.faas.cloudflare.durable_object',
       },
       obj.webSocketClose.bind(obj),
@@ -226,7 +226,7 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
         options,
         context,
         spanName: 'webSocketError',
-        spanOp: WEB_SERVER_WEBSOCKET_SPAN_OP,
+        spanOp: WEBSOCKET,
         origin: 'auto.faas.cloudflare.durable_object',
       },
       obj.webSocketError.bind(obj),

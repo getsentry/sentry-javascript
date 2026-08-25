@@ -1,13 +1,11 @@
-import type { IntegrationFn } from '@sentry/core/browser';
-import {
-  captureSpan,
-  debug,
-  defineIntegration,
-  hasSpanStreamingEnabled,
-  SpanBuffer,
-  spanIsSampled,
-} from '@sentry/core/browser';
+import type { IntegrationFn } from '../types/integration';
 import { DEBUG_BUILD } from '../debug-build';
+import { defineIntegration } from '../integration';
+import { captureSpan } from '../tracing/spans/captureSpan';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { SpanBuffer } from '../tracing/spans/spanBuffer';
+import { debug } from '../utils/debug-logger';
+import { spanIsSampled } from '../utils/spanUtils';
 
 export const INTEGRATION_NAME = 'SpanStreaming' as const;
 

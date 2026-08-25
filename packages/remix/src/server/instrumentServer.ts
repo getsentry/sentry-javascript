@@ -42,7 +42,7 @@ import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -137,7 +137,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
               method: request.method,
               [URL_FULL]: filterCollectedUrl(request.url),
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
-              [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+              [SENTRY_OP]: FUNCTION,
             },
           },
           () => {
@@ -211,7 +211,7 @@ function makeWrappedDataFunction(
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
-            [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [CODE_FUNCTION_NAME]: name,
             name,
           },

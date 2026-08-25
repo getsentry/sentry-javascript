@@ -6,7 +6,8 @@
  */
 
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
-import { startInactiveSpan, withActiveSpan } from '../../tracing';
+import { withActiveSpan } from '../../tracing';
+import { startInactiveSpan } from '../../tracing/trace';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';

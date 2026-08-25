@@ -2,7 +2,7 @@ import type { MessageBatch } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { MESSAGING_QUEUE_PROCESS_SPAN_OP } from '@sentry/conventions/op';
+import { QUEUE_PROCESS } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -40,7 +40,7 @@ function wrapQueueHandler(
       {
         name: `process ${batch.queue}`,
         attributes: {
-          [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
+          [SENTRY_OP]: QUEUE_PROCESS,
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',

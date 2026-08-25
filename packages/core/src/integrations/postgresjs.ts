@@ -4,7 +4,8 @@
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
+import { SPAN_STATUS_ERROR } from '../tracing';
+import { startSpanManual } from '../tracing/trace';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike } from '../utils/is';

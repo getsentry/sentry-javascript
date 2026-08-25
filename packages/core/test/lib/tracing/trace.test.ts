@@ -21,12 +21,10 @@ import {
   isTracingSuppressed,
   registerSpanErrorInstrumentation,
   SentrySpan,
-  startInactiveSpan,
-  startSpan,
-  startSpanManual,
   suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
+import { startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing/trace';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
 import type { Event } from '../../../src/types/event';

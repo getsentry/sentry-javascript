@@ -22,7 +22,7 @@ import {
   getAbsoluteUrl,
 } from '@sentry/browser';
 import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
@@ -399,7 +399,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
           name: `<${options?.name ? options.name : 'unnamed'}>`,
           startTime: now,
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
             [CODE_FUNCTION_NAME]: String(propertyKey),
           },
