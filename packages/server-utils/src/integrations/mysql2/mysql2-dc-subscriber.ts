@@ -2,13 +2,17 @@ import type { TracingChannel } from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import {
+  _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
@@ -100,14 +104,26 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       // literal before it leaves the process; `values` is never attached.
       const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
       const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
+      const client = getClient();
+      // `queryText` is already sanitized, so a string literal containing `from`/`join` can't leak a
+      // value into the summary.
+      const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
+      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
+      // when there is no statement to summarize.
+      const streamedName =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
+          : undefined;
 
       return startInactiveSpan({
-        name: queryText || 'mysql2.query',
+        name: streamedName || queryText || 'mysql2.query',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText,
+          [DB_QUERY_SUMMARY]: querySummary,
           [DB_OPERATION_NAME]: operation,
           [DB_NAMESPACE]: data.database || undefined,
           [SERVER_ADDRESS]: data.serverAddress,

@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -10,10 +11,14 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   isObjectLike,
   bindScopeToEmitter,
   defineIntegration,
+  getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -80,8 +85,17 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
+      const client = getClient();
+      // The statement is sanitized before it is summarized, so that a string literal containing
+      // `from`/`join` can't leak a value into the summary.
+      const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
+      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
+      // when there is no statement to summarize.
+      const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || database || 'mysql' : undefined;
+
       return startInactiveSpan({
-        name: sql ?? 'mysql.query',
+        name: streamedName ?? sql ?? 'mysql.query',
         op: 'db',
         attributes: {
           [SENTRY_KIND]: 'client',
@@ -91,6 +105,7 @@ function instrumentMysql(): void {
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
           ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
+          [DB_QUERY_SUMMARY]: querySummary,
           [SERVER_ADDRESS]: host,
           [SERVER_PORT]: portIsNumber ? portNumber : undefined,
         },

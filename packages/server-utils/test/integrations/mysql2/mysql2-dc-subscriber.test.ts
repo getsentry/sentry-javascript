@@ -41,12 +41,13 @@ class TestClient extends Client<any> {
   }
 }
 
-function initTestClient(): void {
+function initTestClient(traceLifecycle: 'static' | 'stream' = 'static'): void {
   initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
     integrations: [],
     sendClientReports: false,
     stackParser: () => [],
+    traceLifecycle,
     tracesSampleRate: 1,
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
   });
@@ -199,6 +200,8 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
       expect(json.attributes['db.system.name']).toBe('mysql');
       expect(json.attributes['db.operation.name']).toBe('SELECT');
+      // reported regardless of trace lifecycle, even though only span streaming names the span after it
+      expect(json.attributes['db.query.summary']).toBe('SELECT maths');
       expect(json.attributes['db.namespace']).toBe('test');
       expect(json.attributes['server.address']).toBe('127.0.0.1');
       expect(json.attributes['server.port']).toBe(3306);
@@ -220,6 +223,45 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       expect(queryText).not.toContain('21');
       // the span name is the sanitized statement too — no raw values leak there either
       expect(json.name).toBe('SELECT * FROM users WHERE email = ? AND age = ?');
+    });
+
+    it('names the span after the query summary with span streaming enabled', async () => {
+      initTestClient('stream');
+
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_QUERY,
+        { query: 'SELECT solution FROM maths' },
+        { result: [] },
+      );
+
+      const json = spanToJSON(span!);
+      expect(json.name).toBe('SELECT maths');
+      expect(json.attributes['db.query.summary']).toBe('SELECT maths');
+      // the statement is still reported, just not as the name
+      expect(json.attributes['db.query.text']).toBe('SELECT solution FROM maths');
+    });
+
+    it('walks the name conventions when no query summary can be derived', async () => {
+      initTestClient('stream');
+
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_QUERY,
+        { query: '', database: 'test', serverAddress: '127.0.0.1', serverPort: 3306 },
+        { result: [] },
+      );
+
+      // no summary and no operation, so `{db.namespace}` is the first template that can be filled
+      const json = spanToJSON(span!);
+      expect(json.name).toBe('test');
+      expect(json.attributes['db.query.summary']).toBeUndefined();
+    });
+
+    it('falls back to the db system name when nothing else can be filled in', async () => {
+      initTestClient('stream');
+
+      const { span } = await traceOperation(MYSQL2_DC_CHANNEL_QUERY, { query: '' }, { result: [] });
+
+      expect(spanToJSON(span!).name).toBe('mysql');
     });
 
     it('does not attach raw values to the span', async () => {

@@ -1,7 +1,11 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -16,6 +20,7 @@ import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -78,16 +83,29 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
     data => {
       const statement = getQueryText(data.arguments);
+      const client = getClient();
+      const connectionAttributes = getConnectionAttributes(data.self?.config);
+      // The statement is sanitized before it is summarized, so that a string literal containing
+      // `from`/`join` can't leak a value into the summary.
+      const querySummary = statement ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement)) : undefined;
+      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
+      // when there is no statement to summarize.
+      const streamedName =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
+          : undefined;
 
       return startInactiveSpan({
-        name: statement ?? 'mysql2.query',
+        name: streamedName ?? statement ?? 'mysql2.query',
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          ...getConnectionAttributes(data.self?.config),
+          ...connectionAttributes,
           [DB_QUERY_TEXT]: statement || undefined,
+          [DB_QUERY_SUMMARY]: querySummary,
         },
       });
     },
