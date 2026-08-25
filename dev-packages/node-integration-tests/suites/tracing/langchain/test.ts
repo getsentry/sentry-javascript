@@ -276,6 +276,7 @@ describe('LangChain integration', () => {
             expect(formatPromptSpan).toBeDefined();
             expect(formatPromptSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(formatPromptSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            expect(formatPromptSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
             expect(formatPromptSpan!.attributes['langchain.chain.name'].value).toBe('format_prompt');
 
             const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
@@ -431,6 +432,9 @@ describe('LangChain integration', () => {
               span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
             );
             expect(chainSpans.map(span => span.name).sort()).toEqual(['invoke_agent', 'invoke_agent', 'invoke_agent']);
+            for (const span of chainSpans) {
+              expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
+            }
             expect(chainSpans.map(span => span.attributes['langchain.chain.name']?.value).sort()).toEqual([
               'format_prompt',
               'parse_output',

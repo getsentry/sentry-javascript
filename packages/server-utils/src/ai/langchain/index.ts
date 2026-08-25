@@ -222,6 +222,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const chainName = runName || chain.name || 'unknown_chain';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+        [GEN_AI_OPERATION_NAME]: 'invoke_agent',
         'langchain.chain.name': chainName,
       };
 

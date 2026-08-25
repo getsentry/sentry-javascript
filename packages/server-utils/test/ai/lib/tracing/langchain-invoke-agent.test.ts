@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { GEN_AI_OPERATION_NAME } from '@sentry/conventions/attributes';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
@@ -49,6 +50,7 @@ describe('LangChain invoke_agent span names', () => {
     runChain('format_prompt');
 
     expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chain format_prompt');
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
   });
 
   it('keeps `chain unknown_chain` when the chain name is missing in static mode', () => {
@@ -64,6 +66,7 @@ describe('LangChain invoke_agent span names', () => {
 
     const span = spanToStaticSpanJSON(endedSpans[0]!);
     expect(span.description).toBe('invoke_agent');
+    expect(span.data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
     expect(span.data?.['langchain.chain.name']).toBe('format_prompt');
   });
 });
