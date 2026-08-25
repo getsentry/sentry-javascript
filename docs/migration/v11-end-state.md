@@ -475,6 +475,20 @@ Sentry.init({
 
 In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFECYCLE=static` environment variable instead. The static lifecycle only exists for backwards compatibility and is planned for removal in a future major version, so treat this as a temporary measure.
 
+### Span name changes
+
+Affected SDKs: All SDKs.
+
+With [span streaming](#span-streaming-is-now-the-default) enabled (the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/). If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
+
+| Span op                                 | Before                                                                                                                                                              | After                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gen_ai.invoke_agent`, `gen_ai.handoff` | `{operation} {agent}` (`invoke_agent weather_assistant`), `chain {chainName}` (`chain format_prompt`), or `{operation} {functionId}` (`invoke_agent weather_agent`) | `{operation} {agent}` when the agent name is known, or `{operation}` if the SDK has none (`invoke_agent`). Chain names stay on `langchain.chain.name`; function ids stay on `gen_ai.function.id` |
+
+Resolved low-cardinality values are kept in both lifecycles: a known agent name stays in the name (`invoke_agent weather_assistant`).
+
+`ignoreSpans` is evaluated at span start. Filters matching `chain format_prompt` or `invoke_agent weather_agent` no longer apply to a streamed agent span named `'invoke_agent'`; match on `langchain.chain.name` or `gen_ai.function.id` instead.
+
 ### The `enableLogs` option was removed
 
 Affected SDKs: All SDKs.
