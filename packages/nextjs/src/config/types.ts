@@ -442,6 +442,8 @@ type SentryBuildSourceMapsOptions = Omit<
    *
    * Defaults to `true`.
    */
+  // TODO(v12): Collapse into `filesToDeleteAfterUpload`, which already overrides this and is part of the shared
+  // build-time options. Two ways to express the same thing is one too many for a public API.
   deleteSourcemapsAfterUpload?: boolean;
 };
 
