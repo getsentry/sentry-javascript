@@ -78,6 +78,7 @@
     "build:tarball": "npm pack",
     "prebuild": "yarn build:version",
     "precheck:types": "yarn build:version",
+    "prelint:types": "yarn build:version",
     "pretest": "yarn build:version",
     "pretest:unit": "yarn build:version",
     "check:types": "run-p check:types:src check:types:test",
