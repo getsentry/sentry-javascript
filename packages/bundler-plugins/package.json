@@ -87,6 +87,7 @@
     "clean:all": "run-p clean clean:deps",
     "clean:deps": "rimraf node_modules",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
     "test:unit": "vitest run"
