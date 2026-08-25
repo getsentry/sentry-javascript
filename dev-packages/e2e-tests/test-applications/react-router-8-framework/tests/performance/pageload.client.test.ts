@@ -20,7 +20,7 @@ test.describe('client - pageload performance', () => {
           data: {
             'sentry.origin': 'auto.pageload.react_router',
             'sentry.op': 'pageload',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance',
             // react-router-serve 301-redirects the bare index route to a trailing slash
             'url.path': '/performance/',
@@ -77,7 +77,7 @@ test.describe('client - pageload performance', () => {
           data: {
             'sentry.origin': 'auto.pageload.react_router',
             'sentry.op': 'pageload',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
@@ -133,7 +133,7 @@ test.describe('client - pageload performance', () => {
           data: {
             'sentry.origin': 'auto.pageload.react_router',
             'sentry.op': 'pageload',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/static',
             // react-router-serve 301-redirects prerendered routes to a trailing slash
             'url.path': '/performance/static/',

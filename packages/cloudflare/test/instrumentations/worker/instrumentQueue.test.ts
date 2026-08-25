@@ -284,7 +284,7 @@ describe('instrumentQueue', () => {
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
           'sentry.sample_rate': 1,
-          'sentry.source': 'task',
+          'sentry.segment.name.source': 'task',
         },
         op: 'queue.process',
         origin: 'auto.faas.cloudflare.queue',

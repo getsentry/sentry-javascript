@@ -21,7 +21,7 @@ test.describe('client - pageload performance', () => {
           data: {
             'sentry.origin': 'auto.pageload.react_router',
             'sentry.op': 'pageload',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance',
             'url.path': '/performance',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance$/),
@@ -78,7 +78,7 @@ test.describe('client - pageload performance', () => {
           data: {
             'sentry.origin': 'auto.pageload.react_router',
             'sentry.op': 'pageload',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),

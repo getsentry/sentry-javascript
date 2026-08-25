@@ -32,7 +32,7 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
           op: 'pageload',
           origin: 'auto.pageload.astro',
@@ -69,7 +69,7 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
             'http.request.header.accept_language': 'en-US',
