@@ -24,6 +24,7 @@ import { fastifyIntegration } from './fastify';
 import { hapiIntegration } from './hapi';
 import { koaIntegration } from './koa';
 import type { Integration } from '@sentry/core';
+import { awsIntegration } from './aws-sdk';
 
 /** These are integrations that are tracing-only integrations. */
 export function getTracingIntegrations(): Integration[] {
@@ -41,6 +42,7 @@ export function getTracingIntegrations(): Integration[] {
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    awsIntegration(),
     // AI providers
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
