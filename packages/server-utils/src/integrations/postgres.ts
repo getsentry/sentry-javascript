@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -10,10 +11,14 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   isObjectLike,
   bindScopeToEmitter,
   defineIntegration,
+  getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -173,14 +178,26 @@ function subscribeQueryLikeChannel(
 function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
+  const client = getClient();
+  // The statement is sanitized before it is summarized, so that a string literal containing
+  // `from`/`join` can't leak a value into the summary.
+  const querySummary = queryConfig?.text
+    ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(queryConfig.text))
+    : undefined;
+  // The description is the SQL statement. With span streaming, span names have to be low cardinality,
+  // so `{db.query.summary}` is used instead, falling back to `{db.namespace}` and then
+  // `{db.system.name}` when there is no statement to summarize.
+  const streamedName =
+    client && hasSpanStreamingEnabled(client) ? querySummary || params.database || DB_SYSTEM_POSTGRESQL : undefined;
+
   return {
-    // The description is the SQL statement
-    name: queryConfig?.text ?? SPAN_QUERY_FALLBACK,
+    name: streamedName ?? queryConfig?.text ?? SPAN_QUERY_FALLBACK,
     op: 'db',
     attributes: {
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_QUERY_TEXT]: queryConfig?.text || undefined,
+      [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };

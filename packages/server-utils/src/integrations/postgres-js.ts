@@ -1,14 +1,23 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE, SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
 import {
   _INTERNAL_buildPostgresConnectionContext,
+  _INTERNAL_getSqlQuerySummary,
   _INTERNAL_reconstructPostgresQuery,
   _INTERNAL_sanitizeSqlQuery,
   _INTERNAL_setPostgresConnectionAttributes,
   _INTERNAL_setPostgresOperationName,
   debug,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -262,15 +271,24 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       const fullQuery = _INTERNAL_reconstructPostgresQuery(query.strings);
       const sanitizedSqlQuery = _INTERNAL_sanitizeSqlQuery(fullQuery);
 
+      const client = getClient();
+      // The query is already sanitized, so a string literal containing `from`/`join` can't leak a
+      // value into the summary.
+      const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedSqlQuery);
+      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+      // instead of the full statement, falling back to `{db.system.name}`.
+      const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || 'postgres' : undefined;
+
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
-        name: sanitizedSqlQuery || 'postgresjs.query',
+        name: streamedName || sanitizedSqlQuery || 'postgresjs.query',
         op: 'db',
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: 'postgres',
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
+          [DB_QUERY_SUMMARY]: querySummary,
         },
       });
 

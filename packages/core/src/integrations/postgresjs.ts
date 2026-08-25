@@ -2,11 +2,14 @@
 // This can be used in any environment (Node.js, Cloudflare Workers, etc.)
 // without depending on OpenTelemetry module hooking.
 
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpanManual } from '../tracing/trace';
 import type { Span } from '../types/span';
+import { getSqlQuerySummary } from '../utils/sql';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
@@ -229,9 +232,17 @@ function _wrapSingleQueryHandle(
     const fullQuery = _reconstructQuery(query.strings);
     const sanitizedSqlQuery = _sanitizeSqlQuery(fullQuery);
 
+    const client = getClient();
+    const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
+
     return startSpanManual(
       {
-        name: sanitizedSqlQuery || 'postgresjs.query',
+        // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+        // instead of the full statement, falling back to `{db.system.name}`.
+        name:
+          client && hasSpanStreamingEnabled(client)
+            ? querySummary || 'postgres'
+            : sanitizedSqlQuery || 'postgresjs.query',
         op: 'db',
       },
       (span: Span) => {
@@ -240,6 +251,7 @@ function _wrapSingleQueryHandle(
         span.setAttributes({
           'db.system.name': 'postgres',
           'db.query.text': sanitizedSqlQuery,
+          'db.query.summary': querySummary,
         });
 
         const connectionContext = sqlInstance
