@@ -50,7 +50,7 @@ describe('diagnostics-channel injection', () => {
     expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
-  it('does not register the injection hooks when `enableRuntimeChannelInjection` is false', () => {
+  it('does not register the injection hooks but still runs detection when `enableRuntimeChannelInjection` is false', () => {
     init({
       dsn: PUBLIC_DSN,
       tracesSampleRate: 1,
@@ -59,7 +59,7 @@ describe('diagnostics-channel injection', () => {
     });
 
     expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
-    expect(detectOrchestrionSetup).not.toHaveBeenCalled();
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
   it('registers the injection hooks when `enableRuntimeChannelInjection` is true and tracing is disabled', () => {
