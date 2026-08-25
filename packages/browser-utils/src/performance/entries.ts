@@ -10,7 +10,7 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
-import { BROWSER_PAINT } from '@sentry/conventions/op';
+import { BROWSER_PAINT, UI_LONG_ANIMATION_FRAME, UI_LONG_TASK } from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -87,7 +87,7 @@ export function startTrackingLongTasks(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long_task',
+        op: UI_LONG_TASK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
@@ -149,7 +149,7 @@ export function startTrackingLongAnimationFrames(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long_animation_frame',
+        op: UI_LONG_ANIMATION_FRAME,
         attributes,
       });
     }

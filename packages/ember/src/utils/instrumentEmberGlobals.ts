@@ -1,7 +1,7 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
 import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
-import { UI_RENDER, UI_TASK, FUNCTION } from '@sentry/conventions/op';
+import { UI_MOUNT, UI_RENDER, UI_TASK, FUNCTION } from '@sentry/conventions/op';
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
@@ -237,8 +237,7 @@ function _instrumentInitialLoad(): void {
   startInactiveSpan({
     name: 'init',
     attributes: {
-      // TODO(v11): Replace with the `ui.mount` constant from `@sentry/conventions/op` once it is registered there.
-      [SENTRY_OP]: 'ui.mount',
+      [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
     },
     startTime,
