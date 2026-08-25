@@ -1,5 +1,4 @@
 import { type Integration } from '@sentry/core';
-import * as sentryNode from '@sentry/node';
 import * as sentryServerUtils from '@sentry/server-utils';
 import type { Mock } from 'bun:test';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
