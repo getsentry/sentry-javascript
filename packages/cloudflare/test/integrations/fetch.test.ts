@@ -66,6 +66,10 @@ describe('WinterCGFetch instrumentation', () => {
     expect(shouldAttachTraceData('http://my-website.com/')).toBe(true);
     expect(shouldAttachTraceData('https://www.3rd-party-website.at/')).toBe(false);
 
+    // tracePropagationTargets match regardless of casing
+    expect(shouldAttachTraceData('http://MY-WEBSITE.com/')).toBe(true);
+    expect(shouldAttachTraceData('https://WWW.3RD-PARTY-WEBSITE.at/')).toBe(false);
+
     expect(shouldCreateSpan('http://my-website.com/')).toBe(true);
     expect(shouldCreateSpan('https://www.3rd-party-website.at/')).toBe(true);
   });
