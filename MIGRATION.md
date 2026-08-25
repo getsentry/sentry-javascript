@@ -622,10 +622,10 @@ If you [opt out of span streaming](#opting-out-of-span-streaming), span names re
 
 The following span names were adjusted:
 
-| Span op    | Before                                                                                                                      | After                                                                                                      |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                 |
-| `graphql`  | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | `GraphQL <operation type>` (`GraphQL query`), or `GraphQL Operation` for parse, validate and resolve spans |
+| Span op    | Before                                                                                                                      | After                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                           |
+| `graphql`  | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`) |
 
 Some consequences to be aware of:
 

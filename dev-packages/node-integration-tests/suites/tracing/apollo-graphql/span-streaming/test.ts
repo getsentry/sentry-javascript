@@ -33,10 +33,12 @@ describe('GraphQL/Apollo Tests > span streaming', () => {
             // reach the span name.
             const resolveSpans = spans.filter(span => span.attributes['graphql.field.path']);
             expect(resolveSpans.map(span => span.attributes['graphql.field.path']?.value)).toEqual(['hello', 'login']);
+            expect(resolveSpans.map(span => span.name)).toEqual(['GraphQL resolve', 'GraphQL resolve']);
 
-            // Parse, validate and resolve spans have no operation type to name them after.
-            const fallbackSpans = spans.filter(span => !executeSpans.includes(span));
-            expect(fallbackSpans.every(span => span.name === 'GraphQL Operation')).toBe(true);
+            // Parse and validate spans have no operation type, so they are named after the phase.
+            const phaseSpans = spans.filter(span => !executeSpans.includes(span) && !resolveSpans.includes(span));
+            expect(phaseSpans.length).toBeGreaterThan(0);
+            expect(phaseSpans.every(span => ['GraphQL parse', 'GraphQL validate'].includes(span.name))).toBe(true);
 
             expect(spans.some(span => span.name.includes('GetHello') || span.name.includes('TestMutation'))).toBe(
               false,

@@ -10,7 +10,6 @@ import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
-  GRAPHQL_SPAN_NAME_FALLBACK,
   hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -196,7 +195,9 @@ function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan
 
   return startInactiveSpan({
     name:
-      client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
+      client && hasSpanStreamingEnabled(client)
+        ? `GraphQL ${PROCESSING_TYPE_RESOLVE}`
+        : `${SPAN_NAME_RESOLVE} ${path.join('.')}`,
     attributes,
     parentSpan,
   });

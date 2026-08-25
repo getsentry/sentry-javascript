@@ -3,7 +3,6 @@ import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from
 import { GRAPHQL } from '@sentry/conventions/op';
 import {
   getClient,
-  GRAPHQL_SPAN_NAME_FALLBACK,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -157,7 +156,7 @@ function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
     const client = getClient();
 
     return startInactiveSpan({
-      name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
+      name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_PARSE}` : SPAN_NAME_PARSE,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
@@ -174,7 +173,7 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
       const client = getClient();
 
       return startInactiveSpan({
-        name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_VALIDATE,
+        name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_VALIDATE}` : SPAN_NAME_VALIDATE,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
@@ -204,7 +203,7 @@ function setupOperationChannel(
     tracingChannel<GraphqlOperationData>(channelName),
     data => {
       const client = getClient();
-      const streamedName = data.operationType ? `GraphQL ${data.operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
+      const streamedName = `GraphQL ${data.operationType || PROCESSING_TYPE_EXECUTE}`;
 
       const span = startInactiveSpan({
         name:
@@ -251,7 +250,7 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
     return startInactiveSpan({
       name:
         client && hasSpanStreamingEnabled(client)
-          ? GRAPHQL_SPAN_NAME_FALLBACK
+          ? `GraphQL ${PROCESSING_TYPE_RESOLVE}`
           : `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,

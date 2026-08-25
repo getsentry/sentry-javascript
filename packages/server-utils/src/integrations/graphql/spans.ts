@@ -10,7 +10,6 @@ import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   getClient,
-  GRAPHQL_SPAN_NAME_FALLBACK,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -49,7 +48,7 @@ export function startParseSpan(): Span {
   const client = getClient();
 
   return startInactiveSpan({
-    name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_PARSE,
+    name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_PARSE}` : SPAN_NAME_PARSE,
     attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE },
   });
 }
@@ -59,7 +58,7 @@ export function startValidateSpan(documentAST: unknown): Span {
   const client = getClient();
 
   return startInactiveSpan({
-    name: client && hasSpanStreamingEnabled(client) ? GRAPHQL_SPAN_NAME_FALLBACK : SPAN_NAME_VALIDATE,
+    name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_VALIDATE}` : SPAN_NAME_VALIDATE,
     attributes: {
       ...BASE_ATTRIBUTES,
       [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_VALIDATE,
@@ -175,7 +174,7 @@ export function startExecuteSpan(
   const operationName = operation?.name?.value ?? args.operationName ?? undefined;
 
   const client = getClient();
-  const streamedName = operationType ? `GraphQL ${operationType}` : GRAPHQL_SPAN_NAME_FALLBACK;
+  const streamedName = `GraphQL ${operationType || PROCESSING_TYPE_EXECUTE}`;
 
   const span = startInactiveSpan({
     name:
