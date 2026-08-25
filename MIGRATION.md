@@ -633,7 +633,7 @@ The graphql operation name and the resolver field path are supplied by the clien
 
 Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart. The attribute is set in both trace lifecycles.
 
-For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute.
+For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
 
 Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 

@@ -103,11 +103,12 @@ export interface GraphQLOptions {
   ignoreTrivialResolveSpans?: boolean;
 
   /**
-   * Rename the enclosing root span to include the operation name(s), e.g.
-   * `GET /graphql` -> `GET /graphql (query GetUser)`. Defaults to `true`.
+   * Record the operation name(s) on the enclosing root span as `sentry.graphql.operation`, and rename
+   * that span to include them, e.g. `GET /graphql` -> `GET /graphql (query GetUser)`. Defaults to
+   * `true`; when disabled, neither happens.
    *
-   * With span streaming the root span is not renamed, because the operation name is supplied by the
-   * client. The operations are recorded on its `sentry.graphql.operation` attribute either way.
+   * With span streaming only the attribute is recorded, since the operation name is supplied by the
+   * client and would make the root span name high cardinality.
    */
   useOperationNameForRootSpan?: boolean;
 }
