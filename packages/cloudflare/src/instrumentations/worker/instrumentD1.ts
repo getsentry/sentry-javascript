@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { D1Database, D1DatabaseSession, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
-import { addBreadcrumb, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  addBreadcrumb,
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+} from '@sentry/core';
 import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API
@@ -121,13 +130,23 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
 }
 
 function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
+  const client = getClient();
+  // The statement is sanitized before it is summarized, so that a string literal containing
+  // `from`/`join` can't leak a value into the summary.
+  const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
+  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+  // instead of the full statement, falling back to `{db.system.name}` when there is no statement to
+  // summarize — D1 exposes no collection, namespace or server to pair the operation with.
+  const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : undefined;
+
   return {
     op: 'db.query',
-    name: query,
+    name: streamedName ?? query,
     attributes: {
       'db.system.name': 'cloudflare-d1',
       'db.operation.name': type,
       'db.query.text': query,
+      'db.query.summary': querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },
   };
