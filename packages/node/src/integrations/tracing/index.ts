@@ -24,10 +24,6 @@ import {
 } from '@sentry/server-utils';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
-  // The following integrations are not considered performance integrations because they are "framework"-level
-  // meaning they may also handle error capture and similar things.
-  // Thus, we add them by default:
-  // express, fastify, hapi, koa
   return [
     graphqlIntegration(),
     mongoIntegration(),
