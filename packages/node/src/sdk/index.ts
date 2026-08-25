@@ -214,9 +214,7 @@ function _init(
 
   // Warn about missing or doubled channel injection. Runs after the client
   // is created so the debug logger is enabled and the warning is emitted.
-  if (useChannelInjection) {
-    detectOrchestrionSetup();
-  }
+  detectOrchestrionSetup();
 
   return client;
 }
