@@ -135,7 +135,7 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   'http.response.status_code': 200,
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   'url.full': expect.stringMatching(/\/$/),
                   'http.route': '/',
                   'http.target': '/',
@@ -395,7 +395,7 @@ describe('express tracing', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': status_code,
-                        'http.method': 'GET',
+                        'http.request.method': 'GET',
                         'url.full': expect.stringMatching(url),
                         'http.target': url,
                       },

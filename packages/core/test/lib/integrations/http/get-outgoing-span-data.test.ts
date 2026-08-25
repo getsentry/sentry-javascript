@@ -6,7 +6,7 @@ import {
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import type { Span } from '../../../../src/types/span';
 import {
-  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
   HTTP_TARGET,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
@@ -76,11 +76,11 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.name).toMatch(/^POST /);
   });
 
-  it('includes URL_FULL, HTTP_METHOD, HTTP_TARGET, and server endpoint attributes', () => {
+  it('includes URL_FULL, HTTP_REQUEST_METHOD, HTTP_TARGET, and server endpoint attributes', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
     expect(result.attributes).toMatchObject({
       [URL_FULL]: 'http://example.com/api/test',
-      [HTTP_METHOD]: 'GET',
+      [HTTP_REQUEST_METHOD]: 'GET',
       [HTTP_TARGET]: '/api/test',
       [SERVER_ADDRESS]: 'example.com',
       [SERVER_PORT]: 80,
@@ -122,18 +122,18 @@ describe('setIncomingResponseSpanData', () => {
     expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.status_code': 201 }));
   });
 
-  it('sets network.protocol.version and http.flavor from httpVersion', () => {
+  it('sets network.protocol.version from httpVersion', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ httpVersion: '2.0' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'network.protocol.version': '2.0', 'http.flavor': '2.0' }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'network.protocol.version': '2.0' }));
   });
 
-  it('sets http.status_text from statusMessage', () => {
+  it('sets http.response.status_text from statusMessage', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ statusMessage: 'Created' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.status_text': 'CREATED' }));
+    expect(span.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({ 'http.response.status_text': 'CREATED' }),
+    );
   });
 
   it('uses tcp transport for non-QUIC connections', () => {
@@ -170,9 +170,7 @@ describe('setIncomingResponseSpanData', () => {
       headers: { 'content-length': '42', 'content-encoding': 'identity' },
     });
     setIncomingResponseSpanData(response, span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'http.response_content_length_uncompressed': 42 }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.decoded_size': 42 }));
   });
 
   it('includes compressed content-length when content-encoding is gzip', () => {
@@ -181,6 +179,6 @@ describe('setIncomingResponseSpanData', () => {
       headers: { 'content-length': '100', 'content-encoding': 'gzip' },
     });
     setIncomingResponseSpanData(response, span);
-    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response_content_length': 100 }));
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.size': 100 }));
   });
 });

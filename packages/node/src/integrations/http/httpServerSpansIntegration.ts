@@ -3,15 +3,9 @@ import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
-  HTTP_CLIENT_IP,
-  HTTP_FLAVOR,
-  HTTP_HOST,
-  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_SCHEME,
-  HTTP_STATUS_CODE,
   HTTP_TARGET,
-  HTTP_USER_AGENT,
   CLIENT_ADDRESS,
   CLIENT_PORT,
   NETWORK_LOCAL_ADDRESS,
@@ -24,11 +18,13 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
-  SENTRY_KIND,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import type {
   Event,
@@ -145,7 +141,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const headers = request.headers;
           const userAgent = headers['user-agent'];
-          const ips = headers['x-forwarded-for'];
           const httpVersion = request.httpVersion;
           const host = headers.host as string | undefined;
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
@@ -172,23 +167,18 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
               [URL_QUERY]: filterCollectedUrlQuery(query, client),
               [URL_FRAGMENT]: fragment,
-              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
-              /* eslint-disable typescript/no-deprecated */
-              [HTTP_METHOD]: normalizedRequest.method,
+              [HTTP_REQUEST_METHOD]: normalizedRequest.method,
+              // eslint-disable-next-line typescript/no-deprecated
               [HTTP_TARGET]: filterCollectedUrl(
                 urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
                 client,
               ),
-              [HTTP_HOST]: host,
+              [USER_AGENT_ORIGINAL]: userAgent,
+              [URL_SCHEME]: scheme,
               [SERVER_ADDRESS]: hostname,
               [NETWORK_PROTOCOL_NAME]: 'http',
               [NETWORK_PROTOCOL_VERSION]: httpVersion,
-              [HTTP_CLIENT_IP]: client.getDataCollectionOptions().userInfo ? getForwardedClientAddress(ips) : undefined,
-              [HTTP_USER_AGENT]: userAgent,
-              [HTTP_SCHEME]: scheme,
-              [HTTP_FLAVOR]: httpVersion,
               [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-              /* eslint-enable typescript/no-deprecated */
               ...getRequestContentLengthAttribute(request),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
@@ -238,7 +228,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
     },
     processEvent(event) {
       if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
+        const statusCode = event.contexts?.trace?.data?.[HTTP_RESPONSE_STATUS_CODE];
         if (typeof statusCode === 'number') {
           // Drop transaction if it has a status code that should be ignored
           if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
@@ -362,11 +352,11 @@ function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAtt
 
   if (isCompressed(request.headers)) {
     return {
-      ['http.request_content_length']: length,
+      ['http.request.body.size']: length,
     };
   } else {
     return {
-      ['http.request_content_length_uncompressed']: length,
+      ['http.request.body.decoded_size']: length,
     };
   }
 }
@@ -407,9 +397,7 @@ function getIncomingRequestAttributesOnResponse(
 
   const newAttributes: SpanAttributes = {
     [HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    // eslint-disable-next-line typescript/no-deprecated
-    [HTTP_STATUS_CODE]: statusCode,
-    'http.status_text': statusMessage?.toUpperCase(),
+    'http.response.status_text': statusMessage?.toUpperCase(),
   };
 
   if (collectClientAddress) {

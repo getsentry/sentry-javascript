@@ -6,8 +6,8 @@ import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
 import {
-  HTTP_HOST,
-  HTTP_METHOD,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
   HTTP_TARGET,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
@@ -41,18 +41,13 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
   return {
     name,
     attributes: {
-      // TODO(v11): Update these to the Sentry semantic attributes for urls.
-      // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
-      /* eslint-disable typescript/no-deprecated */
-      [HTTP_METHOD]: request.method,
+      // eslint-disable-next-line typescript/no-deprecated
       [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
       [SERVER_ADDRESS]: request.host,
       [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
-      [HTTP_HOST]: request.getHeader('host') as string | undefined,
-      /* eslint-enable typescript/no-deprecated */
       [USER_AGENT_ORIGINAL]: userAgent || undefined,
       ...attributes,
     },
@@ -68,15 +63,11 @@ export function setIncomingResponseSpanData(response: HttpIncomingMessage, span:
   const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'tcp' : 'udp';
 
   span.setAttributes({
-    'http.response.status_code': statusCode,
+    [HTTP_RESPONSE_STATUS_CODE]: statusCode,
     [NETWORK_PROTOCOL_NAME]: 'http',
     [NETWORK_PROTOCOL_VERSION]: httpVersion,
-    // TODO(v11): Update these to the Sentry semantic attributes for urls.
-    // https://getsentry.github.io/sentry-conventions/attributes/
-    'http.flavor': httpVersion,
     [NETWORK_TRANSPORT]: transport,
-    'http.status_text': statusMessage?.toUpperCase(),
-    'http.status_code': statusCode,
+    'http.response.status_text': statusMessage?.toUpperCase(),
     ...getResponseContentLengthAttributes(response),
     ...getSocketAttrs(socket),
   });
@@ -100,7 +91,7 @@ function getResponseContentLengthAttributes(response: HttpIncomingMessage): Span
   const encoding = headers['content-encoding'];
   return length >= 0
     ? encoding && encoding !== 'identity'
-      ? { 'http.response_content_length': length }
-      : { 'http.response_content_length_uncompressed': length }
+      ? { [HTTP_RESPONSE_BODY_SIZE]: length }
+      : { 'http.response.body.decoded_size': length }
     : {};
 }

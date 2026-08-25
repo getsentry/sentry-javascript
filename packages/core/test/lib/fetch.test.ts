@@ -489,7 +489,7 @@ describe('instrumentFetchRequest', () => {
         name: 'GET https://api.example.com/users/42',
         attributes: {
           type: 'fetch',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'sentry.origin': 'auto.http.fetch',
           'sentry.op': 'http.client',
           [URL_FULL]: url,

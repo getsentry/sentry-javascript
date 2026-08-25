@@ -56,11 +56,11 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'action',
-          'http.method': 'POST',
+          'http.request.method': 'POST',
         }),
       }),
     );
-    expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 201);
     // No form-data capture configured, so no `remix.action_form_data.*` attribute is set.
     expect(span.setAttribute).not.toHaveBeenCalledWith('remix.action_form_data.actionType', expect.anything());
     expect(span.end).toHaveBeenCalledTimes(1);

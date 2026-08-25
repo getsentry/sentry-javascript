@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/core/browser';
 import * as utils from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
-import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src/client';
@@ -86,7 +86,7 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpan).toBeDefined();
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
-    expect(requestSpanJson.attributes[HTTP_METHOD]).toBe('QUERY');
+    expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
   it('creates a QUERY XHR span with the QUERY method attribute', () => {
@@ -123,7 +123,7 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpan).toBeDefined();
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
-    expect(requestSpanJson.attributes[HTTP_METHOD]).toBe('QUERY');
+    expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
   describe('XHR trace header span', () => {

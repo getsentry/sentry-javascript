@@ -43,7 +43,7 @@ import {
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -163,7 +163,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
           [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-          'server.address': host,
+          [SERVER_ADDRESS]: host,
         });
 
         if (enableHTTPTimings) {
@@ -376,7 +376,7 @@ function xhrCallback(
           attributes: {
             type: 'xhr',
             // eslint-disable-next-line typescript/no-deprecated
-            [HTTP_METHOD]: method,
+            [HTTP_REQUEST_METHOD]: method,
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             [SERVER_ADDRESS]: parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',

@@ -5,7 +5,6 @@ import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
-  HTTP_STATUS_CODE,
   SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
@@ -56,8 +55,6 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
     span.setAttribute(AWS_REQUEST_ID, metadata.requestId);
   }
   if (metadata.httpStatusCode) {
-    // oxlint-disable-next-line typescript/no-deprecated
-    span.setAttribute(HTTP_STATUS_CODE, metadata.httpStatusCode);
     span.setAttribute(HTTP_RESPONSE_STATUS_CODE, metadata.httpStatusCode);
   }
   if (metadata.extendedRequestId) {

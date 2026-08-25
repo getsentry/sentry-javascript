@@ -30,8 +30,7 @@ import type {
   ServerRoute,
   ServerRouteOptions,
 } from './hapi-types';
-// eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
-import { HTTP_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
 import { setHttpServerSpanRouteAttribute } from '../utils/setHttpServerSpanRouteAttribute';
 
@@ -70,8 +69,7 @@ const isPatchableExtMethod = (
 export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanMetadata => {
   const attributes: SpanAttributes = {
     [HTTP_ROUTE]: route.path,
-    // eslint-disable-next-line typescript/no-deprecated -- TODO(v11): Replace deprecated attributes
-    [HTTP_METHOD]: route.method,
+    [HTTP_REQUEST_METHOD]: route.method,
   };
 
   if (pluginName) {

@@ -182,7 +182,7 @@ test('record client-side universal load fetch span and trace', async ({ page }) 
     data: {
       'url.full': expect.stringContaining('/api/users'),
       type: 'fetch',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.response.status_code': 200,
       'network.protocol.version': '1.1',
       'network.protocol.name': 'http',

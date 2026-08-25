@@ -1,4 +1,4 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_FULL } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -83,7 +83,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
             startTime: handlerData.endTimestamp,
             attributes: {
               [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url)),
-              'http.method': method,
+              [HTTP_REQUEST_METHOD]: method,
               type: 'fetch',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.stream',

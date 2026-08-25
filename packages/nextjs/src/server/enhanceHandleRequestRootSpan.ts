@@ -47,7 +47,7 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   }
 
   // eslint-disable-next-line typescript/no-deprecated
-  const method = attributes[HTTP_METHOD] ?? attributes[HTTP_REQUEST_METHOD];
+  const method = attributes[HTTP_REQUEST_METHOD] ?? attributes[HTTP_METHOD];
   // eslint-disable-next-line typescript/no-deprecated
   const target = attributes[HTTP_TARGET];
   const route = attributes[HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];

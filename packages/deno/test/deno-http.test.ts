@@ -106,7 +106,7 @@ Deno.test({
     await new Promise<void>(resolve => server.close(() => resolve()));
 
     assertEquals(txn.transaction, 'QUERY /users/42');
-    assertEquals(txn.contexts?.trace?.data?.['http.method'], 'QUERY');
+    assertEquals(txn.contexts?.trace?.data?.['http.request.method'], 'QUERY');
     assertEquals(txn.contexts?.trace?.data?.['http.response.status_code'], 200);
     assertEquals(txn.contexts?.trace?.data?.['network.protocol.name'], 'http');
     assertEquals(txn.contexts?.trace?.data?.['network.protocol.version'], '1.1');
@@ -213,7 +213,7 @@ Deno.test({
       httpClientSpan,
       `expected an http.client child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
     );
-    assertEquals(httpClientSpan!.data?.['http.method'], 'QUERY');
+    assertEquals(httpClientSpan!.data?.['http.request.method'], 'QUERY');
     assertEquals(httpClientSpan!.data?.['http.response.status_code'], 200);
   },
 });
