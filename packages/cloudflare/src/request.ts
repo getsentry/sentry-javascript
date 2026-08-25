@@ -53,7 +53,11 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * getDefaultIntegrations(options)` in `options` to get the full set instead.
  */
 export function wrapRequestHandler(
-  wrapperOptions: RequestHandlerWrapperOptions,
+  wrapperOptions: Omit<RequestHandlerWrapperOptions, 'options'> & {
+    // `enableOpenTelemetrySetup` is only honored by `init` from `sdk.ts`; this entry point
+    // initializes the SDK via `initBaseSdk`, where setting it would have no effect.
+    options: Omit<CloudflareOptions, 'enableOpenTelemetrySetup'>;
+  },
   handler: (...args: unknown[]) => Response | Promise<Response>,
 ): Promise<Response> {
   return wrapRequestHandlerWithInit(wrapperOptions, handler, initBaseSdk);
