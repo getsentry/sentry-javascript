@@ -15,8 +15,12 @@
 
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   debug,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
@@ -24,7 +28,15 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
-import { DB_STATEMENT, DB_SYSTEM, DB_SYSTEM_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_STATEMENT,
+  DB_SYSTEM,
+  DB_SYSTEM_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -102,7 +114,31 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
     merged[SENTRY_OP] = 'db';
   }
 
+  const statement = getSqlStatement(name, merged);
+  if (statement) {
+    // Sanitized before summarizing, so that a string literal containing `from`/`join` can't leak a
+    // value into the summary.
+    merged[DB_QUERY_SUMMARY] = _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement));
+  }
+
   return merged;
+}
+
+/**
+ * The SQL a span reports, if any. Prisma emits it as the deprecated `db.statement` on older versions
+ * and as `db.query.text` on the `db_query` spans of newer ones.
+ */
+function getSqlStatement(name: string, attributes: SpanAttributes): string | undefined {
+  // oxlint-disable-next-line typescript/no-deprecated
+  const dbStatement = attributes[DB_STATEMENT];
+  if (typeof dbStatement === 'string' && dbStatement) {
+    return dbStatement;
+  }
+  const queryText = attributes[DB_QUERY_TEXT];
+  if ((name === 'prisma:engine:db_query' || name === 'prisma:client:db_query') && typeof queryText === 'string') {
+    return queryText;
+  }
+  return undefined;
 }
 
 /**
@@ -110,16 +146,15 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
  * engine name. v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits `prisma:client:db_query`.
  */
 function buildSpanName(name: string, attributes: SpanAttributes): string {
-  // oxlint-disable-next-line typescript/no-deprecated
-  const dbStatement = attributes[DB_STATEMENT];
-  if (typeof dbStatement === 'string' && dbStatement) {
-    return dbStatement;
+  const client = getClient();
+
+  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+  // instead of the full statement. Spans that report no SQL keep the engine span name.
+  if (client && hasSpanStreamingEnabled(client)) {
+    return (attributes[DB_QUERY_SUMMARY] as string | undefined) || name;
   }
-  const queryText = attributes['db.query.text'];
-  if ((name === 'prisma:engine:db_query' || name === 'prisma:client:db_query') && typeof queryText === 'string') {
-    return queryText;
-  }
-  return name;
+
+  return getSqlStatement(name, attributes) ?? name;
 }
 
 /**

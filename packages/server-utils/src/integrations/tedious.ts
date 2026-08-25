@@ -7,6 +7,8 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -143,8 +145,14 @@ function subscribeQuery(channelName: string, operation: string): void {
       [SERVER_PORT]: connection.config?.options?.port,
     };
 
+    const client = getClient();
+    // `getSpanName` already builds `{db.operation.name}` paired with the bulk-load table, the stored
+    // procedure or `{db.namespace}`, so with span streaming — where span names have to be low
+    // cardinality — it is used instead of the SQL statement.
+    const spanName = getSpanName(operation, databaseName, sql, request.table);
+
     const span = startInactiveSpan({
-      name: sql || getSpanName(operation, databaseName, sql, request.table),
+      name: client && hasSpanStreamingEnabled(client) ? spanName : sql || spanName,
       attributes,
     });
 

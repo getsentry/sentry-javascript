@@ -5,9 +5,14 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  DB_SPAN_NAME_FALLBACK,
   debug,
   defineIntegration,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -17,6 +22,7 @@ import {
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -169,6 +175,11 @@ function subscribeQuery(): void {
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
+      // The statement is sanitized before it is summarized, so that a string literal containing
+      // `from`/`join` can't leak a value into the summary.
+      const querySummary = dbStatement
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement))
+        : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
@@ -183,10 +194,20 @@ function subscribeQuery(): void {
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
         [DB_QUERY_TEXT]: dbStatement,
+        [DB_QUERY_SUMMARY]: querySummary,
       };
 
+      const sentryClient = getClient();
+      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+      // instead of the full statement, falling back to `getName`'s `{operation} {namespace}.{table}`
+      // when there is no statement to summarize.
+      const streamedName =
+        sentryClient && hasSpanStreamingEnabled(sentryClient)
+          ? querySummary || getName(name, operation, table) || DB_SPAN_NAME_FALLBACK
+          : undefined;
+
       return startInactiveSpan({
-        name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
+        name: streamedName ?? dbStatement ?? getName(name, operation, table) ?? 'knex.query',
         parentSpan,
         attributes,
       });
