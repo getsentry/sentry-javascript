@@ -6,6 +6,7 @@ import type {
   SpanAttributeValue,
   SpanContextData,
   SpanTimeInput,
+  StreamedSpanJSON,
 } from '../types/span';
 import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
@@ -107,6 +108,18 @@ export class SentryNonRecordingSpan implements Span {
    */
   public recordException(_exception: unknown, _time?: SpanTimeInput | undefined): void {
     // noop
+  }
+
+  public getSpanJSON(): StreamedSpanJSON {
+    return {
+      name: '',
+      is_segment: false,
+      span_id: this._spanId,
+      trace_id: this._traceId,
+      start_timestamp: 0,
+      status: 'ok',
+      attributes: {},
+    };
   }
 }
 

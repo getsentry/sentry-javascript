@@ -13,7 +13,6 @@ import {
   setCurrentClient,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  SPAN_STATUS_UNSET,
   spanToTraceHeader,
   startInactiveSpan,
   startSpan,
@@ -22,10 +21,8 @@ import {
   withScope,
 } from '../../../src';
 import type { SpanLink } from '../../../src/types/link';
-import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types/span';
-import type { SpanStatus } from '../../../src/types/spanStatus';
+import type { Span, StreamedSpanJSON } from '../../../src/types/span';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
-import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
   addChildSpanToSpan,
   getActiveSpan,
@@ -42,47 +39,6 @@ import {
   updateSpanName,
 } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
-
-function createMockedOtelSpan({
-  spanId,
-  traceId,
-  isRemote,
-  attributes = {},
-  startTime = Date.now(),
-  name = 'test span',
-  status = { code: SPAN_STATUS_UNSET },
-  endTime = Date.now(),
-  parentSpanId,
-  links = undefined,
-}: {
-  spanId: string;
-  traceId: string;
-  attributes?: SpanAttributes;
-  startTime?: SpanTimeInput;
-  isRemote?: boolean;
-  name?: string;
-  status?: SpanStatus;
-  endTime?: SpanTimeInput;
-  parentSpanId?: string;
-  links?: SpanLink[];
-}): Span {
-  return {
-    spanContext: () => {
-      return {
-        spanId,
-        traceId,
-        isRemote,
-      };
-    },
-    attributes,
-    startTime,
-    name,
-    status,
-    endTime,
-    parentSpanId,
-    links,
-  } as OpenTelemetrySdkTraceBaseSpan;
-}
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -116,63 +72,6 @@ describe('spanToTraceContext', () => {
       span_id: '1234',
       trace_id: 'ABCD',
       parent_span_id: '5678',
-    });
-  });
-
-  it('works with a local OTEL span', () => {
-    const span = createMockedOtelSpan({
-      spanId: '1234',
-      traceId: 'ABCD',
-      isRemote: false,
-    });
-
-    expect(spanToTraceContext(span)).toEqual({
-      span_id: '1234',
-      trace_id: 'ABCD',
-    });
-  });
-
-  it('works with a local OTEL span with parentSpanId', () => {
-    const span = createMockedOtelSpan({
-      spanId: '1234',
-      traceId: 'ABCD',
-      isRemote: false,
-      parentSpanId: 'XYZ',
-    });
-
-    expect(spanToTraceContext(span)).toEqual({
-      parent_span_id: 'XYZ',
-      span_id: '1234',
-      trace_id: 'ABCD',
-    });
-  });
-
-  it('works with a remote OTEL span', () => {
-    const span = createMockedOtelSpan({
-      spanId: '1234',
-      traceId: 'ABCD',
-      isRemote: true,
-    });
-
-    expect(spanToTraceContext(span)).toEqual({
-      parent_span_id: '1234',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      trace_id: 'ABCD',
-    });
-  });
-
-  it('works with a remote OTEL span with parentSpanId', () => {
-    const span = createMockedOtelSpan({
-      spanId: '1234',
-      traceId: 'ABCD',
-      isRemote: true,
-      parentSpanId: 'XYZ',
-    });
-
-    expect(spanToTraceContext(span)).toEqual({
-      parent_span_id: '1234',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      trace_id: 'ABCD',
     });
   });
 });
@@ -369,64 +268,7 @@ describe('spanToStaticSpanJSON', () => {
     });
   });
 
-  describe('OpenTelemetry Span', () => {
-    it('works with a simple span', () => {
-      const span = createMockedOtelSpan({
-        spanId: 'SPAN-1',
-        traceId: 'TRACE-1',
-        name: 'test span',
-        startTime: 123,
-        endTime: [0, 0],
-        attributes: {},
-        status: { code: SPAN_STATUS_UNSET },
-      });
-
-      expect(spanToStaticSpanJSON(span)).toEqual({
-        span_id: 'SPAN-1',
-        trace_id: 'TRACE-1',
-        start_timestamp: 123,
-        description: 'test span',
-        data: {},
-        status: 'ok',
-      });
-    });
-
-    it('works with a full span', () => {
-      const span = createMockedOtelSpan({
-        spanId: 'SPAN-1',
-        traceId: 'TRACE-1',
-        name: 'test span',
-        startTime: 123,
-        endTime: 456,
-        attributes: {
-          attr1: 'value1',
-          attr2: 2,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
-        },
-        status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
-      });
-
-      expect(spanToStaticSpanJSON(span)).toEqual({
-        span_id: 'SPAN-1',
-        trace_id: 'TRACE-1',
-        start_timestamp: 123,
-        timestamp: 456,
-        description: 'test span',
-        op: 'test op',
-        origin: 'auto',
-        data: {
-          attr1: 'value1',
-          attr2: 2,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
-        },
-        status: 'unknown_error',
-      });
-    });
-  });
-
-  describe('spanToJSON', () => {
+  describe('spanToStreamedSpanJSON', () => {
     describe('SentrySpan', () => {
       it('converts a minimal span', () => {
         const span = new SentrySpan();
@@ -551,121 +393,6 @@ describe('spanToStaticSpanJSON', () => {
         expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('explicit message');
       });
     });
-    describe('OpenTelemetry Span', () => {
-      it('converts a simple span', () => {
-        const span = createMockedOtelSpan({
-          spanId: 'SPAN-1',
-          traceId: 'TRACE-1',
-          name: 'test span',
-          startTime: 123,
-          endTime: [0, 0],
-          attributes: {},
-          status: { code: SPAN_STATUS_UNSET },
-        });
-
-        expect(spanToJSON(span)).toEqual({
-          span_id: 'SPAN-1',
-          trace_id: 'TRACE-1',
-          parent_span_id: undefined,
-          start_timestamp: 123,
-          end_timestamp: undefined,
-          name: 'test span',
-          is_segment: true,
-          status: 'ok',
-          attributes: {},
-        });
-      });
-
-      it('converts a full span', () => {
-        const span = createMockedOtelSpan({
-          spanId: 'SPAN-1',
-          traceId: 'TRACE-1',
-          parentSpanId: 'PARENT-1',
-          name: 'test span',
-          startTime: 123,
-          endTime: 456,
-          attributes: {
-            attr1: 'value1',
-            attr2: 2,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
-          },
-          links: [
-            {
-              context: {
-                spanId: 'span1',
-                traceId: 'trace1',
-                traceFlags: TRACE_FLAG_SAMPLED,
-              },
-              attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
-              },
-            },
-          ],
-          status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
-        });
-
-        expect(spanToJSON(span)).toEqual({
-          span_id: 'SPAN-1',
-          trace_id: 'TRACE-1',
-          parent_span_id: 'PARENT-1',
-          start_timestamp: 123,
-          end_timestamp: 456,
-          name: 'test span',
-          is_segment: true,
-          status: 'error',
-          attributes: {
-            attr1: 'value1',
-            attr2: 2,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
-            [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: 'unknown_error',
-          },
-          links: [
-            {
-              span_id: 'span1',
-              trace_id: 'trace1',
-              sampled: true,
-              attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
-              },
-            },
-          ],
-        });
-      });
-
-      it('preserves a custom error status message as the sentry.status.message attribute', () => {
-        const span = createMockedOtelSpan({
-          spanId: 'SPAN-1',
-          traceId: 'TRACE-1',
-          name: 'test span',
-          startTime: 123,
-          endTime: 456,
-          attributes: {},
-          status: { code: SPAN_STATUS_ERROR, message: 'Connection Refused' },
-        });
-
-        const json = spanToJSON(span);
-        expect(json.status).toBe('error');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
-      });
-
-      it('does not set a status message for ok/unset spans', () => {
-        const span = createMockedOtelSpan({
-          spanId: 'SPAN-1',
-          traceId: 'TRACE-1',
-          name: 'test span',
-          startTime: 123,
-          endTime: 456,
-          attributes: {},
-          status: { code: SPAN_STATUS_UNSET },
-        });
-
-        const json = spanToJSON(span);
-        expect(json.status).toBe('ok');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
-      });
-    });
   });
 
   describe('streamedSpanJsonToSerializedSpan', () => {
@@ -778,14 +505,6 @@ describe('spanToJSON end_timestamp', () => {
 
     span.end();
     expect(spanToJSON(span).end_timestamp).toBeDefined();
-  });
-
-  test('OpenTelemetry span', () => {
-    const openSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: [0, 0] });
-    expect(spanToJSON(openSpan).end_timestamp).toBeUndefined();
-
-    const endedSpan = createMockedOtelSpan({ spanId: 'SPAN-1', traceId: 'TRACE-1', endTime: 456 });
-    expect(spanToJSON(endedSpan).end_timestamp).toBe(456);
   });
 
   test('SentryNonRecordingSpan', () => {
