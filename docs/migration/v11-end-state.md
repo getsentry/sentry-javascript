@@ -638,6 +638,8 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
 
+The `http.target` span attribute is no longer set. It held the pathname and the query string, which are now on `url.path` and `url.query`.
+
 #### Network attributes
 
 Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:
