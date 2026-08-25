@@ -12,13 +12,8 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
-  expressIntegration,
-  fastifyIntegration,
-  getAutoPerformanceIntegrations,
-  hapiIntegration,
   httpIntegration,
   init as initNode,
-  koaIntegration,
   modulesIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
@@ -30,6 +25,7 @@ import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
+import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 
 /**
  * The performance integrations for bun: the OTel auto-performance set, but with
@@ -44,7 +40,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
     return [];
   }
 
-  return getAutoPerformanceIntegrations();
+  return getTracingIntegrations();
 }
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
@@ -69,11 +65,8 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     modulesIntegration(),
     processSessionIntegration(),
     // Framework-level integrations. These are not performance-only: they also handle error capture, so
-    // they are added by default rather than gated behind tracing (matching the Node SDK).
-    expressIntegration(),
-    fastifyIntegration(),
-    hapiIntegration(),
-    koaIntegration(),
+    // they are added by default rather than gated behind tracing
+    ...getErrorIntegrations(),
     // Bun Specific
     bunServerIntegration(),
     bunHttpServerIntegration(),

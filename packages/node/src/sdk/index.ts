@@ -16,7 +16,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
-import { detectOrchestrionSetup, expressIntegration, hapiIntegration, koaIntegration } from '@sentry/server-utils';
+import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
@@ -32,7 +32,6 @@ import { onUnhandledRejectionIntegration } from '../integrations/onunhandledreje
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
-import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { workerThreadsIntegration } from '../integrations/workerThreads';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
@@ -41,7 +40,6 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
-import { fastifyIntegration } from '../integrations/tracing/fastify';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -71,10 +69,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     processSessionIntegration(),
     modulesIntegration(),
     // Framework-level integrations
-    expressIntegration(),
-    fastifyIntegration(),
-    hapiIntegration(),
-    koaIntegration(),
+    ...getErrorIntegrations(),
   ];
 }
 
@@ -89,10 +84,8 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
-    // We only add performance integrations if tracing is enabled
-    // Note that integrations like `httpIntegration` or `expressIntegration` are always added,
-    // because they also handle non-tracing related functionality.
-    ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    // We only add tracing-only integrations if tracing is enabled
+    ...(hasSpansEnabled(options) ? getTracingIntegrations() : []),
   ];
 }
 
