@@ -22,25 +22,21 @@
       }
     }
   },
-  "bin": {
-    "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
-  },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "publishConfig": {
     "access": "public"
   },
   "files": [
     "/build",
-    "package.json",
-    "/scripts/prune-profiler-binaries.js"
+    "package.json"
   ],
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "build": "yarn build:types && yarn build:transpile",
     "build:transpile": "yarn rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
@@ -53,7 +49,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@sentry/node-cpu-profiler": "^2.4.2",
+    "@sentry/node-cpu-profiler": "^2.4.3",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0"
   },

@@ -1,11 +1,10 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 7 so the `contextCaptureFunctions7` version branch is exercised against a real mongoose.
 describe('Mongoose v7 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -23,9 +22,9 @@ describe('Mongoose v7 Test', () => {
   const expectedSpan = (operation: string) =>
     expect.objectContaining({
       data: expect.objectContaining({
-        'db.mongodb.collection': 'blogposts',
-        'db.operation': operation,
-        'db.system': 'mongoose',
+        'db.collection.name': 'blogposts',
+        'db.operation.name': operation,
+        'db.system.name': 'mongoose',
       }),
       description: `mongoose.BlogPost.${operation}`,
       op: 'db',

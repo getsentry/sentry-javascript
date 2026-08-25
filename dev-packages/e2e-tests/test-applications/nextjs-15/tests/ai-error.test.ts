@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should create AI spans with correct attributes and error linking', async ({ page }) => {
+// FIXME: This app uses `ai@^3`, which the channel-based Vercel AI integration doesn't instrument
+// (it supports v4-v6 via the orchestrion transform and v7 via the native `ai:telemetry` channel).
+// With channel-based instrumentation now the default, no gen_ai spans are produced. Re-enable once
+// the app is upgraded to `ai@v7` (or v3 support is restored).
+test.fixme('should create AI spans with correct attributes and error linking', async ({ page }) => {
   const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === 'GET /ai-error-test';
   });
@@ -12,7 +16,7 @@ test('should create AI spans with correct attributes and error linking', async (
   );
 
   const errorEventPromise = waitForError('nextjs-15', async errorEvent => {
-    return errorEvent.exception?.values?.[0]?.value?.includes('Tool call failed');
+    return !!errorEvent.exception?.values?.[0]?.value?.includes('Tool call failed');
   });
 
   await page.goto('/ai-error-test');

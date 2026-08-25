@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { waitForStreamedSpan, waitForStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+
+// Streamed spans are flushed across multiple envelopes as they end, so the server-component child spans
+// can arrive in a different (earlier) envelope than the `is_segment` root span. Accumulate spans across
+// envelopes until the root span (which ends last) is seen.
+function collectSpanNamesUntilSegment(segmentName: string): Promise<string[]> {
+  return collectStreamedSpans('nextjs-16-streaming', spans =>
+    spans.some(span => span.name === segmentName && span.is_segment),
+  ).then(spans => spans.map(span => span.name));
+}
 
 test('Sends a streamed span for a request to app router with URL', async ({ page }) => {
   test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
@@ -22,14 +31,11 @@ test('Will create streamed spans for every server component and metadata generat
 }) => {
   test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
 
-  const spansPromise = waitForStreamedSpans('nextjs-16-streaming', spans => {
-    return spans.some(span => span.name === 'GET /nested-layout' && span.is_segment);
-  });
+  const spanNamesPromise = collectSpanNamesUntilSegment('GET /nested-layout');
 
   await page.goto('/nested-layout');
 
-  const spans = await spansPromise;
-  const spanNames = spans.map(span => span.name);
+  const spanNames = await spanNamesPromise;
 
   expect(spanNames).toContainEqual('render route (app) /nested-layout');
   expect(spanNames).toContainEqual('build component tree');
@@ -46,14 +52,11 @@ test('Will create streamed spans for every server component and metadata generat
 }) => {
   test.skip(isDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
 
-  const spansPromise = waitForStreamedSpans('nextjs-16-streaming', spans => {
-    return spans.some(span => span.name === 'GET /nested-layout/[dynamic]' && span.is_segment);
-  });
+  const spanNamesPromise = collectSpanNamesUntilSegment('GET /nested-layout/[dynamic]');
 
   await page.goto('/nested-layout/123');
 
-  const spans = await spansPromise;
-  const spanNames = spans.map(span => span.name);
+  const spanNames = await spanNamesPromise;
 
   expect(spanNames).toContainEqual('resolve page components');
   expect(spanNames).toContainEqual('render route (app) /nested-layout/[dynamic]');

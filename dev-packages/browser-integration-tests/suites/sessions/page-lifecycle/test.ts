@@ -19,6 +19,7 @@ sentryTest('starts a session on pageload with page lifecycle (default).', async 
   expect(session).toEqual({
     attrs: {
       environment: 'production',
+      ip_address: '{{auto}}',
       release: '0.1',
       user_agent: expect.any(String),
     },

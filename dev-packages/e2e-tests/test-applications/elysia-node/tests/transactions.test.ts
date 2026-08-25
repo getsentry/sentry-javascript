@@ -132,7 +132,7 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'Handle',
-      op: 'request_handler.elysia',
+      op: 'handler',
       origin: 'auto.http.elysia',
     }),
   );
@@ -181,7 +181,7 @@ test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, 
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'BeforeHandle',
-      op: 'middleware.elysia',
+      op: 'middleware',
       origin: 'auto.http.elysia',
     }),
   );

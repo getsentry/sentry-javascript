@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
-  dataCollection: { userInfo: true },
   integrations: [
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['nextjs-16-bun-e2e'],

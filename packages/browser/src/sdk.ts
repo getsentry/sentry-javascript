@@ -2,9 +2,9 @@ import type { Client, Integration, Options } from '@sentry/core/browser';
 import {
   conversationIdIntegration,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
-  inboundFiltersIntegration,
   initAndBind,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
@@ -31,9 +31,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
   return [
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     browserApiErrorsIntegration(),
@@ -110,14 +108,16 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   }
   /*! rollup-include-development-only-end */
 
+  const integrations = getIntegrationsToSetup({
+    integrations: options.integrations,
+    defaultIntegrations,
+  });
+
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup({
-      integrations: options.integrations,
-      defaultIntegrations,
-    }),
+    integrations,
     transport: options.transport || makeFetchTransport,
   };
 

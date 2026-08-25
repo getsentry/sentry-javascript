@@ -22,7 +22,7 @@ import {
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
 } from './utils';
-import { URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -49,12 +49,14 @@ export function instrumentHydratedRouter(): void {
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
-        const pageloadName = spanToJSON(pageloadSpan).description;
+        // Matched against `url.path` rather than the span name: with span streaming, the pageload
+        // span is named `Pageload` until a route is resolved, so the name may not hold the pathname.
+        const pageloadPath = spanToJSON(pageloadSpan).attributes[URL_PATH];
         const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
-          pageloadName &&
+          typeof pageloadPath === 'string' &&
           // this event is for the currently active pageload
-          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName)
+          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
           pageloadSpan.updateName(parameterizePageloadRoute);
           pageloadSpan.setAttributes({
@@ -126,20 +128,21 @@ export function instrumentHydratedRouter(): void {
         }
 
         const rootSpanJson = spanToJSON(rootSpan);
+        const rootSpanAttributes = rootSpanJson.attributes;
 
         // When the instrumentation API is active, navigation roots are parameterized
         // by the native route hooks
         if (
-          rootSpanJson.op === 'navigation' &&
+          rootSpanAttributes[SENTRY_OP] === 'navigation' &&
           isClientInstrumentationApiUsed() &&
-          rootSpanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
+          rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
         ) {
           return;
         }
 
-        const rootSpanName = rootSpanJson.description;
+        const rootSpanName = rootSpanJson.name;
         const parameterizedRoute = getParameterizedRoute(newState);
-        const spanPathname = rootSpanJson.data?.[URL_PATH] as string | undefined;
+        const spanPathname = rootSpanAttributes[URL_PATH] as string | undefined;
         const destinationPathname = normalizePathname(newState.location.pathname);
 
         if (
@@ -150,7 +153,10 @@ export function instrumentHydratedRouter(): void {
             (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
           rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [URL_TEMPLATE]: parameterizedRoute,
+          });
         }
       });
       return true;
@@ -204,7 +210,7 @@ function getActiveRootSpan(): Span | undefined {
 
   const rootSpan = getRootSpan(activeSpan);
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

@@ -1,24 +1,16 @@
-import { addBreadcrumb, captureException, getClient, withIsolationScope, withScope } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
+import { addBreadcrumb, captureException, startSpan, withIsolationScope, withScope } from '@sentry/core';
+import { describe, expect, it, vi } from 'vitest';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
   const beforeSendTransaction = vi.fn(() => null);
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
 
   describe('without tracing', () => {
     it('correctly adds & retrieves breadcrumbs', async () => {
       const beforeSend = vi.fn(() => null);
       const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-      mockSdkInit({ beforeSend, beforeBreadcrumb });
-
-      const client = getClient() as TestClientInterface;
+      const client = mockSdkInit({ beforeSend, beforeBreadcrumb });
 
       addBreadcrumb({ timestamp: 123456, message: 'test1' });
       addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
@@ -52,9 +44,7 @@ describe('Integration | breadcrumbs', () => {
       const beforeSend = vi.fn(() => null);
       const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-      mockSdkInit({ beforeSend, beforeBreadcrumb });
-
-      const client = getClient() as TestClientInterface;
+      const client = mockSdkInit({ beforeSend, beforeBreadcrumb });
 
       const error = new Error('test');
 
@@ -98,9 +88,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
 
@@ -143,9 +131,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
 
@@ -195,9 +181,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
 
@@ -236,9 +220,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
 
@@ -294,9 +276,7 @@ describe('Integration | breadcrumbs', () => {
     const beforeSend = vi.fn(() => null);
     const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
 
-    mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
-
-    const client = getClient() as TestClientInterface;
+    const client = mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, tracesSampleRate: 1 });
 
     const error = new Error('test');
 

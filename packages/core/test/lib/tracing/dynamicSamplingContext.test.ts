@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   getClient,
+  registerExternalPropagationContext,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
@@ -12,8 +13,8 @@ import {
   SentryNonRecordingSpan,
   SentrySpan,
   setCapturedScopesOnSpan,
-  startInactiveSpan,
 } from '../../../src/tracing';
+import { startInactiveSpan } from '../../../src/tracing/trace';
 import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';
@@ -218,6 +219,31 @@ describe('getDynamicSamplingContextFromSpan', () => {
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
+  });
+
+  it('derives the DSC from the span when an external propagation context is active', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: undefined, release: '1.0.1' });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // The scope yields no DSC while riding an external (e.g. OpenTelemetry) trace, but a Sentry span
+    // means we are head of its trace, so the DSC comes from the span rather than being left empty.
+    registerExternalPropagationContext(() => ({
+      traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      spanId: 'bbbbbbbbbbbbbbbb',
+    }));
+
+    try {
+      const rootSpan = new SentryNonRecordingSpan({ traceId: 'cccccccccccccccccccccccccccccccc' });
+      setCapturedScopesOnSpan(rootSpan, new Scope(), new Scope());
+
+      expect(getDynamicSamplingContextFromSpan(rootSpan)).toMatchObject({
+        trace_id: 'cccccccccccccccccccccccccccccccc',
+      });
+    } finally {
+      registerExternalPropagationContext(() => undefined);
+    }
   });
 });
 

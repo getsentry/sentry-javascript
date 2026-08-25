@@ -41,22 +41,21 @@ test.describe('server - instrumentation API lazy loading', () => {
     });
 
     // Find the lazy span
-    const lazySpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.lazy',
-    );
+    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
 
     expect(lazySpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react_router.lazy',
+        'sentry.op': 'function',
+        'code.function.name': 'lazy',
       },
       description: 'Lazy Route Load',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      op: 'function.react_router.lazy',
+      op: 'function',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
@@ -71,19 +70,18 @@ test.describe('server - instrumentation API lazy loading', () => {
     const transaction = await txPromise;
 
     // Find the loader span that runs after lazy loading
-    const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react_router.loader',
+        'sentry.op': 'function',
+        'code.function.name': 'loader',
       },
       description: '/performance/lazy-route',
-      op: 'function.react_router.loader',
+      op: 'function',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
@@ -97,13 +95,9 @@ test.describe('server - instrumentation API lazy loading', () => {
 
     const transaction = await txPromise;
 
-    const lazySpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.lazy',
-    );
+    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
 
-    const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.loader',
-    );
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(lazySpan).toBeDefined();
     expect(loaderSpan).toBeDefined();

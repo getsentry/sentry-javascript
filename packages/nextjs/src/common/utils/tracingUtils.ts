@@ -1,20 +1,8 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
-import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
-import {
-  isObjectLike,
-  debug,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  GLOBAL_OBJ,
-  Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
-  startNewTrace,
-} from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
+import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
+import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
 
@@ -68,74 +56,12 @@ export function commonObjectToIsolationScope(commonObject: unknown): Scope {
   }
 }
 
-interface AsyncLocalStorage<T> {
-  getStore(): T | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
-}
-
-let nextjsEscapedAsyncStorage: AsyncLocalStorage<true>;
-
-/**
- * Will mark the execution context of the callback as "escaped" from Next.js internal tracing by unsetting the active
- * span and propagation context. When an execution passes through this function multiple times, it is a noop after the
- * first time.
- */
-export function escapeNextjsTracing<T>(cb: () => T): T {
-  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as { AsyncLocalStorage?: new () => AsyncLocalStorage<true> })
-    .AsyncLocalStorage;
-
-  if (!MaybeGlobalAsyncLocalStorage) {
-    DEBUG_BUILD &&
-      debug.warn(
-        "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
-      );
-    return cb();
-  }
-
-  if (!nextjsEscapedAsyncStorage) {
-    nextjsEscapedAsyncStorage = new MaybeGlobalAsyncLocalStorage();
-  }
-
-  if (nextjsEscapedAsyncStorage.getStore()) {
-    return cb();
-  } else {
-    return startNewTrace(() => {
-      return nextjsEscapedAsyncStorage.run(true, () => {
-        return cb();
-      });
-    });
-  }
-}
-
-/**
- * Ideally this function never lands in the develop branch.
- *
- * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
- */
-export function dropNextjsRootContext(): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
-  // mutate their spans with Sentry-internal attributes like `sentry.drop_transaction`
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
-    return;
-  }
-
-  const nextJsOwnedSpan = getActiveSpan();
-  if (nextJsOwnedSpan) {
-    const rootSpan = getRootSpan(nextJsOwnedSpan);
-    const rootSpanAttributes = spanToJSON(rootSpan).data;
-    if (rootSpanAttributes?.['next.span_type']) {
-      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
-    }
-  }
-}
-
 /**
  * Checks if the span is a resolve segment span.
  * @param spanAttributes The attributes of the span to check.
  * @returns True if the span is a resolve segment span, false otherwise.
  */
-export function isResolveSegmentSpan(spanAttributes: SpanAttributes): boolean {
+export function isResolveSegmentSpan(spanAttributes: RawAttributes<Record<string, unknown>>): boolean {
   return (
     spanAttributes[ATTR_NEXT_SPAN_TYPE] === 'NextNodeServer.getLayoutOrPageModule' &&
     spanAttributes[ATTR_NEXT_SPAN_NAME] === 'resolve segment modules' &&
@@ -170,8 +96,8 @@ export function getEnhancedResolveSegmentSpanName({ segment, route }: { segment:
  */
 export function maybeEnhanceServerComponentSpanName(
   activeSpan: Span,
-  spanAttributes: SpanAttributes,
-  rootSpanAttributes: SpanAttributes,
+  spanAttributes: RawAttributes<Record<string, unknown>>,
+  rootSpanAttributes: RawAttributes<Record<string, unknown>>,
 ): void {
   if (!isResolveSegmentSpan(spanAttributes)) {
     return;
@@ -183,7 +109,8 @@ export function maybeEnhanceServerComponentSpanName(
   activeSpan.updateName(enhancedName);
   activeSpan.setAttributes({
     'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
-    'sentry.nextjs.ssr.function.route': route,
+    'sentry.nextjs.ssr.function.route': route as string | undefined,
+    [SENTRY_OP]: FUNCTION,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   });
-  activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.nextjs');
 }

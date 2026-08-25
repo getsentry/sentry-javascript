@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -41,6 +41,11 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       }
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "publishConfig": {
@@ -58,8 +63,9 @@
   "dependencies": {
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.16.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0",
     "@sentry/svelte": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
     "@sveltejs/acorn-typescript": "^1.0.9",
@@ -68,7 +74,7 @@
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
     "vite": "^6.4.3"
@@ -84,8 +90,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-sveltekit-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

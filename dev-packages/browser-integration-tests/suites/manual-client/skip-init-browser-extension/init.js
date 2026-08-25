@@ -6,5 +6,6 @@ window.Sentry = Sentry;
 window.browser = { runtime: { id: 'mock-extension-id' } };
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 });

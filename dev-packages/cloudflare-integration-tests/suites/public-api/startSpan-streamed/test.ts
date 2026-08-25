@@ -240,7 +240,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'http.request.header.cf_connecting_ip': {
             type: 'string',
-            value: '[Filtered]',
+            value: '127.0.0.1',
+          },
+          'user.ip_address': {
+            type: 'string',
+            value: '127.0.0.1',
           },
           'http.request.header.host': {
             type: 'string',
@@ -272,7 +276,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'network.protocol.name': {
             type: 'string',
-            value: 'HTTP/1.1',
+            value: 'http',
+          },
+          'network.protocol.version': {
+            type: 'string',
+            value: '1.1',
           },
         },
         is_segment: true,

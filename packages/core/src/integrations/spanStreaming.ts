@@ -1,33 +1,21 @@
 import type { IntegrationFn } from '../types/integration';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import { isStreamedBeforeSendSpanCallback } from '../tracing/spans/beforeSendSpan';
 import { captureSpan } from '../tracing/spans/captureSpan';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { SpanBuffer } from '../tracing/spans/spanBuffer';
 import { debug } from '../utils/debug-logger';
 import { spanIsSampled } from '../utils/spanUtils';
 
+export const INTEGRATION_NAME = 'SpanStreaming' as const;
+
 export const spanStreamingIntegration = defineIntegration(() => {
   return {
-    name: 'SpanStreaming' as const,
+    name: INTEGRATION_NAME,
 
     setup(client) {
-      const initialMessage = 'SpanStreaming integration requires';
-      const fallbackMsg = 'Falling back to static trace lifecycle.';
-      const clientOptions = client.getOptions();
-
       if (!hasSpanStreamingEnabled(client)) {
-        clientOptions.traceLifecycle = 'static';
-        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "stream"! ${fallbackMsg}`);
-        return;
-      }
-
-      const beforeSendSpan = clientOptions.beforeSendSpan;
-      if (beforeSendSpan && !isStreamedBeforeSendSpanCallback(beforeSendSpan)) {
-        clientOptions.traceLifecycle = 'static';
-        DEBUG_BUILD &&
-          debug.warn(`${initialMessage} a beforeSendSpan callback using \`withStreamedSpan\`! ${fallbackMsg}`);
+        DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] \`traceLifecycle\` is "static", skipping setup.`);
         return;
       }
 
@@ -38,6 +26,12 @@ export const spanStreamingIntegration = defineIntegration(() => {
           return;
         }
         buffer.add(captureSpan(span, client));
+      });
+
+      // Lets runtimes flush a single trace eagerly (e.g. the Cloudflare SDK draining
+      // a trace the moment its segment ends), without exposing the buffer itself.
+      client.on('flushTraceSpans', traceId => {
+        buffer.flush(traceId);
       });
     },
   };

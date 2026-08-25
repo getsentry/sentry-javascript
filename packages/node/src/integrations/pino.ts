@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { Integration, IntegrationFn, LogSeverityLevel } from '@sentry/core';
+import type { IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
   addExceptionMechanism,
@@ -79,8 +79,7 @@ type PinoOptions = {
    */
   log: {
     /**
-     * Levels that trigger capturing of logs. Logs are only captured if
-     * `enableLogs` is enabled.
+     * Levels that trigger capturing of logs.
      *
      * @default ["trace", "debug", "info", "warn", "error", "fatal"]
      */
@@ -125,9 +124,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
   return {
     name: 'Pino',
-    setup: client => {
-      const enableLogs = !!client.getOptions().enableLogs;
-
+    setup: () => {
       const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
@@ -142,7 +139,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         const messageKey = getPinoKey(self, 'pino.messageKey', 'msg');
         const logMessage = message || (resultObj?.[messageKey] as string | undefined) || '';
 
-        if (enableLogs && options.log.levels.includes(level)) {
+        if (options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
             ...resultObj,
             'sentry.origin': 'auto.log.pino',
@@ -208,22 +205,6 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
   };
 }) satisfies IntegrationFn;
 
-interface PinoIntegrationFunction {
-  (userOptions?: DeepPartial<PinoOptions>): Integration;
-  /**
-   * Marks a Pino logger to be tracked by the Pino integration.
-   *
-   * @param logger A Pino logger instance.
-   */
-  trackLogger(logger: unknown): void;
-  /**
-   * Marks a Pino logger to be ignored by the Pino integration.
-   *
-   * @param logger A Pino logger instance.
-   */
-  untrackLogger(logger: unknown): void;
-}
-
 /**
  * Integration for Pino logging library.
  * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
@@ -232,7 +213,7 @@ interface PinoIntegrationFunction {
  *
  * If you disable automatic instrumentation with `autoInstrument: false`, you can mark specific loggers to be tracked with `pinoIntegration.trackLogger(logger)`.
  *
- * Requires Pino >=v8.0.0 and Node >=20.6.0 or >=18.19.0
+ * Requires Pino >=v8.0.0
  */
 export const pinoIntegration = Object.assign(_pinoIntegration, {
   trackLogger(logger: unknown): void {
@@ -245,4 +226,4 @@ export const pinoIntegration = Object.assign(_pinoIntegration, {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }
   },
-}) as PinoIntegrationFunction;
+});

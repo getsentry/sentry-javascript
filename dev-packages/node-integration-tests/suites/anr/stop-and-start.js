@@ -7,6 +7,7 @@ setTimeout(() => {
 const anr = Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 });
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   debug: true,

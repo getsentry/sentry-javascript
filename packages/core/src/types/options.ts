@@ -66,12 +66,6 @@ export interface ServerRuntimeOptions {
   includeServerName?: boolean;
 
   /**
-   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
-   * If you want to disable these warnings, set this to `true`.
-   */
-  disableInstrumentationWarnings?: boolean;
-
-  /**
    * Controls how many milliseconds to wait before shutting down. The default is 2 seconds. Setting this too low can cause
    * problems for sending events from command line applications. Setting it too
    * high can cause the application to block for users with network connectivity
@@ -83,17 +77,6 @@ export interface ServerRuntimeOptions {
    * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
    */
   clientReportFlushInterval?: number;
-
-  /**
-   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
-   * The SDK will automatically clean up spans that have no finished parent after this duration.
-   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
-   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
-   * In this case, you can increase this duration to a value that fits your expected data.
-   *
-   * Defaults to 300 seconds (5 minutes).
-   */
-  maxSpanWaitDuration?: number;
 
   /**
    * Callback that is executed when a fatal global error occurs.
@@ -182,12 +165,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enabled?: boolean;
 
   /**
-   * When enabled, stack traces are automatically attached to all events captured with `Sentry.captureMessage`.
+   * Stack traces are automatically attached to events that don't otherwise have one. This applies
+   * to events captured with `Sentry.captureMessage` and to non-Error values passed to
+   * `Sentry.captureException`. Set this to `false` to disable attaching these stack traces.
    *
    * Grouping in Sentry is different for events with stack traces and without. As a result, you will get
    * new groups as you enable or disable this flag for certain events.
    *
-   * @default false
+   * @default true
    */
   attachStacktrace?: boolean;
 
@@ -352,10 +337,19 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * A pattern for transaction names which should not be sent to Sentry.
    * By default, all transactions will be sent.
    *
+   * Important: This option is ignored by default! It only has an effect if {@link traceLifecycle} is set to `'static'`.
+   * Use {@link ignoreSpans} instead, which works with both trace lifecycles.
+   *
    * Behavior of the `ignoreTransactions` option is controlled by the `Sentry.eventFiltersIntegration` integration.
    * If the event filters integration is not installed, the `ignoreTransactions` option will not have any effect.
    *
    * @default []
+   *
+   * @deprecated This option only has an effect if {@link traceLifecycle} is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it. Use {@link ignoreSpans} instead, which works with both
+   * trace lifecycles. `ignoreTransactions` will be removed in v12.
+   *
+   * @see {@link ClientOptions.ignoreSpans}
    */
   ignoreTransactions?: Array<string | RegExp>;
 
@@ -380,26 +374,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Controls if potentially sensitive data should be sent to Sentry by default.
-   * Note that this only applies to data that the SDK is sending by default
-   * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
-   *
-   * @default false
-   *
-   * @deprecated Use the {@link ClientOptions.dataCollection} option instead, which lets you control
-   * each category of collected data individually. `sendDefaultPii` will be removed in the next major
-   * version (v11). For backwards compatibility, setting `sendDefaultPii: true` currently behaves like
-   * enabling all `dataCollection` categories. If both `sendDefaultPii` and `dataCollection` are set,
-   * `sendDefaultPii` will be ignored.
-   */
-  sendDefaultPii?: boolean;
-
-  /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
    *
-   * This replaces the deprecated {@link ClientOptions.sendDefaultPii} option and lets you control
-   * each category of collected data (user info, cookies, headers, query params, request/response
+   * Configure each category of collected data (user info, cookies, headers, query params, request/response
    * bodies, gen AI inputs/outputs, etc.) individually.
    */
   dataCollection?: DataCollection;
@@ -433,39 +411,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   _experiments?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
-
-    /**
-     * If metrics support should be enabled.
-     *
-     * @default false
-     * @experimental
-     * @deprecated Use the top level`enableMetrics` option instead.
-     */
-    enableMetrics?: boolean;
-
-    /**
-     * An event-processing callback for metrics, guaranteed to be invoked after all other metric
-     * processors. This allows a metric to be modified or dropped before it's sent.
-     *
-     * Note that you must return a valid metric from this callback. If you do not wish to modify the metric, simply return
-     * it at the end. Returning `null` will cause the metric to be dropped.
-     *
-     * @default undefined
-     * @experimental
-     *
-     * @param metric The metric generated by the SDK.
-     * @returns A new metric that will be sent | null.
-     * @deprecated Use the top level`beforeSendMetric` option instead.
-     */
-    beforeSendMetric?: (metric: Metric) => Metric | null;
-
-    /**
-     * Determines if logs support should be enabled.
-     *
-     * @default false
-     * @deprecated Use the top level `enableLogs` option instead.
-     */
-    enableLogs?: boolean;
   };
 
   /**
@@ -552,7 +497,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete,
    * or streamed in batches, following interval- and action-based triggers.
    *
-   * @default 'static'
+   * @default 'stream'
    */
   traceLifecycle?: 'static' | 'stream';
 
@@ -563,27 +508,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * you can provide the ID with this option. The organization ID is used for trace propagation and for features like `strictTraceContinuation`.
    */
   orgId?: `${number}` | number;
-
-  /**
-   * Unless set to `false`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
-   *
-   * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
-   *
-   * Because the v2 span format is not subject to the transaction payload-size limits that gen_ai message
-   * truncation exists to work around, this also disables gen_ai input truncation by default. Set
-   * `enableTruncation: true` on the respective AI integration to opt back into truncation, or set this
-   * option to `false` to send gen_ai spans as part of the transaction (which re-enables truncation by default).
-   *
-   * @default true
-   */
-  streamGenAiSpans?: boolean;
-
-  /**
-   * If logs support should be enabled.
-   *
-   * @default false
-   */
-  enableLogs?: boolean;
 
   /**
    * An event-processing callback for logs, guaranteed to be invoked after all other log
@@ -598,13 +522,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @returns A new log that will be sent | null.
    */
   beforeSendLog?: (log: Log) => Log | null;
-
-  /**
-   * If metrics support should be enabled.
-   *
-   * @default true
-   */
-  enableMetrics?: boolean;
 
   /**
    * Interval in ms for the idle flush timer used by logs and metrics.
@@ -659,27 +576,38 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<ErrorEvent | null> | ErrorEvent | null;
 
   /**
-   * This function can be defined to modify a child span before it's sent.
+   * This function can be defined to modify a span before it's sent.
    *
-   * When using `traceLifecycle: 'stream'`, wrap your callback with {@link withStreamedSpan}
-   * to receive and return {@link StreamedSpanJSON} instead.
+   * The callback receives and returns a {@link StreamedSpanJSON}, matching the default
+   * `traceLifecycle: 'stream'`. When using `traceLifecycle: 'static'`, wrap your callback with
+   * {@link withStaticSpan} to receive and return a {@link SpanJSON} instead.
+   *
+   * A callback that doesn't match the configured `traceLifecycle` is never invoked.
    *
    * @param span The span generated by the SDK.
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: ((span: SpanJSON) => SpanJSON) & { _streamed?: true };
+  beforeSendSpan?: BeforeSendStreamedSpanCallback;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
    * processors. This allows an event to be modified or dropped before it's sent.
    *
+   * Important: This callback is ignored by default! It only runs if {@link traceLifecycle} is set to `'static'`.
+   *
    * Note that you must return a valid event from this callback. If you do not wish to modify the event, simply return
    * it at the end. Returning `null` will cause the event to be dropped.
    *
-   * @param event The error or message event generated by the SDK.
+   * @param event The transaction event generated by the SDK.
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
+   *
+   * @deprecated This option only has an effect if {@link traceLifecycle} is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it. Use {@link beforeSendSpan} instead, which works with both
+   * trace lifecycles. `beforeSendTransaction` will be removed in v12 of the SDK.
+   *
+   * @see {@link ClientOptions.beforeSendSpan}
    */
   beforeSendTransaction?: (
     event: TransactionEvent,
@@ -705,13 +633,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
  *
  * @see {@link StreamedSpanJSON} for the streamed span format used with `traceLifecycle: 'stream'`
  */
-export type BeforeSendStreamedSpanCallback = ((span: StreamedSpanJSON) => StreamedSpanJSON) & {
-  /**
-   * When true, indicates this callback is designed to handle the {@link StreamedSpanJSON} format
-   * used with `traceLifecycle: 'stream'`. Set this by wrapping your callback with `withStreamedSpan`.
-   */
-  _streamed?: true;
-};
+export type BeforeSendStreamedSpanCallback = (span: StreamedSpanJSON) => StreamedSpanJSON;
+
+/**
+ * A callback for processing spans sent as part of transaction events.
+ *
+ * Pass this to {@link withStaticSpan} rather than to `beforeSendSpan` directly.
+ *
+ * @see {@link SpanJSON} for the static span format used with `traceLifecycle: 'static'`
+ */
+export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<

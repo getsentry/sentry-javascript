@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('koa auto-instrumentation', () => {
@@ -7,11 +6,7 @@ describe('koa auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  // `createEsmAndCjsTests` auto-runs this suite with orchestrion on CI. The
-  // orchestrion path keeps span ops/attributes identical to the OTel path; only
-  // the origin differs to signal the injection mechanism, so we branch on
-  // `isOrchestrionEnabled()`.
-  const origin = isOrchestrionEnabled() ? 'auto.http.orchestrion.koa' : 'auto.http.otel.koa';
+  const origin = 'auto.http.koa';
 
   const EXPECTED_ERROR_EVENT = {
     exception: {
@@ -34,26 +29,26 @@ describe('koa auto-instrumentation', () => {
               // Router layer span (from `@koa/router`), carrying the matched route.
               expect.objectContaining({
                 description: '/',
-                op: 'router.koa',
+                op: 'router',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/',
                   'koa.type': 'router',
                   'koa.name': '/',
-                  'sentry.op': 'router.koa',
+                  'sentry.op': 'router',
                   'sentry.origin': origin,
                 }),
               }),
               // Plain middleware span.
               expect.objectContaining({
                 description: 'simpleMiddleware',
-                op: 'middleware.koa',
+                op: 'middleware',
                 origin,
                 data: expect.objectContaining({
                   'koa.type': 'middleware',
                   'koa.name': 'simpleMiddleware',
                   'code.function.name': 'simpleMiddleware',
-                  'sentry.op': 'middleware.koa',
+                  'sentry.op': 'middleware',
                   'sentry.origin': origin,
                 }),
               }),
@@ -73,13 +68,13 @@ describe('koa auto-instrumentation', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 description: '/test-param/:id',
-                op: 'router.koa',
+                op: 'router',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/test-param/:id',
                   'koa.type': 'router',
                   'koa.name': '/test-param/:id',
-                  'sentry.op': 'router.koa',
+                  'sentry.op': 'router',
                   'sentry.origin': origin,
                 }),
               }),

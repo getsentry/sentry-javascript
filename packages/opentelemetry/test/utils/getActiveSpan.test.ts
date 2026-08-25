@@ -1,34 +1,16 @@
-import { trace } from '@opentelemetry/api';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { getRootSpan } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { context, trace } from '@opentelemetry/api';
+import { getRootSpan, Scope } from '@sentry/core';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { setContextOnScope } from '../../src/utils/contextData';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
-import { setupOtel } from '../helpers/initOtel';
-import { cleanupOtel } from '../helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('getActiveSpan', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions());
-    [provider] = setupOtel(client);
-  });
-
-  afterEach(() => {
-    cleanupOtel(provider);
+    mockSdkInit();
   });
 
   it('returns undefined if no span is active', () => {
-    const span = getActiveSpan();
-    expect(span).toBeUndefined();
-  });
-
-  it('returns undefined if no provider is active', async () => {
-    await provider?.forceFlush();
-    await provider?.shutdown();
-    provider = undefined;
-
     const span = getActiveSpan();
     expect(span).toBeUndefined();
   });
@@ -90,19 +72,66 @@ describe('getActiveSpan', () => {
 
     expect(getActiveSpan()).toBeUndefined();
   });
+
+  describe('with a scope argument', () => {
+    it('returns the span of the context bound to the passed-in scope', () => {
+      const tracer = trace.getTracer('test');
+
+      tracer.startActiveSpan('scope-span', span => {
+        const ctx = trace.setSpan(context.active(), span);
+        const scope = new Scope();
+        setContextOnScope(scope, ctx);
+
+        expect(getActiveSpan(scope)).toBe(span);
+
+        span.end();
+      });
+    });
+
+    it('reads the span from the passed-in scope instead of the currently active context', () => {
+      const tracer = trace.getTracer('test');
+
+      tracer.startActiveSpan('scope-span', scopeSpan => {
+        const scopedCtx = trace.setSpan(context.active(), scopeSpan);
+        const scope = new Scope();
+        setContextOnScope(scope, scopedCtx);
+
+        scopeSpan.end();
+
+        tracer.startActiveSpan('active-span', activeSpan => {
+          // The active context has `activeSpan`, but the passed-in scope points at `scopeSpan`
+          expect(getActiveSpan()).toBe(activeSpan);
+          expect(getActiveSpan(scope)).toBe(scopeSpan);
+
+          activeSpan.end();
+        });
+      });
+    });
+
+    it('returns undefined if the passed-in scope has no context bound to it', () => {
+      const scope = new Scope();
+
+      const tracer = trace.getTracer('test');
+      tracer.startActiveSpan('active-span', span => {
+        // A scope without a bound context must not fall back to the active context
+        expect(getActiveSpan(scope)).toBeUndefined();
+
+        span.end();
+      });
+    });
+
+    it('returns undefined if the context bound to the passed-in scope has no span', () => {
+      const scope = new Scope();
+      setContextOnScope(scope, context.active());
+
+      expect(getActiveSpan(scope)).toBeUndefined();
+    });
+  });
 });
 
 describe('getRootSpan', () => {
-  let provider: BasicTracerProvider | undefined;
-
   beforeEach(() => {
-    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    [provider] = setupOtel(client);
-  });
-
-  afterEach(async () => {
-    await provider?.forceFlush();
-    await provider?.shutdown();
+    mockSdkInit();
   });
 
   it('returns currently active root span', () => {

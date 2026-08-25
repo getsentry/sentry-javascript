@@ -18,13 +18,12 @@ import { MockLanguageModelV1 } from 'ai/test';
 import { z } from 'zod';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa',
   dsn: Deno.env.get('E2E_TEST_DSN'),
   debug: !!Deno.env.get('DEBUG'),
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1,
-  dataCollection: { userInfo: true },
-  enableLogs: true,
 });
 
 const port = 3030;

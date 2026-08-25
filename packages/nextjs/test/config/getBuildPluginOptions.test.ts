@@ -813,24 +813,18 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
-    it('merges webpack plugin release options correctly', () => {
+    it('passes release options through to the plugin', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
         release: {
           create: true,
           vcsRemote: 'origin',
-        },
-        webpack: {
-          unstable_sentryWebpackPluginOptions: {
-            release: {
-              setCommits: {
-                auto: true,
-              },
-              deploy: {
-                env: 'production',
-              },
-            },
+          setCommits: {
+            auto: true,
+          },
+          deploy: {
+            env: 'production',
           },
         },
       };
@@ -842,14 +836,89 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // The webpack.unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
       expect(result.release).toHaveProperty('setCommits.auto', true);
       expect(result.release).toHaveProperty('deploy.env', 'production');
+      expect(result.release).toHaveProperty('vcsRemote', 'origin');
     });
   });
 
   describe('react component annotation', () => {
-    it('merges react component annotation options correctly for webpack builds', () => {
+    it('forwards the top-level option to the webpack plugin', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        reactComponentAnnotation: {
+          enabled: true,
+          ignoredComponents: ['Header'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.reactComponentAnnotation).toEqual({
+        enabled: true,
+        ignoredComponents: ['Header'],
+      });
+    });
+
+    it('lets the deprecated webpack-scoped option override the top-level one', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        reactComponentAnnotation: {
+          enabled: true,
+          ignoredComponents: ['TopLevel'],
+        },
+        webpack: {
+          reactComponentAnnotation: {
+            ignoredComponents: ['Scoped'],
+          },
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      // Merged field-wise: `enabled` comes from the top level, `ignoredComponents` from the scoped option
+      expect(result.reactComponentAnnotation).toEqual({
+        enabled: true,
+        ignoredComponents: ['Scoped'],
+      });
+    });
+
+    it('passes react component annotation options through for webpack builds', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        webpack: {
+          reactComponentAnnotation: {
+            enabled: true,
+            ignoredComponents: ['MyComponent'],
+          },
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.reactComponentAnnotation).toHaveProperty('enabled', true);
+      expect(result.reactComponentAnnotation).toHaveProperty('ignoredComponents', ['MyComponent']);
+    });
+
+    it('sets react component annotation to undefined for after-production-compile builds', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
@@ -857,31 +926,6 @@ describe('getBuildPluginOptions', () => {
           reactComponentAnnotation: {
             enabled: true,
           },
-          unstable_sentryWebpackPluginOptions: {
-            reactComponentAnnotation: {
-              enabled: false, // This will override the base setting
-            },
-          },
-        },
-      };
-
-      const result = getBuildPluginOptions({
-        sentryBuildOptions,
-        releaseName: mockReleaseName,
-        distDirAbsPath: mockDistDirAbsPath,
-        buildTool: 'webpack-client',
-      });
-
-      // The unstable options override the base options - in this case enabled should be false
-      expect(result.reactComponentAnnotation).toHaveProperty('enabled', false);
-    });
-
-    it('sets react component annotation to undefined for after-production-compile builds', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        reactComponentAnnotation: {
-          enabled: true,
         },
       };
 
@@ -943,17 +987,16 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
-    it('merges unstable webpack plugin options correctly', () => {
+    it('passes top-level applicationKey, moduleMetadata and sourcemaps through to the plugin', () => {
+      const resolveSourceMap = (artifactPath: string): string => `${artifactPath}.map`;
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        webpack: {
-          unstable_sentryWebpackPluginOptions: {
-            applicationKey: 'test-app-key',
-            sourcemaps: {
-              disable: false,
-            },
-          },
+        applicationKey: 'test-app-key',
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: {
+          disable: false,
+          resolveSourceMap,
         },
       };
 
@@ -966,31 +1009,12 @@ describe('getBuildPluginOptions', () => {
 
       expect(result).toMatchObject({
         applicationKey: 'test-app-key',
+        moduleMetadata: { team: 'sdk' },
         sourcemaps: expect.objectContaining({
           disable: false,
+          resolveSourceMap,
         }),
       });
-    });
-  });
-
-  describe('applicationKey is not forwarded to webpack plugin', () => {
-    it('does not include turbopackApplicationKey in webpack plugin options', () => {
-      const sentryBuildOptions: SentryBuildOptions = {
-        org: 'test-org',
-        project: 'test-project',
-        _experimental: { turbopackApplicationKey: 'my-app' },
-      };
-
-      const result = getBuildPluginOptions({
-        sentryBuildOptions,
-        releaseName: mockReleaseName,
-        distDirAbsPath: mockDistDirAbsPath,
-        buildTool: 'webpack-client',
-      });
-
-      // turbopackApplicationKey should only be used by the Turbopack loader,
-      // not forwarded to the webpack plugin
-      expect(result.applicationKey).toBeUndefined();
     });
   });
 

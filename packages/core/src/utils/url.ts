@@ -1,10 +1,23 @@
-import { URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_ROUTE,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_PORT,
+  URL_QUERY,
+  URL_SCHEME,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -115,6 +128,28 @@ export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
   return newUrl.toString();
 }
 
+/**
+ * Normalizes a query string for the `url.query` attribute, which is specced without the leading `?`.
+ *
+ * Accepts either a raw query string (`URL.search`, which includes the `?`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlQuery(query: string | undefined): string | undefined {
+  return query?.replace(/^\?/, '') || undefined;
+}
+
+/**
+ * Normalizes a fragment for the `url.fragment` attribute, which is specced without the leading `#`.
+ *
+ * Accepts either a raw fragment (`URL.hash`, which includes the `#`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlFragment(fragment: string | undefined): string | undefined {
+  return fragment?.replace(/^#/, '') || undefined;
+}
+
 type PartialRequest = {
   method?: string;
 };
@@ -149,6 +184,8 @@ function getHttpSpanNameFromUrlObject(
  * @param spanOrigin - The origin of the span
  * @param request - The request object, see {@link PartialRequest}
  * @param routeName - The name of the route, must be low cardinality
+ * @param client - The client the span belongs to, used to resolve `dataCollection.urlQueryParams`.
+ * Falls back to the current scope's client when omitted, which is the wrong one in a multi-client setup.
  * @returns The span name and attributes for the HTTP operation
  */
 export function getHttpSpanDetailsFromUrlObject(
@@ -157,6 +194,7 @@ export function getHttpSpanDetailsFromUrlObject(
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
+  client?: Client,
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
@@ -165,7 +203,7 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (routeName) {
     // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
-    attributes[kind === 'server' ? 'http.route' : 'url.template'] = routeName;
+    attributes[kind === 'server' ? HTTP_ROUTE : URL_TEMPLATE] = routeName;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   }
 
@@ -174,29 +212,30 @@ export function getHttpSpanDetailsFromUrlObject(
   }
 
   if (urlObject) {
-    if (urlObject.search) {
-      attributes['url.query'] = urlObject.search;
-    }
-    if (urlObject.hash) {
-      attributes['url.fragment'] = urlObject.hash;
-    }
+    // Relative URLs have no meaningful `href`, so fall back to the sanitized path.
+    attributes[URL_FULL] = filterCollectedUrl(
+      isURLObjectRelative(urlObject) ? getSanitizedUrlStringFromUrlObject(urlObject) : urlObject.href,
+      client,
+    );
+
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(urlObject.search), client);
+    attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
     if (urlObject.pathname) {
-      attributes['url.path'] = urlObject.pathname;
+      attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
         attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
       }
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[URL_FULL] = urlObject.href;
       if (urlObject.port) {
-        attributes['url.port'] = urlObject.port;
+        attributes[URL_PORT] = urlObject.port;
       }
       if (urlObject.protocol) {
-        attributes['url.scheme'] = urlObject.protocol;
+        attributes[URL_SCHEME] = urlObject.protocol;
       }
       if (urlObject.hostname) {
-        attributes[kind === 'server' ? 'server.address' : 'url.domain'] = urlObject.hostname;
+        attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
     }
   }

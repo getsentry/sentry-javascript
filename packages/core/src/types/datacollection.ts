@@ -18,7 +18,7 @@ export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | '
 export interface DataCollection {
   /**
    * Automatically populate `user.*` fields from instrumentation sources.
-   * @default false
+   * @default true
    */
   userInfo?: boolean;
 
@@ -43,9 +43,6 @@ export interface DataCollection {
    * @default ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']
    */
   httpBodies?: HttpBodyCollectionTarget[];
-
-  /** @deprecated Use `urlQueryParams` instead. */
-  queryParams?: CollectBehavior;
 
   /**
    * Controls URL query parameter collection and sensitive value filtering.
@@ -112,8 +109,7 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-// todo(v11): change `Omit<DataCollection, 'queryParams'>` to just `DataCollection`
-export type ResolvedDataCollection = Required<Omit<DataCollection, 'queryParams'>> & {
+export type ResolvedDataCollection = Required<DataCollection> & {
   httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;

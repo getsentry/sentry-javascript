@@ -3,6 +3,7 @@ import * as path from 'path';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
+  resolveOrchestrionRuntimeRequest,
   serializeInstrumentations,
 } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
@@ -77,8 +78,7 @@ export function constructTurbopackConfig({
   // so it is safe even for node_modules with strict initialization order.
   // We only exclude Next.js build polyfills which contain non-standard syntax that causes
   // parse errors when any code is prepended (Turbopack re-parses the loader output).
-  // eslint-disable-next-line typescript/no-deprecated
-  const applicationKey = userSentryOptions?.applicationKey ?? userSentryOptions?._experimental?.turbopackApplicationKey;
+  const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
@@ -97,24 +97,40 @@ export function constructTurbopackConfig({
   }
 
   // Add component annotation loader for react component name annotation in Turbopack builds.
-  // This is only added when turbopackReactComponentAnnotation.enabled is set AND the Next.js
-  // version supports the `condition` field in Turbopack rules (Next.js 16+).
-  const turbopackReactComponentAnnotation = userSentryOptions?._experimental?.turbopackReactComponentAnnotation;
-  if (turbopackReactComponentAnnotation?.enabled && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
-    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-      matcher: '*.{tsx,jsx}',
-      rule: {
-        condition: { not: 'foreign' },
-        loaders: [
-          {
-            loader: path.resolve(__dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
-            options: {
-              ignoredComponents: turbopackReactComponentAnnotation.ignoredComponents ?? [],
+  // This is only added when annotation is enabled AND the Next.js version supports the
+  // `condition` field in Turbopack rules (Next.js 16+).
+  // Typed as the unified option so reads below resolve to the non-deprecated declarations.
+  const reactComponentAnnotation: NonNullable<SentryBuildOptions['reactComponentAnnotation']> = {
+    ...userSentryOptions?.reactComponentAnnotation,
+    // eslint-disable-next-line typescript/no-deprecated
+    ...userSentryOptions?._experimental?.turbopackReactComponentAnnotation,
+  };
+  if (reactComponentAnnotation.enabled) {
+    if (nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
+      newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+        matcher: '*.{tsx,jsx}',
+        rule: {
+          condition: { not: 'foreign' },
+          loaders: [
+            {
+              loader: path.resolve(__dirname, '..', 'loaders', 'componentAnnotationLoader.js'),
+              options: {
+                ignoredComponents: reactComponentAnnotation.ignoredComponents ?? [],
+              },
             },
-          },
-        ],
-      },
-    });
+          ],
+        },
+      });
+    } else {
+      // Without this warning the option silently no-ops, which is indistinguishable from
+      // annotation being broken.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] \`reactComponentAnnotation\` is enabled but React component annotation requires Next.js 16+ on Turbopack builds${
+          nextJsVersion ? ` (detected ${nextJsVersion})` : ''
+        }. Your components will not be annotated.`,
+      );
+    }
   }
 
   newConfig.rules = maybeAddOrchestrionRule(newConfig.rules, userSentryOptions, nextJsVersion);
@@ -123,7 +139,7 @@ export function constructTurbopackConfig({
 }
 
 /**
- * Adds the orchestrion code-transform loader rule when diagnostics-channel injection is enabled.
+ * Adds the orchestrion code-transform loader rule unless build-time instrumentation is turned off.
  */
 function maybeAddOrchestrionRule(
   rules: TurbopackOptions['rules'],
@@ -131,12 +147,21 @@ function maybeAddOrchestrionRule(
   nextJsVersion: string | undefined,
 ): TurbopackOptions['rules'] {
   if (
-    !userSentryOptions?._experimental?.useDiagnosticsChannelInjection ||
+    userSentryOptions?.buildTimeInstrumentation === false ||
     !nextJsVersion ||
     !supportsTurbopackRuleCondition(nextJsVersion)
   ) {
     return rules;
   }
+
+  // The loader's transform splices an import of `@sentry/server-utils` (the module-injected helper
+  // plus the module's subscriber factory) into each instrumented module. Turbopack rejects
+  // absolute-path imports ("server relative imports are not implemented yet"), and under isolated
+  // installs (pnpm) the bare specifier emitted inside a bundled package doesn't resolve from that
+  // package's location — so pass the entry's absolute on-disk path and let the loader derive a
+  // per-file RELATIVE specifier, which Turbopack resolves from the importing file and bundles at
+  // build time.
+  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
@@ -148,6 +173,7 @@ function maybeAddOrchestrionRule(
           // Turbopack JSON-serializes loader options, so a RegExp `filePath` must be encoded first.
           options: {
             instrumentations: serializeInstrumentations(getSentryInstrumentations()) as unknown as JSONValue[],
+            ...(importHelperPath ? { importHelperPath } : {}),
           },
         },
       ],

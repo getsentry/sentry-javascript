@@ -1,0 +1,46 @@
+{
+  "name": "solidstart-2",
+  "version": "0.0.0",
+  "//": "Sentry is initialized from server/plugins/sentry.ts, a Nitro plugin. Build-time instrumentation means there is no `--import` preload and nothing to copy into .output.",
+  "scripts": {
+    "clean": "pnpx rimraf node_modules pnpm-lock.yaml .nitro .output",
+    "build": "vite build",
+    "preview": "HOST=localhost PORT=3030 vite preview",
+    "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "type": "module",
+  "dependencies": {
+    "@sentry/solidstart": "file:../../packed/sentry-solidstart-packed.tgz",
+    "nitro": "3.0.260610-beta"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^1.0.0",
+    "@solidjs/start": "2.0.2",
+    "@solidjs/testing-library": "^0.8.10",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitest/ui": "^1.5.0",
+    "jsdom": "^24.0.0",
+    "solid-js": "1.9.14",
+    "typescript": "^5.4.5",
+    "vite": "^8.1.5",
+    "vite-plugin-solid": "^2.11.6",
+    "vitest": "^1.5.0"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "24.15.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}

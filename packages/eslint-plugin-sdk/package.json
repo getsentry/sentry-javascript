@@ -12,7 +12,7 @@
     "sentry"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/src"
@@ -23,8 +23,8 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-eslint-plugin-sdk-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",

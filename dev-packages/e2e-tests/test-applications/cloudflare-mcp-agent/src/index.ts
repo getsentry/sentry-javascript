@@ -49,11 +49,11 @@ class MyMCPAgentBase extends McpAgent<Env, unknown, Record<string, unknown>> {
 
 export const MyMCPAgent = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     debug: true,
     transportOptions: {
       bufferSize: 1000,
@@ -64,11 +64,11 @@ export const MyMCPAgent = Sentry.instrumentDurableObjectWithSentry(
 
 export default Sentry.withSentry(
   (env: Env) => ({
+    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     debug: true,
     transportOptions: {
       bufferSize: 1000,

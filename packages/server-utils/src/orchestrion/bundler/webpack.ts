@@ -1,47 +1,26 @@
-// EXPERIMENTAL — orchestrion code-transform loader + webpack plugin. The loader is exposed
+// Orchestrion code-transform loader + webpack plugin. The loader is exposed
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
-import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
+import { SDK_VERSION } from '@sentry/core';
 import type { Compiler } from 'webpack';
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
+import { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
-export { serializeInstrumentations } from '@apm-js-collab/code-transformer-bundler-plugins/core';
-export type { SerializableInstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import { serializeInstrumentations as serializeInstrumentationsImpl } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { AnyInstrumentationConfig, SerializableInstrumentationConfig } from '../apmTypes';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 
-// Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
-// module don't emit a "Critical dependency" warning.
-function getOrchestrionRequire(): ReturnType<typeof createRequire> {
-  let nodeRequire: ReturnType<typeof createRequire>;
-  /*! rollup-include-cjs-only */
-  nodeRequire = createRequire(__filename);
-  /*! rollup-include-cjs-only-end */
-  /*! rollup-include-esm-only */
-  nodeRequire = createRequire(import.meta.url);
-  /*! rollup-include-esm-only-end */
-  return nodeRequire;
-}
+// Explicitly annotated with the vendored types so the emitted declaration doesn't reference
+// `@apm-js-collab/code-transformer-bundler-plugins` — a bundled devDependency consumers don't have.
+export const serializeInstrumentations: (configs: AnyInstrumentationConfig[]) => SerializableInstrumentationConfig[] =
+  serializeInstrumentationsImpl;
+export type { SerializableInstrumentationConfig } from '../apmTypes';
 
-/** Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader). */
-export function getOrchestrionLoaderPath(): string {
-  return getOrchestrionRequire().resolve('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader');
-}
-
-/**
- * Absolute path to the `@apm-js-collab/tracing-hooks` package directory, resolved from this
- * package's own dependency graph. SDKs inject it at build time so the runtime module hook can
- * load the package even where the bare specifier doesn't resolve (bundled SDK code under
- * isolated installs, e.g. pnpm).
- */
-export function getTracingHooksDirectory(): string {
-  const packageJsonPath = getOrchestrionRequire().resolve('@apm-js-collab/tracing-hooks/package.json');
-  // This avoids any backslash-escaping concerns on Windows
-  return dirname(packageJsonPath).replace(/\\/g, '/');
-}
+export { getOrchestrionLoaderPath, resolveOrchestrionRuntimeRequest };
 
 /** The central instrumentation config, to pass as the loader's `instrumentations` option. */
 export function getSentryInstrumentations(): InstrumentationConfig[] {
@@ -69,14 +48,60 @@ function externalizedWebpackModules(externals: unknown, moduleNames: string[]): 
   );
 }
 
+// The injected module-injected snippet imports `@sentry/server-utils` from
+// INSIDE transformed `node_modules` files. Under isolated installs (pnpm) that
+// bare specifier doesn't resolve from an instrumented package's location, so map
+// it — exact-match only (the `$` suffix / `onlyModule`) — to this package's own
+// resolution, in whichever alias form the config already uses. Exact-match keeps
+// it from swallowing its own subpaths (e.g. `/orchestrion/vite`), which resolve
+// on their own. A user's own alias for the specifier is left untouched, and
+// externals still win — webpack consults `externals` before resolving — so
+// setups that externalize the runtime (e.g. Next.js) are unaffected.
+function addOrchestrionResolveAlias(compiler: Compiler): void {
+  const resolved = resolveOrchestrionRuntimeRequest(SNIPPET_IMPORT_SPECIFIER);
+  if (!resolved) {
+    return;
+  }
+
+  const resolveOptions = (compiler.options.resolve ??= {});
+  const alias = resolveOptions.alias;
+  if (Array.isArray(alias)) {
+    if (!alias.some(entry => entry.name === SNIPPET_IMPORT_SPECIFIER)) {
+      alias.push({ name: SNIPPET_IMPORT_SPECIFIER, alias: resolved, onlyModule: true });
+    }
+    return;
+  }
+
+  const aliasMap = (resolveOptions.alias = alias ?? {});
+  if (!(`${SNIPPET_IMPORT_SPECIFIER}$` in aliasMap) && !(SNIPPET_IMPORT_SPECIFIER in aliasMap)) {
+    aliasMap[`${SNIPPET_IMPORT_SPECIFIER}$`] = resolved;
+  }
+}
+
 /**
  * The code-transform webpack plugin, pre-fed the instrumentation config.
  *
  * Instrumented packages marked as `externals` never pass through the code
  * transform, so a compilation warning is emitted for them.
  */
-export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformerWebpack> {
-  const plugin = codeTransformerWebpack(orchestrionTransformOptions(options));
+export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { apply(compiler: Compiler): void } {
+  if (options.buildTimeInstrumentation === false) {
+    // Inert plugin — no code transform, so no instrumentation lands in the bundle.
+    return { apply: () => undefined };
+  }
+
+  const plugin = codeTransformerWebpack({
+    ...orchestrionTransformOptions(options),
+    // The upstream plugin's own loader path points into our `vendored/` tree at
+    // a file rollup never emitted; use our bundled loader entrypoint instead
+    // (which also bakes in the module-injected transform for Turbopack).
+    loaderPath: getOrchestrionLoaderPath(),
+    // The loader ident hashes the instrumentations and each custom transform's
+    // source text, but not data a transform reads without naming it — our
+    // subscriber-definitions table. Key persistent caches on the SDK version so
+    // a release changing that table busts them.
+    cacheVersion: SDK_VERSION,
+  });
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   // The upstream plugin is a class instance, so `apply` is overridden in place
   // rather than spread into a new object (which would lose prototype methods).
@@ -88,6 +113,7 @@ export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): Ret
         compilation.warnings.push(new compiler.webpack.WebpackError(externalizedModulesWarning(externalizedModules)));
       });
     }
+    addOrchestrionResolveAlias(compiler);
     apply(compiler);
   };
   return plugin;

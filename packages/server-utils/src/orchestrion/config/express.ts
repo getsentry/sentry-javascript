@@ -1,10 +1,11 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 export const expressConfig = [
   // Express funnels every middleware/route handler through a single method on
   // its routing `Layer`, so instrumenting that one method covers the whole
-  // request pipeline. The `expressChannelIntegration` opens one span per layer
+  // request pipeline. The `expressIntegration` opens one span per layer
   // invocation. Both are `Layer.prototype.<method> = function <fn>(req, res, next)`
   // prototype assignments (not `class` methods), so `expressionName` (matching
   // the assignment's `left.property.name`) is used. `Callback`: the handler's
@@ -60,6 +61,8 @@ export const expressConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const expressModuleNames = getModuleNames(expressConfig);
+
 export const expressChannels = {
   // Express v4 runs each layer's handler through `Layer.prototype.handle_request`
   // in the `express` module.
@@ -73,5 +76,3 @@ export const expressChannels = {
   EXPRESS_REGISTER: 'orchestrion:express:register',
   ROUTER_REGISTER: 'orchestrion:router:register',
 } as const;
-
-export const expressSubscribeInjection = toSubscribeInjections(expressConfig);

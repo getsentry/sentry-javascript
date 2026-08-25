@@ -1,5 +1,11 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient, spanIsSampled } from '@sentry/core';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  applySdkMetadata,
+  debug,
+  ServerRuntimeClient,
+  spanIsSampled,
+} from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
@@ -140,6 +146,16 @@ export class CloudflareClient extends ServerRuntimeClient {
     (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
   }
 
+  /** @inheritDoc */
+  protected override _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations.
+    // The registry is module-global and Cloudflare calls `init()` per request, so without this a
+    // single `ai` SDK call would suppress direct `env.AI.run` spans for the rest of the isolate's
+    // life. Mirrors the same reset in the Node client.
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
+  }
+
   /**
    * Resets the span completion promise and resolve function.
    */
@@ -159,17 +175,17 @@ interface BaseCloudflareOptions {
   enableDedupe?: boolean;
 
   /**
-   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
+   * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
+   * provider; spans are emitted via the SDK's own instrumentation and scopes are isolated with
+   * AsyncLocalStorage.
    *
-   * If you want to opt-out of setting up the OpenTelemetry compatibility tracer, set this to `true`.
+   * Set this to `true` to opt into the OpenTelemetry compatibility tracer, which captures spans
+   * emitted via `@opentelemetry/api`. Big caveat: it does not handle custom context, always working
+   * off the current scope. This is good enough for many, but not all, integrations.
    *
    * @default false
    */
-  skipOpenTelemetrySetup?: boolean;
+  enableOpenTelemetrySetup?: boolean;
 
   /**
    * Enable trace propagation for RPC calls between Workers, Durable Objects, and Service Bindings.
@@ -241,18 +257,48 @@ interface BaseCloudflareOptions {
   durableObjectSqlSpanAllowlist?: Array<string | RegExp>;
 
   /**
-   * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
+   * KV keys that should stay instrumented even though they match a reserved prefix used by Durable
+   * Object frameworks (`agents`, `partyserver`, ...) for their internal storage entries.
    *
-   * Enable instrumentation of prototype methods for DurableObjects.
+   * By default, KV reads/writes (`get`, `put`, `delete`, `list`) of `cf_`- or `__ps_`-prefixed keys
+   * are treated as framework noise and no `durable_object_storage_*` span is created for them,
+   * mirroring how `cf_`-prefixed SQL tables are handled (see {@link durableObjectSqlSpanAllowlist}).
+   * If one of your own keys happens to use such a prefix, add it here to opt it back into
+   * instrumentation. Strings must match exactly, while regular expressions give you prefix/pattern
+   * matching.
    *
-   * When `true`, the SDK will wrap all methods on the DurableObject prototype chain
-   * to automatically create spans and capture errors for RPC method calls.
-   *
-   * When an array of strings is provided, only the specified method names will be instrumented.
-   *
-   * @default false
+   * @default []
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     durableObjectStorageSpanAllowlist: ['cf_my_key', /^cf_reports_/],
+   *   }),
+   *   handler,
+   * );
+   * ```
    */
-  instrumentPrototypeMethods?: boolean | string[];
+  durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
+
+  /**
+   * Sets an optional server name (device name).
+   *
+   * This is useful for identifying which server or instance is sending events.
+   */
+  serverName?: string;
+
+  /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
 }
 
 /**

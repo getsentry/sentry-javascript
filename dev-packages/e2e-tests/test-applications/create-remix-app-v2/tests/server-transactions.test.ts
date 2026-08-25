@@ -39,14 +39,14 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
   const loaderSpanId = httpServerTransaction?.spans?.find(
-    span => span.data && span.data['code.function'] === 'loader',
+    span => span.data && span.data['code.function.name'] === 'loader',
   )?.span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
-  expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
+  expect(httpServerTransaction.transaction).toBe('GET /');
   expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();

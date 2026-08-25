@@ -839,14 +839,17 @@ export class ReplayContainer implements ReplayContainerInterface {
   public getCurrentRoute(): string | undefined {
     const lastActiveSpan = this.lastActiveSpan || getActiveSpan();
     const lastRootSpan = lastActiveSpan && getRootSpan(lastActiveSpan);
-
-    const attributes = (lastRootSpan && spanToJSON(lastRootSpan).data) || {};
-    const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    if (!lastRootSpan || !source || !['route', 'custom'].includes(source)) {
+    if (!lastRootSpan) {
       return undefined;
     }
 
-    return spanToJSON(lastRootSpan).description;
+    const spanJson = spanToJSON(lastRootSpan);
+    const source = spanJson.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as string | undefined;
+    if (!source || !['route', 'custom'].includes(source)) {
+      return undefined;
+    }
+
+    return spanJson.name;
   }
 
   /**

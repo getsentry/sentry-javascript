@@ -4,6 +4,8 @@ import {
   continueTrace,
   defineIntegration,
   getClient,
+  getUrlFragment,
+  getUrlQuery,
   httpHeadersToSpanAttributes,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -13,9 +15,19 @@ import {
   setHttpStatus,
   startSpan,
   withIsolationScope,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
-import { URL_FULL } from '@sentry/conventions/attributes';
+import {
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_PORT,
+  URL_QUERY,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -211,7 +223,9 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
+    if (dataCollection) {
+      Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
+    }
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
@@ -244,7 +258,11 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                   status_code: response.status,
                 });
 
-                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'));
+                if (dataCollection) {
+                  span.setAttributes(
+                    httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'),
+                  );
+                }
               }
               return response;
             } catch (e) {
@@ -273,25 +291,21 @@ function getSpanAttributesFromParsedUrl(
   };
 
   if (parsedUrl) {
-    if (parsedUrl.search) {
-      attributes['url.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      attributes['url.fragment'] = parsedUrl.hash;
-    }
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search));
+    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
     if (parsedUrl.pathname) {
-      attributes['url.path'] = parsedUrl.pathname;
+      attributes[URL_PATH] = parsedUrl.pathname;
     }
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes[URL_FULL] = parsedUrl.href;
+      attributes[URL_FULL] = filterCollectedUrl(parsedUrl.href);
       if (parsedUrl.port) {
-        attributes['url.port'] = parsedUrl.port;
+        attributes[URL_PORT] = parsedUrl.port;
       }
       if (parsedUrl.protocol) {
-        attributes['url.scheme'] = parsedUrl.protocol;
+        attributes[URL_SCHEME] = parsedUrl.protocol;
       }
       if (parsedUrl.hostname) {
-        attributes['url.domain'] = parsedUrl.hostname;
+        attributes[URL_DOMAIN] = parsedUrl.hostname;
       }
     }
   }

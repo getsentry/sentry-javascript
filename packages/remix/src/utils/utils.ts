@@ -3,7 +3,9 @@ import type { AgnosticRouteObject } from '@remix-run/router';
 import type { Span, TransactionSource } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { getRequestMatch, matchServerRoutes } from './vendor/response';
+import type { FormDataCapture } from './formData';
+import { applyFormDataAttributes } from './formData';
+import { matchServerRoutes } from './vendor/response';
 
 type ServerRouteManifest = ServerBuild['routes'];
 
@@ -13,7 +15,7 @@ type ServerRouteManifest = ServerBuild['routes'];
 export async function storeFormDataKeys(
   args: LoaderFunctionArgs | ActionFunctionArgs,
   span: Span,
-  formDataKeys?: Record<string, string | boolean>,
+  formDataCapture: FormDataCapture,
 ): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.
@@ -24,20 +26,7 @@ export async function storeFormDataKeys(
     // https://remix.run/docs/en/main/utils/parse-multipart-form-data#unstable_parsemultipartformdata
     const formData = await clonedRequest.formData();
 
-    formData.forEach((value, key) => {
-      let attrKey = key;
-
-      if (formDataKeys?.[key]) {
-        if (typeof formDataKeys[key] === 'string') {
-          attrKey = formDataKeys[key];
-        }
-
-        span.setAttribute(
-          `remix.action_form_data.${attrKey}`,
-          typeof value === 'string' ? value : '[non-string value]',
-        );
-      }
-    });
+    applyFormDataAttributes(span, formData, formDataCapture);
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to read FormData from request', e);
   }
@@ -56,7 +45,7 @@ export function convertRemixRouteIdToPath(routeId: string): string {
   const path = routeId.replace(/^routes\//, '');
 
   // Handle root index route
-  if (path === 'index' || path === '_index') {
+  if (path === '_index') {
     return '/';
   }
 
@@ -81,12 +70,6 @@ export function convertRemixRouteIdToPath(routeId: string): string {
       continue;
     }
 
-    // Handle 'index' segments at the end (skip only if there are path segments,
-    // otherwise root index is handled by the early return above)
-    if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
-      continue;
-    }
-
     // Handle splat routes (catch-all)
     // Remix accesses splat params via params["*"] at runtime
     if (segment === '$') {
@@ -98,8 +81,7 @@ export function convertRemixRouteIdToPath(routeId: string): string {
     if (segment.startsWith('$')) {
       const paramName = segment.substring(1);
       pathSegments.push(`:${paramName}`);
-    } else if (segment !== 'index') {
-      // Static segment (skip remaining 'index' segments)
+    } else {
       pathSegments.push(segment);
     }
   }
@@ -120,9 +102,9 @@ export function isCloudflareEnv(): boolean {
  */
 export function getTransactionName(routes: AgnosticRouteObject[], url: URL): [string, TransactionSource] {
   const matches = matchServerRoutes(routes, url.pathname);
-  const match = matches && getRequestMatch(url, matches);
+  const match = matches?.[matches.length - 1];
 
-  if (match === null) {
+  if (!match) {
     return [url.pathname, 'url'];
   }
 

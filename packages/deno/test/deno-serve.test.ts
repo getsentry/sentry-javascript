@@ -1,24 +1,13 @@
 // <reference lib="deno.ns" />
 
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import {
-  captureException,
-  captureMessage,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  init,
-  setTag,
-  setUser,
-} from '../build/esm/index.js';
+import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function delay(time: number): Promise<void> {
@@ -34,6 +23,7 @@ Deno.test('Deno.serve should create http.server spans', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -64,6 +54,209 @@ Deno.test('Deno.serve should create http.server spans', async () => {
   assertEquals(transaction?.request?.url?.includes('/test'), true);
 });
 
+Deno.test('Deno.serve should instrument QUERY requests with bodies', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const requestBody = JSON.stringify({ query: '{ viewer { id } }' });
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.text(), requestBody);
+    return new Response('OK');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/graphql`, {
+    method: 'QUERY',
+    headers: { 'content-type': 'application/json' },
+    body: requestBody,
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+  assertEquals(transaction?.transaction, 'QUERY /graphql');
+  assertEquals(transaction?.request?.method, 'QUERY');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.method'], 'QUERY');
+  assertEquals(transaction?.request?.data, requestBody);
+});
+
+Deno.test('Deno.serve should capture incoming request bodies by default', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.json(), { username: 'test', action: 'login' });
+    return new Response('OK');
+  });
+  await p;
+
+  const requestBody = JSON.stringify({ username: 'test', action: 'login' });
+  const response = await fetch(`http://localhost:${server.addr.port}/test`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: requestBody,
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.request?.data, requestBody);
+});
+
+Deno.test('Deno.serve should not capture incoming request bodies when disabled', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    dataCollection: { httpBodies: [] },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.json(), { secret: 'do-not-capture' });
+    return new Response('OK');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/test`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ secret: 'do-not-capture' }),
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.request?.data, undefined);
+});
+
+Deno.test('Deno.serve should truncate incoming request bodies using an explicit size', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    dataCollection: { httpBodies: [] },
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({ maxRequestBodySize: 'small' }),
+    ],
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const requestBody = 'a'.repeat(1_001);
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.text(), requestBody);
+    return new Response('OK');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/test`, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain' },
+    body: requestBody,
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.request?.data, `${'a'.repeat(997)}...`);
+});
+
+Deno.test('Deno.serve should honor explicit none when incoming request bodies are enabled', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    dataCollection: { httpBodies: ['incomingRequest'] },
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({ maxRequestBodySize: 'none' }),
+    ],
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.text(), 'do-not-capture');
+    return new Response('OK');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/test`, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain' },
+    body: 'do-not-capture',
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.request?.data, undefined);
+});
+
 Deno.test('Deno.serve should isolate context between concurrent requests', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
@@ -72,6 +265,7 @@ Deno.test('Deno.serve should isolate context between concurrent requests', async
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -198,6 +392,7 @@ Deno.test('Deno.serve should handle OPTIONS and HEAD requests without creating s
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -239,6 +434,7 @@ Deno.test('Deno.serve should work with handler in options object', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -276,7 +472,7 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    sendDefaultPii: true,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -321,14 +517,14 @@ Deno.test('Deno.serve should capture request headers and set response context', 
   assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x_custom_header'], 'test');
 });
 
-Deno.test('Deno.serve should capture client address and port when userInfo data collection is enabled', async () => {
+Deno.test('Deno.serve should capture client address and port by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    dataCollection: { userInfo: true },
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -356,48 +552,15 @@ Deno.test('Deno.serve should capture client address and port when userInfo data 
   assertExists(transaction?.contexts?.trace?.data?.['client.port']);
 });
 
-Deno.test('Deno.serve should capture client address and port when sendDefaultPii is enabled', async () => {
+Deno.test('Deno.serve should not capture client address when userInfo collection is disabled', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    sendDefaultPii: true,
-    beforeSendTransaction: (event: TransactionEvent) => {
-      transactionEvents.push(event);
-      return null;
-    },
-  }) as DenoClient;
-
-  const abortController = new AbortController();
-  let onListen: ((_: unknown) => void) | undefined = undefined;
-  const p = new Promise(resolve => (onListen = resolve));
-  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
-    return new Response('OK');
-  });
-  await p;
-
-  const res = await fetch(`http://localhost:${server.addr.port}/test`);
-  assertEquals(await res.text(), 'OK');
-
-  abortController.abort();
-  await server.finished;
-
-  assertEquals(transactionEvents.length, 1);
-  const [transaction] = transactionEvents;
-
-  assertExists(transaction?.contexts?.trace?.data?.['client.address']);
-  assertExists(transaction?.contexts?.trace?.data?.['client.port']);
-});
-
-Deno.test('Deno.serve should not capture client address by default', async () => {
-  resetGlobals();
-  const transactionEvents: TransactionEvent[] = [];
-
-  init({
-    dsn: 'https://username@domain/123',
-    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    dataCollection: { userInfo: false },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -425,14 +588,14 @@ Deno.test('Deno.serve should not capture client address by default', async () =>
   assertEquals(transaction?.contexts?.trace?.data?.['client.port'], undefined);
 });
 
-Deno.test('Deno.serve should keep PII request headers when dataCollection enables header collection', async () => {
+Deno.test('Deno.serve should keep PII request headers by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    dataCollection: { httpHeaders: { request: true } },
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -461,13 +624,15 @@ Deno.test('Deno.serve should keep PII request headers when dataCollection enable
   assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '203.0.113.7');
 });
 
-Deno.test('Deno.serve should filter PII request headers by default', async () => {
+Deno.test('Deno.serve should filter PII request headers when configured', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];
 
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    dataCollection: { httpHeaders: { request: { deny: ['forwarded'] } } },
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -503,6 +668,7 @@ Deno.test('Deno.serve should support distributed tracing with sentry-trace heade
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -551,6 +717,7 @@ Deno.test('Deno.serve should handle streaming responses', async () => {
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: (event: TransactionEvent) => {
       transactionEvents.push(event);
       return null;
@@ -596,6 +763,7 @@ Deno.test('Deno.serve should work when manually capturing exceptions within hand
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSend: (event: ErrorEvent) => {
       errorEvents.push(event);
       return null;

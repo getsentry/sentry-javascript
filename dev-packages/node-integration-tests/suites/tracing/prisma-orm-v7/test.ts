@@ -1,13 +1,11 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-// Prisma 7 requires Node.js 20.19+
-conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
+describe('Prisma ORM v7 Tests', () => {
   describeWithDockerCompose('Prisma ORM v7', { workingDirectory: [__dirname] }, () => {
     createEsmAndCjsTests(
       __dirname,

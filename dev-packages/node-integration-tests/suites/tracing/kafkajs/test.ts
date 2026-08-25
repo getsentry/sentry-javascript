@@ -1,10 +1,9 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.producer' : 'auto.kafkajs.otel.producer';
-const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.orchestrion.consumer' : 'auto.kafkajs.otel.consumer';
+const producerOrigin = 'auto.kafkajs.producer';
+const consumerOrigin = 'auto.kafkajs.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
@@ -53,13 +52,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(producer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.publish',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'PRODUCER',
-                  'sentry.op': 'message',
+                  'sentry.kind': 'producer',
+                  'sentry.op': 'queue.publish',
                   'sentry.origin': producerOrigin,
                 }),
               }),
@@ -67,13 +66,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(consumer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.process',
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
-                  'otel.kind': 'CONSUMER',
-                  'sentry.op': 'message',
+                  'sentry.kind': 'consumer',
+                  'sentry.op': 'queue.process',
                   'sentry.origin': consumerOrigin,
                 }),
               }),
@@ -93,13 +92,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
             expect(transaction.transaction).toBe('send invalid topic name');
             expect(transaction.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'message',
+                op: 'queue.publish',
                 status: 'internal_error',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
-                  'otel.kind': 'PRODUCER',
-                  'sentry.op': 'message',
+                  'sentry.kind': 'producer',
+                  'sentry.op': 'queue.publish',
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),

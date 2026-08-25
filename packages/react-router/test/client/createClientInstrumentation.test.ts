@@ -1,5 +1,6 @@
 import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
+import * as coreBrowser from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryClientInstrumentation,
@@ -7,11 +8,18 @@ import {
   isNavigateHookInvoked,
 } from '../../src/client/createClientInstrumentation';
 
+vi.mock('@sentry/core/browser', async () => {
+  const actual = await vi.importActual('@sentry/core/browser');
+  return {
+    ...actual,
+    startSpan: vi.fn(),
+  };
+});
+
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    startSpan: vi.fn(),
     captureException: vi.fn(),
     getClient: vi.fn(),
     getActiveSpan: vi.fn(),
@@ -195,7 +203,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallFetch = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -209,11 +217,12 @@ describe('createSentryClientInstrumentation', () => {
       fetcherKey: 'fetcher-1',
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Fetcher fetcher-1',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.fetcher',
+          'sentry.op': 'function',
+          'code.function.name': 'fetcher',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -226,7 +235,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     // Route has id, index, path as required properties
@@ -248,11 +257,12 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_loader',
+          'sentry.op': 'function',
+          'code.function.name': 'clientLoader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -265,7 +275,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallAction = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -285,16 +295,45 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_action',
+          'sentry.op': 'function',
+          'code.function.name': 'clientAction',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
       expect.any(Function),
     );
+  });
+
+  // `navigate('/x?token=y')` is app-supplied, so the query has to go through `dataCollection.urlQueryParams`.
+  it('filters sensitive query params in the `url.full` reported for a failed navigate', async () => {
+    const mockError = new Error('Navigate failed');
+    const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
+    const mockInstrument = vi.fn();
+
+    (core.getClient as any).mockReturnValue({});
+    (globalThis as any).location = {
+      href: 'https://example.com/home',
+      origin: 'https://example.com',
+      pathname: '/home',
+    };
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.navigate(mockCallNavigate, { currentUrl: '/home', to: '/search?token=secret&page=1' });
+
+    expect(core.captureException).toHaveBeenCalledWith(mockError, {
+      mechanism: {
+        type: 'react_router.navigate',
+        handled: false,
+        data: { 'url.full': '/search?token=[Filtered]&page=1' },
+      },
+    });
   });
 
   it('should capture errors when captureErrors is true (default)', async () => {
@@ -304,7 +343,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
     const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -324,7 +363,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'http.url': '/test-path' } },
+      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'url.full': '/test-path' } },
     });
 
     // Should also set span status to error for actual Error instances
@@ -338,7 +377,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
     const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation({ captureErrors: false });
     instrumentation.route?.({
@@ -384,7 +423,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/about' } },
+      mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/about' } },
     });
 
     // Should set span status to error
@@ -445,6 +484,7 @@ describe('createSentryClientInstrumentation', () => {
         );
         expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
         expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+          'sentry.source': 'url',
           'url.path': destination,
           'url.full': `https://example.com${destination}`,
         });
@@ -486,6 +526,7 @@ describe('createSentryClientInstrumentation', () => {
       await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
 
       expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
@@ -511,7 +552,7 @@ describe('createSentryClientInstrumentation', () => {
 
       expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
       expect(core.captureException).toHaveBeenCalledWith(mockError, {
-        mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/error-page' } },
+        mechanism: { type: 'react_router.navigate', handled: false, data: { 'url.full': '/error-page' } },
       });
     });
 
@@ -548,7 +589,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -568,7 +609,7 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/123',
       }),
@@ -580,7 +621,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -599,11 +640,12 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'clientMiddleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -618,7 +660,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallLazy = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -632,11 +674,12 @@ describe('createSentryClientInstrumentation', () => {
 
     await hooks.lazy(mockCallLazy, undefined);
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.client_lazy',
+          'sentry.op': 'function',
+          'code.function.name': 'lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -751,6 +794,7 @@ describe('createSentryClientInstrumentation', () => {
       // Only ONE span created (not two - no duplicate from popstate)
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
+        'sentry.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
@@ -858,14 +902,14 @@ describe('isNavigateHookInvoked', () => {
 describe('navigation root parameterization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn({ setStatus: vi.fn() }));
   });
 
   it('renames the active navigation/pageload root span with the route pattern from the loader hook', async () => {
     const mockRootSpan = { setAttributes: vi.fn() };
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
-    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+    (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();
@@ -887,7 +931,7 @@ describe('navigation root parameterization', () => {
     const mockRootSpan = { setAttributes: vi.fn() };
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
-    (core.spanToJSON as any).mockReturnValue({ op: 'navigation' });
+    (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();
@@ -906,7 +950,7 @@ describe('navigation root parameterization', () => {
   it('does not rename root spans that are not pageload/navigation', async () => {
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue({ setAttribute: vi.fn() });
-    (core.spanToJSON as any).mockReturnValue({ op: 'http.server' });
+    (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'http.server' } });
 
     const mockInstrument = vi.fn();
     const instrumentation = createSentryClientInstrumentation();

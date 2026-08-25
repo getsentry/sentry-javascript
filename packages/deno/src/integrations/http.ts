@@ -1,9 +1,8 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
-import type { ClientRequest, RequestOptions } from 'node:http';
-import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
+import type { RequestOptions } from 'node:http';
+import type { HttpIncomingMessage, HttpServerResponse, Integration, IntegrationFn, Span } from '@sentry/core';
 import {
-  debug,
   defineIntegration,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
@@ -11,12 +10,6 @@ import {
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
 } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-import {
-  DENO_VERSION,
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-} from '../denoVersion';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
 
@@ -33,6 +26,21 @@ export interface DenoHttpIntegrationOptions {
    * Defaults to the client's tracing configuration (`hasSpansEnabled`).
    */
   spans?: boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
 
   /**
    * Whether to inject trace propagation headers (sentry-trace, baggage) into outgoing HTTP requests.
@@ -84,14 +92,15 @@ export interface DenoHttpIntegrationOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Hook invoked after the server span is created but before the request is handled.
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
    */
-  onIncomingSpanCreated?: (span: Span, request: unknown, response: unknown) => void;
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 
   /**
-   * Hook invoked when the server span ends, before it is recorded.
+   * A hook that can be used to mutate the span one last time when the response is finished.
    */
-  onIncomingSpanEnd?: (span: Span, request: unknown, response: unknown) => void;
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
@@ -101,56 +110,25 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const denoVersion = DENO_VERSION.major !== undefined ? `${Deno.version.deno}` : 'unknown';
+      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
+        ...options,
+        errorMonitor,
+      });
+      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
-      // Below 2.7.13 neither channel fires. Warn and bail without touching the ACS.
-      if (!HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED && !HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        debug.warn(
-          `denoHttpIntegration requires Deno 2.7.13+ (client) or 2.8.0+ (server) for node:http diagnostics channels; running on Deno ${denoVersion}. The integration is a no-op on this version.`,
-        );
-        return;
-      }
-
-      // Wire up Deno's AsyncLocalStorage-backed ACS so the server subscription's
-      // `withIsolationScope(clone, ...)` actually activates the cloned scope.
-      // Without this, request isolation and span creation degrade silently.
-      setAsyncLocalStorageAsyncContextStrategy();
-
-      if (HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
-          // `spans` falls through to the client's tracing config when unset.
-          spans: options.spans,
-          ignoreStaticAssets: options.ignoreStaticAssets,
-          ignoreIncomingRequests: options.ignoreIncomingRequests,
-          maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-          ignoreRequestBody: options.ignoreRequestBody,
-          onSpanCreated: options.onIncomingSpanCreated,
-          onSpanEnd: options.onIncomingSpanEnd,
-          errorMonitor,
-          sessions: false,
-        });
-        subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
-      } else {
-        debug.log(
-          `denoHttpIntegration: server-side instrumentation requires Deno 2.8.0+; running on Deno ${denoVersion}. Client-side instrumentation is still active.`,
-        );
-      }
-
-      if (HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-          spans: options.spans,
-          breadcrumbs,
-          propagateTrace: tracePropagation,
-          ignoreOutgoingRequests: options.ignoreOutgoingRequests
-            ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request as ClientRequest))
-            : undefined,
-          // Deno doesn't run OTel's http instrumentation, so there's no
-          // double-wrap to detect; skip the warning to avoid loading the module.
-          suppressOtelWarning: true,
-          errorMonitor,
-        });
-        subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
-      }
+      const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
+        ...options,
+        breadcrumbs,
+        propagateTrace: tracePropagation,
+        ignoreOutgoingRequests: options.ignoreOutgoingRequests
+          ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
+          : undefined,
+        // Deno doesn't run OTel's http instrumentation, so there's no
+        // double-wrap to detect; skip the warning to avoid loading the module.
+        suppressOtelWarning: true,
+        errorMonitor,
+      });
+      subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
     },
   };
 }) satisfies IntegrationFn;

@@ -1,10 +1,9 @@
-import { trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
+import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
-import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
+import { getClient, NodeClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -61,16 +60,12 @@ describe('init()', () => {
   });
 
   describe('integrations', () => {
-    it("doesn't install default integrations if told not to", () => {
+    it('only installs the required spanStreaming integration if default integrations are disabled', () => {
       init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
 
       const client = getClient();
 
-      expect(client?.getOptions()).toEqual(
-        expect.objectContaining({
-          integrations: [],
-        }),
-      );
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
 
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
@@ -171,8 +166,8 @@ describe('init()', () => {
       );
     });
 
-    it('installs spanStreaming integration when traceLifecycle is "stream"', () => {
-      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream' });
+    it('installs spanStreaming integration by default', () => {
+      init({ dsn: PUBLIC_DSN });
       const client = getClient();
 
       expect(client?.getOptions()).toEqual(
@@ -182,8 +177,8 @@ describe('init()', () => {
       );
     });
 
-    it("doesn't install spanStreaming integration when traceLifecycle is not 'stream'", () => {
-      init({ dsn: PUBLIC_DSN });
+    it("doesn't install spanStreaming integration when traceLifecycle is 'static'", () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
 
       const client = getClient();
       expect(client?.getOptions()).toEqual(
@@ -194,7 +189,7 @@ describe('init()', () => {
     });
 
     it('installs spanStreaming integration even with custom defaultIntegrations', () => {
-      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', defaultIntegrations: [] });
+      init({ dsn: PUBLIC_DSN, defaultIntegrations: [] });
       const client = getClient();
 
       expect(client?.getOptions()).toEqual(
@@ -206,81 +201,40 @@ describe('init()', () => {
   });
 
   describe('OpenTelemetry', () => {
-    it('sets up OpenTelemetry by default', () => {
+    it('does not set up a tracer provider by default', () => {
       init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeDefined();
-    });
-
-    it('allows to opt-out of OpenTelemetry setup', () => {
-      init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).not.toBeDefined();
     });
 
-    it('uses the minimal Sentry trace provider by default', () => {
+    it('uses the AsyncLocalStorage context strategy by default', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
       init({ dsn: PUBLIC_DSN });
+
+      expect(alsStrategySpy).toHaveBeenCalledTimes(1);
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+    });
+
+    it('allows to opt-in to OpenTelemetry setup', () => {
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
       expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
     });
 
-    it('uses the OpenTelemetry SDK tracer provider when opted in via `openTelemetryBasicTracerProvider`', () => {
-      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
+    it('uses the OpenTelemetry context strategy when opting in', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
 
-      const client = getClient<NodeClient>();
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-    });
-
-    it('uses the OpenTelemetry SDK tracer provider when custom span processors are provided', () => {
-      init({
-        dsn: PUBLIC_DSN,
-        openTelemetrySpanProcessors: [
-          {
-            forceFlush: () => Promise.resolve(),
-            onStart: () => undefined,
-            onEnd: () => undefined,
-            shutdown: () => Promise.resolve(),
-          },
-        ],
-      });
-
-      const client = getClient<NodeClient>();
-
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-    });
-
-    it('recreates the OTel API registry when it pre-exists with a different @opentelemetry/api version', () => {
-      // Simulate a host runtime (e.g. Neon Functions) pre-creating the registry with its own api version
-      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
-
-      init({ dsn: PUBLIC_DSN });
-
-      const client = getClient<NodeClient>();
-      const registry = global[OTEL_API_GLOBAL_KEY];
-
-      expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTracerProvider);
-      expect(registry?.version).not.toBe('0.0.1');
-      expect(registry?.trace).toBeDefined();
-    });
-
-    it('recreates a version-mismatched OTel API registry also for the OpenTelemetry SDK tracer provider', () => {
-      global[OTEL_API_GLOBAL_KEY] = { version: '0.0.1' };
-
-      init({ dsn: PUBLIC_DSN, openTelemetryBasicTracerProvider: true });
-
-      const client = getClient<NodeClient>();
-      const registry = global[OTEL_API_GLOBAL_KEY];
-
-      expect(client?.traceProvider).toBeInstanceOf(BasicTracerProvider);
-      expect(registry?.version).not.toBe('0.0.1');
-      expect(registry?.trace).toBeDefined();
+      expect(otelStrategySpy).toHaveBeenCalledTimes(1);
+      expect(alsStrategySpy).not.toHaveBeenCalled();
     });
 
     it('carries non-Sentry slots of a version-mismatched OTel API registry over into the recreated one', () => {
@@ -296,7 +250,7 @@ describe('init()', () => {
         propagation: propagator,
       };
 
-      init({ dsn: PUBLIC_DSN });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const registry = global[OTEL_API_GLOBAL_KEY];
 
@@ -312,7 +266,7 @@ describe('init()', () => {
       const existingRegistry = { version: '0.0.1', trace: existingProvider };
       global[OTEL_API_GLOBAL_KEY] = existingRegistry;
 
-      init({ dsn: PUBLIC_DSN });
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
 
       const client = getClient<NodeClient>();
 
@@ -322,28 +276,10 @@ describe('init()', () => {
 
       global[OTEL_API_GLOBAL_KEY] = undefined;
     });
-
-    it('does not mark SentryTracerProvider as set up when global registration fails', () => {
-      // Simulate another OpenTelemetry tracer provider already being registered.
-      const setGlobalSpy = vi.spyOn(trace, 'setGlobalTracerProvider').mockReturnValue(false);
-      const setIsSetupSpy = vi.spyOn(SentryOpentelemetry, 'setIsSetup');
-      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-      init({ dsn: PUBLIC_DSN });
-
-      expect(getClient<NodeClient>()?.traceProvider).not.toBeDefined();
-      expect(setIsSetupSpy).not.toHaveBeenCalledWith('SentryTracerProvider');
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Could not register SentryTracerProvider because another OpenTelemetry tracer provider is already registered.',
-      );
-
-      setGlobalSpy.mockRestore();
-      setIsSetupSpy.mockRestore();
-    });
   });
 
   it('returns initialized client', () => {
-    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     expect(client).toBeInstanceOf(NodeClient);
   });
@@ -354,7 +290,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     const postInitListeners = process.listeners('SIGTERM');
     const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
@@ -372,7 +308,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
     expect(client).toBeInstanceOf(NodeClient);
 
     const flushSpy = vi.spyOn(client as NodeClient, 'flush').mockResolvedValue(true);
@@ -396,7 +332,7 @@ describe('init()', () => {
 
     const baselineListeners = process.listeners('SIGTERM');
 
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     const postInitListeners = process.listeners('SIGTERM');
     const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
@@ -619,72 +555,5 @@ describe('init()', () => {
         expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
       });
     });
-  });
-});
-
-describe('validateOpenTelemetrySetup', () => {
-  afterEach(() => {
-    global.__SENTRY__ = {};
-    cleanupOtel();
-    vi.clearAllMocks();
-  });
-
-  it('works with correct setup', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return ['SentryContextManager', 'SentryPropagator', 'SentrySampler'];
-    });
-
-    validateOpenTelemetrySetup();
-
-    expect(errorSpy).toHaveBeenCalledTimes(0);
-    expect(warnSpy).toHaveBeenCalledTimes(0);
-  });
-
-  it('works with missing setup, without tracing', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return [];
-    });
-
-    validateOpenTelemetrySetup();
-
-    // Without tracing, this is expected only twice
-    expect(errorSpy).toHaveBeenCalledTimes(2);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
-  });
-
-  it('works with missing setup, with tracing', () => {
-    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-
-    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
-      return [];
-    });
-
-    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true, tracesSampleRate: 1 });
-
-    validateOpenTelemetrySetup();
-
-    expect(errorSpy).toHaveBeenCalledTimes(3);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
-  });
-
-  // Regression test for https://github.com/getsentry/sentry-javascript/issues/15558
-  it('accepts an undefined transport', () => {
-    init({ dsn: PUBLIC_DSN, transport: undefined });
   });
 });

@@ -32,10 +32,9 @@ describe('patchAppRequest', () => {
     expect(startSpanMock).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET /hello',
-        op: 'hono.request',
         onlyIfParent: true,
         attributes: expect.objectContaining({
-          'sentry.op': 'hono.request',
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.hono.internal_request',
         }),
       }),

@@ -5,6 +5,7 @@ import { appConfig } from './app/app.config';
 import * as Sentry from '@sentry/angular';
 
 Sentry.init({
+  traceLifecycle: 'static',
   // Cannot use process.env here, so we hardcode the DSN
   dsn: 'https://3b6c388182fb435097f41d181be2b2ba@o4504321058471936.ingest.sentry.io/4504321066008576',
   tracesSampleRate: 1.0,

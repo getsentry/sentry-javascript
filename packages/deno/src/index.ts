@@ -69,8 +69,6 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
@@ -90,6 +88,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -97,6 +96,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,
@@ -107,18 +108,55 @@ export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
+export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
-export { denoRedisIntegration } from './integrations/redis';
-export type { DenoRedisIntegrationOptions } from './integrations/redis';
+
+// The orchestrion channel integrations, re-exported from `@sentry/server-utils`.
+// Most are in the default set; `dataloader` and `knex` are opt-in (add them to
+// `integrations` to enable), matching Node. Re-export every one that `sdk.ts`
+// adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
+export {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  redisIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openAIIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+} from '@sentry/server-utils';
+export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
+// Deprecated aliases kept for back-compat. Each forwards to the shared
+// integration above, so its name is the shared name (e.g. `Mysql`), not the old
+// `Deno*` name. See each alias's `@deprecated` note.
+/* eslint-disable typescript/no-deprecated */
 export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
 export { denoAmqplibIntegration } from './integrations/amqplib';
+export { denoKoaIntegration } from './integrations/koa';
+export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';
-export { denoKoaIntegration } from './integrations/koa';
-export { denoMongoIntegration } from './integrations/mongo';
-export { denoMongooseIntegration } from './integrations/mongoose';
+export { denoRedisIntegration } from './integrations/redis';
+/* eslint-enable typescript/no-deprecated */
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

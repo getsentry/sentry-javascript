@@ -87,7 +87,7 @@ export function instrumentConsole(): void {
 
         // Only trigger handlers for non-filtered messages
         if (!isFiltered) {
-          triggerHandlers('console', { args, level } as HandlerDataConsole);
+          triggerHandlers('console', { args, level });
         }
 
         // Only log filtered messages in debug mode

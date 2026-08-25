@@ -4,6 +4,7 @@ import { loggingTransport } from '@sentry-internal/node-integration-tests';
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
   Sentry.init({
+    traceLifecycle: 'static',
     dsn: 'https://public@dsn.ingest.sentry.io/1337',
     transport: loggingTransport,
   });

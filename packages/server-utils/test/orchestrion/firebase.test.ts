@@ -1,9 +1,9 @@
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { getPortAndAddress, startFirestoreSpan } from '../../src/integrations/tracing-channel/firebase/firestore';
-import type { FirestoreReference } from '../../src/integrations/tracing-channel/firebase/firestore-types';
-import { wrapFunctionsRegistration } from '../../src/integrations/tracing-channel/firebase/functions';
+import { getPortAndAddress, startFirestoreSpan } from '../../src/integrations/firebase/firestore';
+import type { FirestoreReference } from '../../src/integrations/firebase/firestore-types';
+import { wrapFunctionsRegistration } from '../../src/integrations/firebase/functions';
 
 function makeSpan(): Span {
   return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
@@ -45,7 +45,7 @@ describe('startFirestoreSpan', () => {
         name: 'addDoc cities',
         op: 'db.query',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.firebase.orchestrion.firestore',
+          'sentry.origin': 'auto.firebase.firestore',
           'db.operation.name': 'addDoc',
           'db.collection.name': 'cities',
           'db.namespace': '[DEFAULT]',
@@ -107,9 +107,9 @@ describe('wrapFunctionsRegistration', () => {
     expect(startSpanManualSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'firebase.function.http.request',
-        op: 'function.firebase',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.firebase.orchestrion.functions',
+          'sentry.origin': 'auto.firebase.functions',
+          'sentry.op': 'function.gcp',
           'faas.trigger': 'http.request',
           'faas.provider': 'firebase',
         }),
@@ -146,7 +146,7 @@ describe('wrapFunctionsRegistration', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(
       error,
       expect.objectContaining({
-        mechanism: expect.objectContaining({ type: 'auto.firebase.orchestrion.functions' }),
+        mechanism: expect.objectContaining({ type: 'auto.firebase.functions' }),
       }),
     );
     expect(span.end).toHaveBeenCalledTimes(1);

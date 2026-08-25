@@ -1,4 +1,5 @@
 import type { Attributes, RawAttributes } from '../attributes';
+import type { SpanKind } from '../spanKind';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -29,6 +30,7 @@ export type SpanAttributes = Partial<{
   'sentry.op': string;
   'sentry.source': TransactionSource;
   'sentry.sample_rate': number;
+  'sentry.kind': SpanKind;
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
@@ -47,10 +49,11 @@ export interface StreamedSpanJSON {
   span_id: string;
   name: string;
   start_timestamp: number;
-  end_timestamp: number;
+  /** Only set once the span has ended. */
+  end_timestamp?: number;
   status: 'ok' | 'error';
   is_segment: boolean;
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
   links?: SpanLinkJSON<RawAttributes<Record<string, unknown>>>[];
 }
 
@@ -58,9 +61,11 @@ export interface StreamedSpanJSON {
  * Serialized span item.
  * This is the final, serialized span format that is sent to Sentry.
  * The intermediate representation is {@link StreamedSpanJSON}.
- * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
+ * Main differences: Attributes are converted to {@link Attributes}, thus including the `type`
+ * annotation, and `end_timestamp` is guaranteed to be set (we only ever send ended spans).
  */
-export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
+export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links' | 'end_timestamp'> & {
+  end_timestamp: number;
   attributes: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
@@ -85,7 +90,7 @@ export interface SpanJSON {
   parent_span_id?: string;
   span_id: string;
   start_timestamp: number;
-  status?: string;
+  status: string;
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
@@ -177,7 +182,6 @@ export interface SpanContextData {
 
 /**
  * Interface holding all properties that can be set on a Span on creation.
- * This is only used for the legacy span/transaction creation and will go away in v8.
  */
 export interface SentrySpanArguments {
   /**
@@ -221,22 +225,18 @@ export interface SentrySpanArguments {
   startTimestamp?: number | undefined;
 
   /**
-   * Timestamp in seconds (epoch time) indicating when the span ended.
-   */
-  endTimestamp?: number | undefined;
-
-  /**
    * Links to associate with the new span. Setting links here is preferred over addLink()
    * as certain context information is only available during span creation.
    */
   links?: SpanLink[];
 
   /**
-   * Set to `true` if this span should be sent as a standalone segment span
-   * as opposed to a transaction.
+   * If true, the span is sent on its own as a v2 streamed span instead of being folded into a
+   * transaction.
    *
-   * @experimental this option is currently experimental and should only be
-   * used within SDK code. It might be removed or changed in the future.
+   * @internal this option is currently experimental and should only be used within SDK code.
+   *
+   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
    */
   isStandalone?: boolean | undefined;
 }

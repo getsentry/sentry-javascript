@@ -1,13 +1,6 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
-
-// The span origin depends on which instrumentation is active. These blocks drive the SDK's default
-// integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
-// `Amqplib` integration is swapped for the diagnostics-channel one, changing the origin.
-const PUBLISHER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.publisher' : 'auto.amqplib.otel.publisher';
-const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.consumer' : 'auto.amqplib.otel.consumer';
 
 // Each scenario uses its own queue name to keep them isolated on the shared broker, so the
 // expected producer span is parameterized by the routing key (queue name) it publishes to.
@@ -15,7 +8,7 @@ const CONSUMER_ORIGIN = isOrchestrionEnabled() ? 'auto.amqplib.orchestrion.consu
 // default (empty) exchange with the queue name as the routing key.
 const expectedProducerSpan = (routingKey: string) =>
   expect.objectContaining({
-    op: 'message',
+    op: 'queue.publish',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
       // Legacy messaging attributes emitted by both the OTel and orchestrion integrations.
@@ -25,31 +18,23 @@ const expectedProducerSpan = (routingKey: string) =>
       'messaging.url': 'amqp://sentry:***@localhost:5672/',
       'messaging.protocol': 'AMQP',
       'messaging.protocol_version': '0.9.1',
-      'net.peer.name': 'localhost',
-      'net.peer.port': 5672,
-      // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration; the
-      // vendored OTel instrumentation never set them.
-      ...(isOrchestrionEnabled()
-        ? {
-            'messaging.operation.type': 'send',
-            'messaging.destination.name': '',
-            'messaging.rabbitmq.destination.routing_key': routingKey,
-            'network.protocol.name': 'AMQP',
-            'network.protocol.version': '0.9.1',
-            'server.address': 'localhost',
-            'server.port': 5672,
-            'url.full': 'amqp://sentry:***@localhost:5672/',
-          }
-        : {}),
-      'otel.kind': 'PRODUCER',
-      'sentry.op': 'message',
-      'sentry.origin': PUBLISHER_ORIGIN,
+      'messaging.operation.type': 'send',
+      'messaging.destination.name': '',
+      'messaging.rabbitmq.destination.routing_key': routingKey,
+      'network.protocol.name': 'AMQP',
+      'network.protocol.version': '0.9.1',
+      'server.address': 'localhost',
+      'server.port': 5672,
+      'url.full': 'amqp://sentry:***@localhost:5672/',
+      'sentry.kind': 'producer',
+      'sentry.op': 'queue.publish',
+      'sentry.origin': 'auto.amqplib.publisher',
     }),
     status: 'ok',
   });
 
 const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
-  op: 'message',
+  op: 'queue.process',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
     // Legacy messaging attributes emitted by both the OTel and orchestrion integrations. The consumer
@@ -58,17 +43,12 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
     'messaging.destination_kind': 'topic',
     'messaging.rabbitmq.routing_key': 'queue1',
     'messaging.operation': 'process',
-    // Current `@sentry/conventions` attributes are only emitted by the orchestrion integration.
-    ...(isOrchestrionEnabled()
-      ? {
-          'messaging.destination.name': '',
-          'messaging.rabbitmq.destination.routing_key': 'queue1',
-          'messaging.operation.type': 'process',
-        }
-      : {}),
-    'otel.kind': 'CONSUMER',
-    'sentry.op': 'message',
-    'sentry.origin': CONSUMER_ORIGIN,
+    'messaging.destination.name': '',
+    'messaging.rabbitmq.destination.routing_key': 'queue1',
+    'messaging.operation.type': 'process',
+    'sentry.kind': 'consumer',
+    'sentry.op': 'queue.process',
+    'sentry.origin': 'auto.amqplib.consumer',
   }),
   status: 'ok',
 });
@@ -106,10 +86,10 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                 // identify it by its origin rather than by transaction name. The consumer span is its
                 // own transaction, identified by the origin on its trace context.
                 const producer = receivedTransactions.find(t =>
-                  t.spans?.some(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN),
+                  t.spans?.some(s => s.data?.['sentry.origin'] === 'auto.amqplib.publisher'),
                 );
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.consumer',
                 );
 
                 expect(producer).toBeDefined();
@@ -118,7 +98,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                 expect(producer!.transaction).toBe('root span');
                 expect(consumer!.transaction).toBe('queue1 process');
 
-                const producerSpan = producer!.spans?.find(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
+                const producerSpan = producer!.spans?.find(s => s.data?.['sentry.origin'] === 'auto.amqplib.publisher');
                 expect(producerSpan).toMatchObject(expectedProducerSpan('queue1'));
 
                 expect(consumer!.contexts?.trace).toMatchObject(EXPECTED_MESSAGE_SPAN_CONSUMER);
@@ -152,20 +132,20 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                 receivedTransactions.push(transaction);
 
                 const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === CONSUMER_ORIGIN,
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.consumer',
                 );
 
                 expect(consumer).toBeDefined();
                 expect(consumer!.transaction).toBe('queue-error process');
                 expect(consumer!.contexts?.trace).toMatchObject(
                   expect.objectContaining({
-                    op: 'message',
+                    op: 'queue.process',
                     status: 'internal_error',
                     data: expect.objectContaining({
                       'messaging.system': 'rabbitmq',
-                      'otel.kind': 'CONSUMER',
-                      'sentry.op': 'message',
-                      'sentry.origin': CONSUMER_ORIGIN,
+                      'sentry.kind': 'consumer',
+                      'sentry.op': 'queue.process',
+                      'sentry.origin': 'auto.amqplib.consumer',
                     }),
                   }),
                 );
@@ -192,7 +172,9 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                 transaction: (transaction: TransactionEvent) => {
                   expect(transaction.transaction).toBe('root span');
 
-                  const producerSpans = transaction.spans?.filter(s => s.data?.['sentry.origin'] === PUBLISHER_ORIGIN);
+                  const producerSpans = transaction.spans?.filter(
+                    s => s.data?.['sentry.origin'] === 'auto.amqplib.publisher',
+                  );
 
                   // The confirm channel internally calls the base publish; the instrumentation must not
                   // double-instrument, so we expect exactly one producer span.

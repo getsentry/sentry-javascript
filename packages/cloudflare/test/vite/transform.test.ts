@@ -423,6 +423,143 @@ describe('WorkerEntrypoint class wrapping (config fallback)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Agent classes (configured as Durable Objects, upgraded by detection)
+// ---------------------------------------------------------------------------
+
+describe('agent class wrapping', () => {
+  it('wraps a detected Agent with instrumentAgentWithSentry instead of the DO helper', () => {
+    const code = ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyAgent'),
+      agentClasses: new Set(['MyAgent']),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
+    expect(result.wrappedClasses).toEqual(new Set(['MyAgent']));
+  });
+
+  it('still wraps an undetected DO with the Durable Object helper', () => {
+    const code = ["import { DurableObject } from 'cloudflare:workers';", 'export class MyDO extends DurableObject {}'];
+
+    const result = transform(code.join('\n'), {
+      classWrappers: doWrappers('MyDO'),
+      agentClasses: new Set(),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).not.toContain('instrumentAgentWithSentry');
+  });
+
+  it('wraps an Agent and a plain DO in the same entry with their respective helpers', () => {
+    const code = [
+      "import { Agent } from 'agents';",
+      "import { DurableObject } from 'cloudflare:workers';",
+      'export class MyAgent extends Agent {}',
+      'export class MyDO extends DurableObject {}',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyAgent', 'MyDO'),
+      agentClasses: new Set(['MyAgent']),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+  });
+
+  it('emits the expected source for a mixed Agent/chat-agent/DO entry', () => {
+    const code = [
+      "import { Agent } from 'agents';",
+      "import { AIChatAgent } from '@cloudflare/ai-chat';",
+      "import { DurableObject } from 'cloudflare:workers';",
+      'export class MyAgent extends Agent {}',
+      'export class MyChat extends AIChatAgent {}',
+      'export class MyDO extends DurableObject {}',
+      'export default { fetch() {} };',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyAgent', 'MyChat', 'MyDO'),
+      agentClasses: new Set(['MyAgent', 'MyChat']),
+      optionsFn: '(env) => ({ dsn: env.SENTRY_DSN })',
+    })!;
+
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { Agent } from 'agents';",
+        "import { AIChatAgent } from '@cloudflare/ai-chat';",
+        "import { DurableObject } from 'cloudflare:workers';",
+        'class __SENTRY_ORIGINAL_MyAgent__ extends Agent {}',
+        'export const MyAgent = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyAgent__);',
+        '',
+        'class __SENTRY_ORIGINAL_MyChat__ extends AIChatAgent {}',
+        'export const MyChat = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyChat__);',
+        '',
+        'class __SENTRY_ORIGINAL_MyDO__ extends DurableObject {}',
+        'export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyDO__);',
+        '',
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() {} };',
+        'export default __SENTRY__.withSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_DEFAULT_EXPORT__);',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('upgrades a specifier-exported Agent, matching detection on the local name', () => {
+    const code = [
+      "import { Agent } from 'agents';",
+      'class LocalAgent extends Agent {}',
+      'export { LocalAgent as ConfiguredAgent };',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('ConfiguredAgent'),
+      agentClasses: new Set(['LocalAgent']),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.code).toContain('const LocalAgent = __SENTRY__.instrumentAgentWithSentry(');
+  });
+
+  it('does not report a manually Agent-wrapped export as unwrapped', () => {
+    const code = [
+      "import * as Sentry from '@sentry/cloudflare';",
+      "import { Agent } from 'agents';",
+      'class MyAgentBase extends Agent {}',
+      'export const MyAgent = Sentry.instrumentAgentWithSentry((env) => ({}), MyAgentBase);',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyAgent'),
+      agentClasses: new Set(),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.wrappedClasses).toEqual(new Set(['MyAgent']));
+  });
+
+  it('leaves the DO helper accepted for a manually wrapped Durable Object', () => {
+    const code = [
+      "import * as Sentry from '@sentry/cloudflare';",
+      'export const MyDO = Sentry.instrumentDurableObjectWithSentry((env) => ({}), class {});',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyDO'),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    expect(result.wrappedClasses).toEqual(new Set(['MyDO']));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Combined transforms (DO + Workflow + default export)
 // ---------------------------------------------------------------------------
 

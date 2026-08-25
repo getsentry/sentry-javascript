@@ -1,5 +1,8 @@
-import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
+import type { ScheduledController } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -32,9 +35,9 @@ function wrapScheduledHandler(
 
     return startSpan(
       {
-        op: 'faas.cron',
         name: `Scheduled Cron ${controller.cron}`,
         attributes: {
+          [SENTRY_OP]: FUNCTION,
           'faas.cron': controller.cron,
           'faas.time': new Date(controller.scheduledTime).toISOString(),
           'faas.trigger': 'timer',
@@ -59,8 +62,7 @@ function wrapScheduledHandler(
 /**
  * Instruments a scheduled handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerScheduled<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

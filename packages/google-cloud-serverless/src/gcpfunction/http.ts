@@ -1,3 +1,5 @@
+import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION_GCP } from '@sentry/conventions/op';
 import {
   debug,
   handleCallbackErrors,
@@ -51,8 +53,9 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
       return startSpanManual(
         {
           name: `${reqMethod} ${reqUrl}`,
-          op: 'function.gcp.http',
           attributes: {
+            [SENTRY_OP]: FUNCTION_GCP,
+            [FAAS_TRIGGER]: 'http',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
           },

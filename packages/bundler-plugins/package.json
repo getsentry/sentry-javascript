@@ -86,8 +86,8 @@
     "clean": "rimraf build dist coverage sentry-bundler-plugins-*.tgz",
     "clean:all": "run-p clean clean:deps",
     "clean:deps": "rimraf node_modules",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
     "test:unit": "vitest run"
   },
@@ -136,14 +136,14 @@
     "@types/webpack": "npm:@types/webpack@^4",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "vitest": "^3.2.6",
+    "vitest": "^3.2.7",
     "webpack": "5.104.1"
   },
   "volta": {
     "extends": "../../package.json"
   },
   "engines": {
-    "node": ">= 18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "sideEffects": [
     "./sentry-release-injection-file.js",

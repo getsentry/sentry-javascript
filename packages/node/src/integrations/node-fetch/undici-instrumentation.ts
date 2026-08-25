@@ -23,16 +23,22 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
+  getSanitizedUrlString,
   getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
   isTracingSuppressed,
   LRUMap,
+  parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
+  getUrlFragment,
+  getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -40,8 +46,11 @@ import {
   HTTP_RESPONSE_STATUS_CODE,
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
+  SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
@@ -116,19 +125,7 @@ function subscribeToChannel(
   diagnosticChannel: string,
   onMessage: (message: unknown, name: string | symbol) => void,
 ): void {
-  // `diagnostics_channel` had a ref counting bug until v18.19.0.
-  // https://github.com/nodejs/node/pull/47520
-  const [major = 0, minor = 0] = process.version
-    .replace('v', '')
-    .split('.')
-    .map(n => Number(n));
-  const useNewSubscribe = major > 18 || (major === 18 && minor >= 19);
-
-  if (useNewSubscribe) {
-    _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
-  } else {
-    _channelSubs.push(diagch.channel(diagnosticChannel).subscribe(onMessage));
-  }
+  _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
 }
 
 function parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {
@@ -215,14 +212,18 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     // Skip instrumenting this request.
     return;
   }
+
   const urlScheme = requestUrl.protocol.replace(':', '');
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
+    [SENTRY_KIND]: 'client',
+    [SENTRY_OP]: 'http.client',
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
-    [URL_FULL]: requestUrl.toString(),
+    [URL_FULL]: filterCollectedUrl(requestUrl.toString()),
     [URL_PATH]: requestUrl.pathname,
-    [URL_QUERY]: requestUrl.search,
+    [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
+    [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
   };
@@ -230,7 +231,6 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // Sanitize data URLs to prevent long base64 strings in span attributes
   if (url.startsWith('data:')) {
     const sanitizedUrl = stripDataUrlContent(url);
-    attributes['http.url'] = sanitizedUrl;
     attributes[URL_FULL] = sanitizedUrl;
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] = `${request.method || 'GET'} ${sanitizedUrl}`;
   }
@@ -262,10 +262,20 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // emitted as a standalone transaction. This rule also lives in `SentrySampler`, but that only runs
   // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
   // SDKs that don't use an OpenTelemetry tracer provider at all.
+  const isDataUrl = url.startsWith('data:');
+  if (!isDataUrl) {
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
+  }
+  const spanName =
+    requestMethod === '_OTHER'
+      ? 'HTTP'
+      : isDataUrl
+        ? `${request.method || 'GET'} ${stripDataUrlContent(url)}`
+        : `${requestMethod} ${getSanitizedUrlString(parseUrl(requestUrl.toString()))}`;
+
   const client = getClient();
   const span = startInactiveSpan({
-    name: requestMethod === '_OTHER' ? 'HTTP' : requestMethod,
-    kind: SPAN_KIND.CLIENT,
+    name: spanName,
     attributes,
     onlyIfParent: !client || !hasSpanStreamingEnabled(client),
   });
@@ -430,7 +440,7 @@ function getRequestMethod(original: string): string {
     PATCH: true,
     DELETE: true,
     TRACE: true,
-    // QUERY from https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
+    // QUERY from https://datatracker.ietf.org/doc/rfc10008/
     QUERY: true,
   };
 

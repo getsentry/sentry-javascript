@@ -1,16 +1,17 @@
 import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-} from '@sentry/node';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
 
 export type ServerEntry = {
-  fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
+  // `opts` is forwarded verbatim to the wrapped handler, so this must accept whatever shape
+  // the real framework entry uses (e.g. TanStack's `RequestOptions<Register>`). Under
+  // parameter contravariance `unknown` would reject such an entry; `any` keeps it assignable.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  fetch: (request: Request, opts?: any) => Promise<Response> | Response;
 };
 
 /**
@@ -142,15 +143,12 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
 
           // instrument server functions
           if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-            const op = 'function.tanstackstart';
-
             return await startSpan(
               {
-                op,
                 name: `${method} ${url.pathname}`,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+                  [SENTRY_OP]: FUNCTION,
                 },
               },
               async () => {

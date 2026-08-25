@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
-import { debug, getGlobalScope, getIsolationScope, SentryNonRecordingSpan } from '@sentry/core';
+import { debug, getMainCarrier, SentryNonRecordingSpan } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
+import { getClient, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
@@ -46,10 +46,7 @@ describe('Client init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
 
-    getGlobalScope().clear();
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
     Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   });
 
@@ -74,7 +71,7 @@ describe('Client init()', () => {
               },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

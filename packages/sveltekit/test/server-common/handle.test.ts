@@ -1,5 +1,7 @@
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
+  getCapturedScopesOnSpan,
   getRootSpan,
   getSpanDescendants,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -139,18 +141,20 @@ describe('sentryHandle', () => {
 
       expect(_span!).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(_span!).op).toEqual('http.server');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
+      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
 
-      expect(spanToJSON(_span!).timestamp).toBeDefined();
+      expect(spanToJSON(_span!).end_timestamp).toBeDefined();
 
       const spans = getSpanDescendants(_span!);
       expect(spans).toHaveLength(1);
     });
 
     it("doesn't start a span if sveltekit tracing is enabled", async () => {
+      const kitRootSpan = SentryCore.startInactiveSpan({ name: 'sveltekit.handle.root' });
       let _span: Span | undefined = undefined;
       client.on('spanEnd', span => {
         if (span === getRootSpan(span)) {
@@ -160,7 +164,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({
-          event: mockEvent({ tracing: { enabled: true } }),
+          event: mockEvent({ tracing: { enabled: true, root: kitRootSpan } }),
           resolve: resolve(type, isError),
         });
       } catch {
@@ -168,6 +172,10 @@ describe('sentryHandle', () => {
       }
 
       expect(_span).toBeUndefined();
+      expect(spanToJSON(kitRootSpan).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(kitRootSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(kitRootSpan).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
+      kitRootSpan.end();
     });
 
     it('starts a child span for nested server calls (i.e. if there is an active span)', async () => {
@@ -199,20 +207,26 @@ describe('sentryHandle', () => {
       expect(txnCount).toEqual(1);
       expect(_span!).toBeDefined();
 
-      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
-      expect(spanToJSON(_span!).op).toEqual('http.server');
-      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
+      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
-      expect(spanToJSON(_span!).timestamp).toBeDefined();
+      expect(spanToJSON(_span!).end_timestamp).toBeDefined();
 
       const spans = getSpanDescendants(_span!).map(spanToJSON);
 
       expect(spans).toHaveLength(2);
       expect(spans).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
-          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+          expect.objectContaining({
+            name: 'GET /users/[id]',
+            attributes: expect.objectContaining({ 'sentry.op': 'http.server' }),
+          }),
+          expect.objectContaining({
+            name: 'GET api/users/details/[id]',
+            attributes: expect.objectContaining({ 'sentry.op': 'http.server' }),
+          }),
         ]),
       );
     });
@@ -258,7 +272,11 @@ describe('sentryHandle', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
-      expect(envelopeHeaders!.trace).toEqual({});
+      // Continuing a trace without incoming baggage does not populate a new DSC, but the scope's
+      // `sample_rand` is still propagated so downstream sampling decisions stay consistent. Assert it
+      // matches the scope value rather than just any number, so a freshly-minted rand would fail.
+      const scopeSampleRand = getCapturedScopesOnSpan(_span!).scope!.getPropagationContext().sampleRand;
+      expect(envelopeHeaders!.trace).toEqual({ sample_rand: scopeSampleRand.toString() });
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
@@ -322,7 +340,7 @@ describe('sentryHandle', () => {
     it('send errors to Sentry', async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
-      } catch (_e) {
+      } catch {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
           mechanism: { handled: false, type: 'auto.function.sveltekit.handle' },

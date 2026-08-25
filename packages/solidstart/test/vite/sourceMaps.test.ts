@@ -1,8 +1,11 @@
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import type { Plugin, UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
 import {
   getUpdatedSourceMapSettings,
   makeAddSentryVitePlugin,
+  makeAddSentryVitePluginSolidStart2,
   makeEnableSourceMapsVitePlugin,
 } from '../../src/vite/sourceMaps';
 
@@ -11,7 +14,21 @@ const mockedSentryVitePlugin = {
   writeBundle: vi.fn(),
 };
 
-const sentryVitePluginSpy = vi.fn((_options: SentryVitePluginOptions) => [mockedSentryVitePlugin]);
+// Captured so tests can await the deferred `filesToDeleteAfterUpload` promise, which
+// `toHaveBeenCalledWith` can only match by identity.
+let lastPluginOptions: SentryVitePluginOptions | undefined;
+
+const sentryVitePluginSpy = vi.fn((options: SentryVitePluginOptions) => {
+  lastPluginOptions = options;
+  return [mockedSentryVitePlugin];
+});
+
+/** Runs a plugin's `config` hook the way Vite does. */
+function runConfigHook(plugin: Plugin, config: UserConfig = {}): void {
+  const hook = plugin.config;
+  const handler = typeof hook === 'function' ? hook : hook?.handler;
+  handler?.call({} as never, config, { command: 'build', mode: 'production' });
+}
 
 vi.mock('@sentry/bundler-plugins/vite', async () => {
   const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
@@ -38,6 +55,24 @@ describe('makeSourceMapsVitePlugin()', () => {
 
     expect(sourceMapsConfigPlugins).toHaveLength(1);
   });
+
+  // Vite concatenates arrays when merging, so echoing the config back duplicates the user's arrays.
+  it('contributes only the source map setting, not the whole config back', () => {
+    const plugin = makeEnableSourceMapsVitePlugin({})[0]!;
+    const hook = plugin.config;
+    const handler = typeof hook === 'function' ? hook : hook?.handler;
+
+    const contributed = handler?.call(
+      {} as never,
+      { optimizeDeps: { include: ['x'] } },
+      {
+        command: 'build',
+        mode: 'production',
+      },
+    );
+
+    expect(contributed).toEqual({ build: { sourcemap: 'hidden' } });
+  });
 });
 
 describe('makeAddSentryVitePlugin()', () => {
@@ -46,7 +81,10 @@ describe('makeAddSentryVitePlugin()', () => {
       {
         org: 'my-org',
         authToken: 'my-token',
-        sourceMapsUploadOptions: {
+        applicationKey: 'my-app-key',
+        sentryUrl: 'https://my.sentry.io',
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
         bundleSizeOptimizations: {
@@ -60,6 +98,10 @@ describe('makeAddSentryVitePlugin()', () => {
       expect.objectContaining({
         org: 'my-org',
         authToken: 'my-token',
+        applicationKey: 'my-app-key',
+        // `sentryUrl` is resolved to the plugin's `url` option
+        url: 'https://my.sentry.io',
+        moduleMetadata: { team: 'sdk' },
         sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
@@ -132,42 +174,91 @@ describe('makeAddSentryVitePlugin()', () => {
       }),
     );
   });
+});
 
-  it('should override options with unstable_sentryVitePluginOptions', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-        bundleSizeOptimizations: {
-          excludeTracing: true,
-        },
-        sourceMapsUploadOptions: {
-          unstable_sentryVitePluginOptions: {
-            org: 'unstable-org',
-            sourcemaps: {
-              assets: ['unstable/*.js'],
-            },
-            bundleSizeOptimizations: {
-              excludeTracing: false,
-            },
-          },
-        },
-      },
-      {},
-    );
+describe('makeAddSentryVitePluginSolidStart2()', () => {
+  it('passes the shared build-time options through to the vite plugin', () => {
+    makeAddSentryVitePluginSolidStart2({
+      org: 'my-org',
+      project: 'my-project',
+      authToken: 'my-token',
+      sentryUrl: 'https://my-sentry.io',
+      applicationKey: 'my-app',
+      silent: true,
+      bundleSizeOptimizations: { excludeTracing: true },
+    });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        org: 'unstable-org',
+        org: 'my-org',
+        project: 'my-project',
         authToken: 'my-token',
-        bundleSizeOptimizations: {
-          excludeTracing: false,
-        },
-        sourcemaps: {
-          assets: ['unstable/*.js'],
-        },
+        // `sentryUrl` is spelled `url` on the plugin.
+        url: 'https://my-sentry.io',
+        applicationKey: 'my-app',
+        silent: true,
+        bundleSizeOptimizations: { excludeTracing: true },
       }),
     );
+  });
+
+  // `buildTimeInstrumentation` configures the orchestrion plugin, not the bundler plugin.
+  it('does not forward `buildTimeInstrumentation` to the vite plugin', () => {
+    makeAddSentryVitePluginSolidStart2({ org: 'my-org', buildTimeInstrumentation: false });
+
+    expect(sentryVitePluginSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ buildTimeInstrumentation: expect.anything() }),
+    );
+  });
+
+  it('always tags telemetry as solidstart', () => {
+    makeAddSentryVitePluginSolidStart2({ org: 'my-org' });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _metaOptions: { telemetry: { metaFramework: 'solidstart' } },
+      }),
+    );
+  });
+
+  // `filesToDeleteAfterUpload` is resolved through a deferred promise, because the default depends
+  // on whether the user set `build.sourcemap` themselves - only known once Vite resolves its config.
+  it('resolves `filesToDeleteAfterUpload` to the user-specified value', async () => {
+    const plugins = makeAddSentryVitePluginSolidStart2({
+      sourcemaps: { filesToDeleteAfterUpload: ['custom/**/*.map'] },
+    });
+
+    runConfigHook(plugins[0]!);
+
+    await expect(lastPluginOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['custom/**/*.map']);
+  });
+
+  // Only clean up source maps the SDK turned on itself.
+  it('defaults `filesToDeleteAfterUpload` only when the user left `build.sourcemap` unset', async () => {
+    const plugins = makeAddSentryVitePluginSolidStart2({ org: 'my-org' });
+
+    runConfigHook(plugins[0]!);
+
+    await expect(lastPluginOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./**/*.map']);
+  });
+
+  it('leaves `filesToDeleteAfterUpload` unset when the user configured `build.sourcemap`', async () => {
+    const plugins = makeAddSentryVitePluginSolidStart2({ org: 'my-org' });
+
+    runConfigHook(plugins[0]!, { build: { sourcemap: true } });
+
+    await expect(lastPluginOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toBeUndefined();
+  });
+
+  it('warns when the removed `unstable_sentryVitePluginOptions` is still set', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    // @ts-expect-error - removed in v11, but JS configs get no type checking
+    sentrySolidStart({ unstable_sentryVitePluginOptions: { org: 'other-org' } });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('unstable_sentryVitePluginOptions'));
+
+    consoleWarnSpy.mockRestore();
   });
 });
 

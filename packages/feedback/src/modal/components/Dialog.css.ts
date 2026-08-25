@@ -144,6 +144,9 @@ const FORM = `
 .form__error-container {
   color: var(--error-color);
   fill: var(--error-color);
+  width: 0;
+  min-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .form__label {

@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RouteManifest } from '../../../src/config/manifest/types';
 import {
   constructTurbopackConfig,
@@ -960,7 +960,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '16.0.0',
     });
 
@@ -992,30 +992,12 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
   });
 
-  it('should prefer top-level applicationKey over deprecated _experimental.turbopackApplicationKey', () => {
-    const userNextConfig: NextConfigObject = {};
-
-    const result = constructTurbopackConfig({
-      userNextConfig,
-      userSentryOptions: {
-        applicationKey: 'top-level-key',
-        _experimental: { turbopackApplicationKey: 'deprecated-key' },
-      },
-      nextJsVersion: '16.0.0',
-    });
-
-    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as {
-      loaders: Array<{ loader: string; options: { applicationKey: string } }>;
-    };
-    expect(rule.loaders[0]!.options.applicationKey).toBe('top-level-key');
-  });
-
   it('should only exclude Next.js polyfills, not all foreign modules', () => {
     const userNextConfig: NextConfigObject = {};
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '16.0.0',
     });
 
@@ -1031,7 +1013,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '15.4.1',
     });
 
@@ -1055,7 +1037,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: undefined,
     });
 
@@ -1067,7 +1049,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'custom-key-123' } },
+      userSentryOptions: { applicationKey: 'custom-key-123' },
       nextJsVersion: '16.0.0',
     });
 
@@ -1087,7 +1069,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       routeManifest: mockRouteManifest,
       nextJsVersion: '16.0.0',
     });
@@ -1113,7 +1095,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      userSentryOptions: { applicationKey: 'my-app' },
       nextJsVersion: '17.0.0',
     });
 
@@ -1288,8 +1270,8 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
     const result = constructTurbopackConfig({
       userNextConfig,
       userSentryOptions: {
+        applicationKey: 'my-app',
         _experimental: {
-          turbopackApplicationKey: 'my-app',
           turbopackReactComponentAnnotation: { enabled: true },
         },
       },
@@ -1307,7 +1289,169 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
   });
 });
 
-describe('orchestrion diagnostics-channel injection', () => {
+describe('componentAnnotation with top-level reactComponentAnnotation', () => {
+  function mockLoaderPaths(): void {
+    const pathResolveSpy = vi.spyOn(path, 'resolve');
+    pathResolveSpy.mockImplementation((...args: string[]) => {
+      const lastArg = args[args.length - 1];
+      if (lastArg === 'componentAnnotationLoader.js') {
+        return '/mocked/path/to/componentAnnotationLoader.js';
+      }
+      if (lastArg === 'moduleMetadataInjectionLoader.js') {
+        return '/mocked/path/to/moduleMetadataInjectionLoader.js';
+      }
+      return '/mocked/path/to/valueInjectionLoader.js';
+    });
+  }
+
+  function getIgnoredComponents(result: ReturnType<typeof constructTurbopackConfig>): string[] {
+    const rule = result.rules!['*.{tsx,jsx}'] as {
+      loaders: Array<{ loader: string; options: { ignoredComponents: string[] } }>;
+    };
+    return rule.loaders[0]!.options.ignoredComponents;
+  }
+
+  it('adds the component annotation loader rule when enabled and Next.js >= 16', () => {
+    mockLoaderPaths();
+
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { reactComponentAnnotation: { enabled: true, ignoredComponents: ['Header'] } },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toEqual({
+      condition: { not: 'foreign' },
+      loaders: [
+        {
+          loader: '/mocked/path/to/componentAnnotationLoader.js',
+          options: {
+            ignoredComponents: ['Header'],
+          },
+        },
+      ],
+    });
+  });
+
+  it('does not add the rule when enabled is false', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { reactComponentAnnotation: { enabled: false } },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  it('lets the deprecated experimental option override the top-level one', () => {
+    mockLoaderPaths();
+
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {
+        reactComponentAnnotation: { enabled: true, ignoredComponents: ['TopLevel'] },
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: true, ignoredComponents: ['Experimental'] },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(getIgnoredComponents(result)).toEqual(['Experimental']);
+  });
+
+  it('merges field-wise so the top-level option fills gaps the experimental one leaves', () => {
+    mockLoaderPaths();
+
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {
+        reactComponentAnnotation: { enabled: true, ignoredComponents: ['TopLevel'] },
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: true },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(getIgnoredComponents(result)).toEqual(['TopLevel']);
+  });
+
+  it('lets the deprecated experimental option disable annotation enabled at the top level', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {
+        reactComponentAnnotation: { enabled: true },
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: false },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  describe('Next.js < 16 warning', () => {
+    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns and skips the rule when the Next.js version is too old', () => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { reactComponentAnnotation: { enabled: true } },
+        nextJsVersion: '15.4.1',
+      });
+
+      expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('requires Next.js 16+'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('detected 15.4.1'));
+    });
+
+    it('warns without a version when the Next.js version could not be detected', () => {
+      const result = constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { reactComponentAnnotation: { enabled: true } },
+        nextJsVersion: undefined,
+      });
+
+      expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('requires Next.js 16+'));
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('detected'));
+    });
+
+    it('does not warn when annotation is not enabled', () => {
+      constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { reactComponentAnnotation: { enabled: false } },
+        nextJsVersion: '15.4.1',
+      });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn on a supported Next.js version', () => {
+      mockLoaderPaths();
+
+      constructTurbopackConfig({
+        userNextConfig: {},
+        userSentryOptions: { reactComponentAnnotation: { enabled: true } },
+        nextJsVersion: '16.0.0',
+      });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('orchestrion build-time instrumentation', () => {
   function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
     instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
   } {
@@ -1320,7 +1464,7 @@ describe('orchestrion diagnostics-channel injection', () => {
   it('serializes a RegExp filePath so it survives Turbopack JSON loader options', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
-      userSentryOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+      userSentryOptions: {},
       nextJsVersion: '16.0.0',
     });
 
@@ -1337,14 +1481,60 @@ describe('orchestrion diagnostics-channel injection', () => {
     expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
   });
 
-  it('does not add the orchestrion rule when injection is not opted in', () => {
+  it('passes the snippet module as an absolute importHelperPath', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
       userSentryOptions: {},
       nextJsVersion: '16.0.0',
     });
 
+    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+      loaders: Array<{ options: { importHelperPath?: string } }>;
+    };
+    const importHelperPath = rule.loaders[0]!.options.importHelperPath;
+
+    // The loader derives a per-file RELATIVE specifier from this path —
+    // Turbopack rejects absolute-path imports, and a bare specifier doesn't
+    // resolve from inside a transformed package under isolated installs (pnpm).
+    // The snippet imports the helper and the subscriber factory from
+    // `@sentry/server-utils` (the main entry), not the orchestrion subpath.
+    expect(importHelperPath).toBeDefined();
+    expect(path.isAbsolute(importHelperPath!)).toBe(true);
+    expect(importHelperPath).toContain('server-utils');
+    expect(importHelperPath).not.toContain('orchestrion');
+  });
+
+  it('restricts the orchestrion rule to the node environment', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    // `condition: 'node'` is what keeps the transform off client code — orchestrion
+    // splices `node:diagnostics_channel` calls that throw `X is not a function` in the browser.
+    const rule = result.rules!['*.{js,mjs,cjs}'] as { condition?: unknown };
+    expect(rule.condition).toBe('node');
+  });
+
+  it('does not add the orchestrion rule when build-time instrumentation is turned off', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: { buildTimeInstrumentation: false },
+      nextJsVersion: '16.0.0',
+    });
+
     expect(result.rules!['*.{js,mjs,cjs}']).toBeUndefined();
+  });
+
+  it('does not add the orchestrion rule below Next.js 16, where rule conditions are unsupported', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '15.4.1',
+    });
+
+    expect(result.rules?.['*.{js,mjs,cjs}']).toBeUndefined();
   });
 });
 

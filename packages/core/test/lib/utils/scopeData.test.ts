@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ScopeData } from '../../../src';
-import { Scope, startInactiveSpan } from '../../../src';
+import { Scope } from '../../../src';
 import * as currentScopes from '../../../src/currentScopes';
 import type { Attachment } from '../../../src/types/attachment';
 import type { Breadcrumb } from '../../../src/types/breadcrumb';
@@ -231,6 +231,7 @@ describe('applyScopeDataToEvent', () => {
         thing: undefined,
       },
       tags: {},
+      attributes: {},
       extra: {},
       contexts: {},
       attachments: [],
@@ -263,6 +264,7 @@ describe('applyScopeDataToEvent', () => {
       breadcrumbs: [],
       user: {},
       tags: {},
+      attributes: {},
       extra: {},
       contexts: {},
       attachments: [],
@@ -278,59 +280,6 @@ describe('applyScopeDataToEvent', () => {
     expect(event.transaction).toBe('/users/:id');
   });
 
-  it('applies the root span name to transaction events', () => {
-    const data: ScopeData = {
-      eventProcessors: [],
-      breadcrumbs: [],
-      user: {},
-      tags: {},
-      extra: {},
-      contexts: {},
-      attachments: [],
-      propagationContext: { traceId: '1', sampleRand: 0.42 },
-      sdkProcessingMetadata: {},
-      fingerprint: [],
-      transactionName: 'foo',
-      span: {
-        attributes: {},
-        startTime: 1,
-        endTime: 2,
-        status: 'ok',
-        name: 'bar',
-        // @ts-expect-error - we don't need to provide all span context fields
-        spanContext: () => ({}),
-      },
-    };
-
-    const event: Event = { type: 'transaction' };
-
-    applyScopeDataToEvent(event, data);
-
-    expect(event.transaction).toBe('bar');
-  });
-
-  it("doesn't apply the root span name to non-transaction events", () => {
-    const data: ScopeData = {
-      eventProcessors: [],
-      breadcrumbs: [],
-      user: {},
-      tags: {},
-      extra: {},
-      contexts: {},
-      attachments: [],
-      propagationContext: { traceId: '1', sampleRand: 0.42 },
-      sdkProcessingMetadata: {},
-      fingerprint: [],
-      transactionName: '/users/:id',
-      span: startInactiveSpan({ name: 'foo' }),
-    };
-    const event: Event = { type: undefined };
-
-    applyScopeDataToEvent(event, data);
-
-    expect(event.transaction).toBe('/users/:id');
-  });
-
   it.each([undefined, 'profile', 'replay_event', 'feedback'])(
     'applies scope.transactionName to event with type %s',
     type => {
@@ -339,6 +288,7 @@ describe('applyScopeDataToEvent', () => {
         breadcrumbs: [],
         user: {},
         tags: {},
+        attributes: {},
         extra: {},
         contexts: {},
         attachments: [],
@@ -389,7 +339,6 @@ describe('getCombinedScopeData', () => {
         traceId: expect.any(String),
       },
       sdkProcessingMetadata: {},
-      span: undefined,
       tags: {
         current: 'current',
         global: 'global',

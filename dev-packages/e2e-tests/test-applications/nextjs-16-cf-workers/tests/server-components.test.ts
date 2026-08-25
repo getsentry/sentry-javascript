@@ -25,7 +25,7 @@ test.skip('Sends a transaction for a request to app router with URL', async ({ p
       'http.route': '/parameterized/[one]/beep/[two]',
       'http.status_code': 200,
       'http.target': '/parameterized/1337/beep/42',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'next.route': '/parameterized/[one]/beep/[two]',
     }),
     op: 'http.server',

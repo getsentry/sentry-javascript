@@ -14,16 +14,15 @@ import type { Primitive } from './types/misc';
 import type { RequestEventData } from './types/request';
 import type { Session } from './types/session';
 import type { SeverityLevel } from './types/severity';
-import type { Span } from './types/span';
 import type { PropagationContext } from './types/tracing';
 import type { User } from './types/user';
 import { debug } from './utils/debug-logger';
 import { isPlainObject } from './utils/is';
+import { addNonEnumerableProperty } from './utils/object';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
 
@@ -75,8 +74,7 @@ export interface ScopeData {
   breadcrumbs: Breadcrumb[];
   user: User;
   tags: { [key: string]: Primitive };
-  // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
@@ -85,7 +83,6 @@ export interface ScopeData {
   fingerprint: string[];
   level?: SeverityLevel;
   transactionName?: string;
-  span?: Span;
   conversationId?: string;
 }
 
@@ -158,6 +155,15 @@ export class Scope {
   /** Conversation ID */
   protected _conversationId?: string;
 
+  /**
+   * A place to stash references to objects that are associated with this scope but should not be serialized,
+   * such as the currently active span (core) or the OpenTelemetry context (opentelemetry).
+   * These are cloned as-is (shallow) when the scope is cloned, so they survive `clone()`.
+   *
+   * This is non-enumerable so it does not leak into `toJSON`, `Object.keys` or structural comparisons.
+   */
+  declare public refs: Record<string, unknown>;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -172,6 +178,7 @@ export class Scope {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
+    addNonEnumerableProperty(this, 'refs', {});
     this._propagationContext = {
       traceId: generateTraceId(),
       sampleRand: safeMathRandom(),
@@ -208,8 +215,7 @@ export class Scope {
     newScope._client = this._client;
     newScope._lastEventId = this._lastEventId;
     newScope._conversationId = this._conversationId;
-
-    _setSpanForScope(newScope, _getSpanForScope(this));
+    newScope.refs = { ...this.refs };
 
     return newScope;
   }
@@ -365,7 +371,7 @@ export class Scope {
    * ```
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setAttribute<T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown>(
+  public setAttribute<T extends (RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown)>(
     key: string,
     value: RawAttribute<T>,
   ): this {
@@ -547,34 +553,6 @@ export class Scope {
   }
 
   /**
-   * Clears the current scope and resets its properties.
-   * Note: The client will not be cleared.
-   */
-  public clear(): this {
-    // client is not cleared here on purpose!
-    this._breadcrumbs = [];
-    this._tags = {};
-    this._attributes = {};
-    this._extra = {};
-    this._user = {};
-    this._contexts = {};
-    this._level = undefined;
-    this._transactionName = undefined;
-    this._fingerprint = undefined;
-    this._session = undefined;
-    this._conversationId = undefined;
-    _setSpanForScope(this, undefined);
-    this._attachments = [];
-    this.setPropagationContext({
-      traceId: generateTraceId(),
-      sampleRand: safeMathRandom(),
-    });
-
-    this._notifyScopeListeners();
-    return this;
-  }
-
-  /**
    * Adds a breadcrumb to the scope.
    * By default, the last 100 breadcrumbs are kept.
    */
@@ -654,7 +632,6 @@ export class Scope {
       propagationContext: this._propagationContext,
       sdkProcessingMetadata: this._sdkProcessingMetadata,
       transactionName: this._transactionName,
-      span: _getSpanForScope(this),
       conversationId: this._conversationId,
     };
   }

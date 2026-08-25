@@ -34,7 +34,7 @@ test('Span nesting: h3 middleware spans are children of the srvx request span', 
 
   // All h3 middleware spans should be children of the srvx span
   const h3MiddlewareSpans = event.spans?.filter(
-    span => span.origin === 'auto.http.nitro.h3' && span.op === 'middleware.nitro',
+    span => span.origin === 'auto.http.nitro.h3' && span.op === 'middleware',
   );
   expect(h3MiddlewareSpans?.length).toBeGreaterThanOrEqual(1);
 
@@ -104,7 +104,7 @@ test('Span nesting: middleware spans start before manual spans in the span tree'
   const event = await transactionEventPromise;
 
   // Middleware spans should start before the manual db spans
-  const middlewareSpans = event.spans?.filter(span => span.op === 'middleware.nitro') ?? [];
+  const middlewareSpans = event.spans?.filter(span => span.op === 'middleware') ?? [];
   const dbSpans = event.spans?.filter(span => span.op === 'db') ?? [];
 
   expect(middlewareSpans.length).toBeGreaterThanOrEqual(1);

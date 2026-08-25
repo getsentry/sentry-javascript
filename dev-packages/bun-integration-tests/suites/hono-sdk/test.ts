@@ -71,6 +71,7 @@ it('Hono app captures parametrized errors (Hono SDK on Bun)', async ({ signal })
             method: 'GET',
             url: expect.stringContaining('/error/param-123'),
           },
+          user: { ip_address: expect.any(String) },
           breadcrumbs: [
             {
               timestamp: expect.any(Number),

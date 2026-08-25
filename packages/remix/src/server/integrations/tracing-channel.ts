@@ -2,33 +2,39 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getSpanStatusFromHttpCode,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_KIND,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
-  CODE_FUNCTION,
+  CODE_FUNCTION_NAME,
   HTTP_METHOD,
   HTTP_ROUTE,
   HTTP_STATUS_CODE,
-  HTTP_URL,
   URL_FULL,
   URL_PATH,
+  SENTRY_KIND,
+  SENTRY_OP,
+  HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { FUNCTION } from '@sentry/conventions/op';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
+import type { FormDataCapture } from '../../utils/formData';
+import { applyFormDataAttributes } from '../../utils/formData';
 
-const ORIGIN = 'auto.http.orchestrion.remix';
+const ORIGIN = 'auto.http.remix';
 
 const NOOP = (): void => {};
 
-// `match.route.id` / `match.params.*` mirror `RemixSemanticAttributes` from the vendored
-// `RemixInstrumentation` this integration replaces.
 const MATCH_ROUTE_ID = 'match.route.id';
 const MATCH_PARAMS = 'match.params';
 
@@ -72,10 +78,10 @@ function getRequestAttributes(request: unknown): SpanAttributes {
     attributes[HTTP_METHOD] = method;
   }
   if (typeof url === 'string') {
-    // oxlint-disable-next-line typescript/no-deprecated
-    attributes[HTTP_URL] = url;
     const urlObject = parseStringToURLObject(url);
-    attributes[URL_FULL] = urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined;
+    attributes[URL_FULL] = filterCollectedUrl(
+      urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+    );
     attributes[URL_PATH] = urlObject?.pathname;
   }
   return attributes;
@@ -101,13 +107,16 @@ function setResponseStatus(span: Span, result: unknown): void {
   if (typeof status === 'number') {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_STATUS_CODE, status);
+    span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
+
+    const spanStatus = getSpanStatusFromHttpCode(status);
+    span.setStatus(spanStatus);
   }
 }
 
 /**
  * `matchServerRoutes` opens no span of its own; it enriches the enclosing request span with the
- * matched route (used to derive the `http.server` transaction name), mirroring the vendored
- * instrumentation's patch.
+ * matched route (used to derive the `http.server` transaction name).
  */
 function enrichActiveSpanWithRoute(result: unknown): void {
   const span = getActiveSpan();
@@ -121,7 +130,10 @@ function enrichActiveSpanWithRoute(result: unknown): void {
   if (route?.path) {
     // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
-    span.updateName(`remix.request ${route.path}`);
+    // oxlint-disable-next-line typescript/no-deprecated
+    const method = spanToJSON(span).attributes[HTTP_METHOD];
+    span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
   if (route?.id) {
     span.setAttribute(MATCH_ROUTE_ID, route.id);
@@ -131,17 +143,24 @@ function enrichActiveSpanWithRoute(result: unknown): void {
 function subscribeRequestHandler(): void {
   bindTracingChannelToSpan<ChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_REQUEST_HANDLER),
-    data =>
-      startInactiveSpan({
-        name: 'remix.request',
-        kind: SPAN_KIND.SERVER,
+    data => {
+      const requestAttributes = getRequestAttributes(data.arguments[0]);
+      // oxlint-disable-next-line typescript/no-deprecated
+      const method = requestAttributes[HTTP_METHOD];
+      const path = requestAttributes[URL_PATH];
+      const hasUrlName = typeof method === 'string' && typeof path === 'string';
+      return startInactiveSpan({
+        name: hasUrlName ? `${method} ${path}` : 'remix.request',
         attributes: {
+          [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [CODE_FUNCTION]: 'requestHandler',
-          ...getRequestAttributes(data.arguments[0]),
+          ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
+          [CODE_FUNCTION_NAME]: 'requestHandler',
+          ...requestAttributes,
         },
-      }),
+      });
+    },
     {
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
     },
@@ -171,8 +190,8 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'loader.remix',
-          [CODE_FUNCTION]: 'loader',
+          [SENTRY_OP]: FUNCTION,
+          [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -185,7 +204,7 @@ function subscribeCallRouteLoader(): void {
   );
 }
 
-function subscribeCallRouteAction(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
+function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined): void {
   bindTracingChannelToSpan<ActionChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION),
     data => {
@@ -195,7 +214,7 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
       // delay the action promise, so reading only after it settles would race the parent
       // `requestHandler` span flushing the transaction. Reading here means the promise is (virtually
       // always) already resolved by `asyncEnd`, so ending the span costs a single microtask.
-      if (actionFormDataAttributes && params.request) {
+      if (formDataCapture && params.request) {
         const formData = params.request.clone().formData();
         // Attach a handler so an unconsumed rejection (e.g. the action errored) isn't unhandled.
         formData.catch(() => undefined);
@@ -205,8 +224,8 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'action.remix',
-          [CODE_FUNCTION]: 'action',
+          [SENTRY_OP]: FUNCTION,
+          [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
         },
@@ -220,12 +239,12 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
       // capture isn't configured, let the helper end the span normally.
       deferSpanEnd: ({ span, data, end }) => {
         const formData = data._sentryFormData;
-        if (!actionFormDataAttributes || !formData || 'error' in data) {
+        if (!formDataCapture || !formData || 'error' in data) {
           return false;
         }
 
         formData
-          .then(resolved => applyFormDataAttributes(span, resolved, actionFormDataAttributes))
+          .then(resolved => applyFormDataAttributes(span, resolved, formDataCapture))
           // Silently continue on any error. Typically happens because the action body cannot be
           // processed into FormData, in which case we should just continue.
           .catch(() => undefined)
@@ -237,21 +256,7 @@ function subscribeCallRouteAction(actionFormDataAttributes: Record<string, strin
   );
 }
 
-function applyFormDataAttributes(
-  span: Span,
-  formData: FormData,
-  actionFormDataAttributes: Record<string, string | boolean>,
-): void {
-  formData.forEach((value, key) => {
-    const mapped = actionFormDataAttributes[key];
-    if (mapped && typeof value === 'string') {
-      const keyName = mapped === true ? key : mapped;
-      span.setAttribute(`formData.${keyName}`, value);
-    }
-  });
-}
-
-export function instrumentRemix(actionFormDataAttributes: Record<string, string | boolean> | undefined): void {
+export function instrumentRemix(formDataCapture: FormDataCapture | undefined): void {
   // `tracingChannel` is unavailable before Node 18.19, so do nothing in that case.
   if (!diagnosticsChannel.tracingChannel) {
     return;
@@ -261,8 +266,8 @@ export function instrumentRemix(actionFormDataAttributes: Record<string, string 
     subscribeRequestHandler();
     subscribeMatchServerRoutes();
     subscribeCallRouteLoader();
-    // Always instrument actions; `actionFormDataAttributes` only gates the optional form-data
+    // Always instrument actions; `formDataCapture` only gates the optional form-data
     // attribute extraction, not whether ACTION spans are created.
-    subscribeCallRouteAction(actionFormDataAttributes);
+    subscribeCallRouteAction(formDataCapture);
   });
 }

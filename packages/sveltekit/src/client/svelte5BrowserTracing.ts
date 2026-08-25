@@ -1,5 +1,10 @@
 import type { Client, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
@@ -7,7 +12,7 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
@@ -33,7 +38,9 @@ function _instrumentPageLoad(client: Client): void {
   const initialPath = WINDOW.location?.pathname;
 
   const pageLoadSpan = startBrowserTracingPageLoadSpan(client, {
-    name: initialPath,
+    // With span streaming, span names have to be low cardinality. The route id is only available
+    // asynchronously, which updates the span name then.
+    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
@@ -105,9 +112,10 @@ function _instrumentNavigations(client: Client): void {
     );
 
     routingSpan = startInactiveSpan({
-      op: 'ui.sveltekit.routing',
       name: 'SvelteKit Route Change',
       attributes: {
+        // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
+        [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         ...navigationInfo,
       },

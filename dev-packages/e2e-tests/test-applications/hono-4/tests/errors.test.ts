@@ -36,6 +36,48 @@ test.describe('route handler errors', () => {
 
     expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
+
+  test('captures three linked errors', async ({ baseURL }) => {
+    const errorPromise = waitForError(APP_NAME, event => {
+      return event.exception?.values?.some(exception => exception.value === 'Failure 3');
+    });
+
+    const response = await fetch(`${baseURL}/linked-error`);
+    expect(response.status).toBe(500);
+
+    const errorEvent = await errorPromise;
+    expect(errorEvent.exception?.values).toHaveLength(3);
+
+    const firstCause = errorEvent.exception?.values?.[0];
+    expect(firstCause?.value).toBe('Failure 1');
+    expect(firstCause?.mechanism).toEqual({
+      exception_id: 2,
+      handled: true,
+      parent_id: 1,
+      source: 'cause',
+      type: 'chained',
+    });
+
+    const secondCause = errorEvent.exception?.values?.[1];
+    expect(secondCause?.value).toBe('Failure 2');
+    expect(secondCause?.mechanism).toEqual({
+      exception_id: 1,
+      handled: true,
+      parent_id: 0,
+      source: 'cause',
+      type: 'chained',
+    });
+
+    const capturedError = errorEvent.exception?.values?.[2];
+    expect(capturedError?.value).toBe('Failure 3');
+    expect(capturedError?.mechanism).toEqual({
+      exception_id: 0,
+      handled: false,
+      type: 'auto.http.hono.context_error',
+    });
+
+    expect(errorEvent.transaction).toBe('GET /linked-error');
+  });
 });
 
 test.describe('HTTPException errors', () => {
@@ -151,7 +193,7 @@ test.describe('middleware errors', () => {
     expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
     const transaction = await transactionPromise;
-    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
     expect(middlewareSpan?.status).toBe('internal_error');
   });
 
@@ -187,7 +229,7 @@ test.describe('middleware errors', () => {
     if (RUNTIME === 'cloudflare') {
       expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx');
 
-      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
       expect(middlewareSpan?.status).not.toBe('internal_error');
     }
 

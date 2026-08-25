@@ -35,7 +35,7 @@ describe('init()', () => {
 
   describe('integrations', () => {
     it("doesn't install default integrations if told not to", () => {
-      init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
+      init({ dsn: PUBLIC_DSN, defaultIntegrations: false, traceLifecycle: 'static' });
 
       const client = getClient();
 
@@ -132,7 +132,7 @@ describe('init()', () => {
 
   describe('initWithoutDefaultIntegrations()', () => {
     it('installs no default integrations', () => {
-      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN });
+      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
 
       const client = getClient();
 
@@ -143,7 +143,11 @@ describe('init()', () => {
     it('still installs user-provided integrations', () => {
       const customIntegration = new MockIntegration('Custom integration');
 
-      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, integrations: [customIntegration] });
+      initWithoutDefaultIntegrations({
+        dsn: PUBLIC_DSN,
+        integrations: [customIntegration],
+        traceLifecycle: 'static',
+      });
 
       const client = getClient();
 

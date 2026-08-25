@@ -16,6 +16,7 @@ import User from './pages/User';
 const replay = Sentry.replayIntegration();
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
@@ -38,7 +39,6 @@ Sentry.init({
   replaysOnErrorSampleRate: 0.0,
 
   tunnel: 'http://localhost:3031',
-  dataCollection: { userInfo: true },
 });
 
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);

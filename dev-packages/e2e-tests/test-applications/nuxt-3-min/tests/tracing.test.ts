@@ -23,7 +23,8 @@ test.describe('distributed tracing', () => {
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
     // Parametrization does not work in Nuxt 3.7 yet (only in newer versions)
-    expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F${PARAM}`); // URL-encoded for 'GET /test-param/s0me-param'
+    // Without route attribute, the transaction name is not set on the baggage
+    expect(baggageMetaTagContent).not.toContain('sentry-transaction=');
     expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`);
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
@@ -110,7 +111,7 @@ test.describe('distributed tracing', () => {
         description: `GET /api/user/${PARAM}`, // fixme: parametrize
         parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
         data: expect.objectContaining({
-          url: `/api/user/${PARAM}`,
+          'url.full': expect.stringContaining(`/api/user/${PARAM}`),
           type: 'fetch',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',

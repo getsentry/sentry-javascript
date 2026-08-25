@@ -31,17 +31,33 @@ import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/ur
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpanManual } from '../../tracing/trace';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import { SPAN_KIND } from '../../spanKind';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
-import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
+import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -109,14 +125,18 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const url = request.url || '/';
       const normalizedRequest = httpRequestToRequestData(request);
       const {
-        maxRequestBodySize = 'medium',
+        maxRequestBodySize: configuredBodySize,
         ignoreRequestBody,
         sessions = true,
         sessionFlushingDelayMS = 60_000,
       } = options;
 
-      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
+      const effectiveBodySize =
+        configuredBodySize ??
+        (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+
+      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+        patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
       // Update the isolation scope, isolate this request
@@ -252,6 +272,8 @@ function buildServerSpanWrap(
         return next();
       }
 
+      const dataCollectionOptions = client.getDataCollectionOptions();
+
       if (
         shouldIgnoreSpansForIncomingRequest(request, {
           ignoreStaticAssets,
@@ -276,45 +298,48 @@ function buildServerSpanWrap(
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
       const { socket } = request;
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
+      const collectClientAddress = client.getDataCollectionOptions().userInfo;
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address. `network.peer.address` keeps the socket value.
+      const clientAddress = getForwardedClientAddress(ips) ?? remoteAddress;
 
       return startSpanManual(
         {
           name,
-          // Pass SERVER so the OTel sampler infers op='http.server' rather than
-          // 'http', which it does for the INTERNAL default.
-          kind: SPAN_KIND.SERVER,
           attributes: {
             // Sentry-specific attributes
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            // Set http.route to the URL path as a best-effort route name.
-            // Framework integrations (Express, etc.) update this via onSpanEnd.
-            'http.route': httpTargetWithoutQueryFragment,
-            // OTel kind (explicit attribute so it appears in span data)
-            'otel.kind': 'SERVER',
+            [SENTRY_KIND]: 'server',
             // Network attributes
-            'net.host.ip': localAddress,
-            'net.host.port': localPort,
-            'net.peer.ip': remoteAddress,
-            'net.peer.port': remotePort,
+            [SERVER_ADDRESS]: hostname,
+            [SERVER_PORT]: localPort,
+            [NETWORK_LOCAL_ADDRESS]: localAddress,
+            [NETWORK_LOCAL_PORT]: localPort,
+            [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
+            [CLIENT_PORT]: remotePort,
+            [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [NETWORK_PEER_PORT]: remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
-            [URL_FULL]: fullUrl,
+            [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-            // oxlint-disable-next-line typescript-eslint(no-deprecated)
-            [HTTP_URL]: fullUrl,
             'http.method': method,
-            'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+            'http.target': filterCollectedUrl(
+              urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              client,
+            ),
             'http.host': host,
-            'net.host.name': hostname,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+            [NETWORK_PROTOCOL_NAME]: 'http',
+            [NETWORK_PROTOCOL_VERSION]: httpVersion,
+            'http.client_ip': collectClientAddress ? getForwardedClientAddress(ips) : undefined,
             'http.user_agent': userAgent,
             'http.scheme': scheme,
             'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+            [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
             ...getRequestContentLengthAttribute(request),
-            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
+            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
         span => {
@@ -334,11 +359,7 @@ function buildServerSpanWrap(
               'http.status_text': response.statusMessage?.toUpperCase(),
               'http.response.status_code': response.statusCode,
               'http.status_code': response.statusCode,
-              ...httpHeadersToSpanAttributes(
-                headersToDict(response.headers),
-                client?.getDataCollectionOptions() ?? false,
-                'response',
-              ),
+              ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
             onSpanEnd?.(span, request, response);
@@ -361,6 +382,14 @@ function buildServerSpanWrap(
       );
     }
   };
+}
+
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function shouldIgnoreSpansForIncomingRequest(

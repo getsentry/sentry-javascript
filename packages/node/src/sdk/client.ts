@@ -1,8 +1,7 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -14,9 +13,11 @@ import {
 } from '@sentry/core';
 import {
   type AsyncLocalStorageLookup,
-  getTraceContextForScope,
-  type OpenTelemetryTracerProvider,
+  registerPrepareSpanScope,
+  type SentryTracerProvider,
+  setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -25,7 +26,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
-  public traceProvider: OpenTelemetryTracerProvider | undefined;
+  public traceProvider: SentryTracerProvider | undefined;
   public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
 
   private _tracer: Tracer | undefined;
@@ -47,34 +48,26 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       serverName,
     };
 
-    if (options.openTelemetryInstrumentations) {
-      registerInstrumentations({
-        instrumentations: options.openTelemetryInstrumentations,
-      });
-    }
-
     applySdkMetadata(clientOptions, 'node');
 
     debug.log(`Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
 
     super(clientOptions);
 
-    if (this.getOptions().enableLogs) {
-      this._logOnExitFlushListener = () => {
-        _INTERNAL_flushLogsBuffer(this);
-      };
+    this._logOnExitFlushListener = () => {
+      _INTERNAL_flushLogsBuffer(this);
+    };
 
-      if (serverName) {
-        this.on('beforeCaptureLog', log => {
-          log.attributes = {
-            ...log.attributes,
-            'server.address': serverName,
-          };
-        });
-      }
-
-      process.on('beforeExit', this._logOnExitFlushListener);
+    if (serverName) {
+      this.on('beforeCaptureLog', log => {
+        log.attributes = {
+          ...log.attributes,
+          'server.address': serverName,
+        };
+      });
     }
+
+    process.on('beforeExit', this._logOnExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
@@ -85,6 +78,23 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // provider path produce OTel spans that never reach `SentrySpan`, so the strategy is simply never
     // consulted for them.
     _INTERNAL_setDeferSegmentSpanCapture(this);
+
+    // Same constructor anchoring as above: every client must continue incoming (remote) traces,
+    // also manually constructed ones that never run `initOtel`.
+    registerPrepareSpanScope(this);
+  }
+
+  /** @inheritDoc */
+  public init(): void {
+    // Must run before `super.init()`: channel-based integrations capture the strategy's
+    // AsyncLocalStorage via `getTracingChannelBinding()` during integration setup.
+    if (this.getOptions().enableOpenTelemetrySetup) {
+      this.asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+    } else {
+      this.asyncLocalStorageLookup = { asyncLocalStorage: setAsyncLocalStorageAsyncContextStrategy() };
+    }
+
+    super.init();
   }
 
   /** Get the OTEL tracer. */
@@ -176,16 +186,5 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
     _INTERNAL_clearAiProviderSkips();
     super._setupIntegrations();
-  }
-
-  /** Custom implementation for OTEL, so we can handle scope-span linking. */
-  protected _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    return getTraceContextForScope(this, scope);
   }
 }

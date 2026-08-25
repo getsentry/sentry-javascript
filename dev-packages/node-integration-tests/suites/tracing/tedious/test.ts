@@ -1,9 +1,8 @@
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.tedious' : 'auto.db.otel.tedious';
+  const ORIGIN = 'auto.db.tedious';
 
   afterAll(() => {
     cleanupChildProcesses();
@@ -16,11 +15,11 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
       data: expect.objectContaining({
         'sentry.origin': ORIGIN,
         'sentry.op': 'db',
-        'db.system': 'mssql',
-        'db.name': 'master',
+        'db.system.name': 'mssql',
+        'db.namespace': 'master',
         'db.user': 'sa',
-        'net.peer.name': '127.0.0.1',
-        'net.peer.port': 1433,
+        'server.address': '127.0.0.1',
+        'server.port': 1433,
       }),
       ...overrides,
     });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../../src/types/span';
-import { spanIsSampled, spanToJSON, TRACE_FLAG_NONE } from '../../../src/utils/spanUtils';
+import { spanIsSampled, spanToStaticSpanJSON, TRACE_FLAG_NONE } from '../../../src/utils/spanUtils';
 
 describe('SentryNonRecordingSpan', () => {
   it('satisfies the Span interface', () => {
@@ -16,11 +16,12 @@ describe('SentryNonRecordingSpan', () => {
 
     expect(spanIsSampled(span)).toBe(false);
     expect(span.isRecording()).toBe(false);
-    expect(spanToJSON(span)).toEqual({
+    expect(spanToStaticSpanJSON(span)).toEqual({
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       data: {},
       start_timestamp: 0,
+      status: 'ok',
     });
 
     // Ensure all methods work
@@ -32,11 +33,12 @@ describe('SentryNonRecordingSpan', () => {
     span.setStatus({ code: SPAN_STATUS_ERROR });
 
     // but nothing is actually set/readable
-    expect(spanToJSON(span)).toEqual({
+    expect(spanToStaticSpanJSON(span)).toEqual({
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       data: {},
       start_timestamp: 0,
+      status: 'ok',
     });
   });
 });

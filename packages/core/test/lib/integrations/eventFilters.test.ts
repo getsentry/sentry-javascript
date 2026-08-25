@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EventFiltersOptions } from '../../../src/integrations/eventFilters';
-import { eventFiltersIntegration, inboundFiltersIntegration } from '../../../src/integrations/eventFilters';
+import { eventFiltersIntegration } from '../../../src/integrations/eventFilters';
 import type { Event } from '../../../src/types/event';
 import type { EventProcessor } from '../../../src/types/eventprocessor';
 import type { Integration } from '../../../src/types/integration';
@@ -23,7 +23,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * expect(eventProcessor(SOME_EXCEPTION_EVENT)).toBe(null);
  * ```
  *
- * @param options options passed into the InboundFilters integration
+ * @param options options passed into the EventFilters integration
  * @param clientOptions options passed into the mock Sentry client
  */
 function createEventFiltersEventProcessor(
@@ -409,11 +409,8 @@ function createUndefinedIsNotAnObjectEvent(evaluatingStr: string): Event {
   };
 }
 
-describe.each([
-  // eslint-disable-next-line typescript/no-deprecated
-  ['InboundFilters', inboundFiltersIntegration],
-  ['EventFilters', eventFiltersIntegration],
-])('%s', (_, integrationFn) => {
+describe('EventFilters', () => {
+  const integrationFn = eventFiltersIntegration;
   describe('ignoreErrors', () => {
     it('string filter with partial match', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn, {

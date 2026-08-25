@@ -1,9 +1,11 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { ProxyTracer } from '@opentelemetry/api';
-import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Event, EventHint, Log } from '@sentry/core';
-import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
+import { getAsyncContextStrategy, getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
+import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import * as SentryOpentelemetry from '@sentry/opentelemetry';
+import * as SentryServerUtils from '@sentry/server-utils';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
@@ -12,10 +14,7 @@ import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('NodeClient', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getGlobalScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
     setOpenTelemetryContextAsyncContextStrategy();
   });
 
@@ -24,14 +23,59 @@ describe('NodeClient', () => {
     cleanupOtel();
   });
 
+  describe('init', () => {
+    beforeEach(() => {
+      // Undo the OTel strategy the outer `beforeEach` installs, so each test observes what `init()`
+      // does in a fresh process (the ALS installer would otherwise reuse the OTel manager's storage).
+      getMainCarrier().__SENTRY__ = undefined;
+      cleanupOtel();
+    });
+
+    it('installs the AsyncLocalStorage context strategy by default', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
+      const client = new NodeClient(getDefaultNodeClientOptions());
+
+      expect(alsStrategySpy).not.toHaveBeenCalled();
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+
+      client.init();
+
+      expect(alsStrategySpy).toHaveBeenCalledTimes(1);
+      expect(otelStrategySpy).not.toHaveBeenCalled();
+      expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
+      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeUndefined();
+      // The lookup points at the same ALS the installed strategy hands to channel-based integrations
+      expect(getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage).toBe(
+        client.asyncLocalStorageLookup?.asyncLocalStorage,
+      );
+    });
+
+    it('installs the OpenTelemetry context strategy with `enableOpenTelemetrySetup`', () => {
+      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
+
+      const client = new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: true }));
+      client.init();
+
+      expect(otelStrategySpy).toHaveBeenCalledTimes(1);
+      expect(alsStrategySpy).not.toHaveBeenCalled();
+      expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
+      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeDefined();
+    });
+  });
+
   it('sets correct metadata', () => {
     const options = getDefaultNodeClientOptions();
     const client = new NodeClient(options);
 
     expect(client.getOptions()).toEqual({
+      attachStacktrace: true,
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      traceLifecycle: 'static',
       transportOptions: {
         headers: {
           'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
@@ -298,24 +342,9 @@ describe('NodeClient', () => {
     });
   });
 
-  it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = vi
-      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
-      .mockImplementationOnce(() => () => undefined);
-    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
-
-    new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
-
-    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instrumentations: instrumentationsArray,
-      }),
-    );
-  });
-
   describe('log capture', () => {
     it('adds server name to log attributes', () => {
-      const options = getDefaultNodeClientOptions({ enableLogs: true });
+      const options = getDefaultNodeClientOptions();
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: {} };
@@ -328,7 +357,7 @@ describe('NodeClient', () => {
 
     it('preserves existing log attributes', () => {
       const serverName = 'test-server';
-      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
+      const options = getDefaultNodeClientOptions({ serverName });
       const client = new NodeClient(options);
 
       const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };
@@ -355,7 +384,7 @@ describe('NodeClient', () => {
       client.traceProvider = {
         shutdown: shutdownSpy,
         forceFlush: forceFlushSpy,
-      } as unknown as BasicTracerProvider;
+      } as unknown as SentryTracerProvider;
 
       const result = await client.close();
 
@@ -389,7 +418,7 @@ describe('NodeClient', () => {
     it('stops log capture if it was started', async () => {
       const processOffSpy = vi.spyOn(process, 'off');
 
-      const client = new NodeClient(getDefaultNodeClientOptions({ enableLogs: true }));
+      const client = new NodeClient(getDefaultNodeClientOptions());
 
       const result = await client.close();
 

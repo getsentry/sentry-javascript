@@ -31,7 +31,7 @@
     }
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "publishConfig": {
     "access": "public"
@@ -42,9 +42,9 @@
   ],
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "build": "yarn build:types && yarn build:transpile",
     "build:transpile": "yarn rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

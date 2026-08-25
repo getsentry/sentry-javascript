@@ -13,18 +13,19 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
 
   describe('single query operation', () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'GET /test-graphql (query GetHello)',
+      transaction: 'test span name (query GetHello)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
             'graphql.operation.name': 'GetHello',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetHello {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetHello',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -42,20 +43,21 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
 
   describe('single mutation operation', () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'GET /test-graphql (mutation TestMutation)',
+      transaction: 'test span name (mutation TestMutation)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
             'graphql.operation.name': 'TestMutation',
             'graphql.operation.type': 'mutation',
-            'graphql.source': `mutation TestMutation($email: String) {
+            'graphql.document': `mutation TestMutation($email: String) {
   login(email: $email)
 }`,
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'mutation TestMutation',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -71,48 +73,20 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
     });
   });
 
-  describe('invalid root span', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'test span name (query GetHello)',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          data: {
-            'graphql.operation.name': 'GetHello',
-            'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
-          },
-          description: 'query GetHello',
-          status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
-        }),
-      ]),
-    };
-
-    createEsmAndCjsTests(__dirname, 'scenario-invalid-root-span.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('useOperationNameForRootSpan ignores an invalid root span', async () => {
-        await createTestRunner()
-          .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
-      });
-    });
-  });
-
   describe('query without name', () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'GET /test-graphql (query)',
+      transaction: 'test span name (query)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
             'graphql.operation.type': 'query',
-            'graphql.source': 'query {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -130,29 +104,31 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
 
   describe('multiple operations', () => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'GET /test-graphql (query GetHello, query GetWorld)',
+      transaction: 'test span name (query GetHello, query GetWorld)',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: {
             'graphql.operation.name': 'GetHello',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetHello {hello}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetHello {hello}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetHello',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
         expect.objectContaining({
           data: {
             'graphql.operation.name': 'GetWorld',
             'graphql.operation.type': 'query',
-            'graphql.source': 'query GetWorld {world}',
-            'sentry.origin': 'auto.graphql.otel.graphql',
+            'graphql.document': 'query GetWorld {world}',
+            'sentry.origin': 'auto.graphql.diagnostic_channel',
+            'sentry.op': 'graphql',
           },
           description: 'query GetWorld',
           status: 'ok',
-          origin: 'auto.graphql.otel.graphql',
+          origin: 'auto.graphql.diagnostic_channel',
         }),
       ]),
     };
@@ -171,7 +147,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
   describe('many operations', () => {
     const EXPECTED_TRANSACTION = {
       transaction:
-        'GET /test-graphql (query GetHello1, query GetHello2, query GetHello3, query GetHello4, query GetHello5, +4)',
+        'test span name (query GetHello1, query GetHello2, query GetHello3, query GetHello4, query GetHello5, +4)',
     };
 
     createEsmAndCjsTests(

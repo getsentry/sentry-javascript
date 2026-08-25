@@ -34,57 +34,54 @@ describe('spanStreamingIntegration (core)', () => {
     expect(integration.setup).toBeDefined();
   });
 
-  it.each(['static', 'somethingElse'])(
-    'logs a warning if traceLifecycle is not set to "stream" but to %s',
-    traceLifecycle => {
-      const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-      const client = new TestClient({
-        ...getDefaultTestClientOptions(),
-        dsn: 'https://username@domain/123',
-        integrations: [spanStreamingIntegration()],
-        // @ts-expect-error - we want to test the warning for invalid traceLifecycle values
-        traceLifecycle,
-      });
-
-      SentryCore.setCurrentClient(client);
-      client.init();
-
-      expect(debugSpy).toHaveBeenCalledWith(
-        'SpanStreaming integration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
-      );
-      debugSpy.mockRestore();
-
-      expect(client.getOptions().traceLifecycle).toBe('static');
-    },
-  );
-
-  it('falls back to static trace lifecycle if beforeSendSpan is not compatible with span streaming', () => {
-    const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+  it('does not set up span streaming if traceLifecycle is "static"', () => {
+    const debugSpy = vi.spyOn(debug, 'log').mockImplementation(() => {});
     const client = new TestClient({
       ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'stream',
-      beforeSendSpan: (span: SentryCore.SpanJSON) => span,
+      traceLifecycle: 'static',
+      tracesSampleRate: 1,
     });
 
     SentryCore.setCurrentClient(client);
     client.init();
 
-    expect(debugSpy).toHaveBeenCalledWith(
-      'SpanStreaming integration requires a beforeSendSpan callback using `withStreamedSpan`! Falling back to static trace lifecycle.',
-    );
+    expect(debugSpy).toHaveBeenCalledWith('[SpanStreaming] `traceLifecycle` is "static", skipping setup.');
     debugSpy.mockRestore();
 
-    expect(client.getOptions().traceLifecycle).toBe('static');
+    expect(MockSpanBuffer).not.toHaveBeenCalled();
+
+    // Without the hooks registered, ending a span must not enqueue anything
+    client.emit('afterSpanEnd', new SentryCore.SentrySpan({ name: 'test', sampled: true }));
+    expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
   });
 
-  it('sets up buffer when traceLifecycle is "stream"', () => {
+  it.each([
+    ['explicitly set to "stream"', 'stream' as const],
+    ['left unset', undefined],
+  ])('sets up span streaming if traceLifecycle is %s', (_, traceLifecycle) => {
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle,
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    expect(MockSpanBuffer).toHaveBeenCalledWith(client);
+    expect(client.getOptions().traceLifecycle).toBe('stream');
+  });
+
+  it('still sets up span streaming if beforeSendSpan is wrapped with withStaticSpan', () => {
     const client = new TestClient({
       ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
       traceLifecycle: 'stream',
+      beforeSendSpan: SentryCore.withStaticSpan(span => span),
     });
 
     SentryCore.setCurrentClient(client);
@@ -135,5 +132,24 @@ describe('spanStreamingIntegration (core)', () => {
     client.emit('afterSpanEnd', span);
 
     expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
+  });
+
+  it('flushes a single trace when the flushTraceSpans hook is emitted', () => {
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
+      tracesSampleRate: 1,
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    client.emit('flushTraceSpans', 'trace-1');
+
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledTimes(1);
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith('trace-1');
+    expect(mockSpanBufferInstance.drain).not.toHaveBeenCalled();
   });
 });

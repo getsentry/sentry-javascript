@@ -4,7 +4,6 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { isOrchestrionEnabled } from '../../../utils';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
@@ -45,9 +44,9 @@ describe('mysql auto instrumentation', () => {
         ...(origin ? { origin } : {}),
         data: expect.objectContaining({
           ...(origin ? { 'sentry.origin': origin } : {}),
-          'db.system': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': port,
+          'db.system.name': 'mysql',
+          'server.address': 'localhost',
+          'server.port': port,
           'db.user': 'root',
         }),
         status: 'ok',
@@ -60,41 +59,26 @@ describe('mysql auto instrumentation', () => {
     };
   }
 
-  // Note: here specifically, we want to ignore the generic orchestrion testing define via INJECT_ORCHESTRION,
-  // but instead test various different ways to run orchestrion manually
-  const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
+  const CHANNEL_ORIGIN = 'auto.db.mysql';
 
-  // Each case maps to one of the two documented use cases, in opt-in and
-  // non-opt-in form. `flags` are extra Node CLI flags; the instrument file is
-  // always loaded via `--import` (esm) / `--require` (cjs) by the runner.
+  // Channel-based (orchestrion diagnostics-channel) instrumentation is the default: `Sentry.init()`
+  // injects and subscribes to the channels synchronously. We test it both with the channels installed
+  // purely from `init()` and via the `node --import @sentry/node/import` preload. `flags` are extra
+  // Node CLI flags; the instrument file is always loaded via `--import` by the runner.
   const CASES = [
-    // OpenTelemetry default — no opt-in, no injection. (OTel does not support ESM.)
-    { label: 'opentelemetry (default)', env: {}, flags: [], origin: undefined, failsOnEsm: true },
-    // Opt-in via init only. `Sentry.init()` injects the channels synchronously.
     {
-      label: 'diagnostics-channel (init opt-in)',
-      env: { ORCHESTRION: 'true' },
+      label: 'diagnostics-channel (init)',
+      env: {},
       flags: [],
       origin: CHANNEL_ORIGIN,
       failsOnEsm: false,
     },
-    // Opt-in and rely on `node --import @sentry/node/import`.
     {
-      label: 'diagnostics-channel (--import @sentry/node/import opt-in)',
-      env: { ORCHESTRION: 'true' },
+      label: 'diagnostics-channel (--import @sentry/node/import)',
+      env: {},
       flags: ['--import', '@sentry/node/import'],
       origin: CHANNEL_ORIGIN,
       failsOnEsm: false,
-    },
-    // Without opt-in: channels are injected unconditionally but not subscribed
-    // to, so the OTel instrumentation records the spans — proves injecting the
-    // channels has no downside. (OTel does not support ESM.)
-    {
-      label: 'opentelemetry (channels injected, no opt-in)',
-      env: {},
-      flags: ['--import', '@sentry/node/import'],
-      origin: undefined,
-      failsOnEsm: true,
     },
   ] as const;
 
@@ -115,7 +99,7 @@ describe('mysql auto instrumentation', () => {
             // A failing streamed query emits `error`, which marks the span as errored
             status: 'internal_error',
             data: expect.objectContaining({
-              'db.system': 'mysql',
+              'db.system.name': 'mysql',
               'db.user': 'root',
             }),
           }),
@@ -143,8 +127,6 @@ describe('mysql auto instrumentation', () => {
           },
           {
             failsOnEsm,
-            // We handle injection ourselves here
-            injectOrchestrion: false,
           },
         );
       }
@@ -184,8 +166,6 @@ describe('mysql auto instrumentation', () => {
         },
         {
           failsOnEsm,
-          // We handle injection ourselves here
-          injectOrchestrion: false,
         },
       );
     });
@@ -207,7 +187,7 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
         },
-        'db.system': {
+        'db.system.name': {
           type: 'string',
           value: 'mysql',
         },
@@ -215,17 +195,17 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'root',
         },
-        'net.peer.name': {
+        'server.address': {
           type: 'string',
           value: 'localhost',
         },
-        'net.peer.port': {
+        'server.port': {
           type: 'integer',
           value: expect.any(Number),
         },
-        'otel.kind': {
+        'sentry.kind': {
           type: 'string',
-          value: 'CLIENT',
+          value: 'client',
         },
         'sentry.environment': {
           type: 'string',
@@ -237,7 +217,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql' : 'auto.db.otel.mysql',
+          value: 'auto.db.mysql',
         },
         'sentry.release': {
           type: 'string',
@@ -259,10 +239,6 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'Test Transaction',
         },
-        'sentry.source': {
-          type: 'string',
-          value: 'task',
-        },
         [SENTRY_TRACE_LIFECYCLE]: {
           type: 'string',
           value: 'stream',
@@ -283,7 +259,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT 1 + 1 AS solution',
             },
@@ -294,7 +270,7 @@ describe('mysql auto instrumentation', () => {
         {
           attributes: {
             ...COMMON_ATTRIBUTES,
-            'db.statement': {
+            'db.query.text': {
               type: 'string',
               value: 'SELECT NOW()',
             },

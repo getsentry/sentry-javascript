@@ -93,7 +93,7 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
  * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
  * and adds the Sentry server config with the static `import` declaration.
  *
- * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
+ * With this, the Sentry server config can be loaded before all other modules of the application.
  * See: https://nodejs.org/api/module.html#enabling
  */
 export function addDynamicImportEntryFileWrapper(
@@ -187,14 +187,6 @@ function wrapEntryWithDynamicImport({
         return { id: source, moduleSideEffects: true };
       }
 
-      if (source === 'import-in-the-middle/hook.mjs') {
-        // We are importing "import-in-the-middle" in the returned code of the `load()` function below
-        // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
-        // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
-        // Prevents the error "Failed to register ESM hook Error: Cannot find module 'import-in-the-middle/hook.mjs'"
-        return { id: source, moduleSideEffects: true, external: true };
-      }
-
       if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const resolution = await this.resolve(source, importer, options);
 
@@ -238,8 +230,6 @@ function wrapEntryWithDynamicImport({
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${JSON.stringify(entryId)});\n` +
-          // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
-          "import 'import-in-the-middle/hook.mjs';\n" +
           `${reExportedFunctions}\n`
         );
       }

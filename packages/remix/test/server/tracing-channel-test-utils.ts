@@ -65,13 +65,15 @@ export function teardownTestAsyncContextStrategy(): void {
   vi.restoreAllMocks();
 }
 
-export function makeSpan(): Span {
+export function makeSpan(data: Record<string, unknown> = {}): Span {
   return {
     end: vi.fn(),
     setStatus: vi.fn(),
     setAttributes: vi.fn(),
     setAttribute: vi.fn(),
     updateName: vi.fn(),
+    getSpanJSON: () => ({ attributes: data }),
+    getStaticSpanJSON: () => ({ data }),
   } as unknown as Span;
 }
 
@@ -103,8 +105,8 @@ export function setupRemixInstrumentation(captureActionFormDataKeys?: Record<str
   installTestAsyncContextStrategy();
   vi.spyOn(SentryNode, 'getClient').mockReturnValue({
     getOptions: () => ({ captureActionFormDataKeys }),
-    getDataCollectionOptions: () => ({ httpBodies: captureActionFormDataKeys ? ['incomingRequest'] : [] }),
+    getDataCollectionOptions: () => ({ httpBodies: [] }),
   } as unknown as NodeClient);
 
-  instrumentRemix(captureActionFormDataKeys);
+  instrumentRemix(captureActionFormDataKeys ? { keys: captureActionFormDataKeys } : undefined);
 }

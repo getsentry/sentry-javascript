@@ -1,17 +1,17 @@
-import type { ExportedHandler } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import type { CloudflareOptions } from '../../client';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
-import { wrapRequestHandler } from '../../request';
+import { wrapRequestHandlerWithInit } from '../../request';
+import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
  * Instruments a fetch handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerFetch<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
@@ -24,7 +24,10 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
     original =>
       new Proxy(original, {
         apply(target, thisArg, args: Parameters<NonNullable<T['fetch']>>) {
-          const [request, env, ctx] = args;
+          const [rawRequest, env, ctx] = args;
+          // `T['fetch']` resolves to the structural `AnyHandlerMethod`, whose parameters are
+          // `any` — but the fetch event is always a `Request` at runtime.
+          const request = rawRequest as Request;
 
           if (request.method === 'OPTIONS' || request.method === 'HEAD') {
             return target.apply(thisArg, args);
@@ -35,7 +38,7 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
           args[1] = instrumentEnv(env, options);
           args[2] = context;
 
-          return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
+          return wrapRequestHandlerWithInit({ options, request, context }, () => target.apply(thisArg, args), init);
         },
       }),
   );
@@ -62,7 +65,11 @@ export function instrumentWorkerEntrypointFetch<T extends WorkerEntrypoint>(
         return Reflect.apply(target, thisArg, args);
       }
 
-      return wrapRequestHandler({ options, request, context }, () => Reflect.apply(target, thisArg, args));
+      return wrapRequestHandlerWithInit(
+        { options, request, context },
+        () => Reflect.apply(target, thisArg, args),
+        init,
+      );
     },
   });
 }

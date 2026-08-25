@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 // The handler shim (loaded by the AWS Lambda runtime via the redirected `_HANDLER`) is
 // built as a standalone, ESM-only bundle: it uses top-level await to load the user's
@@ -35,13 +35,11 @@ export default [
       // packages with bundles have a different build directory structure
       hasBundles: true,
       packageSpecificConfig: {
-        // Used for our custom eventContextExtractor
-        external: ['@opentelemetry/api'],
         output: {
           preserveModulesRoot: 'src',
         },
       },
     }),
   ),
-  ...makeOtelLoaders('./build', 'sentry-node'),
+  ...makeOrchestrionLoader('./build'),
 ];

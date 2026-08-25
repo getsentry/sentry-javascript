@@ -28,6 +28,7 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/server-utils": "10.67.0"
   },
@@ -42,8 +43,8 @@
     "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
     "prefix": "yarn deno-types",
     "prelint": "yarn deno-types",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
     "test": "run-s install:deno deno-types test:unit",

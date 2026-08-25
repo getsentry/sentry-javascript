@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+const BASE = process.env.E2E_TEST_BASEPATH || '';
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('tanstack-router', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/posts/456`);
+  await page.goto(`${BASE}/posts/456`);
 
   const rootSpan = await transactionPromise;
 
@@ -17,7 +19,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
           'sentry.source': 'route',
           'sentry.origin': 'auto.pageload.react.tanstack_router',
           'sentry.op': 'pageload',
-          'url.path.params.postId': '456',
+          'url.path.parameter.postId': '456',
           'url.template': '/posts/$postId',
           'url.path': '/posts/456',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/456$/),
@@ -43,7 +45,7 @@ test('sends pageload transaction with web vitals measurements', async ({ page })
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
 
   const transaction = await transactionPromise;
 
@@ -94,7 +96,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   await page.waitForTimeout(5000);
@@ -109,7 +111,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.react.tanstack_router',
           'sentry.op': 'navigation',
-          'url.path.params.postId': '2',
+          'url.path.parameter.postId': '2',
           'url.template': '/posts/$postId',
           'url.path': '/posts/2',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),
@@ -138,7 +140,7 @@ test('sends a pageload transaction with resolved URL attrs after same-route redi
   });
 
   // `/posts/999` matches `/posts/$postId` initially, then `beforeLoad` redirects to `/posts/2`.
-  await page.goto(`/posts/999`);
+  await page.goto(`${BASE}/posts/999`);
 
   const pageloadTxn = await pageloadTxnPromise;
 
@@ -149,7 +151,7 @@ test('sends a pageload transaction with resolved URL attrs after same-route redi
           'sentry.source': 'route',
           'sentry.origin': 'auto.pageload.react.tanstack_router',
           'sentry.op': 'pageload',
-          'url.path.params.postId': '2',
+          'url.path.parameter.postId': '2',
           'url.template': '/posts/$postId',
           'url.path': '/posts/2',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),
@@ -174,7 +176,7 @@ test('sends a pageload transaction named after the resolved route when a redirec
 
   // Visiting `/redirect` directly throws `redirect({ to: '/posts/$postId', params: { postId: '1' } })`
   // in `beforeLoad` during the initial pageload, so the pageload span must be renamed to the target route.
-  await page.goto(`/redirect`);
+  await page.goto(`${BASE}/redirect`);
 
   const pageloadTxn = await pageloadTxnPromise;
 
@@ -185,7 +187,7 @@ test('sends a pageload transaction named after the resolved route when a redirec
           'sentry.source': 'route',
           'sentry.origin': 'auto.pageload.react.tanstack_router',
           'sentry.op': 'pageload',
-          'url.path.params.postId': '1',
+          'url.path.parameter.postId': '1',
           'url.template': '/posts/$postId',
           'url.path': '/posts/1',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/),
@@ -210,7 +212,7 @@ test('sends a navigation transaction when a redirect is thrown in beforeLoad', a
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   await page.locator('#redirect-link').click();
@@ -226,7 +228,7 @@ test('sends a navigation transaction when a redirect is thrown in beforeLoad', a
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.react.tanstack_router',
           'sentry.op': 'navigation',
-          'url.path.params.postId': '1',
+          'url.path.parameter.postId': '1',
           'url.template': '/posts/$postId',
           'url.path': '/posts/1',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/),
@@ -247,7 +249,7 @@ test('sends a navigation transaction for a normal navigation that happens after 
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/`);
+  await page.goto(`${BASE}/`);
   await pageloadTxnPromise;
 
   // First trigger a redirect-driven navigation. Upstream (TanStack/router#3920) this leaves the
@@ -263,7 +265,7 @@ test('sends a navigation transaction for a normal navigation that happens after 
   const navigationTxnPromise = waitForTransaction('tanstack-router', async transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.contexts?.trace?.data?.['url.path.params.postId'] === '2'
+      transactionEvent.contexts?.trace?.data?.['url.path.parameter.postId'] === '2'
     );
   });
 
@@ -278,7 +280,7 @@ test('sends a navigation transaction for a normal navigation that happens after 
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.react.tanstack_router',
           'sentry.op': 'navigation',
-          'url.path.params.postId': '2',
+          'url.path.parameter.postId': '2',
           'url.template': '/posts/$postId',
           'url.path': '/posts/2',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),

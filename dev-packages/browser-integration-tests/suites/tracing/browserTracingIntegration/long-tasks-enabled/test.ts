@@ -22,7 +22,7 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, p
   const [firstUISpan] = uiSpans || [];
   expect(firstUISpan).toEqual(
     expect.objectContaining({
-      op: 'ui.long-task',
+      op: 'ui.long_task',
       description: 'Main UI thread blocked',
       parent_span_id: eventData.contexts?.trace?.span_id,
     }),

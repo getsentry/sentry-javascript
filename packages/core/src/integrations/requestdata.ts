@@ -2,65 +2,77 @@ import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
-import type { ResolvedDataCollection } from '../types/datacollection';
+import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
+import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
+import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
+import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
+import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { httpHeadersToSpanAttributes } from '../utils/request';
+import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
 import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
-interface RequestDataIncludeOptions {
+type RequestDataIncludeOptions = {
   cookies?: boolean;
   data?: boolean;
   headers?: boolean;
   ip?: boolean;
   query_string?: boolean;
   url?: boolean;
-}
+};
 
 type RequestDataIntegrationOptions = {
   /**
-   * Controls what data is pulled from the request and added to the event.
+   * Defines what request data should be collected.
+   *
+   * @deprecated Use `dataCollection` from the `init()` options instead. Check the docs for more info: https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
    */
   include?: RequestDataIncludeOptions;
+};
+
+type ResolvedRequestDataOptions = {
+  include: Required<RequestDataIncludeOptions>;
+  dataCollection: ResolvedDataCollection;
 };
 
 const INTEGRATION_NAME = 'RequestData' as const;
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
-  // Per spec, integration-level options override global dataCollection.
-  // When include overrides a category back on that dataCollection turned off,
-  // we flip the dataCollection behavior to true (default denylist filtering).
-  function resolveIncludeAndDataCollection(client: Client): {
-    include: RequestDataIncludeOptions;
-    dataCollection: ResolvedDataCollection;
-  } {
-    const dc = client.getDataCollectionOptions();
-    const dataCollection: ResolvedDataCollection = {
-      ...dc,
-      ...(options.include?.cookies === true && dc.cookies === false && { cookies: true as const }),
-      ...(options.include?.headers === true &&
-        dc.httpHeaders.request === false && {
-          httpHeaders: { ...dc.httpHeaders, request: true as const },
-        }),
+  function resolveRequestDataOptions(client: Client): ResolvedRequestDataOptions {
+    const dataCollection = client.getDataCollectionOptions();
+    const include = {
+      // oxlint-disable-next-line typescript/no-deprecated
+      cookies: options.include?.cookies ?? dataCollection.cookies !== false,
+      // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
+      // oxlint-disable-next-line typescript/no-deprecated
+      data: options.include?.data ?? true,
+      // oxlint-disable-next-line typescript/no-deprecated
+      headers: options.include?.headers ?? dataCollection.httpHeaders.request !== false,
+      // oxlint-disable-next-line typescript/no-deprecated
+      ip: options.include?.ip ?? dataCollection.userInfo,
+      // oxlint-disable-next-line typescript/no-deprecated
+      query_string: options.include?.query_string ?? dataCollection.urlQueryParams !== false,
+      // No dataCollection equivalent — URL is always included
+      // oxlint-disable-next-line typescript/no-deprecated
+      url: options.include?.url ?? true,
     };
 
     return {
-      dataCollection,
-      include: {
-        cookies: dataCollection.cookies !== false,
-        // Always attach body data that's already on the scope — dataCollection.httpBodies gates write-time, not read-time
-        data: true,
-        headers: dataCollection.httpHeaders.request !== false,
-        ip: dataCollection.userInfo,
-        query_string: dataCollection.urlQueryParams !== false,
-        // No dataCollection equivalent — URL is always included
-        url: true,
-        ...options.include,
+      include,
+      dataCollection: {
+        ...dataCollection,
+        cookies: resolveFilteringBehavior(include.cookies, dataCollection.cookies),
+        httpHeaders: {
+          ...dataCollection.httpHeaders,
+          request: resolveFilteringBehavior(include.headers, dataCollection.httpHeaders.request),
+        },
+        urlQueryParams: resolveFilteringBehavior(include.query_string, dataCollection.urlQueryParams),
       },
     };
   }
@@ -71,11 +83,12 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
-      const { include } = resolveIncludeAndDataCollection(client);
-
-      if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
+      if (!normalizedRequest) {
+        return event;
       }
+
+      const { include, dataCollection } = resolveRequestDataOptions(client);
+      addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include, dataCollection);
 
       return event;
     },
@@ -87,7 +100,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return;
       }
 
-      const { include, dataCollection } = resolveIncludeAndDataCollection(client);
+      const { include, dataCollection } = resolveRequestDataOptions(client);
 
       addNormalizedRequestDataToSpan(span, normalizedRequest, ipAddress, include, dataCollection);
     },
@@ -110,10 +123,29 @@ function addNormalizedRequestDataToEvent(
   // Data that should not go into `event.request` but is somehow related to requests
   additionalData: { ipAddress?: string },
   include: RequestDataIncludeOptions,
+  dataCollection: ResolvedDataCollection,
 ): void {
+  const requestData = extractNormalizedRequestData(req, include);
+  if (requestData.cookies) {
+    requestData.cookies = filterKeyValueData(
+      requestData.cookies,
+      dataCollection.cookies,
+      SENSITIVE_COOKIE_NAME_SNIPPETS,
+    );
+  }
+  if (requestData.headers) {
+    requestData.headers = filterKeyValueData(requestData.headers, dataCollection.httpHeaders.request);
+  }
+  if (requestData.query_string) {
+    requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
+  }
+  if (requestData.url) {
+    requestData.url = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
+  }
+
   event.request = {
     ...event.request,
-    ...extractNormalizedRequestData(req, include),
+    ...requestData,
   };
 
   if (include.ip) {
@@ -138,7 +170,7 @@ function addNormalizedRequestDataToSpan(
   const attributes: Record<string, unknown> = {};
 
   if (requestData.url) {
-    attributes[URL_FULL] = requestData.url;
+    attributes[URL_FULL] = filterUrlQuery(requestData.url, dataCollection.urlQueryParams);
   }
 
   if (requestData.method) {
@@ -146,7 +178,7 @@ function addNormalizedRequestDataToSpan(
   }
 
   if (requestData.query_string) {
-    attributes[URL_QUERY] = normalizeQueryString(requestData.query_string);
+    attributes[URL_QUERY] = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
 
   safeSetSpanJSONAttributes(span, attributes);
@@ -228,13 +260,21 @@ function extractNormalizedRequestData(
   return requestData;
 }
 
+function resolveFilteringBehavior(isIncluded: boolean, behavior: CollectBehavior): CollectBehavior {
+  return isIncluded && behavior === false ? true : behavior;
+}
+
+function normalizeAndFilterQueryString(queryString: QueryParams, behavior: CollectBehavior): string | undefined {
+  const normalized = normalizeQueryString(queryString);
+  return normalized ? filterQueryParams(normalized, behavior) : undefined;
+}
+
 function normalizeQueryString(queryString: QueryParams): string | undefined {
   if (typeof queryString === 'string') {
-    return queryString || undefined;
+    return getUrlQuery(queryString);
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
-  const result = pairs.map(([key, value]) => `${key}=${value}`).join('&');
-
-  return result || undefined;
+  const normalized = new URLSearchParams(pairs).toString();
+  return normalized || undefined;
 }

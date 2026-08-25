@@ -1,5 +1,5 @@
 import replace from '@rollup/plugin-replace';
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
 
 const [anrWorkerConfig, getAnrBase64Code] = createWorkerCodeBuilder(
@@ -13,12 +13,9 @@ const [localVariablesWorkerConfig, getLocalVariablesBase64Code] = createWorkerCo
 );
 
 export default [
-  // `injectDiagnosticsChannel` makes the generated `@sentry/node/import` hook
-  // also register the diagnostics-channel injection, so `node --import
-  // @sentry/node/import app.js` injects the channels unconditionally (they are
-  // only subscribed to when the app opts in via
-  // `experimentalUseDiagnosticsChannelInjection()`).
-  ...makeOtelLoaders('./build', 'otel', { injectDiagnosticsChannel: true }),
+  // The `@sentry/node/import` entry (`node --import @sentry/node/import app.js`), which registers
+  // the orchestrion diagnostics-channel injection before the app loads.
+  ...makeOrchestrionLoader('./build'),
   // The workers need to be built first since their output is copied into the main bundle.
   anrWorkerConfig,
   localVariablesWorkerConfig,
@@ -26,8 +23,6 @@ export default [
     makeBaseNPMConfig({
       entrypoints: [
         'src/index.ts',
-        'src/init.ts',
-        'src/preload.ts',
         // Combined Sentry bundler plugins + orchestrion code transform, exposed
         // via the `@sentry/node/{vite,rollup,webpack,esbuild}` subpath exports.
         'src/bundler-plugin/vite.ts',

@@ -24,21 +24,8 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 ## Package Manager
 
-Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
-
-| Command                               | Purpose                       |
-| ------------------------------------- | ----------------------------- |
-| `yarn build`                          | Full production build         |
-| `yarn build:dev`                      | Dev build (transpile + types) |
-| `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
-| `yarn build:bundle`                   | Browser bundles only          |
-| `yarn test`                           | All unit tests                |
-| `yarn verify`                         | Lint + format check           |
-| `yarn fix`                            | Format + lint fix             |
-| `yarn lint`                           | Lint (Oxlint)                 |
-| `yarn lint:fix`                       | Lint + auto-fix (Oxlint)      |
-| `yarn format`                         | Format files (Oxfmt)          |
-| `yarn format:check`                   | Check formatting (Oxfmt)      |
+Use **yarn**, never npm or pnpm. Scripts live in the root `package.json`.
+`yarn build:dev:filter @sentry/<pkg>` builds one package and its deps.
 
 Single package: `cd packages/<name> && yarn test`
 
@@ -63,12 +50,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Feature branches: `feat/descriptive-name`
 - Never update dependencies, `package.json`, or build scripts unless explicitly asked
 
-## Before Every Commit
+## Before Every Pull Request
 
 1. `yarn format`
-2. `yarn lint`
-3. `yarn test`
-4. `yarn build:dev`
+2. `yarn build:dev`
+3. `yarn lint`
+4. `yarn test`
 5. NEVER push on `develop`
 
 ## Pull Requests
@@ -81,42 +68,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Architecture
 
-### Core
-
-- `packages/core/` — Base SDK: interfaces, types, core functionality
-- `packages/types/` — Shared types (**deprecated, never modify – instead find types in packages/core**)
-- `packages/browser-utils/` — Browser utilities and instrumentation
-
-### Platform SDKs
-
-- `packages/browser/` — Browser SDK + CDN bundles
-- `packages/node/` — Node.js SDK (client, transports, non-OTel integrations, and OTel instrumentation)
-- `packages/bun/`, `packages/deno/`, `packages/cloudflare/`
-
-### Framework Integrations
-
-- `packages/{framework}/` — React, Vue, Angular, Next.js, Nuxt, SvelteKit, Remix, etc.
-- Some have client/server entry points (nextjs, nuxt, sveltekit)
-
-### AI Integrations
-
-- `packages/core/src/tracing/{provider}/` — Core instrumentation
-- `packages/node/src/integrations/tracing/{provider}/` — Node.js integration + OTel
-- `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime
-- Use `/add-ai-integration` skill when adding or modifying integrations
-
-### User Experience
-
-- `packages/replay-internal/`, `packages/replay-canvas/`, `packages/replay-worker/` — Session replay
-- `packages/feedback/` — User feedback
-
-### Dev Packages (`dev-packages/`)
-
-- `browser-integration-tests/` — Playwright browser tests
-- `e2e-tests/` — E2E tests (70+ framework combos)
-- `node-integration-tests/` — Node.js integration tests
-- `test-utils/` — Shared test utilities
-- `rollup-utils/` — Build utilities
+- `packages/types/` is **deprecated — never modify it**. Types live in
+  `packages/core/`.
+- An AI provider integration spans three places: core instrumentation in
+  `packages/core/src/tracing/{provider}/`, the Node integration in
+  `packages/node/src/integrations/tracing/{provider}/`, and the edge
+  runtime in `packages/cloudflare/src/integrations/tracing/{provider}.ts`.
 
 ## Linting & Formatting
 
@@ -134,6 +91,18 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
 - Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
+- Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
+  Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
+
+## Lazy Loading Is a Last Resort
+
+Do NOT "fix" a bundler, runtime, or platform incompatibility by making an import lazy or opaque — `createRequire`, require-inside-a-function, dynamic `import()`, computed specifiers. Not all bundlers understand `createRequire`, and anything opaque to static analysis just moves the breakage to a different consumer (pnpm isolation, workerd, Turbopack, nft tracing) while masking the real defect. SDK code must stay statically analyzable.
+
+Before even proposing lazy loading:
+
+1. Reproduce the failure and read the **actual** error — not a plausible theory about it. If the error is swallowed, extract it (debug logging, running the server/bundle directly) before choosing a fix.
+2. Fix the root cause at the layer it lives in, in roughly this order: build output shape (rollup/commonjs options like `interop`, `strictRequires`, `requireReturnsDefault`, `output.paths`), module resolution (`exports` maps, self-references, absolute-path externals), packaging (what ships in the tarball, bundled vs external deps), and only then consumer-side configuration.
+3. If, after exhausting these, lazy loading still seems necessary, stop and ask — explain what was tried and why nothing else works. Do not implement it first.
 
 ## Reference Documentation
 
@@ -142,34 +111,5 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Skills
 
-### E2E Testing
-
-Use `/e2e` skill to run E2E tests. See `.claude/skills/e2e/SKILL.md`
-
-### Security Vulnerabilities
-
-Use `/fix-security-vulnerability` skill for Dependabot alerts. See `.claude/skills/fix-security-vulnerability/SKILL.md`
-
-### Issue Triage
-
-Use `/triage-issue` skill. See `.claude/skills/triage-issue/SKILL.md`
-
-### CDN Bundles
-
-Use `/add-cdn-bundle` skill. See `.claude/skills/add-cdn-bundle/SKILL.md`
-
-### Publishing a Release
-
-Use `/release` skill. See `.claude/skills/release/SKILL.md`
-
-### Dependency Upgrades
-
-Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
-
-### Vendor OpenTelemetry Instrumentation
-
-Use `/vendor-otel` skill. See `.claude/skills/vendor-otel/SKILL.md`
-
-### AI Integration
-
-Use `/add-ai-integration` skill. See `.claude/skills/add-ai-integration/SKILL.md`
+Task-specific instructions live in `.claude/skills/`. Each skill lists its
+own trigger, so consult that directory rather than this file.

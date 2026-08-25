@@ -1,10 +1,11 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
   flushIfServerless,
   getClient,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -164,7 +165,7 @@ function getSpanAttributes(
   index?: number,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
+    [SENTRY_OP]: MIDDLEWARE,
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nuxt',
     'nuxt.middleware.name': middlewareName,
@@ -201,10 +202,10 @@ function getSpanAttributes(
     headers = Object.fromEntries(eventH3v2?.req.headers.entries());
   }
 
-  const headerAttributes = httpHeadersToSpanAttributes(headers, getClient()?.getDataCollectionOptions() ?? false);
-
-  // Merge header attributes with existing attributes
-  Object.assign(attributes, headerAttributes);
+  const client = getClient();
+  if (client) {
+    Object.assign(attributes, httpHeadersToSpanAttributes(headers, client.getDataCollectionOptions()));
+  }
 
   return attributes;
 }

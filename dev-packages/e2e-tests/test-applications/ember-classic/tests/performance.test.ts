@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
@@ -33,11 +33,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -68,11 +68,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -127,11 +127,11 @@ test('sends a navigation transaction even if the pageload span is still active',
 
 test('captures correct spans for navigation', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/tracing`);
@@ -167,11 +167,15 @@ test('captures correct spans for navigation', async ({ page }) => {
     },
   });
 
-  const transitionSpans = spans.filter(span => span.op === 'ui.ember.transition');
-  const beforeModelSpans = spans.filter(span => span.op === 'ui.ember.route.before_model');
-  const modelSpans = spans.filter(span => span.op === 'ui.ember.route.model');
-  const afterModelSpans = spans.filter(span => span.op === 'ui.ember.route.after_model');
-  const renderSpans = spans.filter(span => span.op === 'ui.ember.runloop.render');
+  const transitionSpans = spans.filter(span => span.op === 'router');
+  const beforeModelSpans = spans.filter(
+    span => span.op === 'function' && span.data?.['code.function.name'] === 'beforeModel',
+  );
+  const modelSpans = spans.filter(span => span.op === 'function' && span.data?.['code.function.name'] === 'model');
+  const afterModelSpans = spans.filter(
+    span => span.op === 'function' && span.data?.['code.function.name'] === 'afterModel',
+  );
+  const renderSpans = spans.filter(span => span.op === 'ui.task' && span.data?.['ember.runloop.queue'] === 'render');
 
   expect(transitionSpans).toHaveLength(1);
 
@@ -185,12 +189,13 @@ test('captures correct spans for navigation', async ({ page }) => {
 
   expect(transitionSpans[0]).toEqual({
     data: {
-      'sentry.op': 'ui.ember.transition',
+      'sentry.op': 'router',
       'sentry.origin': 'auto.ui.ember',
     },
     description: 'route:tracing -> route:slow-loading-route.index',
-    op: 'ui.ember.transition',
+    op: 'router',
     origin: 'auto.ui.ember',
+    status: 'ok',
     parent_span_id: spanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -201,13 +206,15 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(beforeModelSpans).toEqual([
     {
       data: {
-        'sentry.op': 'ui.ember.route.before_model',
+        'code.function.name': 'beforeModel',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
-      op: 'ui.ember.route.before_model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -216,13 +223,15 @@ test('captures correct spans for navigation', async ({ page }) => {
     },
     {
       data: {
-        'sentry.op': 'ui.ember.route.before_model',
+        'code.function.name': 'beforeModel',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
-      op: 'ui.ember.route.before_model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -234,13 +243,15 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(modelSpans).toEqual([
     {
       data: {
-        'sentry.op': 'ui.ember.route.model',
+        'code.function.name': 'model',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
-      op: 'ui.ember.route.model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -249,13 +260,15 @@ test('captures correct spans for navigation', async ({ page }) => {
     },
     {
       data: {
-        'sentry.op': 'ui.ember.route.model',
+        'code.function.name': 'model',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
-      op: 'ui.ember.route.model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -267,13 +280,15 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(afterModelSpans).toEqual([
     {
       data: {
-        'sentry.op': 'ui.ember.route.after_model',
+        'code.function.name': 'afterModel',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
-      op: 'ui.ember.route.after_model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -282,13 +297,15 @@ test('captures correct spans for navigation', async ({ page }) => {
     },
     {
       data: {
-        'sentry.op': 'ui.ember.route.after_model',
+        'code.function.name': 'afterModel',
+        'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
         'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
-      op: 'ui.ember.route.after_model',
+      op: 'function',
       origin: 'auto.ui.ember',
+      status: 'ok',
       parent_span_id: spanId,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
@@ -299,12 +316,14 @@ test('captures correct spans for navigation', async ({ page }) => {
 
   expect(renderSpans).toContainEqual({
     data: {
-      'sentry.op': 'ui.ember.runloop.render',
+      'ember.runloop.queue': 'render',
+      'sentry.op': 'ui.task',
       'sentry.origin': 'auto.ui.ember',
     },
     description: 'runloop',
-    op: 'ui.ember.runloop.render',
+    op: 'ui.task',
     origin: 'auto.ui.ember',
+    status: 'ok',
     parent_span_id: spanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

@@ -190,49 +190,27 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 }
 
 /**
- * This creates a loader file at the target location as part of the rollup build.
- * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
+ * Emits the `@sentry/<framework>/import` entry (`build/import-hook.mjs`) as part of the rollup build,
+ * used as `node --import @sentry/<framework>/import app.js`. The generated hook imports
+ * `@sentry/server-utils/orchestrion/import-hook`, which registers the orchestrion
+ * diagnostics-channel injection, so the consuming package must declare `@sentry/server-utils` as a
+ * dependency.
  *
  * @param {string} outputFolder Build output folder.
- * @param {'otel' | 'sentry-node'} hookVariant Which hook template to use.
- * @param {{ injectDiagnosticsChannel?: boolean }} [options] When `injectDiagnosticsChannel`
- *   is set (only valid for the `'otel'` variant), the generated `import-hook.mjs`
- *   additionally imports `@sentry/server-utils/orchestrion/import-hook`, which
- *   registers the diagnostics-channel injection. Used by `@sentry/node` so that
- *   `node --import @sentry/node/import` injects the channels unconditionally.
  */
-export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
-  if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
-    throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
-  }
-
-  const { injectDiagnosticsChannel = false } = options;
-  if (injectDiagnosticsChannel && hookVariant !== 'otel') {
-    throw new Error('injectDiagnosticsChannel is only supported with the "otel" hookVariant.');
-  }
-
-  const expectedRegisterLoaderLocation = `${outputFolder}/import-hook.mjs`;
-  const foundRegisterLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
-    return packageDotJSON?.exports?.[key]?.import?.default === expectedRegisterLoaderLocation;
+export function makeOrchestrionLoader(outputFolder) {
+  const expectedImportHookLocation = `${outputFolder}/import-hook.mjs`;
+  const foundImportHookExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === expectedImportHookLocation;
   });
-  if (!foundRegisterLoaderExport) {
+  if (!foundImportHookExport) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
+      `You used the makeOrchestrionLoader() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedImportHookLocation}" as a value there (maybe check for typos - it needs to be "${expectedImportHookLocation}" exactly).`,
     );
   }
 
-  const expectedHooksLoaderLocation = `${outputFolder}/loader-hook.mjs`;
-  const foundHookLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
-    return packageDotJSON?.exports?.[key]?.import?.default === expectedHooksLoaderLocation;
-  });
-  if (!foundHookLoaderExport) {
-    throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the loader hook inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
-    );
-  }
-
-  const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
-  const foundImportInTheMiddleDep =
+  const requiredDep = '@sentry/server-utils';
+  const foundRequiredDep =
     Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
       return key === requiredDep;
     }) ||
@@ -240,9 +218,9 @@ export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
       return key === requiredDep;
     });
 
-  if (!foundImportInTheMiddleDep) {
+  if (!foundRequiredDep) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
+      `You used the makeOrchestrionLoader() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
         process.cwd(),
         'package.json',
       )}. Please add it to the dependencies.`,
@@ -250,34 +228,12 @@ export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
   }
 
   return defineConfig([
-    // register() hook
     {
-      input: path.join(
-        __dirname,
-        'code',
-        hookVariant === 'otel'
-          ? injectDiagnosticsChannel
-            ? 'otelEsmImportHookWithDiagnosticsChannelTemplate.js'
-            : 'otelEsmImportHookTemplate.js'
-          : 'sentryNodeEsmImportHookTemplate.js',
-      ),
+      input: path.join(__dirname, 'code', 'importHookTemplate.js'),
       external: /.*/,
       output: {
         format: 'esm',
         file: path.join(outputFolder, 'import-hook.mjs'),
-      },
-    },
-    // --loader hook
-    {
-      input: path.join(
-        __dirname,
-        'code',
-        hookVariant === 'otel' ? 'otelEsmLoaderHookTemplate.js' : 'sentryNodeEsmLoaderHookTemplate.js',
-      ),
-      external: /.*/,
-      output: {
-        format: 'esm',
-        file: path.join(outputFolder, 'loader-hook.mjs'),
       },
     },
   ]);

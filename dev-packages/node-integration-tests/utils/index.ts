@@ -58,11 +58,6 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
 
-/** Returns true if orchestrion is enabled in env vars. */
-export function isOrchestrionEnabled(): boolean {
-  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
-}
-
 /**
  * Narrows a typed span attribute value to a string.
  *

@@ -19,8 +19,6 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
-// Override core span methods with Next.js-specific implementations that support Cache Components
-export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
@@ -53,7 +51,7 @@ export function init(options: BrowserOptions): Client | undefined {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
   }

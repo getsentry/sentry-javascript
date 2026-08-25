@@ -99,10 +99,6 @@ describe('convertRemixRouteIdToPath', () => {
       expect(convertRemixRouteIdToPath('routes/_index')).toBe('/');
     });
 
-    it('should convert root index route', () => {
-      expect(convertRemixRouteIdToPath('routes/index')).toBe('/');
-    });
-
     it('should convert static routes', () => {
       expect(convertRemixRouteIdToPath('routes/about')).toBe('/about');
       expect(convertRemixRouteIdToPath('routes/contact')).toBe('/contact');
@@ -140,16 +136,6 @@ describe('convertRemixRouteIdToPath', () => {
     it('should NOT include _index as a path segment', () => {
       const result = convertRemixRouteIdToPath('routes/users._index');
       expect(result).not.toContain('_index');
-    });
-  });
-
-  describe('index route handling (non-underscore)', () => {
-    it('should handle nested index routes', () => {
-      expect(convertRemixRouteIdToPath('routes/users.index')).toBe('/users');
-    });
-
-    it('should handle deeply nested index routes', () => {
-      expect(convertRemixRouteIdToPath('routes/admin.settings.index')).toBe('/admin/settings');
     });
   });
 

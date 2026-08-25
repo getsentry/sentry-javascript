@@ -23,14 +23,12 @@ sentryTest(
     expect(envelope).toBeDefined();
 
     const firstWaitingSpanValue = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).firstWaitingSpan.description,
+      () => (window as unknown as WindowWithSpan).firstWaitingSpan.name,
     );
     const secondWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).secondWaitingSpan.description,
+      () => (window as unknown as WindowWithSpan).secondWaitingSpan.name,
     );
-    const thirdWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).thirdWaitingSpan.description,
-    );
+    const thirdWaitingSpanName = await page.evaluate(() => (window as unknown as WindowWithSpan).thirdWaitingSpan.name);
 
     expect(firstWaitingSpanValue).toBe('span 2');
     expect(secondWaitingSpanName).toBe('span 1');

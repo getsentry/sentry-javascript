@@ -1,61 +1,27 @@
-import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, ServerRuntimeOptions, Span } from '@sentry/core';
+import type { ClientOptions, Options, Scope, ServerRuntimeOptions } from '@sentry/core';
 import type { NodeTransportOptions } from './transports';
 
 /**
- * Base options for WinterTC-compatible server-side JavaScript runtimes with OpenTelemetry support.
- * This interface extends the base ServerRuntimeOptions from @sentry/core with OpenTelemetry-specific configuration options.
- * Used by Node.js, Bun, and other WinterTC-compliant runtime SDKs that support OpenTelemetry instrumentation.
+ * Base options for the Sentry Node SDK.
  */
-export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions {
+export interface BaseNodeOptions extends ServerRuntimeOptions {
   /**
-   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
-   * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentrySpanProcessor`
-   * * The `SentryPropagator`
-   * * The `SentryContextManager`
-   * * The `SentrySampler`
-   */
-  skipOpenTelemetrySetup?: boolean;
-
-  /**
-   * Provide an array of OpenTelemetry Instrumentations that should be registered.
+   * Controls whether the SDK registers its own Sentry OpenTelemetry tracer provider.
    *
-   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
-   */
-  openTelemetryInstrumentations?: Instrumentation[];
-
-  /**
-   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
+   * When `false` (the default for most SDKs), no tracer provider is set up. The SDK isolates scopes
+   * with a native AsyncLocalStorage context strategy and still emits spans via its own
+   * instrumentation, but spans created through `@opentelemetry/api` are not captured.
    *
-   * Note: providing this forces the full OpenTelemetry SDK `BasicTracerProvider` instead of Sentry's
-   * minimal tracer provider, since custom span processors require the SDK span pipeline. See
-   * {@link OpenTelemetryServerRuntimeOptions.openTelemetryBasicTracerProvider}.
-   */
-  openTelemetrySpanProcessors?: SpanProcessor[];
-
-  /**
-   * By default, the SDK uses Sentry's minimal OpenTelemetry tracer provider, which creates native
-   * Sentry spans directly instead of going through the full OpenTelemetry SDK span pipeline.
-   *
-   * Set this to `true` to use the full OpenTelemetry SDK `BasicTracerProvider` instead, e.g. if you
-   * rely on OpenTelemetry SDK features that the minimal provider does not support.
-   *
-   * Note: providing `openTelemetrySpanProcessors` also forces the full OpenTelemetry SDK provider,
-   * since custom span processors require the SDK span pipeline.
+   * When `true`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
+   * global OpenTelemetry tracer provider, so spans created through `@opentelemetry/api` become Sentry
+   * spans. This is the default for the Next.js and SvelteKit SDKs. If you run your own tracer provider,
+   * keep this `false` so the SDK does not register a competing provider; note the SDK no longer feeds
+   * spans into a user-owned provider, so those spans stay in your OpenTelemetry pipeline.
    *
    * @default false
    */
-  openTelemetryBasicTracerProvider?: boolean;
-}
+  enableOpenTelemetrySetup?: boolean;
 
-/**
- * Base options for the Sentry Node SDK.
- * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
- */
-export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
   /**
    * Override the runtime name reported in events.
    * Defaults to 'node' with the current process version if not specified.
@@ -63,28 +29,6 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
    */
   runtime?: { name: string; version?: string };
-  /**
-   * Sets profiling sample rate when @sentry/profiling-node is installed
-   *
-   * @deprecated
-   */
-  profilesSampleRate?: number;
-
-  /**
-   * Function to compute profiling sample rate dynamically and filter unwanted profiles.
-   *
-   * Profiling is enabled if either this or `profilesSampleRate` is defined. If both are defined, `profilesSampleRate` is
-   * ignored.
-   *
-   * Will automatically be passed a context object of default and optional custom data.
-   *
-   * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
-   * equivalent to returning 1 and returning `false` is equivalent to returning 0.
-   *
-   * @deprecated
-   */
-  profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
-
   /**
    * Sets profiling session sample rate for the entire profiling session (evaluated once per SDK initialization).
    *
@@ -110,16 +54,6 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
-
-  /**
-   * Whether to register ESM loader hooks to automatically instrument libraries.
-   * This is necessary to auto instrument libraries that are loaded via ESM imports, but it can cause issues
-   * with certain libraries. If you run into problems running your app with this enabled,
-   * please raise an issue in https://github.com/getsentry/sentry-javascript.
-   *
-   * Defaults to `true`.
-   */
-  registerEsmLoaderHooks?: boolean;
 }
 
 /**
@@ -138,14 +72,3 @@ export interface CurrentScopes {
   scope: Scope;
   isolationScope: Scope;
 }
-
-/**
- * The base `Span` type is basically a `WriteableSpan`.
- * There are places where we basically want to allow passing _any_ span,
- * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check relevant fields before accessing them.
- *
- * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
- * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
- */
-export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

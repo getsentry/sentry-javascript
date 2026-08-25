@@ -8,12 +8,13 @@ interface Env {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   {
     async fetch(request, env, _ctx) {
       const url = new URL(request.url);
-      const db = Sentry.instrumentD1WithSentry(env.DB);
+      const db = env.DB;
 
       if (url.pathname === '/init') {
         await db.exec('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)');

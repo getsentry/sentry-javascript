@@ -1,6 +1,6 @@
-import { HTTP_TARGET } from '@sentry/conventions/attributes';
-import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
-import { isSentryRequestSpan } from '@sentry/opentelemetry';
+import { HTTP_TARGET, URL_FULL } from '@sentry/conventions/attributes';
+import type { RawAttributes } from '@sentry/core';
+import { getClient, GLOBAL_OBJ, isSentryRequestUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span } from '@sentry/core';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
@@ -15,10 +15,16 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * 1. Requests to the local tunnel route (before rewrite) via middleware or BaseServer.handleRequest
  * 2. Requests to Sentry ingest (after rewrite) via fetch spans
  */
-export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+export function dropMiddlewareTunnelRequests(
+  span: Span,
+  attrs: RawAttributes<Record<string, unknown>> | undefined,
+): void {
+  // When the user brings their own OTel setup (enableOpenTelemetrySetup: false), we should not
   // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+  if (
+    (getClient()?.getOptions() as { enableOpenTelemetrySetup?: boolean } | undefined)?.enableOpenTelemetrySetup ===
+    false
+  ) {
     return;
   }
 
@@ -36,7 +42,7 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
 
   // Check if this is either a tunnel route request or a Sentry ingest request
   const isTunnel = isTunnelRouteSpan(attrs || {});
-  const isSentry = isSentryRequestSpan(span);
+  const isSentry = isSentryRequestSpan(attrs || {});
 
   if (isTunnel || isSentry) {
     // Mark the span to be dropped
@@ -44,6 +50,15 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
   }
 }
 
+function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boolean {
+  const httpUrl = attrs[URL_FULL];
+
+  if (!httpUrl) {
+    return false;
+  }
+
+  return isSentryRequestUrl(httpUrl.toString(), getClient());
+}
 /**
  * Checks if a span's HTTP target matches the tunnel route.
  */

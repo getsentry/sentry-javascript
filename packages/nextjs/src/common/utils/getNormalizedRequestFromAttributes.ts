@@ -2,7 +2,6 @@ import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
   HTTP_TARGET,
-  HTTP_URL,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
@@ -18,7 +17,7 @@ export function getNormalizedRequestFromAttributes(attributes: SpanAttributes): 
   const method = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD];
 
   // eslint-disable-next-line typescript/no-deprecated
-  const url = attributes[URL_FULL] || attributes[HTTP_URL] || attributes[URL_PATH] || attributes[HTTP_TARGET];
+  const url = attributes[URL_FULL] || attributes[URL_PATH] || attributes[HTTP_TARGET];
 
   if (typeof method !== 'string' && typeof url !== 'string') {
     return undefined;

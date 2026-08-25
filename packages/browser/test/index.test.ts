@@ -4,8 +4,7 @@
 
 import {
   eventFiltersIntegration,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   getReportDialogEndpoint,
   lastEventId,
   SDK_VERSION,
@@ -19,6 +18,7 @@ import {
   captureEvent,
   captureException,
   captureMessage,
+  defaultStackParser,
   flush,
   getClient,
   getCurrentScope,
@@ -48,10 +48,7 @@ describe('SentryBrowser', () => {
   const beforeSend = vi.fn(event => event);
 
   beforeEach(() => {
-    getGlobalScope().clear();
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     init({
       beforeSend,
@@ -245,10 +242,28 @@ describe('SentryBrowser', () => {
     it('should capture an message', () =>
       new Promise<void>(resolve => {
         const options = getDefaultBrowserClientOptions({
+          attachStacktrace: false,
           beforeSend: event => {
             expect(event.level).toBe('info');
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
+            resolve();
+            return event;
+          },
+          dsn,
+        });
+        setCurrentClient(new BrowserClient(options));
+        captureMessage('test');
+      }));
+
+    it('attaches a synthetic stacktrace to messages by default', () =>
+      new Promise<void>(resolve => {
+        const options = getDefaultBrowserClientOptions({
+          stackParser: defaultStackParser,
+          beforeSend: event => {
+            expect(event.message).toBe('test');
+            expect(event.exception?.values?.[0]?.stacktrace?.frames?.length).toBeGreaterThan(0);
+            expect(event.exception?.values?.[0]?.mechanism?.synthetic).toBe(true);
             resolve();
             return event;
           },

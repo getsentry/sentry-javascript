@@ -45,7 +45,7 @@ import { HydratedRouter } from 'react-router/dom';
 
 Sentry.init({
   dsn: '___PUBLIC_DSN___',
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [Sentry.reactRouterTracingIntegration()],
 
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 
@@ -57,7 +57,7 @@ startTransition(() => {
   hydrateRoot(
     document,
     <StrictMode>
-      <HydratedRouter />
+      <HydratedRouter instrumentations={[Sentry.createSentryClientInstrumentation()]} onError={Sentry.sentryOnError} />
     </StrictMode>,
   );
 });
@@ -113,9 +113,11 @@ Sentry.init({
 });
 ```
 
-In your `entry.server.tsx` file, export the `handleError` function:
+In your `entry.server.tsx` file, import the instrumentation file at the very top, export the
+`instrumentations` array, and export the `handleError` function:
 
 ```tsx
+import './instrument.server.mjs';
 import * as Sentry from '@sentry/react-router';
 import { type HandleErrorFunction } from 'react-router';
 
@@ -128,13 +130,17 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
     console.error(error);
   }
 };
+
+// Register the Sentry server instrumentation so loaders, actions and middleware are traced.
+export const instrumentations = [Sentry.createSentryServerInstrumentation()];
 // ... rest of your server entry
 ```
 
-### Update Scripts
+### Loading the Instrumentation via `--import` (Alternative)
 
-Since React Router is running in ESM mode, you need to use the `--import` command line options to load our server-side instrumentation module before the application starts.
-Update the `start` and `dev` script to include the instrumentation file:
+Instead of importing the instrumentation file at the top of `entry.server.tsx`, you can load it before
+the application starts via the `--import` command line option. Since React Router runs in ESM mode,
+update the `start` and `dev` scripts accordingly:
 
 ```json
 "scripts": {
@@ -149,7 +155,7 @@ Update your vite.config.ts file to include the `sentryReactRouter` plugin and al
 
 ```ts
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter } from '@sentry/react-router';
+import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 const sentryConfig = {
@@ -171,7 +177,7 @@ Next, in your `react-router.config.ts` file, include the `sentryOnBuildEnd` hook
 
 ```ts
 import type { Config } from '@react-router/dev/config';
-import { sentryOnBuildEnd } from '@sentry/react-router';
+import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 
 export default {
   ssr: true,

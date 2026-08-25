@@ -1,9 +1,7 @@
 import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
-import {
-  safeSetSpanJSONAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 
 /**
  * A small integration that preprocesses spans so that SvelteKit-generated spans
@@ -35,17 +33,20 @@ export function svelteKitSpansIntegration(): Integration {
  * @exported for testing
  */
 export function _enhanceKitSpan(span: SpanJSON): void {
-  const { op, origin } = _getKitSpanEnhancement(span.description);
-
-  const previousOp = span.op || span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP];
-  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
-
-  if (!previousOp && op) {
-    span.op = op;
-    span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+  const origin = _getKitSpanOrigin(span.description);
+  if (!origin) {
+    return;
   }
 
-  if ((!previousOrigin || previousOrigin === 'manual') && origin) {
+  const previousOp = span.op || span.data[SENTRY_OP];
+  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+
+  if (!previousOp) {
+    span.op = FUNCTION;
+    span.data[SENTRY_OP] = FUNCTION;
+  }
+
+  if (!previousOrigin || previousOrigin === 'manual') {
     span.origin = origin;
     span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
   }
@@ -56,42 +57,41 @@ export function _enhanceKitSpan(span: SpanJSON): void {
  * @exported for testing
  */
 export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {
-  const { op, origin } = _getKitSpanEnhancement(span.name);
-  const previousOrigin = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
-
-  if (op) {
-    safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op });
+  const origin = _getKitSpanOrigin(span.name);
+  if (!origin) {
+    return;
   }
 
-  if (previousOrigin === 'manual' && origin) {
+  const previousOrigin = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+
+  safeSetSpanJSONAttributes(span, { [SENTRY_OP]: FUNCTION });
+
+  if (previousOrigin === 'manual') {
     // `safeSetSpanJSONAttributes` skips existing keys, so overwrite the 'manual' sentinel directly.
-    span.attributes![SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
+    span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
   } else {
     safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin });
   }
 }
 
-function _getKitSpanEnhancement(spanName: string | undefined): {
-  op?: string;
-  origin?: SpanOrigin;
-} {
+function _getKitSpanOrigin(spanName: string | undefined): SpanOrigin | undefined {
   switch (spanName) {
     case 'sveltekit.resolve':
-      return { op: 'function.sveltekit.resolve', origin: 'auto.http.sveltekit' };
+      return 'auto.http.sveltekit';
     case 'sveltekit.load':
-      return { op: 'function.sveltekit.load', origin: 'auto.function.sveltekit.load' };
+      return 'auto.function.sveltekit.load';
     case 'sveltekit.form_action':
-      return { op: 'function.sveltekit.form_action', origin: 'auto.function.sveltekit.action' };
+      return 'auto.function.sveltekit.action';
     case 'sveltekit.remote.call':
-      return { op: 'function.sveltekit.remote', origin: 'auto.rpc.sveltekit.remote' };
+      return 'auto.rpc.sveltekit.remote';
     case 'sveltekit.handle.root':
       // We don't want to overwrite the root handle span at this point since
       // we already enhance the root span in our `sentryHandle` hook.
-      return {};
+      return undefined;
     default:
       if (spanName?.startsWith('sveltekit.handle.sequenced.')) {
-        return { op: 'function.sveltekit.handle', origin: 'auto.function.sveltekit.handle' };
+        return 'auto.function.sveltekit.handle';
       }
-      return {};
+      return undefined;
   }
 }

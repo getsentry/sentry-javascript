@@ -8,7 +8,7 @@ const patchedUseInstances = new WeakSet<Hono<any>>();
 // oxlint-disable-next-line typescript/no-explicit-any
 const patchedMethodInstances = new WeakSet<Hono<any>>();
 
-const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'options', 'patch', 'all'] as const;
+const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'options', 'patch', 'all', 'query'] as const;
 
 /**
  * Patches `app.use` (instance own property) on a Hono instance to instrument middleware at registration time.
@@ -40,7 +40,7 @@ export function patchAppUse<E extends Env>(app: Hono<E>): void {
 }
 
 /**
- * Patches HTTP method class fields (get, post, put, delete, options, patch, all) to instrument inline middleware at registration time.
+ * Patches HTTP method class fields to instrument inline middleware at registration time.
  *
  * For `app.get('/path', mw1, mw2, handler)`, all handlers except the last are middleware and get wrapped with spans.
  * The final handler (the route handler) is already covered by the root http.server transaction.
@@ -54,19 +54,13 @@ export function patchHttpMethodHandlers<E extends Env>(app: Hono<E>): void {
   patchedMethodInstances.add(app);
 
   for (const method of HTTP_METHODS) {
-    app[method] = new Proxy(app[method], {
-      apply(target, thisArg, args: unknown[]) {
-        return Reflect.apply(target, thisArg, wrapInlineMiddleware(args));
-      },
-    });
+    patchRegistrationMethod(app, method, wrapInlineMiddleware);
   }
 
-  app.on = new Proxy(app.on, {
-    apply(target, thisArg, args: unknown[]) {
-      // .on(method, path, ...handlers) — first two args are method and path
-      const [method, path, ...handlers] = args;
-      return Reflect.apply(target, thisArg, [method, path, ...wrapInlineMiddleware(handlers)]);
-    },
+  patchRegistrationMethod(app, 'on', args => {
+    // .on(method, path, ...handlers) — first two args are method and path
+    const [method, path, ...handlers] = args;
+    return [method, path, ...wrapInlineMiddleware(handlers)];
   });
 }
 
@@ -88,4 +82,18 @@ function wrapInlineMiddleware(args: unknown[]): unknown[] {
     wrapped[i] = wrapMiddlewareWithSpan(wrapped[i] as MiddlewareHandler);
   }
   return wrapped;
+}
+
+function patchRegistrationMethod(app: object, method: string, transformArgs: (args: unknown[]) => unknown[]): void {
+  const registration: unknown = Reflect.get(app, method);
+  if (typeof registration !== 'function') {
+    return;
+  }
+
+  const patchedRegistration = new Proxy(registration, {
+    apply(target, thisArg, args: unknown[]) {
+      return Reflect.apply(target, thisArg, transformArgs(args));
+    },
+  });
+  Reflect.set(app, method, patchedRegistration);
 }

@@ -51,7 +51,7 @@ const run = async () => {
     },
   });
 
-  // Route registered via a plugin produces a `plugin.hapi` span.
+  // Route registered via a plugin produces a `function` op span.
   await server.register({
     name: 'testPlugin',
     version: '1.0.0',
@@ -64,7 +64,7 @@ const run = async () => {
     },
   });
 
-  // Server extension produces a `server.ext.hapi` span.
+  // Server extension produces a `middleware` span.
   server.ext('onPreResponse', (request, h) => h.continue);
 
   await Sentry.setupHapiErrorHandler(server);

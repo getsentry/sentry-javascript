@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 
 vi.mock('@sentry/bundler-plugins/vite', () => ({
@@ -7,33 +7,16 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 }));
 
 describe('makeCustomSentryVitePlugins', () => {
+  beforeEach(() => {
+    // Without this, `toHaveBeenCalledWith` can match a call made by an earlier test,
+    // so assertions pass against stale arguments instead of their own.
+    vi.clearAllMocks();
+  });
+
   it('should pass release configuration to sentryVitePlugin', async () => {
     const options = {
       release: {
         name: 'test-release',
-      },
-    };
-
-    await makeCustomSentryVitePlugins(options);
-
-    expect(sentryVitePlugin).toHaveBeenCalledWith(
-      expect.objectContaining({
-        release: {
-          name: 'test-release',
-        },
-      }),
-    );
-  });
-
-  it('should merge release configuration with unstable_sentryVitePluginOptions', async () => {
-    const options = {
-      release: {
-        name: 'test-release',
-      },
-      unstable_sentryVitePluginOptions: {
-        release: {
-          name: 'unstable-release',
-        },
       },
     };
 
@@ -78,22 +61,94 @@ describe('makeCustomSentryVitePlugins', () => {
     );
   });
 
-  it('should allow overriding sourcemaps via unstable_sentryVitePluginOptions', async () => {
+  // Regression test for https://github.com/getsentry/sentry-javascript/issues/22929.
+  // `sentryOnBuildEnd` is the only place that injects debug IDs and uploads, so the Vite plugin must
+  // stay disabled - otherwise every chunk gets a second debug ID with no artifact bundle behind it.
+  // It must also never delete the maps, because its `writeBundle` deletes in a `finally` block that
+  // runs even when `disable` is set, which would remove them before `sentryOnBuildEnd` uploads.
+  // Neither may be changed by any user option.
+  it('should keep sourcemaps disabled and filesToDeleteAfterUpload unset whatever the user configures', async () => {
     await makeCustomSentryVitePlugins({
-      unstable_sentryVitePluginOptions: {
-        sourcemaps: {
-          assets: ['dist/**'],
-        },
+      sourcemaps: {
+        disable: false,
+        assets: ['dist/**'],
+        filesToDeleteAfterUpload: ['./build/**/*.map'],
       },
     });
 
-    // unstable_sentryVitePluginOptions is spread last, so it fully overrides sourcemaps
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: {
-          assets: ['dist/**'],
+          disable: true,
+          filesToDeleteAfterUpload: undefined,
         },
       }),
     );
+  });
+
+  // metaFramework identifies the SDK to Sentry telemetry, so it stays pinned.
+  it('should always report react-router as the metaFramework', async () => {
+    await makeCustomSentryVitePlugins({ org: 'my-org' });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'react-router',
+          },
+        },
+      }),
+    );
+  });
+
+  it('should pass reactComponentAnnotation through to sentryVitePlugin', async () => {
+    await makeCustomSentryVitePlugins({
+      reactComponentAnnotation: { enabled: true, ignoredComponents: ['MyComponent'] },
+    });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reactComponentAnnotation: { enabled: true, ignoredComponents: ['MyComponent'] },
+      }),
+    );
+  });
+
+  it('should pass moduleMetadata through to sentryVitePlugin', async () => {
+    await makeCustomSentryVitePlugins({ moduleMetadata: { team: 'sdk' } });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(expect.objectContaining({ moduleMetadata: { team: 'sdk' } }));
+  });
+
+  // Release creation runs in the plugin's `writeBundle`, so these have to reach the plugin too.
+  it('should pass self-hosted and logging options through to sentryVitePlugin', async () => {
+    const errorHandler = (): void => undefined;
+
+    await makeCustomSentryVitePlugins({
+      sentryUrl: 'https://my.sentry.io',
+      headers: { 'X-My-Header': 'foo' },
+      silent: true,
+      errorHandler,
+    });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // `sentryUrl` is spelled `url` on the plugin
+        url: 'https://my.sentry.io',
+        headers: { 'X-My-Header': 'foo' },
+        silent: true,
+        errorHandler,
+      }),
+    );
+  });
+
+  it('should warn when the removed `unstable_sentryVitePluginOptions` is still set', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    // @ts-expect-error - removed in v11, but JS configs get no type checking
+    await makeCustomSentryVitePlugins({ unstable_sentryVitePluginOptions: { org: 'other-org' } });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('unstable_sentryVitePluginOptions'));
+
+    consoleWarnSpy.mockRestore();
   });
 });

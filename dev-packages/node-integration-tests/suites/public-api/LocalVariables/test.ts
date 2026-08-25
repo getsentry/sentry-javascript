@@ -1,7 +1,6 @@
 import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // This test takes some time because it connects the debugger etc.
@@ -91,11 +90,11 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  test('Should include local variables when instrumenting via --require', async () => {
-    const requirePath = path.resolve(__dirname, 'local-variables-instrument.js');
+  test('Should include local variables when instrumenting via --import', async () => {
+    const instrumentPath = path.resolve(__dirname, 'local-variables-instrument.cjs');
 
     await createRunner(__dirname, 'local-variables-no-sentry.js')
-      .withFlags(`--require=${requirePath}`)
+      .withFlags(`--import=${instrumentPath}`)
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start()
       .completed();
@@ -108,19 +107,15 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  conditionalTest({ min: 19 })('Node v19+', () => {
-    test('Should not import inspector when not in use', async () => {
-      await createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().start().completed();
-    });
+  test('Should not import inspector when not in use', async () => {
+    await createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().start().completed();
   });
 
-  conditionalTest({ min: 20 })('Node v20+', () => {
-    test('Should retain original local variables when error is re-thrown', async () => {
-      await createRunner(__dirname, 'local-variables-rethrow.js')
-        .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-        .start()
-        .completed();
-    });
+  test('Should retain original local variables when error is re-thrown', async () => {
+    await createRunner(__dirname, 'local-variables-rethrow.js')
+      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+      .start()
+      .completed();
   });
 
   test('Includes local variables for caught exceptions when enabled', async () => {

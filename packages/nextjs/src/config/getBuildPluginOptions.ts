@@ -234,7 +234,6 @@ function createReleaseConfig(
       vcsRemote: sentryBuildOptions.release?.vcsRemote,
       setCommits: sentryBuildOptions.release?.setCommits,
       deploy: sentryBuildOptions.release?.deploy,
-      ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.release,
     };
   }
 
@@ -332,8 +331,9 @@ export function getBuildPluginOptions({
     reactComponentAnnotation: buildTool.startsWith('after-production-compile')
       ? undefined
       : {
+          ...sentryBuildOptions.reactComponentAnnotation,
+          // eslint-disable-next-line typescript/no-deprecated
           ...sentryBuildOptions.webpack?.reactComponentAnnotation,
-          ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,
         },
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
@@ -343,18 +343,18 @@ export function getBuildPluginOptions({
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,
-      ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.sourcemaps,
+      resolveSourceMap: sentryBuildOptions.sourcemaps?.resolveSourceMap,
     },
     release: createReleaseConfig(releaseName, sentryBuildOptions),
     bundleSizeOptimizations: {
       ...sentryBuildOptions.bundleSizeOptimizations,
     },
+    moduleMetadata: sentryBuildOptions.moduleMetadata,
     _metaOptions: {
       loggerPrefixOverride: loggerPrefix,
       telemetry: {
         metaFramework: 'nextjs',
       },
     },
-    ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions,
   };
 }

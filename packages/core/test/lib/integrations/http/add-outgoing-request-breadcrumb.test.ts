@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbsModule from '../../../../src/breadcrumbs';
+import { withScope } from '../../../../src/currentScopes';
 import { addOutgoingRequestBreadcrumb } from '../../../../src/integrations/http/add-outgoing-request-breadcrumb';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
+import type { CollectBehavior } from '../../../../src/types/datacollection';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
   return {
@@ -76,12 +79,12 @@ describe('addOutgoingRequestBreadcrumb', () => {
     );
   });
 
-  it('includes http.query when the URL has a query string', () => {
+  it('includes url.query when the URL has a query string', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest({ path: '/api/test?foo=bar' }), makeMockResponse());
 
     expect(breadcrumbsModule.addBreadcrumb).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ 'http.query': '?foo=bar' }),
+        data: expect.objectContaining({ 'url.query': 'foo=bar' }),
       }),
       expect.anything(),
     );
@@ -90,18 +93,18 @@ describe('addOutgoingRequestBreadcrumb', () => {
     expect(callArg.data?.url).not.toContain('foo=bar');
   });
 
-  it('does not include http.query when the URL has no query string', () => {
+  it('does not include url.query when the URL has no query string', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest(), makeMockResponse());
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
-    expect(callArg.data).not.toHaveProperty('http.query');
+    expect(callArg.data?.['url.query']).toBeUndefined();
   });
 
-  it('does not include http.fragment by default', () => {
+  it('does not include url.fragment by default', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest(), makeMockResponse());
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
-    expect(callArg.data).not.toHaveProperty('http.fragment');
+    expect(callArg.data?.['url.fragment']).toBeUndefined();
   });
 
   it('sets level to "warning" for 4xx status codes', () => {
@@ -163,5 +166,45 @@ describe('addOutgoingRequestBreadcrumb', () => {
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
     expect(callArg.data?.['http.method']).toBe('GET');
+  });
+
+  // Breadcrumbs never reach the span pipeline, so this is the only place `urlQueryParams` is applied to them.
+  describe('dataCollection.urlQueryParams', () => {
+    function breadcrumbQuery(path: string, urlQueryParams?: CollectBehavior): unknown {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          ...(urlQueryParams !== undefined ? { dataCollection: { urlQueryParams } } : {}),
+        }),
+      );
+
+      return withScope(scope => {
+        scope.setClient(client);
+        addOutgoingRequestBreadcrumb(makeMockRequest({ path }), makeMockResponse());
+
+        const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls.at(-1)![0];
+        return callArg.data?.['url.query'];
+      });
+    }
+
+    it('filters sensitive params and preserves encoding by default', () => {
+      expect(breadcrumbQuery('/api/test?token=abc123&q=a%20b%26c&page=5')).toBe('token=[Filtered]&q=a%20b%26c&page=5');
+    });
+
+    it('omits the query entirely when collection is off', () => {
+      expect(breadcrumbQuery('/api/test?token=abc123&page=5', false)).toBeUndefined();
+    });
+
+    it('honors allowList mode', () => {
+      expect(breadcrumbQuery('/api/test?page=1&ref=x&sort=name', { allow: ['page', 'sort'] })).toBe(
+        'page=1&ref=[Filtered]&sort=name',
+      );
+    });
+
+    it('honors extra deny terms', () => {
+      expect(breadcrumbQuery('/api/test?page=1&utm_source=email', { deny: ['utm'] })).toBe(
+        'page=1&utm_source=[Filtered]',
+      );
+    });
   });
 });

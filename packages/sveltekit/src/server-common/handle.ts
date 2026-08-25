@@ -19,11 +19,12 @@ import {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
-import { HTTP_URL, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -148,6 +149,7 @@ async function instrumentHandle(
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
   const kitTracingEnabled = event.tracing?.enabled;
+  const dataCollectionOptions = getClient()?.getDataCollectionOptions();
 
   try {
     const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
@@ -166,10 +168,11 @@ async function instrumentHandle(
         // span name as early as possible (for dynamic sampling, et al.)
         // Other spans are enhanced in the `processKitSpans` integration.
         const spanJson = spanToJSON(kitRootSpan);
-        const kitRootSpanAttributes = spanJson.data;
-        const originalName = spanJson.description;
+        const kitRootSpanAttributes = spanJson.attributes;
+        const originalName = spanJson.name;
 
-        const routeName = kitRootSpanAttributes['http.route'];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE] as string | undefined;
+        const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
@@ -179,13 +182,14 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          // oxlint-disable-next-line typescript-eslint(no-deprecated)
-          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? event.url.href,
-          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
-          ...httpHeadersToSpanAttributes(
-            winterCGHeadersToDict(event.request.headers),
-            getClient()?.getDataCollectionOptions() ?? false,
-          ),
+          [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
+          [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
+          ...(routeName && {
+            [HTTP_ROUTE]: routeName,
+          }),
+          ...(dataCollectionOptions
+            ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+            : {}),
         });
       }
 
@@ -211,12 +215,14 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
-              [URL_FULL]: event.url.href,
+              [URL_FULL]: filterCollectedUrl(event.url.href),
               [URL_PATH]: event.url.pathname,
-              ...httpHeadersToSpanAttributes(
-                winterCGHeadersToDict(event.request.headers),
-                getClient()?.getDataCollectionOptions() ?? false,
-              ),
+              ...(routeId && {
+                [HTTP_ROUTE]: routeId,
+              }),
+              ...(dataCollectionOptions
+                ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+                : {}),
             },
             name: routeName,
           },

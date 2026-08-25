@@ -71,12 +71,6 @@ export {
   getSpanDescendants,
   continueTrace,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
-  instrumentOpenAiClient,
-  instrumentStateGraph,
-  instrumentGoogleGenAIClient,
-  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -94,23 +88,33 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   logger,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export {
+  otlpIntegration,
+  getOtlpTracesEndpoint,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+} from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';

@@ -2,25 +2,25 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
 // integrations get the diagnostics-channel origin when the generic orchestrion run is enabled (via
 // INJECT_ORCHESTRION), since the OTel `Postgres` integration is then swapped for the channel one. Blocks
 // that pass an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin.
-const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
+const QUERY_ORIGIN = 'auto.db.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
   'db.connection_string': {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),
   },
-  'db.name': {
+  'db.namespace': {
     type: 'string',
     value: 'tests',
   },
-  'db.system': {
+  'db.system.name': {
     type: 'string',
     value: 'postgresql',
   },
@@ -28,17 +28,17 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'test',
   },
-  'net.peer.name': {
+  'server.address': {
     type: 'string',
     value: 'localhost',
   },
-  'net.peer.port': {
+  'server.port': {
     type: 'integer',
     value: expect.any(Number),
   },
-  'otel.kind': {
+  'sentry.kind': {
     type: 'string',
-    value: 'CLIENT',
+    value: 'client',
   },
   'sentry.environment': {
     type: 'string',
@@ -68,10 +68,6 @@ const COMMON_DB_ATTRIBUTES = {
     type: 'string',
     value: 'Test Span',
   },
-  'sentry.source': {
-    type: 'string',
-    value: 'task',
-  },
   [SENTRY_TRACE_LIFECYCLE]: {
     type: 'string',
     value: 'stream',
@@ -82,7 +78,7 @@ const COMMON_DB_ATTRIBUTES = {
  * Builds the expected strict shape of a streamed postgres db span.
  *
  * Query spans carry a `db.statement` and the query origin (`auto.db.otel.postgres`, or
- * `auto.db.orchestrion.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
+ * `auto.db.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
  * `pg.connect` span has no `db.statement`, and since the pg instrumentation sets no origin on it, it
  * carries the default `manual` origin (written as an attribute on the streamed-span path; the
  * non-streamed/SDK path omits the `manual` default).
@@ -106,7 +102,7 @@ function expectedDbSpan({
 }): unknown {
   const attributes: Record<string, unknown> = {
     ...COMMON_DB_ATTRIBUTES,
-    'net.peer.name': {
+    'server.address': {
       type: 'string',
       value: host,
     },
@@ -117,7 +113,7 @@ function expectedDbSpan({
   };
 
   if (statement) {
-    attributes['db.statement'] = {
+    attributes['db.query.text'] = {
       type: 'string',
       value: statement,
     };
@@ -200,9 +196,10 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
               expect(dbSpans.find(span => span.name.includes('connect'))).toBeUndefined();
               expect(dbSpans.length).toBe(4);
 
-              // This block passes an explicit `postgresIntegration({ ignoreConnectSpans: true })`, which
-              // survives the orchestrion swap, so query spans keep the OTel origin even under INJECT_ORCHESTRION.
-              const origin = 'auto.db.otel.postgres';
+              // `postgresIntegration()` is the diagnostics-channel implementation by default, so query
+              // spans carry the orchestrion origin even when passing explicit options like
+              // `ignoreConnectSpans`.
+              const origin = 'auto.db.postgres';
               expect(dbSpans).toEqual([
                 expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({

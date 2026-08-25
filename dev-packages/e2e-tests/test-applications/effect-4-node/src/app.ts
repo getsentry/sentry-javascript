@@ -11,12 +11,12 @@ import { createServer } from 'http';
 
 const SentryLive = Layer.mergeAll(
   Sentry.effectLayer({
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
     debug: !!process.env.DEBUG,
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
-    enableLogs: true,
   }),
   Logger.layer([Sentry.SentryEffectLogger]),
   Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),

@@ -27,11 +27,14 @@ it('instruments an allowed rate limiter call automatically via env', async ({ si
 
       expect(event.spans).toEqual([
         {
-          data: {
+          data: expect.objectContaining({
             'sentry.origin': 'auto.faas.cloudflare.rate_limit',
-          },
+            'rpc.service': 'cloudflare.rate_limit',
+          }),
           description: 'rate_limit MY_RATE_LIMITER',
+          op: 'rpc',
           origin: 'auto.faas.cloudflare.rate_limit',
+          status: 'ok',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),

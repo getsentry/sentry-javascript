@@ -40,7 +40,7 @@ sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page
       },
     ],
     settings: {
-      infer_ip: 'never',
+      infer_ip: 'auto',
     },
   });
 });

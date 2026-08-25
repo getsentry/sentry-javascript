@@ -1,6 +1,6 @@
 ---
 name: backport-pr
-description: Backport a merged PR to a maintenance major branch (v10 by default) in getsentry/sentry-javascript. Cherry-picks the PR's squash-merge commit onto the target branch, namespaces the commit/PR title scope (e.g. fix(core) -> fix(v10/core)), and opens a draft backport PR. Use when asked to backport a PR, or port a fix to v10 (or an older major like v9). Trigger phrases include "backport", "port to v10", "release this on v10".
+description: Backport a merged PR to a maintenance major branch (v10 by default) in getsentry/sentry-javascript. Cherry-picks the PR's squash-merge commit onto the target branch, namespaces the commit/PR title scope (e.g. fix(core) -> fix(v10/core)), opens a draft backport PR, and documents any deviation from the original PR in its body. Use when asked to backport a PR, or port a fix to v10 (or an older major like v9). Trigger phrases include "backport", "port to v10", "release this on v10".
 argument-hint: '<pr-number-or-url> [target-major]  # e.g. 18211 v10; target defaults to v10'
 ---
 
@@ -30,7 +30,10 @@ If no PR is given, ask for it. Do not guess.
   - If the original has no scope (e.g. `fix: ...`), use `fix(v10): ...`.
   - For a multi-scope title, prefix the whole group once, not each scope:
     `fix(cloudflare,deno,node): ...` -> `fix(v10/cloudflare,deno,node): ...`.
-- **PR body** is a single line: `Backport of: #<original-pr-number>`.
+- **PR body** starts with a single line: `Backport of: #<original-pr-number>`. If the backported
+  change deviates from the original in substance, append a `## Differences to the original PR`
+  section listing each deviation and why it was necessary (see step 4). A clean cherry-pick
+  keeps the body at the single line.
 - **PR is opened as a draft.**
 - **Working branch**: branch off the target major and give it a descriptive name.
 - The changes come from the PR's **squash-merge commit** on `develop` (one commit per PR),
@@ -101,6 +104,9 @@ git cherry-pick <mergeCommit-oid>
   files only, so stray untracked workspace files don't get baked in), then
   `git cherry-pick --continue`. If the change can't be cleanly adapted, stop and surface the
   conflict to the user instead of guessing.
+  Keep a running note of every adaptation you make here — which file, what you changed relative
+  to the original, and why the target major needed it. Step 6 turns these notes into the PR
+  body, and reconstructing them after the fact is unreliable.
 - If the PR was **not** squash-merged (multiple commits, e.g. a merge commit), cherry-pick
   each relevant commit in order, or use `git cherry-pick -m 1 <merge-oid>` for a merge commit.
 
@@ -151,7 +157,7 @@ git commit --amend -m "<namespaced-title>" -m "Backport of: #<PR>"
 Example subject: `fix(v10/core): Fix logs flush timeout starvation with continuous logging`
 
 **Multiple commits (non-squash merge)** — leave the individual commit messages as-is; the
-namespaced title lives on the PR (step 6), not on each commit. Just fold the staged fixes into
+namespaced title lives on the PR (step 7), not on each commit. Just fold the staged fixes into
 HEAD without rewording:
 
 ```bash
@@ -164,9 +170,46 @@ Confirm the tree is clean so nothing is left uncommitted before you push:
 git status --porcelain   # expect no output
 ```
 
-### 6. Push and open the draft PR
+### 6. Diff the backport against the original PR
 
-The `Backport of: #<PR>` body references the original PR, so GitHub cross-links the two
+Even a cherry-pick that reported no conflicts can end up different — `yarn format`/`lint:fix`
+on the older toolchain, dropped hunks, adaptations you made in step 3. Compare the final commit
+against the original before writing the PR body, rather than trusting your memory of step 3:
+
+```bash
+git show <mergeCommit-oid> --stat
+git show HEAD --stat            # file lists should match
+
+diff <(git show <mergeCommit-oid>) <(git show HEAD)
+```
+
+Ignore noise that carries no meaning: commit hashes/headers, hunk line offsets, surrounding
+context lines, and the reworded commit message. What counts as a **difference** is a change in
+what the patch does — a file added or missing, a hunk dropped or added, changed code or test
+expectations, an API adapted to the older major, a version/changelog entry that only exists on
+one branch.
+
+If the only differences are noise, the PR body stays the single `Backport of:` line. Otherwise
+draft a section like:
+
+```markdown
+Backport of: #<PR>
+
+## Differences to the original PR
+
+- `packages/core/src/foo.ts`: used `getClient()` instead of `getCurrentScope().getClient()` — v10 has no `getClient()` on the scope.
+- Dropped the `bar.test.ts` case for `baz()`; that helper doesn't exist on v10.
+```
+
+One bullet per deviation: what changed, and why the target major required it. Keep it factual —
+this is the reviewer's diff-of-the-diff, not a summary of the original PR.
+
+If a difference means the backport doesn't fully deliver the original fix, say so explicitly in
+the PR body **and** to the user — that's a review decision, not a footnote.
+
+### 7. Push and open the draft PR
+
+The `Backport of: #<PR>` line references the original PR, so GitHub cross-links the two
 automatically — no separate comment needed.
 
 ```bash
@@ -178,6 +221,9 @@ gh pr create \
   --title "<namespaced-title>" \
   --body "Backport of: #<PR>"
 ```
+
+When step 6 produced a differences section, pass the multi-line body via `--body-file` instead
+(write it to a scratch file first) so the markdown survives intact.
 
 ## Notes
 

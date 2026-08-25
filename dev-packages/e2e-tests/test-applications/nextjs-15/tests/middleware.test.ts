@@ -14,7 +14,7 @@ test('tracesSampler receives normalizedRequest for edge middleware', async ({ re
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
   expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
   expect(middlewareTransaction.request?.method).toBe('GET');
 });
@@ -44,4 +44,37 @@ test('does not leak normalizedRequest between concurrent middleware invocations'
   expect(firstTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
   expect(firstTransaction.request?.url).not.toContain('/api/endpoint-behind-middleware-2');
   expect(secondTransaction.request?.url).toContain('/api/endpoint-behind-middleware-2');
+});
+
+// Neither request sends inbound tracing headers, so each is the head of its own distributed trace. If concurrent
+// middleware invocations were to share an active span/scope (e.g. a leaked context on a warm edge worker), both
+// transactions would inherit one trace id and collapse into a single trace - the production contamination we guard
+// against here.
+test('concurrent middleware invocations without inbound tracing headers get distinct trace ids', async ({
+  request,
+}) => {
+  const firstTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'middleware GET' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === '/api/endpoint-behind-middleware'
+    );
+  });
+
+  const secondTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'middleware GET' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === '/api/endpoint-behind-middleware-2'
+    );
+  });
+
+  await Promise.all([request.get('/api/endpoint-behind-middleware'), request.get('/api/endpoint-behind-middleware-2')]);
+
+  const [firstTransaction, secondTransaction] = await Promise.all([firstTransactionPromise, secondTransactionPromise]);
+
+  const firstTraceId = firstTransaction.contexts?.trace?.trace_id;
+  const secondTraceId = secondTransaction.contexts?.trace?.trace_id;
+
+  expect(firstTraceId).toMatch(/^[a-f0-9]{32}$/);
+  expect(secondTraceId).toMatch(/^[a-f0-9]{32}$/);
+  expect(firstTraceId).not.toBe(secondTraceId);
 });

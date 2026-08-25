@@ -3,6 +3,7 @@ import IORedis from 'ioredis';
 import { createClient } from 'redis';
 
 Sentry.init({
+  traceLifecycle: 'static',
   environment: 'qa',
   dsn: Deno.env.get('E2E_TEST_DSN'),
   debug: !!Deno.env.get('DEBUG'),
@@ -14,7 +15,7 @@ const redisUrl = Deno.env.get('REDIS_URL') ?? 'redis://127.0.0.1:6379';
 
 // One shared client per process. node-redis publishes to the
 // `node-redis:command` / `:batch` / `:connect` diagnostics channels for every
-// operation on this client; denoRedisIntegration is already subscribed to
+// operation on this client; redisIntegration is already subscribed to
 // those.
 const redis = createClient({ url: redisUrl });
 function onRedisError(err: unknown) {
@@ -25,7 +26,7 @@ redis.on('error', onRedisError);
 await redis.connect();
 
 // Separate ioredis client. ioredis >= 5.11 publishes to the `ioredis:command`
-// and `ioredis:connect` channels, which denoRedisIntegration also subscribes
+// and `ioredis:connect` channels, which redisIntegration also subscribes
 // to. lazyConnect so we can yield a microtick before connecting and ensure
 // the DC subscriber is registered before ioredis creates its tracing channels.
 await Promise.resolve();
@@ -55,7 +56,7 @@ Deno.serve({ port, hostname: '0.0.0.0' }, async (req: Request) => {
   }
 
   // node-redis: SET then GET — exercises two commands inside a single
-  // transaction so we can assert the parent has two db.redis children.
+  // transaction so we can assert the parent has two db.query children.
   if (url.pathname === '/redis-set-get') {
     const key = url.searchParams.get('key') ?? 'cache:key';
     const value = url.searchParams.get('value') ?? 'hello';
@@ -88,7 +89,7 @@ Deno.serve({ port, hostname: '0.0.0.0' }, async (req: Request) => {
 
   // ioredis: MULTI — ioredis has no separate batch channel; per-command
   // payloads carry `batchMode`/`batchSize` instead, so we still expect one
-  // db.redis span per command.
+  // db.query span per command.
   if (url.pathname === '/ioredis-multi') {
     const result = await ioredis.multi().set('iomulti:a', '1').set('iomulti:b', '2').get('iomulti:a').exec();
     return Response.json({ result });

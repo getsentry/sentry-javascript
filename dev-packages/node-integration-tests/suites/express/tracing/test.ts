@@ -1,7 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../utils';
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -18,7 +17,7 @@ describe('express tracing', () => {
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
-                  url: expect.stringMatching(/\/test\/express$/),
+                  'url.full': expect.stringMatching(/\/test\/express$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -32,7 +31,7 @@ describe('express tracing', () => {
                   'express.type': 'middleware',
                 }),
                 description: 'corsMiddleware',
-                op: 'middleware.express',
+                op: 'middleware',
                 origin: 'auto.http.express',
               }),
               expect.objectContaining({
@@ -41,7 +40,7 @@ describe('express tracing', () => {
                   'express.type': 'request_handler',
                 }),
                 description: '/test/express',
-                op: 'request_handler.express',
+                op: 'handler',
                 origin: 'auto.http.express',
               }),
             ]),
@@ -65,7 +64,7 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 data: {
-                  url: expect.stringMatching(/\/test\/regex$/),
+                  'url.full': expect.stringMatching(/\/test\/regex$/),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -98,15 +97,9 @@ describe('express tracing', () => {
             // The handler delays its response by ~100ms (see scenario).
             const routerDurationMs = ((routerSpan?.timestamp ?? 0) - (routerSpan?.start_timestamp ?? 0)) * 1000;
 
-            if (isOrchestrionEnabled()) {
-              // The orchestrion router span stays open until the response finishes, so
-              // it spans the whole sub-stack it dispatched (~the 100ms handler delay).
-              expect(routerDurationMs).toBeGreaterThan(50);
-            } else {
-              // The OTel integration ends router spans immediately, so the router span
-              // is a ~0ms marker regardless of how long its sub-stack runs.
-              expect(routerDurationMs).toBeLessThan(50);
-            }
+            // The router span stays open until the response finishes, so it spans the
+            // whole sub-stack it dispatched (~the 100ms handler delay).
+            expect(routerDurationMs).toBeGreaterThan(50);
           },
         })
         .start();
@@ -142,9 +135,8 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   'http.response.status_code': 200,
-                  url: expect.stringMatching(/\/$/),
                   'http.method': 'GET',
-                  'http.url': expect.stringMatching(/\/$/),
+                  'url.full': expect.stringMatching(/\/$/),
                   'http.route': '/',
                   'http.target': '/',
                 },
@@ -188,7 +180,7 @@ describe('express tracing', () => {
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   data: {
-                    url: expect.stringMatching(`/test/${segment}$`),
+                    'url.full': expect.stringMatching(`/test/${segment}$`),
                     'http.response.status_code': 200,
                   },
                   op: 'http.server',
@@ -225,7 +217,7 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 data: {
-                  url: expect.stringMatching(`/test/${segment}$`),
+                  'url.full': expect.stringMatching(`/test/${segment}$`),
                   'http.response.status_code': 200,
                 },
                 op: 'http.server',
@@ -403,9 +395,8 @@ describe('express tracing', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': status_code,
-                        url: expect.stringMatching(url),
                         'http.method': 'GET',
-                        'http.url': expect.stringMatching(url),
+                        'url.full': expect.stringMatching(url),
                         'http.target': url,
                       },
                       op: 'http.server',

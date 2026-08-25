@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 // We rely on esbuild's defaults for JSX (`jsx: 'transform'` = classic runtime, no
 // __self/__source attributes). React 19 prefers the new automatic transform, but switching
@@ -23,5 +23,5 @@ export default [
       },
     }),
   ),
-  ...makeOtelLoaders('./build', 'sentry-node'),
+  ...makeOrchestrionLoader('./build'),
 ];

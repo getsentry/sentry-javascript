@@ -8,11 +8,11 @@ const nextConfig: NextConfig = {};
 
 export default withSentryConfig(nextConfig, {
   silent: true,
+  applicationKey: 'nextjs-16-streaming-e2e',
+  reactComponentAnnotation: {
+    enabled: true,
+  },
   _experimental: {
     vercelCronsMonitoring: true,
-    turbopackApplicationKey: 'nextjs-16-streaming-e2e',
-    turbopackReactComponentAnnotation: {
-      enabled: true,
-    },
   },
 });

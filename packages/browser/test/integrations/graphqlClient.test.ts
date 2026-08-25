@@ -360,7 +360,6 @@ describe('GraphqlClient', () => {
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          'http.url': 'http://localhost:4000/graphql',
           [URL_FULL]: 'http://localhost:4000/graphql',
           url: 'http://localhost:4000/graphql',
         },
@@ -369,8 +368,8 @@ describe('GraphqlClient', () => {
       handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
 
       const json = spanToJSON(span);
-      expect(json.description).toBe('POST http://localhost:4000/graphql (query GetHello)');
-      expect(json.data['graphql.document']).toBe(requestBody.query);
+      expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
+      expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
 
     test('enriches http.client span when only url.full is present', () => {
@@ -387,27 +386,26 @@ describe('GraphqlClient', () => {
       handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
 
       const json = spanToJSON(span);
-      expect(json.description).toBe('POST http://localhost:4000/graphql (query GetHello)');
-      expect(json.data['graphql.document']).toBe(requestBody.query);
+      expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
+      expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
 
-    test('enriches http.client span for relative URLs (only url attribute)', () => {
+    test('enriches http.client span for relative URLs', () => {
       const handler = setupHandler([/\/graphql$/]);
-      // Fetch instrumentation does not set `http.url` or `url.full` for relative URLs.
       const span = new SentrySpan({
         name: 'POST /graphql',
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          url: '/graphql',
+          [URL_FULL]: '/graphql',
         },
       });
 
       handler(span, makeFetchHint('/graphql', requestBody));
 
       const json = spanToJSON(span);
-      expect(json.description).toBe('POST /graphql (query GetHello)');
-      expect(json.data['graphql.document']).toBe(requestBody.query);
+      expect(json.name).toBe('POST /graphql (query GetHello)');
+      expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
 
     test('does nothing when no URL attribute is present', () => {
@@ -423,8 +421,8 @@ describe('GraphqlClient', () => {
       handler(span, makeFetchHint('/graphql', requestBody));
 
       const json = spanToJSON(span);
-      expect(json.description).toBe('POST');
-      expect(json.data['graphql.document']).toBeUndefined();
+      expect(json.name).toBe('POST');
+      expect(json.attributes['graphql.document']).toBeUndefined();
     });
 
     test('does nothing when span op is not http.client', () => {
@@ -441,8 +439,8 @@ describe('GraphqlClient', () => {
       handler(span, makeFetchHint('/graphql', requestBody));
 
       const json = spanToJSON(span);
-      expect(json.description).toBe('custom span');
-      expect(json.data['graphql.document']).toBeUndefined();
+      expect(json.name).toBe('custom span');
+      expect(json.attributes['graphql.document']).toBeUndefined();
     });
 
     test('omits graphql.document when dataCollection.graphQL.document is false', () => {
@@ -452,7 +450,6 @@ describe('GraphqlClient', () => {
         op: 'http.client',
         attributes: {
           'http.method': 'POST',
-          'http.url': 'http://localhost:4000/graphql',
           [URL_FULL]: 'http://localhost:4000/graphql',
           url: 'http://localhost:4000/graphql',
         },
@@ -462,8 +459,8 @@ describe('GraphqlClient', () => {
 
       const json = spanToJSON(span);
       // The span is still renamed with the operation, but the document is not attached.
-      expect(json.description).toBe('POST http://localhost:4000/graphql (query GetHello)');
-      expect(json.data['graphql.document']).toBeUndefined();
+      expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
+      expect(json.attributes['graphql.document']).toBeUndefined();
     });
   });
 });

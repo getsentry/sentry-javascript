@@ -103,21 +103,22 @@ test.describe('server - instrumentation API performance', () => {
     const transaction = await txPromise;
 
     // Find the loader span
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react_router.loader');
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
 
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react_router.loader',
+        'sentry.op': 'function',
+        'code.function.name': 'loader',
       },
       description: '/performance/server-loader',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react_router.loader',
+      op: 'function',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
@@ -133,26 +134,34 @@ test.describe('server - instrumentation API performance', () => {
     const transaction = await txPromise;
 
     // Find the action span
-    const actionSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react_router.action');
+    const actionSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'action');
 
     expect(actionSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react_router.action',
+        'sentry.op': 'function',
+        'code.function.name': 'action',
       },
       description: '/performance/server-action',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react_router.action',
+      op: 'function',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
 
+  // Prod-only: the dev server (Vite) serves source modules (`/@vite/client`, `/app/*`) as separate
+  // requests, each producing its own http.server transaction, so "exactly one" only holds in prod.
   test('sends exactly one http.server transaction per request (no double-instrumentation)', async ({ page }) => {
+    test.skip(
+      process.env.TEST_ENV === 'development',
+      'Dev server emits extra http.server transactions for module requests',
+    );
+
     const httpServerTransactions: Array<string | undefined> = [];
     void waitForTransaction(APP_NAME, async transactionEvent => {
       if (transactionEvent.contexts?.trace?.op === 'http.server') {
@@ -166,5 +175,20 @@ test.describe('server - instrumentation API performance', () => {
     await page.waitForTimeout(3000);
 
     expect(httpServerTransactions).toEqual(['GET /performance']);
+  });
+
+  test('resolves a real http.route on routes without a loader/action', async ({ page }) => {
+    // Regression guard for the server OTel removal: routes without a loader/action must still get a
+    // proper `http.route` (not the catch-all `*` placeholder) from the underlying HTTP instrumentation.
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'GET /performance/ssr';
+    });
+
+    await page.goto(`/performance/ssr`);
+
+    const transaction = await txPromise;
+
+    expect(transaction.contexts?.trace?.op).toBe('http.server');
+    expect(transaction.contexts?.trace?.data?.['http.route']).toBe('/performance/ssr');
   });
 });

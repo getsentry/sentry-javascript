@@ -2,9 +2,9 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  eventFiltersIntegration,
   functionToStringIntegration,
   hasSpansEnabled,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
@@ -16,24 +16,16 @@ import {
   httpIntegration,
   init as initNode,
   modulesIntegration,
-  nativeNodeFetchIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
-import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
+import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
-
-/**
- * The orchestrion channel-subscriber integrations, listening on the diagnostics
- * channels that `@sentry/bun/plugin` injects at build time.
- */
-function getChannelIntegrations(): Integration[] {
-  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
-}
+import { bunHttpServerIntegration } from './integrations/bunHttpServer';
 
 /**
  * The performance integrations for bun: the OTel auto-performance set, but with
@@ -48,19 +40,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
     return [];
   }
 
-  const autoPerformanceIntegrations = getAutoPerformanceIntegrations();
-  if (!isOrchestrionInjected()) {
-    return autoPerformanceIntegrations;
-  }
-
-  const channelIntegrationInstances = getChannelIntegrations();
-  // The OTel integrations these channel subscribers replace, keyed by the name they share with them.
-  const replacedOtelIntegrationNames = new Set(channelIntegrationInstances.map(integration => integration.name));
-
-  return [
-    ...autoPerformanceIntegrations.filter(integration => !replacedOtelIntegrationNames.has(integration.name)),
-    ...channelIntegrationInstances,
-  ];
+  return getAutoPerformanceIntegrations();
 }
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
@@ -68,16 +48,14 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   // Return a fresh array on each call so callers can safely mutate the result.
   return [
     // Common
-    // TODO(v11): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
+    fetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
@@ -88,6 +66,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     processSessionIntegration(),
     // Bun Specific
     bunServerIntegration(),
+    bunHttpServerIntegration(),
   ];
 }
 

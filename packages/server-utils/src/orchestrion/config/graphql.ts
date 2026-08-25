@@ -1,5 +1,6 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 // `parse`/`validate`/`execute` are top-level named `function` declarations in graphql's compiled
 // files, stable across the supported majors, so `functionName` matches. `execute` returns
@@ -28,4 +29,4 @@ export const graphqlChannels = {
   GRAPHQL_EXECUTE: 'orchestrion:graphql:execute',
 } as const;
 
-export const graphqlSubscribeInjection = toSubscribeInjections(graphqlConfig);
+export const graphqlModuleNames = getModuleNames(graphqlConfig);

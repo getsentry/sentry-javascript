@@ -1,8 +1,9 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
-import type { NormalizedInputOptions, PluginContext } from 'rollup';
+import type { NormalizedInputOptions, Plugin, PluginContext } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalizedModulesWarning, orchestrionTransformOptions } from './options';
+import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 /**
  * Rollup plugin that runs the orchestrion code transform on the bundled output.
@@ -17,11 +18,31 @@ import { externalizedModulesWarning, orchestrionTransformOptions } from './optio
  * export default { plugins: [sentryOrchestrionPlugin()] };
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Inert plugin — no code transform, so no instrumentation lands in the bundle.
+    return { name: 'sentry-orchestrion-disabled' };
+  }
+
   const moduleNames = instrumentedModuleNames(options.instrumentations);
 
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
+    // The module-injected snippet imports `@sentry/server-utils` from INSIDE
+    // transformed `node_modules` files. Under isolated installs (pnpm) that bare
+    // specifier doesn't resolve from an instrumented package's location, so when
+    // normal resolution fails, fall back to this package's own resolution so it
+    // gets bundled from its real on-disk path.
+    async resolveId(this: PluginContext, source: string, importer: string | undefined) {
+      if (source !== SNIPPET_IMPORT_SPECIFIER) {
+        return null;
+      }
+      const resolved = await this.resolve(source, importer, { skipSelf: true });
+      if (resolved) {
+        return resolved;
+      }
+      return resolveOrchestrionRuntimeRequest(source) ?? null;
+    },
     buildStart(this: PluginContext, rollupOptions: NormalizedInputOptions): void {
       // An externalized dependency never passes through the code transform, so
       // its diagnostics_channel calls are silently never injected. By the time

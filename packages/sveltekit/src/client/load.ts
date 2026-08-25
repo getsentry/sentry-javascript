@@ -4,8 +4,10 @@ import {
   objectify,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
+import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
@@ -70,14 +72,15 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         ...event,
       };
 
-      addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(patchedEvent, '__sentry_wrapped__', true);
 
       const routeId = getRouteId(event);
 
       return startSpan(
         {
-          op: 'function.sveltekit.load',
           attributes: {
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
           },

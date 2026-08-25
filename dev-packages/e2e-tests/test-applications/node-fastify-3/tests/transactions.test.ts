@@ -24,24 +24,27 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
-      url: 'http://localhost:3030/test-transaction',
-      'otel.kind': 'SERVER',
+      'sentry.kind': 'server',
       'http.response.status_code': 200,
-      'http.url': 'http://localhost:3030/test-transaction',
       'url.full': 'http://localhost:3030/test-transaction',
       'url.path': '/test-transaction',
       'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
+      'server.address': 'localhost',
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-transaction',
       'http.user_agent': 'node',
       'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'client.address': '::1',
+      'client.port': expect.any(Number),
+      'network.transport': 'tcp',
+      'network.local.address': expect.any(String),
+      'network.local.port': expect.any(Number),
+      'network.peer.address': expect.any(String),
+      'network.peer.port': expect.any(Number),
+      'network.protocol.name': 'http',
+      'network.protocol.version': '1.1',
+      'server.port': 3030,
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-transaction',
@@ -77,7 +80,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'request_handler.fastify',
+      'sentry.op': 'handler',
       'fastify.root': '@sentry/instrumentation-fastify',
       'http.request.method': 'GET',
       'url.path': '/test-transaction',
@@ -85,7 +88,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'http.response.status_code': 200,
     },
     description: 'GET /test-transaction',
-    op: 'request_handler.fastify',
+    op: 'handler',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -99,13 +102,12 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(spans).toContainEqual({
     data: expect.objectContaining({
       'sentry.origin': 'auto.http.otel.fastify',
-      'sentry.op': 'request_handler.fastify',
-      // format is slightly different in v3.20.0 and v3.21.0
+      'sentry.op': 'handler',
       'fastify.type': expect.stringMatching(/request[-_]handler/),
       'http.route': '/test-transaction',
     }),
     description: expect.stringContaining('sentry-fastify-error-handler'),
-    op: 'request_handler.fastify',
+    op: 'handler',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -178,5 +180,5 @@ test('Captures request metadata', async ({ baseURL }) => {
     }),
   });
 
-  expect(transactionEvent.user).toEqual(undefined);
+  expect(transactionEvent.user).toEqual({ ip_address: '::1' });
 });

@@ -1,11 +1,7 @@
-import type { Span } from '@sentry/core';
-import {
-  isObjectLike,
-  getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
+import type { Span, StartSpanOptions } from '@sentry/core';
+import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
 import type * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';
@@ -17,6 +13,23 @@ function deriveOrigin(name: string): string {
   }
 
   return 'auto.function.effect';
+}
+
+/**
+ * Effect span names are chosen by user code, so the name is the only signal available. `@effect/platform`
+ * names its HTTP spans `http.server`/`http.client`, which map onto the matching Sentry ops; everything
+ * else is arbitrary user work and falls back to `function`.
+ */
+function deriveOp(name: string): string {
+  if (name.startsWith('http.server')) {
+    return HTTP_SERVER;
+  }
+
+  if (name.startsWith('http.client')) {
+    return HTTP_CLIENT;
+  }
+
+  return FUNCTION;
 }
 
 type HrTime = [number, number];
@@ -157,7 +170,16 @@ class SentrySpanWrapper implements SentrySpanLike {
   }
 }
 
+/**
+ * The client and the server entry differ only in which `startInactiveSpan` they hand to
+ * {@link makeSentryTracer}: the browser one from `@sentry/core/browser`, which installs the span
+ * streaming integration on first use, and the plain one from `@sentry/core`, which does not. Nothing
+ * else about the tracer is platform-specific.
+ */
+export type StartInactiveSpan = (options: StartSpanOptions) => Span;
+
 function createSentrySpan(
+  startInactiveSpan: StartInactiveSpan,
   name: string,
   parent: Option.Option<EffectTracer.AnySpan>,
   context: Context.Context<never>,
@@ -172,6 +194,7 @@ function createSentrySpan(
     name,
     startTime: nanosToHrTime(startTime),
     attributes: {
+      [SENTRY_OP]: deriveOp(name),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
     },
     ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
@@ -197,7 +220,7 @@ const isEffectV4 = (() => {
   }
 })();
 
-const makeSentryTracerV3 = (): EffectTracer.Tracer => {
+const makeSentryTracerV3 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
   // Effect v3 API: span(name, parent, context, links, startTime, kind)
   return EffectTracer.make({
     span(
@@ -208,7 +231,7 @@ const makeSentryTracerV3 = (): EffectTracer.Tracer => {
       startTime: bigint,
       kind: EffectTracer.SpanKind,
     ) {
-      return createSentrySpan(name, parent, context, links, startTime, kind);
+      return createSentrySpan(startInactiveSpan, name, parent, context, links, startTime, kind);
     },
     context(execution: () => unknown, fiber: { currentSpan?: EffectTracer.AnySpan }) {
       const currentSpan = fiber.currentSpan;
@@ -220,12 +243,13 @@ const makeSentryTracerV3 = (): EffectTracer.Tracer => {
   } as unknown as EffectTracer.Tracer);
 };
 
-const makeSentryTracerV4 = (): EffectTracer.Tracer => {
+const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
   const EFFECT_EVALUATE = '~effect/Effect/evaluate' as const;
 
   return EffectTracer.make({
     span(options) {
       return createSentrySpan(
+        startInactiveSpan,
         options.name,
         options.parent,
         options.annotations,
@@ -245,6 +269,11 @@ const makeSentryTracerV4 = (): EffectTracer.Tracer => {
 };
 
 /**
- * Effect Layer that sets up the Sentry tracer for Effect spans.
+ * Creates an Effect `Tracer` that records Effect spans as Sentry spans.
+ *
+ * Use the `SentryEffectTracer` exported from `@sentry/effect` rather than calling this directly — the
+ * client and server entries each bind the right `startInactiveSpan` for their platform.
  */
-export const SentryEffectTracer = isEffectV4 ? makeSentryTracerV4() : makeSentryTracerV3();
+export function makeSentryTracer(startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer {
+  return isEffectV4 ? makeSentryTracerV4(startInactiveSpan) : makeSentryTracerV3(startInactiveSpan);
+}

@@ -27,7 +27,7 @@ sentryTest(
     const spans = await spansPromise;
     const pageloadSpan = spans.find(s => getSpanOp(s) === 'pageload')!;
 
-    const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long-animation-frame'));
+    const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
 
     expect(uiSpans.length).toBeGreaterThanOrEqual(1);
 
@@ -40,14 +40,14 @@ sentryTest(
         name: 'Main UI thread blocked',
         parent_span_id: pageloadSpan.span_id,
         attributes: expect.objectContaining({
-          'code.filepath': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+          'code.file.path': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
           'browser.script.source_char_position': expect.objectContaining({ value: 0 }),
           'browser.script.invoker': {
             type: 'string',
             value: 'https://sentry-test-site.example/path/to/script.js',
           },
           'browser.script.invoker_type': { type: 'string', value: 'classic-script' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
         }),
       }),
@@ -80,7 +80,7 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
   const spans = await spansPromise;
   const pageloadSpan = spans.find(s => getSpanOp(s) === 'pageload')!;
 
-  const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long-animation-frame'));
+  const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
 
   expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
@@ -95,8 +95,8 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
       attributes: expect.objectContaining({
         'browser.script.invoker': { type: 'string', value: 'BUTTON#clickme.onclick' },
         'browser.script.invoker_type': { type: 'string', value: 'event-listener' },
-        'code.filepath': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long-animation-frame' },
+        'code.file.path': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
       }),
     }),

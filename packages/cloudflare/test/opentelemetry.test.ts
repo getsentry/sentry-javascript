@@ -10,13 +10,14 @@ describe('opentelemetry compatibility', () => {
     resetSdk();
   });
 
-  test('should not capture spans emitted via @opentelemetry/api when skipOpenTelemetrySetup is true', async () => {
+  test('should not capture spans emitted via @opentelemetry/api when enableOpenTelemetrySetup is false', async () => {
     const transactionEvents: TransactionEvent[] = [];
 
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
-      skipOpenTelemetrySetup: true,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: false,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -46,6 +47,8 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -106,6 +109,8 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -149,6 +154,8 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;
@@ -176,6 +183,8 @@ describe('opentelemetry compatibility', () => {
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      enableOpenTelemetrySetup: true,
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;

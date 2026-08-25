@@ -79,7 +79,7 @@ function isCallToMethod(node: BaseNode, methodName: string): boolean {
  * config providing only a fallback for self-bound entrypoints whose base class
  * lives in another module.
  */
-export type ClassWrapperKind = 'durableObject' | 'workflow' | 'workerEntrypoint';
+export type ClassWrapperKind = 'durableObject' | 'agent' | 'workflow' | 'workerEntrypoint';
 
 /**
  * The `@sentry/cloudflare` helper each wrapper kind emits. All share the same
@@ -88,6 +88,7 @@ export type ClassWrapperKind = 'durableObject' | 'workflow' | 'workerEntrypoint'
  */
 const WRAPPER_METHODS: Record<ClassWrapperKind, string> = {
   durableObject: 'instrumentDurableObjectWithSentry',
+  agent: 'instrumentAgentWithSentry',
   workflow: 'instrumentWorkflowWithSentry',
   workerEntrypoint: 'withSentry',
 };
@@ -99,6 +100,11 @@ export interface TransformContext {
    * each class's base type.
    */
   classWrappers: Map<string, ClassWrapperKind>;
+  /**
+   * Local class names detected as `agents` Agents. An Agent is configured as a Durable Object in
+   * wrangler, so this upgrades those entries from `durableObject` to `agent`.
+   */
+  agentClasses?: ReadonlySet<string>;
   optionsFn: string;
   /** Import statement prepended when `optionsFn` references a separate module. */
   optionsImport?: string;
@@ -145,6 +151,7 @@ export function applyAutoInstrumentTransforms(
     topLevelClasses,
     renamedLocals: new Set<string>(),
     classWrappers: ctx.classWrappers,
+    agentClasses: ctx.agentClasses ?? new Set<string>(),
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
   };
   const { wrappedClasses } = state;
@@ -155,7 +162,7 @@ export function applyAutoInstrumentTransforms(
   // would otherwise wrap it twice).
   for (const node of ast.body) {
     if (node.type === 'ExportNamedDeclaration') {
-      handleNamedExport(node as ExportNamedNode, ctx, state);
+      handleNamedExport(node, ctx, state);
     }
   }
   for (const node of ast.body) {
@@ -198,6 +205,8 @@ interface TransformState {
   renamedLocals: Set<string>;
   /** Class name → wrapper kind, keyed by the *exported* name (from config). */
   classWrappers: Map<string, ClassWrapperKind>;
+  /** Local class names detected as `agents` Agents (see {@link TransformContext.agentClasses}). */
+  agentClasses: ReadonlySet<string>;
   /**
    * Local class names detected as `WorkerEntrypoint` subclasses in this module,
    * so they can be wrapped without a config entry.
@@ -213,6 +222,10 @@ interface TransformState {
  * base class this module can't see. Otherwise a structurally-detected
  * `WorkerEntrypoint` subclass (matched by its *local* name) gets wrapped with
  * `withSentry`.
+ *
+ * The one case where config is refined rather than obeyed is an `agents` Agent:
+ * it *is* a Durable Object, so wrangler can only ever describe it as one, and
+ * only the detected base chain distinguishes the two.
  */
 function resolveWrapperKind(
   exportedName: string,
@@ -220,6 +233,7 @@ function resolveWrapperKind(
   state: TransformState,
 ): ClassWrapperKind | undefined {
   const configured = state.classWrappers.get(exportedName);
+  if (configured === 'durableObject' && localName && state.agentClasses.has(localName)) return 'agent';
   if (configured) return configured;
   if (localName && state.workerEntrypointClasses.has(localName)) return 'workerEntrypoint';
   return undefined;
@@ -260,13 +274,13 @@ function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: 
   // `export const MyDO = instrumentDurableObjectWithSentry(...)` — count it
   // as wrapped so the plugin doesn't warn about it, but leave it alone.
   if (decl?.type === 'VariableDeclaration') {
-    collectManuallyWrappedClassExports(decl as VariableDeclarationNode, ctx, state);
+    collectManuallyWrappedClassExports(decl, ctx, state);
     return;
   }
 
   // ---- Named class export matching a configured binding ----
   if (decl?.type === 'ClassDeclaration') {
-    wrapInlineClassExport(node, decl as ClassDeclarationNode, ctx, state);
+    wrapInlineClassExport(node, decl, ctx, state);
     return;
   }
 
@@ -286,7 +300,14 @@ function collectManuallyWrappedClassExports(
   for (const declarator of varDecl.declarations ?? []) {
     const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
     const kind = name ? ctx.classWrappers.get(name) : undefined;
-    if (name && kind && declarator.init && isCallToMethod(declarator.init, WRAPPER_METHODS[kind])) {
+    if (!name || !kind || !declarator.init) continue;
+
+    // A hand-wrapped Agent is configured as a Durable Object, so accept either helper there —
+    // otherwise an already-instrumented Agent would be reported as unwrapped.
+    const accepted =
+      kind === 'durableObject' ? [WRAPPER_METHODS.durableObject, WRAPPER_METHODS.agent] : [WRAPPER_METHODS[kind]];
+
+    if (accepted.some(method => isCallToMethod(declarator.init as BaseNode, method))) {
       state.wrappedClasses.add(name);
     }
   }

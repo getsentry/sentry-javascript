@@ -1,3 +1,4 @@
+import { HTTP_RESPONSE_STATUS_CODE, HTTP_ROUTE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -48,6 +49,36 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(getName()).toBe('GET /api/users/[id]');
     expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/users/[id]');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/api/users/[id]');
+  });
+
+  it('backfills http.response.status_code from the legacy http.status_code', () => {
+    const { span } = makeSpan(
+      {
+        [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
+        'http.method': 'GET',
+        [HTTP_STATUS_CODE]: 200,
+      },
+      'GET /foo',
+    );
+    enhanceHandleRequestRootSpan(span);
+
+    expect(span.attributes[HTTP_RESPONSE_STATUS_CODE]).toBe(200);
+  });
+
+  it('does not overwrite an existing http.response.status_code', () => {
+    const { span } = makeSpan(
+      {
+        [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
+        'http.method': 'GET',
+        [HTTP_STATUS_CODE]: 200,
+        [HTTP_RESPONSE_STATUS_CODE]: 500,
+      },
+      'GET /foo',
+    );
+    enhanceHandleRequestRootSpan(span);
+
+    expect(span.attributes[HTTP_RESPONSE_STATUS_CODE]).toBe(500);
   });
 
   it('strips trailing /route from app router route handler routes', () => {
@@ -64,6 +95,7 @@ describe('enhanceHandleRequestRootSpan', () => {
 
     expect(getName()).toBe('POST /api/widgets');
     expect(span.attributes[ATTR_NEXT_ROUTE]).toBe('/api/widgets');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/api/widgets');
   });
 
   it('strips URL query and fragment from the segment name', () => {
@@ -105,6 +137,8 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getName()).toBe('GET /posts/[slug]');
+    expect(span.attributes[HTTP_ROUTE]).toBe('/posts/[slug]');
+    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
   });
 
   it('does not apply the backfill for the special GET /_app transaction', () => {
@@ -122,7 +156,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     expect(getName()).toBe('GET /_app');
   });
 
-  it('normalizes middleware span names and sets http.server.middleware op', () => {
+  it('normalizes middleware span names and sets the `middleware` op and `route` source', () => {
     const { span, getName, getOp } = makeSpan(
       {
         [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest',
@@ -134,7 +168,8 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(getName()).toBe('middleware POST');
-    expect(getOp()).toBe('http.server.middleware');
+    expect(getOp()).toBe('middleware');
+    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
   });
 
   it('writes the middleware op into attributes when the adapter mirrors op writes (streamed shape)', () => {
@@ -159,7 +194,7 @@ describe('enhanceHandleRequestRootSpan', () => {
     enhanceHandleRequestRootSpan(span);
 
     expect(name).toBe('middleware GET');
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server.middleware');
+    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('middleware');
   });
 
   it('rewrites GET /_error using the http.target attribute', () => {

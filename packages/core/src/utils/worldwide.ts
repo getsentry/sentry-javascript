@@ -54,7 +54,6 @@ export type InternalGlobal = {
    * Keys are `error.stack` strings, values are the metadata.
    */
   _sentryModuleMetadata?: Record<string, any>;
-  _sentryEsmLoaderHookRegistered?: boolean;
   _sentryWrappedDepth?: number;
   /**
    * Orchestrion bundler and runtime detection.
@@ -62,13 +61,19 @@ export type InternalGlobal = {
   __SENTRY_ORCHESTRION__?: {
     /** Empty array signifies runtime hooked */
     runtime?: string[];
-    /** Empty array signifies bundler plugin ran */
+    /**
+     * Module names recorded as each bundler-transformed module loads (the
+     * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
+     * entry banner ensures `[]` at boot, so a defined array — even empty —
+     * signifies the plugin ran.
+     */
     bundler?: string[];
     /**
-     * Channel-subscriber integration factories a bundler plugin's
-     * subscribe-injection stored here, keyed by export name (one per instrumented
-     * package actually bundled; the key dedupes packages split across several
-     * files). A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * Channel-subscriber integration factories stored by the snippet the
+     * bundler transform splices into each instrumented module, keyed by module
+     * name. A factory shared by several packages (e.g. pg/pg-pool) appears
+     * under several keys; integration-name deduplication collapses them at
+     * setup. A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;

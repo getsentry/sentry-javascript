@@ -23,6 +23,7 @@ it('omits the span name from the DSC for url-source spans when tracing is enable
             ],
           },
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'GET',
             url: expect.any(String),

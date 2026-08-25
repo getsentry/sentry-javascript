@@ -19,7 +19,7 @@ class CounterImpl extends DurableObject<Env> {
 // leave it untouched — no second wrap — while still wrapping the plain default
 // export below.
 export const Counter = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 1.0 }),
   CounterImpl,
 );
 

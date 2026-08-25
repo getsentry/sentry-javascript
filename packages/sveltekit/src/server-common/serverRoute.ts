@@ -5,6 +5,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
 } from '@sentry/core';
+import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { RequestEvent } from '@sveltejs/kit';
 import { sendErrorToSentry } from './utils';
 
@@ -46,16 +48,18 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
       const routeId = event.route?.id;
       const httpMethod = event.request.method;
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       try {
         return await startSpan(
           {
             name: `${httpMethod} ${routeId || 'Server Route'}`,
-            op: `function.sveltekit.server.${httpMethod.toLowerCase()}`,
             attributes: {
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: httpMethod,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              [HTTP_REQUEST_METHOD]: httpMethod,
             },
             onlyIfParent: true,
           },

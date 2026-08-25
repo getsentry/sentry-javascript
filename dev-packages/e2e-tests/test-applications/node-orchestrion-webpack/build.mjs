@@ -1,6 +1,6 @@
-// Bundles both entrypoints with webpack (the pinned version in package.json
+// Bundles the entrypoint with webpack (the pinned version in package.json
 // kept current, since webpack's `createRequire` following has changed across
-// releases). Outputs go to ./dist/<entry>/ for assert.mjs to inspect.
+// releases). Output goes to ./dist/app/ for assert.mjs to inspect.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
@@ -40,4 +40,4 @@ function build(name) {
   });
 }
 
-await Promise.all([build('no-orchestrion'), build('with-orchestrion')]);
+await build('entry');

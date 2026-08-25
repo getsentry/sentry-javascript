@@ -1,19 +1,38 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
+import type { SentrySolidStartOptions } from './sentrySolidStart';
 import type { SentrySolidStartPluginOptions } from './types';
+
+// `debug` is all the source map setting logic needs, and all the two majors' option types share.
+type SourceMapSettingOptions = { debug?: boolean };
+
+type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
  * A Sentry plugin for adding the @sentry/bundler-plugins/vite plugin to automatically upload source maps to Sentry.
  */
 export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, viteConfig: UserConfig): Plugin[] {
-  const { authToken, debug, org, project, sourceMapsUploadOptions } = options;
+  const {
+    applicationKey,
+    authToken,
+    bundleSizeOptimizations,
+    debug,
+    errorHandler,
+    headers,
+    moduleMetadata,
+    org,
+    project,
+    release,
+    sentryUrl,
+    silent,
+    sourcemaps,
+    telemetry,
+  } = options;
 
   let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
   if (
-    typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
-    typeof sourceMapsUploadOptions?.unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload ===
-      'undefined' &&
+    typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
     // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
     typeof viteConfig.build?.sourcemap === 'undefined'
   ) {
@@ -23,7 +42,7 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
     debug &&
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+        `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
           updatedFilesToDeleteAfterUpload,
         )}\` to delete generated source maps after they were uploaded to Sentry.`,
       );
@@ -31,43 +50,122 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
 
   return [
     ...sentryVitePlugin({
+      applicationKey,
       authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
-      bundleSizeOptimizations: options.bundleSizeOptimizations,
+      bundleSizeOptimizations,
       debug: debug ?? false,
+      errorHandler,
+      headers,
+      moduleMetadata,
       org: org ?? process.env.SENTRY_ORG,
       project: project ?? process.env.SENTRY_PROJECT,
+      release,
+      silent,
+      telemetry: telemetry ?? true,
+      url: sentryUrl,
       sourcemaps: {
-        filesToDeleteAfterUpload:
-          (sourceMapsUploadOptions?.filesToDeleteAfterUpload ||
-            sourceMapsUploadOptions?.unstable_sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload) ??
-          updatedFilesToDeleteAfterUpload,
-        ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions?.sourcemaps,
+        ...sourcemaps,
+        filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
       },
-      telemetry: sourceMapsUploadOptions?.telemetry ?? true,
       _metaOptions: {
         telemetry: {
           metaFramework: 'solidstart',
         },
       },
-      ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions,
     }),
   ];
 }
 
 /**
- * A Sentry plugin for SolidStart to enable "hidden" source maps if they are unset.
+ * SolidStart 2 counterpart of `makeAddSentryVitePlugin`, reading the flat `BuildTimeOptionsBase`
+ * fields rather than the nested `sourceMapsUploadOptions`.
+ *
+ * Covers the Vite-built client assets only; Nitro emits the server bundle outside Vite's output dir
+ * and the Sentry Nitro module uploads that.
  */
-export function makeEnableSourceMapsVitePlugin(options: SentrySolidStartPluginOptions): Plugin[] {
+export function makeAddSentryVitePluginSolidStart2(options: SentrySolidStartOptions): Plugin[] {
+  // Everything not destructured out is field-for-field what `sentryVitePlugin` accepts, so it is
+  // spread through — a new shared option then reaches the plugin without editing a list here.
+  const {
+    authToken,
+    buildTimeInstrumentation: _buildTimeInstrumentation,
+    debug,
+    org,
+    project,
+    sentryUrl,
+    sourcemaps,
+    telemetry,
+    ...passthroughOptions
+  } = options;
+
+  // Deferred because the default depends on whether the user set `build.sourcemap` themselves,
+  // which is only known once Vite resolves its config.
+  let resolveFilesToDeleteAfterUpload:
+    | ((value: FilesToDeleteAfterUpload | PromiseLike<FilesToDeleteAfterUpload>) => void)
+    | undefined;
+  const filesToDeleteAfterUploadPromise = new Promise<FilesToDeleteAfterUpload>(resolve => {
+    resolveFilesToDeleteAfterUpload = resolve;
+  });
+
+  const configPlugin: Plugin = {
+    name: 'sentry-solidstart-files-to-delete-after-upload',
+    apply: 'build',
+    enforce: 'post',
+    config(config) {
+      const userFilesToDelete = sourcemaps?.filesToDeleteAfterUpload;
+
+      // Only clean up source maps we turned on ourselves.
+      if (typeof userFilesToDelete === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+        if (debug) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+          );
+        }
+        resolveFilesToDeleteAfterUpload?.(['./**/*.map']);
+      } else {
+        resolveFilesToDeleteAfterUpload?.(userFilesToDelete);
+      }
+    },
+  };
+
+  const sentryPlugins = sentryVitePlugin({
+    ...passthroughOptions,
+    authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
+    debug: debug ?? false,
+    org: org ?? process.env.SENTRY_ORG,
+    project: project ?? process.env.SENTRY_PROJECT,
+    telemetry: telemetry ?? true,
+    url: sentryUrl,
+    sourcemaps: {
+      ...sourcemaps,
+      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+    },
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'solidstart',
+      },
+    },
+  });
+
+  return [configPlugin, ...sentryPlugins];
+}
+
+/**
+ * A Sentry plugin for SolidStart to enable "hidden" source maps if they are unset. Used by both
+ * SolidStart majors.
+ */
+export function makeEnableSourceMapsVitePlugin(options: SourceMapSettingOptions): Plugin[] {
   return [
     {
       name: 'sentry-solidstart-update-source-map-setting',
       apply: 'build',
       enforce: 'post',
       config(viteConfig) {
+        // Return only what changed: Vite concatenates arrays when merging a `config` return value,
+        // so echoing the whole config back would duplicate every array the user had.
         return {
-          ...viteConfig,
           build: {
-            ...viteConfig.build,
             sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
           },
         };
@@ -93,10 +191,8 @@ export function makeEnableSourceMapsVitePlugin(options: SentrySolidStartPluginOp
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
-  sentryPluginOptions?: SentrySolidStartPluginOptions,
+  sentryPluginOptions?: SourceMapSettingOptions,
 ): boolean | 'inline' | 'hidden' {
-  viteConfig.build = viteConfig.build || {};
-
   const viteSourceMap = viteConfig?.build?.sourcemap;
   let updatedSourceMapSetting = viteSourceMap;
 

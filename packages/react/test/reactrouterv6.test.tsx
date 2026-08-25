@@ -45,6 +45,9 @@ const mockRootSpan = {
   updateName: vi.fn(),
   setAttribute: vi.fn(),
   getSpanJSON() {
+    return { attributes: { 'sentry.op': 'pageload' } };
+  },
+  getStaticSpanJSON() {
     return { op: 'pageload' };
   },
 };
@@ -127,7 +130,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -174,7 +177,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -211,7 +214,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/',
+        name: 'Pageload',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -796,7 +799,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/',
+        name: 'Pageload',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',

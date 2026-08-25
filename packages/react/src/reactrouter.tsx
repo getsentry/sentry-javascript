@@ -9,6 +9,8 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -158,7 +160,8 @@ function instrumentReactRouter(
     if (initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
       startBrowserTracingPageLoadSpan(client, {
-        name,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : PAGELOAD_SPAN_NAME_FALLBACK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
@@ -236,7 +239,10 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
       if (activeRootSpan) {
         activeRootSpan.updateName(route);
-        activeRootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: route });
+        activeRootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: route,
+        });
       }
     }
 
@@ -263,7 +269,7 @@ function getActiveRootSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

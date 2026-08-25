@@ -22,6 +22,7 @@ class EchoHeadersDurableObjectBase extends DurableObject<Env> {
 export const EchoHeadersDurableObject = instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   EchoHeadersDurableObjectBase,
@@ -30,6 +31,7 @@ export const EchoHeadersDurableObject = instrumentDurableObjectWithSentry(
 export default withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
   }),

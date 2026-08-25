@@ -64,6 +64,7 @@ function getSentryOptions() {
     dsn: 'https://8@ingest.sentry.io/4',
     release: '1.0.0',
     tracesSampleRate: 1.0,
+    traceLifecycle: 'static' as const,
     transport: () => mockTransport,
   };
 }
@@ -158,11 +159,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -206,6 +207,135 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     await workflow.run(event, mockStep);
 
     await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+  });
+
+  test('teardown does not deadlock when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let runCount = 0;
+    let releaseAppWork: () => void = () => undefined;
+
+    class ReusedWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        runCount += 1;
+        await step.do('reused step', async () => {
+          if (runCount === 2) {
+            this._ctx.waitUntil(
+              new Promise<void>(resolve => {
+                releaseAppWork = resolve;
+              }),
+            );
+          }
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedWorkflow as any);
+    // Cloudflare reuses a Workflow instance across runs, so the context
+    // captured at construction is instrumented by the first run's init()
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    await workflow.run(event, mockStep);
+
+    releaseAppWork();
+
+    // Both the application work and the teardown promise must settle
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+  });
+
+  test('step errors are still captured when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let runCount = 0;
+
+    class ReusedErrorWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        runCount += 1;
+        await step.do('flaky step', async () => {
+          if (runCount === 2) {
+            throw new Error('second run error');
+          }
+        });
+      }
+    }
+
+    // Fails the step through every retry without backoff, so the error is
+    // captured on the final attempt and surfaces from run()
+    const alwaysFailStep: WorkflowStep = {
+      do: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _name: string,
+            configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+            maybeCallback?: (...args: unknown[]) => Promise<any>,
+          ) => {
+            const retryLimit = 2;
+            const callback = (typeof configOrCallback === 'function' ? configOrCallback : maybeCallback)!;
+            let lastError: unknown;
+            for (let attempt = 1; attempt <= retryLimit + 1; attempt++) {
+              try {
+                return await callback({ attempt, config: { retries: { limit: retryLimit }, timeout: 60000 } });
+              } catch (err) {
+                lastError = err;
+              }
+            }
+            throw lastError;
+          },
+        ),
+      sleep: vi.fn(),
+      sleepUntil: vi.fn(),
+      waitForEvent: vi.fn(),
+    };
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedErrorWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedErrorWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    await expect(workflow.run(event, alwaysFailStep)).rejects.toThrow('second run error');
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+
+    const errorEnvelopes = mockTransport.send.mock.calls.filter(call => {
+      const items = (call[0] as any)[1] as any[];
+      return items.some(i => i[0].type === 'event');
+    });
+    expect(errorEnvelopes).toHaveLength(1);
+    expect(errorEnvelopes[0]![0][1][0][1]).toMatchObject({
+      exception: {
+        values: [
+          expect.objectContaining({
+            type: 'Error',
+            value: 'second run error',
+            mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+          }),
+        ],
+      },
+    });
   });
 
   test('Wraps env with instrumentEnv', async () => {
@@ -275,11 +405,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -352,11 +482,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'internal_error',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -395,11 +525,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
+                  'sentry.op': 'function',
                   'sentry.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -608,7 +738,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     const rootSpanId = rootSpan.contexts.trace.span_id;
 
     // Child span for the step.do with the custom span as parent
-    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function.step.do');
+    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function');
     expect(stepSpan).toBeDefined();
     expect(stepSpan.parent_span_id).toBe(rootSpanId);
   });

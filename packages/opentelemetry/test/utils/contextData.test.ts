@@ -72,17 +72,23 @@ describe('contextData', () => {
       expect(getContextFromScope(scope)).toBe(context);
     });
 
-    it('stores context as non-enumerable property', () => {
+    it('stores context on the scope refs', () => {
       const scope = new Scope();
       const context = ROOT_CONTEXT;
 
       setContextOnScope(scope, context);
 
-      // The _scopeContext property should not appear in Object.keys
-      expect(Object.keys(scope)).not.toContain('_scopeContext');
-
-      // But the context should still be retrievable
       expect(getContextFromScope(scope)).toBe(context);
+    });
+
+    it('is preserved when the scope is cloned', () => {
+      const scope = new Scope();
+      const context = ROOT_CONTEXT;
+
+      setContextOnScope(scope, context);
+
+      const clonedScope = scope.clone();
+      expect(getContextFromScope(clonedScope)).toBe(context);
     });
 
     it('allows overwriting context on scope', () => {
@@ -105,9 +111,8 @@ describe('contextData', () => {
 
         setContextOnScope(scope, context);
 
-        // Access the internal property to verify WeakRef is used
-        const scopeWithContext = scope as unknown as { _scopeContext?: unknown };
-        const storedRef = scopeWithContext._scopeContext;
+        // Access the internal ref to verify WeakRef is used
+        const storedRef = scope.refs.context;
 
         // If WeakRef is available, the stored value should have a deref method
         if (typeof WeakRef !== 'undefined') {
@@ -123,7 +128,7 @@ describe('contextData', () => {
         const mockWeakRef = {
           deref: () => undefined,
         };
-        (scope as unknown as { _scopeContext: unknown })._scopeContext = mockWeakRef;
+        scope.refs.context = mockWeakRef;
 
         expect(getContextFromScope(scope)).toBeUndefined();
       });
@@ -137,7 +142,7 @@ describe('contextData', () => {
             throw new Error('deref failed');
           },
         };
-        (scope as unknown as { _scopeContext: unknown })._scopeContext = mockWeakRef;
+        scope.refs.context = mockWeakRef;
 
         expect(getContextFromScope(scope)).toBeUndefined();
       });
@@ -147,7 +152,7 @@ describe('contextData', () => {
         const context = ROOT_CONTEXT;
 
         // Simulate environment without WeakRef by directly setting a non-WeakRef value
-        (scope as unknown as { _scopeContext: unknown })._scopeContext = context;
+        scope.refs.context = context;
 
         expect(getContextFromScope(scope)).toBe(context);
       });

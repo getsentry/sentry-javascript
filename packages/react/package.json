@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -38,10 +38,10 @@
   "dependencies": {
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.16.0"
+    "@sentry/conventions": "^0.20.0"
   },
   "peerDependencies": {
-    "react": "^16.14.0 || 17.x || 18.x || 19.x"
+    "react": "17.x || 18.x || 19.x"
   },
   "devDependencies": {
     "@testing-library/react": "^15.0.5",
@@ -52,8 +52,6 @@
     "@types/react": "17.0.3",
     "@types/react-router-4": "npm:@types/react-router@4.0.25",
     "@types/react-router-5": "npm:@types/react-router@5.1.20",
-    "eslint-plugin-react": "^7.20.5",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "history-4": "npm:history@4.6.0",
     "history-5": "npm:history@4.9.0",
     "react": "^18.3.1",
@@ -75,8 +73,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-react-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

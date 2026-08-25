@@ -11,7 +11,7 @@
     "gatsby-plugin"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build",
@@ -44,7 +44,7 @@
   },
   "peerDependencies": {
     "gatsby": "^3.0.0 || ^4.0.0 || ^5.0.0",
-    "react": "16.x || 17.x || 18.x"
+    "react": "17.x || 18.x || 19.x"
   },
   "devDependencies": {
     "@testing-library/react": "^15.0.5",
@@ -65,8 +65,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage *.d.ts sentry-gatsby-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

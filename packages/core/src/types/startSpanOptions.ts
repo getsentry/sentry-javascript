@@ -1,5 +1,4 @@
 import type { Scope } from '../scope';
-import type { SpanKindValue } from '../spanKind';
 import type { SpanLink } from './link';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
@@ -30,20 +29,6 @@ export interface StartSpanOptions {
   op?: string;
 
   /**
-   * The kind of the span, following OpenTelemetry's SpanKind enum.
-   * - 0 = INTERNAL (default)
-   * - 1 = SERVER
-   * - 2 = CLIENT
-   * - 3 = PRODUCER
-   * - 4 = CONSUMER
-   *
-   * This is used by OpenTelemetry-based SDK implementations to set the correct
-   * span kind on the underlying OTel span, which affects how the span is
-   * displayed and sampled.
-   */
-  kind?: SpanKindValue;
-
-  /**
    * If provided, make the new span a child of this span.
    * If this is not provided, the new span will be a child of the currently active span.
    * If this is set to `null`, the new span will have no parent span.
@@ -71,15 +56,17 @@ export interface StartSpanOptions {
    */
   experimental?: {
     /**
-     * If set to true, always start a standalone span which will be sent as a
-     * standalone segment span envelope instead of a transaction envelope.
+     * If set to true, the span is sent on its own as a v2 streamed span instead of being folded
+     * into a transaction. Used internally for late web vital spans (INP) when span streaming is
+     * disabled.
      *
-     * @internal this option is currently experimental and should only be
-     * used within SDK code. It might be removed or changed in the future.
-     * The payload ("envelope") of the resulting request sending the span to
-     * Sentry might change at any time.
-     *
+     * @internal this option is currently experimental and should only be used within SDK code. It
+     * might be removed or changed in the future.
      * @hidden
+     *
+     * @deprecated This option is deprecated and will be removed in the future.
+     *
+     * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
      */
     standalone?: boolean;
   };

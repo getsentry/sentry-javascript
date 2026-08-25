@@ -1,5 +1,2 @@
-export const ANGULAR_ROUTING_OP = 'ui.angular.routing';
-
-export const ANGULAR_INIT_OP = 'ui.angular.init';
-
-export const ANGULAR_OP = 'ui.angular';
+// TODO(v11): Replace with the `ui.mount` constant from `@sentry/conventions/op` once it is registered there.
+export const ANGULAR_INIT_OP = 'ui.mount';

@@ -5,6 +5,18 @@ import {
 } from '../../../../src/integrations/http/get-outgoing-span-data';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import type { Span } from '../../../../src/types/span';
+import {
+  HTTP_METHOD,
+  HTTP_TARGET,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
   return {
@@ -54,9 +66,9 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.attributes!['sentry.op']).toBe('http.client');
   });
 
-  it('sets otel.kind to "CLIENT"', () => {
+  it('sets sentry.kind to "CLIENT"', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
-    expect(result.attributes!['otel.kind']).toBe('CLIENT');
+    expect(result.attributes!['sentry.kind']).toBe('client');
   });
 
   it('builds the span name from method and URL', () => {
@@ -64,13 +76,14 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.name).toMatch(/^POST /);
   });
 
-  it('includes http.url, http.method, http.target, net.peer.name', () => {
+  it('includes URL_FULL, HTTP_METHOD, HTTP_TARGET, and server endpoint attributes', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
     expect(result.attributes).toMatchObject({
-      'http.url': 'http://example.com/api/test',
-      'http.method': 'GET',
-      'http.target': '/api/test',
-      'net.peer.name': 'example.com',
+      [URL_FULL]: 'http://example.com/api/test',
+      [HTTP_METHOD]: 'GET',
+      [HTTP_TARGET]: '/api/test',
+      [SERVER_ADDRESS]: 'example.com',
+      [SERVER_PORT]: 80,
     });
   });
 
@@ -89,12 +102,12 @@ describe('getOutgoingRequestSpanData', () => {
 
   it('omits user_agent.original when user-agent header is absent', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
-    expect(result.attributes).not.toHaveProperty('user_agent.original');
+    expect(result.attributes!['user_agent.original']).toBeUndefined();
   });
 
   it('includes non-standard port in the URL', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest({ port: 3000 }));
-    expect(result.attributes!['http.url']).toContain(':3000');
+    expect(result.attributes![URL_FULL]).toContain(':3000');
   });
 });
 
@@ -123,20 +136,16 @@ describe('setIncomingResponseSpanData', () => {
     expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.status_text': 'CREATED' }));
   });
 
-  it('uses ip_tcp transport for non-QUIC connections', () => {
+  it('uses tcp transport for non-QUIC connections', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ httpVersion: '1.1' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'network.transport': 'ip_tcp', 'net.transport': 'ip_tcp' }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ [NETWORK_TRANSPORT]: 'tcp' }));
   });
 
-  it('uses ip_udp transport for QUIC connections', () => {
+  it('uses udp transport for QUIC connections', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ httpVersion: 'QUIC' }), span);
-    expect(span.setAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({ 'network.transport': 'ip_udp', 'net.transport': 'ip_udp' }),
-    );
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ [NETWORK_TRANSPORT]: 'udp' }));
   });
 
   it('includes socket address and port attributes when socket is present', () => {
@@ -147,10 +156,10 @@ describe('setIncomingResponseSpanData', () => {
     setIncomingResponseSpanData(response, span);
     expect(span.setAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
-        'network.peer.address': '1.2.3.4',
-        'network.peer.port': 12345,
-        'net.peer.ip': '1.2.3.4',
-        'net.peer.port': 12345,
+        [NETWORK_LOCAL_ADDRESS]: undefined,
+        [NETWORK_LOCAL_PORT]: undefined,
+        [NETWORK_PEER_ADDRESS]: '1.2.3.4',
+        [NETWORK_PEER_PORT]: 12345,
       }),
     );
   });

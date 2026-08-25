@@ -4,6 +4,7 @@ import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
+import type { Scope } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -12,7 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types/context';
 import type { SpanLink, SpanLinkJSON } from '../types/link';
@@ -30,14 +31,11 @@ import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
-import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
-
-let hasShownSpanDropWarning = false;
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
@@ -46,7 +44,7 @@ let hasShownSpanDropWarning = false;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToStaticSpanJSON(span);
 
   return {
     parent_span_id,
@@ -68,7 +66,7 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   // If the span is remote, we use a random/virtual span as span_id to the trace context,
   // and the remote span as parent_span_id
-  const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
+  const parent_span_id = isRemote ? spanId : spanToStaticSpanJSON(span).parent_span_id;
   const scope = getCapturedScopesOnSpan(span).scope;
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
@@ -166,14 +164,14 @@ function ensureTimestampInSeconds(timestamp: number): number {
 }
 
 /**
- * Convert a span to a JSON representation.
+ * Convert a span to a static JSON representation.
  */
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
 // This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
-export function spanToJSON(span: Span): SpanJSON {
+export function spanToStaticSpanJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getSpanJSON();
+    return span.getStaticSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -204,16 +202,17 @@ export function spanToJSON(span: Span): SpanJSON {
     span_id,
     trace_id,
     start_timestamp: 0,
+    status: 'ok',
     data: {},
   };
 }
 
 /**
- * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
+ * Convert a span to a JSON representation.
  */
-export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
+export function spanToJSON(span: Span): StreamedSpanJSON {
   if (spanIsSentrySpan(span)) {
-    return span.getStreamedSpanJSON();
+    return span.getSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -228,7 +227,8 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
       trace_id,
       parent_span_id: getOtelParentSpanId(span),
       start_timestamp: spanTimeInputToSeconds(startTime),
-      end_timestamp: spanTimeInputToSeconds(endTime),
+      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+      end_timestamp: spanTimeInputToSeconds(endTime) || undefined,
       is_segment: span === INTERNAL_getSegmentSpan(span),
       status: getSimpleStatus(status),
       attributes: addStatusMessageAttribute(attributes, status),
@@ -243,9 +243,9 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
     trace_id,
     start_timestamp: 0,
     name: '',
-    end_timestamp: 0,
     status: 'ok',
     is_segment: span === INTERNAL_getSegmentSpan(span),
+    attributes: {},
   };
 }
 
@@ -271,6 +271,9 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
 export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedStreamedSpan {
   return {
     ...spanJson,
+    // We only ever send ended spans, but fall back to the start time (i.e. duration 0) so that
+    // sent spans always carry an end timestamp.
+    end_timestamp: spanJson.end_timestamp ?? spanJson.start_timestamp,
     attributes: serializeAttributes(spanJson.attributes),
     links: spanJson.links?.map(link => ({
       ...link,
@@ -317,16 +320,16 @@ export function spanIsSampled(span: Span): boolean {
 }
 
 /** Get the status message to use for a JSON representation of a span. */
-export function getStatusMessage(status: SpanStatus | undefined): string | undefined {
+export function getStatusMessage(status: SpanStatus | undefined): string {
   if (!status || status.code === SPAN_STATUS_UNSET) {
-    return undefined;
+    return 'ok';
   }
 
   if (status.code === SPAN_STATUS_OK) {
     return 'ok';
   }
 
-  return status.message || 'internal_error';
+  return status.message && isStatusErrorMessageValid(status.message) ? status.message : 'internal_error';
 }
 
 /**
@@ -373,7 +376,24 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   // We store the root span reference on the child span
   // We need this for `getRootSpan()` to work
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
-  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+  addNonEnumerableProperty(childSpan, ROOT_SPAN_FIELD, rootSpan);
+
+  // `_sentryChildSpans` exists only so `getSpanDescendants()` can walk the tree when the segment span
+  // is sent, and that walk stops at an unsampled span without ever visiting its children. So a child
+  // tracked here would be held for the parent's lifetime and never read.
+  if (!spanIsSampled(span)) {
+    return;
+  }
+
+  // Once the segment span stopped recording, the tree has been read for the last time, and a child
+  // starting now belongs to whatever segment comes next: it is re-emitted on its own instead. Tracking
+  // it here would pin it for as long as the parent lives, which for a span left active in an async
+  // context (e.g. a framework boot span captured by a queue consumer) is the rest of the process. Only
+  // a parent that is itself still recording keeps tracking, so a late child that outlives its segment
+  // still collects the subtree it is re-emitted with.
+  if (!span.isRecording() && !rootSpan.isRecording()) {
+    return;
+  }
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work
@@ -431,29 +451,14 @@ export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
 /**
  * Returns the currently active span.
  */
-export function getActiveSpan(): Span | undefined {
+export function getActiveSpan(scope?: Scope): Span | undefined {
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
   if (acs.getActiveSpan) {
-    return acs.getActiveSpan();
+    return acs.getActiveSpan(scope);
   }
 
-  return _getSpanForScope(getCurrentScope());
-}
-
-/**
- * Logs a warning once if `beforeSendSpan` is used to drop spans.
- */
-export function showSpanDropWarning(): void {
-  if (!hasShownSpanDropWarning) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-    });
-    hasShownSpanDropWarning = true;
-  }
+  return _getSpanForScope(scope || getCurrentScope());
 }
 
 /**

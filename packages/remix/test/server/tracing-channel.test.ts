@@ -8,7 +8,7 @@ import {
   setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 
 describe('remixIntegration (Orchestrion-based)', () => {
   let startInactiveSpanSpy: MockInstance;
@@ -43,22 +43,36 @@ describe('remixIntegration (Orchestrion-based)', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'remix.request',
-        kind: SentryCore.SPAN_KIND.SERVER,
+        name: 'GET /users',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
+          'sentry.origin': 'auto.http.remix',
+          'sentry.kind': 'server',
           'sentry.op': 'http.server',
-          'code.function': 'requestHandler',
+          'sentry.source': 'url',
+          'code.function.name': 'requestHandler',
           'http.method': 'GET',
-          'http.url': 'http://localhost/users',
+          'url.full': 'http://localhost/users',
         }),
       }),
     );
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 200);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('requestHandler: maps an error response code to the span status', async () => {
+    const ctx = { arguments: [makeRequest({ method: 'GET', url: 'http://localhost/users' })] };
+
+    await tracingChannel(remixChannels.REMIX_REQUEST_HANDLER).tracePromise(async () => ({ status: 500 }), ctx);
+
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 500);
+    expect(span.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
   it('matchServerRoutes: enriches the active request span with the matched route', () => {
+    span = makeSpan({ 'http.method': 'GET' });
     getActiveSpanSpy.mockReturnValue(span);
     const ctx = {
       arguments: [[], '/users/123'],
@@ -69,7 +83,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
 
     expect(span.setAttribute).toHaveBeenCalledWith('http.route', 'users/:userId');
     expect(span.setAttribute).toHaveBeenCalledWith('match.route.id', 'routes/users.$userId');
-    expect(span.updateName).toHaveBeenCalledWith('remix.request users/:userId');
+    expect(span.updateName).toHaveBeenCalledWith('GET users/:userId');
+    expect(span.setAttribute).toHaveBeenCalledWith('sentry.source', 'route');
   });
 
   it('matchServerRoutes: does nothing when there is no active span', () => {
@@ -98,11 +113,11 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'LOADER routes/users.$userId',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.orchestrion.remix',
-          'sentry.op': 'loader.remix',
-          'code.function': 'loader',
+          'sentry.origin': 'auto.http.remix',
+          'sentry.op': 'function',
+          'code.function.name': 'loader',
           'http.method': 'GET',
-          'http.url': 'http://localhost/users/123',
+          'url.full': 'http://localhost/users/123',
           'match.route.id': 'routes/users.$userId',
           'match.params.userId': '123',
         }),
@@ -138,8 +153,8 @@ describe('remixIntegration (Orchestrion-based)', () => {
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
-          'code.function': 'action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'http.method': 'POST',
         }),
       }),
@@ -147,6 +162,6 @@ describe('remixIntegration (Orchestrion-based)', () => {
     // The span ends only after the async form-data read resolves.
     await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
-    expect(span.setAttribute).toHaveBeenCalledWith('formData.actionType', 'create');
+    expect(span.setAttribute).toHaveBeenCalledWith('remix.action_form_data.actionType', 'create');
   });
 });

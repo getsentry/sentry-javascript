@@ -2,14 +2,18 @@ import { captureException, getAbsoluteUrl } from '@sentry/browser';
 import {
   NAVIGATION_ROUTE_ID,
   PARAMS_KEY_BASE,
+  SENTRY_OP,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
@@ -114,9 +118,13 @@ export function instrumentVueRouter(
 
     // Update the existing page load span with parametrized route information
     if (options.instrumentPageLoad && activePageLoadSpan) {
-      const existingAttributes = spanToJSON(activePageLoadSpan).data;
+      const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
       if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-        activePageLoadSpan.updateName(spanName);
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        const client = getClient();
+        const isUnparameterizedStreamedPageload =
+          transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : spanName);
         activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
       }
 
@@ -167,7 +175,7 @@ function getActivePageLoadSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   return op === 'pageload' ? rootSpan : undefined;
 }

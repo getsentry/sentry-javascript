@@ -1,5 +1,6 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 export const mysqlConfig = [
   {
@@ -9,8 +10,8 @@ export const mysqlConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const mysqlModuleNames = getModuleNames(mysqlConfig);
+
 export const mysqlChannels = {
   MYSQL_QUERY: 'orchestrion:mysql:query',
 } as const;
-
-export const mysqlSubscribeInjection = toSubscribeInjections(mysqlConfig);

@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "type": "module",
   "module": "build/fesm2015/sentry-angular.mjs",
@@ -23,7 +23,7 @@
   "dependencies": {
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.16.0",
+    "@sentry/conventions": "^0.20.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -52,8 +52,8 @@
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{esm2020,fesm2015,fesm2020}/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

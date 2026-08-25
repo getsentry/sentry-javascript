@@ -2,34 +2,47 @@ import type { Client, Integration, Options, ServerRuntimeClientOptions, StackPar
 import {
   createStackParser,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
-  inboundFiltersIntegration,
   initAndBind,
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  openAIIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  tediousIntegration,
+  vercelAIIntegration,
+  redisIntegration,
+} from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
-import {
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  MODULE_REGISTER_HOOKS_SUPPORTED,
-  TRACING_CHANNEL_SUPPORTED,
-} from './denoVersion';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoAmqplibIntegration } from './integrations/amqplib';
-import { denoKoaIntegration } from './integrations/koa';
-import { denoMongoIntegration } from './integrations/mongo';
-import { denoMongooseIntegration } from './integrations/mongoose';
-import { denoMysqlIntegration } from './integrations/mysql';
-import { denoPostgresIntegration } from './integrations/postgres';
-import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -41,9 +54,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     requestDataIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
@@ -52,28 +63,37 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     breadcrumbsIntegration(),
     denoContextIntegration(),
     denoServeIntegration(),
-    // node:http client diagnostics channels fire on Deno 2.7.13+
-    // server channels arrive at 2.8.0+
-    // Include in defaults if at least one is available
-    ...(HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED || HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED
-      ? [denoHttpIntegration()]
-      : []),
-    // node:diagnostics_channel.tracingChannel exists on Deno 1.44.3+.
-    ...(TRACING_CHANNEL_SUPPORTED ? [denoRedisIntegration()] : []),
-    // orchestrion-based instrumentations.
-    // It's possible that the orchestrion channels will be injected AFTER
-    // (or in parallel to) loading the SDK, so we only gate on whether the
-    // feature is possible. If they're never loaded, it'll just be a no-op.
-    ...(MODULE_REGISTER_HOOKS_SUPPORTED
-      ? [
-          denoAmqplibIntegration(),
-          denoKoaIntegration(),
-          denoMongoIntegration(),
-          denoMongooseIntegration(),
-          denoMysqlIntegration(),
-          denoPostgresIntegration(),
-        ]
-      : []),
+    denoHttpIntegration(),
+    redisIntegration(),
+    graphqlIntegration(),
+    vercelAIIntegration(),
+    // orchestrion-based instrumentations. We add a deliberate list here rather
+    // than every channel integration: each one needs a Deno test proving it
+    // records spans.
+    //
+    // The orchestrion channels may be injected after (or while) the SDK loads.
+    // If they never load, these are no-ops.
+    amqplibIntegration(),
+    anthropicAIIntegration(),
+    awsIntegration(),
+    expressIntegration(),
+    firebaseIntegration(),
+    genericPoolIntegration(),
+    googleGenAIIntegration(),
+    hapiIntegration(),
+    kafkaIntegration(),
+    koaIntegration(),
+    langChainIntegration(),
+    langGraphIntegration(),
+    lruMemoizerIntegration(),
+    mongoIntegration(),
+    mongooseIntegration(),
+    mysqlIntegration(),
+    mysql2Integration(),
+    openAIIntegration(),
+    postgresIntegration(),
+    postgresJsIntegration(),
+    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
@@ -142,7 +162,7 @@ export function init(options: DenoOptions = {}): Client {
 
   // Set up OpenTelemetry compatibility to capture spans from libraries using @opentelemetry/api
   // Note: This is separate from Deno's native OTEL support and doesn't capture auto-instrumented spans
-  if (!options.skipOpenTelemetrySetup) {
+  if (options.enableOpenTelemetrySetup ?? true) {
     setupOpenTelemetryTracer();
   }
 

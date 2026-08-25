@@ -1,23 +1,17 @@
 // <reference lib="deno.ns" />
 
 import * as http from 'node:http';
-import type { TransactionEvent } from '@sentry/core';
+import type { Envelope, SessionAggregates, TransactionEvent } from '@sentry/core';
+import { forEachEnvelopeItem, getMainCarrier } from '@sentry/core';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
-import {
-  DENO_VERSION,
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-} from '../build/esm/denoVersion.js';
+import { init, startSpan } from '../build/esm/index.js';
+import { makeTestTransport } from './transport.ts';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 /**
@@ -66,40 +60,18 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-// Activation gate — split into two skip-mirrored tests so each run exercises
-// exactly one assertion. CI on a supported Deno verifies inclusion; CI on an
-// unsupported Deno verifies exclusion.
 Deno.test({
-  name: 'denoHttpIntegration: included in default integrations on Deno >= 2.7.13',
-  ignore: !HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
+  name: 'denoHttpIntegration: included in default integrations',
   fn() {
     resetGlobals();
     const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
     const names = client.getOptions().integrations.map(i => i.name);
-    assert(
-      names.includes('DenoHttp'),
-      `DenoHttp should be a default integration on Deno ${DENO_VERSION.major}.${DENO_VERSION.minor}.${DENO_VERSION.patch}, got ${names.join(', ')}`,
-    );
-  },
-});
-
-Deno.test({
-  name: 'denoHttpIntegration: NOT in default integrations on Deno < 2.7.13',
-  ignore: HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  fn() {
-    resetGlobals();
-    const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
-    const names = client.getOptions().integrations.map(i => i.name);
-    assert(
-      !names.includes('DenoHttp'),
-      `DenoHttp should NOT be in defaults on Deno ${DENO_VERSION.major}.${DENO_VERSION.minor}.${DENO_VERSION.patch} (< 2.7.13), got ${names.join(', ')}`,
-    );
+    assert(names.includes('DenoHttp'), `DenoHttp should be a default integration, got ${names.join(', ')}`);
   },
 });
 
 Deno.test({
   name: 'denoHttpIntegration: node:http incoming request creates an http.server transaction',
-  ignore: !HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
   async fn() {
     resetGlobals();
     const sink = transactionSink();
@@ -107,6 +79,7 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
     const server = http.createServer((_req, res) => {
@@ -118,7 +91,7 @@ Deno.test({
       });
     });
 
-    const response = await fetch(`http://127.0.0.1:${port}/users/42?x=1`);
+    const response = await fetch(`http://127.0.0.1:${port}/users/42?x=1`, { method: 'QUERY' });
     assertEquals(await response.text(), 'ok');
 
     // Wait on the real completion signal (transaction event flowed through
@@ -132,15 +105,62 @@ Deno.test({
 
     await new Promise<void>(resolve => server.close(() => resolve()));
 
-    assertEquals(txn.transaction, 'GET /users/42');
-    assertEquals(txn.contexts?.trace?.data?.['http.method'], 'GET');
+    assertEquals(txn.transaction, 'QUERY /users/42');
+    assertEquals(txn.contexts?.trace?.data?.['http.method'], 'QUERY');
     assertEquals(txn.contexts?.trace?.data?.['http.response.status_code'], 200);
+    assertEquals(txn.contexts?.trace?.data?.['network.protocol.name'], 'http');
+    assertEquals(txn.contexts?.trace?.data?.['network.protocol.version'], '1.1');
+  },
+});
+
+Deno.test({
+  name: 'denoHttpIntegration: node:http incoming request records a release-health session by default',
+  async fn() {
+    resetGlobals();
+    const envelopes: Envelope[] = [];
+    const client = init({
+      dsn: 'https://username@domain/123',
+      release: '1.0.0',
+      transport: makeTestTransport(envelope => {
+        envelopes.push(envelope);
+      }),
+    });
+
+    const server = http.createServer((_req, res) => {
+      res.end('ok');
+    });
+    const port: number = await new Promise(resolve => {
+      server.listen(0, '127.0.0.1', () => {
+        resolve((server.address() as { port: number }).port);
+      });
+    });
+
+    const response = await fetch(`http://127.0.0.1:${port}/health`);
+    assertEquals(await response.text(), 'ok');
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    await client.flush(2_000);
+
+    let sessionAggregates: SessionAggregates | undefined;
+    for (const envelope of envelopes) {
+      forEachEnvelopeItem(envelope, item => {
+        const [headers, body] = item;
+        if (headers.type === 'sessions') {
+          sessionAggregates = body as SessionAggregates;
+        }
+      });
+    }
+
+    assertExists(sessionAggregates);
+    assertEquals(sessionAggregates.attrs?.release, '1.0.0');
+    assertEquals(sessionAggregates.aggregates.length, 1);
+    assertEquals(sessionAggregates.aggregates[0]?.exited, 1);
+    assertEquals(sessionAggregates.aggregates[0]?.errored, 0);
+    assertEquals(sessionAggregates.aggregates[0]?.crashed, 0);
   },
 });
 
 Deno.test({
   name: 'denoHttpIntegration: node:http outgoing request creates a child http.client span',
-  ignore: !HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
   async fn() {
     resetGlobals();
     const sink = transactionSink();
@@ -148,10 +168,11 @@ Deno.test({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
     });
 
-    // Use Deno.serve for the target so the test does not depend on the
-    // node:http server side (which only works on Deno 2.8.0+).
+    // Use Deno.serve for the target so this client test does not depend on
+    // the node:http server-side instrumentation.
     const abortController = new AbortController();
     let onListen: ((_: unknown) => void) | undefined;
     const listening = new Promise(resolve => (onListen = resolve));
@@ -166,7 +187,7 @@ Deno.test({
     // the http.client child span has somewhere to attach and txn is captured
     await startSpan({ name: 'parent', op: 'test' }, async () => {
       await new Promise<void>((resolve, reject) => {
-        const req = http.request({ host: '127.0.0.1', port: targetPort, path: '/ping', method: 'GET' }, res => {
+        const req = http.request({ host: '127.0.0.1', port: targetPort, path: '/ping', method: 'QUERY' }, res => {
           res.on('data', () => {});
           res.on('end', () => resolve());
           res.on('error', reject);
@@ -192,7 +213,7 @@ Deno.test({
       httpClientSpan,
       `expected an http.client child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
     );
-    assertEquals(httpClientSpan!.data?.['http.method'], 'GET');
+    assertEquals(httpClientSpan!.data?.['http.method'], 'QUERY');
     assertEquals(httpClientSpan!.data?.['http.response.status_code'], 200);
   },
 });

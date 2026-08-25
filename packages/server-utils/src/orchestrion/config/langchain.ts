@@ -1,5 +1,6 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 // `@langchain/*` packages ship dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file.
@@ -68,9 +69,9 @@ export const langchainEmbeddingsChannels = EMBEDDINGS_PROVIDERS.flatMap(({ name,
   methods.map(method => `orchestrion:${name}:${method}`),
 );
 
+export const langchainModuleNames = getModuleNames(langchainConfig);
+
 export const langchainChannels = {
   LANGCHAIN_CHAT_MODEL_INVOKE: 'orchestrion:@langchain/core:chatModelInvoke',
   LANGCHAIN_CHAT_MODEL_STREAM: 'orchestrion:@langchain/core:chatModelStream',
 } as const;
-
-export const langchainSubscribeInjection = toSubscribeInjections(langchainConfig);

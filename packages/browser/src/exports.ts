@@ -60,20 +60,20 @@ export {
   withScope,
   withIsolationScope,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   dedupeIntegration,
   parameterize,
   startSession,
   captureSession,
   endSession,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
-  metrics,
 } from '@sentry/core/browser';
 
 export {

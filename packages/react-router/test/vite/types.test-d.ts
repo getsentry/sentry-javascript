@@ -54,46 +54,6 @@ describe('Sentry React-Router build-time options type', () => {
 
       // --- SentryReactRouterBuildOptions specific options ---
       reactComponentAnnotation: { enabled: true, ignoredComponents: ['IgnoredComponent1', 'IgnoredComponent2'] },
-
-      unstable_sentryVitePluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
-    };
-
-    expectTypeOf(completeOptions).toEqualTypeOf<SentryReactRouterBuildOptions>();
-  });
-
-  it('includes all deprecated options', () => {
-    const completeOptions: SentryReactRouterBuildOptions = {
-      // SentryNuxtModuleOptions specific options
-      reactComponentAnnotation: { enabled: true, ignoredComponents: ['IgnoredComponent1', 'IgnoredComponent2'] },
-
-      unstable_sentryVitePluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
-
-      // Deprecated sourceMapsUploadOptions
-      sourceMapsUploadOptions: {
-        release: {
-          name: 'deprecated-release',
-        },
-        enabled: true,
-        filesToDeleteAfterUpload: ['./build/*.map'],
-      },
     };
 
     expectTypeOf(completeOptions).toEqualTypeOf<SentryReactRouterBuildOptions>();
@@ -110,5 +70,18 @@ describe('Sentry React-Router build-time options type', () => {
     };
 
     expectTypeOf(partialOptions).toEqualTypeOf<SentryReactRouterBuildOptions>();
+  });
+
+  it('rejects `sourcemaps.resolveSourceMap`, which React Router cannot honour', () => {
+    const options: SentryReactRouterBuildOptions = {
+      sourcemaps: {
+        assets: ['./build/**/*'],
+        // @ts-expect-error - omitted: uploads go through `SentryCli` in `sentryOnBuildEnd`, not the
+        // Vite plugin, so there is nowhere to apply this hook
+        resolveSourceMap: (artifactPath: string) => `${artifactPath}.map`,
+      },
+    };
+
+    expectTypeOf(options).toEqualTypeOf<SentryReactRouterBuildOptions>();
   });
 });

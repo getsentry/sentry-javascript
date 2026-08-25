@@ -6,16 +6,13 @@ import {
   waitForTransactionRequestOnUrl,
 } from '../../../../utils/helpers';
 
-sentryTest(
-  'sets user.ip_address to "auto" on transactions when dataCollection.userInfo: true',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('sets user.ip_address to "auto" on transactions by default', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const req = await waitForTransactionRequestOnUrl(page, url);
-    const transaction = envelopeRequestParser(req);
-    expect(transaction.sdk?.settings?.infer_ip).toBe('auto');
-  },
-);
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const req = await waitForTransactionRequestOnUrl(page, url);
+  const transaction = envelopeRequestParser(req);
+  expect(transaction.sdk?.settings?.infer_ip).toBe('auto');
+});

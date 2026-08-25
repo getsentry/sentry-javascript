@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('hapi auto-instrumentation', () => {
@@ -7,11 +6,7 @@ describe('hapi auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  // `createEsmAndCjsTests` auto-runs this suite with orchestrion on CI. The
-  // orchestrion path keeps span ops/attributes identical to the OTel path; only
-  // the origin differs to signal the injection mechanism, so we branch on
-  // `isOrchestrionEnabled()`.
-  const origin = isOrchestrionEnabled() ? 'auto.http.orchestrion.hapi' : 'auto.http.otel.hapi';
+  const origin = 'auto.http.hapi';
 
   const EXPECTED_TRANSACTION = {
     transaction: 'GET /',
@@ -22,10 +17,10 @@ describe('hapi auto-instrumentation', () => {
           'http.method': 'GET',
           'hapi.type': 'router',
           'sentry.origin': origin,
-          'sentry.op': 'router.hapi',
+          'sentry.op': 'router',
         }),
         description: 'GET /',
-        op: 'router.hapi',
+        op: 'router',
         origin,
         status: 'ok',
       }),
@@ -58,24 +53,24 @@ describe('hapi auto-instrumentation', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 description: 'GET /plugin-route',
-                op: 'plugin.hapi',
+                op: 'handler',
                 origin,
                 data: expect.objectContaining({
                   'http.route': '/plugin-route',
                   'hapi.type': 'plugin',
                   'hapi.plugin.name': 'testPlugin',
-                  'sentry.op': 'plugin.hapi',
+                  'sentry.op': 'handler',
                   'sentry.origin': origin,
                 }),
               }),
               expect.objectContaining({
                 description: 'ext - onPreResponse',
-                op: 'server.ext.hapi',
+                op: 'middleware',
                 origin,
                 data: expect.objectContaining({
                   'hapi.type': 'server.ext',
                   'server.ext.type': 'onPreResponse',
-                  'sentry.op': 'server.ext.hapi',
+                  'sentry.op': 'middleware',
                   'sentry.origin': origin,
                 }),
               }),

@@ -1,44 +1,34 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
-import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  isTracingSuppressed,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanIsSampled,
   spanToJSON,
-  suppressTracing,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
   withScope,
 } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
-import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanManual } from '../src/trace';
-import type { AbstractSpan } from '../src/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
-import { getSamplingDecision } from '../src/utils/getSamplingDecision';
-import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
-import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { isSpan } from './helpers/isSpan';
-import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
     mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   describe('startSpan', () => {
@@ -222,7 +212,9 @@ describe('trace', () => {
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           });
         },
       );
@@ -254,10 +246,10 @@ describe('trace', () => {
       startSpan(
         {
           name: 'outer',
-          kind: SpanKind.CLIENT,
           attributes: {
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           },
           startTime: date,
         },
@@ -266,11 +258,13 @@ describe('trace', () => {
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           });
-          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
         },
       );
     });
@@ -359,8 +353,7 @@ describe('trace', () => {
     it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      // @ts-expect-error links exists on span
-      expect(rawSpan1?.links).toEqual([]);
+      expect(spanToJSON(rawSpan1).links).toBeUndefined();
 
       const span1JSON = spanToJSON(rawSpan1);
 
@@ -376,16 +369,10 @@ describe('trace', () => {
 
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(span2LinkJSON?.trace_id).toEqual(rawSpan1.spanContext().traceId);
         expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(span2LinkJSON?.span_id).toEqual(rawSpan1.spanContext().spanId);
         expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
       });
     });
@@ -393,8 +380,7 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      // @ts-expect-error links exists on span
-      expect(rawSpan1?.links).toEqual([]);
+      expect(spanToJSON(rawSpan1).links).toBeUndefined();
 
       const span1JSON = spanToJSON(rawSpan1);
 
@@ -413,16 +399,10 @@ describe('trace', () => {
 
           expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+          expect(span2LinkJSON?.trace_id).toEqual(rawSpan1.spanContext().traceId);
           expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+          expect(span2LinkJSON?.span_id).toEqual(rawSpan1.spanContext().spanId);
           expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
         },
       );
@@ -479,9 +459,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -504,8 +484,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -539,7 +519,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(isSpan(span)).toBe(false);
+        expect(span.isRecording()).toBe(false);
         expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
         expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
@@ -629,7 +609,9 @@ describe('trace', () => {
 
       expect(span).toBeDefined();
       expect(getSpanAttributes(span)).toEqual({
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       });
 
       const span2 = startInactiveSpan({
@@ -655,10 +637,10 @@ describe('trace', () => {
 
       const span = startInactiveSpan({
         name: 'outer',
-        kind: SpanKind.CLIENT,
         attributes: {
           test1: 'test 1',
           test2: 2,
+          [SENTRY_KIND]: 'client',
         },
         startTime: date,
       });
@@ -667,11 +649,13 @@ describe('trace', () => {
       expect(getSpanName(span)).toEqual('outer');
       expect(getSpanStartTime(span)).toEqual(date);
       expect(getSpanAttributes(span)).toEqual({
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         test1: 'test 1',
         test2: 2,
+        [SENTRY_KIND]: 'client',
       });
-      expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
     });
 
     it('allows to pass a startTime in seconds', () => {
@@ -727,8 +711,7 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      // @ts-expect-error links exists on span
-      expect(rawSpan1?.links).toEqual([]);
+      expect(spanToJSON(rawSpan1).links).toBeUndefined();
 
       const rawSpan2 = startInactiveSpan({
         name: 'GET users/[id]',
@@ -746,20 +729,14 @@ describe('trace', () => {
 
       expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
-      // @ts-expect-error links and _spanContext exist on span
-      expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
-      // @ts-expect-error links and _spanContext exist on span
-      expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+      expect(span2LinkJSON?.trace_id).toEqual(rawSpan1.spanContext().traceId);
       expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
-      // @ts-expect-error links and _spanContext exist on span
-      expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
-      // @ts-expect-error links and _spanContext exist on span
-      expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+      expect(span2LinkJSON?.span_id).toEqual(rawSpan1.spanContext().spanId);
       expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
 
       // sampling decision is inherited
-      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).data['sentry.sample_rate']));
+      expect(span2LinkJSON?.sampled).toBe(Boolean(spanToJSON(rawSpan1).attributes['sentry.sample_rate']));
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
@@ -810,9 +787,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -835,8 +812,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -866,7 +843,7 @@ describe('trace', () => {
 
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-        expect(isSpan(span)).toBe(false);
+        expect(span.isRecording()).toBe(false);
         expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
         expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
@@ -910,7 +887,7 @@ describe('trace', () => {
       });
     });
 
-    it('includes the scope at the time the span was started when finished', async () => {
+    it('includes the scope the span was started on when finished', async () => {
       const beforeSendTransaction = vi.fn(event => event);
 
       const client = getClient()!;
@@ -925,6 +902,8 @@ describe('trace', () => {
       withScope(scope => {
         scope.setTag('scope', 1);
         span = startInactiveSpan({ name: 'my-span' });
+        // The span captures the scope it was started on, so later mutations of that scope
+        // are reflected on the transaction.
         scope.setTag('scope_after_span', 2);
       });
 
@@ -936,16 +915,10 @@ describe('trace', () => {
       await client.flush();
 
       expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-      expect(beforeSendTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tags: expect.objectContaining({
-            outer: 'foo',
-            scope: 1,
-            scope_after_span: 2,
-          }),
-        }),
-        expect.anything(),
-      );
+      const transactionEvent = beforeSendTransaction.mock.calls[0]![0];
+      // The span-start scope is captured: `outer`, `scope: 1`, and `scope_after_span` (set on the
+      // same scope after span start), but not `scope: 2` (a different scope active at `end()`).
+      expect(transactionEvent.tags).toEqual({ outer: 'foo', scope: 1, scope_after_span: 2 });
     });
   });
 
@@ -997,10 +970,10 @@ describe('trace', () => {
       startSpanManual(
         {
           name: 'outer',
-          kind: SpanKind.CLIENT,
           attributes: {
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           },
           startTime: date,
         },
@@ -1009,11 +982,13 @@ describe('trace', () => {
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
+            [SENTRY_KIND]: 'client',
           });
-          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
         },
       );
     });
@@ -1087,8 +1062,7 @@ describe('trace', () => {
     it('allows to add span links', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      // @ts-expect-error links exists on span
-      expect(rawSpan1?.links).toEqual([]);
+      expect(spanToJSON(rawSpan1).links).toBeUndefined();
 
       const span1JSON = spanToJSON(rawSpan1);
 
@@ -1104,16 +1078,10 @@ describe('trace', () => {
 
         expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+        expect(span2LinkJSON?.trace_id).toEqual(rawSpan1.spanContext().traceId);
         expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
-        // @ts-expect-error links and _spanContext exist on span
-        expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+        expect(span2LinkJSON?.span_id).toEqual(rawSpan1.spanContext().spanId);
         expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
       });
     });
@@ -1121,8 +1089,7 @@ describe('trace', () => {
     it('allows to pass span links in span options', () => {
       const rawSpan1 = startInactiveSpan({ name: 'pageload_span' });
 
-      // @ts-expect-error links exists on span
-      expect(rawSpan1?.links).toEqual([]);
+      expect(spanToJSON(rawSpan1).links).toBeUndefined();
 
       const span1JSON = spanToJSON(rawSpan1);
 
@@ -1141,16 +1108,10 @@ describe('trace', () => {
 
           expect(span2LinkJSON?.attributes?.['sentry.link.type']).toBe('previous_trace');
 
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.traceId).toEqual(rawSpan1._spanContext.traceId);
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.traceId).toEqual(span1JSON.trace_id);
+          expect(span2LinkJSON?.trace_id).toEqual(rawSpan1.spanContext().traceId);
           expect(span2LinkJSON?.trace_id).toBe(span1JSON.trace_id);
 
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.spanId).toEqual(rawSpan1?._spanContext.spanId);
-          // @ts-expect-error links and _spanContext exist on span
-          expect(rawSpan2?.links?.[0].context.spanId).toEqual(span1JSON.span_id);
+          expect(span2LinkJSON?.span_id).toEqual(rawSpan1.spanContext().spanId);
           expect(span2LinkJSON?.span_id).toBe(span1JSON.span_id);
         },
       );
@@ -1211,9 +1172,9 @@ describe('trace', () => {
 
       expect(outerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1236,8 +1197,8 @@ describe('trace', () => {
 
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
-          'sentry.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1269,7 +1230,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(isSpan(span)).toBe(false);
+        expect(span.isRecording()).toBe(false);
         expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
         expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
@@ -1330,7 +1291,9 @@ describe('trace', () => {
         const traceId = spanToJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
         expect(spanToJSON(span).parent_span_id).toBe(undefined);
-        expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
+        // A root span without a parent continues the current scope's propagation context trace,
+        // matching the core SDK behavior.
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           trace_id: traceId,
@@ -1344,8 +1307,7 @@ describe('trace', () => {
       });
     });
 
-    // Note: This _should_ never happen, when we have an incoming trace, we should always have a parent span
-    it('starts new trace, ignoring parentSpanId, if there is no parent', () => {
+    it('continues the scope propagation context, including parentSpanId, if there is no active span', () => {
       withScope(scope => {
         const propagationContext = scope.getPropagationContext();
         propagationContext.parentSpanId = '1121201211212012';
@@ -1354,8 +1316,10 @@ describe('trace', () => {
         expect(span).toBeDefined();
         const traceId = spanToJSON(span).trace_id;
         expect(traceId).toMatch(/[a-f0-9]{32}/);
-        expect(spanToJSON(span).parent_span_id).toBe(undefined);
-        expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
+        // The root span continues the scope's trace and inherits the propagation context's
+        // parentSpanId as its parent, matching the core SDK behavior.
+        expect(spanToJSON(span).parent_span_id).toBe('1121201211212012');
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
           environment: 'production',
@@ -1471,10 +1435,6 @@ describe('trace (tracing disabled)', () => {
     mockSdkInit({ tracesSampleRate: 0 });
   });
 
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
   it('startSpan calls callback without span', () => {
     const val = startSpan({ name: 'outer' }, outerSpan => {
       expect(outerSpan).toBeDefined();
@@ -1498,10 +1458,6 @@ describe('trace (spans disabled)', () => {
   beforeEach(() => {
     // Initialize SDK without any tracing configuration (no tracesSampleRate or tracesSampler)
     mockSdkInit({ tracesSampleRate: undefined, tracesSampler: undefined });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('startSpan creates non-recording spans when hasSpansEnabled() === false', () => {
@@ -1544,11 +1500,6 @@ describe('trace (spans disabled)', () => {
 });
 
 describe('trace (sampling)', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-    vi.clearAllMocks();
-  });
-
   it('samples with a tracesSampleRate, when Math.random() > tracesSampleRate', () => {
     vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
@@ -1646,13 +1597,37 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         expect(outerSpan.isRecording()).toBe(true);
         expect(getSpanName(outerSpan)).toBe('outer');
+      });
+    });
+  });
+
+  it('keeps the remote parent propagation on the scope captured by the span', () => {
+    mockSdkInit({ tracesSampleRate: 1 });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: true,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ name: 'outer' }, outerSpan => {
+        const capturedScope = getCapturedScopesOnSpan(outerSpan).scope;
+        const propagationContext = capturedScope?.getPropagationContext();
+        expect(propagationContext?.traceId).toBe(traceId);
+        expect(propagationContext?.parentSpanId).toBe(parentSpanId);
+        expect(propagationContext?.sampled).toBe(true);
       });
     });
   });
@@ -1673,7 +1648,6 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.NONE,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
@@ -1762,6 +1736,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      parentSampleRate: undefined,
+      normalizedRequest: undefined,
       name: 'outer',
       attributes: {
         attr1: 'yes',
@@ -1831,7 +1807,6 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
       // This will def. be sampled because of the tracesSampleRate
       startSpan({ name: 'outer' }, outerSpan => {
@@ -1870,287 +1845,9 @@ describe('trace (sampling)', () => {
   });
 });
 
-describe('HTTP methods (sampling)', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
-    const spanGET = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'GET' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(spanGET)).toBe(true);
-    expect(getSamplingDecision(spanGET.spanContext())).toBe(true);
-
-    const spanPOST = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'POST' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(spanPOST)).toBe(true);
-    expect(getSamplingDecision(spanPOST.spanContext())).toBe(true);
-
-    const spanPUT = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'PUT' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(spanPUT)).toBe(true);
-    expect(getSamplingDecision(spanPUT.spanContext())).toBe(true);
-
-    const spanDELETE = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'DELETE' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(spanDELETE)).toBe(true);
-    expect(getSamplingDecision(spanDELETE.spanContext())).toBe(true);
-  });
-
-  it('does not sample when HTTP method is OPTIONS', () => {
-    const span = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'OPTIONS' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(span)).toBe(false);
-    expect(getSamplingDecision(span.spanContext())).toBe(false);
-  });
-
-  it('does not sample when HTTP method is HEAD', () => {
-    const span = startSpanManual({ name: 'test span', attributes: { [HTTP_METHOD]: 'HEAD' } }, span => {
-      return span;
-    });
-    expect(spanIsSampled(span)).toBe(false);
-    expect(getSamplingDecision(span.spanContext())).toBe(false);
-  });
-});
-
-describe('continueTrace', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('works without trace & baggage data', () => {
-    const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
-      const span = getActiveSpan()!;
-      expect(span).toBeUndefined();
-      return getCurrentScope();
-    });
-
-    expect(scope.getPropagationContext()).toEqual({
-      traceId: expect.any(String),
-      sampleRand: expect.any(Number),
-    });
-
-    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
-  });
-
-  it('works with trace data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-        baggage: undefined,
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(false);
-        expect(spanIsSampled(span)).toBe(false);
-      },
-    );
-  });
-
-  it('works with trace & baggage data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
-        baggage: 'sentry-version=1.0,sentry-environment=production',
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(true);
-        expect(spanIsSampled(span)).toBe(true);
-      },
-    );
-  });
-
-  it('works with trace & 3rd party baggage data', () => {
-    continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
-        baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
-      },
-      () => {
-        const span = getActiveSpan()!;
-        expect(span).toBeDefined();
-        expect(spanToJSON(span)).toEqual({
-          span_id: '1121201211212012',
-          trace_id: '12312012123120121231201212312012',
-          data: {},
-          start_timestamp: 0,
-        });
-        expect(getSamplingDecision(span.spanContext())).toBe(true);
-        expect(spanIsSampled(span)).toBe(true);
-      },
-    );
-  });
-
-  it('returns response of callback', () => {
-    const result = continueTrace(
-      {
-        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-        baggage: undefined,
-      },
-      () => {
-        return 'aha';
-      },
-    );
-
-    expect(result).toEqual('aha');
-  });
-});
-
-describe('suppressTracing', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('works for a root span', () => {
-    const span = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    expect(span.isRecording()).toBe(false);
-    expect(spanIsSampled(span)).toBe(false);
-  });
-
-  it('works for a child span', () => {
-    startSpan({ name: 'outer' }, span => {
-      expect(span.isRecording()).toBe(true);
-      expect(spanIsSampled(span)).toBe(true);
-
-      const child1 = startInactiveSpan({ name: 'inner1' });
-
-      expect(child1.isRecording()).toBe(true);
-      expect(spanIsSampled(child1)).toBe(true);
-
-      const child2 = suppressTracing(() => {
-        return startInactiveSpan({ name: 'span' });
-      });
-
-      expect(child2.isRecording()).toBe(false);
-      expect(spanIsSampled(child2)).toBe(false);
-    });
-  });
-
-  it('works for a child span with forceTransaction=true', () => {
-    startSpan({ name: 'outer' }, span => {
-      expect(span.isRecording()).toBe(true);
-      expect(spanIsSampled(span)).toBe(true);
-
-      const child = suppressTracing(() => {
-        return startInactiveSpan({ name: 'span', forceTransaction: true });
-      });
-
-      expect(child.isRecording()).toBe(false);
-      expect(spanIsSampled(child)).toBe(false);
-    });
-  });
-
-  it('works with parallel processes', async () => {
-    const span = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    const span2Promise = suppressTracing(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return startInactiveSpan({ name: 'span2' });
-    });
-
-    const span3Promise = suppressTracing(async () => {
-      const span = startInactiveSpan({ name: 'span3' });
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return span;
-    });
-
-    const span4 = suppressTracing(() => {
-      return startInactiveSpan({ name: 'span' });
-    });
-
-    const span5 = startInactiveSpan({ name: 'span5' });
-
-    const span2 = await span2Promise;
-    const span3 = await span3Promise;
-
-    expect(spanIsSampled(span)).toBe(false);
-    expect(spanIsSampled(span2)).toBe(false);
-    expect(spanIsSampled(span3)).toBe(false);
-    expect(spanIsSampled(span4)).toBe(false);
-    expect(spanIsSampled(span5)).toBe(true);
-  });
-});
-
-describe('isTracingSuppressed', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('returns false when tracing is not suppressed', () => {
-    expect(isTracingSuppressed()).toBe(false);
-  });
-
-  it('returns true while inside suppressTracing', () => {
-    const suppressed = suppressTracing(() => isTracingSuppressed());
-    expect(suppressed).toBe(true);
-  });
-
-  it('returns false again after suppressTracing has finished', () => {
-    suppressTracing(() => {
-      expect(isTracingSuppressed()).toBe(true);
-    });
-
-    expect(isTracingSuppressed()).toBe(false);
-  });
-
-  it('stays suppressed across async boundaries within suppressTracing', async () => {
-    const suppressed = await suppressTracing(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-      return isTracingSuppressed();
-    });
-
-    expect(suppressed).toBe(true);
-  });
-});
-
 describe('span.end() timestamp conversion', () => {
   beforeEach(() => {
     mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
   });
 
   it('converts seconds to milliseconds for startInactiveSpan', () => {
@@ -2236,115 +1933,33 @@ describe('span.end() timestamp conversion', () => {
   });
 });
 
-describe('startNewTrace', () => {
-  beforeEach(() => {
-    mockSdkInit({ tracesSampleRate: 1 });
-  });
-
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('sequential startInactiveSpan calls share the same traceId', () => {
-    startNewTrace(() => {
-      const propagationContext = getCurrentScope().getPropagationContext();
-
-      const span1 = startInactiveSpan({ name: 'span-1' });
-      const span2 = startInactiveSpan({ name: 'span-2' });
-      const span3 = startInactiveSpan({ name: 'span-3' });
-
-      const traceId1 = span1.spanContext().traceId;
-      const traceId2 = span2.spanContext().traceId;
-      const traceId3 = span3.spanContext().traceId;
-
-      expect(traceId1).toBe(propagationContext.traceId);
-      expect(traceId2).toBe(propagationContext.traceId);
-      expect(traceId3).toBe(propagationContext.traceId);
-
-      span1.end();
-      span2.end();
-      span3.end();
-    });
-  });
-
-  it('startSpan inside startNewTrace uses the correct traceId', () => {
-    startNewTrace(() => {
-      const propagationContext = getCurrentScope().getPropagationContext();
-
-      startSpan({ name: 'parent-span' }, parentSpan => {
-        const parentTraceId = parentSpan.spanContext().traceId;
-        expect(parentTraceId).toBe(propagationContext.traceId);
-
-        const child = startInactiveSpan({ name: 'child-span' });
-        expect(child.spanContext().traceId).toBe(propagationContext.traceId);
-        child.end();
-      });
-    });
-  });
-
-  it('generates a different traceId than the outer trace', () => {
-    startSpan({ name: 'outer-span' }, outerSpan => {
-      const outerTraceId = outerSpan.spanContext().traceId;
-
-      startNewTrace(() => {
-        const innerSpan = startInactiveSpan({ name: 'inner-span' });
-        const innerTraceId = innerSpan.spanContext().traceId;
-
-        expect(innerTraceId).not.toBe(outerTraceId);
-
-        const propagationContext = getCurrentScope().getPropagationContext();
-        expect(innerTraceId).toBe(propagationContext.traceId);
-
-        innerSpan.end();
-      });
-    });
-  });
-
-  it('allows spans to be sampled based on tracesSampleRate', () => {
-    startNewTrace(() => {
-      const span = startInactiveSpan({ name: 'sampled-span' });
-      // tracesSampleRate is 1 in mockSdkInit, so spans should be sampled
-      // This verifies that TraceFlags.NONE on the remote span context does not
-      // cause the sampler to inherit a "not sampled" decision from the parent
-      expect(spanIsSampled(span)).toBe(true);
-      span.end();
-    });
-  });
-
-  it('does not leak the new traceId to the outer scope', () => {
-    const outerScope = getCurrentScope();
-    const outerTraceId = outerScope.getPropagationContext().traceId;
-
-    startNewTrace(() => {
-      // Manually set a known traceId on the inner scope to verify it doesn't leak
-      getCurrentScope().setPropagationContext({
-        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        sampleRand: 0.5,
-      });
-    });
-
-    const afterTraceId = outerScope.getPropagationContext().traceId;
-    expect(afterTraceId).toBe(outerTraceId);
-    expect(afterTraceId).not.toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-  });
-});
-
-function getSpanName(span: AbstractSpan): string | undefined {
-  return spanHasName(span) ? span.name : undefined;
+function getSpanName(span: Span): string | undefined {
+  return spanToJSON(span).name;
 }
 
-function getSpanEndTime(span: AbstractSpan): [number, number] | undefined {
-  return (span as ReadableSpan).endTime;
+// Native Sentry spans store timestamps in seconds; the tests assert HrTime `[seconds, nanoseconds]`.
+// Convert via milliseconds (like OTel's `numberToHrtime`) so the nanosecond part stays exact —
+// converting straight from a fractional-seconds double loses precision.
+function hrTimeFromSeconds(seconds: number): [number, number] {
+  const ms = seconds * 1000;
+  const sec = Math.trunc(ms / 1000);
+  return [sec, Math.round((ms - sec * 1000) * 1e6)];
 }
 
-function getSpanStartTime(span: AbstractSpan): [number, number] | undefined {
-  return (span as ReadableSpan).startTime;
+function getSpanEndTime(span: Span): [number, number] | undefined {
+  const endTimestamp = spanToJSON(span).end_timestamp;
+  return typeof endTimestamp === 'number' ? hrTimeFromSeconds(endTimestamp) : [0, 0];
 }
 
-function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefined {
-  return spanHasAttributes(span) ? span.attributes : undefined;
+function getSpanStartTime(span: Span): [number, number] | undefined {
+  const startTimestamp = spanToJSON(span).start_timestamp;
+  return typeof startTimestamp === 'number' ? hrTimeFromSeconds(startTimestamp) : undefined;
 }
 
-function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return getParentSpanId(span as ReadableSpan);
+function getSpanAttributes(span: Span): Record<string, unknown> | undefined {
+  return spanToJSON(span).attributes;
+}
+
+function getSpanParentSpanId(span: Span): string | undefined {
+  return spanToJSON(span).parent_span_id;
 }

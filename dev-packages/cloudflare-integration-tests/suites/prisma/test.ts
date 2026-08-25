@@ -18,7 +18,7 @@ function envelopeItem(envelope: Envelope): Record<string, unknown> {
   return envelope[1][0]![1] as Record<string, unknown>;
 }
 
-it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare/nodejs_compat prismaIntegration', async ({
+it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare prismaIntegration', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)
@@ -66,11 +66,11 @@ it('captures a transaction with Prisma spans for a D1 query via the @sentry/clou
           { description: 'prisma:client:operation', op: undefined, origin: 'auto.db.otel.prisma' },
           { description: 'prisma:client:serialize', op: undefined, origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:connect', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:connection', op: undefined, origin: 'auto.db.otel.prisma' },
+          { description: 'prisma:engine:connection', op: 'db', origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:query', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: selectUsersQuery, op: undefined, origin: 'auto.db.otel.prisma' },
+          { description: selectUsersQuery, op: 'db', origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:js:query:args', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:js:query:sql', op: undefined, origin: 'auto.db.otel.prisma' },
+          { description: 'prisma:engine:js:query:sql', op: 'db', origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:js:query:result', op: undefined, origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:serialize', op: undefined, origin: 'auto.db.otel.prisma' },
           { description: 'prisma:engine:response_json_serialization', op: undefined, origin: 'auto.db.otel.prisma' },

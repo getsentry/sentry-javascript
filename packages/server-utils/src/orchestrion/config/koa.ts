@@ -1,5 +1,5 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+import { getModuleNames } from './module-names';
 
 export const koaConfig = [
   {
@@ -9,8 +9,8 @@ export const koaConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const koaModuleNames = getModuleNames(koaConfig);
+
 export const koaChannels = {
   KOA_USE: 'orchestrion:koa:use',
 } as const;
-
-export const koaSubscribeInjection = toSubscribeInjections(koaConfig);

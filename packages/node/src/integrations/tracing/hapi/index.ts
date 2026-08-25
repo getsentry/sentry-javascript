@@ -1,48 +1,6 @@
-import { HapiInstrumentation } from './vendored/instrumentation';
-import type { IntegrationFn } from '@sentry/core';
-import {
-  captureException,
-  debug,
-  defineIntegration,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  SDK_VERSION,
-} from '@sentry/core';
-import { generateInstrumentOnce } from '../../../otel/instrument';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { Request, RequestEvent, Server } from './types';
-
-const INTEGRATION_NAME = 'Hapi' as const;
-
-export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
-
-const _hapiIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentHapi();
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Adds Sentry tracing instrumentation for [Hapi](https://hapi.dev/).
- *
- * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
- *
- * For more information, see the [hapi documentation](https://docs.sentry.io/platforms/javascript/guides/hapi/).
- *
- * @example
- * ```javascript
- * const Sentry = require('@sentry/node');
- *
- * Sentry.init({
- *   integrations: [Sentry.hapiIntegration()],
- * })
- * ```
- */
-export const hapiIntegration = defineIntegration(_hapiIntegration);
 
 function isErrorEvent(event: unknown): event is RequestEvent {
   return !!(event && typeof event === 'object' && 'error' in event && event.error);
@@ -105,5 +63,4 @@ export const hapiErrorPlugin = {
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
-  ensureIsWrapped(server.register, 'hapi');
 }

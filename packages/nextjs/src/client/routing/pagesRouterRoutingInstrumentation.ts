@@ -1,7 +1,8 @@
 import type { Client, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -27,11 +28,7 @@ const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
-const globalObject = WINDOW as typeof WINDOW & {
-  __BUILD_MANIFEST?: {
-    sortedPages?: string[];
-  };
-};
+const globalObject = WINDOW;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -115,7 +112,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
 export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const parsedBaggage = parseBaggageHeader(baggage);
-  let name = route || globalObject.location.pathname;
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+  let name = route || (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : globalObject.location.pathname);
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
   if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
@@ -124,13 +122,10 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
-  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: origin ? origin / 1000 : undefined,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',

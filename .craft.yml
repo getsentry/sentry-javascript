@@ -9,10 +9,6 @@ targets:
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-    ## 1.2 Types
-  - name: npm
-    id: '@sentry/types'
-    includeNames: /^sentry-types-\d.*\.tgz$/
   - name: npm
     id: '@sentry/server-utils'
     includeNames: /^sentry-server-utils-\d.*\.tgz$/
@@ -163,7 +159,6 @@ targets:
     compatibleRuntimes:
       - name: node
         versions:
-          - nodejs18.x
           - nodejs20.x
           - nodejs22.x
           - nodejs24.x

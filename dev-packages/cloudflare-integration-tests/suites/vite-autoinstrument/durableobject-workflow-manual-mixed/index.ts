@@ -20,7 +20,7 @@ class CounterImpl extends DurableObject<Env> {
 // existing `instrumentDurableObjectWithSentry` call — matched by the DO-kind
 // wrapper method, not the workflow one — and leave it untouched (no double-wrap).
 export const Counter = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 1.0 }),
   CounterImpl,
 );
 

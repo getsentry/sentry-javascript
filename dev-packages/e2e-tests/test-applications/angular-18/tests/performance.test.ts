@@ -159,7 +159,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
     },
   });
 
-  const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+  const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
   expect(routingSpan).toBeDefined();
   expect(routingSpan?.description).toBe('/redirect1');
@@ -196,7 +196,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe('/cancel');
@@ -234,7 +234,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe(nonExistentRoute);
@@ -260,11 +260,11 @@ test.describe('TraceDirective', () => {
     expect(traceDirectiveSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
         },
         description: '<sample-component>',
-        op: 'ui.angular.init',
+        op: 'ui.mount',
         origin: 'auto.ui.angular.trace_directive',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
@@ -292,11 +292,11 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
         },
         description: '<ComponentTrackingComponent>',
-        op: 'ui.angular.init',
+        op: 'ui.mount',
         origin: 'auto.ui.angular.trace_class_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
@@ -316,17 +316,20 @@ test.describe('TraceMethod Decorator', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const ngInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngOnInit');
+    const ngInitSpan = navigationTxn.spans?.find(
+      span => span.op === 'function' && span.data?.['code.function.name'] === 'ngOnInit',
+    );
 
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          'code.function.name': 'ngOnInit',
         },
         description: '<ngOnInit>',
-        op: 'ui.angular.ngOnInit',
+        op: 'function',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
@@ -344,17 +347,20 @@ test.describe('TraceMethod Decorator', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const ngAfterViewInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngAfterViewInit');
+    const ngAfterViewInitSpan = navigationTxn.spans?.find(
+      span => span.op === 'function' && span.data?.['code.function.name'] === 'ngAfterViewInit',
+    );
 
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngAfterViewInit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          'code.function.name': 'ngAfterViewInit',
         },
         description: '<unnamed>',
-        op: 'ui.angular.ngAfterViewInit',
+        op: 'function',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),

@@ -1,7 +1,7 @@
 import { captureLog, type CaptureLogArgs } from './capture';
 
 /**
- * @summary Capture a log with the `trace` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `trace` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *
@@ -28,7 +28,7 @@ export function trace(...args: CaptureLogArgs): void {
 }
 
 /**
- * @summary Capture a log with the `debug` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `debug` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *
@@ -55,7 +55,7 @@ export function debug(...args: CaptureLogArgs): void {
 }
 
 /**
- * @summary Capture a log with the `info` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `info` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *
@@ -82,7 +82,7 @@ export function info(...args: CaptureLogArgs): void {
 }
 
 /**
- * @summary Capture a log with the `warn` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `warn` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *
@@ -110,7 +110,7 @@ export function warn(...args: CaptureLogArgs): void {
 }
 
 /**
- * @summary Capture a log with the `error` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `error` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *
@@ -138,7 +138,7 @@ export function error(...args: CaptureLogArgs): void {
 }
 
 /**
- * @summary Capture a log with the `fatal` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `fatal` level.
  *
  * You can either pass a message and attributes or a message template, params and attributes.
  *

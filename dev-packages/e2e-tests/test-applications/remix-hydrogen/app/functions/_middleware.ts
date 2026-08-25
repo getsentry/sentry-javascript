@@ -9,6 +9,7 @@ import * as build from '../build/server';
 export const onRequest = [
   (context: EventPluginContext<any, any, any, any>) =>
     sentryPagesPlugin({
+      traceLifecycle: 'static',
       dsn: context.env.E2E_TEST_DSN,
       tracesSampleRate: 1.0,
     })(context),

@@ -1,7 +1,7 @@
 import type { D1Database, D1DatabaseSession, D1PreparedStatement } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { instrumentD1, instrumentD1WithSentry } from '../../../src/instrumentations/worker/instrumentD1';
+import { instrumentD1 } from '../../../src/instrumentations/worker/instrumentD1';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };
 
@@ -51,20 +51,6 @@ function createMockD1Session(): D1DatabaseSession {
     getBookmark: vi.fn().mockReturnValue(null),
   } as unknown as D1DatabaseSession;
 }
-
-describe('instrumentD1WithSentry (deprecated)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test('still instruments the database', async () => {
-    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
-    const instrumentedDb = instrumentD1WithSentry(createMockD1Database());
-    await instrumentedDb.prepare('SELECT 1').first();
-
-    expect(startSpanSpy).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe('instrumentD1', () => {
   beforeEach(() => {
@@ -475,19 +461,6 @@ describe('instrumentD1', () => {
 
       expect(first).toBe(second);
       expect(second.prepare).toBe(prepareAfterFirst);
-    });
-
-    test('does not double-instrument when instrumentD1WithSentry is also used', async () => {
-      vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const db = createMockD1Database();
-      const fromEnv = instrumentD1(db);
-      const prepareAfterFirst = fromEnv.prepare;
-
-      const fromManual = instrumentD1WithSentry(db);
-
-      expect(fromEnv).toBe(fromManual);
-      expect(fromManual.prepare).toBe(prepareAfterFirst);
     });
   });
 });

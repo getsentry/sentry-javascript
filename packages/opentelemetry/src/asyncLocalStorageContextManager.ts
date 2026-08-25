@@ -23,14 +23,20 @@
 
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
-import { AsyncLocalStorage } from 'node:async_hooks';
-import { EventEmitter } from 'node:events';
-import type { AsyncLocalStorageLookup } from './contextManager';
+import type { AsyncLocalStorage } from 'node:async_hooks';
+import type { EventEmitter } from 'node:events';
 import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
-import { setIsSetup } from './utils/setupCheck';
-import { getAsyncContextStrategy, getMainCarrier } from '@sentry/core';
 
+export type AsyncLocalStorageLookup = {
+  asyncLocalStorage: AsyncLocalStorage<unknown>;
+  /**
+   * The OpenTelemetry context key under which the `{ scope, isolationScope }` object is stored, for
+   * native threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted
+   * for the pure AsyncLocalStorage strategy, whose store already is that object.
+   */
+  contextSymbol?: symbol;
+};
 type ListenerFn = (...args: unknown[]) => unknown;
 
 /**
@@ -42,7 +48,6 @@ const ADD_LISTENER_METHODS = ['addListener', 'on', 'once', 'prependListener', 'p
 
 /**
  * OpenTelemetry-compatible context manager using Node.js `AsyncLocalStorage`.
- * Semantics match `@opentelemetry/context-async-hooks` (function `bind` + `EventEmitter` patching).
  */
 export class SentryAsyncLocalStorageContextManager implements ContextManager {
   protected readonly _asyncLocalStorage: AsyncLocalStorage<Context>;
@@ -50,13 +55,8 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   private readonly _kOtListeners = Symbol('OtListeners');
   private _wrapped = false;
 
-  public constructor() {
-    setIsSetup('SentryContextManager');
-    // Pick the instance from the async context strategy
-    // this should normally always be there, but if it is not for whatever reason, we fall back to a new instance
-    this._asyncLocalStorage =
-      (getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
-        ?.asyncLocalStorage as AsyncLocalStorage<Context>) ?? new AsyncLocalStorage<Context>();
+  public constructor(asyncLocalStorage: AsyncLocalStorage<Context>) {
+    this._asyncLocalStorage = asyncLocalStorage;
   }
 
   public active(): Context {
@@ -69,7 +69,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
     thisArg?: ThisParameterType<F>,
     ...args: A
   ): ReturnType<F> {
-    const ctx2 = buildContextWithSentryScopes(context, this.active());
+    const ctx2 = buildContextWithSentryScopes(context);
     const cb = thisArg == null ? fn : fn.bind(thisArg);
     return this._asyncLocalStorage.run(ctx2, cb as never, ...args);
   }
@@ -79,12 +79,16 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   }
 
   public disable(): this {
-    this._asyncLocalStorage.disable();
+    try {
+      this._asyncLocalStorage.disable();
+    } catch {
+      // we don't care if something goes wrong here
+    }
     return this;
   }
 
   public bind<T>(context: Context, target: T): T {
-    if (target instanceof EventEmitter) {
+    if (isEventEmitter(target)) {
       return this._bindEventEmitter(context, target);
     }
     if (typeof target === 'function') {
@@ -122,30 +126,23 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
     if (this._getPatchMap(ee) !== undefined) {
       return ee;
     }
-    this._createPatchMap(ee);
+    if (this._createPatchMap(ee) === undefined) {
+      return ee;
+    }
 
     for (const methodName of ADD_LISTENER_METHODS) {
-      if (ee[methodName] === undefined) continue;
-      ee[methodName] = this._patchAddListener(
-        ee,
-        ee[methodName] as unknown as (...args: unknown[]) => unknown,
-        context,
-      );
+      const original = getMethod(ee, methodName);
+      if (!original) continue;
+      trySetMethod(ee, methodName, this._patchAddListener(ee, original, context));
     }
-    if (typeof ee.removeListener === 'function') {
-      // oxlint-disable-next-line @typescript-eslint/unbound-method -- patched like upstream OTel context manager
-      ee.removeListener = this._patchRemoveListener(ee, ee.removeListener as (...args: unknown[]) => unknown);
+    for (const methodName of ['removeListener', 'off'] as const) {
+      const original = getMethod(ee, methodName);
+      if (!original) continue;
+      trySetMethod(ee, methodName, this._patchRemoveListener(ee, original));
     }
-    if (typeof ee.off === 'function') {
-      // oxlint-disable-next-line @typescript-eslint/unbound-method
-      ee.off = this._patchRemoveListener(ee, ee.off as (...args: unknown[]) => unknown);
-    }
-    if (typeof ee.removeAllListeners === 'function') {
-      ee.removeAllListeners = this._patchRemoveAllListeners(
-        ee,
-        // oxlint-disable-next-line @typescript-eslint/unbound-method
-        ee.removeAllListeners as (...args: unknown[]) => unknown,
-      );
+    const removeAllListeners = getMethod(ee, 'removeAllListeners');
+    if (removeAllListeners) {
+      trySetMethod(ee, 'removeAllListeners', this._patchRemoveAllListeners(ee, removeAllListeners));
     }
     return ee;
   }
@@ -170,6 +167,10 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
       const map = contextManager._getPatchMap(ee);
       if (map !== undefined) {
         if (arguments.length === 0) {
+          // Best-effort reset: if the emitter was frozen after binding, this cannot replace the map
+          // (and the map itself could not be cleared in place either). A stale map is harmless though —
+          // `_patchAddListener` overwrites entries when a listener is re-added, and `_patchRemoveListener`
+          // passing an already-unregistered wrapper to `original` is a no-op.
           contextManager._createPatchMap(ee);
         } else if (event !== undefined && map[event] !== undefined) {
           // oxlint-disable-next-line @typescript-eslint/no-dynamic-delete -- event-keyed listener map
@@ -187,9 +188,9 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
       if (contextManager._wrapped) {
         return original.call(this, event, listener);
       }
-      let map = contextManager._getPatchMap(ee);
+      const map = contextManager._getPatchMap(ee) ?? contextManager._createPatchMap(ee);
       if (map === undefined) {
-        map = contextManager._createPatchMap(ee);
+        return original.call(this, event, listener);
       }
       let listeners = map[event];
       if (listeners === undefined) {
@@ -208,13 +209,61 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
     };
   }
 
-  private _createPatchMap(ee: EventEmitter): PatchMap {
+  /**
+   * Attach a fresh patch map to the emitter. Returns `undefined` if the emitter does not accept the
+   * property (e.g. it is frozen or sealed), in which case the emitter must not be patched at all —
+   * without a patch map the remove-listener patches could not resolve their wrapped listeners.
+   */
+  private _createPatchMap(ee: EventEmitter): PatchMap | undefined {
     const map = Object.create(null) as PatchMap;
-    (ee as unknown as Record<symbol, PatchMap>)[this._kOtListeners] = map;
-    return map;
+    try {
+      (ee as unknown as Record<symbol, PatchMap>)[this._kOtListeners] = map;
+    } catch {
+      return undefined;
+    }
+    return this._getPatchMap(ee) === map ? map : undefined;
   }
 
   private _getPatchMap(ee: EventEmitter): PatchMap | undefined {
     return (ee as unknown as Record<symbol, PatchMap | undefined>)[this._kOtListeners];
+  }
+}
+
+/**
+ * Duck-typed `EventEmitter` check.
+ *
+ * We use this instead of `instanceof EventEmitter` so it also works in non-Node.js environments (e.g. vercel-edge)
+ * and across realms. Both `on` and `emit` must be callable — checking only for the presence of an `on` property
+ * would classify plain objects like `{ on: true }` as emitters and later try to call a non-function.
+ */
+function isEventEmitter(target: unknown): target is EventEmitter {
+  if (typeof target !== 'object' || !target) {
+    return false;
+  }
+  const candidate = target as Partial<Record<'on' | 'emit', unknown>>;
+  return typeof candidate.on === 'function' && typeof candidate.emit === 'function';
+}
+
+/**
+ * Read a method off an emitter, ignoring inherited or own properties that are not callable.
+ */
+function getMethod<T extends EventEmitter>(ee: T, methodName: keyof EventEmitter): ListenerFn | undefined {
+  const value = (ee as unknown as Record<string, unknown>)[methodName as string];
+  return typeof value === 'function' ? (value as ListenerFn) : undefined;
+}
+
+/**
+ * Assign a patched method back onto the emitter. Emitters may be frozen or expose getter-only methods,
+ * in which case we leave the original method in place instead of throwing.
+ */
+function trySetMethod<T extends EventEmitter>(
+  ee: T,
+  methodName: keyof EventEmitter,
+  patched: (...args: never[]) => unknown,
+): void {
+  try {
+    (ee as unknown as Record<string, unknown>)[methodName as string] = patched;
+  } catch {
+    // Nothing to do, the emitter keeps its unpatched method
   }
 }

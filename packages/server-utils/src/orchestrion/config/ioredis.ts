@@ -1,7 +1,10 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 export const ioredisConfig = [
+  registrationOnly({ name: 'ioredis', versionRange: '>=5.11.0', filePath: 'built/Redis.js' }),
   // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` diagnostics_channel)
   ...['lib/redis.js', 'built/redis.js', 'built/redis/index.js'].flatMap((filePath): InstrumentationConfig[] => [
     {
@@ -27,9 +30,9 @@ export const ioredisConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const ioredisModuleNames = getModuleNames(ioredisConfig);
+
 export const ioredisChannels = {
   IOREDIS_COMMAND: 'orchestrion:ioredis:command',
   IOREDIS_CONNECT: 'orchestrion:ioredis:connect',
 } as const;
-
-export const ioredisSubscribeInjection = toSubscribeInjections(ioredisConfig);

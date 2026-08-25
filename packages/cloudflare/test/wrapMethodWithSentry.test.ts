@@ -1,9 +1,11 @@
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeFlushLock } from '../src/flush';
 import { getInstrumented } from '../src/instrument';
 import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
+import { resetSdk } from './testUtils';
 
 const mocks = vi.hoisted(() => ({
   flush: vi.fn().mockResolvedValue(true),
@@ -23,31 +25,6 @@ function createMockClient(hasTransport: boolean = true) {
 vi.mock('../src/sdk', () => ({
   init: vi.fn(() => createMockClient(true)),
 }));
-
-// Mock sentry/core functions
-vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal<object>();
-  return {
-    ...actual,
-    getClient: vi.fn(),
-    withIsolationScope: vi.fn((callback: (scope: unknown) => unknown) => callback(createMockScope())),
-    withScope: vi.fn((callback: (scope: unknown) => unknown) => callback(createMockScope())),
-    startSpan: vi.fn((opts, callback) => callback(createMockSpan())),
-    startNewTrace: vi.fn(callback => callback()),
-    captureException: vi.fn(),
-    flush: vi.fn().mockResolvedValue(true),
-    getActiveSpan: vi.fn(),
-  };
-});
-
-const mockedWithIsolationScope = vi.mocked(sentryCore.withIsolationScope);
-
-function createMockScope() {
-  return {
-    getClient: vi.fn(),
-    setClient: vi.fn(),
-  };
-}
 
 function createMockSpan() {
   return {
@@ -88,6 +65,7 @@ describe('wrapMethodWithSentry', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   describe('basic wrapping', () => {
@@ -137,7 +115,6 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       const result = wrapped();
 
-      expect(handler).toHaveBeenCalled();
       // Without storage, there's no linkPromise, so sync behavior is preserved
       expect(result).not.toBeInstanceOf(Promise);
       expect(result).toBe('sync-result');
@@ -253,6 +230,7 @@ describe('wrapMethodWithSentry', () => {
 
   describe('span creation', () => {
     it('creates span with spanName when provided', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
         origin: 'auto.faas.cloudflare.durable_object',
@@ -265,7 +243,7 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+      expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'test-span',
         }),
@@ -274,6 +252,7 @@ describe('wrapMethodWithSentry', () => {
     });
 
     it('does not create span when spanName is not provided', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
         origin: 'auto.faas.cloudflare.durable_object',
@@ -285,12 +264,13 @@ describe('wrapMethodWithSentry', () => {
       await wrapped();
 
       // startSpan should not be called when no spanName is provided
-      expect(sentryCore.startSpan).not.toHaveBeenCalled();
+      expect(startSpanSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('error handling', () => {
     it('captures exceptions from sync methods', async () => {
+      const exceptionSpy = vi.spyOn(sentryCore, 'captureException');
       const error = new Error('Test sync error');
       const handler = vi.fn().mockImplementation(() => {
         throw error;
@@ -304,7 +284,7 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
 
       await expect(async () => wrapped()).rejects.toThrow('Test sync error');
-      expect(sentryCore.captureException).toHaveBeenCalledWith(error, {
+      expect(exceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
           type: 'auto.faas.cloudflare.durable_object',
           handled: false,
@@ -313,6 +293,7 @@ describe('wrapMethodWithSentry', () => {
     });
 
     it('captures exceptions from async methods', async () => {
+      const exceptionSpy = vi.spyOn(sentryCore, 'captureException');
       const error = new Error('Test async error');
       const handler = vi.fn().mockRejectedValue(error);
       const options = {
@@ -324,7 +305,7 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
 
       await expect(wrapped()).rejects.toThrow('Test async error');
-      expect(sentryCore.captureException).toHaveBeenCalledWith(error, {
+      expect(exceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
           type: 'auto.faas.cloudflare.durable_object',
           handled: false,
@@ -334,23 +315,8 @@ describe('wrapMethodWithSentry', () => {
   });
 
   describe('startNewTrace option', () => {
-    it('uses withIsolationScope when startNewTrace is true', async () => {
-      const handler = vi.fn().mockResolvedValue('result');
-      const options = {
-        origin: 'auto.faas.cloudflare.durable_object',
-        options: {},
-        context: createMockContext(),
-        startNewTrace: true,
-        spanName: 'alarm',
-      };
-
-      const wrapped = wrapMethodWithSentry(options, handler);
-      await wrapped();
-
-      expect(sentryCore.withIsolationScope).toHaveBeenCalled();
-    });
-
     it('uses startNewTrace when startNewTrace is true and spanName is set', async () => {
+      const startNewTraceSpy = vi.spyOn(sentryCore, 'startNewTrace');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
         origin: 'auto.faas.cloudflare.durable_object',
@@ -363,10 +329,11 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      expect(sentryCore.startNewTrace).toHaveBeenCalledWith(expect.any(Function));
+      expect(startNewTraceSpy).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('does not use startNewTrace when startNewTrace is false', async () => {
+      const startNewTraceSpy = vi.spyOn(sentryCore, 'startNewTrace');
       const handler = vi.fn().mockResolvedValue('result');
       const options = {
         origin: 'auto.faas.cloudflare.durable_object',
@@ -379,7 +346,7 @@ describe('wrapMethodWithSentry', () => {
       const wrapped = wrapMethodWithSentry(options, handler);
       await wrapped();
 
-      expect(sentryCore.startNewTrace).not.toHaveBeenCalled();
+      expect(startNewTraceSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -427,7 +394,7 @@ describe('wrapMethodWithSentry', () => {
       const mockStorage = { kv: mockKv };
 
       const mockSpan = createMockSpan();
-      vi.mocked(sentryCore.startSpan).mockImplementation((opts, callback) => callback(mockSpan as any));
+      vi.spyOn(sentryCore, 'startSpan').mockImplementation((opts, callback) => callback(mockSpan as any));
 
       const context = {
         waitUntil: vi.fn(),
@@ -461,7 +428,7 @@ describe('wrapMethodWithSentry', () => {
     });
 
     it('stores span context after execution when startNewTrace is true', async () => {
-      vi.mocked(sentryCore.getActiveSpan).mockReturnValue({
+      vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({
         spanContext: vi.fn().mockReturnValue({
           traceId: 'current-trace-id-123456789012345678',
           spanId: 'current-span-id',
@@ -495,7 +462,7 @@ describe('wrapMethodWithSentry', () => {
     });
 
     it('does not store span context when startNewTrace is false', async () => {
-      vi.mocked(sentryCore.getActiveSpan).mockReturnValue({
+      vi.spyOn(sentryCore, 'getActiveSpan').mockReturnValue({
         spanContext: vi.fn().mockReturnValue({
           traceId: 'current-trace-id-123456789012345678',
           spanId: 'current-span-id',
@@ -636,7 +603,7 @@ describe('wrapMethodWithSentry', () => {
     it('creates a new client when scope has no client', async () => {
       const scope = new sentryCore.Scope();
 
-      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+      vi.spyOn(sentryCore, 'getIsolationScope').mockReturnValue(scope);
 
       const spyClient = vi.spyOn(scope, 'setClient');
       const handler = vi.fn().mockResolvedValue('result');
@@ -670,7 +637,7 @@ describe('wrapMethodWithSentry', () => {
       const scope = new sentryCore.Scope();
 
       scope.setClient(disposedClient);
-      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+      vi.spyOn(sentryCore, 'getIsolationScope').mockReturnValue(scope);
 
       const spyClient = vi.spyOn(scope, 'setClient');
       const handler = vi.fn().mockResolvedValue('result');
@@ -703,7 +670,7 @@ describe('wrapMethodWithSentry', () => {
       const scope = new sentryCore.Scope();
 
       scope.setClient(validClient);
-      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+      vi.spyOn(sentryCore, 'getIsolationScope').mockReturnValue(scope);
       vi.mocked(sdk.init).mockClear();
 
       const spyClient = vi.spyOn(scope, 'setClient');
@@ -731,6 +698,7 @@ describe('wrapMethodWithSentry waitUntil teardown (hibernation regression)', () 
 
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   // Regression for #22328

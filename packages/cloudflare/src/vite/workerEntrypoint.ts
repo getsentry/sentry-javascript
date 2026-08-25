@@ -83,10 +83,10 @@ export function detectWorkerEntrypointClasses(ast: ProgramBody): Set<string> {
 
 /** Unwrap `export class Foo {}` to its ClassDeclaration; pass bare classes through. */
 function asClassDeclaration(node: BaseNode): ClassDeclarationNode | undefined {
-  if (node.type === 'ClassDeclaration') return node as ClassDeclarationNode;
+  if (node.type === 'ClassDeclaration') return node;
   if (node.type === 'ExportNamedDeclaration') {
     const decl = (node as ExportNamedDeclNode).declaration;
-    if (decl?.type === 'ClassDeclaration') return decl as ClassDeclarationNode;
+    if (decl?.type === 'ClassDeclaration') return decl;
   }
   return undefined;
 }

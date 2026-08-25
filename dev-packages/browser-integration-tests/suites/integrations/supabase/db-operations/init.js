@@ -6,10 +6,10 @@ window.Sentry = Sentry;
 const supabaseClient = createClient('https://test.supabase.co', 'test-key');
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.browserTracingIntegration(), Sentry.supabaseIntegration({ supabaseClient })],
   tracesSampleRate: 1.0,
-  dataCollection: { userInfo: true },
 });
 
 // Simulate database operations

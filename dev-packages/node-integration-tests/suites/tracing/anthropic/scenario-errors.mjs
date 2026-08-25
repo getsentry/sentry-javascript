@@ -27,17 +27,6 @@ function startMockAnthropicServer() {
     });
   });
 
-  app.get('/anthropic/v1/models/:model', (req, res) => {
-    if (req.params.model === 'nonexistent-model') {
-      res
-        .status(404)
-        .set('x-request-id', 'mock-model-retrieval-error')
-        .send({ type: 'error', error: { type: 'not_found_error', message: 'Model not found' } });
-      return;
-    }
-    res.send({ id: req.params.model, name: req.params.model, created_at: 1715145600, model: req.params.model });
-  });
-
   return new Promise(resolve => {
     const server = app.listen(0, () => {
       resolve(server);
@@ -72,14 +61,7 @@ async function run() {
       // Error expected
     }
 
-    // 2. Model retrieval error
-    try {
-      await client.models.retrieve('nonexistent-model');
-    } catch {
-      // Error expected
-    }
-
-    // 3. Successful tool usage for comparison
+    // 2. Successful tool usage for comparison
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: 'Calculate 2+2' }],

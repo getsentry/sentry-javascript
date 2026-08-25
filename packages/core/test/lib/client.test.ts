@@ -6,11 +6,13 @@ import {
   getCurrentScope,
   getIsolationScope,
   lastEventId,
+  linkedErrorsIntegration,
   makeSession,
   Scope,
   setCurrentClient,
   SyncPromise,
   withMonitor,
+  withStaticSpan,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
 import * as logsInternalModule from '../../src/logs/internal';
@@ -28,7 +30,7 @@ import * as timerModule from '../../src/utils/timer';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
-import { clearGlobalScope } from '../testutils';
+import { resetGlobals } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -45,10 +47,7 @@ describe('Client', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    clearGlobalScope();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   afterEach(() => {
@@ -94,6 +93,167 @@ describe('Client', () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
       consoleWarnSpy.mockRestore();
     });
+
+    test('warns that a streamed beforeSendSpan is ignored with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'static', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: wrap it with `Sentry.withStaticSpan` to use it with `traceLifecycle: "static"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('warns that a static beforeSendSpan is ignored with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'stream',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('reports the normalized traceLifecycle when warning about an unknown value', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+          traceLifecycle: 'somethingElse',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `beforeSendSpan`: remove `Sentry.withStaticSpan` to use it with `traceLifecycle: "stream"`.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a streamed beforeSendSpan with traceLifecycle "stream"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', beforeSendSpan: span => span }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    test('does not warn for a static beforeSendSpan with traceLifecycle "static"', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          traceLifecycle: 'static',
+          beforeSendSpan: withStaticSpan(span => span),
+        }),
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('init() / transaction option warnings', () => {
+    test('warns about transaction options ignored by span streaming', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`beforeSendTransaction` and `ignoreTransactions` are ignored with `traceLifecycle: 'stream'` (enabled by default).",
+        ),
+      );
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when the client is disabled because no DSN was provided', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        ignoreTransactions: ['/healthcheck'],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when the client is disabled via `enabled: false`', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enabled: false,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('warns without a DSN when Spotlight is enabled, since spans are still sent', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [{ name: 'SpotlightBrowser' }],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('stays silent when an integration falls back to the static trace lifecycle during setup', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        traceLifecycle: 'stream',
+        beforeSendTransaction: event => event,
+        integrations: [
+          {
+            name: 'FallsBackToStatic',
+            setup: client => {
+              client.getOptions().traceLifecycle = 'static';
+            },
+          },
+        ],
+      });
+      new TestClient(options).init();
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('getOptions()', () => {
@@ -103,7 +263,34 @@ describe('Client', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, test: true });
       const client = new TestClient(options);
 
-      expect(client.getOptions()).toEqual(options);
+      expect(client.getOptions()).toEqual({
+        attachStacktrace: true,
+        traceLifecycle: 'stream',
+        ...options,
+      });
+    });
+
+    test('defaults traceLifecycle to stream', () => {
+      const options = getDefaultTestClientOptions();
+      delete options.traceLifecycle;
+      const client = new TestClient(options);
+
+      expect(client.getOptions().traceLifecycle).toBe('stream');
+    });
+
+    test('preserves an explicit static traceLifecycle', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static' }));
+
+      expect(client.getOptions().traceLifecycle).toBe('static');
+    });
+
+    test('normalizes an unknown traceLifecycle to stream', () => {
+      const client = new TestClient(
+        // @ts-expect-error - we want to test normalization of invalid traceLifecycle values
+        getDefaultTestClientOptions({ traceLifecycle: 'somethingElse' }),
+      );
+
+      expect(client.getOptions().traceLifecycle).toBe('stream');
     });
   });
 
@@ -264,6 +451,61 @@ describe('Client', () => {
       );
     });
 
+    test('keeps a custom mechanism on the captured error when linked errors are prepended', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        integrations: [linkedErrorsIntegration()],
+      });
+      const client = new TestClient(options);
+      client.init();
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      const cause = new Error('Failure 1');
+      const errorCause = Object.assign(new Error('Failure 2'), { cause });
+      const error = Object.assign(new Error('Failure 3'), { cause: errorCause });
+
+      client.captureException(error, {
+        originalException: error,
+        mechanism: { type: 'auto.http.example', handled: false },
+      });
+
+      expect(client.event?.exception?.values).toEqual([
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 1',
+          mechanism: {
+            exception_id: 2,
+            handled: true,
+            parent_id: 1,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 2',
+          mechanism: {
+            exception_id: 1,
+            handled: true,
+            parent_id: 0,
+            source: 'cause',
+            type: 'chained',
+          },
+        }),
+        expect.objectContaining({
+          type: 'Error',
+          value: 'Failure 3',
+          mechanism: {
+            exception_id: 0,
+            handled: false,
+            type: 'auto.http.example',
+          },
+        }),
+      ]);
+      expect(client.session?.status).toBe('crashed');
+    });
+
     test('does not truncate exception values by default', () => {
       const exceptionMessageLength = 10_000;
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -302,6 +544,29 @@ describe('Client', () => {
       expect(eventId).toEqual(lastEventId());
     });
 
+    test('sets lastEventId when an error is sampled out', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+      const client = new TestClient(options);
+
+      const eventId = client.captureException(new Error('sampled-out exception'));
+
+      expect(eventId).toEqual(lastEventId());
+      expect(TestClient.instance!.event).toBeUndefined();
+    });
+
+    test('(known limitation) replaces lastEventId with a sampled-out error ID', () => {
+      // After a successfully sent error, a subsequent sampled-out error replaces lastEventId() even though that new ID has no corresponding event in Sentry.
+      // The `setLastEventId` call in `_prepareEvent` now executes before the `sampleRate` check
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+
+      client.captureException(new Error('sent exception'), { event_id: 'sent-event-id' });
+      client.getOptions().sampleRate = 0;
+      client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
+
+      expect(TestClient.instance!.event?.event_id).toBe('sent-event-id');
+      expect(lastEventId()).toBe('sampled-out-event-id');
+    });
+
     test('allows for providing explicit scope', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -325,33 +590,6 @@ describe('Client', () => {
           extra: {
             bar: 'wat',
             foo: 'wat',
-          },
-        }),
-      );
-    });
-
-    test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setExtra('foo', 'wat');
-
-      client.captureException(
-        new Error('test exception'),
-        {
-          captureContext: s => {
-            s.clear();
-            s.setExtra('bar', 'wat');
-            return s;
-          },
-        },
-        scope,
-      );
-
-      expect(TestClient.instance!.event).toEqual(
-        expect.objectContaining({
-          extra: {
-            bar: 'wat',
           },
         }),
       );
@@ -991,6 +1229,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'first-contentful-paint',
@@ -1001,6 +1240,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
         start_timestamp: 1591603196.614865,
@@ -1049,7 +1289,7 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses original spans without any changes', () => {
       expect.assertions(3);
 
-      const beforeSendSpan = vi.fn(span => span);
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1063,6 +1303,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1070,6 +1311,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1098,6 +1340,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1105,6 +1348,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1139,6 +1383,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1147,6 +1392,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'third span',
@@ -1155,6 +1401,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1169,6 +1416,7 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
         {
           description: 'third span',
@@ -1177,6 +1425,7 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
       ]);
       expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 1);
@@ -1203,6 +1452,7 @@ describe('Client', () => {
           trace: {
             span_id: 'root-span-id',
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            status: 'ok',
           },
         },
         transaction: 'root span',
@@ -1215,6 +1465,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1224,6 +1475,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'third span',
@@ -1233,6 +1485,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1248,20 +1501,23 @@ describe('Client', () => {
           start_timestamp: 1591603196.637835,
           trace_id: '86f39e84263a4de99c326acab3bfe3bd',
           data: {},
+          status: 'ok',
         },
       ]);
       expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 2);
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
-      const beforeSendSpan = vi.fn((span: SpanJSON) => {
-        return {
-          ...span,
-          data: {
-            modified: 'true',
-          },
-        };
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn((span: SpanJSON) => {
+          return {
+            ...span,
+            data: {
+              modified: 'true',
+            },
+          };
+        }),
+      );
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1276,6 +1532,7 @@ describe('Client', () => {
         ],
         contexts: {
           trace: {
+            status: 'ok',
             data: {
               modified: 'false',
               dropMe: 'true',
@@ -1314,6 +1571,7 @@ describe('Client', () => {
             },
             span_id: '9e15bf99fbe4bc80',
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            status: 'ok',
           },
           app: {
             data: {
@@ -1352,9 +1610,9 @@ describe('Client', () => {
         transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
-          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234, data: {} },
-          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234, data: {} },
-          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234, data: {} },
+          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
+          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
+          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234, data: {}, status: 'ok' },
         ],
       });
 
@@ -1367,10 +1625,12 @@ describe('Client', () => {
     test('calls `beforeSendSpan` and uses the modified spans', () => {
       expect.assertions(4);
 
-      const beforeSendSpan = vi.fn(span => {
-        span.data = { version: 'bravo' };
-        return span;
-      });
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(span => {
+          span.data = { version: 'bravo' };
+          return span;
+        }),
+      );
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1384,6 +1644,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1391,6 +1652,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1447,7 +1709,9 @@ describe('Client', () => {
     test('does not discard span and warn when returning null from `beforeSendSpan', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
+      // @ts-expect-error - intentionally violating the type signature here
+      const beforeSendSpan = withStaticSpan(vi.fn(() => null));
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
 
@@ -1461,6 +1725,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
           {
             description: 'second span',
@@ -1468,6 +1733,7 @@ describe('Client', () => {
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
             data: {},
+            status: 'ok',
           },
         ],
       };
@@ -1483,6 +1749,57 @@ describe('Client', () => {
         '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
       consoleWarnSpy.mockRestore();
+    });
+
+    test("doesn't throw if the `beforeSendSpan` callback throws", () => {
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error').mockImplementation(() => undefined);
+      const error = new Error('beforeSendSpan is broken');
+      const beforeSendSpan = withStaticSpan(
+        vi.fn(() => {
+          throw error;
+        }),
+      );
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan, debug: true });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+        ],
+      };
+
+      expect(() => client.captureEvent(transaction)).not.toThrow();
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
+
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toHaveLength(2);
+      expect(client['_outcomes']).toEqual({});
+
+      expect(debugErrorSpy).toHaveBeenCalledTimes(3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+        error,
+      );
+      debugErrorSpy.mockRestore();
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {
@@ -2220,7 +2537,7 @@ describe('Client', () => {
         .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
         .mockImplementation(() => undefined);
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
       await client.close();
@@ -2533,6 +2850,215 @@ describe('Client', () => {
     });
   });
 
+  describe('session update filtering', () => {
+    describe('sampleRate drop updates session', () => {
+      test('marks session as crashed for sampled-out unhandled error', () => {
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session?.errors).toBe(1);
+        expect(client.session?.status).toBe('crashed');
+      });
+
+      test('marks session as errored for sampled-out handled error', () => {
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'handled capture', mechanism: { type: 'generic', handled: true } }],
+            },
+          },
+          {},
+        );
+
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session?.errors).toBe(1);
+        expect(client.session?.status).toBe('ok');
+      });
+    });
+
+    describe('beforeSend drop does not update session', () => {
+      test('does not update session when beforeSend returns null for unhandled error', () => {
+        const beforeSend = vi.fn(() => null);
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session).toBeUndefined();
+        expect(session.errors).toBe(0);
+        expect(session.status).toBe('ok');
+      });
+
+      test('does not update session when beforeSend returns null for handled error', () => {
+        const beforeSend = vi.fn(() => null);
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'handled capture', mechanism: { type: 'generic', handled: true } }],
+            },
+          },
+          {},
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session).toBeUndefined();
+        expect(session.errors).toBe(0);
+        expect(session.status).toBe('ok');
+      });
+    });
+
+    describe('event processor drop does not update session', () => {
+      test('does not update session when event processor returns null for unhandled error', () => {
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        client.addEventProcessor(() => null);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(client.session).toBeUndefined();
+        expect(session.errors).toBe(0);
+        expect(session.status).toBe('ok');
+      });
+    });
+
+    describe('error that passes through beforeSend updates session', () => {
+      test('updates session when beforeSend passes unhandled error through', () => {
+        const beforeSend = vi.fn(event => event);
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'unhandled crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeDefined();
+        expect(client.session?.errors).toBe(1);
+        expect(client.session?.status).toBe('crashed');
+      });
+    });
+
+    describe('sampleRate runs after beforeSend', () => {
+      test('does not update session when beforeSend drops an error that would be sampled out', () => {
+        const beforeSend = vi.fn(() => null);
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'filtered crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session).toBeUndefined();
+        expect(session.errors).toBe(0);
+        expect(session.status).toBe('ok');
+      });
+
+      test('uses the event returned by beforeSend to update a sampled-out session', () => {
+        const beforeSend = vi.fn((event: ErrorEvent) => {
+          const exception = event.exception?.values?.[0];
+          if (exception) {
+            exception.mechanism = { type: 'generic', handled: true };
+          }
+          return event;
+        });
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend });
+        const client = new TestClient(options);
+        setCurrentClient(client);
+
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent(
+          {
+            exception: {
+              values: [{ type: 'Error', value: 'reclassified crash', mechanism: { type: 'generic', handled: false } }],
+            },
+          },
+          { mechanism: { handled: false } },
+        );
+
+        expect(beforeSend).toHaveBeenCalledOnce();
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(client.session?.errors).toBe(1);
+        expect(client.session?.status).toBe('ok');
+      });
+    });
+  });
+
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
     test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -2623,6 +3149,39 @@ describe('Client', () => {
       });
 
       client.emit('beforeEnvelope', mockEnvelope);
+    });
+
+    it('calls an afterEnvelope hook after the transport send resolves', async () => {
+      let resolveSend: (() => void) | undefined;
+      const sendPromise = new Promise<void>(resolve => {
+        resolveSend = resolve;
+      });
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          transport: () => ({
+            send: vi.fn().mockReturnValue(sendPromise),
+            flush: vi.fn().mockResolvedValue(true),
+          }),
+        }),
+      );
+      const mockEnvelope = [
+        {
+          event_id: '12345',
+        },
+        [],
+      ] as Envelope;
+      const callback = vi.fn();
+      client.on('afterEnvelope', callback);
+
+      const result = client.sendEnvelope(mockEnvelope);
+      expect(callback).not.toHaveBeenCalled();
+
+      resolveSend?.();
+      await result;
+
+      expect(callback).toHaveBeenCalledOnce();
+      expect(callback).toHaveBeenCalledWith(mockEnvelope);
     });
 
     it('returns a cleanup function that, when executed, unregisters a hook', async () => {
@@ -2901,36 +3460,6 @@ describe('Client', () => {
     });
   });
 
-  describe('enableLogs', () => {
-    it('defaults to  `undefined`', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBeUndefined();
-    });
-
-    it('can be set as a top-level option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
-    });
-
-    it('can be set as an experimental option', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
-    });
-
-    test('top-level option takes precedence over experimental option', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: true,
-        _experiments: { enableLogs: false },
-      });
-      const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(true);
-    });
-  });
-
   describe('log weight-based flushing', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -2943,7 +3472,6 @@ describe('Client', () => {
     it('flushes logs when weight exceeds 800KB', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2961,7 +3489,6 @@ describe('Client', () => {
     it('accumulates log weight without flushing when under threshold', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2979,7 +3506,6 @@ describe('Client', () => {
     it('flushes logs after idle timeout', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3001,7 +3527,6 @@ describe('Client', () => {
     it('does not reset idle timeout when new logs are captured', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3028,7 +3553,6 @@ describe('Client', () => {
     it('starts new timer after timeout completes and flushes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3060,7 +3584,6 @@ describe('Client', () => {
     it('flushes logs on flush event', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3078,29 +3601,11 @@ describe('Client', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('does not flush logs when logs are disabled', () => {
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-      });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Create a large log message
-      const largeMessage = 'x'.repeat(400_000);
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
-
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-    });
-
     it('uses safeUnref on flush timer to not block process exit', () => {
       const safeUnrefSpy = vi.spyOn(timerModule, 'safeUnref');
 
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -3118,9 +3623,7 @@ describe('Client', () => {
 
     it('flush() drains the log buffer when client has no transport', async () => {
       // Client without DSN — _transport is undefined
-      const options = getDefaultTestClientOptions({
-        enableLogs: true,
-      });
+      const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);

@@ -1,18 +1,18 @@
 import { expect, it } from 'vitest';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // This test runs the `@langchain/openai` model (backed by the
@@ -42,17 +42,17 @@ it('traces a LangChain chat model invocation', async ({ signal }) => {
         attributes: {
           'sentry.origin': { value: 'auto.ai.langchain', type: 'string' },
           'sentry.op': { value: 'gen_ai.chat', type: 'string' },
-          [GEN_AI_SYSTEM_ATTRIBUTE]: { value: 'openai', type: 'string' },
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: { value: 'chat', type: 'string' },
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: { value: 'gpt-3.5-turbo', type: 'string' },
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: { value: 0.7, type: 'double' },
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: { value: 100, type: 'integer' },
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: { value: '["stop"]', type: 'string' },
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: { value: 10, type: 'integer' },
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: { value: 15, type: 'integer' },
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: { value: 25, type: 'integer' },
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: { value: 'gpt-3.5-turbo', type: 'string' },
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: { value: 'chatcmpl-mock123', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'openai', type: 'string' },
+          [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
+          [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
+          [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
+          [GEN_AI_RESPONSE_FINISH_REASONS]: { value: '["stop"]', type: 'string' },
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 10, type: 'integer' },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 15, type: 'integer' },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 25, type: 'integer' },
+          [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
+          [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
           [GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE]: { value: 'stop', type: 'string' },
         },
       });

@@ -9,6 +9,7 @@ import {
   winterCGRequestToRequestData,
 } from '../../../src/utils/request';
 import type { ResolvedDataCollection } from '../../../src/types/datacollection';
+import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 import type { Scope } from '../../../src/scope';
 
 describe('request utils', () => {
@@ -440,7 +441,7 @@ describe('request utils', () => {
 
   describe('httpHeadersToSpanAttributes', () => {
     it('works with empty headers object', () => {
-      expect(httpHeadersToSpanAttributes({})).toEqual({});
+      expect(httpHeadersToSpanAttributes({}, resolveDataCollectionOptions({}))).toEqual({});
     });
 
     it('converts single string header values to strings', () => {
@@ -449,7 +450,7 @@ describe('request utils', () => {
         'user-agent': 'test-agent',
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.content_type': 'application/json',
@@ -463,7 +464,7 @@ describe('request utils', () => {
         accept: ['application/json', 'text/html'],
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.custom_header': 'value1;value2',
@@ -477,7 +478,7 @@ describe('request utils', () => {
         'valid-header': 'valid-value',
       } as any;
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.valid_header': 'valid-value',
@@ -491,7 +492,7 @@ describe('request utils', () => {
         'undefined-header': undefined,
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.valid_header': 'valid-value',
@@ -504,7 +505,7 @@ describe('request utils', () => {
         'valid-header': 'valid-value',
       } as any;
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.empty_header': '',
@@ -520,7 +521,7 @@ describe('request utils', () => {
         ACCEPT: 'text/html',
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.content_type': 'application/json',
@@ -543,7 +544,7 @@ describe('request utils', () => {
         'X-Forwarded-For': '192.168.1.1',
       };
 
-      const result = httpHeadersToSpanAttributes(headers, true);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.host': 'example.com',
@@ -564,7 +565,7 @@ describe('request utils', () => {
         Accept: ['application/json', 'text/html'],
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.x_random_header': 'test=abc123;preferences=dark-mode;number=three',
@@ -578,7 +579,7 @@ describe('request utils', () => {
         'valid-header': 'valid-value',
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.empty_header': '',
@@ -595,7 +596,7 @@ describe('request utils', () => {
         },
       });
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({});
     });
@@ -605,7 +606,7 @@ describe('request utils', () => {
         'mixed-types': ['string-value', 123, true, null],
       } as any;
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.mixed_types': 'string-value;123;true;',
@@ -621,7 +622,7 @@ describe('request utils', () => {
         'object-header': { key: 'value' },
       } as any;
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
         'http.request.header.string_header': 'valid-value',
@@ -637,7 +638,7 @@ describe('request utils', () => {
           'Content-Type': 'application/json',
         };
 
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
@@ -653,7 +654,7 @@ describe('request utils', () => {
             'session=abc123; tracking=enabled; cookie-authentication-key-without-value; theme=dark; lang=en; user_session=xyz789; pref=1',
         };
 
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
           'http.request.header.cookie.session': '[Filtered]',
@@ -672,7 +673,7 @@ describe('request utils', () => {
             'connect.sid=s3cr3t; express.sid=opaque; PHPSESSID=abcd; theme=light; sb-access-token=x; __stripe_mid=y',
         };
 
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
           'http.request.header.cookie.connect.sid': '[Filtered]',
@@ -684,10 +685,21 @@ describe('request utils', () => {
         });
       });
 
-      it('still filters session-style cookie names when sendDefaultPii is true', () => {
+      it('still filters session-style cookie names when cookie collection is enabled', () => {
         const headers = { Cookie: 'connect.sid=s3cr3t; analytics=1' };
 
-        const result = httpHeadersToSpanAttributes(headers, true);
+        const result = httpHeadersToSpanAttributes(headers, {
+          userInfo: true,
+          cookies: true,
+          httpHeaders: { request: true, response: true },
+          httpBodies: [],
+          urlQueryParams: true,
+          graphQL: { document: true, variables: true },
+          genAI: { inputs: true, outputs: true },
+          databaseQueryData: true,
+          stackFrameVariables: true,
+          frameContextLines: 5,
+        });
 
         expect(result).toEqual({
           'http.request.header.cookie.connect.sid': '[Filtered]',
@@ -697,11 +709,11 @@ describe('request utils', () => {
 
       it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
         const headers1 = { Cookie: ['key', 'val'] };
-        const result1 = httpHeadersToSpanAttributes(headers1);
+        const result1 = httpHeadersToSpanAttributes(headers1, resolveDataCollectionOptions({}));
         expect(result1).toEqual({ 'http.request.header.cookie': '[Filtered]' });
 
         const headers3 = { Cookie: '' };
-        const result3 = httpHeadersToSpanAttributes(headers3);
+        const result3 = httpHeadersToSpanAttributes(headers3, resolveDataCollectionOptions({}));
         expect(result3).toEqual({ 'http.request.header.cookie': '[Filtered]' });
       });
 
@@ -717,20 +729,44 @@ describe('request utils', () => {
         ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
         expect(result).toEqual(expected);
       });
 
       it('only splits cookies once between key and value, even when more equals signs are present', () => {
         const headers = { Cookie: 'random-string=eyJhbGc=.eyJzdWI=.SflKxw' };
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
         expect(result).toEqual({ 'http.request.header.cookie.random_string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
       });
 
       it.each([
-        { sendDefaultPii: false, description: 'sendDefaultPii is false (default)' },
-        { sendDefaultPii: true, description: 'sendDefaultPii is true' },
-      ])('does not include PII headers when $description', ({ sendDefaultPii }) => {
+        {
+          dataCollection: resolveDataCollectionOptions({
+            dataCollection: {
+              httpHeaders: { request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] }, response: true },
+            },
+          }),
+          expected: {
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': '[Filtered]',
+            'http.request.header.x_forwarded_for': '[Filtered]',
+            'http.request.header.x_forwarded_host': '[Filtered]',
+            'http.request.header.x_forwarded_proto': '[Filtered]',
+          },
+        },
+        {
+          dataCollection: resolveDataCollectionOptions({}),
+          expected: {
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': 'my-personal-username',
+            'http.request.header.x_forwarded_for': '192.168.1.1',
+            'http.request.header.x_forwarded_host': 'example.com',
+            'http.request.header.x_forwarded_proto': 'https',
+          },
+        },
+      ])('filters PII headers according to dataCollection.httpHeaders', ({ dataCollection, expected }) => {
         const headers = {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0',
@@ -740,27 +776,7 @@ describe('request utils', () => {
           'X-Forwarded-Proto': 'https',
         };
 
-        const result = httpHeadersToSpanAttributes(headers, sendDefaultPii);
-
-        if (sendDefaultPii) {
-          expect(result).toEqual({
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': 'my-personal-username',
-            'http.request.header.x_forwarded_for': '192.168.1.1',
-            'http.request.header.x_forwarded_host': 'example.com',
-            'http.request.header.x_forwarded_proto': 'https',
-          });
-        } else {
-          expect(result).toEqual({
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': '[Filtered]',
-            'http.request.header.x_forwarded_for': '[Filtered]',
-            'http.request.header.x_forwarded_host': '[Filtered]',
-            'http.request.header.x_forwarded_proto': '[Filtered]',
-          });
-        }
+        expect(httpHeadersToSpanAttributes(headers, dataCollection)).toEqual(expected);
       });
 
       it('always filters comprehensive list of sensitive headers', () => {
@@ -794,9 +810,9 @@ describe('request utils', () => {
           'x-saml-token': 'saml',
         };
 
-        const result = httpHeadersToSpanAttributes(headers);
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
-        // Sensitive headers are always included and redacted
+        // Security-sensitive headers remain redacted with permissive collection defaults.
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
           'http.request.header.user_agent': 'test-agent',
@@ -817,7 +833,7 @@ describe('request utils', () => {
           'http.request.header.x_session_token': '[Filtered]',
           'http.request.header.x_password': '[Filtered]',
           'http.request.header.x_private_key': '[Filtered]',
-          'http.request.header.x_forwarded_user': '[Filtered]',
+          'http.request.header.x_forwarded_user': 'user',
           'http.request.header.x_forwarded_authorization': '[Filtered]',
           'http.request.header.x_jwt_token': '[Filtered]',
           'http.request.header.x_bearer_token': '[Filtered]',
@@ -845,7 +861,7 @@ describe('request utils', () => {
           Cookie: 'session=abc123',
         };
 
-        const result = httpHeadersToSpanAttributes(headers, false, 'response');
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}), 'response');
 
         expect(result).toEqual({
           'http.response.header.host': 'example.com',
@@ -856,7 +872,7 @@ describe('request utils', () => {
           'http.response.header.connection': 'keep-alive',
           'http.response.header.upgrade_insecure_requests': '1',
           'http.response.header.cache_control': 'no-cache',
-          'http.response.header.x_forwarded_for': '[Filtered]',
+          'http.response.header.x_forwarded_for': '192.168.1.1',
           'http.response.header.authorization': '[Filtered]',
           'http.response.header.x_bearer_token': '[Filtered]',
           'http.response.header.x_saml_token': '[Filtered]',

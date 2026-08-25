@@ -1,5 +1,12 @@
-import { context, createContextKey } from '@opentelemetry/api';
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
@@ -12,14 +19,19 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
+  filterCollectedUrl,
 } from '@sentry/core';
+import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import { getMiddlewareName } from './serverBuild';
 import { markInstrumentationApiUsed } from './serverGlobals';
 
-const MIDDLEWARE_COUNTER_KEY = createContextKey('sentry_react_router_middleware_counter');
+// Per-request middleware counters, keyed by the request's root span (the one transaction all of a
+// request's middlewares run under). The root span is the same instance across those middleware hooks
+// whether or not a Sentry OpenTelemetry tracer provider is set up, unlike the OTel context the counter
+// used to live on (which does not propagate without a provider).
+const middlewareCountersByRootSpan = new WeakMap<object, Record<string, number>>();
 
 // Re-export for backward compatibility and external use
 export { isInstrumentationApiUsed } from './serverGlobals';
@@ -46,7 +58,7 @@ export function createSentryServerInstrumentation(
   DEBUG_BUILD && debug.log('React Router server instrumentation created.');
 
   return {
-    handler(handler: InstrumentableRequestHandler) {
+    handler(handler) {
       // Mark the instrumentation API active only when React Router actually invokes this
       markInstrumentationApiUsed();
       handler.instrument({
@@ -55,68 +67,63 @@ export function createSentryServerInstrumentation(
           const activeSpan = getActiveSpan();
           const existingRootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-          const counterStore = { counters: {} as Record<string, number> };
-          const ctx = context.active().setValue(MIDDLEWARE_COUNTER_KEY, counterStore);
+          if (existingRootSpan) {
+            updateSpanName(existingRootSpan, `${info.request.method} ${pathname}`);
+            existingRootSpan.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [URL_FULL]: filterCollectedUrl(info.request.url),
+              [URL_PATH]: pathname,
+            });
 
-          await context.with(ctx, async () => {
-            if (existingRootSpan) {
-              updateSpanName(existingRootSpan, `${info.request.method} ${pathname}`);
-              existingRootSpan.setAttributes({
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [URL_FULL]: info.request.url,
-                [URL_PATH]: pathname,
-              });
-
-              try {
-                const result = await handleRequest();
-                if (result.status === 'error' && result.error instanceof Error) {
-                  existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                    'http.method': info.request.method,
-                    'http.url': pathname,
-                  });
-                }
-              } finally {
-                await flushIfServerless();
+            try {
+              const result = await handleRequest();
+              if (result.status === 'error' && result.error instanceof Error) {
+                existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
+                  'http.method': info.request.method,
+                  [URL_FULL]: pathname,
+                });
               }
-            } else {
-              await startSpan(
-                {
-                  name: `${info.request.method} ${pathname}`,
-                  forceTransaction: true,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                    [HTTP_REQUEST_METHOD]: info.request.method,
-                    [URL_PATH]: pathname,
-                    [URL_FULL]: info.request.url,
-                  },
-                },
-                async span => {
-                  try {
-                    const result = await handleRequest();
-                    if (result.status === 'error' && result.error instanceof Error) {
-                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                      captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                        'http.method': info.request.method,
-                        'http.url': pathname,
-                      });
-                    }
-                  } finally {
-                    await flushIfServerless();
-                  }
-                },
-              );
+            } finally {
+              await flushIfServerless();
             }
-          });
+          } else {
+            await startSpan(
+              {
+                name: `${info.request.method} ${pathname}`,
+                forceTransaction: true,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [HTTP_REQUEST_METHOD]: info.request.method,
+                  [URL_PATH]: pathname,
+                  [URL_FULL]: filterCollectedUrl(info.request.url),
+                },
+              },
+              async span => {
+                try {
+                  const result = await handleRequest();
+                  if (result.status === 'error' && result.error instanceof Error) {
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
+                      'http.method': info.request.method,
+                      [URL_FULL]: pathname,
+                    });
+                  }
+                } finally {
+                  await flushIfServerless();
+                }
+              },
+            );
+          }
         },
       });
     },
 
-    route(route: InstrumentableRoute) {
+    route(route) {
       // Also mark active here, in case route registration runs (mirrors the handler callback above).
       markInstrumentationApiUsed();
       const routeId = route.id;
@@ -132,7 +139,8 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
+                [SENTRY_OP]: FUNCTION,
+                [CODE_FUNCTION_NAME]: 'loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -142,7 +150,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.loader', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  [URL_FULL]: urlPath,
                 });
               }
             },
@@ -159,7 +167,8 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
+                [SENTRY_OP]: FUNCTION,
+                [CODE_FUNCTION_NAME]: 'action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -169,7 +178,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.action', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  [URL_FULL]: urlPath,
                 });
               }
             },
@@ -183,13 +192,17 @@ export function createSentryServerInstrumentation(
 
           updateRootSpanWithRoute(info.request.method, pattern, urlPath);
 
-          const counterStore = context.active().getValue(MIDDLEWARE_COUNTER_KEY) as
-            | { counters: Record<string, number> }
-            | undefined;
+          const activeSpan = getActiveSpan();
+          const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
           let middlewareIndex = 0;
-          if (counterStore) {
-            middlewareIndex = counterStore.counters[routeId] ?? 0;
-            counterStore.counters[routeId] = middlewareIndex + 1;
+          if (rootSpan) {
+            let counters = middlewareCountersByRootSpan.get(rootSpan);
+            if (!counters) {
+              counters = {};
+              middlewareCountersByRootSpan.set(rootSpan, counters);
+            }
+            middlewareIndex = counters[routeId] ?? 0;
+            counters[routeId] = middlewareIndex + 1;
           }
 
           const middlewareName = getMiddlewareName(routeId, middlewareIndex);
@@ -198,7 +211,8 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
+                [SENTRY_OP]: MIDDLEWARE,
+                [CODE_FUNCTION_NAME]: 'middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 [HTTP_ROUTE]: routePattern,
@@ -212,7 +226,7 @@ export function createSentryServerInstrumentation(
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
                   'http.method': info.request.method,
-                  'http.url': urlPath,
+                  [URL_FULL]: urlPath,
                 });
               }
             },
@@ -224,7 +238,8 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.lazy',
+                [SENTRY_OP]: FUNCTION,
+                [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

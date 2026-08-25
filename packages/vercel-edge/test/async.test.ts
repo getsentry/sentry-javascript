@@ -1,21 +1,12 @@
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  GLOBAL_OBJ,
-  Scope,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
-import { AsyncLocalStorage } from 'async_hooks';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getCurrentScope, getIsolationScope, getMainCarrier, Scope, withIsolationScope, withScope } from '@sentry/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 
-beforeAll(() => {
-  (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
+beforeEach(() => {
+  getMainCarrier().__SENTRY__ = undefined;
 
   const client = new VercelEdgeClient({
     stackParser: () => [],
@@ -23,15 +14,8 @@ beforeAll(() => {
     transport: makeEdgeTransport,
   });
 
-  setupOtel(client);
-
   setOpenTelemetryContextAsyncContextStrategy();
-});
-
-beforeEach(() => {
-  getIsolationScope().clear();
-  getCurrentScope().clear();
-  getGlobalScope().clear();
+  setupOtel(client);
 });
 
 describe('withScope()', () => {

@@ -1,34 +1,36 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
 import type { IncomingHttpHeaders } from 'node:http';
-import { context } from '@opentelemetry/api';
-import type { RPCMetadata } from '@opentelemetry/core';
-import { RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
   HTTP_CLIENT_IP,
   HTTP_FLAVOR,
   HTTP_HOST,
   HTTP_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_ROUTE,
   HTTP_SCHEME,
   HTTP_STATUS_CODE,
   HTTP_TARGET,
-  HTTP_URL,
   HTTP_USER_AGENT,
-  NET_HOST_IP,
-  NET_HOST_NAME,
-  NET_HOST_PORT,
-  NET_PEER_IP,
-  NET_PEER_PORT,
-  NET_TRANSPORT,
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_HTTP_PREFETCH,
+  URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
+  URL_QUERY,
+  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import type {
   Event,
-  HttpClientRequest,
   HttpIncomingMessage,
   HttpServerResponse,
   Integration,
@@ -39,19 +41,22 @@ import type {
 } from '@sentry/core';
 import {
   debug,
-  getIsolationScope,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
   bindScopeToEmitter,
   startInactiveSpan,
   withActiveSpan,
-  SPAN_KIND,
+  getUrlFragment,
+  getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -93,19 +98,6 @@ export interface HttpServerSpansIntegrationOptions {
   ignoreStatusCodes?: (number | [number, number])[];
 
   /**
-   * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
-   */
-  instrumentation?: {
-    requestHook?: (span: Span, req: HttpClientRequest | HttpIncomingMessage) => void;
-    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: HttpClientRequest | HttpIncomingMessage,
-      response: HttpIncomingMessage | HttpServerResponse,
-    ) => void;
-  };
-
-  /**
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */
@@ -123,8 +115,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line typescript/no-deprecated
-  const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
     name: INTEGRATION_NAME,
@@ -166,81 +156,80 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
+          const query = getUrlQuery(urlObj?.search);
+          const fragment = getUrlFragment(urlObj?.hash);
+
           const span = startInactiveSpan({
             name: bestEffortTransactionName,
-            kind: SPAN_KIND.SERVER,
             attributes: {
               // Sentry specific attributes
+              [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
-              [URL_FULL]: fullUrl,
+              [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+              [URL_QUERY]: filterCollectedUrlQuery(query, client),
+              [URL_FRAGMENT]: fragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
-              [HTTP_URL]: fullUrl,
               [HTTP_METHOD]: normalizedRequest.method,
-              [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              [HTTP_TARGET]: filterCollectedUrl(
+                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+                client,
+              ),
               [HTTP_HOST]: host,
-              [NET_HOST_NAME]: hostname,
-              [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              [SERVER_ADDRESS]: hostname,
+              [NETWORK_PROTOCOL_NAME]: 'http',
+              [NETWORK_PROTOCOL_VERSION]: httpVersion,
+              [HTTP_CLIENT_IP]: client.getDataCollectionOptions().userInfo ? getForwardedClientAddress(ips) : undefined,
               [HTTP_USER_AGENT]: userAgent,
               [HTTP_SCHEME]: scheme,
               [HTTP_FLAVOR]: httpVersion,
-              [NET_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
               /* eslint-enable typescript/no-deprecated */
               ...getRequestContentLengthAttribute(request),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
           });
 
-          // TODO v11: Remove the following three hooks, only onSpanCreated should remain
-          requestHook?.(span, request);
-          responseHook?.(span, response);
-          applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
-          const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
-
           return withActiveSpan(span, () => {
-            // TODO(v11): Get rid of RPC metadata here
-            return context.with(setRPCMetadata(context.active(), rpcMetadata), () => {
-              bindScopeToEmitter(request);
-              bindScopeToEmitter(response);
+            bindScopeToEmitter(request);
+            bindScopeToEmitter(response);
 
-              // Ensure we only end the span once
-              // E.g. error can be emitted before close is emitted
-              let isEnded = false;
-              function endSpan(status: SpanStatus): void {
-                if (isEnded) {
-                  return;
-                }
-
-                isEnded = true;
-
-                const newAttributes = getIncomingRequestAttributesOnResponse(request, response, rpcMetadata);
-                span.setAttributes(newAttributes);
-                span.setStatus(status);
-                span.end();
-
-                // Update the transaction name if the route has changed
-                const route = newAttributes['http.route'];
-                if (route) {
-                  getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
-                }
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
               }
 
-              response.on('close', () => {
-                endSpan(getSpanStatusFromHttpCode(response.statusCode));
-              });
-              response.on(errorMonitor, () => {
-                const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-                // Ensure we def. have an error status here
-                endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-              });
+              isEnded = true;
 
-              return next();
+              const newAttributes = getIncomingRequestAttributesOnResponse(
+                request,
+                response,
+                client.getDataCollectionOptions().userInfo,
+              );
+              span.setAttributes(newAttributes);
+              span.setStatus(status);
+              span.end();
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
             });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
+
+            return next();
           });
         };
 
@@ -398,10 +387,18 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
   return !!encoding && encoding !== 'identity';
 }
 
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
+}
+
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
-  rpcMetadata?: RPCMetadata,
+  collectClientAddress: boolean,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -415,24 +412,21 @@ function getIncomingRequestAttributesOnResponse(
     'http.status_text': statusMessage?.toUpperCase(),
   };
 
+  if (collectClientAddress) {
+    // `client.address` is the originating client, so a forwarding header wins over the socket, which
+    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
+    newAttributes[CLIENT_ADDRESS] =
+      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+  }
+
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_IP] = localAddress;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_PORT] = localPort;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_IP] = remoteAddress;
-    // oxlint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_PORT] = remotePort;
-  }
-  // eslint-disable-next-line typescript/no-deprecated
-  newAttributes[HTTP_STATUS_CODE] = statusCode;
-  newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
-
-  if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
-    const routeName = rpcMetadata.route;
-    newAttributes[HTTP_ROUTE] = routeName;
+    newAttributes[SERVER_PORT] = localPort;
+    newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
+    newAttributes[NETWORK_LOCAL_PORT] = localPort;
+    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
+    newAttributes[NETWORK_PEER_PORT] = remotePort;
   }
 
   return newAttributes;

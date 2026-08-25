@@ -10,8 +10,8 @@ test('errors and transactions get a unique traceId per request, when tracing is 
   const eventTraceIds: string[] = [];
   const transactionTraceIds: string[] = [];
 
-  const runner = createRunner(__dirname, 'server.ts')
-    .withFlags('--require', join(__dirname, 'instrument.ts'))
+  const runner = createRunner(__dirname, 'server.js')
+    .withFlags('--import', join(__dirname, 'instrument.cjs'))
     .expect({
       event: event => {
         eventTraceIds.push(event.contexts?.trace?.trace_id || '');
@@ -55,5 +55,5 @@ test('errors and transactions get a unique traceId per request, when tracing is 
     expect(traceId).toMatch(/^[a-f\d]{32}$/);
   }
 
-  expect(eventTraceIds).toEqual(transactionTraceIds);
+  expect(eventTraceIds.sort()).toEqual(transactionTraceIds.sort());
 });

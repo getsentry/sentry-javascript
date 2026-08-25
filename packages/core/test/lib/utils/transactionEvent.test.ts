@@ -27,6 +27,7 @@ describe('convertTransactionEventToSpanJson', () => {
       timestamp: 1234567890,
       trace_id: 'abc123',
       is_segment: true,
+      status: 'ok',
     });
   });
 
@@ -92,6 +93,7 @@ describe('convertTransactionEventToSpanJson', () => {
       start_timestamp: 0,
       trace_id: '',
       is_segment: true,
+      status: 'ok',
     });
   });
 });
@@ -105,6 +107,7 @@ describe('convertSpanJsonToTransactionEvent', () => {
       start_timestamp: 0,
       timestamp: 1234567890,
       trace_id: 'abc123',
+      status: 'ok',
     };
 
     expect(convertSpanJsonToTransactionEvent(span)).toEqual({
@@ -117,6 +120,7 @@ describe('convertSpanJsonToTransactionEvent', () => {
           span_id: 'span456',
           parent_span_id: '',
           data: {},
+          status: 'ok',
         },
       },
     });

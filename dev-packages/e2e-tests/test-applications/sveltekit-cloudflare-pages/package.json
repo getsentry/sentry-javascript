@@ -15,12 +15,14 @@
     "test:assert": "pnpm run test:e2e"
   },
   "dependencies": {
-    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
+    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz",
+    "mysql": "2.18.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sveltejs/adapter-cloudflare": "^5.0.3",
-    "@sveltejs/kit": "2.60.1",
+    "@sveltejs/kit": "2.69.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "svelte": "^5.20.2",
     "svelte-check": "^4.1.4",

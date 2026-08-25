@@ -5,6 +5,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
 } from '@sentry/core';
+import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
 import { getRouteId } from '../common/utils';
@@ -32,7 +34,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       const routeId = getRouteId(event);
 
@@ -40,8 +42,9 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
         return await startSpan(
           {
-            op: 'function.sveltekit.load',
             attributes: {
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
             },
@@ -92,7 +95,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       // Accessing any member of `event.route` causes SvelteKit to invalidate the
       // server `load` function's data on every route change. We use `getRouteId` which uses
@@ -103,9 +106,10 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
         return await startSpan(
           {
-            op: 'function.sveltekit.server.load',
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: 'load',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
             },

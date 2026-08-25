@@ -35,7 +35,6 @@ export {
   fastifyIntegration,
   flush,
   functionToStringIntegration,
-  generateInstrumentOnce,
   genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
@@ -53,8 +52,6 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
@@ -103,6 +100,7 @@ export {
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spotlightIntegration,
@@ -133,6 +131,8 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/node';
 

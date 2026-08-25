@@ -9,17 +9,13 @@ import * as Effect from 'effect/Effect';
 const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
   Sentry.effectLayer({
+    traceLifecycle: 'static',
     dsn: process.env.E2E_TEST_DSN,
-    integrations: [
-      Sentry.browserTracingIntegration({
-        _experiments: { enableInteractions: true },
-      }),
-    ],
+    integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
     tracesSampleRate: 1.0,
     release: 'e2e-test',
     environment: 'qa',
     tunnel: 'http://localhost:3031',
-    enableLogs: true,
   }),
   Layer.setTracer(Sentry.SentryEffectTracer),
   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),

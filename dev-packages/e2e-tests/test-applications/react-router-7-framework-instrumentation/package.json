@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels, so the orchestrion build-time transform injects the diagnostics_channel publishers.",
   "dependencies": {
     "@react-router/node": "^7",
     "@react-router/serve": "^7",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
-    "ioredis": "^5.4.1",
+    "ioredis": "5.10.1",
     "isbot": "^5.1.17",
+    "mysql": "^2.18.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "^7"
@@ -17,6 +19,7 @@
     "@playwright/test": "~1.56.0",
     "@react-router/dev": "^7",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/mysql": "^2.15.26",
     "@types/node": "^20",
     "@types/react": "18.3.1",
     "@types/react-dom": "18.3.1",
@@ -25,15 +28,16 @@
   },
   "scripts": {
     "build": "react-router build",
-    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
-    "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
     "proxy": "node start-event-proxy.mjs",
     "typecheck": "react-router typegen && tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:assert": "pnpm test:ts && pnpm test:prod && pnpm test:dev",
     "test:ts": "pnpm typecheck",
-    "test:playwright": "playwright test"
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
   },
   "eslintConfig": {
     "extends": [

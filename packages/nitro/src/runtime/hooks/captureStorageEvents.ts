@@ -1,10 +1,12 @@
 import * as dc from 'node:diagnostics_channel';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   flushIfServerless,
   GLOBAL_OBJ,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -32,7 +34,25 @@ const TRACED_OPERATIONS = [
 
 type TracedOperation = (typeof TRACED_OPERATIONS)[number];
 
-const CACHE_HIT_OPERATIONS = new Set<TracedOperation>(['hasItem', 'getItem', 'getItemRaw']);
+const CACHE_HIT_OPERATIONS = new Set<TracedOperation>(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
+
+/**
+ * Maps each unstorage operation to a convention cache op. Reads (including existence and key
+ * listing) are `cache.get`, writes are `cache.put`, and deletions are `cache.remove`.
+ * The precise operation stays available on `db.operation.name`.
+ */
+const OPERATION_SPAN_OPS = {
+  hasItem: CACHE_GET,
+  getItem: CACHE_GET,
+  getItemRaw: CACHE_GET,
+  getItems: CACHE_GET,
+  getKeys: CACHE_GET,
+  setItem: CACHE_PUT,
+  setItemRaw: CACHE_PUT,
+  setItems: CACHE_PUT,
+  removeItem: CACHE_REMOVE,
+  clear: CACHE_REMOVE,
+} as const satisfies Record<TracedOperation, string>;
 
 const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
 
@@ -68,7 +88,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
       return startInactiveSpan({
         name: cacheKeys.join(', ') || operation,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(operation)}`,
+          [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,
@@ -84,8 +104,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
         if (!('error' in data)) {
           const result = (data as { result?: unknown }).result;
           if (CACHE_HIT_OPERATIONS.has(operation)) {
-            const hit = operation === 'hasItem' ? Boolean(result) : isCacheHit(data.keys?.[0], result);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(operation, data.keys?.[0], result));
           }
         }
 
@@ -95,8 +114,21 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   );
 }
 
-function normalizeMethodName(methodName: string): string {
-  return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+/**
+ * Resolves the `cache.hit` value for a read operation. `hasItem` returns a boolean directly,
+ * `getItems` returns a `{ key, value }[]` where a hit means at least one entry has a value,
+ * and single-key reads fall back to the value-based `isCacheHit` check.
+ */
+function resolveCacheHit(operation: TracedOperation, key: unknown, result: unknown): boolean {
+  if (operation === 'hasItem') {
+    return Boolean(result);
+  }
+
+  if (operation === 'getItems') {
+    return Array.isArray(result) && result.some(item => isObjectLike(item) && item.value != null);
+  }
+
+  return isCacheHit(key, result);
 }
 
 interface CacheEntry<T = unknown> {

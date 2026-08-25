@@ -1,5 +1,6 @@
-import type { InstrumentationConfig } from '..';
-import { toSubscribeInjections } from './subscribe-injection';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 // The mongodb driver's command architecture changed across majors, mirrored in the vendored OTel
 // instrumentation's version bands:
@@ -61,6 +62,8 @@ export const mongodbConfig = [
   },
 ] satisfies InstrumentationConfig[];
 
+export const mongodbModuleNames = getModuleNames(mongodbConfig);
+
 export const mongodbChannels = {
   MONGODB_COMMAND: 'orchestrion:mongodb:command',
   MONGODB_CHECKOUT: 'orchestrion:mongodb:checkout',
@@ -71,5 +74,3 @@ export const mongodbChannels = {
   MONGODB_V3_QUERY: 'orchestrion:mongodb:v3_query',
   MONGODB_V3_GET_MORE: 'orchestrion:mongodb:v3_get_more',
 } as const;
-
-export const mongodbSubscribeInjection = toSubscribeInjections(mongodbConfig);

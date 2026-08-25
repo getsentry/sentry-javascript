@@ -15,12 +15,12 @@ test('instruments RegExp router routes', async ({ baseURL }) => {
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        op: 'router.koa',
-        origin: 'auto.http.otel.koa',
+        op: 'router',
+        origin: 'auto.http.koa',
         data: expect.objectContaining({
           'koa.type': 'router',
-          'sentry.op': 'router.koa',
-          'sentry.origin': 'auto.http.otel.koa',
+          'sentry.op': 'router',
+          'sentry.origin': 'auto.http.koa',
           'http.route': '/^\\/test-regexp/',
         }),
       }),
@@ -43,13 +43,13 @@ test('instruments nested routers with the composed http.route', async ({ baseURL
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        op: 'router.koa',
+        op: 'router',
         description: '/:first/details/:id',
         data: expect.objectContaining({
           'koa.type': 'router',
           'http.route': '/:first/details/:id',
-          'sentry.op': 'router.koa',
-          'sentry.origin': 'auto.http.otel.koa',
+          'sentry.op': 'router',
+          'sentry.origin': 'auto.http.koa',
         }),
       }),
     ]),
@@ -69,9 +69,7 @@ test('does not instrument the same middleware twice', async ({ baseURL }) => {
 
   // The route stack is [sharedRouteMiddleware, sharedRouteMiddleware, handler]; the repeated
   // middleware instance is skipped, leaving one span for it plus the handler span.
-  const dedupSpans = transactionEvent.spans?.filter(
-    span => span.op === 'router.koa' && span.description === '/test-dedup',
-  );
+  const dedupSpans = transactionEvent.spans?.filter(span => span.op === 'router' && span.description === '/test-dedup');
   expect(dedupSpans).toHaveLength(2);
 });
 
@@ -90,8 +88,8 @@ test('marks the layer span as errored when a handler throws', async ({ baseURL }
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        op: 'router.koa',
-        origin: 'auto.http.otel.koa',
+        op: 'router',
+        origin: 'auto.http.koa',
         status: 'internal_error',
       }),
     ]),

@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -7,11 +7,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
     cleanupChildProcesses();
   });
 
-  // The query-span origin depends on which instrumentation is active. The blocks below drive the SDK's
-  // default integrations, so when the generic orchestrion run is enabled (via INJECT_ORCHESTRION) the OTel
-  // `Postgres` integration is swapped for the diagnostics-channel one, changing the origin. Blocks that pass
-  // an explicit `postgresIntegration()` (e.g. `ignoreConnectSpans`) keep the OTel origin and don't use this.
-  const QUERY_ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgres' : 'auto.db.otel.postgres';
+  // `postgresIntegration()` is the diagnostics-channel implementation by default, so query spans carry
+  // the orchestrion origin.
+  const QUERY_ORIGIN = 'auto.db.postgres';
 
   describe('default', () => {
     const EXPECTED_TRANSACTION = {
@@ -19,8 +17,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
             'sentry.origin': 'manual',
             'sentry.op': 'db',
           }),
@@ -30,9 +28,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -43,9 +41,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT * FROM "User"',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT * FROM "User"',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -56,9 +54,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
             'db.postgresql.plan': 'select-user-by-email',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
@@ -70,9 +68,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT * FROM "does_not_exist_table"',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT * FROM "does_not_exist_table"',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -104,29 +102,29 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                 spans: expect.arrayContaining([
                   expect.objectContaining({
                     data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                      'sentry.origin': 'auto.db.otel.postgres',
+                      'db.system.name': 'postgresql',
+                      'db.namespace': 'tests',
+                      'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                      'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
                     description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                     op: 'db',
                     status: 'ok',
-                    origin: 'auto.db.otel.postgres',
+                    origin: QUERY_ORIGIN,
                   }),
                   expect.objectContaining({
                     data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'SELECT * FROM "User"',
-                      'sentry.origin': 'auto.db.otel.postgres',
+                      'db.system.name': 'postgresql',
+                      'db.namespace': 'tests',
+                      'db.query.text': 'SELECT * FROM "User"',
+                      'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
                     description: 'SELECT * FROM "User"',
                     op: 'db',
                     status: 'ok',
-                    origin: 'auto.db.otel.postgres',
+                    origin: QUERY_ORIGIN,
                   }),
                 ]),
               });
@@ -146,8 +144,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         // to 'manual', and the connection-string credentials are masked out.
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
             'db.connection_string': 'postgresql://localhost:5494/tests',
             'sentry.op': 'db',
           }),
@@ -159,9 +157,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         // Callback-style query (no awaited promise returned to the caller).
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT 1 AS foo',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT 1 AS foo',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -190,8 +188,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
             'sentry.op': 'db',
           }),
           description: 'pg.connect',
@@ -220,9 +218,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT 1 AS connect_then',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT 1 AS connect_then',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -257,9 +255,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                 spans: expect.arrayContaining([
                   expect.objectContaining({
                     data: expect.objectContaining({
-                      'db.system': 'postgresql',
-                      'db.name': 'tests',
-                      'db.statement': 'SELECT 2 AS parented',
+                      'db.system.name': 'postgresql',
+                      'db.namespace': 'tests',
+                      'db.query.text': 'SELECT 2 AS parented',
                       'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
@@ -284,8 +282,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
             'sentry.origin': 'manual',
             'sentry.op': 'db',
           }),
@@ -295,9 +293,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -308,9 +306,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT * FROM "NativeUser"',
+            'db.system.name': 'postgresql',
+            'db.namespace': 'tests',
+            'db.query.text': 'SELECT * FROM "NativeUser"',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
@@ -335,13 +333,12 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
     );
   });
 
-  // Orchestrion (diagnostics-channel) variant: the same scenarios opted into
-  // `experimentalUseDiagnosticsChannelInjection()`. Produces the same spans as
-  // the OTel path, except the query origin reports the mechanism
-  // (`auto.db.orchestrion.postgres`); connect/pool-connect spans stay 'manual'
-  // (mirroring OTel — those spans never set an origin).
+  // Orchestrion (diagnostics-channel) coverage via a dedicated instrument file. Produces the same
+  // spans as the OTel path did, except the query origin reports the mechanism
+  // (`auto.db.postgres`); connect/pool-connect spans stay 'manual' (those spans never set
+  // an origin).
   describe('orchestrion (diagnostics-channel)', () => {
-    const ORIGIN = 'auto.db.orchestrion.postgres';
+    const ORIGIN = 'auto.db.postgres';
 
     describe('default', () => {
       const EXPECTED_TRANSACTION = {
@@ -349,8 +346,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         spans: expect.arrayContaining([
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.name': 'tests',
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
               'sentry.origin': 'manual',
               'sentry.op': 'db',
             }),
@@ -360,9 +357,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           }),
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.name': 'tests',
-              'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
+              'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
               'sentry.origin': ORIGIN,
               'sentry.op': 'db',
             }),
@@ -373,9 +370,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           }),
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.name': 'tests',
-              'db.statement': 'SELECT * FROM "User" WHERE "email" = $1',
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
+              'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
               'db.postgresql.plan': 'select-user-by-email',
               'sentry.origin': ORIGIN,
               'sentry.op': 'db',
@@ -387,8 +384,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           }),
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.statement': 'SELECT * FROM "does_not_exist_table"',
+              'db.system.name': 'postgresql',
+              'db.query.text': 'SELECT * FROM "does_not_exist_table"',
               'sentry.origin': ORIGIN,
               'sentry.op': 'db',
             }),
@@ -400,19 +397,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         ]),
       };
 
-      createEsmAndCjsTests(
-        __dirname,
-        'scenario.mjs',
-        'instrument-orchestrion.mjs',
-        (createTestRunner, test) => {
-          test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
-            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-          });
-        },
-        // This block enables orchestrion itself via its instrument file, so opt out of the generic
-        // INJECT_ORCHESTRION auto-injection to avoid enabling it twice.
-        { injectOrchestrion: false },
-      );
+      createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
+        test('auto-instruments `pg` via diagnostics channels', { timeout: 90_000 }, async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      });
     });
 
     describe('pool', () => {
@@ -421,8 +410,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         spans: expect.arrayContaining([
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.name': 'tests',
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
               'db.connection_string': 'postgresql://localhost:5494/tests',
               'sentry.op': 'db',
             }),
@@ -433,9 +422,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           }),
           expect.objectContaining({
             data: expect.objectContaining({
-              'db.system': 'postgresql',
-              'db.name': 'tests',
-              'db.statement': 'SELECT 1 AS foo',
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
+              'db.query.text': 'SELECT 1 AS foo',
               'sentry.origin': ORIGIN,
               'sentry.op': 'db',
             }),
@@ -447,18 +436,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         ]),
       };
 
-      createEsmAndCjsTests(
-        __dirname,
-        'scenario-pool.mjs',
-        'instrument-orchestrion.mjs',
-        (createTestRunner, test) => {
-          test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
-            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-          });
-        },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
-      );
+      createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument-orchestrion.mjs', (createTestRunner, test) => {
+        test('auto-instruments `pg.Pool` and handles callback-style queries', { timeout: 90_000 }, async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        });
+      });
     });
 
     describe('connect error', () => {
@@ -466,7 +448,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         transaction: 'Test Transaction',
         spans: expect.arrayContaining([
           expect.objectContaining({
-            data: expect.objectContaining({ 'db.system': 'postgresql', 'db.name': 'tests', 'sentry.op': 'db' }),
+            data: expect.objectContaining({
+              'db.system.name': 'postgresql',
+              'db.namespace': 'tests',
+              'sentry.op': 'db',
+            }),
             description: 'pg.connect',
             op: 'db',
             // A failed connect has no canonical status message, so serializes
@@ -488,8 +474,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
           });
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
 
@@ -514,8 +498,8 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       spans: expect.arrayContaining([
                         expect.objectContaining({
                           data: expect.objectContaining({
-                            'db.system': 'postgresql',
-                            'db.statement': 'SELECT 2 AS parented',
+                            'db.system.name': 'postgresql',
+                            'db.query.text': 'SELECT 2 AS parented',
                             'sentry.origin': ORIGIN,
                             'sentry.op': 'db',
                           }),
@@ -533,8 +517,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
           );
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
 
@@ -560,9 +542,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       spans: expect.arrayContaining([
                         expect.objectContaining({
                           data: expect.objectContaining({
-                            'db.system': 'postgresql',
-                            'db.name': 'tests',
-                            'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                            'db.system.name': 'postgresql',
+                            'db.namespace': 'tests',
+                            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                             'sentry.origin': ORIGIN,
                             'sentry.op': 'db',
                           }),
@@ -573,9 +555,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                         }),
                         expect.objectContaining({
                           data: expect.objectContaining({
-                            'db.system': 'postgresql',
-                            'db.name': 'tests',
-                            'db.statement': 'SELECT * FROM "User"',
+                            'db.system.name': 'postgresql',
+                            'db.namespace': 'tests',
+                            'db.query.text': 'SELECT * FROM "User"',
                             'sentry.origin': ORIGIN,
                             'sentry.op': 'db',
                           }),
@@ -593,8 +575,6 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
           );
         },
-        // Enables orchestrion itself; opt out of the generic INJECT_ORCHESTRION auto-injection.
-        { injectOrchestrion: false },
       );
     });
   });

@@ -113,6 +113,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
       vcsRemote: userOptions.release?.vcsRemote ?? process.env['SENTRY_VSC_REMOTE'] ?? 'origin',
+      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast carries the internal `shouldNotThrowOnFailure` field; tsc errors without it
       setCommits: userOptions.release?.setCommits as
         | (SetCommitsOptions & { shouldNotThrowOnFailure?: boolean })
         | false

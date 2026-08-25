@@ -13,6 +13,7 @@ const app = createApp(App);
 const pinia = createPinia();
 
 Sentry.init({
+  traceLifecycle: 'static',
   app,
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   tracesSampleRate: 1.0,

@@ -3,14 +3,17 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { startSpan } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
+import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike, isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -84,9 +87,15 @@ export interface PostgRESTQueryBuilder {
   [key: string]: PostgRESTQueryOperationFn;
 }
 
+/**
+ * `postgrest-js` stores the request headers as a plain object up to v1.19.x and as a `Headers`
+ * instance from v2.74.0 on (shipped with `supabase-js` 2.74.0), so we have to handle both shapes.
+ */
+export type PostgRESTHeaders = Record<string, string> | WebFetchHeaders;
+
 export interface PostgRESTFilterBuilder {
   method: string;
-  headers: Record<string, string>;
+  headers: PostgRESTHeaders;
   url: URL;
   schema: string;
   body: any;
@@ -169,18 +178,42 @@ function hasMutationBodyForDescription(rawBody: unknown, plainBody: Record<strin
 }
 
 /**
+ * Reads a header off a PostgREST builder, regardless of whether it holds a plain object or a
+ * `Headers` instance. Lookup is case-insensitive because `Headers` lower-cases all of its keys.
+ * @param headers - The request headers
+ * @param name - The header name to look up
+ * @returns The header value, or `undefined` if it is not set
+ */
+export function getHeader(headers: PostgRESTHeaders | undefined, name: string): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  if (typeof (headers as WebFetchHeaders).get === 'function') {
+    return (headers as WebFetchHeaders).get(name) ?? undefined;
+  }
+
+  const plainHeaders = headers as Record<string, string>;
+  const lowerCaseName = name.toLowerCase();
+  const key = Object.keys(plainHeaders).find(headerName => headerName.toLowerCase() === lowerCaseName);
+
+  return key !== undefined ? plainHeaders[key] : undefined;
+}
+
+/**
  * Extracts the database operation type from the HTTP method and headers
  * @param method - The HTTP method of the request
  * @param headers - The request headers
  * @returns The database operation type ('select', 'insert', 'upsert', 'update', or 'delete')
  */
-export function extractOperation(method: string, headers: Record<string, string> = {}): string {
+export function extractOperation(method: string, headers: PostgRESTHeaders = {}): string {
   switch (method) {
-    case 'GET': {
+    case 'GET':
+    case 'QUERY': {
       return 'select';
     }
     case 'POST': {
-      if (headers['Prefer']?.includes('resolution=')) {
+      if (getHeader(headers, 'Prefer')?.includes('resolution=')) {
         return 'upsert';
       } else {
         return 'insert';
@@ -245,8 +278,8 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-            'db.system': 'postgresql',
-            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_SYSTEM_NAME]: 'postgresql',
+            [DB_OPERATION_NAME]: `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
@@ -404,9 +437,9 @@ function instrumentPostgRESTFilterBuilder(
           'db.table': table,
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
-          'db.sdk': typedThis.headers['X-Client-Info'],
-          'db.system': 'postgresql',
-          'db.operation': operation,
+          'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
+          [DB_SYSTEM_NAME]: 'postgresql',
+          [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };

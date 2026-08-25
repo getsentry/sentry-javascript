@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('fastify auto-instrumentation', () => {
@@ -7,8 +6,7 @@ describe('fastify auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  // Fastify v5 does not support Node 18
-  conditionalTest({ min: 20 })('fastify v5', () => {
+  describe('fastify v5', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
       test('creates transaction with fastify hook, request-handler and manual spans', async () => {
         const runner = createRunner()
@@ -17,19 +15,19 @@ describe('fastify auto-instrumentation', () => {
               transaction: 'GET /test-transaction',
               spans: expect.arrayContaining([
                 expect.objectContaining({
-                  op: 'hook.fastify',
+                  op: 'middleware',
                   origin: 'auto.http.otel.fastify',
                   data: expect.objectContaining({
                     'fastify.type': 'hook',
-                    'sentry.op': 'hook.fastify',
+                    'sentry.op': 'middleware',
                     'sentry.origin': 'auto.http.otel.fastify',
                   }),
                 }),
                 expect.objectContaining({
-                  op: 'request_handler.fastify',
+                  op: 'handler',
                   origin: 'auto.http.otel.fastify',
                   data: expect.objectContaining({
-                    'sentry.op': 'request_handler.fastify',
+                    'sentry.op': 'handler',
                     'sentry.origin': 'auto.http.otel.fastify',
                   }),
                 }),
@@ -50,10 +48,9 @@ describe('fastify auto-instrumentation', () => {
       });
 
       // Fastify v5 only publishes the `tracing:fastify.request.handler:error` diagnostics channel when
-      // `tracingChannel(...).hasSubscribers` is truthy. That aggregate getter does not exist on Node 18
-      // (it was added in Node 20), so fastify takes the fast path and never publishes the channel there —
-      // making automatic error capture (without `setupFastifyErrorHandler`) impossible on Node 18.
-      conditionalTest({ min: 20 })('error capture via diagnostics channel', () => {
+      // `tracingChannel(...).hasSubscribers` is truthy, which is what enables automatic error capture
+      // without `setupFastifyErrorHandler`.
+      describe('error capture via diagnostics channel', () => {
         test('captures errors thrown in route handlers', async () => {
           const runner = createRunner()
             .ignore('transaction')

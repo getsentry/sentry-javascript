@@ -8,7 +8,7 @@ import {
   setupRemixInstrumentation,
   teardownTestAsyncContextStrategy,
 } from './tracing-channel-test-utils';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 
 // Runs in its own file so the channel subscriptions register with NO form-data capture configured -
 // the default for most apps. `captureActionFormDataKeys` gates only the optional attribute
@@ -54,15 +54,15 @@ describe('remixIntegration with orchestrion (no form-data capture configured)', 
       expect.objectContaining({
         name: 'ACTION routes/submit',
         attributes: expect.objectContaining({
-          'sentry.op': 'action.remix',
-          'code.function': 'action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'http.method': 'POST',
         }),
       }),
     );
     expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
-    // No form-data capture configured, so no `formData.*` attribute is set.
-    expect(span.setAttribute).not.toHaveBeenCalledWith('formData.actionType', expect.anything());
+    // No form-data capture configured, so no `remix.action_form_data.*` attribute is set.
+    expect(span.setAttribute).not.toHaveBeenCalledWith('remix.action_form_data.actionType', expect.anything());
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 });

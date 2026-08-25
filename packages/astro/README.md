@@ -31,7 +31,11 @@ Install the Sentry Astro SDK with the `astro` CLI:
 npx astro add @sentry/astro
 ```
 
-Add your DSN and source maps upload configuration:
+### Build-time Configuration
+
+Register the Sentry integration in your `astro.config.mjs`. This is where you configure build-time options such as
+source maps upload (`org`, `project`, `authToken`). Runtime SDK options (`dsn`, `environment`, `tracesSampleRate`, Replay
+sample rates, and so on) belong in dedicated init files, not on `sentry()`.
 
 ```javascript
 import { defineConfig } from 'astro/config';
@@ -40,11 +44,9 @@ import sentry from '@sentry/astro';
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: '__DSN__',
-      sourceMapsUploadOptions: {
-        project: 'your-sentry-project-slug',
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      },
+      org: 'your-org-slug',
+      project: 'your-sentry-project-slug',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 });
@@ -57,23 +59,45 @@ token and add it to your environment variables:
 SENTRY_AUTH_TOKEN="your-token"
 ```
 
+### Runtime SDK Configuration
+
+If you do not add `sentry.client.config.ts` or `sentry.server.config.ts`, Sentry still initializes with default options
+and reads the DSN from `PUBLIC_SENTRY_DSN`. Add those files at the project root when you want to customize client or
+server options, and pass them to `Sentry.init()`.
+
+Set `PUBLIC_SENTRY_DSN` in your environment (for example in `.env`):
+
+```bash
+PUBLIC_SENTRY_DSN="__DSN__"
+```
+
+```javascript
+// sentry.client.config.ts
+import * as Sentry from '@sentry/astro';
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: [Sentry.replayIntegration()],
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+```
+
+```javascript
+// sentry.server.config.ts
+import * as Sentry from '@sentry/astro';
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
 ### Server Instrumentation
 
 For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add
-middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
-
-If you're using Astro <3.5.2, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
-
-```javascript
-// src/middleware.js
-import { sequence } from 'astro:middleware';
-import * as Sentry from '@sentry/astro';
-
-export const onRequest = sequence(
-  Sentry.handleRequest(),
-  // Add your other handlers after Sentry.handleRequest()
-);
-```
+middleware to your server to instrument incoming requests.
 
 The Sentry middleware enhances the data collected by Sentry on the server side by:
 
@@ -92,13 +116,25 @@ import sentry from '@sentry/astro';
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: '__DSN__',
       autoInstrumentation: {
         requestHandler: false,
       },
     }),
   ],
 });
+```
+
+If you opt out but still want the middleware, add it manually to your `src/middleware.js` file:
+
+```javascript
+// src/middleware.js
+import { sequence } from 'astro:middleware';
+import * as Sentry from '@sentry/astro';
+
+export const onRequest = sequence(
+  Sentry.handleRequest(),
+  // Add your other handlers after Sentry.handleRequest()
+);
 ```
 
 ## Configuration

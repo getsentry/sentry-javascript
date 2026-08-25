@@ -7,6 +7,15 @@ export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
   instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+
+  /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
 };
 
 type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;

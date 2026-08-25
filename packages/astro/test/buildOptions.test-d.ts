@@ -52,16 +52,6 @@ describe('Sentry Astro build-time options type', () => {
         excludeReplayWorker: true,
       },
 
-      // --- UnstableVitePluginOptions ---
-      unstable_sentryVitePluginOptions: {
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-      },
-
       // --- SentryOptions specific options ---
       enabled: true,
       clientInitPath: './src/sentry.client.config.ts',
@@ -69,14 +59,6 @@ describe('Sentry Astro build-time options type', () => {
       autoInstrumentation: {
         requestHandler: true,
       },
-
-      // Deprecated runtime options
-      environment: 'test',
-      dsn: 'https://test@sentry.io/123',
-      sampleRate: 1.0,
-      tracesSampleRate: 1.0,
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,
     };
 
     expectTypeOf(completeOptions).toEqualTypeOf<SentryOptions>();
@@ -92,15 +74,6 @@ describe('Sentry Astro build-time options type', () => {
       autoInstrumentation: {
         requestHandler: true,
       },
-      unstable_sentryVitePluginOptions: {
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-      },
-
       // Deprecated sourceMapsUploadOptions
       sourceMapsUploadOptions: {
         enabled: true,
@@ -110,11 +83,6 @@ describe('Sentry Astro build-time options type', () => {
         telemetry: false,
         assets: './build/**/*',
         filesToDeleteAfterUpload: ['./build/*.map'],
-        unstable_sentryVitePluginOptions: {
-          sourcemaps: {
-            ignore: ['./build/*.spec.js'],
-          },
-        },
       },
     };
 
@@ -167,24 +135,14 @@ describe('Sentry Astro build-time options type', () => {
     expectTypeOf(baseOptions).toEqualTypeOf<SentryOptions>();
   });
 
-  it('supports UnstableVitePluginOptions at top level', () => {
-    const viteOptions: SentryOptions = {
+  it('rejects the removed `unstable_sentryVitePluginOptions`', () => {
+    const options: SentryOptions = {
+      // @ts-expect-error - removed in v11, use the top-level build options instead
       unstable_sentryVitePluginOptions: {
-        org: 'override-org',
-        project: 'override-project',
-        sourcemaps: {
-          assets: './custom-dist/**/*',
-          ignore: ['./custom-dist/ignore/**/*'],
-        },
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-          excludeTracing: false,
-        },
-        debug: true,
-        silent: false,
+        sourcemaps: { assets: './dist/**/*' },
       },
     };
 
-    expectTypeOf(viteOptions).toEqualTypeOf<SentryOptions>();
+    expectTypeOf(options).toEqualTypeOf<SentryOptions>();
   });
 });

@@ -1,12 +1,12 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The span origin depends on which instrumentation is active. When the generic orchestrion run is
 // enabled (via INJECT_ORCHESTRION) the OTel `Dataloader` integration is swapped for the
 // diagnostics-channel one, which stamps a different origin.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.dataloader' : 'auto.db.otel.dataloader';
+const ORIGIN = 'auto.db.dataloader';
 const CACHE_GET_OP = 'cache.get';
+const CACHE_MUTATION_OPS = { prime: 'cache.put', clear: 'cache.remove', clearAll: 'cache.remove' } as const;
 
 describe('dataloader auto-instrumentation', () => {
   afterAll(() => {
@@ -30,8 +30,9 @@ describe('dataloader auto-instrumentation', () => {
             expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
             expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
             expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
+            expect(loadSpan?.data?.['db.operation.name']).toBe('load');
             // A direct operation is a client call; the deferred `batch` below gets no kind
-            expect(loadSpan?.data?.['otel.kind']).toBe('CLIENT');
+            expect(loadSpan?.data?.['sentry.kind']).toBe('client');
 
             const batchSpan = spans.find(span => span.description === 'dataloader.batch');
             expect(batchSpan).toBeDefined();
@@ -39,7 +40,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(batchSpan?.origin).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
             expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
-            expect(batchSpan?.data?.['otel.kind']).toBeUndefined();
+            expect(batchSpan?.data?.['sentry.kind']).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
             expect(batchSpan?.links).toEqual([
@@ -75,16 +76,21 @@ describe('dataloader auto-instrumentation', () => {
 
             const spans = event.spans || [];
 
-            // prime/clear/clearAll are not cache reads, so they get an origin but no `op`
-            for (const operation of ['prime', 'clear', 'clearAll']) {
+            // prime writes to the cache, clear/clearAll remove from it
+            for (const [operation, op] of Object.entries(CACHE_MUTATION_OPS)) {
               const span = spans.find(s => s.description === `dataloader.${operation}`);
               expect(span, `expected a dataloader.${operation} span`).toBeDefined();
               expect(span?.origin).toBe(ORIGIN);
               expect(span?.status).toBe('ok');
-              expect(span?.op).toBeUndefined();
+              expect(span?.op).toBe(op);
               expect(span?.data?.['sentry.origin']).toBe(ORIGIN);
-              expect(span?.data?.['sentry.op']).toBeUndefined();
+              expect(span?.data?.['db.operation.name']).toBe(operation);
             }
+
+            // `clearAll` takes no key, the other two act on a single key
+            expect(spans.find(s => s.description === 'dataloader.prime')?.data?.['cache.key']).toEqual(['user-1']);
+            expect(spans.find(s => s.description === 'dataloader.clear')?.data?.['cache.key']).toEqual(['user-1']);
+            expect(spans.find(s => s.description === 'dataloader.clearAll')?.data?.['cache.key']).toBeUndefined();
           },
         })
         .expect({

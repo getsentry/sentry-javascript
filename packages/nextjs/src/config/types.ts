@@ -1,5 +1,10 @@
-import type { GLOBAL_OBJ } from '@sentry/core';
-import type { SentryWebpackPluginOptions } from '@sentry/bundler-plugins/webpack';
+import type {
+  GLOBAL_OBJ,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ReactComponentAnnotationOptions,
+  ResolveSourceMapHook,
+} from '@sentry/core';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -147,31 +152,15 @@ export type SentryBuildWebpackOptions = {
   };
 
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
-
-  /**
    * Options related to react component name annotations.
    * Disabled by default, unless a value is set for this option.
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   *
+   * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
    */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     */
-    enabled?: boolean;
-
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     */
-    ignoredComponents?: string[];
-  };
+  reactComponentAnnotation?: ReactComponentAnnotationOptions; // TODO(v12): remove this option
 };
 
 export type SentryBuildOptions = {
@@ -311,6 +300,16 @@ export type SentryBuildOptions = {
      */
     // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
     rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
+
+    /**
+     * Hook to customize source map file resolution.
+     *
+     * Mostly helpful for complex builds with custom source map generation. For example, if source maps
+     * are written to a separate directory and the `//# sourceMappingURL=` comment is rewritten to
+     * something other than a relative path, Sentry is unable to locate the source map for a given
+     * build artifact. This hook lets you implement the resolution process yourself.
+     */
+    resolveSourceMap?: ResolveSourceMapHook;
   };
 
   /**
@@ -465,6 +464,17 @@ export type SentryBuildOptions = {
   };
 
   /**
+   * Automatic instrumentation of server-side dependencies at build time.
+   *
+   * Set to `false` to turn it off.
+   *
+   * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
+   *
+   * @default true
+   */
+  buildTimeInstrumentation?: boolean;
+
+  /**
    * A key that is used to identify the application in the Sentry bundler plugins.
    * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
    * originating from third-party scripts.
@@ -475,6 +485,31 @@ export type SentryBuildOptions = {
    * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
    */
   applicationKey?: string;
+
+  /**
+   * Options related to react component name annotations.
+   * Disabled by default, unless a value is set for this option.
+   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
+   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in
+   * breadcrumbs and performance monitoring.
+   *
+   * For webpack builds, this is forwarded to `@sentry/bundler-plugins/webpack`.
+   * For Turbopack builds, this applies the annotations via a custom loader and requires Next.js 16+.
+   */
+  reactComponentAnnotation?: ReactComponentAnnotationOptions;
+
+  /**
+   * Metadata that should be associated with the built application.
+   *
+   * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
+   * `beforeSend`, event processors, or the transport), allowing for custom event filtering logic or
+   * routing of events. Read it at runtime via `moduleMetadataIntegration`.
+   *
+   * Note: This currently only applies to webpack builds. On Turbopack builds it has no effect and
+   * the SDK warns at build time. For `thirdPartyErrorFilterIntegration` support use
+   * `applicationKey`, which works on both bundlers.
+   */
+  moduleMetadata?: ModuleMetadata | ModuleMetadataCallback;
 
   /**
    * Options to configure various bundle size optimizations related to the Sentry SDK.
@@ -521,36 +556,6 @@ export type SentryBuildOptions = {
   };
 
   /**
-   * Options related to react component name annotations.
-   * Disabled by default, unless a value is set for this option.
-   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
-   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
-   * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
-   *
-   * @deprecated Use `webpack.reactComponentAnnotation` instead.
-   */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     */
-    enabled?: boolean;
-
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     */
-    ignoredComponents?: string[];
-  }; // TODO(v11): remove this option
-
-  /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry Next.js SDK.
-   * You can use this option to override any options the SDK passes to the webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   * @deprecated Use `webpack.unstable_sentryWebpackPluginOptions` instead.
-   */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions; // TODO(v11): remove this option
-
-  /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
    *
    * Note: Enabling this option can lead to longer build times.
@@ -566,40 +571,6 @@ export type SentryBuildOptions = {
   widenClientFileUpload?: boolean;
 
   /**
-   * Automatically instrument Next.js data fetching methods and Next.js API routes with error and performance monitoring.
-   * Defaults to `true`.
-   * @deprecated Use `webpack.autoInstrumentServerFunctions` instead.
-   */
-  autoInstrumentServerFunctions?: boolean; // TODO(v11): remove this option
-
-  /**
-   * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
-   * @deprecated Use `webpack.autoInstrumentMiddleware` instead.
-   */
-  autoInstrumentMiddleware?: boolean; // TODO(v11): remove this option
-
-  /**
-   * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
-   * @deprecated Use `webpack.autoInstrumentAppDirectory` instead.
-   */
-  autoInstrumentAppDirectory?: boolean; // TODO(v11): remove this option
-
-  /**
-   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
-   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
-   *
-   * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
-   * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
-   * exact match.
-   *
-   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
-   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
-   *
-   * @deprecated Use `webpack.excludeServerRoutes` instead.
-   */
-  excludeServerRoutes?: Array<RegExp | string>;
-
-  /**
    * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
    * from being sent. This option should be a path (for example: '/error-monitoring').
    *
@@ -609,22 +580,6 @@ export type SentryBuildOptions = {
    * NOTE: This feature only works with Next.js 11+
    */
   tunnelRoute?: string | boolean;
-
-  /**
-   * Tree shakes Sentry SDK logger statements from the bundle.
-   *
-   * @deprecated Use `webpack.treeshake.removeDebugLogging` instead.
-   */
-  disableLogger?: boolean; // TODO(v11): remove this option
-
-  /**
-   * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
-   *
-   * Defaults to `false`.
-   *
-   * @deprecated Use `webpack.automaticVercelMonitors` instead.
-   */
-  automaticVercelMonitors?: boolean; // TODO(v11): remove this option
 
   /**
    * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
@@ -647,15 +602,6 @@ export type SentryBuildOptions = {
    * Suppress the warning about the `onRouterTransitionStart` hook.
    */
   suppressOnRouterTransitionStartWarning?: boolean;
-
-  /**
-   * Disables automatic injection of the route manifest into the client bundle.
-   *
-   * @deprecated Use `routeManifestInjection: false` instead.
-   *
-   * @default false
-   */
-  disableManifestInjection?: boolean; // TODO(v11): remove this option
 
   /**
    * Options for the route manifest injection feature.
@@ -706,20 +652,6 @@ export type SentryBuildOptions = {
       };
 
   /**
-   * Disables automatic injection of Sentry's Webpack configuration.
-   *
-   * By default, the Sentry Next.js SDK injects its own Webpack configuration to enable features such as
-   * source map upload and automatic instrumentation. Set this option to `true` if you want to prevent
-   * the SDK from modifying your Webpack config (for example, if you want to handle Sentry integration manually
-   * or if you are on an older version of Next.js while using Turbopack).
-   *
-   * @deprecated Use `webpack.disableSentryConfig` instead.
-   *
-   * @default false
-   */
-  disableSentryWebpackConfig?: boolean; // TODO(v11): remove this option
-
-  /**
    * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
    * into a single operation after builds complete, reducing build time.
    *
@@ -743,41 +675,28 @@ export type SentryBuildOptions = {
      */
     vercelCronsMonitoring?: boolean;
     /**
-     * Application key used by `thirdPartyErrorFilterIntegration` to distinguish
-     * first-party code from third-party code in Turbopack builds.
-     *
-     * When set, a Turbopack loader injects `_sentryModuleMetadata` into every
-     * first-party module, mirroring what `@sentry/bundler-plugins/webpack` does for
-     * webpack builds via its `moduleMetadata` / `applicationKey` option.
-     *
-     * Requires Next.js 16+
-     *
-     * @deprecated Use the top-level `applicationKey` option instead, which works for both webpack and Turbopack builds.
-     */
-    turbopackApplicationKey?: string; // TODO(v11): remove this option
-    /**
      * Options for React component name annotation in Turbopack builds.
      * When enabled, JSX elements are annotated with `data-sentry-component`,
      * `data-sentry-element`, and `data-sentry-source-file` attributes.
      * Requires Next.js 16+.
+     *
+     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     turbopackReactComponentAnnotation?: {
+      /**
+       * Whether the component name annotate plugin should be enabled or not.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       enabled?: boolean;
+
+      /**
+       * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       ignoredComponents?: string[];
-    };
-    /**
-     * EXPERIMENTAL: Wire up orchestrion diagnostics-channel instrumentation at build time.
-     *
-     * When enabled, `withSentryConfig` injects the orchestrion code-transform loader for bundled
-     * server packages and keeps the remaining instrumented packages external so the runtime module
-     * hook picks them up. You must still call `Sentry.experimentalUseDiagnosticsChannelInjection()`
-     * in your server config to record spans.
-     *
-     * Turbopack support requires Next.js 16+; the webpack path works on earlier versions.
-     *
-     * @experimental May change or be removed in any release.
-     */
-    useDiagnosticsChannelInjection?: boolean;
+    }; // TODO(v12): remove this option
   }>;
 
   /**

@@ -30,14 +30,13 @@ for (const { name, prefix } of SCENARIOS) {
       const spans = transaction.spans || [];
 
       const middlewareSpan = spans.find(
-        (span: { description?: string; op?: string }) =>
-          span.op === 'middleware.hono' && span.description === 'middlewareA',
+        (span: { description?: string; op?: string }) => span.op === 'middleware' && span.description === 'middlewareA',
       );
 
       expect(middlewareSpan).toEqual(
         expect.objectContaining({
           description: 'middlewareA',
-          op: 'middleware.hono',
+          op: 'middleware',
           origin: 'auto.middleware.hono',
         }),
       );
@@ -62,8 +61,7 @@ for (const { name, prefix } of SCENARIOS) {
       const spans = transaction.spans || [];
 
       const anonymousSpan = spans.find(
-        (span: { description?: string; op?: string }) =>
-          span.op === 'middleware.hono' && span.description === '<anonymous>',
+        (span: { description?: string; op?: string }) => span.op === 'middleware' && span.description === '<anonymous>',
       );
       expect(anonymousSpan).toBeDefined();
       expect(anonymousSpan?.origin).toBe('auto.middleware.hono');
@@ -133,9 +131,7 @@ for (const { name, prefix } of SCENARIOS) {
 
       const spans = transaction.spans || [];
 
-      const failingSpan = spans.find(
-        (span: SpanJSON) => span.op === 'middleware.hono' && span.status === 'internal_error',
-      );
+      const failingSpan = spans.find((span: SpanJSON) => span.op === 'middleware' && span.status === 'internal_error');
 
       expect(failingSpan).toBeDefined();
       expect(failingSpan?.status).toBe('internal_error');
@@ -154,8 +150,7 @@ for (const { name, prefix } of SCENARIOS) {
 
       const spans = transaction.spans || [];
       const middlewareSpan = spans.find(
-        (span: { description?: string; op?: string }) =>
-          span.op === 'middleware.hono' && span.description === 'middlewareA',
+        (span: { description?: string; op?: string }) => span.op === 'middleware' && span.description === 'middlewareA',
       );
       expect(middlewareSpan).toBeDefined();
     });
@@ -241,7 +236,7 @@ test.describe('inline middleware spans (sub-app)', () => {
 
         const inlineSpan = (transaction.spans || []).find(s => s.description === expectedDescription);
         expect(inlineSpan).toBeDefined();
-        expect(inlineSpan?.op).toBe('middleware.hono');
+        expect(inlineSpan?.op).toBe('middleware');
         expect(inlineSpan?.origin).toBe('auto.middleware.hono');
         expect(inlineSpan?.status).not.toBe('internal_error');
       });
@@ -258,6 +253,37 @@ const MAIN_INLINE_CASES = [
 ] as const;
 
 test.describe('inline middleware spans (main app)', () => {
+  test('creates middleware span for inline middleware via .query()', async ({ baseURL }) => {
+    const fullPath = `${MAIN_INLINE_PREFIX}/query`;
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === `QUERY ${fullPath}`;
+    });
+
+    const response = await fetch(`${baseURL}${fullPath}`, {
+      method: 'QUERY',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: 'query-body' }),
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ method: 'QUERY', value: 'query-body' });
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe(`QUERY ${fullPath}`);
+    expect(transaction.contexts?.trace?.op).toBe('http.server');
+    expect(transaction.transaction_info?.source).toBe('route');
+    expect(transaction.request?.method).toBe('QUERY');
+
+    const middlewareSpans = (transaction.spans || []).filter(span => span.op === 'middleware');
+    expect(middlewareSpans).toHaveLength(1);
+    expect(middlewareSpans[0]).toEqual(
+      expect.objectContaining({
+        description: 'mainInlineQuery',
+        op: 'middleware',
+        origin: 'auto.middleware.hono',
+      }),
+    );
+  });
+
   MAIN_INLINE_CASES.forEach(({ name, path, method, expectedMiddlewareName }) => {
     test(`creates middleware span for inline middleware via ${name}`, async ({ baseURL }) => {
       const fullPath = `${MAIN_INLINE_PREFIX}${path}`;
@@ -276,11 +302,11 @@ test.describe('inline middleware spans (main app)', () => {
       const inlineSpan = spans.find(s => s.description === expectedMiddlewareName);
 
       expect(inlineSpan).toBeDefined();
-      expect(inlineSpan?.op).toBe('middleware.hono');
+      expect(inlineSpan?.op).toBe('middleware');
       expect(inlineSpan?.origin).toBe('auto.middleware.hono');
       expect(inlineSpan?.status).not.toBe('internal_error');
 
-      const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+      const middlewareSpans = spans.filter(s => s.op === 'middleware');
       expect(middlewareSpans).toHaveLength(1);
     });
   });
@@ -299,18 +325,18 @@ test.describe('inline middleware spans (main app)', () => {
     expect(transaction.transaction).toBe(`GET ${fullPath}`);
 
     const spans = transaction.spans || [];
-    const middlewareSpans = spans.filter(s => s.op === 'middleware.hono');
+    const middlewareSpans = spans.filter(s => s.op === 'middleware');
 
     expect(middlewareSpans).toHaveLength(2);
 
     const [spanA, spanB] = middlewareSpans.sort((a, b) => (a.description ?? '').localeCompare(b.description ?? ''));
     expect(spanA?.description).toBe('combinedInlineMw');
-    expect(spanA?.op).toBe('middleware.hono');
+    expect(spanA?.op).toBe('middleware');
     expect(spanA?.origin).toBe('auto.middleware.hono');
     expect(spanA?.status).not.toBe('internal_error');
 
     expect(spanB?.description).toBe('middlewareA');
-    expect(spanB?.op).toBe('middleware.hono');
+    expect(spanB?.op).toBe('middleware');
     expect(spanB?.origin).toBe('auto.middleware.hono');
     expect(spanB?.status).not.toBe('internal_error');
   });

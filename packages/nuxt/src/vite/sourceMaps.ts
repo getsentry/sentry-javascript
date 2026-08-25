@@ -1,9 +1,11 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/bundler-plugins/rollup';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import { warnOnRemovedBuildOptions } from '@sentry/core';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -22,20 +24,13 @@ export function setupSourceMaps(
   nuxt: Nuxt,
   addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean }) => void,
 ): void {
-  // TODO(v11): remove deprecated options (also from SentryNuxtModuleOptions type)
+  // Warn here rather than in `getPluginOptions`, which runs once per bundler (Vite and Nitro's
+  // Rollup) and would emit the same warning twice.
+  warnOnRemovedBuildOptions(moduleOptions, ['unstable_sentryBundlerPluginOptions']);
 
   const isDebug = moduleOptions.debug;
 
-  // eslint-disable-next-line typescript/no-deprecated
-  const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
-
-  const sourceMapsEnabled =
-    moduleOptions.sourcemaps?.disable === true
-      ? false
-      : moduleOptions.sourcemaps?.disable === false
-        ? true
-        : // eslint-disable-next-line typescript/no-deprecated
-          (sourceMapsUploadOptions.enabled ?? true);
+  const sourceMapsEnabled = moduleOptions.sourcemaps?.disable !== true;
 
   // In case we overwrite the source map settings, we default to deleting the files
   const shouldDeleteFilesFallback = { client: true, server: true };
@@ -62,11 +57,7 @@ export function setupSourceMaps(
               ? 'server-side'
               : 'client-side';
 
-        if (
-          !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
-          // eslint-disable-next-line typescript/no-deprecated
-          !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
-        ) {
+        if (!moduleOptions.sourcemaps?.filesToDeleteAfterUpload) {
           // eslint-disable-next-line no-console
           console.log(
             `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be automatically deleted after uploading them to Sentry.`,
@@ -86,7 +77,7 @@ export function setupSourceMaps(
       [
         validateSourceMapsOptionsPlugin({ nuxt, moduleOptions, sourceMapsEnabled }),
         // Vite plugin is added on the client and server side (plugin runs for both builds)
-        ...sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+        ...sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       ],
       { dev: false, build: true }, // Only add source map plugin during build
     );
@@ -113,8 +104,14 @@ export function setupSourceMaps(
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
       nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+        sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       );
+    }
+  });
+
+  nuxt.hook('close', async () => {
+    if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
+      await deleteSourceMapsAfterBuild(getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
 }
@@ -131,15 +128,63 @@ function normalizePath(path: string): string {
  *
  *  Only exported for Testing purposes.
  */
-// todo(v11): This "eslint-disable" can be removed again once we remove deprecated options.
-// eslint-disable-next-line complexity
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
   shouldDeleteFilesFallback?: { client: boolean; server: boolean },
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
-  // eslint-disable-next-line typescript/no-deprecated
-  const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
+  const sourcemapsOptions = moduleOptions.sourcemaps || {};
+  const filesToDeleteAfterUpload = resolveFilesToDeleteAfterUpload(moduleOptions, shouldDeleteFilesFallback);
 
+  return {
+    applicationKey: moduleOptions.applicationKey,
+    org: moduleOptions.org ?? process.env.SENTRY_ORG,
+    project: moduleOptions.project ?? process.env.SENTRY_PROJECT,
+    authToken: moduleOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
+    telemetry: moduleOptions.telemetry ?? true,
+    url: moduleOptions.sentryUrl ?? process.env.SENTRY_URL,
+    headers: moduleOptions.headers,
+    debug: moduleOptions.debug ?? false,
+    silent: moduleOptions.silent ?? false,
+    errorHandler: moduleOptions.errorHandler,
+    bundleSizeOptimizations: moduleOptions.bundleSizeOptimizations, // todo: test if this can be overridden by the user
+    release: {
+      name: moduleOptions.release?.name,
+      // Support all release options from BuildTimeOptionsBase
+      ...moduleOptions.release,
+    },
+    moduleMetadata: moduleOptions.moduleMetadata,
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'nuxt',
+      },
+    },
+
+    sourcemaps: {
+      disable: moduleOptions.sourcemaps?.disable,
+      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
+      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      assets: sourcemapsOptions.assets ?? undefined,
+      ignore: sourcemapsOptions.ignore ?? undefined,
+      filesToDeleteAfterUpload,
+      rewriteSources: sourcemapsOptions.rewriteSources ?? normalizePath,
+      resolveSourceMap: sourcemapsOptions.resolveSourceMap,
+    },
+  };
+}
+
+/**
+ * Determines which files to delete after upload. If the user set `filesToDeleteAfterUpload`, we use
+ * that. Otherwise we only delete the source maps Sentry generated itself — i.e. the sides
+ * (client/server) whose `sourcemap` setting resolved to `undefined`, where Sentry stepped in and
+ * enabled `'hidden'`. Given Nuxt's default of `{ server: true, client: false }`, this isn't the
+ * default case: it only kicks in when a side is left `undefined` (whole config or a single sub-key).
+ * @see https://nuxt.com/docs/4.x/api/nuxt-config#sourcemap
+ */
+function resolveFilesToDeleteAfterUpload(
+  moduleOptions: SentryNuxtModuleOptions,
+  shouldDeleteFilesFallback?: { client: boolean; server: boolean },
+): string | Array<string> | undefined {
   const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
   const fallbackFilesToDelete = [
     ...(shouldDeleteFilesFallback?.client ? ['.*/**/public/**/*.map'] : []),
@@ -148,77 +193,23 @@ export function getPluginOptions(
       : []),
   ];
 
-  // Check for filesToDeleteAfterUpload in new location first, then deprecated location
-  const sourcemapsOptions = moduleOptions.sourcemaps || {};
-  // eslint-disable-next-line typescript/no-deprecated
-  const deprecatedSourcemapsOptions = sourceMapsUploadOptions.sourcemaps || {};
-
-  const filesToDeleteAfterUpload =
-    sourcemapsOptions.filesToDeleteAfterUpload ??
-    // eslint-disable-next-line typescript/no-deprecated
-    deprecatedSourcemapsOptions.filesToDeleteAfterUpload;
+  const filesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
 
   if (typeof filesToDeleteAfterUpload === 'undefined' && shouldDeleteFilesAfterUpload && moduleOptions.debug) {
     // eslint-disable-next-line no-console
     console.log(
-      `[Sentry] Setting \`sentry.sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${fallbackFilesToDelete
+      `[Sentry] Setting \`sentry.sourcemaps.filesToDeleteAfterUpload: [${fallbackFilesToDelete
         // Logging it as strings in the array
         .map(path => `"${path}"`)
         .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
     );
   }
 
-  return {
-    applicationKey: moduleOptions.applicationKey,
-    // eslint-disable-next-line typescript/no-deprecated
-    org: moduleOptions.org ?? sourceMapsUploadOptions.org ?? process.env.SENTRY_ORG,
-    // eslint-disable-next-line typescript/no-deprecated
-    project: moduleOptions.project ?? sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
-    // eslint-disable-next-line typescript/no-deprecated
-    authToken: moduleOptions.authToken ?? sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
-    // eslint-disable-next-line typescript/no-deprecated
-    telemetry: moduleOptions.telemetry ?? sourceMapsUploadOptions.telemetry ?? true,
-    // eslint-disable-next-line typescript/no-deprecated
-    url: moduleOptions.sentryUrl ?? sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
-    headers: moduleOptions.headers,
-    debug: moduleOptions.debug ?? false,
-    // eslint-disable-next-line typescript/no-deprecated
-    silent: moduleOptions.silent ?? sourceMapsUploadOptions.silent ?? false,
-    // eslint-disable-next-line typescript/no-deprecated
-    errorHandler: moduleOptions.errorHandler ?? sourceMapsUploadOptions.errorHandler,
-    bundleSizeOptimizations: moduleOptions.bundleSizeOptimizations, // todo: test if this can be overridden by the user
-    release: {
-      // eslint-disable-next-line typescript/no-deprecated
-      name: moduleOptions.release?.name ?? sourceMapsUploadOptions.release?.name,
-      // Support all release options from BuildTimeOptionsBase
-      ...moduleOptions.release,
-      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.release,
-    },
-    _metaOptions: {
-      telemetry: {
-        metaFramework: 'nuxt',
-      },
-    },
-    ...moduleOptions?.unstable_sentryBundlerPluginOptions,
-
-    sourcemaps: {
-      disable: moduleOptions.sourcemaps?.disable,
-      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
-      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
-      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
-      // eslint-disable-next-line typescript/no-deprecated
-      assets: sourcemapsOptions.assets ?? deprecatedSourcemapsOptions.assets ?? undefined,
-      // eslint-disable-next-line typescript/no-deprecated
-      ignore: sourcemapsOptions.ignore ?? deprecatedSourcemapsOptions.ignore ?? undefined,
-      filesToDeleteAfterUpload: filesToDeleteAfterUpload
-        ? filesToDeleteAfterUpload
-        : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
-          ? fallbackFilesToDelete
-          : undefined,
-      rewriteSources: sourcemapsOptions.rewriteSources ?? normalizePath,
-      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
-    },
-  };
+  return filesToDeleteAfterUpload
+    ? filesToDeleteAfterUpload
+    : shouldDeleteFilesAfterUpload
+      ? fallbackFilesToDelete
+      : undefined;
 }
 
 /*  There are multiple ways to set up source maps (https://github.com/getsentry/sentry-javascript/issues/13993 and https://github.com/getsentry/sentry-javascript/pull/15859)

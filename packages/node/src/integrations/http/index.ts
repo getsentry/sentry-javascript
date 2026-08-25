@@ -1,7 +1,13 @@
 import type { RequestOptions } from 'node:http';
 import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse, Span } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';
-import { defineIntegration, getRequestUrlFromClientRequest, hasSpansEnabled, stripDataUrlContent } from '@sentry/core';
+import {
+  defineIntegration,
+  getRequestUrlFromClientRequest,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  stripDataUrlContent,
+} from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
@@ -26,7 +32,7 @@ interface HttpOptions {
    * This will ensure that the default HttpInstrumentation from OpenTelemetry is not setup,
    * only the Sentry-specific instrumentation for request isolation is applied.
    *
-   * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
+   * Defaults to `true` when tracing is enabled.
    */
   spans?: boolean;
 
@@ -49,8 +55,8 @@ interface HttpOptions {
    * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
    *
    * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
-   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
-   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's HttpInstrumentation.
+   * (if `breadcrumbs` is enabled). This is useful when you run your own OpenTelemetry `HttpInstrumentation` and
+   * want to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry.
    *
    * @default `true`
    */
@@ -135,7 +141,8 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 
   /**
-   * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
+   * Hooks for outgoing HTTP request spans.
+   * These no longer run for incoming request spans; use `incomingRequestSpanHook` for those.
    */
   instrumentation?: {
     requestHook?: (span: Span, req: HttpIncomingMessage | HttpClientRequest) => void;
@@ -147,10 +154,6 @@ interface HttpOptions {
     ) => void;
   };
 }
-
-export const instrumentSentryHttp = Object.assign(instrumentHttpOutgoingRequests, {
-  id: `${INTEGRATION_NAME}.sentry`,
-});
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -172,7 +175,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-    instrumentation: options.instrumentation,
     onSpanCreated: options.incomingRequestSpanHook,
   };
 
@@ -195,6 +197,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         breadcrumbs: options.breadcrumbs,
         spans,
         propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
+        // oxlint-disable-next-line typescript/no-deprecated -- deprecated alias kept until removal
         createSpansForOutgoingRequests: spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
         outgoingRequestHook: (span: Span, request: HttpClientRequest) => {
@@ -202,11 +205,11 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
             const sanitizedUrl = stripDataUrlContent(url);
-            // TODO(v11): Update these to the Sentry semantic attributes.
-            // https://getsentry.github.io/sentry-conventions/attributes/
-            span.setAttribute('http.url', sanitizedUrl);
-            span.setAttribute(URL_FULL, sanitizedUrl);
             span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+            span.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [URL_FULL]: sanitizedUrl,
+            });
           }
           options.instrumentation?.requestHook?.(span, request);
         },

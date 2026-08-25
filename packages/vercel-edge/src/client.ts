@@ -1,7 +1,7 @@
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { VercelEdgeClientOptions } from './types';
+import { registerPrepareSpanScope, type SentryTracerProvider } from '@sentry/opentelemetry';
 
 declare const process: {
   env: Record<string, string>;
@@ -14,7 +14,7 @@ declare const process: {
  * @see ServerRuntimeClient for usage documentation.
  */
 export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOptions> {
-  public traceProvider: BasicTracerProvider | undefined;
+  public traceProvider: SentryTracerProvider | undefined;
 
   /**
    * Creates a new Vercel Edge Runtime SDK instance.
@@ -34,6 +34,9 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
     };
 
     super(clientOptions);
+
+    // Every client must continue incoming (remote) traces, also manually constructed ones.
+    registerPrepareSpanScope(this);
   }
 
   // Eslint ignore explanation: This is already documented in super.

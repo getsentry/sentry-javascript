@@ -1,4 +1,5 @@
-import { stripUrlQueryAndFragment } from '@sentry/core';
+import { MIDDLEWARE } from '@sentry/conventions/op';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from './nextSpanAttributes';
 
 export interface MutableMiddlewareRootSpan {
@@ -26,7 +27,7 @@ export function enhanceMiddlewareRootSpan(span: MutableMiddlewareRootSpan): void
     return;
   }
 
-  span.setOp('http.server.middleware');
+  span.setOp(MIDDLEWARE);
 
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
   if (typeof spanName !== 'string' || !spanName || !span.getName()) {
@@ -36,6 +37,7 @@ export function enhanceMiddlewareRootSpan(span: MutableMiddlewareRootSpan): void
   const match = spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
   if (match) {
     span.setName(`middleware ${match[1]}`);
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
   } else {
     span.setName(stripUrlQueryAndFragment(spanName));
   }

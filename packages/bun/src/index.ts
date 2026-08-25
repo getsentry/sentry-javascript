@@ -38,7 +38,6 @@ export {
   getClient,
   isInitialized,
   isEnabled,
-  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -80,7 +79,6 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
@@ -93,8 +91,6 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
@@ -139,11 +135,14 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  otlpIntegration,
+  getOtlpTracesEndpoint,
   processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -178,6 +177,8 @@ export {
   unleashIntegration,
   metrics,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/node';
 
@@ -199,5 +200,7 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { bunHttpServerIntegration } from './integrations/bunHttpServer';
+export { fetchIntegration } from './integrations/fetch';
 export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';

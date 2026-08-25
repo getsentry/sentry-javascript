@@ -5,8 +5,7 @@ registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-// TODO(v11): Export metrics here once we remove it from the base bundle.
-export { logger, consoleLoggingIntegration } from '@sentry/core/browser';
+export { logger, consoleLoggingIntegration, metrics } from '@sentry/core/browser';
 
 export {
   getActiveSpan,
@@ -22,15 +21,15 @@ export {
 
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { isBotUserAgent } from '@sentry/browser-utils';
 export { elementTimingIntegration } from '@sentry/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export { spanStreamingIntegration } from './integrations/spanstreaming';
+export { spanStreamingIntegration } from '@sentry/core/browser';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

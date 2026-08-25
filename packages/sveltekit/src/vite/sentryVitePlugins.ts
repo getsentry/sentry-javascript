@@ -1,4 +1,5 @@
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, warnOnRemovedBuildOptions } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
@@ -24,6 +25,8 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
   const svelteConfig = await loadSvelteConfig();
 
   const mergedOptions = {
@@ -53,6 +56,12 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       }),
     );
   }
+
+  sentryPlugins.push(
+    sentryOrchestrionPlugin({
+      buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
+    }),
+  );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
@@ -163,7 +172,7 @@ async function readPackageMajor(
 
 /**
  * This function creates the options for the custom Sentry Vite plugin.
- * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
+ * The options are derived from the Sentry SvelteKit plugin options.
  *
  * only exported for testing
  */
@@ -181,81 +190,38 @@ export function generateVitePluginOptions(
     };
   }
 
-  // todo(v11): remove deprecated options (Also from options type)
-
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const {
-      // eslint-disable-next-line typescript/no-deprecated
-      unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
-      ...deprecatedSourceMapUploadOptions
-      // eslint-disable-next-line typescript/no-deprecated
-    } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
-
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars,typescript/no-deprecated
-      sourceMapsUploadOptions: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      unstable_sentryVitePluginOptions: _filtered2,
+      autoUploadSourceMaps: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoUploadSourceMaps: _filtered3,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoInstrument: _filtered4,
+      autoInstrument: _filtered2,
       sentryUrl,
       ...newSvelteKitPluginOptions
     } = svelteKitPluginOptions;
 
-    const { unstable_sentryVitePluginOptions } = svelteKitPluginOptions;
-
     sentryVitePluginsOptions = {
       ...(sentryVitePluginsOptions ? sentryVitePluginsOptions : {}),
 
-      ...deprecatedSourceMapUploadOptions,
       ...newSvelteKitPluginOptions,
 
       url: sentryUrl,
-
-      ...deprecated_unstableSourceMapUploadOptions,
-      ...unstable_sentryVitePluginOptions,
 
       adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
 
-    // Handle sourcemaps options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.sourcemaps ||
-      svelteKitPluginOptions.sourcemaps ||
-      deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
-      unstable_sentryVitePluginOptions?.sourcemaps
-    ) {
+    if (svelteKitPluginOptions.sourcemaps) {
       sentryVitePluginsOptions.sourcemaps = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.sourcemaps,
         ...svelteKitPluginOptions.sourcemaps,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.sourcemaps,
-        ...unstable_sentryVitePluginOptions?.sourcemaps,
       };
     }
 
-    // Handle release options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.release ||
-      svelteKitPluginOptions.release ||
-      deprecated_unstableSourceMapUploadOptions?.release ||
-      unstable_sentryVitePluginOptions?.release
-    ) {
+    if (svelteKitPluginOptions.release) {
       sentryVitePluginsOptions.release = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.release,
         ...svelteKitPluginOptions.release,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.release,
-        ...unstable_sentryVitePluginOptions?.release,
       };
     }
   }

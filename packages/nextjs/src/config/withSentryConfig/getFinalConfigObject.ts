@@ -1,7 +1,6 @@
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
-import { migrateDeprecatedWebpackOptions } from './deprecatedWebpackOptions';
 import {
   getBundlerInfo,
   getServerExternalPackagesPatch,
@@ -11,7 +10,9 @@ import {
   maybeEnableTurbopackSourcemaps,
   maybeSetUpRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook,
+  maybeWarnAboutTurbopackModuleMetadata,
   maybeWarnAboutUnsupportedTurbopack,
+  resolveBuildTimeInstrumentationOption,
   resolveUseRunAfterProductionCompileHookOption,
 } from './getFinalConfigObjectBundlerUtils';
 import {
@@ -29,13 +30,12 @@ import {
 /**
  * Materializes the final Next.js config object with Sentry's build-time integrations applied.
  *
- * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions` (to apply defaults/migrations).
+ * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions` (to apply defaults).
  */
 export function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
-  migrateDeprecatedWebpackOptions(userSentryOptions);
   const releaseName = resolveReleaseName(userSentryOptions);
 
   maybeSetUpTunnelRouteRewriteRules(incomingUserNextConfigObject, userSentryOptions);
@@ -57,6 +57,7 @@ export function getFinalConfigObject(
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo);
+  maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook(nextJsVersion, userSentryOptions, bundlerInfo);
 
   const turboPackConfig = maybeConstructTurbopackConfig(
@@ -85,11 +86,11 @@ export function getFinalConfigObject(
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
-  const useDiagnosticsChannelInjection = userSentryOptions._experimental?.useDiagnosticsChannelInjection ?? false;
+  const buildTimeInstrumentation = resolveBuildTimeInstrumentationOption(userSentryOptions, bundlerInfo, nextJsVersion);
 
   return {
     ...incomingUserNextConfigObject,
-    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, useDiagnosticsChannelInjection),
+    ...getServerExternalPackagesPatch(incomingUserNextConfigObject, nextMajor, buildTimeInstrumentation),
     ...getWebpackPatch({
       incomingUserNextConfigObject,
       userSentryOptions,

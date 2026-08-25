@@ -6,10 +6,10 @@ import type { PolymorphicRequest } from '../types/polymorphics';
 import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
-import { defaultPiiToCollectionOptions } from './data-collection/defaultPiiToCollectionOptions';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
 import { filterKeyValueData } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
+import { getUrlQuery } from './url';
 
 /**
  * Maximum size of incoming HTTP request bodies attached to events.
@@ -277,17 +277,12 @@ function getAbsoluteUrl({
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
-  // TODO(v11): Remove boolean support once sendDefaultPii is fully removed.
-  // Internally, always pass ResolvedDataCollection from client.getDataCollectionOptions().
-  dataCollection: ResolvedDataCollection | boolean = false,
+  dataCollection: ResolvedDataCollection,
   lifecycle: 'request' | 'response' = 'request',
 ): Record<string, string> {
-  const resolvedDataCollection =
-    typeof dataCollection === 'boolean' ? defaultPiiToCollectionOptions(dataCollection) : dataCollection;
-
   const headerBehavior =
-    lifecycle === 'request' ? resolvedDataCollection.httpHeaders.request : resolvedDataCollection.httpHeaders.response;
-  const cookieBehavior = resolvedDataCollection.cookies;
+    lifecycle === 'request' ? dataCollection.httpHeaders.request : dataCollection.httpHeaders.response;
+  const cookieBehavior = dataCollection.cookies;
   const prefix = `http.${lifecycle}.header.`;
 
   const spanAttributes: Record<string, string> = {};
@@ -375,8 +370,7 @@ export function extractQueryParamsFromUrl(url: string): string | undefined {
   try {
     // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
     // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
-    const queryParams = new URL(url, 'http://s.io').search.slice(1);
-    return queryParams.length ? queryParams : undefined;
+    return getUrlQuery(new URL(url, 'http://s.io').search);
   } catch {
     return undefined;
   }

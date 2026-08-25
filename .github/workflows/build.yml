@@ -121,7 +121,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Store NX cache
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6.1.0
         # Only cache this per-PR to speed up CI.
         if: github.event_name == 'pull_request'
         with:
@@ -206,7 +206,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
@@ -245,7 +245,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
@@ -544,9 +544,9 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -782,8 +782,8 @@ jobs:
 
   job_node_integration_tests:
     name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }}${{
-      (matrix.use_orchestrion && format(' (Orchestrion)', matrix.use_orchestrion)) || '' }} Integration Tests
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
+      Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -794,21 +794,10 @@ jobs:
         node: [20.19, 22, 24, 26]
         typescript:
           - false
-        use_orchestrion:
-          - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '5.0'
-          # No need to test orchestrion for v18
-          - node: 20.19
-            use_orchestrion: 'true'
-          - node: 22
-            use_orchestrion: 'true'
-          - node: 24
-            use_orchestrion: 'true'
-          - node: 26
-            use_orchestrion: 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -844,8 +833,6 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: yarn test
-        env:
-          INJECT_ORCHESTRION: ${{ matrix.use_orchestrion }}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -887,7 +874,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       # The fixtures install the locally-packed `@sentry/bundler-plugins` tarball with pnpm.
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.9
       - name: Set up Node
@@ -947,9 +934,9 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
-          deno-version: 'v2.8.0'
+          deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -981,7 +968,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: |
             .nx/cache
@@ -1032,7 +1019,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1057,9 +1044,9 @@ jobs:
           matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
           'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql' ||
           matrix.test-application == 'deno-pg'
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1171,7 +1158,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.9
       - name: Set up Node
@@ -1180,9 +1167,9 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Deno
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.0' }}
+          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

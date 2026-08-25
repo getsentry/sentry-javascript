@@ -18,8 +18,8 @@ test('Sends server-side Supabase auth admin `createUser` span', async ({ page, b
 
   expect(transactionEvent.spans).toContainEqual({
     data: expect.objectContaining({
-      'db.operation': 'auth.admin.createUser',
-      'db.system': 'postgresql',
+      'db.operation.name': 'auth.admin.createUser',
+      'db.system.name': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
     }),
@@ -57,13 +57,13 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   const transactionEvent = await pageloadTransactionPromise;
 
-  // Client uses default data collection settings (no PII `userInfo`) — URL filters and bodies are not attached to spans/breadcrumbs.
-  const redactedSelectSpan = expect.objectContaining({
-    description: '[redacted] from(todos)',
+  // Client-side database query data is collected by default.
+  const selectSpanExpectation = expect.objectContaining({
+    description: 'select(*) filter(order, asc) from(todos)',
     op: 'db',
     data: expect.objectContaining({
-      'db.operation': 'select',
-      'db.system': 'postgresql',
+      'db.operation.name': 'select',
+      'db.system.name': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
     }),
@@ -76,26 +76,32 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
     origin: 'auto.db.supabase',
   });
 
-  expect(transactionEvent.spans).toContainEqual(redactedSelectSpan);
+  expect(transactionEvent.spans).toContainEqual(selectSpanExpectation);
 
   const selectSpan = transactionEvent.spans?.find(
-    (s: { description?: string }) => s.description === '[redacted] from(todos)',
+    (s: { description?: string }) => s.description === 'select(*) filter(order, asc) from(todos)',
   );
   expect(selectSpan).toBeDefined();
-  expect(selectSpan!.data).not.toHaveProperty('db.query');
+  expect(selectSpan!.data?.['db.query']).toEqual(['select(*)', 'filter(order, asc)']);
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.select',
-    message: '[redacted] from(todos)',
+    message: 'select(*) filter(order, asc) from(todos)',
+    data: expect.objectContaining({
+      query: ['select(*)', 'filter(order, asc)'],
+    }),
   });
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.insert',
-    message: 'insert(...) [redacted] from(todos)',
+    message: 'insert(...) select(*) from(todos)',
+    data: expect.objectContaining({
+      query: ['select(*)'],
+    }),
   });
 });
 
@@ -113,9 +119,9 @@ test('Sends server-side Supabase db-operation spans and breadcrumbs to Sentry', 
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'db.operation': 'insert',
+        'db.operation.name': 'insert',
         'db.query': ['select(*)'],
-        'db.system': 'postgresql',
+        'db.system.name': 'postgresql',
         'sentry.op': 'db',
         'sentry.origin': 'auto.db.supabase',
       }),
@@ -133,9 +139,9 @@ test('Sends server-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   expect(transactionEvent.spans).toContainEqual({
     data: expect.objectContaining({
-      'db.operation': 'select',
+      'db.operation.name': 'select',
       'db.query': ['select(*)'],
-      'db.system': 'postgresql',
+      'db.system.name': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
     }),
@@ -179,8 +185,8 @@ test('Sends server-side Supabase auth admin `listUsers` span', async ({ page, ba
 
   expect(transactionEvent.spans).toContainEqual({
     data: expect.objectContaining({
-      'db.operation': 'auth.admin.listUsers',
-      'db.system': 'postgresql',
+      'db.operation.name': 'auth.admin.listUsers',
+      'db.system.name': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
     }),

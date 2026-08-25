@@ -2,12 +2,13 @@ import {
   type CloudflareOptions,
   getDefaultIntegrations as getDefaultCloudflareIntegrations,
   setAsyncLocalStorageAsyncContextStrategy,
-  wrapRequestHandler,
 } from '@sentry/cloudflare';
+import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
+import { getCloudflareExecutionContext } from '../server-common/utils';
 
 /**
  *  Initializes Sentry SvelteKit Cloudflare SDK
@@ -22,6 +23,10 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       rewriteFramesIntegration(),
       svelteKitSpansIntegration(),
     ],
+    // SvelteKit emits its own OpenTelemetry spans (Kit tracing), so — like the Node SvelteKit SDK — it
+    // defaults to registering the tracer provider instead of inheriting Cloudflare's no-provider default.
+    // A user-provided value still overrides this via `...options`.
+    enableOpenTelemetrySetup: true,
     ...options,
   };
 
@@ -41,7 +46,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
           options: opts,
           request: event.request,
           // @ts-expect-error This will exist in Cloudflare
-          context: event.platform.context,
+          context: getCloudflareExecutionContext(event.platform),
           // We don't want to capture errors here, as we want to capture them in the `sentryHandle` handler
           // where we can distinguish between redirects and actual errors.
           captureErrors: false,
