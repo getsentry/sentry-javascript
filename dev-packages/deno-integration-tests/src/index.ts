@@ -27,6 +27,15 @@ function eventSink<T>(): EventSink<T> {
   return {
     beforeSend(event) {
       events.push(event);
+
+      for (let i = waiters.length - 1; i >= 0; i--) {
+        const w = waiters[i]!;
+        if (w.predicate(event)) {
+          waiters.splice(i, 1);
+          w.resolve(event);
+        }
+      }
+
       return null;
     },
     waitFor(predicate) {
