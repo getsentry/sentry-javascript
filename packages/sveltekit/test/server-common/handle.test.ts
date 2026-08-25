@@ -1,13 +1,6 @@
 import type { EventEnvelopeHeaders, Span } from '@sentry/core';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
-import {
-  getCapturedScopesOnSpan,
-  getRootSpan,
-  getSpanDescendants,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanIsSampled,
-  spanToJSON,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled, spanToJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Handle } from '@sveltejs/kit';
@@ -144,7 +137,7 @@ describe('sentryHandle', () => {
       expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
       expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
       expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
-      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).attributes?.[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('route');
       expect(spanToJSON(_span!).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
 
       expect(spanToJSON(_span!).end_timestamp).toBeDefined();
@@ -173,7 +166,7 @@ describe('sentryHandle', () => {
 
       expect(_span).toBeUndefined();
       expect(spanToJSON(kitRootSpan).name).toEqual('GET /users/[id]');
-      expect(spanToJSON(kitRootSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(kitRootSpan).attributes?.[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('route');
       expect(spanToJSON(kitRootSpan).attributes?.[HTTP_ROUTE]).toEqual('/users/[id]');
       kitRootSpan.end();
     });
@@ -210,7 +203,7 @@ describe('sentryHandle', () => {
       expect(spanToJSON(_span!).name).toEqual('GET /users/[id]');
       expect(spanToJSON(_span!).attributes['sentry.op']).toEqual('http.server');
       expect(spanToJSON(_span!).status).toEqual(isError ? 'error' : 'ok');
-      expect(spanToJSON(_span!).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+      expect(spanToJSON(_span!).attributes?.[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('route');
 
       expect(spanToJSON(_span!).end_timestamp).toBeDefined();
 

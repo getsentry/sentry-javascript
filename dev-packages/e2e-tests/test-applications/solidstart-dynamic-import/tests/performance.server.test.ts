@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/solidstart';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/solidstart';
 
 test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart-dynamic-import', transactionEvent => {
@@ -22,7 +18,6 @@ test('sends a server action transaction on pageload', async ({ page }) => {
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         },
       }),
     ]),
@@ -47,7 +42,6 @@ test('sends a server action transaction on client navigation', async ({ page }) 
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         },
       }),
     ]),

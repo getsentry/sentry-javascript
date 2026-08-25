@@ -61,7 +61,7 @@ describe('Bun Serve Integration', () => {
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.query': 'id=123',
           'url.path': '/users',
           'url.full': `http://localhost:${port}/users?id=123`,
@@ -105,7 +105,7 @@ describe('Bun Serve Integration', () => {
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.path': '/',
           'url.full': `http://localhost:${port}/`,
           'url.port': port.toString(),
@@ -224,7 +224,7 @@ describe('Bun Serve Integration', () => {
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.path': '/api/test',
           'url.full': `http://localhost:${port}/api/test`,
           'url.port': port.toString(),
@@ -301,7 +301,7 @@ describe('Bun Serve Integration', () => {
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id',
           'url.path.parameter.id': '123',
           'url.path': '/users/123',
@@ -340,7 +340,7 @@ describe('Bun Serve Integration', () => {
         attributes: expect.objectContaining({
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/api/*',
           'url.path': '/api/users/123',
           'url.full': `http://localhost:${port}/api/users/123`,
@@ -405,7 +405,7 @@ describe('Bun Serve Integration', () => {
           attributes: expect.objectContaining({
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'GET',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
           op: 'http.server',
@@ -442,7 +442,7 @@ describe('Bun Serve Integration', () => {
           attributes: expect.objectContaining({
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'POST',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
           op: 'http.server',
@@ -474,7 +474,7 @@ describe('Bun Serve Integration', () => {
           attributes: expect.objectContaining({
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'PUT',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
           op: 'http.server',
@@ -506,7 +506,7 @@ describe('Bun Serve Integration', () => {
           attributes: expect.objectContaining({
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'DELETE',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
           op: 'http.server',

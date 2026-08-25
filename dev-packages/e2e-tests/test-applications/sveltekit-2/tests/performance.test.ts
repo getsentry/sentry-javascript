@@ -301,7 +301,7 @@ test.describe('performance events', () => {
           data: {
             'sentry.origin': 'auto.navigation.sveltekit',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.sveltekit.navigation.type': 'link',
             'sentry.sveltekit.navigation.from': '/',
             'sentry.sveltekit.navigation.to': '/redirect1',
@@ -341,7 +341,7 @@ test.describe('performance events', () => {
           data: {
             'sentry.origin': 'auto.navigation.sveltekit',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.sveltekit.navigation.type': 'link',
             'sentry.sveltekit.navigation.from': '/',
             'sentry.sveltekit.navigation.to': '/redirect2',
@@ -381,7 +381,7 @@ test.describe('performance events', () => {
           data: {
             'sentry.origin': 'auto.navigation.sveltekit',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.sveltekit.navigation.type': 'link',
             'sentry.sveltekit.navigation.from': '/',
             'sentry.sveltekit.navigation.to': '/users/[id]',

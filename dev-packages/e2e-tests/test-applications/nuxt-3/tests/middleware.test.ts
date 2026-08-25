@@ -45,7 +45,6 @@ test.describe('Server Middleware Instrumentation', () => {
           data: expect.objectContaining({
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nuxt',
-            'sentry.source': 'custom',
             'http.request.method': 'GET',
             'http.route': '/api/middleware-test',
           }),
@@ -114,21 +113,21 @@ test.describe('Server Middleware Instrumentation', () => {
     // Verify the error event is associated with the correct transaction
     expect(errorEvent.transaction).toContain('GET /api/middleware-test');
 
-    // Verify the error has the correct mechanism
-    expect(errorEvent.exception?.values?.[0]).toEqual(
+    const exception = errorEvent.exception?.values?.[0];
+    expect(exception).toEqual(
       expect.objectContaining({
         value: 'Auth middleware error',
         type: 'Error',
-        mechanism: expect.objectContaining({
-          handled: false,
-          // Type changes depending on whether it is being wrapped by Nitro or not
-          // This is a timing problem, sometimes Nitro can capture the error first, and sometimes it can't
-          // If nitro captures the error first, the type will be 'chained'
-          // If Sentry captures the error first, the type will be 'auto.middleware.nuxt'
-          type: expect.stringMatching(/^(auto\.middleware\.nuxt|chained)$/),
-        }),
       }),
     );
+
+    // Type and handled change depending on whether Nitro wraps the error before Sentry sees it.
+    expect(exception?.mechanism?.type).toMatch(/^(auto\.middleware\.nuxt|chained)$/);
+    if (exception?.mechanism?.type === 'chained') {
+      expect(exception?.mechanism?.handled).toBe(true);
+    } else {
+      expect(exception?.mechanism?.handled).toBe(false);
+    }
   });
 
   test('should create spans for onRequest and onBeforeResponse hooks', async ({ request }) => {

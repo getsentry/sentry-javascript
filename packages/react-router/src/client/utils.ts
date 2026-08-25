@@ -1,7 +1,7 @@
 import { getAbsoluteUrl } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, filterCollectedUrl } from '@sentry/core';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { GLOBAL_OBJ, filterCollectedUrl } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { DataRouter, RouterState } from 'react-router';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -104,7 +104,7 @@ export function updateNavigationSpanUrlFromLocation(span: Span): void {
 
   span.updateName(pathname);
   span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [URL_PATH]: pathname,
     [URL_FULL]: filterCollectedUrl(destinationUrl),
   });
@@ -147,7 +147,7 @@ export function finalizeNavigationSpanFromRouterState(span: Span, routerState: R
     const parameterizedRoute = getParameterizedRoute(routerState);
     span.updateName(parameterizedRoute);
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [URL_TEMPLATE]: parameterizedRoute,
     });
   }

@@ -1,5 +1,11 @@
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
+import { getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
 
 /**
  * Set the `http.route` attribute on the root HTTP server span for the current trace.
@@ -27,5 +33,5 @@ export function setHttpServerSpanRouteAttribute(route: string): void {
   const method = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD] || 'GET';
   rootSpan.setAttribute(HTTP_ROUTE, route);
   rootSpan.updateName(`${method} ${route}`);
-  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
 }

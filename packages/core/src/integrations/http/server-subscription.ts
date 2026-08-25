@@ -30,14 +30,9 @@ import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
 import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
-import { continueTrace } from '../../tracing/trace';
+import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpanManual } from '../../tracing/trace';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
@@ -53,9 +48,10 @@ import {
   NETWORK_TRANSPORT,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_KIND,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
-  SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
@@ -310,7 +306,7 @@ function buildServerSpanWrap(
             // Sentry-specific attributes
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
             [SERVER_ADDRESS]: hostname,

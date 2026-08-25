@@ -11,7 +11,6 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -20,6 +19,7 @@ import {
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
@@ -207,7 +207,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 
       // If a route has parameters, it's a parameterized route
       if (route) {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
         attributes['url.template'] = route;
         routeName = route;
       }
@@ -215,7 +215,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 
     // Handle wildcard routes
     if (route?.endsWith('/*')) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
       attributes['url.template'] = route;
       routeName = route;
     }
@@ -287,7 +287,7 @@ function getSpanAttributesFromParsedUrl(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
     [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
   };
 
   if (parsedUrl) {

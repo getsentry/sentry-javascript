@@ -3,7 +3,6 @@ import {
   getClient,
   registerExternalPropagationContext,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '../../../src';
 import { DEFAULT_ENVIRONMENT } from '../../../src/constants';
@@ -19,6 +18,7 @@ import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../s
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 describe('getDynamicSamplingContextFromSpan', () => {
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
     // Setting the attribute should overwrite the computed values
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.56);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
 
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
@@ -147,7 +147,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       name: 'tx',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       },
       sampled: true,
     });
@@ -172,7 +172,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const rootSpan = new SentrySpan({
         name: 'tx',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
         },
       });
@@ -188,11 +188,11 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const rootSpan = startInactiveSpan({
         name: 'tx',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
         },
       });
 
-      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
 
       const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 

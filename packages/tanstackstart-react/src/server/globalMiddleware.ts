@@ -1,14 +1,7 @@
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addNonEnumerableProperty,
-  captureException,
-  getActiveSpan,
-  spanToJSON,
-  updateSpanName,
-} from '@sentry/core';
+import { addNonEnumerableProperty, captureException, getActiveSpan, spanToJSON, updateSpanName } from '@sentry/core';
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
-import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 type ServerFnMeta = {
   id?: string;
@@ -43,7 +36,7 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
       if (serverFnMeta?.name) {
         const method = spanData.name.split(' ')[0] || 'GET';
         updateSpanName(activeSpan, `${method} /_serverFn/${serverFnMeta.name}`);
-        activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        activeSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       }
       if (serverFnMeta?.id) {
         activeSpan.setAttribute('tanstackstart.function.id', serverFnMeta.id);

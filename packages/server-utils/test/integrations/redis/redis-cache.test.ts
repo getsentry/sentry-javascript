@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyRedisCacheAttributes,
@@ -54,6 +55,7 @@ describe('redis cache', () => {
         expect(mockSpan.updateName).toHaveBeenCalledWith(
           'cache:very-long-key-name, cache:very-long-key-name-2, cache:very-long-key-name-3',
         );
+        expect(mockSpan.setAttribute).not.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, undefined);
       });
 
       it('should truncate span name when maxCacheKeyLength is set', () => {

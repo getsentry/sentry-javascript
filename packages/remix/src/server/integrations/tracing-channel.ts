@@ -8,7 +8,6 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -16,6 +15,7 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
   HTTP_METHOD,
   HTTP_ROUTE,
@@ -133,7 +133,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
     // oxlint-disable-next-line typescript/no-deprecated
     const method = spanToJSON(span).attributes[HTTP_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   }
   if (route?.id) {
     span.setAttribute(MATCH_ROUTE_ID, route.id);
@@ -155,7 +155,7 @@ function subscribeRequestHandler(): void {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
+          ...(hasUrlName && { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
           [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,
         },

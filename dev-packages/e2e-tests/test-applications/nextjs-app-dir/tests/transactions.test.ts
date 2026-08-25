@@ -37,7 +37,7 @@ test('Sends a pageload transaction', async ({ page }) => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
             'url.path': '/',
             'url.template': '/',
