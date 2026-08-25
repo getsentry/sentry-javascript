@@ -20,6 +20,13 @@ interface ProgramNode {
 const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils';
 
 /**
+ * Assignment target that keeps the injected call from being tree-shaken. See
+ * {@link moduleInjectedSnippet}. The value written is always `undefined`; only
+ * the assignment matters.
+ */
+const MODULE_INJECTED_SINK = 'globalThis.__SENTRY_ORCHESTRION_INJECT__';
+
+/**
  * Entry-chunk banner that marks "the bundler plugin ran" for
  * `detectOrchestrionSetup()`. Merge-only (`g.bundler = g.bundler || []`) so it
  * can never clobber module names already recorded by an injected snippet that
@@ -50,6 +57,13 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  * inside a transformed `node_modules` file can't resolve (Turbopack under
  * isolated installs); it's embedded via `JSON.stringify` so absolute Windows
  * paths survive.
+ *
+ * The call result is assigned to a global rather than discarded. The helper
+ * returns `void` and `@sentry/server-utils` is `sideEffects: false`, so a bare
+ * call statement is something a bundler can prove droppable: rollup >= 4.63.0
+ * does exactly that and removes the whole registration, leaving the module
+ * instrumented but unsubscribed. Writing to a property of `globalThis` is a
+ * side effect no bundler can shake out, so the call survives.
  */
 function moduleInjectedSnippet(
   moduleName: string,
@@ -63,7 +77,7 @@ function moduleInjectedSnippet(
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
   const args = exportName ? `${JSON.stringify(moduleName)}, ${exportName}` : JSON.stringify(moduleName);
-  return `${importStmt}\norchestrionModuleInjected(${args});`;
+  return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
 /**

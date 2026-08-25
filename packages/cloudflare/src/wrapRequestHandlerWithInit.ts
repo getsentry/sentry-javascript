@@ -16,6 +16,7 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
+import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 import { classifyResponseStreaming } from './utils/streaming';
 
@@ -60,12 +61,15 @@ export function wrapRequestHandlerWithInit(
     const { options, request, captureErrors = true } = wrapperOptions;
     const context = wrapperOptions.context;
 
-    // Use getOriginalWaitUntil to get the un-instrumented waitUntil function.
-    // This is crucial to avoid deadlock: the flush lock mechanism wraps waitUntil
-    // to track pending tasks. If we use the instrumented version for flushAndDispose,
-    // it acquires the lock, then flushAndDispose tries to wait for the same lock,
-    // creating a deadlock.
-    const waitUntil = context ? getOriginalWaitUntil(context).bind(context) : undefined;
+    // The un-instrumented waitUntil, so flushAndDispose cannot deadlock on the flush
+    // lock's own wrapper. Resolved once per invocation and cached on its state; reading
+    // `ctx.waitUntil` on a native context is a runtime getter call.
+    const invocationState = getInvocationState();
+    const waitUntil = invocationState
+      ? getInvocationWaitUntil(invocationState)
+      : context
+        ? getOriginalWaitUntil(context).bind(context)
+        : undefined;
     const errorMechanismType = getRequestErrorMechanismType(context);
 
     const client = initSdk({ ...options, ctx: context });
@@ -212,5 +216,5 @@ export function wrapRequestHandlerWithInit(
         });
       },
     );
-  });
+  }, wrapperOptions.context);
 }

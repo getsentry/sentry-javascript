@@ -678,6 +678,8 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 Span attributes now use the shared `@sentry/conventions` package under the hood.
 The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
+`SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use `SENTRY_SEGMENT_NAME_SOURCE` (`sentry.segment.name.source`) instead.
+`sentry.segment.name.source` is only set on the root span. Setting it on a child span is a no-op: `setAttribute` ignores it, and a value passed in a child span's initial attributes is dropped when the span is linked to its parent.
 
 ### Span operation (`op`) changes
 

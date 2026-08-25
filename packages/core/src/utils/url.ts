@@ -7,16 +7,14 @@ import {
   URL_PATH,
   URL_PORT,
   URL_QUERY,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_SCHEME,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import {
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
+import type { TransactionSource } from '../types/transaction';
 import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
@@ -198,13 +196,14 @@ export function getHttpSpanDetailsFromUrlObject(
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
   };
+
+  let nameSource: TransactionSource = 'url';
 
   if (routeName) {
     // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
     attributes[kind === 'server' ? HTTP_ROUTE : URL_TEMPLATE] = routeName;
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+    nameSource = 'route';
   }
 
   if (request?.method) {
@@ -223,7 +222,7 @@ export function getHttpSpanDetailsFromUrlObject(
     if (urlObject.pathname) {
       attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        nameSource = 'route';
       }
     }
 
@@ -238,6 +237,12 @@ export function getHttpSpanDetailsFromUrlObject(
         attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
     }
+  }
+
+  // Outgoing HTTP (`kind === 'client'`) is not a segment span. Incoming HTTP usually is;
+  // if it is nested under a local parent, `addChildSpanToSpan` strips this attribute.
+  if (kind === 'server') {
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = nameSource;
   }
 
   return [getHttpSpanNameFromUrlObject(urlObject, kind, request, routeName), attributes];

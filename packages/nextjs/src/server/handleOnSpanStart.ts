@@ -1,12 +1,11 @@
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
 import {
-  getIsolationScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
-} from '@sentry/core';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+} from '@sentry/conventions/attributes';
+import type { Span } from '@sentry/core';
+import { getIsolationScope, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
@@ -48,7 +47,7 @@ export function handleOnSpanStart(span: Span): void {
         [HTTP_ROUTE]: route,
         // Preserving the original attribute despite internally not depending on it
         [ATTR_NEXT_ROUTE]: route,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       });
 
       // Update the isolation scope's transaction name so that non-transaction events
@@ -70,7 +69,7 @@ export function handleOnSpanStart(span: Span): void {
       rootSpan.setAttributes({
         [HTTP_ROUTE]: middlewareName,
         [ATTR_NEXT_SPAN_NAME]: middlewareName,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       });
     }
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');

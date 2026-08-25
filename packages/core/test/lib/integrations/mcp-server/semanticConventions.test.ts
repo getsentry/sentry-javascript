@@ -62,7 +62,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.location': '"Seattle, WA"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -94,7 +94,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.uri': '"file:///docs/api.md"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -126,7 +126,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.name': '"analyze-code"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -154,7 +154,7 @@ describe('MCP Server Semantic Conventions', () => {
             'network.protocol.version': '2.0',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -194,7 +194,7 @@ describe('MCP Server Semantic Conventions', () => {
             // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
       );
@@ -231,7 +231,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.logging.message': 'Addition completed: 2 + 5 = 7',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -262,7 +262,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.cancelled.reason': 'user_requested',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -296,7 +296,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.progress.message': 'Processing files...',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -324,7 +324,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.resource.protocol': 'file',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -348,7 +348,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.server_to_client',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),

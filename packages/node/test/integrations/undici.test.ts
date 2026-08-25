@@ -10,7 +10,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { channel } from 'node:diagnostics_channel';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { UndiciRequest } from '../../src/integrations/node-fetch/types';
@@ -61,7 +61,6 @@ describe('instrumentUndici', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
         [SERVER_ADDRESS]: 'api.example.com',
         [SERVER_PORT]: 443,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
       onlyIfParent: true,
     });

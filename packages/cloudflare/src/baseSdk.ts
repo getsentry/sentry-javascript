@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import { debug, getCurrentScope, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -15,6 +16,8 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
+import { cacheClient, getCachedClient } from './clientCache';
+import { DEBUG_BUILD } from './debug-build';
 import { fetchIntegration } from './integrations/fetch';
 import { httpServerIntegration } from './integrations/httpServer';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
@@ -75,20 +78,47 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
  * Node.js-only code. `request.ts` — which backs both `wrapRequestHandler` and the
  * `@sentry/cloudflare/request` entry point, and therefore has to work on runtimes without the
  * `nodejs_compat` compatibility flag — creates its client from here instead of from `sdk.ts`.
+ *
+ * The client is cached and reused across invocations within the same isolate,
+ * unless `cacheClient: false` is passed. This avoids the
+ * per-invocation cost of constructing a new client, and it is what makes
+ * Durable Object telemetry reliable: a per-invocation client is disposed at
+ * the end of the handler, and in a Durable Object there is no `waitUntil`
+ * boundary that reliably extends execution, so spans/events that end after
+ * disposal would otherwise be lost.
  */
 export function initWithDefaultIntegrations(
   options: CloudflareOptions,
   getDefaultIntegrationsImpl: (options: CloudflareOptions) => Integration[],
 ): CloudflareClient | undefined {
+  const cached = getCachedClient();
+  const cacheEnabled = options.cacheClient !== false;
+
+  if (cacheEnabled && cached) {
+    if (DEBUG_BUILD && cached.getOptions().dsn !== options.dsn) {
+      debug.warn(
+        '[Sentry] init() was called with a different DSN than the cached client of this isolate; the cached client keeps its DSN. Pass `cacheClient: false` for per-invocation options.',
+      );
+    }
+    getCurrentScope().update(options.initialScope);
+    setCurrentClient(cached);
+    return cached;
+  }
+
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
   }
 
-  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
+  // A cached client outlives any single invocation, so binding it to one
+  // invocation's flush lock would make later flushes wait on that invocation's
+  // waitUntil work forever. Eager delivery replaces the flush lock's purpose.
+  const invocationContext = options.ctx;
+  const flushLock = !cacheEnabled && invocationContext ? makeFlushLock(invocationContext) : undefined;
   delete options.ctx;
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
+    cacheClient: cacheEnabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeCloudflareTransport,
@@ -106,6 +136,10 @@ export function initWithDefaultIntegrations(
   /*! rollup-include-development-only-end */
 
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+
+  if (cacheEnabled && client) {
+    cacheClient(client);
+  }
 
   // An instrumented module that first evaluates AFTER this init (e.g. a driver
   // lazily required on first use) stores its subscriber factory on the global

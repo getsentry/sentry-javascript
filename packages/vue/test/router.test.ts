@@ -1,8 +1,8 @@
 import * as SentryBrowser from '@sentry/browser';
 import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
@@ -126,7 +126,7 @@ describe('instrumentVueRouter()', () => {
           name: transactionName,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+            [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
             ...getAttributesForRoute(to, transactionSource === 'route' ? transactionName : undefined),
           },
           op: 'navigation',
@@ -176,7 +176,7 @@ describe('instrumentVueRouter()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       expect(mockRootSpan.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, transactionSource);
       expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
         ...getAttributesForRoute(to, transactionSource === 'route' ? transactionName : undefined),
@@ -206,7 +206,7 @@ describe('instrumentVueRouter()', () => {
         name: '/login',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           ...getAttributesForRoute(to, '/login'),
         },
         op: 'navigation',
@@ -237,7 +237,7 @@ describe('instrumentVueRouter()', () => {
         name: 'login-screen',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           ...getAttributesForRoute(to),
         },
         op: 'navigation',
@@ -253,11 +253,11 @@ describe('instrumentVueRouter()', () => {
       setAttribute: vi.fn(),
       setAttributes: vi.fn(),
       name: '',
-      getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
+      getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } }),
       getStaticSpanJSON: () => ({
         op: 'pageload',
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
       }),
     };
@@ -281,7 +281,7 @@ describe('instrumentVueRouter()', () => {
     mockRootSpan.getSpanJSON = () => ({
       attributes: {
         'sentry.op': 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       },
     });
 
@@ -343,8 +343,8 @@ describe('instrumentVueRouter()', () => {
         setAttribute: vi.fn(),
         setAttributes: vi.fn(),
         name: '',
-        getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
-        getStaticSpanJSON: () => ({ op: 'pageload', data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } }),
+        getSpanJSON: () => ({ attributes: { 'sentry.op': 'pageload', [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } }),
+        getStaticSpanJSON: () => ({ op: 'pageload', data: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } }),
       };
       vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 

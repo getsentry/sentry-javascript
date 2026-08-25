@@ -28,7 +28,7 @@ test.describe('client - navigation performance', () => {
           data: {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/ssr',
             'url.path': '/performance/ssr',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/ssr$/),
@@ -87,7 +87,7 @@ test.describe('client - navigation performance', () => {
           op: 'navigation',
           origin: 'auto.navigation.react_router',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/object-nav',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/object-nav\?foo=bar$/),
@@ -159,7 +159,7 @@ test.describe('client - navigation performance', () => {
           data: {
             'sentry.origin': 'auto.navigation.react_router',
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/performance/with/:param',
             'url.path': '/performance/with/sentry',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
@@ -225,7 +225,7 @@ test.describe('client - navigation performance', () => {
           op: 'navigation',
           origin: 'auto.navigation.react_router',
           data: {
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router',
             'url.template': '/performance',

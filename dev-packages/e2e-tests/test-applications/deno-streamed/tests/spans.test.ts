@@ -115,10 +115,6 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'GET /test-sentry-span',
     },
-    'sentry.source': {
-      type: 'string',
-      value: 'url',
-    },
     'sentry.segment.name.source': {
       type: 'string',
       value: 'url',

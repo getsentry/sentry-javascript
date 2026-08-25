@@ -7,13 +7,10 @@ import {
 } from '@sentry/browser';
 import type { Integration } from '@sentry/core/browser';
 import { filterCollectedUrl, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   PARAMS_KEY_BASE,
   URL_FULL,
   URL_PATH,
@@ -73,7 +70,7 @@ export function tanstackRouterBrowserTracingIntegration(
         fallbackName: string,
       ): void => {
         span.updateName(match ? match.routeId : fallbackName);
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, match ? 'route' : 'url');
         span.setAttributes({
           ...(match && { [URL_TEMPLATE]: match.routeId }),
           ...locationToSpanUrlAttributes(castRouterInstance, toLocation),
@@ -101,7 +98,7 @@ export function tanstackRouterBrowserTracingIntegration(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
@@ -155,7 +152,7 @@ export function tanstackRouterBrowserTracingIntegration(
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },

@@ -1,11 +1,5 @@
-import {
-  addNonEnumerableProperty,
-  flushIfServerless,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-} from '@sentry/core';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { addNonEnumerableProperty, flushIfServerless, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
@@ -46,7 +40,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
             },
             name: routeId ? routeId : event.url.pathname,
           },
@@ -110,7 +104,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
             },
             name: routeId ? routeId : event.url.pathname,

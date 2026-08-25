@@ -4,8 +4,11 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
+  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  hasSpanStreamingEnabled,
+  ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
@@ -173,7 +176,12 @@ function patchLayer(
     const koaName = metadata.attributes[KOA_NAME];
     // Somehow, name is sometimes `''` for middleware spans.
     // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
-    const name = typeof koaName === 'string' ? koaName || '< unknown >' : metadata.name;
+    const staticName = typeof koaName === 'string' ? koaName || '< unknown >' : metadata.name;
+
+    const client = getClient();
+    // With span streaming, span names have to be low cardinality, so router spans are named after their route.
+    const isStreamedRouterSpan = layerType === LAYER_TYPE.ROUTER && !!client && hasSpanStreamingEnabled(client);
+    const name = isStreamedRouterSpan ? metadata.attributes[HTTP_ROUTE] || ROUTER_SPAN_NAME_FALLBACK : staticName;
 
     return startSpan(
       {
@@ -228,9 +236,9 @@ function getMiddlewareMetadata(
 }
 
 /**
- * Orchestrion-driven koa integration. Subscribes to the
+ * Diagnostics-channel-based koa integration. Subscribes to the
  * `orchestrion:koa:use` channel injected into `Application.prototype.use` and
  * wraps each registered middleware/router layer in a span-creating proxy.
- * Requires the orchestrion runtime hook or bundler plugin.
+ * Requires the Sentry runtime hook or bundler plugin.
  */
 export const koaIntegration = defineIntegration(_koaIntegration);

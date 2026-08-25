@@ -419,7 +419,7 @@ function parseChunk(bytes?: Uint8Array): ParsedChunk {
     const str = Buffer.from(bytes).toString('utf-8');
     return JSON.parse(str);
   } catch (err) {
-    DEBUG_BUILD && debug.warn('[orchestrion:aws-sdk] failed to parse streamed bedrock chunk', err);
+    DEBUG_BUILD && debug.warn('[instrumentation:aws-sdk] failed to parse streamed bedrock chunk', err);
     return null;
   }
 }

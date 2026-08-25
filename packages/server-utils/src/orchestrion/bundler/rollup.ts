@@ -1,5 +1,7 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import type { NormalizedInputOptions, Plugin, PluginContext } from 'rollup';
+
+export type { Plugin as RollupPlugin } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalizedModulesWarning, orchestrionTransformOptions } from './options';
