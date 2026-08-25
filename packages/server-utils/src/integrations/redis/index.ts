@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SENTRY_KIND,
@@ -35,8 +36,6 @@ const INTEGRATION_NAME = 'Redis' as const;
 
 const ORIGIN = 'auto.db.redis';
 
-// todo(v11): drop this — it is already covered by host and port.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_REDIS = 'redis';
 
 export interface RedisIntegrationOptions extends RedisCacheOptions {}
@@ -91,27 +90,11 @@ function stripCommandOptions(args: unknown[]): unknown[] {
   return args;
 }
 
-function removeCredentialsFromConnectionString(url: string | undefined): string | undefined {
-  if (typeof url !== 'string' || !url) {
-    return undefined;
-  }
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.delete('user_pwd');
-    parsed.username = '';
-    parsed.password = '';
-    return parsed.href;
-  } catch {
-    return undefined;
-  }
-}
-
 function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanAttributes {
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-    [SERVER_ADDRESS]: options?.socket?.host,
-    [SERVER_PORT]: options?.socket?.port,
-    [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromConnectionString(options?.url),
+    ...(options?.socket?.host != null ? { [SERVER_ADDRESS]: options.socket.host } : {}),
+    ...(options?.socket?.port != null ? { [SERVER_PORT]: options.socket.port } : {}),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
@@ -124,6 +107,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
       [SENTRY_KIND]: 'client',
       ...attributes,
       [SENTRY_OP]: DB_QUERY,
+      [DB_OPERATION_NAME]: commandName,
       [DB_QUERY_TEXT]: dbStatement,
     },
   });
@@ -157,11 +141,11 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       };
 
-      attributes[SERVER_ADDRESS] = client?.connection_options?.host;
-      attributes[SERVER_PORT] = client?.connection_options?.port;
-
-      if (client?.address) {
-        attributes[ATTR_DB_CONNECTION_STRING] = `redis://${client.address}`;
+      if (client?.connection_options?.host != null) {
+        attributes[SERVER_ADDRESS] = client.connection_options.host;
+      }
+      if (client?.connection_options?.port != null) {
+        attributes[SERVER_PORT] = client.connection_options.port;
       }
       const span = startCommandSpan(command.command, command.args ?? [], attributes);
       (data as CommandContext & { _sentrySpan?: Span })._sentrySpan = span;

@@ -29,24 +29,26 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
 
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'set test-key [1 other arguments]',
         status: 'ok',
         data: expect.objectContaining({
           'db.system.name': 'redis',
+          'db.operation.name': 'set',
           'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
     );
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'get test-key',
         status: 'ok',
         data: expect.objectContaining({
           'db.system.name': 'redis',
+          'db.operation.name': 'get',
           'db.query.text': 'get test-key',
         }),
       }),
@@ -59,7 +61,7 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
     // Every db span nests under the native instrumentation-API http.server transaction.
     const rootSpanId = transactionEvent.contexts?.trace?.span_id;
     const spanIds = new Set([rootSpanId, ...spans.map(span => span.span_id)]);
-    const dbSpans = spans.filter(span => span.op === 'db');
+    const dbSpans = spans.filter(span => span.origin === 'auto.db.redis');
     expect(dbSpans.every(span => typeof span.parent_span_id === 'string' && spanIds.has(span.parent_span_id))).toBe(
       true,
     );

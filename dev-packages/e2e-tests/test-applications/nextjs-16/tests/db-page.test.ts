@@ -30,22 +30,28 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'db',
+      op: 'db.query',
       origin: 'auto.db.redis',
       description: 'set page-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'redis',
+        'db.operation.name': 'set',
         'db.query.text': 'set page-key [1 other arguments]',
       }),
     }),
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'db',
+      op: 'db.query',
       origin: 'auto.db.redis',
       description: 'get page-key',
       status: 'ok',
+      data: expect.objectContaining({
+        'db.system.name': 'redis',
+        'db.operation.name': 'get',
+        'db.query.text': 'get page-key',
+      }),
     }),
   );
 });
