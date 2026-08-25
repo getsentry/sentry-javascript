@@ -1,4 +1,5 @@
 import { builtinModules } from 'node:module';
+import * as nodePath from 'node:path';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rolldown';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
@@ -144,6 +145,84 @@ const thirdPartyLicensePlugin = license({
   },
 });
 
+// Rolldown compiles each bundled CJS dependency into `var require_x = __commonJSMin(...)` and has
+// consumers pull it in with `import { require_x } from './body.js'`. That named import is used, so
+// nothing downstream can drop it - which dragged the whole build-time-only transformer chain
+// (meriyah, astring, source-map: ~185 kB) into every consumer's runtime bundle.
+//
+// `@rollup/plugin-commonjs` split each CJS module in two: a tiny `_virtual` module holding the
+// exports, and the body imported purely for its side effects. With this package's
+// `sideEffects: false`, a downstream bundler is then free to drop the body. Reproduce that split so
+// the emitted graph matches what rollup produced.
+//
+// The exports live in a mutable container rather than being merged into an object, because a CJS
+// module's exports can be any value (esquery's is a function).
+const CJS_INIT = /^var (require_[A-Za-z0-9_$]+) = \/\* @__PURE__ \*\/ __commonJSMin\(/m;
+
+// Only the parse/query/generate/sourcemap libraries are split. They are reached exclusively through
+// the lazily-invoked `code-transformer` factory, which `register.ts` calls inside a try/catch, so a
+// consumer that drops them degrades to "no channel injection" instead of throwing. Everything else
+// (notably `debug`, whose export is called at module-evaluation time) must stay non-droppable.
+const SPLITTABLE = /vendored\/(meriyah|astring|source-map|esquery)\//;
+
+function makeCjsExportsSplitPlugin() {
+  return {
+    name: 'cjs-exports-split',
+    generateBundle(outputOptions, bundle) {
+      if (outputOptions.format !== 'es' && outputOptions.format !== 'esm') return;
+
+      const chunks = Object.values(bundle).filter(c => c.type === 'chunk');
+      const split = new Map();
+
+      // Pass 1: every chunk that defines and exports a single CJS initializer gets a container.
+      for (const chunk of chunks) {
+        if (!SPLITTABLE.test(chunk.fileName)) continue;
+        const match = CJS_INIT.exec(chunk.code);
+        if (!match) continue;
+        const name = match[1];
+        if (!chunk.code.includes(`export { ${name} };`)) continue;
+        split.set(name, { body: chunk, container: `_virtual/_cjs/${name}.js` });
+      }
+      if (!split.size) return;
+
+      const relative = (fromFile, toFile) => {
+        const rel = nodePath.posix.relative(nodePath.posix.dirname(fromFile), toFile);
+        return rel.startsWith('.') ? rel : `./${rel}`;
+      };
+
+      for (const [name, { body, container }] of split) {
+        this.emitFile({ type: 'asset', fileName: container, source: 'var c = {};\nexport { c as __cjs };\n' });
+
+        // The body stops exporting the initializer and instead runs it into the container. Eager,
+        // like `@rollup/plugin-commonjs` with `strictRequires: false`, which this graph already
+        // relied on.
+        body.code =
+          `import { __cjs as ${name}__cjs } from "${relative(body.fileName, container)}";\n` +
+          body.code.replace(`export { ${name} };`, `${name}__cjs.v = ${name}();`);
+      }
+
+      // Pass 2: consumers import the body for side effects only and read the container.
+      for (const chunk of chunks) {
+        for (const [name, { body, container }] of split) {
+          if (chunk === body) continue;
+          const importRe = new RegExp(`^import \\{ ${name} \\} from "([^"]+)";$`, 'm');
+          const found = importRe.exec(chunk.code);
+          if (!found) continue;
+          chunk.code = chunk.code
+            .replace(
+              found[0],
+              `import "${found[1]}";\nimport { __cjs as ${name}__cjs } from "${relative(chunk.fileName, container)}";`,
+            )
+            // `?? {}` mirrors rollup's `_virtual` module, which held a plain `{}`. If a consumer
+            // drops the body, reads yield `undefined` rather than throwing on destructuring, so
+            // injection degrades to a caught warning exactly as it does on the rollup build.
+            .replaceAll(`${name}()`, `(${name}__cjs.v ?? {})`);
+        }
+      }
+    },
+  };
+}
+
 const orchestrionRuntimeHooks = [
   // EXPERIMENTAL — orchestrion.js runtime hook. A hand-written `.mjs` shim that SDKs reference via
   // a `--import .../orchestrion/import-hook` flag. We pass it through rollup only to copy it into
@@ -188,7 +267,13 @@ export default [
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, esqueryCjsAlias, thirdPartyLicensePlugin, makeBuiltinRequireShim()],
+        plugins: [
+          debugNodeAlias,
+          esqueryCjsAlias,
+          thirdPartyLicensePlugin,
+          makeBuiltinRequireShim(),
+          makeCjsExportsSplitPlugin(),
+        ],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
