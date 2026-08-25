@@ -417,9 +417,6 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles streaming errors correctly', async () => {
       await createRunner()
-        // Anthropic surfaces stream errors as events on a resolved stream rather than by rejecting,
-        // so the instrumentation still reports them; the caller never sees them as a thrown error.
-        .ignore('event')
         .expect({ transaction: EXPECTED_STREAM_ERROR_SPANS })
         .expect({
           span: container => {
@@ -537,6 +534,30 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
           },
         })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-response-error.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('captures error-shaped responses returned as data', async () => {
+      await createRunner()
+        // The API returns the error as data on a 200 response, never as a thrown error to the caller,
+        // so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Overloaded',
+                  mechanism: { type: 'auto.ai.anthropic.anthropic_error', handled: false },
+                },
+              ],
+            },
+          },
+        })
+        .expect({ transaction: { transaction: 'main' } })
         .start()
         .completed();
     });

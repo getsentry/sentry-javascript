@@ -1,4 +1,4 @@
-import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
@@ -48,16 +48,10 @@ interface StreamingState {
 
 function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
   if ('type' in event && typeof event.type === 'string') {
-    // If the event is an error, set the span status and capture the error
-    // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
+      // The SDK surfaces this error to the caller (the async iterator rejects / their `error`
+      // listener fires), so we only mark the span failed and do not record it.
       span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatusMessage(event.error?.type) });
-      captureException(event.error, {
-        mechanism: {
-          handled: false,
-          type: 'auto.ai.anthropic.anthropic_error',
-        },
-      });
       return true;
     }
   }
@@ -265,14 +259,9 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
-  stream.on('error', (error: unknown) => {
-    captureException(error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.ai.anthropic.stream_error',
-      },
-    });
-
+  stream.on('error', () => {
+    // The stream error is surfaced to the caller (the async iterator rejects, or their own `error`
+    // listener fires), so we only mark the span failed and do not record it.
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       span.end();

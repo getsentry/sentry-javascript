@@ -229,8 +229,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
-        // Blocked content is reported from within the stream, not thrown to the caller.
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -286,8 +299,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
-        // Blocked content is reported from within the stream, not thrown to the caller.
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
