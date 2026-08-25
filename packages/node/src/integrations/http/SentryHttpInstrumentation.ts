@@ -54,8 +54,8 @@ export interface OutgoingHttpRequestInstrumentationOptions {
    * Hooks for outgoing request spans, only called when spans are created for outgoing requests
    * (i.e. when `spans` is enabled).
    */
-  outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
-  outgoingResponseHook?: (span: Span, response: IncomingMessage | HttpIncomingMessage) => void;
+  outgoingRequestHook?: (span: Span, request: ClientRequest) => void;
+  outgoingResponseHook?: (span: Span, response: IncomingMessage) => void;
   outgoingRequestApplyCustomAttributes?: (
     span: Span,
     request: HttpClientRequest,
@@ -82,7 +82,7 @@ export function instrumentHttpOutgoingRequests(
       return isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request));
     },
     outgoingRequestHook(span, request) {
-      options.outgoingRequestHook?.(span, request);
+      options.outgoingRequestHook?.(span, request as ClientRequest);
       // We monkey-patch `req.once('response'), which is used to trigger
       // the callback of the request, so that it runs in the active context
       // eslint-disable-next-line @typescript-eslint/unbound-method, typescript/no-deprecated
@@ -108,7 +108,7 @@ export function instrumentHttpOutgoingRequests(
       request.once = newOnce;
     },
     outgoingResponseHook(span, response) {
-      options.outgoingResponseHook?.(span, response);
+      options.outgoingResponseHook?.(span, response as IncomingMessage);
     },
     errorMonitor,
     // Pass these in to detect OTel double-wrapping if we're enabling spans

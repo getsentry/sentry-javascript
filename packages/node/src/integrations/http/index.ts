@@ -1,5 +1,5 @@
-import type { RequestOptions } from 'node:http';
-import type { HttpClientRequest, Span } from '@sentry/core';
+import type { ClientRequest, RequestOptions } from 'node:http';
+import type { Span } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';
 import {
   defineIntegration,
@@ -110,7 +110,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         spans,
         propagateTrace: options.tracePropagation ?? true,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-        outgoingRequestHook: (span: Span, request: HttpClientRequest) => {
+        outgoingRequestHook: (span: Span, request: ClientRequest) => {
           // Sanitize data URLs to prevent long base64 strings in span attributes
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
