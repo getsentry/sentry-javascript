@@ -62,7 +62,7 @@ describe('externalizeOrchestrionRuntimePackages', () => {
   // An absolute path here breaks every deploy that relocates the output, so it has to stay bare.
   it.each([
     ['@sentry/server-utils', '@sentry/nextjs/orchestrion-runtime/index'],
-    ['@sentry/server-utils/orchestrion', '@sentry/nextjs/orchestrion-runtime/orchestrion'],
+    ['@sentry/server-utils/orchestrion/config', '@sentry/nextjs/orchestrion-runtime/orchestrion/config'],
     ['@sentry/server-utils/orchestrion/register', '@sentry/nextjs/orchestrion-runtime/orchestrion/register'],
     ['@sentry/server-utils/orchestrion/webpack', '@sentry/nextjs/orchestrion-runtime/orchestrion/webpack'],
   ])('externalizes %s as the relocatable bare specifier %s', async (request, expected) => {

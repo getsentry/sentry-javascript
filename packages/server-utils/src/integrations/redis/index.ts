@@ -1,20 +1,15 @@
-/* eslint-disable @typescript-eslint/no-deprecated -- we intentionally emit the OLD db/net semconv
-   to match `@opentelemetry/instrumentation-redis`. TODO(v11): switch to the non-deprecated
-   `db.system.name`/`db.query.text`/`server.address`/`server.port` conventions and drop this disable. */
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_OPERATION_BATCH_SIZE,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { DATABASE_DB_QUERY_SPAN_OP, DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
+import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   isObjectLike,
@@ -41,8 +36,6 @@ const INTEGRATION_NAME = 'Redis' as const;
 
 const ORIGIN = 'auto.db.redis';
 
-// todo(v11): drop this — it is already covered by host and port.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const DB_SYSTEM_VALUE_REDIS = 'redis';
 
 export interface RedisIntegrationOptions extends RedisCacheOptions {}
@@ -97,27 +90,11 @@ function stripCommandOptions(args: unknown[]): unknown[] {
   return args;
 }
 
-function removeCredentialsFromConnectionString(url: string | undefined): string | undefined {
-  if (typeof url !== 'string' || !url) {
-    return undefined;
-  }
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.delete('user_pwd');
-    parsed.username = '';
-    parsed.password = '';
-    return parsed.href;
-  } catch {
-    return undefined;
-  }
-}
-
 function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanAttributes {
   return {
-    [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
-    [NET_PEER_NAME]: options?.socket?.host,
-    [NET_PEER_PORT]: options?.socket?.port,
-    [ATTR_DB_CONNECTION_STRING]: removeCredentialsFromConnectionString(options?.url),
+    [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+    ...(options?.socket?.host != null ? { [SERVER_ADDRESS]: options.socket.host } : {}),
+    ...(options?.socket?.port != null ? { [SERVER_PORT]: options.socket.port } : {}),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
@@ -129,8 +106,9 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
-      [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
-      [DB_STATEMENT]: dbStatement,
+      [SENTRY_OP]: DB_QUERY,
+      [DB_OPERATION_NAME]: commandName,
+      [DB_QUERY_TEXT]: dbStatement,
     },
   });
 }
@@ -159,15 +137,15 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       }
       const client = data.self as LegacyRedisClient | undefined;
       const attributes: SpanAttributes = {
-        [DB_SYSTEM]: DB_SYSTEM_VALUE_REDIS,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       };
 
-      attributes[NET_PEER_NAME] = client?.connection_options?.host;
-      attributes[NET_PEER_PORT] = client?.connection_options?.port;
-
-      if (client?.address) {
-        attributes[ATTR_DB_CONNECTION_STRING] = `redis://${client.address}`;
+      if (client?.connection_options?.host != null) {
+        attributes[SERVER_ADDRESS] = client.connection_options.host;
+      }
+      if (client?.connection_options?.port != null) {
+        attributes[SERVER_PORT] = client.connection_options.port;
       }
       const span = startCommandSpan(command.command, command.args ?? [], attributes);
       (data as CommandContext & { _sentrySpan?: Span })._sentrySpan = span;
@@ -256,7 +234,7 @@ function bindNodeRedisConnectChannel(): void {
       attributes: {
         [SENTRY_KIND]: 'client',
         ...nodeRedisAttributes(options),
-        [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+        [SENTRY_OP]: DB,
       },
     });
   });
@@ -276,7 +254,7 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
       attributes: {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DATABASE_DB_QUERY_SPAN_OP,
+        [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
         ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),

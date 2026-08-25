@@ -21,17 +21,14 @@ import {
   isTracingSuppressed,
   registerSpanErrorInstrumentation,
   SentrySpan,
-  startInactiveSpan,
-  startSpan,
-  startSpanManual,
   suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
+import { startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing/trace';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
-import type { StartSpanOptions } from '../../../src/types/startSpanOptions';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -888,30 +885,6 @@ describe('startSpan', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as typeof startSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpan({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startSpanManual', () => {
@@ -1406,30 +1379,6 @@ describe('startSpanManual', () => {
       });
     });
   });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
-      callback(staticSpan);
-      return 'aha';
-    }) as unknown as typeof startSpanManual;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startSpanManual: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startSpanManual({ name: 'GET users/[id]' }, span => {
-      expect(span).toEqual(staticSpan);
-      return 'oho?';
-    });
-
-    expect(result).toBe('aha');
-  });
 });
 
 describe('startInactiveSpan', () => {
@@ -1444,6 +1393,42 @@ describe('startInactiveSpan', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+  });
+
+  it('includes the scope the span was started on when finished', async () => {
+    const beforeSendTransaction = vi.fn(event => event);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, beforeSendTransaction });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    let span: Span | undefined;
+
+    withScope(scope => {
+      scope.setTag('scope', 1);
+      span = startInactiveSpan({ name: 'my-span' });
+      // The span captures the scope it was started on, so later mutations of that scope
+      // are reflected on the transaction.
+      scope.setTag('scope_after_span', 2);
+    });
+
+    withScope(scope => {
+      scope.setTag('scope', 2);
+      span?.end();
+    });
+
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // The span-start scope is captured, including `scope_after_span` (set on the same scope
+        // after span start), but not `scope: 2` (a different scope active at `end()`).
+        tags: { scope: 1, scope_after_span: 2 },
+      }),
+      expect.anything(),
+    );
   });
 
   it('returns a non recording span if tracing is disabled', () => {
@@ -1896,25 +1881,6 @@ describe('startInactiveSpan', () => {
       const childSpans = Array.from(outerSpan._sentryChildSpans);
       expect(childSpans).toContain(innerSpan);
     });
-  });
-
-  it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
-
-    const carrier = getMainCarrier();
-
-    const customFn = vi.fn((_options: StartSpanOptions) => {
-      return staticSpan;
-    }) as unknown as typeof startInactiveSpan;
-
-    const acs = {
-      ...getAsyncContextStrategy(carrier),
-      startInactiveSpan: customFn,
-    };
-    setAsyncContextStrategy(acs);
-
-    const result = startInactiveSpan({ name: 'GET users/[id]' });
-    expect(result).toBe(staticSpan);
   });
 });
 
@@ -2377,6 +2343,8 @@ describe('withActiveSpan()', () => {
 describe('span hooks', () => {
   beforeEach(() => {
     resetGlobals();
+
+    setAsyncContextStrategy(undefined);
 
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);

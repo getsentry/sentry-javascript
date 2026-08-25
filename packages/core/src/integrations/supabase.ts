@@ -3,13 +3,15 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { startSpan } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
@@ -276,8 +278,8 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-            'db.system': 'postgresql',
-            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_SYSTEM_NAME]: 'postgresql',
+            [DB_OPERATION_NAME]: `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
           },
         },
         span => {
@@ -436,8 +438,8 @@ function instrumentPostgRESTFilterBuilder(
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
           'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
-          'db.system': 'postgresql',
-          'db.operation': operation,
+          [DB_SYSTEM_NAME]: 'postgresql',
+          [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };

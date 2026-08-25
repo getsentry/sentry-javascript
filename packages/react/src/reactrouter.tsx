@@ -9,6 +9,8 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -158,7 +160,8 @@ function instrumentReactRouter(
     if (initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
       startBrowserTracingPageLoadSpan(client, {
-        name,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : PAGELOAD_SPAN_NAME_FALLBACK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,

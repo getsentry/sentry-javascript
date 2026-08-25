@@ -31,7 +31,8 @@ import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/ur
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpanManual } from '../../tracing/trace';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -40,7 +41,22 @@ import {
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
-import { URL_FULL, URL_PATH, SENTRY_KIND } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_KIND,
+} from '@sentry/conventions/attributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
@@ -282,6 +298,10 @@ function buildServerSpanWrap(
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
       const { socket } = request;
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
+      const collectClientAddress = client.getDataCollectionOptions().userInfo;
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address. `network.peer.address` keeps the socket value.
+      const clientAddress = getForwardedClientAddress(ips) ?? remoteAddress;
 
       return startSpanManual(
         {
@@ -293,10 +313,14 @@ function buildServerSpanWrap(
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
-            'net.host.ip': localAddress,
-            'net.host.port': localPort,
-            'net.peer.ip': remoteAddress,
-            'net.peer.port': remotePort,
+            [SERVER_ADDRESS]: hostname,
+            [SERVER_PORT]: localPort,
+            [NETWORK_LOCAL_ADDRESS]: localAddress,
+            [NETWORK_LOCAL_PORT]: localPort,
+            [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
+            [CLIENT_PORT]: remotePort,
+            [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [NETWORK_PEER_PORT]: remotePort,
             'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
             // Old Semantic Conventions attributes for compatibility
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
@@ -307,12 +331,13 @@ function buildServerSpanWrap(
               client,
             ),
             'http.host': host,
-            'net.host.name': hostname,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+            [NETWORK_PROTOCOL_NAME]: 'http',
+            [NETWORK_PROTOCOL_VERSION]: httpVersion,
+            'http.client_ip': collectClientAddress ? getForwardedClientAddress(ips) : undefined,
             'http.user_agent': userAgent,
             'http.scheme': scheme,
             'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+            [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
             ...getRequestContentLengthAttribute(request),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
@@ -357,6 +382,14 @@ function buildServerSpanWrap(
       );
     }
   };
+}
+
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function shouldIgnoreSpansForIncomingRequest(

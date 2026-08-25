@@ -5,7 +5,7 @@ export {
   markSpanAsTracerProviderSpan,
   spanIsTracerProviderSpan,
 } from './utils';
-export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
+export { TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { _INTERNAL_setDeferSegmentSpanCapture } from './deferSegmentSpanCapture';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -18,10 +18,6 @@ export {
   SPAN_STATUS_UNSET,
 } from './spanstatus';
 export {
-  startSpan,
-  startInactiveSpan,
-  _INTERNAL_startInactiveSpan,
-  startSpanManual,
   continueTrace,
   withActiveSpan,
   suppressTracing,

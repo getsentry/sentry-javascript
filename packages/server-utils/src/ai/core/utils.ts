@@ -15,7 +15,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 
 export interface GenAiOptions {
   /**
@@ -61,7 +61,7 @@ const NON_INFERENCE_OPERATIONS = new Set(['unknown']);
  * non-inference operations (`unknown`) become the generic `function` op.
  */
 export function getGenAiSpanOp(operationName: string): string {
-  return NON_INFERENCE_OPERATIONS.has(operationName) ? GENERAL_FUNCTION_SPAN_OP : `gen_ai.${operationName}`;
+  return NON_INFERENCE_OPERATIONS.has(operationName) ? FUNCTION : `gen_ai.${operationName}`;
 }
 
 /**

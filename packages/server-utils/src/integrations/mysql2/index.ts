@@ -15,13 +15,13 @@ import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
-  DB_NAME,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
@@ -85,11 +85,9 @@ function subscribeQueryChannel(channelName: ChannelName): void {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-          // oxlint-disable-next-line typescript/no-deprecated
-          [DB_SYSTEM]: DB_SYSTEM_VALUE_MYSQL,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
           ...getConnectionAttributes(data.self?.config),
-          // oxlint-disable-next-line typescript/no-deprecated
-          [DB_STATEMENT]: statement || undefined,
+          [DB_QUERY_TEXT]: statement || undefined,
         },
       });
     },
@@ -98,7 +96,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
 }
 
 /**
- * Render the `db.statement` from the wrapped call's first argument.
+ * Render the `db.query.text` from the wrapped call's first argument.
  */
 function getQueryText(args: unknown[]): string | undefined {
   return extractSql(args[0]);
@@ -123,13 +121,12 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
   const portIsNumber = typeof portNumber === 'number' && !isNaN(portNumber);
 
   return {
-    // oxlint-disable-next-line typescript/no-deprecated
-    [DB_NAME]: database || undefined,
+    [DB_NAMESPACE]: database || undefined,
     [DB_USER]: user || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_NAME]: host || undefined,
+    [SERVER_ADDRESS]: host || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_PORT]: portIsNumber ? portNumber : undefined,
+    [SERVER_PORT]: portIsNumber ? portNumber : undefined,
   };
 }
 

@@ -1,10 +1,9 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-const producerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.producer' : 'auto.kafkajs.otel.producer';
-const consumerOrigin = isOrchestrionEnabled() ? 'auto.kafkajs.consumer' : 'auto.kafkajs.otel.consumer';
+const producerOrigin = 'auto.kafkajs.producer';
+const consumerOrigin = 'auto.kafkajs.consumer';
 
 describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {

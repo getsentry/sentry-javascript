@@ -1,10 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { CACHE_KEY, DB_OPERATION_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
-import {
-  DATABASE_CACHE_GET_SPAN_OP,
-  DATABASE_CACHE_PUT_SPAN_OP,
-  DATABASE_CACHE_REMOVE_SPAN_OP,
-} from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
   debug,
@@ -35,12 +31,12 @@ type Operation = 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll';
  * available on `db.operation.name`.
  */
 const OPERATION_SPAN_OPS = {
-  load: DATABASE_CACHE_GET_SPAN_OP,
-  loadMany: DATABASE_CACHE_GET_SPAN_OP,
-  batch: DATABASE_CACHE_GET_SPAN_OP,
-  prime: DATABASE_CACHE_PUT_SPAN_OP,
-  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
-  clearAll: DATABASE_CACHE_REMOVE_SPAN_OP,
+  load: CACHE_GET,
+  loadMany: CACHE_GET,
+  batch: CACHE_GET,
+  prime: CACHE_PUT,
+  clear: CACHE_REMOVE,
+  clearAll: CACHE_REMOVE,
 } as const satisfies Record<Operation, string>;
 
 // The link shape shared between a `load` span and the `batch` span it triggers.

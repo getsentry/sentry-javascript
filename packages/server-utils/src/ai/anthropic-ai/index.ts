@@ -9,7 +9,6 @@ import {
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
-  GEN_AI_PROMPT,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -82,10 +81,6 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
   setMessagesAttribute(span, messages);
-
-  if ('prompt' in params) {
-    span.setAttributes({ [GEN_AI_PROMPT]: JSON.stringify(params.prompt) });
-  }
 }
 
 /**

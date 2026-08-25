@@ -4,6 +4,8 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -60,8 +62,8 @@ function getInitPathName(): string | undefined {
 /**
  * Determines the transaction name and source for a route.
  * Handles three cases:
- * 1. Dynamic routes with manifest (Vite apps): Use parameterized path with source 'route'
- * 2. Static routes with manifest (Vite apps): Use pathname with source 'url'
+ * 1. Routes resolved from the manifest (Vite apps): Use the route template with source 'route'
+ * 2. Routes the manifest doesn't know, e.g. 404s (Vite apps): Use pathname with source 'url'
  * 3. Legacy apps without manifest: Use route ID with source 'route'
  */
 function getTransactionNameAndSource(
@@ -71,13 +73,11 @@ function getTransactionNameAndSource(
   const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
 
   if (parameterizedRoute) {
-    // We have a parameterized route from the manifest (dynamic route)
     return { name: parameterizedRoute, source: 'route' };
   }
 
   if (hasManifest()) {
-    // We have a manifest but no parameterization (static route)
-    // Use the pathname with source 'url'
+    // The manifest doesn't know this route, so the pathname may well be high cardinality.
     return { name: pathname || routeId, source: 'url' };
   }
 
@@ -99,7 +99,8 @@ export function startPageloadSpan(client: Client): void {
   const source = parameterizedRoute ? 'route' : 'url';
 
   const spanContext: StartSpanOptions = {
-    name: spanName,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? spanName : PAGELOAD_SPAN_NAME_FALLBACK,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
@@ -183,7 +184,11 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           const transaction = getRootSpan(activeRootSpan);
 
           if (transaction) {
-            transaction.updateName(name);
+            // This runs on mount, so the root span is the pageload span. With span streaming, its
+            // name has to be low cardinality, so we can't fall back to the URL.
+            const client = getClient();
+            const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+            transaction.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
             transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
             if (source === 'route') {
               transaction.setAttribute(URL_TEMPLATE, name);

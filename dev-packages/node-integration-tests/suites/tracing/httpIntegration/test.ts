@@ -20,9 +20,9 @@ describe('httpIntegration', () => {
     cleanupChildProcesses();
   });
 
-  describe('instrumentation options', () => {
+  describe('onSpanCreated option', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to pass instrumentation options to integration', async () => {
+      test('allows to configure onSpanCreated', async () => {
         const runner = createRunner()
           .expect({
             transaction: {
@@ -33,56 +33,14 @@ describe('httpIntegration', () => {
                   data: {
                     'url.full': expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
-                    attr1: 'yes',
-                    attr2: 'yes',
-                    attr3: 'yes',
-                  },
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
-              extra: {
-                requestHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                responseHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                applyCustomAttributesOnSpanCalled: {
-                  reqUrl: expect.stringMatching(/\/test$/),
-                  reqMethod: 'GET',
-                  resUrl: expect.stringMatching(/\/test$/),
-                  resMethod: 'GET',
-                },
-              },
-            },
-          })
-          .start();
-        runner.makeRequest('get', '/test');
-        await runner.completed();
-      });
-
-      test('allows to configure incomingRequestSpanHook', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              contexts: {
-                trace: {
-                  span_id: expect.stringMatching(/[a-f\d]{16}/),
-                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                  data: {
-                    'url.full': expect.stringMatching(/\/test$/),
-                    'http.response.status_code': 200,
-                    incomingRequestSpanHook: 'yes',
+                    onSpanCreated: 'yes',
                   },
                   op: 'http.server',
                   status: 'ok',
                 },
               },
               extra: expect.objectContaining({
-                incomingRequestSpanHookCalled: {
+                onSpanCreatedCalled: {
                   reqUrl: expect.stringMatching(/\/test$/),
                   reqMethod: 'GET',
                   resUrl: expect.stringMatching(/\/test$/),
@@ -95,6 +53,33 @@ describe('httpIntegration', () => {
         runner.makeRequest('get', '/test');
         await runner.completed();
       });
+    });
+  });
+
+  describe('outgoing request span hooks', () => {
+    test('runs outgoingRequestHook, outgoingResponseHook and outgoingRequestApplyCustomAttributes', async () => {
+      const [SERVER_URL, closeTestServer] = await createTestServer()
+        .get('/api/users/42', () => {}, 200)
+        .start();
+
+      const runner = createRunner(__dirname, 'server-outgoingHooks.js')
+        .withEnv({ SERVER_URL })
+        .expect({
+          transaction: event => {
+            const clientSpans = event.spans?.filter(span => span.op === 'http.client');
+            expect(clientSpans).toHaveLength(1);
+
+            // All three hooks run before the span ends, so every attribute has to survive to the envelope.
+            const data = clientSpans![0]?.data;
+            expect(data?.['outgoingRequestHook']).toBe('GET');
+            expect(data?.['outgoingResponseHook']).toBe(200);
+            expect(data?.['outgoingRequestApplyCustomAttributes']).toBe('GET 200');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/testOutgoing');
+      await runner.completed();
+      closeTestServer();
     });
   });
 
@@ -118,12 +103,17 @@ describe('httpIntegration', () => {
                 'http.status_text': 'OK',
                 'http.target': '/test?a=1&b=2',
                 'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
                 'sentry.kind': 'server',
                 'sentry.op': 'http.server',
                 'sentry.origin': 'auto.http.otel.http',
@@ -160,12 +150,17 @@ describe('httpIntegration', () => {
                 'http.status_text': 'OK',
                 'http.target': '/test?a=1&b=2',
                 'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
                 'sentry.kind': 'server',
                 'sentry.op': 'http.server',
                 'sentry.origin': 'auto.http.otel.http',

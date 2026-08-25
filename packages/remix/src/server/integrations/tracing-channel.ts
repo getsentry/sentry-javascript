@@ -26,8 +26,8 @@ import {
   SENTRY_OP,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { FUNCTION } from '@sentry/conventions/op';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
 
@@ -190,7 +190,7 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
@@ -224,7 +224,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),

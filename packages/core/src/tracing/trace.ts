@@ -39,7 +39,7 @@ import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { setCapturedScopesOnSpan } from './utils';
+import { getCapturedScopesOnSpan, setCapturedScopesOnSpan } from './utils';
 import type { Client } from '../client';
 import { SUPPRESS_TRACING_KEY } from './constants';
 
@@ -54,11 +54,6 @@ import { SUPPRESS_TRACING_KEY } from './constants';
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
-  const acs = getAcs();
-  if (acs.startSpan) {
-    return acs.startSpan(options, callback);
-  }
-
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
@@ -72,7 +67,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope, customParentSpan);
+      const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
       const client = getClient();
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -111,11 +106,6 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
-  const acs = getAcs();
-  if (acs.startSpanManual) {
-    return acs.startSpanManual(options, callback);
-  }
-
   const spanArguments = parseSentrySpanArguments(options);
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
@@ -127,7 +117,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 
     return wrapper(() => {
       const scope = getCurrentScope();
-      const parentSpan = getParentSpan(scope, customParentSpan);
+      const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
 
       const missingRequiredParent = options.onlyIfParent && !parentSpan;
       const activeSpan = missingRequiredParent
@@ -162,39 +152,20 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
-  const acs = getAcs();
-  if (acs.startInactiveSpan) {
-    return acs.startInactiveSpan(options);
-  }
-
-  return _startInactiveSpanImpl(options);
-}
-
-/**
- * Internal version of startInactiveSpan that bypasses the ACS check.
- * Used by SentryTracerProvider to create spans without triggering recursion
- * through ACS overrides.
- * @hidden
- */
-export function _INTERNAL_startInactiveSpan(options: StartSpanOptions): Span {
-  return _startInactiveSpanImpl(options);
-}
-
-function _startInactiveSpanImpl(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
-  const { forceTransaction, parentSpan: customParentSpan } = options;
+  const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // If `options.scope` is defined, we use this as as a wrapper,
   // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
-  const wrapper = options.scope
-    ? (callback: () => Span) => withScope(options.scope, callback)
+  const wrapper = customScope
+    ? (callback: () => Span) => withScope(customScope, callback)
     : customParentSpan !== undefined
       ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
       : (callback: () => Span) => callback();
 
   return wrapper(() => {
     const scope = getCurrentScope();
-    const parentSpan = getParentSpan(scope, customParentSpan);
+    const parentSpan = getParentSpan(customScope ?? scope, customParentSpan);
     const client = getClient();
 
     const missingRequiredParent = options.onlyIfParent && !parentSpan;
@@ -342,10 +313,10 @@ function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined
 }
 
 function createChildOrRootSpan({
-  parentSpan,
+  parentSpan: resolvedParentSpan,
   spanArguments,
   forceTransaction,
-  scope,
+  scope: currentScope,
 }: {
   parentSpan: Span | undefined;
   spanArguments: SentrySpanArguments;
@@ -353,6 +324,16 @@ function createChildOrRootSpan({
   scope: Scope;
 }): Span {
   const isolationScope = getIsolationScope();
+
+  // Listeners can adjust the scope and the parent right before span creation. The Node SDK uses
+  // this to turn a remote parent (an incoming trace on the ambient OTel context) into a propagation
+  // context on a forked scope, so the span continues the incoming trace as a root span.
+  const spanScope: { scope: Scope; parentSpan: Span | undefined } = {
+    scope: currentScope,
+    parentSpan: resolvedParentSpan,
+  };
+  getClient()?.emit('prepareSpanScope', spanScope);
+  const { scope, parentSpan } = spanScope;
 
   if (!hasSpansEnabled()) {
     const scopePropagationContext = scope.getPropagationContext();
@@ -486,6 +467,11 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
+/**
+ * Runs the callback with the span active. When the async context strategy bridges to an ambient
+ * context (OTel), activation must go through it so the span lands on that context and
+ * instrumentation-created child spans nest under it; the scope alone is not consulted there.
+ */
 function _startRootSpan(
   spanArguments: SentrySpanArguments,
   scope: Scope,
@@ -666,8 +652,16 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   const wrapper = makeSpanActive
     ? (callback: () => T) => {
         return withActiveSpan(span, () => {
+          const scope = getCurrentScope();
+          // The fork made by withActiveSpan is based on the ambient scope. Carry over the
+          // propagation context captured at span creation, which can continue a remote parent's
+          // trace the ambient scope knows nothing about. For local parents this is a no-op.
+          const creationScope = getCapturedScopesOnSpan(span).scope;
+          if (creationScope) {
+            scope.setPropagationContext(creationScope.getPropagationContext());
+          }
           // Make sure the correct scope is captured on the span, since withActiveSpan forks the scope
-          setCapturedScopesOnSpan(span, getCurrentScope(), getIsolationScope());
+          setCapturedScopesOnSpan(span, scope, getIsolationScope());
           return callback();
         });
       }

@@ -68,7 +68,9 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      await createRunner()
+      const runner = createRunner();
+
+      await runner
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -101,7 +103,9 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      await createRunner()
+      const runner = createRunner();
+
+      await runner
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -163,7 +167,9 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
-      await createRunner()
+      const runner = createRunner();
+
+      await runner
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {

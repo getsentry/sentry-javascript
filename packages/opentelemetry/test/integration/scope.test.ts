@@ -4,11 +4,11 @@ import {
   getCurrentScope,
   getIsolationScope,
   setTag,
+  startSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
-import { startSpan } from '../../src/trace';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {

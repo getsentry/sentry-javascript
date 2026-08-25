@@ -259,57 +259,41 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
+  // No `@ts-expect-error` here on purpose: `SentryOptions` intersects `Record<string, unknown>`, so
+  // TypeScript accepts any key and this runtime warning is the only signal an Astro user ever gets.
+  it('warns for the removed option nested inside `sourceMapsUploadOptions`', async () => {
     const integration = sentryAstro({
-      bundleSizeOptimizations: {
-        excludeReplayShadowDom: true,
-      },
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        assets: ['dist/server/**/*, dist/client/**/*'],
-        unstable_sentryVitePluginOptions: {
-          org: 'my-other-org',
-          project: 'my-other-project',
-          applicationKey: 'my-application-key',
-          sourcemaps: {
-            assets: ['foo/*.js'],
-            ignore: ['bar/*.js'],
-          },
-          bundleSizeOptimizations: {
-            excludeReplayIframe: true,
-          },
-        },
-      },
+      // @ts-expect-error - removed in v11
+      sourceMapsUploadOptions: { unstable_sentryVitePluginOptions: { org: 'my-other-org' } },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      ...baseConfigHookObject,
-      updateConfig,
-      injectScript,
-      // @ts-expect-error - only passing in partial config
-      config: {
-        outDir: new URL('file://path/to/project/build'),
-      },
-    });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: 'my-other-org',
-        project: 'my-other-project',
-        applicationKey: 'my-application-key',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-        },
-        bundleSizeOptimizations: {
-          excludeReplayShadowDom: true,
-          excludeReplayIframe: true,
-        },
-      }),
+    expect(baseConfigHookObject.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('unstable_sentryVitePluginOptions'),
+    );
+  });
+
+  it('forwards moduleMetadata to the vite plugin', async () => {
+    const integration = sentryAstro({ moduleMetadata: { team: 'sdk' } });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ moduleMetadata: { team: 'sdk' } }));
+  });
+
+  // TypeScript rejects the key (see `buildOptions.test-d.ts`); this covers JS configs, which get no
+  // type checking.
+  it('warns via the Astro logger when the removed `unstable_sentryVitePluginOptions` is still set', async () => {
+    const integration = sentryAstro({
+      // @ts-expect-error - removed in v11
+      unstable_sentryVitePluginOptions: { org: 'my-other-org' },
+    });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(baseConfigHookObject.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('unstable_sentryVitePluginOptions'),
     );
   });
 

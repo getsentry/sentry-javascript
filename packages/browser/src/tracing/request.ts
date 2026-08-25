@@ -19,6 +19,7 @@ import {
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   instrumentFetchRequest,
+  matchesTracePropagationTargets,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -27,7 +28,6 @@ import {
   spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
-  stringMatchesSomePattern,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
@@ -65,6 +65,7 @@ export interface RequestInstrumentationOptions {
    *
    * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
    * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   * Matching is case-insensitive, so `'myApi.com'` and `/^myApi\.com/` both match a request to `https://myapi.com`.
    *
    * Examples:
    * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
@@ -281,7 +282,7 @@ export function shouldAttachHeaders(
     if (!tracePropagationTargets) {
       return isRelativeSameOriginRequest;
     } else {
-      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+      return matchesTracePropagationTargets(targetUrl, tracePropagationTargets);
     }
   } else {
     let resolvedUrl;
@@ -300,8 +301,8 @@ export function shouldAttachHeaders(
       return isSameOriginRequest;
     } else {
       return (
-        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
-        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+        matchesTracePropagationTargets(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && matchesTracePropagationTargets(resolvedUrl.pathname, tracePropagationTargets))
       );
     }
   }

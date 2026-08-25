@@ -6,11 +6,16 @@ import {
   createTransport,
   serializeEnvelope,
 } from '@sentry/core';
+import { EventEmitter } from 'node:events';
 import * as http from 'http';
+import type { ClientRequest } from 'node:http';
+import * as nodeHttp from 'node:http';
+import { Writable } from 'node:stream';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { createGunzip } from 'zlib';
 import * as httpProxyAgent from '../../src/proxy';
 import { makeNodeTransport } from '../../src/transports';
+import type { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
 
 vi.mock('@sentry/core', async () => {
   const actualCore = await vi.importActual('@sentry/core');
@@ -89,6 +94,52 @@ const defaultOptions = {
   recordDroppedEvent: () => undefined,
 };
 
+interface MockHttpRequestBehavior {
+  reusedSocket?: boolean;
+  errorCode?: string;
+  statusCode?: number;
+}
+
+function createMockHttpModule(behaviors: MockHttpRequestBehavior[]): {
+  httpModule: HTTPModule;
+  getRequestCount: () => number;
+} {
+  let requestCount = 0;
+
+  return {
+    getRequestCount: () => requestCount,
+    httpModule: {
+      request(_options, callback) {
+        const behavior = behaviors[requestCount] ?? {};
+        requestCount += 1;
+
+        const req = new Writable({
+          write(_chunk, _encoding, cb) {
+            cb();
+          },
+        });
+        Object.defineProperty(req, 'reusedSocket', { value: behavior.reusedSocket ?? false });
+
+        queueMicrotask(() => {
+          if (behavior.errorCode) {
+            req.emit('error', Object.assign(new Error(behavior.errorCode), { code: behavior.errorCode }));
+            return;
+          }
+
+          const res = new EventEmitter() as EventEmitter & HTTPModuleRequestIncomingMessage;
+          res.headers = {};
+          res.statusCode = behavior.statusCode ?? SUCCESS;
+          res.setEncoding = () => undefined;
+          callback?.(res);
+          res.emit('end');
+        });
+
+        return req as unknown as ClientRequest;
+      },
+    },
+  };
+}
+
 // empty function to keep test output clean
 const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -117,7 +168,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it('allows overriding keepAlive', async () => {
+    it('uses keepAlive by default', async () => {
       await setupTestServer({ statusCode: SUCCESS }, req => {
         expect(req.headers).toEqual(
           expect.objectContaining({
@@ -127,8 +178,70 @@ describe('makeNewHttpTransport()', () => {
         );
       });
 
-      const transport = makeNodeTransport({ keepAlive: true, ...defaultOptions });
+      const transport = makeNodeTransport(defaultOptions);
       await transport.send(EVENT_ENVELOPE);
+    });
+
+    it('allows disabling keepAlive', () => {
+      const AgentSpy = vi.spyOn(nodeHttp, 'Agent');
+
+      try {
+        makeNodeTransport({ keepAlive: false, ...defaultOptions });
+
+        expect(AgentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ keepAlive: false, maxSockets: 30, timeout: 2000 }),
+        );
+      } finally {
+        AgentSpy.mockRestore();
+      }
+    });
+
+    it('retries once when a reused keepAlive socket resets with ECONNRESET', async () => {
+      const { httpModule, getRequestCount } = createMockHttpModule([
+        { reusedSocket: true, errorCode: 'ECONNRESET' },
+        { statusCode: SUCCESS },
+      ]);
+
+      const transport = makeNodeTransport({ ...defaultOptions, httpModule });
+
+      await expect(transport.send(EVENT_ENVELOPE)).resolves.toEqual({
+        statusCode: SUCCESS,
+        headers: {
+          'retry-after': null,
+          'x-sentry-rate-limits': null,
+        },
+      });
+      expect(getRequestCount()).toBe(2);
+    });
+
+    it('rejects if the retry also fails with ECONNRESET', async () => {
+      const { httpModule, getRequestCount } = createMockHttpModule([
+        { reusedSocket: true, errorCode: 'ECONNRESET' },
+        { reusedSocket: true, errorCode: 'ECONNRESET' },
+      ]);
+
+      const transport = makeNodeTransport({ ...defaultOptions, httpModule });
+
+      await expect(transport.send(EVENT_ENVELOPE)).rejects.toHaveProperty('code', 'ECONNRESET');
+      expect(getRequestCount()).toBe(2);
+    });
+
+    it('does not retry ECONNRESET when the socket was not reused', async () => {
+      const { httpModule, getRequestCount } = createMockHttpModule([{ reusedSocket: false, errorCode: 'ECONNRESET' }]);
+
+      const transport = makeNodeTransport({ ...defaultOptions, httpModule });
+
+      await expect(transport.send(EVENT_ENVELOPE)).rejects.toHaveProperty('code', 'ECONNRESET');
+      expect(getRequestCount()).toBe(1);
+    });
+
+    it('does not retry a reused socket on a non-ECONNRESET error', async () => {
+      const { httpModule, getRequestCount } = createMockHttpModule([{ reusedSocket: true, errorCode: 'ECONNREFUSED' }]);
+
+      const transport = makeNodeTransport({ ...defaultOptions, httpModule });
+
+      await expect(transport.send(EVENT_ENVELOPE)).rejects.toHaveProperty('code', 'ECONNREFUSED');
+      expect(getRequestCount()).toBe(1);
     });
 
     it('should correctly send user-provided headers to server', async () => {

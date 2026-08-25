@@ -98,6 +98,7 @@ export function maybeCreateRouteManifest(
 
   const manifest = createRouteManifest({
     basePath: incomingUserNextConfigObject.basePath,
+    localeParamNames: userSentryOptions.routeManifestInjection?.localeParamNames,
   });
 
   // Apply route exclusion filter if configured

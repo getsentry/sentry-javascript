@@ -1,5 +1,5 @@
 import type { CloudflareOptions } from './client';
-import type { DefaultEnv } from './types';
+import type { DefaultEnv, StrictCloudflareOptions } from './types';
 
 /**
  * Define the Sentry options for a Cloudflare Worker in a dedicated module.
@@ -35,6 +35,16 @@ import type { DefaultEnv } from './types';
  * export default defineCloudflareOptions({ tracesSampleRate: 1.0 });
  * ```
  */
+// Overloads rather than a union parameter: TypeScript does not infer `O` out of a union member,
+// so a union signature falls back to the default and the unknown-key check never runs. The object
+// overload stays on plain `CloudflareOptions` — a direct object literal is still excess property
+// checked, and a callback cannot match it.
+export function defineCloudflareOptions<Env = DefaultEnv, O = unknown>(
+  callback: (env: Env) => StrictCloudflareOptions<O> | undefined,
+): (env: Env) => CloudflareOptions | undefined;
+export function defineCloudflareOptions<Env = DefaultEnv>(
+  options: CloudflareOptions,
+): (env: Env) => CloudflareOptions | undefined;
 export function defineCloudflareOptions<Env = DefaultEnv>(
   optionsOrCallback: CloudflareOptions | ((env: Env) => CloudflareOptions | undefined),
 ): (env: Env) => CloudflareOptions | undefined {

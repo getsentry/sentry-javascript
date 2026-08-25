@@ -118,7 +118,7 @@ export type { DenoHttpIntegrationOptions } from './integrations/http';
 // adds to the defaults, so users who customize `defaultIntegrations` can re-add it.
 export {
   amqplibIntegration,
-  anthropicIntegration,
+  anthropicAIIntegration,
   awsIntegration,
   dataloaderIntegration,
   redisIntegration,
@@ -128,13 +128,13 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
@@ -142,7 +142,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
@@ -152,7 +152,6 @@ export { denoMysqlIntegration } from './integrations/mysql';
 export { denoPostgresIntegration } from './integrations/postgres';
 export { denoAmqplibIntegration } from './integrations/amqplib';
 export { denoKoaIntegration } from './integrations/koa';
-export { denoMongoIntegration } from './integrations/mongo';
 export { denoMongooseIntegration } from './integrations/mongoose';
 export { denoDataloaderIntegration } from './integrations/dataloader';
 export { denoKnexIntegration } from './integrations/knex';
