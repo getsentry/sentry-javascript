@@ -641,7 +641,11 @@ For the same reason, `useOperationNameForRootSpan` no longer renames the enclosi
 
 Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 
-`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'` and a resource span is already named after its domain, so filters matching a URL path no longer apply to them. Match on attributes instead:
+`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload span name is named `'Pageload'` and might receive its final, resolved route name later.
+`ignoreSpans` filters matching a URL path no longer apply to them.
+Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
+
+Match on attributes instead:
 
 ```js
 Sentry.init({
