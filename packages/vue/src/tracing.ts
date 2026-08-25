@@ -2,21 +2,20 @@ import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } fr
 import type { Span } from '@sentry/core';
 import { debug, timestampInSeconds, uniq } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { BROWSER_UI_RENDER_SPAN_OP } from '@sentry/conventions/op';
+import { UI_MOUNT, UI_RENDER, UI_UNMOUNT, UI_UPDATE } from '@sentry/conventions/op';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
 
 // Maps each Vue lifecycle operation to a cross-framework span op.
-// TODO(conventions): Replace `'ui.mount'`, `'ui.update'` and `'ui.unmount'` with their span op constants once they are released in `@sentry/conventions`.
 const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
-  activate: 'ui.mount',
-  create: 'ui.mount',
-  mount: 'ui.mount',
-  update: 'ui.update',
-  unmount: 'ui.unmount',
-  destroy: 'ui.unmount',
+  activate: UI_MOUNT,
+  create: UI_MOUNT,
+  mount: UI_MOUNT,
+  update: UI_UPDATE,
+  unmount: UI_UNMOUNT,
+  destroy: UI_UNMOUNT,
 };
 
 type Mixins = Parameters<Vue['mixin']>[0];
@@ -96,7 +95,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             startInactiveSpan({
               name: 'Application Render',
               attributes: {
-                [SENTRY_OP]: BROWSER_UI_RENDER_SPAN_OP,
+                [SENTRY_OP]: UI_RENDER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
               onlyIfParent: true,

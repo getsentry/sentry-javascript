@@ -11,13 +11,7 @@ const expectedProducerSpan = (routingKey: string) =>
     op: 'queue.publish',
     data: expect.objectContaining({
       'messaging.system': 'rabbitmq',
-      // Legacy messaging attributes emitted by both the OTel and orchestrion integrations.
-      'messaging.destination': '',
-      'messaging.destination_kind': 'topic',
-      'messaging.rabbitmq.routing_key': routingKey,
-      'messaging.url': 'amqp://sentry:***@localhost:5672/',
-      'messaging.protocol': 'AMQP',
-      'messaging.protocol_version': '0.9.1',
+      'messaging.operation.name': 'send',
       'messaging.operation.type': 'send',
       'messaging.destination.name': '',
       'messaging.rabbitmq.destination.routing_key': routingKey,
@@ -37,14 +31,10 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'queue.process',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
-    // Legacy messaging attributes emitted by both the OTel and orchestrion integrations. The consumer
-    // reads the default exchange ('') off the delivered message and the queue name as the routing key.
-    'messaging.destination': '',
-    'messaging.destination_kind': 'topic',
-    'messaging.rabbitmq.routing_key': 'queue1',
-    'messaging.operation': 'process',
+    // The consumer reads the default exchange ('') off the delivered message and the queue name as the routing key.
     'messaging.destination.name': '',
     'messaging.rabbitmq.destination.routing_key': 'queue1',
+    'messaging.operation.name': 'process',
     'messaging.operation.type': 'process',
     'sentry.kind': 'consumer',
     'sentry.op': 'queue.process',

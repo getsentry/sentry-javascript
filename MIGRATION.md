@@ -115,6 +115,8 @@ Sentry registers a minimal OpenTelemetry-compatible tracer provider, context man
 
 Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no exporter and no OTLP output. Sentry also refuses to register its provider if you already registered one of your own, logging a warning instead. If you want a real OpenTelemetry pipeline, use setup 3.
 
+`@sentry/cloudflare/request` does not support this option. That entry point exists for runtimes that cannot enable the `nodejs_compat` compatibility flag (e.g. Shopify Oxygen) and sets up a reduced client without the OpenTelemetry tracer. Use the main `@sentry/cloudflare` entry point if you need setup 2.
+
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
 Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
@@ -613,24 +615,37 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 
 ### Span name changes
 
-Affected SDKs: All SDKs running in the browser.
+Affected SDKs: All SDKs.
 
 With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
-In v11, this only affects `pageload` spans. Further ops will follow in future releases.
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
 The following span names were adjusted:
 
-| Span op    | Before                                                                                      | After                                                      |
-| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `pageload` | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`) | The parameterized route, or `Pageload` if the SDK has none |
+| Span op      | Before                                                                                                                      | After                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pageload`   | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                           |
+| `graphql`    | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`) |
+| `resource.*` | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                           |
+
+Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
 
 Some consequences to be aware of:
 
-Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+The graphql operation name and the resolver field path are supplied by the client, so they are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
 
-`ignoreSpans` is evaluated when a span **starts**, at which point a pageload span without a resolved route is already named `'Pageload'`, so filters matching a URL path no longer apply to it. Match on attributes instead:
+Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart. The attribute is set in both trace lifecycles.
+
+For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
+
+Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+
+`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload span name is named `'Pageload'` and might receive its final, resolved route name later.
+`ignoreSpans` filters matching a URL path no longer apply to them.
+Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
+
+Match on attributes instead:
 
 ```js
 Sentry.init({

@@ -118,7 +118,7 @@ export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnSco
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
-export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
+export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export { uniq } from './utils/array';

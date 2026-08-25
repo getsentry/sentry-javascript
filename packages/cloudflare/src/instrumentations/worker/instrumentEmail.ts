@@ -2,7 +2,7 @@ import type { EmailMessage } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -17,6 +17,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -31,6 +32,8 @@ function wrapEmailHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
@@ -40,7 +43,7 @@ function wrapEmailHandler(
       {
         name: `Handle Email ${emailMessage.to}`,
         attributes: {
-          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           'faas.trigger': 'email',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',

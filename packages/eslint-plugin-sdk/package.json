@@ -25,6 +25,7 @@
     "clean": "yarn rimraf sentry-eslint-plugin-sdk-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",

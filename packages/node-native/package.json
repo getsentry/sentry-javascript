@@ -43,6 +43,7 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "lint:fix": "oxlint . --fix --type-aware",
     "build": "yarn build:types && yarn build:transpile",

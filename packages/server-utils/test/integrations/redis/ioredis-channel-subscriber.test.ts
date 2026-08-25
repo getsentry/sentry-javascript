@@ -20,19 +20,19 @@ describe('startIORedisCommandSpan', () => {
     vi.restoreAllMocks();
   });
 
-  it('builds a db span with the orchestrion origin and stable db/net attributes', () => {
+  it('builds a db query span with Sentry convention attributes', () => {
     startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }));
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'set test-key [1 other arguments]',
-        op: 'db',
         attributes: expect.objectContaining({
+          'sentry.op': 'db.query',
           'db.system.name': 'redis',
-          'db.connection_string': 'redis://localhost:6379',
+          'db.operation.name': 'set',
+          'db.query.text': 'set test-key [1 other arguments]',
           'server.address': 'localhost',
           'server.port': 6379,
-          'db.query.text': 'set test-key [1 other arguments]',
           'sentry.origin': 'auto.db.redis',
         }),
       }),

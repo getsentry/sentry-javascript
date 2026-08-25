@@ -16,7 +16,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
-import { detectOrchestrionSetup } from '@sentry/server-utils';
+import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
@@ -32,7 +32,6 @@ import { onUnhandledRejectionIntegration } from '../integrations/onunhandledreje
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
-import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { workerThreadsIntegration } from '../integrations/workerThreads';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
@@ -69,6 +68,8 @@ function getBaseDefaultIntegrations(): Integration[] {
     workerThreadsIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
+    // Framework-level integrations
+    ...getErrorIntegrations(),
   ];
 }
 
@@ -83,11 +84,8 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
-    // We only add performance integrations if tracing is enabled
-    // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
-    // This means that generally request isolation will work (because that is done by httpIntegration)
-    // But `transactionName` will not be set automatically
-    ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    // We only add tracing-only integrations if tracing is enabled
+    ...(hasSpansEnabled(options) ? getTracingIntegrations() : []),
   ];
 }
 
@@ -147,20 +145,20 @@ function _init(
     }
   }
 
-  // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that both
-  // the span-enablement gate below and default-integration selection see the final values. Without
-  // this, enabling tracing purely via env would leave `hasSpansEnabled` false at this point and skip
-  // the performance integrations. `getClientOptions` resolves the remaining options later.
+  // Resolve the tracing-affecting options (e.g. `SENTRY_TRACES_SAMPLE_RATE`) up front so that
+  // default-integration selection sees the final values. Without this, enabling tracing purely via
+  // env would leave `hasSpansEnabled` false at this point and skip the performance integrations.
+  // `getClientOptions` resolves the remaining options later.
   const optionsWithResolvedTracing = {
     ...options,
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
 
-  // Gate channel-based (orchestrion diagnostics-channel) instrumentation on span recording: the
-  // channel integrations only produce spans, so with tracing off there are no subscribers and
-  // injecting the module hooks would be pointless work. Install the hooks as early as possible,
-  // before the app imports its instrumented modules.
-  const useChannelInjection = hasSpansEnabled(optionsWithResolvedTracing);
+  // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks by default,
+  // independent of tracing — the channel integrations also capture errors, not just spans. Opt out
+  // with `enableRuntimeChannelInjection: false`. Install as early as possible, before the app imports
+  // its instrumented modules.
+  const useChannelInjection = options.enableRuntimeChannelInjection !== false;
   if (useChannelInjection) {
     registerDiagnosticsChannelInjection();
   }
@@ -216,9 +214,7 @@ function _init(
 
   // Warn about missing or doubled channel injection. Runs after the client
   // is created so the debug logger is enabled and the warning is emitted.
-  if (useChannelInjection) {
-    detectOrchestrionSetup();
-  }
+  detectOrchestrionSetup();
 
   return client;
 }

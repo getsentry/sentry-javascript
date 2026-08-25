@@ -520,11 +520,13 @@ Two consequences to be aware of when upgrading:
 - **Issue grouping:** Grouping in Sentry differs for events with and without stack traces, so you may see new issue groups after upgrading.
 - **Release health:** Events with a stack trace are counted as errors, so a `captureMessage` call (including messages emitted by `captureConsoleIntegration`) now marks the current session as _errored_. This affects errored-session counts but does **not** mark sessions as crashed, so crash-free session rate is unaffected. If you use `captureMessage` for purely informational output, consider using Sentry Logs instead, which is better suited and does not affect release health.
 
-### Incoming HTTP span hooks moved to `incomingRequestSpanHook`
+### Incoming HTTP span hooks moved to `onSpanCreated`
 
 Affected SDKs: `@sentry/node` and dependents.
 
-The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `incomingRequestSpanHook` (on `httpIntegration`) or `onSpanCreated` (on `httpServerSpansIntegration`) instead:
+The deprecated `httpIntegration` / `httpServerSpansIntegration` hooks `instrumentation.requestHook`, `instrumentation.responseHook`, and `instrumentation.applyCustomAttributesOnSpan` no longer run for incoming request spans. Use `onSpanCreated` instead. For outgoing request spans, `httpIntegration` has `outgoingRequestHook`, `outgoingResponseHook`, and `outgoingRequestApplyCustomAttributes`.
+
+In v10 these hooks ran for both directions, so which replacement you want depends on which spans your hook was mutating:
 
 ```js
 // before
@@ -536,15 +538,20 @@ Sentry.httpIntegration({
   },
 });
 
-// after
+// after — incoming (server) spans
 Sentry.httpIntegration({
-  incomingRequestSpanHook: (span, req, res) => {
+  onSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+});
+
+// after — outgoing (client) spans
+Sentry.httpIntegration({
+  outgoingRequestHook: (span, req) => {
     span.setAttribute('custom', true);
   },
 });
 ```
-
-`httpIntegration`'s `instrumentation` option is still honored for **outgoing** request spans.
 
 ### Deno `node:http` server requests are tracked as sessions
 
@@ -580,7 +587,23 @@ Sentry.init({
 
 Affected SDKs: All SDKs.
 
-String and regular-expression matching for `tracePropagationTargets` is now case-insensitive.
+String and regular-expression matching for `tracePropagationTargets` is now case-insensitive. Previously a target had to
+match the casing of the outgoing request URL exactly. In browsers this was especially surprising, because the URL is
+normalized with `new URL()` before matching, which lower-cases the origin: a target written with the same casing as the
+request, such as `'myApi.com'` or `/^myApi\.com/`, could therefore never match a request to `https://myApi.com`.
+
+```js
+Sentry.init({
+  // In a browser, neither of these matched a request to `https://myApi.com` in v10. In v11 both do.
+  tracePropagationTargets: ['myApi.com', /^https:\/\/myApi\.com/],
+});
+```
+
+If you relied on case-sensitive matching to distinguish between two targets, narrow the target so it no longer depends
+on casing, or use `tracePropagationTargets` in combination with a more specific path.
+
+As part of this, the `g` and `y` flags are ignored on `tracePropagationTargets` regular expressions. These flags made
+matching stateful via `lastIndex`, so a target like `/myApi\.com/g` previously matched only every other request.
 
 ### Span attribute changes
 
@@ -614,8 +637,9 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 #### Messaging and database attributes
 
-- Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents.
+- Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents: `messaging.destination.name`, `messaging.rabbitmq.destination.routing_key`, `messaging.message.id`, `messaging.message.conversation_id`, `messaging.operation.name`, `network.protocol.name`, `network.protocol.version`, and `url.full`. `messaging.destination_kind` is no longer emitted.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
+- The Redis and ioredis instrumentations no longer emit `db.connection_string`. The connection is described by `server.address` and `server.port` instead.
 
 #### GenAI attributes
 
@@ -633,6 +657,8 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 - The `code.filepath` and `code.function` span attributes on `ui.long_animation_frame` spans were renamed to `code.file.path` and `code.function.name`.
 - The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
+- The Cloudflare-specific `sentry.cloudflare_tracer` span attribute is no longer set. `@sentry/cloudflare` now creates spans through the shared `SentryTracerProvider`, so spans emitted via `@opentelemetry/api` no longer carry a marker distinguishing them from other Sentry spans.
+- Span attributes now use the shared `@sentry/conventions` package under the hood.
 
 #### Attribute constants
 
@@ -933,7 +959,54 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
-- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated`, or `httpIntegration({ incomingRequestSpanHook })`, to mutate incoming request spans.
+- The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.
+
+#### `httpIntegration` options were consolidated
+
+`httpIntegration` option names now match `httpServerIntegration` / `httpServerSpansIntegration` and the other server SDKs. The deprecated `instrumentation` hooks were removed.
+
+| Removed option                                | Replacement                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------- |
+| `trackIncomingRequestsAsSessions`             | `sessions`                                                                      |
+| `maxIncomingRequestBodySize`                  | `maxRequestBodySize`                                                            |
+| `ignoreIncomingRequestBody`                   | `ignoreRequestBody`                                                             |
+| `dropSpansForIncomingRequestStatusCodes`      | `ignoreStatusCodes`                                                             |
+| `incomingRequestSpanHook`                     | `onSpanCreated`                                                                 |
+| `instrumentation.requestHook`                 | `onSpanCreated` (incoming) or `outgoingRequestHook` (outgoing)                  |
+| `instrumentation.responseHook`                | `onSpanCreated` (incoming) or `outgoingResponseHook` (outgoing)                 |
+| `instrumentation.applyCustomAttributesOnSpan` | `onSpanCreated` (incoming) or `outgoingRequestApplyCustomAttributes` (outgoing) |
+
+```js
+// before
+Sentry.httpIntegration({
+  trackIncomingRequestsAsSessions: false,
+  maxIncomingRequestBodySize: 'small',
+  ignoreIncomingRequestBody: url => url.includes('/health'),
+  dropSpansForIncomingRequestStatusCodes: [404],
+  incomingRequestSpanHook: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+  instrumentation: {
+    responseHook: () => {
+      void flushIfServerless();
+    },
+  },
+});
+
+// after
+Sentry.httpIntegration({
+  sessions: false,
+  maxRequestBodySize: 'small',
+  ignoreRequestBody: url => url.includes('/health'),
+  ignoreStatusCodes: [404],
+  onSpanCreated: (span, req, res) => {
+    span.setAttribute('custom', true);
+  },
+  outgoingResponseHook: () => {
+    void flushIfServerless();
+  },
+});
+```
 
 ### `@sentry/cloudflare`
 

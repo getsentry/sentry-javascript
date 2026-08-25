@@ -4,13 +4,14 @@ import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  RESOURCE_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
 } from '@sentry/core';
-import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
-import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
+import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import { BROWSER_PAINT, UI_LONG_ANIMATION_FRAME, UI_LONG_TASK } from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -87,7 +88,7 @@ export function startTrackingLongTasks(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long_task',
+        op: UI_LONG_TASK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
@@ -149,7 +150,7 @@ export function startTrackingLongAnimationFrames(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: 'ui.long_animation_frame',
+        op: UI_LONG_ANIMATION_FRAME,
         attributes,
       });
     }
@@ -225,6 +226,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           duration,
           timeOrigin,
           ignoreResourceSpans,
+          spanStreamingEnabled,
         );
         break;
       }
@@ -250,7 +252,7 @@ function _addPaintSpan(
   startAndEndSpan(span, startTimestamp, startTimestamp + duration, {
     name: entry.name,
     attributes: {
-      [SENTRY_OP]: BROWSER_BROWSER_PAINT_SPAN_OP,
+      [SENTRY_OP]: BROWSER_PAINT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
     },
   });
@@ -366,6 +368,7 @@ export function _addResourceSpans(
   duration: number,
   timeOrigin: number,
   ignoredResourceSpanOps?: Array<string>,
+  spanStreamingEnabled?: boolean,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -388,8 +391,18 @@ export function _addResourceSpans(
     attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
-  if (parsedUrl.host) {
-    attributes['server.address'] = parsedUrl.host;
+  // `host` is the URL authority, so it can carry userinfo, which doesn't belong on either attribute.
+  const host = parsedUrl.host?.replace(/^.*@/, '');
+
+  if (host) {
+    attributes['server.address'] = host;
+  }
+
+  // Unlike `server.address`, `url.domain` excludes the port.
+  const domain = host?.replace(/:\d+$/, '');
+
+  if (domain) {
+    attributes[URL_DOMAIN] = domain;
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
@@ -417,7 +430,10 @@ export function _addResourceSpans(
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
-    name: resourceUrl.replace(WINDOW.location.origin, ''),
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: spanStreamingEnabled
+      ? domain || RESOURCE_SPAN_NAME_FALLBACK
+      : resourceUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });

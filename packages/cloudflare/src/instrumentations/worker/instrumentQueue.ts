@@ -2,7 +2,7 @@ import type { MessageBatch } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { MESSAGING_QUEUE_PROCESS_SPAN_OP } from '@sentry/conventions/op';
+import { QUEUE_PROCESS } from '@sentry/conventions/op';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -17,6 +17,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -31,6 +32,8 @@ function wrapQueueHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
@@ -40,7 +43,7 @@ function wrapQueueHandler(
       {
         name: `process ${batch.queue}`,
         attributes: {
-          [SENTRY_OP]: MESSAGING_QUEUE_PROCESS_SPAN_OP,
+          [SENTRY_OP]: QUEUE_PROCESS,
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',
