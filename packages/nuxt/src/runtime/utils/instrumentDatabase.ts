@@ -1,8 +1,13 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   addBreadcrumb,
   captureException,
+  getClient,
+  hasSpanStreamingEnabled,
+  DB_SPAN_NAME_FALLBACK,
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
@@ -221,10 +226,23 @@ function createBreadcrumb(query: string): void {
  * Creates a start span options object.
  */
 function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
+  const client = getClient();
+  // The statement is sanitized before it is summarized, so that a string literal containing
+  // `from`/`join` can't leak a value into the summary.
+  const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
+  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
+  // instead of the full statement, falling back to `{db.namespace}` when there is no statement to
+  // summarize.
+  const streamedName =
+    client && hasSpanStreamingEnabled(client)
+      ? querySummary || (data['db.namespace'] as string | undefined) || DB_SPAN_NAME_FALLBACK
+      : undefined;
+
   return {
-    name: query,
+    name: streamedName ?? query,
     attributes: {
       'db.query.text': query,
+      'db.query.summary': querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,
