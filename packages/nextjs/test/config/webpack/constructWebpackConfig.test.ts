@@ -94,18 +94,9 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
-    const finalNextConfig = materializeFinalNextConfig(
-      {
-        ...exportedNextConfig,
-        webpack: () => ({ ...clientWebpackConfig }) as any,
-      },
-      undefined,
-      {
-        sourcemaps: {
-          disable: 'disable-upload',
-        },
-      },
-    );
+    const finalNextConfig = materializeFinalNextConfig(exportedNextConfig, undefined, {
+      sourcemaps: { disable: 'disable-upload' },
+    });
 
     const finalWebpackConfig = finalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
 
