@@ -196,9 +196,9 @@ function makeCjsExportsSplitPlugin() {
         // The body stops exporting the initializer and instead runs it into the container. Eager,
         // like `@rollup/plugin-commonjs` with `strictRequires: false`, which this graph already
         // relied on.
-        body.code =
-          `import { __cjs as ${name}__cjs } from "${relative(body.fileName, container)}";\n` +
-          body.code.replace(`export { ${name} };`, `${name}__cjs.v = ${name}();`);
+        const bodyImport = `import { __cjs as ${name}__cjs } from "${relative(body.fileName, container)}";`;
+        const bodyCode = body.code.replace(`export { ${name} };`, `${name}__cjs.v = ${name}();`);
+        body.code = `${bodyImport}\n${bodyCode}`;
       }
 
       // Pass 2: consumers import the body for side effects only and read the container.
