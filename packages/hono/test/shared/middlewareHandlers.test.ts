@@ -184,11 +184,21 @@ describe('responseHandler', () => {
   });
 
   describe('transaction name', () => {
-    it('sets transaction name on isolation scope', () => {
+    it('sets request metadata and transaction name without reading the event', () => {
+      const context = createMockContext(200) as ReturnType<typeof createMockContext> & {
+        req: { raw: Request };
+      };
+      const eventGetter = vi.fn(() => {
+        throw new Error('This context has no FetchEvent');
+      });
+      Object.defineProperty(context, 'event', { get: eventGetter });
+
       // oxlint-disable-next-line typescript/no-explicit-any
-      requestHandler(createMockContext(200) as any);
+      requestHandler(context as any);
 
       expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test');
+      expect(winterCGRequestToRequestDataMock).toHaveBeenCalledWith(context.req.raw);
+      expect(eventGetter).not.toHaveBeenCalled();
     });
 
     it('sets http.route and segment name source on the root span', () => {
@@ -335,24 +345,6 @@ describe('requestHandler — connection info', () => {
 describe('requestHandler — request metadata', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('uses the raw request without reading the event getter', () => {
-    const raw = new Request('http://localhost/test?source=raw');
-    const eventGetter = vi.fn(() => {
-      throw new Error('This context has no FetchEvent');
-    });
-    const context = createMockContext(200) as ReturnType<typeof createMockContext> & {
-      req: { raw: Request };
-    };
-    context.req.raw = raw;
-    Object.defineProperty(context, 'event', { get: eventGetter });
-
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(context as any);
-
-    expect(winterCGRequestToRequestDataMock).toHaveBeenCalledWith(raw);
-    expect(eventGetter).not.toHaveBeenCalled();
   });
 
   it('uses the same request exposed by a legacy FetchEvent context', () => {
