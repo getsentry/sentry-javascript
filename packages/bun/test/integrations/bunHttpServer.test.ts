@@ -60,13 +60,15 @@ describe('Bun HTTP Server Integration', () => {
     let span: ReturnType<typeof spanToJSON> | undefined;
 
     const { port, close } = await startServer((req, res) => {
+      // Read the span synchronously: once a request body is streamed, the 'data'/'end' events fire
+      // outside the handler's async context, so `getActiveSpan()` is empty there. This is how Node
+      // behaves too; Bun < 1.4 was more lenient, which is why reading it in 'end' used to work.
+      const activeSpan = getActiveSpan();
+      span = activeSpan ? spanToJSON(activeSpan) : undefined;
+
       const chunks: Buffer[] = [];
       req.on('data', chunk => chunks.push(chunk));
-      req.on('end', () => {
-        const activeSpan = getActiveSpan();
-        span = activeSpan ? spanToJSON(activeSpan) : undefined;
-        res.end(Buffer.concat(chunks));
-      });
+      req.on('end', () => res.end(Buffer.concat(chunks)));
     });
 
     const response = await fetch(`http://localhost:${port}/search`, {
