@@ -78,6 +78,7 @@
     "build:tarball": "npm pack",
     "prebuild": "yarn build:version",
     "precheck:types": "yarn build:version",
+    "prelint:types": "yarn build:version",
     "pretest": "yarn build:version",
     "pretest:unit": "yarn build:version",
     "check:types": "run-p check:types:src check:types:test",
@@ -87,6 +88,7 @@
     "clean:all": "run-p clean clean:deps",
     "clean:deps": "rimraf node_modules",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
     "test:unit": "vitest run"

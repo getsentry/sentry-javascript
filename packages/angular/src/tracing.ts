@@ -32,7 +32,9 @@ import { FUNCTION } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
+  hasSpanStreamingEnabled,
   parseStringToURLObject,
+  ROUTER_SPAN_NAME_FALLBACK,
   stripUrlQueryAndFragment,
   timestampInSeconds,
   filterCollectedUrl,
@@ -142,7 +144,9 @@ export class TraceService implements OnDestroy {
         this._routingSpan =
           runOutsideAngular(() =>
             startInactiveSpan({
-              name: `${navigationEvent.url}`,
+              // With span streaming, span names have to be low cardinality. The parameterized route is only
+              // known at `ResolveEnd`, well after this span starts, so there is nothing but the fallback.
+              name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `${navigationEvent.url}`,
               attributes: {
                 // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
                 [SENTRY_OP]: 'router',

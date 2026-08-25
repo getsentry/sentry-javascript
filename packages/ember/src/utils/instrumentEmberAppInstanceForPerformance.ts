@@ -18,6 +18,7 @@ import {
   getCurrentScope,
   hasSpanStreamingEnabled,
   PAGELOAD_SPAN_NAME_FALLBACK,
+  ROUTER_SPAN_NAME_FALLBACK,
   spanToJSON,
   type Client,
   type Span,
@@ -148,7 +149,9 @@ export function instrumentEmberAppInstanceForPerformance(
         [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
       },
-      name: `route:${fromRoute} -> route:${toRoute}`,
+      // With span streaming, span names have to be low cardinality, and Ember gives us no route
+      // template for the transition itself, so it's the fallback.
+      name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `route:${fromRoute} -> route:${toRoute}`,
       onlyIfParent: true,
     });
   });

@@ -60,6 +60,7 @@
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-elysia-*.tgz",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",

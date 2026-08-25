@@ -251,6 +251,37 @@ describe('browserTracingIntegration', () => {
     expect(routingSpanEndSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('names the routing span with the low cardinality fallback when span streaming is enabled', async () => {
+    const streamingClient = {
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+      on: () => {},
+      addEventProcessor: () => {},
+      addIntegration: () => {},
+    };
+    const integration = browserTracingIntegration({
+      instrumentPageLoad: false,
+    });
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(streamingClient);
+    await vi.dynamicImportSettled();
+
+    // TODO(v11): switch to `navigating` from `$app/state`
+    // @ts-expect-error - navigating is a writable but the types say it's just readable
+    // eslint-disable-next-line typescript/no-deprecated
+    navigating.set({
+      from: { route: { id: '/users' }, url: { pathname: '/users' } },
+      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762', href: 'https://sentry-test.io/users/7762' } },
+      type: 'link',
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Router',
+        attributes: expect.objectContaining({ [SENTRY_OP]: 'router' }),
+      }),
+    );
+  });
+
   describe('handling same origin and destination navigations', () => {
     it("doesn't start a navigation span if the raw navigation origin and destination are equal", async () => {
       const integration = browserTracingIntegration({

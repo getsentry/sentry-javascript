@@ -117,6 +117,7 @@ export function createComponentNameAnnotateHooks(ignoredComponents: string[], in
         const result = await transformAsync(code, {
           plugins: [[plugin, { ignoredComponents }]],
           filename: id,
+          sourceFileName: idWithoutQueryAndHash,
           parserOpts: {
             sourceType: 'module',
             allowAwaitOutsideFunction: true,
