@@ -3,6 +3,7 @@ import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
+import type { APIContext } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
@@ -131,6 +132,70 @@ describe('sentryMiddleware', () => {
 
     expect(next).toHaveBeenCalled();
     expect(resultFromNext).toStrictEqual(nextResult);
+  });
+
+  describe('with span streaming enabled', () => {
+    // A full `APIContext` is much larger than these tests need, so build a partial one behind a typed
+    // helper rather than suppressing the type error at each call site.
+    function mockApiContext(override: Record<string, unknown>): APIContext {
+      return { ...DYNAMIC_REQUEST_CONTEXT, ...override } as unknown as APIContext;
+    }
+
+    beforeEach(() => {
+      vi.spyOn(SentryNode, 'getClient').mockImplementation(
+        () =>
+          ({
+            getOptions: () => ({ traceLifecycle: 'stream' }),
+            getDataCollectionOptions: () => ({
+              userInfo: false,
+              cookies: true,
+              httpHeaders: { request: true, response: true },
+              httpBodies: [],
+              urlQueryParams: true,
+              graphQL: { document: true, variables: true },
+              genAI: { inputs: true, outputs: true },
+              databaseQueryData: true,
+              stackFrameVariables: true,
+              frameContextLines: 5,
+            }),
+          }) as unknown as Client,
+      );
+    });
+
+    it('names an unparameterized span after the request method', async () => {
+      const middleware = handleRequest();
+      const ctx = mockApiContext({
+        request: { method: 'GET', url: '/a%xx', headers: new Headers() },
+        url: { pathname: 'a%xx', href: 'http://localhost:1234/a%xx' },
+        params: {},
+      });
+
+      await middleware(
+        ctx,
+        vi.fn(() => nextResult),
+      );
+
+      expect(startSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET' }), expect.any(Function));
+    });
+
+    it('keeps the parameterized route as the span name', async () => {
+      const middleware = handleRequest();
+      const ctx = mockApiContext({
+        request: { method: 'GET', url: '/users/123/details', headers: new Headers() },
+        params: { id: '123' },
+        url: new URL('https://myDomain.io/users/123/details'),
+      });
+
+      await middleware(
+        ctx,
+        vi.fn(() => nextResult),
+      );
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'GET /users/[id]/details' }),
+        expect.any(Function),
+      );
+    });
   });
 
   it("sets source route if the url couldn't be decoded correctly", async () => {

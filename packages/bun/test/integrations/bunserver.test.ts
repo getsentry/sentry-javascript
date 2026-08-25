@@ -75,7 +75,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.user_agent': expect.stringContaining('Bun'),
         }),
         op: 'http.server',
-        name: 'GET /users',
+        name: 'GET',
       },
       expect.any(Function),
     );
@@ -119,7 +119,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.user_agent': expect.stringContaining('Bun'),
         }),
         op: 'http.server',
-        name: 'POST /',
+        name: 'POST',
       },
       expect.any(Function),
     );
@@ -148,7 +148,7 @@ describe('Bun Serve Integration', () => {
           'http.request.method': 'QUERY',
         }),
         op: 'http.server',
-        name: 'QUERY /search',
+        name: 'QUERY',
       }),
       expect.any(Function),
     );
@@ -243,7 +243,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.sentry_trace': expect.any(String),
         }),
         op: 'http.server',
-        name: 'POST /api/test',
+        name: 'POST',
       }),
       expect.any(Function),
     );

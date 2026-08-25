@@ -6,7 +6,9 @@ import {
   getClient,
   getUrlFragment,
   getUrlQuery,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
@@ -246,7 +248,11 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
           {
             attributes,
             op: 'http.server',
-            name: `${request.method} ${routeName}`,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
+                ? `${request.method} ${routeName}`
+                : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           async span => {
             try {

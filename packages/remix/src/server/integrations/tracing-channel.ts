@@ -2,7 +2,10 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getSpanStatusFromHttpCode,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -142,8 +145,18 @@ function subscribeRequestHandler(): void {
       const method = requestAttributes[HTTP_REQUEST_METHOD];
       const path = requestAttributes[URL_PATH];
       const hasUrlName = typeof method === 'string' && typeof path === 'string';
+      const client = getClient();
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // The route is applied later, once Remix has matched it.
+      const isStreamed = !!client && hasSpanStreamingEnabled(client);
       return startInactiveSpan({
-        name: hasUrlName ? `${method} ${path}` : 'remix.request',
+        name: isStreamed
+          ? typeof method === 'string'
+            ? method
+            : HTTP_SPAN_NAME_FALLBACK
+          : hasUrlName
+            ? `${method} ${path}`
+            : 'remix.request',
         attributes: {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
