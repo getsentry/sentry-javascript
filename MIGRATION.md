@@ -639,7 +639,7 @@ Because a low-cardinality name cannot say which part of request processing a spa
 
 For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
 
-Child spans of a pageload span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 
 `ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload span name is named `'Pageload'` and might receive its final, resolved route name later.
 `ignoreSpans` filters matching a URL path no longer apply to them.
