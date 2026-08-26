@@ -5579,7 +5579,7 @@
   resolved "https://registry.yarnpkg.com/@mjackson/node-fetch-server/-/node-fetch-server-0.2.0.tgz#577c0c25d8aae9f69a97738b7b0d03d1471cdc49"
   integrity sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==
 
-"@modelcontextprotocol/client@2.0.0":
+"@modelcontextprotocol/client@^2.0.0":
   version "2.0.0"
   resolved "https://sfw.security.sentry.io/npm/@modelcontextprotocol/client/-/client-2.0.0.tgz#4dc18c983c7acb40040f08442123e3c5b88d6074"
   integrity sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==
@@ -5599,7 +5599,7 @@
   dependencies:
     zod "^4.2.0"
 
-"@modelcontextprotocol/server@2.0.0":
+"@modelcontextprotocol/server@^2.0.0":
   version "2.0.0"
   resolved "https://sfw.security.sentry.io/npm/@modelcontextprotocol/server/-/server-2.0.0.tgz#4fae5ccb8f7925ed9a6bf6595bb3b58617063ffd"
   integrity sha512-YhHWdHfpFMQfd0prsEnxKeS3Qz3ytIGmsS0sth4KDjnacIT7hxk6hXHkJ9KysxlkvTM+WZAtQbbcUhdoP4Hvtw==
