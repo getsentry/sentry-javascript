@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { createResolver } from '@nuxt/kit';
 import { debug } from '@sentry/core';
 import * as fs from 'fs';
@@ -217,19 +218,21 @@ function wrapEntryWithDynamicImport({
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
+        const entryIdUrl = pathToFileURL(entryId).href;
+        const configUrl = pathToFileURL(resolvedSentryConfigPath).href;
 
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
           id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
-            ? constructFunctionReExport(id, entryId)
+            ? constructFunctionReExport(id, entryIdUrl)
             : '';
 
         return (
           // Regular `import` of the Sentry config
-          `import ${JSON.stringify(resolvedSentryConfigPath)};\n` +
+          `import ${JSON.stringify(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
-          `import(${JSON.stringify(entryId)});\n` +
+          `import(${JSON.stringify(entryIdUrl)});\n` +
           `${reExportedFunctions}\n`
         );
       }
