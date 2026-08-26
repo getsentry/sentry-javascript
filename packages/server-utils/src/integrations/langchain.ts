@@ -89,13 +89,13 @@ function instrumentChatModels(options: LangChainOptions): void {
   }
 }
 
-// Embeddings don't use the callback system. Wrap the method in its own span
+// Embeddings don't use the callback system. Wrap the method in its own span.
+// Embedding errors reject to the caller, so we only open the span (which bindTracingChannelToSpan
+// still marks failed on error) and do not capture them.
 function instrumentEmbeddings(options: LangChainOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
-    bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
-      data => createEmbeddingsSpan(data, options),
-      { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName), data =>
+      createEmbeddingsSpan(data, options),
     );
   }
 }
