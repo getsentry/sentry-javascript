@@ -1,6 +1,6 @@
 import { setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi-utils';
+import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {

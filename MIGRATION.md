@@ -302,6 +302,12 @@ Affected SDKs: `@sentry/node` and all dependents that re-export it (e.g. `@sentr
 
 The Koa error handler is now registered automatically when your app starts, so you no longer need to call `setupKoaErrorHandler`. The function is deprecated and will be removed in a future major version; you should no longer call it.
 
+### `setupHapiErrorHandler` is deprecated (Hapi errors are captured automatically)
+
+Affected SDKs: `@sentry/node` and all dependents that re-export it (e.g. `@sentry/aws-serverless`, `@sentry/google-cloud-serverless`, `@sentry/astro`, `@sentry/remix`, `@sentry/solidstart`, `@sentry/sveltekit`, `@sentry/bun`, `@sentry/elysia`).
+
+The Hapi error handler is now registered automatically when your server starts, so you no longer need to call `setupHapiErrorHandler` yourself. The function is deprecated and will be removed in a future major version; you should no longer call it.
+
 ### Initializing via `--require` is no longer supported
 
 Affected SDKs: `@sentry/node` and all dependents.
