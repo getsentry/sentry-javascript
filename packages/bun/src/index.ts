@@ -120,6 +120,7 @@ export {
   setupFastifyErrorHandler,
   firebaseIntegration,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,

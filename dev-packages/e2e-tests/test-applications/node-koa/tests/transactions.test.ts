@@ -66,7 +66,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     },
   });
 
-  expect(transactionEvent.spans).toEqual([
+  const spans = transactionEvent.spans || [];
+
+  expect(spans).toEqual([
     {
       data: {
         'koa.name': 'bodyParser',
@@ -78,24 +80,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       description: 'bodyParser',
       op: 'middleware',
       origin: 'auto.http.koa',
-      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      status: 'ok',
-      timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    },
-    {
-      data: {
-        'koa.name': 'middleware',
-        'code.function.name': 'middleware',
-        'koa.type': 'middleware',
-        'sentry.origin': 'auto.http.koa',
-        'sentry.op': 'middleware',
-      },
-      op: 'middleware',
-      origin: 'auto.http.koa',
-      description: 'middleware',
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),

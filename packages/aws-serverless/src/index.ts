@@ -96,6 +96,7 @@ export {
   expressErrorHandler,
   setupExpressErrorHandler,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
