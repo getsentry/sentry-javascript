@@ -24429,7 +24429,7 @@ rolldown@^1.0.0, rolldown@^1.0.0-rc.15, rolldown@^1.0.0-rc.8:
     "@rolldown/binding-win32-arm64-msvc" "1.1.2"
     "@rolldown/binding-win32-x64-msvc" "1.1.2"
 
-rolldown@^1.2.5:
+rolldown@^1.2.6:
   version "1.2.10"
   resolved "https://sfw.security.sentry.io/npm/rolldown/-/rolldown-1.2.10.tgz#c912777557cf1cd14fae11f1ef8c0a072e5ee500"
   integrity sha512-OxkA08pSryMK7B3XiFA09B4OJ1xJMPgIYCBMY2xchzpqgBGsV1o0DetPAE+Sl3N3L4oCPiEzmHVSOj7iR04Zog==
