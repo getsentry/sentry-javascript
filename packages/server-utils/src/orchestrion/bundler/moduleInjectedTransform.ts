@@ -28,14 +28,14 @@ const MODULE_INJECTED_SINK = 'globalThis.__SENTRY_ORCHESTRION_INJECT__';
 
 /**
  * Entry-chunk banner that marks "the bundler plugin ran" for
- * `detectOrchestrionSetup()`. Merge-only (`g.bundler = g.bundler || []`) so it
- * can never clobber module names already recorded by an injected snippet that
- * happened to run first; the names themselves arrive per module, when each
+ * `detectOrchestrionSetup()`. Merge-only (`g.bundler = g.bundler || new Set()`)
+ * so it can never clobber module names already recorded by an injected snippet
+ * that happened to run first; the names themselves arrive per module, when each
  * transformed module is evaluated and its snippet calls
  * `orchestrionModuleInjected`.
  */
 export const ORCHESTRION_BUNDLER_MARKER_BANNER =
-  ';(function(){var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};g.bundler=g.bundler||[];})();';
+  ';(function(){var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};g.bundler=g.bundler||new Set();})();';
 
 /**
  * Snippet injected into each instrumented module. It imports the
