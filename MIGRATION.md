@@ -1760,4 +1760,3 @@ Additionally, we hold ourselves accountable to any security issues, meaning that
 
 Note, that it is decided on a case-per-case basis, what gets backported or not.
 If you need a fix or feature in a previous version of the SDK, please reach out via a GitHub Issue.
-
