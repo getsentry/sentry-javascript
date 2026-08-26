@@ -85,60 +85,62 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
 /**
  * Minifier settings for the bundle builds.
  *
- * Rolldown minifies via oxc rather than terser, and oxc cannot mangle property names yet
- * (https://github.com/oxc-project/oxc/issues/15375), so there is nothing to configure and no
- * reserved list to protect. The list terser used to be given is kept below for whenever oxc grows
- * the option, since every entry on it is load-bearing at runtime.
+ * Ported from the terser config the rollup build used. Terser's `mangle.reserved` maps onto
+ * rolldown's `mangle.reserved`, and `mangle.properties.regex`/`.reserved` onto the top-level
+ * `mangleProps.include`/`.reserved` (property mangling landed in rolldown 1.2.6). Note it is
+ * `minify.mangleProps`, not `minify.mangle.properties`: the latter is the oxc-level interface the
+ * reference docs describe, and rolldown silently ignores it.
  *
  * @returns {import('rolldown').OutputOptions['minify']}
  */
 export function makeMinifierOptions() {
-  // mangle: {
-  //   // `captureException` and `captureMessage` are public API methods and they don't need to be listed here, as the
-  //   // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
-  //   // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
-  //   // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
-  //   reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
-  //   properties: {
-  //     // allow mangling of private field names...
-  //     regex: /^_[^_]/,
-  //     reserved: [
-  //       // ...except for `_experiments`, which we want to remain usable from the outside
-  //       '_experiments',
-  //       // We want to keep some replay fields unmangled to enable integration tests to access them
-  //       '_replay',
-  //       '_canvas',
-  //       // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
-  //       '_cssText',
-  //       // We want to keep the _integrations variable unmangled to send all installed integrations from replay
-  //       '_integrations',
-  //       // _meta is used to store metadata of replay network events
-  //       '_meta',
-  //       // We store SDK metadata in the options
-  //       '_metadata',
-  //       // Object we inject debug IDs into with bundler plugins
-  //       '_sentryDebugIds',
-  //       // These are used by instrument.ts in utils for identifying HTML elements & events
-  //       '_sentryCaptured',
-  //       '_sentryId',
-  //       // Keeps the frozen DSC on a Sentry Span
-  //       '_frozenDsc',
-  //       // These are used to keep span & scope relationships
-  //       '_sentryRootSpan',
-  //       '_sentryChildSpans',
-  //       '_sentrySpan',
-  //       '_sentryScope',
-  //       '_sentryIsolationScope',
-  //       // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
-  //       '_resolveFilename',
-  //       // Set on e.g. the shim feedbackIntegration to be able to detect it
-  //       '_isShim',
-  //       // Marker used to detect `beforeSendSpan` callbacks expecting the static span format
-  //       '_static',
-  //       // This is used in metadata integration
-  //       '_sentryModuleMetadata',
-  //     ],
-  //   },
-  // },
-  return true;
+  return {
+    mangle: {
+      // `captureException` and `captureMessage` are public API methods and they don't need to be listed here, as the
+      // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
+      // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
+      // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
+      reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
+    },
+    mangleProps: {
+      // allow mangling of private field names...
+      include: /^_[^_]/,
+      reserved: [
+        // ...except for `_experiments`, which we want to remain usable from the outside
+        '_experiments',
+        // We want to keep some replay fields unmangled to enable integration tests to access them
+        '_replay',
+        '_canvas',
+        // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
+        '_cssText',
+        // We want to keep the _integrations variable unmangled to send all installed integrations from replay
+        '_integrations',
+        // _meta is used to store metadata of replay network events
+        '_meta',
+        // We store SDK metadata in the options
+        '_metadata',
+        // Object we inject debug IDs into with bundler plugins
+        '_sentryDebugIds',
+        // These are used by instrument.ts in utils for identifying HTML elements & events
+        '_sentryCaptured',
+        '_sentryId',
+        // Keeps the frozen DSC on a Sentry Span
+        '_frozenDsc',
+        // These are used to keep span & scope relationships
+        '_sentryRootSpan',
+        '_sentryChildSpans',
+        '_sentrySpan',
+        '_sentryScope',
+        '_sentryIsolationScope',
+        // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
+        '_resolveFilename',
+        // Set on e.g. the shim feedbackIntegration to be able to detect it
+        '_isShim',
+        // Marker used to detect `beforeSendSpan` callbacks expecting the static span format
+        '_static',
+        // This is used in metadata integration
+        '_sentryModuleMetadata',
+      ],
+    },
+  };
 }

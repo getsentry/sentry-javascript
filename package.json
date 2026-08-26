@@ -130,7 +130,7 @@
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "7",
     "rimraf": "^5.0.10",
-    "rolldown": "^1.2.5",
+    "rolldown": "^1.2.6",
     "rollup": "^4.60.3",
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
