@@ -10,6 +10,13 @@ import type { PluginOptions } from './options';
 // once per file. A `WeakSet` keyed by the node avoids mutating the emitted AST.
 const injectedPrograms = new WeakSet<object>();
 
+/**
+ * Assignment target that keeps the injected call from being tree-shaken. See
+ * {@link subscribeSnippet}. The value written is always `undefined`; only the
+ * assignment matters.
+ */
+const SUBSCRIBE_INJECTION_SINK = 'globalThis.__SENTRY_ORCHESTRION_INJECT__';
+
 interface ProgramNode {
   type: string;
   body: Array<{ type: string; directive?: string }>;
@@ -28,13 +35,20 @@ interface ProgramNode {
  * "only-active-when-bundled" property the runtime module hook gives unbundled
  * Node, but without a hook (workerd can't monkey-patch requires). The helper is
  * generic (references no factory), so importing it alongside doesn't pull siblings.
+ *
+ * The call result is assigned to a global rather than discarded. The helper
+ * returns `void` and `@sentry/server-utils` is `sideEffects: false`, so a bare
+ * call statement is something a bundler can prove droppable: rollup >= 4.63.0
+ * does exactly that and removes the whole registration, leaving the module
+ * instrumented but unsubscribed. Writing to a property of `globalThis` is a
+ * side effect no bundler can shake out, so the call survives.
  */
 function subscribeSnippet(exportName: string, esm: boolean): string {
   const importStmt = esm
     ? `import { ${exportName}, registerOrchestrionChannelIntegration } from '@sentry/server-utils/orchestrion';`
     : `const { ${exportName}, registerOrchestrionChannelIntegration } = require('@sentry/server-utils/orchestrion');`;
 
-  return `${importStmt}\nregisterOrchestrionChannelIntegration(${JSON.stringify(exportName)}, ${exportName});`;
+  return `${importStmt}\n${SUBSCRIBE_INJECTION_SINK} = registerOrchestrionChannelIntegration(${JSON.stringify(exportName)}, ${exportName});`;
 }
 
 /**

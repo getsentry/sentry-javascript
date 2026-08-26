@@ -75,6 +75,10 @@ describe('subscribe-injection transform option', () => {
     expect(result!.code).toContain(
       'registerOrchestrionChannelIntegration("mysqlChannelIntegration", mysqlChannelIntegration)',
     );
+    // The result is assigned to a global. `@sentry/server-utils` is `sideEffects: false` and the
+    // helper returns `void`, so a bare call statement is one a bundler can prove droppable.
+    // rollup >= 4.63.0 removes it, leaving the module instrumented but unsubscribed.
+    expect(result!.code).toContain('globalThis.__SENTRY_ORCHESTRION_INJECT__ = registerOrchestrionChannelIntegration(');
     // No separate @sentry/core import at the injection site — the helper owns that.
     expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.
