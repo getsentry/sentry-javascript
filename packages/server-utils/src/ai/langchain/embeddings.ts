@@ -1,10 +1,4 @@
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  stringify,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -99,12 +93,9 @@ export function instrumentEmbeddingMethod(
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, args[0], options), () => {
-        return Reflect.apply(target, thisArg, args).then(undefined, error => {
-          captureException(error, {
-            mechanism: { handled: false, type: 'auto.ai.langchain' },
-          });
-          throw error;
-        });
+        // On rejection `startSpan` marks the span failed and rethrows to the caller, so we don't
+        // record the error ourselves.
+        return Reflect.apply(target, thisArg, args);
       });
     },
   });

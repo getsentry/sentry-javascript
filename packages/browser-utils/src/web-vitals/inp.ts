@@ -21,7 +21,9 @@ const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
  */
 export const MAX_PLAUSIBLE_INP_DURATION = 60;
 
-export const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
+export type InteractionType = 'click' | 'hover' | 'drag' | 'press';
+
+export const INP_ENTRY_MAP: Record<string, InteractionType> = {
   click: 'click',
   pointerdown: 'click',
   pointerup: 'click',

@@ -36,8 +36,8 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws_lambda',
+        'sentry.segment.name.source': 'custom',
+        'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -49,7 +49,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.otel.aws_lambda',
+      origin: 'auto.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -107,8 +107,8 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws_lambda',
+        'sentry.segment.name.source': 'custom',
+        'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -120,7 +120,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.otel.aws_lambda',
+      origin: 'auto.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -233,8 +233,8 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws_lambda',
+        'sentry.segment.name.source': 'custom',
+        'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -246,7 +246,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.otel.aws_lambda',
+      origin: 'auto.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -283,11 +283,11 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual(
       expect.objectContaining({
         op: 'function.aws',
-        origin: 'auto.otel.aws_lambda',
+        origin: 'auto.aws_lambda',
         status: 'ok',
         data: expect.objectContaining({
           'sentry.op': 'function.aws',
-          'sentry.origin': 'auto.otel.aws_lambda',
+          'sentry.origin': 'auto.aws_lambda',
           'sentry.kind': 'server',
           'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
           'faas.name': 'LayerCallback',

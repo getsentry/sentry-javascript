@@ -127,9 +127,9 @@ describe('sentryOrchestrionWebpackPlugin', () => {
   });
 
   describe('snippet resolve alias', () => {
-    // The snippet's `@sentry/server-utils/orchestrion` import is emitted inside
-    // transformed node_modules files, where it doesn't resolve under isolated
-    // installs (pnpm) — the plugin maps it to this package's own resolution.
+    // The snippet's `@sentry/server-utils` import is emitted inside transformed
+    // node_modules files, where it doesn't resolve under isolated installs
+    // (pnpm) — the plugin maps it to this package's own resolution.
     function applyWithResolve(resolve: unknown): { alias?: unknown } {
       const options = { externals: undefined, resolve } as { resolve?: { alias?: unknown } };
       const compiler = {
@@ -143,7 +143,7 @@ describe('sentryOrchestrionWebpackPlugin', () => {
 
     it('adds an exact-match alias to object-form (and absent) alias config', () => {
       const { alias } = applyWithResolve(undefined);
-      const target = (alias as Record<string, string>)['@sentry/server-utils/orchestrion$'];
+      const target = (alias as Record<string, string>)['@sentry/server-utils$'];
 
       expect(target).toBeDefined();
       expect(isAbsolute(target!)).toBe(true);
@@ -156,18 +156,18 @@ describe('sentryOrchestrionWebpackPlugin', () => {
       expect(alias).toEqual([
         existing,
         {
-          name: '@sentry/server-utils/orchestrion',
-          alias: expect.stringMatching(/orchestrion/),
+          name: '@sentry/server-utils',
+          alias: expect.stringMatching(/server-utils/),
           onlyModule: true,
         },
       ]);
     });
 
     it('leaves an existing user alias for the specifier untouched', () => {
-      const { alias: objectAlias } = applyWithResolve({ alias: { '@sentry/server-utils/orchestrion': '/user' } });
-      expect(objectAlias).toEqual({ '@sentry/server-utils/orchestrion': '/user' });
+      const { alias: objectAlias } = applyWithResolve({ alias: { '@sentry/server-utils': '/user' } });
+      expect(objectAlias).toEqual({ '@sentry/server-utils': '/user' });
 
-      const userEntry = { name: '@sentry/server-utils/orchestrion', alias: '/user' };
+      const userEntry = { name: '@sentry/server-utils', alias: '/user' };
       const { alias: arrayAlias } = applyWithResolve({ alias: [userEntry] });
       expect(arrayAlias).toEqual([userEntry]);
     });
@@ -237,23 +237,19 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     ) => Promise<unknown>;
 
     const resolve = vi.fn().mockResolvedValue(null);
-    await expect(
-      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: false }),
-    ).resolves.toBeNull();
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', { ssr: false })).resolves.toBeNull();
     expect(resolve).not.toHaveBeenCalled();
 
     // Normal resolution wins when it succeeds.
     resolve.mockResolvedValueOnce({ id: '/resolved.js' });
-    await expect(
-      resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true }),
-    ).resolves.toEqual({
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', { ssr: true })).resolves.toEqual({
       id: '/resolved.js',
     });
 
     // When it fails (pnpm isolation), fall back to this package's own resolution.
-    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils/orchestrion', '/x.js', { ssr: true });
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', { ssr: true });
     expect(typeof fallback).toBe('string');
-    expect(fallback).toContain('orchestrion');
+    expect(fallback).toContain('server-utils');
   });
 });
 
@@ -302,7 +298,7 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   it.each([
     // Self-references — resolve through this package's own exports map to the CJS build.
     '@sentry/server-utils/orchestrion/register',
-    '@sentry/server-utils/orchestrion',
+    '@sentry/server-utils/orchestrion/config',
     // Dependencies of this package, including subpaths only reachable from its location.
     '@apm-js-collab/tracing-hooks',
     '@apm-js-collab/tracing-hooks/hook.mjs',
@@ -359,20 +355,30 @@ describe('orchestrionTransformOptions', () => {
       new Function('globalThis', banner as string)(global);
     }
 
-    it('marks the plugin as ran with an empty module list', () => {
+    it('marks the plugin as ran with an empty module set', () => {
       const global: Record<string, unknown> = {};
 
       runBanner(global);
 
-      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual([]);
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set());
     });
 
     it('never clobbers module names an injected snippet already recorded', () => {
-      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: ['mysql'] } };
+      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: new Set(['mysql']) } };
 
       runBanner(global);
 
-      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set(['mysql']));
+    });
+
+    it('runs twice without resetting the recorded modules', () => {
+      const global: Record<string, unknown> = {};
+
+      runBanner(global);
+      (global.__SENTRY_ORCHESTRION__ as { bundler: Set<string> }).bundler.add('mysql');
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set(['mysql']));
     });
   });
 });

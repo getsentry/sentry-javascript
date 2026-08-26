@@ -28,6 +28,7 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/server-utils": "10.67.0"
   },
@@ -43,6 +44,7 @@
     "prefix": "yarn deno-types",
     "prelint": "yarn deno-types",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",

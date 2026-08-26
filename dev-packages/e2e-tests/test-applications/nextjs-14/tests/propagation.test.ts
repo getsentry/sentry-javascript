@@ -48,7 +48,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }
   expect(inboundTransaction.contexts?.trace?.trace_id).toBe(outboundTransaction.contexts?.trace?.trace_id);
 
   const httpClientSpan = outboundTransaction.spans?.find(
-    span => span.op === 'http.client' && span.data?.['sentry.origin'] === 'auto.http.otel.node_fetch',
+    span => span.op === 'http.client' && span.data?.['sentry.origin'] === 'auto.http.node_fetch',
   );
 
   // Right now we assert that the OTEL span is the last span before propagating

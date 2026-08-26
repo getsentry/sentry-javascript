@@ -15,7 +15,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { subscribeToNestChannels } from '../../src/integrations/orchestrion-subscriber';
 
 // Mirrors harness in `tracing-channel.test.ts`: `bindTracingChannelToSpan`
@@ -241,7 +241,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
       'nestjs.callback': 'getCats',
       'nestjs.version': '10.4.1',
       'http.route': '/cats',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'url.full': '/cats?q=1',
     });
   });

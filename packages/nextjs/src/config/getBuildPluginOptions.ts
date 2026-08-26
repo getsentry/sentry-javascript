@@ -1,6 +1,7 @@
 import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBuildLogger } from './buildLogger';
 import type { SentryBuildOptions } from './types';
 
 const LOGGER_PREFIXES = {
@@ -234,7 +235,6 @@ function createReleaseConfig(
       vcsRemote: sentryBuildOptions.release?.vcsRemote,
       setCommits: sentryBuildOptions.release?.setCommits,
       deploy: sentryBuildOptions.release?.deploy,
-      ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.release,
     };
   }
 
@@ -278,6 +278,8 @@ export function getBuildPluginOptions({
   buildTool: BuildTool;
   useRunAfterProductionCompileHook?: boolean; // Whether the user has opted into using the experimental hook
 }): SentryBuildPluginOptions {
+  const logger = getBuildLogger(sentryBuildOptions.silent);
+
   // We need to convert paths to posix because Glob patterns use `\` to escape
   // glob characters. This clashes with Windows path separators.
   // See: https://www.npmjs.com/package/glob
@@ -299,8 +301,7 @@ export function getBuildPluginOptions({
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
 
   if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    logger.debug(
       '[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:',
       userFilesToDeleteAfterUpload,
     );
@@ -335,7 +336,6 @@ export function getBuildPluginOptions({
           ...sentryBuildOptions.reactComponentAnnotation,
           // eslint-disable-next-line typescript/no-deprecated
           ...sentryBuildOptions.webpack?.reactComponentAnnotation,
-          ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,
         },
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
@@ -345,18 +345,18 @@ export function getBuildPluginOptions({
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,
-      ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions?.sourcemaps,
+      resolveSourceMap: sentryBuildOptions.sourcemaps?.resolveSourceMap,
     },
     release: createReleaseConfig(releaseName, sentryBuildOptions),
     bundleSizeOptimizations: {
       ...sentryBuildOptions.bundleSizeOptimizations,
     },
+    moduleMetadata: sentryBuildOptions.moduleMetadata,
     _metaOptions: {
       loggerPrefixOverride: loggerPrefix,
       telemetry: {
         metaFramework: 'nextjs',
       },
     },
-    ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions,
   };
 }

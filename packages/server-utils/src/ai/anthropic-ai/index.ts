@@ -1,15 +1,8 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
-  GEN_AI_PROMPT,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -82,10 +75,6 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 export function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
   setMessagesAttribute(span, messages);
-
-  if ('prompt' in params) {
-    span.setAttributes({ [GEN_AI_PROMPT]: JSON.stringify(params.prompt) });
-  }
 }
 
 /**
@@ -166,11 +155,7 @@ export function addResponseAttributes(span: Span, response: AnthropicAiResponse,
 /**
  * Handle common error catching and reporting for streaming requests
  */
-function handleStreamingError(error: unknown, span: Span, methodPath: string): never {
-  captureException(error, {
-    mechanism: { handled: false, type: 'auto.ai.anthropic', data: { function: methodPath } },
-  });
-
+function handleStreamingError(error: unknown, span: Span): never {
   if (span.isRecording()) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     span.end();
@@ -220,12 +205,12 @@ function handleStreamingRequest<T extends unknown[], R>(
             options.recordOutputs ?? false,
           ) as unknown as R;
         } catch (error) {
-          return handleStreamingError(error, span, methodPath);
+          return handleStreamingError(error, span);
         }
       })();
     });
 
-    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise);
   } else {
     return startSpanManual(spanConfig, span => {
       try {
@@ -240,7 +225,7 @@ function handleStreamingRequest<T extends unknown[], R>(
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
       } catch (error) {
         suppressDelegatedCreate = false;
-        return handleStreamingError(error, span, methodPath);
+        return handleStreamingError(error, span);
       }
     });
   }
@@ -312,28 +297,14 @@ function instrumentMethod<T extends unknown[], R>(
             addPrivateRequestAttributes(span, params);
           }
 
-          return originalResult.then(
-            result => {
-              addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
-              return result;
-            },
-            error => {
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.anthropic',
-                  data: {
-                    function: methodPath,
-                  },
-                },
-              });
-              throw error;
-            },
-          );
+          return originalResult.then(result => {
+            addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+            return result;
+          });
         },
       );
 
-      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise);
     },
   });
 }

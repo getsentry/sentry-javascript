@@ -148,10 +148,10 @@ function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: 
 }
 
 /**
- * Orchestrion-driven Google GenAI integration. Subscribes to the
+ * Diagnostics-channel-based Google GenAI integration. Subscribes to the
  * `orchestrion:@google/genai:*` diagnostics_channels injected into the SDK's `Models`
  * (`generateContent`/`generateContentStream`/`embedContent`) and `Chat`
- * (`sendMessage`/`sendMessageStream`) methods, so it requires the orchestrion runtime hook or
+ * (`sendMessage`/`sendMessageStream`) methods, so it requires the Sentry runtime hook or
  * bundler plugin.
  */
 export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);

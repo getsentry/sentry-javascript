@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
 
 // The mongodb driver's command architecture changed across majors, mirrored in the vendored OTel

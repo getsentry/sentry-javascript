@@ -60,10 +60,12 @@ describe('instrumentDurableObjectWithSentry', () => {
       .mockReturnValueOnce({
         orgId: 1,
         enableRpcTracePropagation: true,
+        cacheClient: false,
       })
       .mockReturnValueOnce({
         orgId: 2,
         enableRpcTracePropagation: true,
+        cacheClient: false,
       });
     const testClass = class {
       method() {}
@@ -98,7 +100,10 @@ describe('instrumentDurableObjectWithSentry', () => {
     const mockEnv = {} as any;
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-    const options = vi.fn().mockReturnValueOnce({ orgId: 1 }).mockReturnValueOnce({ orgId: 2 });
+    const options = vi
+      .fn()
+      .mockReturnValueOnce({ orgId: 1, cacheClient: false })
+      .mockReturnValueOnce({ orgId: 2, cacheClient: false });
 
     const testClass = class {
       webSocketMessage() {}
@@ -240,6 +245,32 @@ describe('instrumentDurableObjectWithSentry', () => {
     for (const method_name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
       expect(getInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
+  });
+
+  it.each(['webSocketMessage', 'webSocketClose', 'webSocketError'])('%s creates a websocket span', async methodName => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const testClass = class {
+      webSocketMessage() {}
+
+      webSocketClose() {}
+
+      webSocketError() {}
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+    const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+
+    await (obj as any)[methodName]();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: methodName,
+        attributes: {
+          'sentry.op': 'websocket',
+          'sentry.origin': 'auto.faas.cloudflare.durable_object',
+        },
+      },
+      expect.any(Function),
+    );
   });
 
   it('Built-in durable object methods are own properties and not wrapped as RPC', () => {

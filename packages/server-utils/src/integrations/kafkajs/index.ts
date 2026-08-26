@@ -79,7 +79,7 @@ function subscribeToConsumer(): void {
   channel.subscribe(subscribers as TracingChannelSubscribers<ConsumerRunChannelContext>);
 }
 
-const _kafkajsIntegration = (() => {
+const _kafkaIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -96,15 +96,15 @@ function instrumentKafkajs(): void {
 }
 
 /**
- * Orchestrion-driven kafkajs integration.
+ * Diagnostics-channel-based kafkajs integration.
  *
- * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that the orchestrion code transform
+ * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that Sentry's code transform
  * injects into `kafkajs`'s `producer/messageProducer.js` (`sendBatch`) and `consumer/index.js` (`run`).
- * Requires the orchestrion runtime hook or bundler plugin to be active.
+ * Requires the Sentry runtime hook or bundler plugin to be active.
  *
  * Known limitation vs. the OTel integration it replaces: the wrapping producer-`transaction` span is
  * not emitted (the transformer can't replace `transaction()`'s return value to patch commit/abort).
  * Transactional `send`/`sendBatch` calls still produce producer spans, since they route through the
  * same instrumented `sendBatch`.
  */
-export const kafkajsIntegration = defineIntegration(_kafkajsIntegration);
+export const kafkaIntegration = defineIntegration(_kafkaIntegration);

@@ -1,10 +1,10 @@
 import type { Client, Span } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   filterCollectedUrl,
 } from '@sentry/core';
 import {
@@ -14,7 +14,7 @@ import {
   getAbsoluteUrl,
 } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * Strips trailing slash from a pathname, unless it's the root path.
@@ -59,15 +59,14 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 export function appRouterInstrumentPageLoad(client: Client): void {
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
   const parameterizedPathname = maybeParameterizeRoute(pathname);
-  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(client, {
-    name: parameterizedPathname ?? pathname,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
-    startTime: origin ? origin / 1000 : undefined,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+      [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
   });
@@ -126,7 +125,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       currentNavigationSpan.updateName(pathname);
       currentNavigationSpan.setAttributes({
         'navigation.type': `router.${navigationType}`,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
         ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
       });
       setNavigationSpanUrlAttributes(currentNavigationSpan, unparameterizedPathname, normalizedHref);
@@ -139,7 +138,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': `router.${navigationType}`,
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
           },
@@ -155,7 +154,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
     if (currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
       currentRouterPatchingNavigationSpanRef.current.updateName(parameterizedPathname ?? pathname);
       currentRouterPatchingNavigationSpanRef.current.setAttribute(
-        SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+        SENTRY_SEGMENT_NAME_SOURCE,
         parameterizedPathname ? 'route' : 'url',
       );
       if (parameterizedPathname) {
@@ -169,7 +168,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           name: parameterizedPathname ?? pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': 'browser.popstate',
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
           },
@@ -244,7 +243,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           const transactionAttributes: Record<string, string> = {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           };
 
           const href = argArray[0];
@@ -276,7 +275,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
               name: parameterizedPathname ?? transactionName,
               attributes: {
                 ...transactionAttributes,
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
                 ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
               },
             },

@@ -5,7 +5,6 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentryNonRecordingSpan,
@@ -42,6 +41,7 @@ import {
   updateSpanName,
 } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 function createMockedOtelSpan({
   spanId,
@@ -942,10 +942,10 @@ describe('addChildSpanToSpan', () => {
 
 describe('updateSpanName', () => {
   it('updates the span name and source', () => {
-    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } });
     updateSpanName(span, 'new-name');
     const spanJSON = spanToJSON(span);
     expect(spanJSON.name).toBe('new-name');
-    expect(spanJSON.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanJSON.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 });

@@ -84,7 +84,7 @@ describe('instrumentEmbeddingMethod', () => {
     expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBe('["doc1","doc2"]');
   });
 
-  it('captures exception on failure', async () => {
+  it('rethrows the error to the caller without capturing it', async () => {
     const error = new Error('API error');
     const original = vi.fn().mockRejectedValue(error);
     const wrapped = instrumentEmbeddingMethod(original);
@@ -92,9 +92,7 @@ describe('instrumentEmbeddingMethod', () => {
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'error-model' };
     await expect(wrapped.call(instance, 'test')).rejects.toThrow('API error');
 
-    expect(captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'auto.ai.langchain' },
-    });
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   it('infers system from class name', async () => {

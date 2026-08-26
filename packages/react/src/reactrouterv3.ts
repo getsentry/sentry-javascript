@@ -6,12 +6,13 @@ import {
 } from '@sentry/browser';
 import type { Integration, TransactionSource } from '@sentry/core/browser';
 import {
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core/browser';
 import type { Location } from './types';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.
@@ -64,11 +65,12 @@ export function reactRouterV3BrowserTracingIntegration(
           match,
           (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
             startBrowserTracingPageLoadSpan(client, {
-              name: localName,
+              // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+              name: source === 'route' || !hasSpanStreamingEnabled(client) ? localName : PAGELOAD_SPAN_NAME_FALLBACK,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                [SENTRY_SEGMENT_NAME_SOURCE]: source,
                 ...(source === 'route' && { [URL_TEMPLATE]: localName }),
               },
             });
@@ -89,7 +91,7 @@ export function reactRouterV3BrowserTracingIntegration(
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                    [SENTRY_SEGMENT_NAME_SOURCE]: source,
                     ...(source === 'route' && { [URL_TEMPLATE]: localName }),
                   },
                 });

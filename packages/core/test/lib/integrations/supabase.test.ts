@@ -30,10 +30,13 @@ const currentScopesMocks = vi.hoisted(() => ({
 
 // Mock tracing to avoid needing full SDK setup
 vi.mock('../../../src/tracing', () => ({
-  startSpan: tracingMocks.startSpan,
   setHttpStatus: vi.fn(),
   SPAN_STATUS_OK: 1,
   SPAN_STATUS_ERROR: 2,
+}));
+
+vi.mock('../../../src/tracing/trace', () => ({
+  startSpan: tracingMocks.startSpan,
 }));
 
 vi.mock('../../../src/currentScopes', () => ({
@@ -513,7 +516,7 @@ describe('Supabase Integration', () => {
         attributes: Record<string, unknown>;
       };
       expect(spanOptions.name).toMatch(/^upsert\(\.\.\.\)/);
-      expect(spanOptions.attributes['db.operation']).toBe('upsert');
+      expect(spanOptions.attributes['db.operation.name']).toBe('upsert');
     });
   });
 });

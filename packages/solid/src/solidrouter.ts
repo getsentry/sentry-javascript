@@ -7,6 +7,7 @@ import {
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   PARAMS_KEY_BASE,
   URL_FULL,
   URL_PATH,
@@ -18,7 +19,6 @@ import {
   getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   filterCollectedUrl,
 } from '@sentry/core';
 import type {
@@ -67,7 +67,7 @@ function handleNavigation(location: string): void {
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     },
     isBackNavigation ? undefined : { url: getAbsoluteUrl(location) },
@@ -131,7 +131,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         const parametrizedRoute = lastMatch.route.pattern || name;
         rootSpan.updateName(parametrizedRoute);
         rootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: parametrizedRoute,
           ...urlAttributes,
         });
@@ -149,7 +149,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'navigation' && spanName === '-1') {
           rootSpan.updateName(name);
         }
-        rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url', ...urlAttributes });
+        rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url', ...urlAttributes });
       }
     });
 

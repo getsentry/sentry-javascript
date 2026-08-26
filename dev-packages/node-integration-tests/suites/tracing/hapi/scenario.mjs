@@ -1,6 +1,5 @@
 import Boom from '@hapi/boom';
 import Hapi from '@hapi/hapi';
-import * as Sentry from '@sentry/node';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 const port = 5999;
@@ -67,7 +66,6 @@ const run = async () => {
   // Server extension produces a `middleware` span.
   server.ext('onPreResponse', (request, h) => h.continue);
 
-  await Sentry.setupHapiErrorHandler(server);
   await server.start();
 
   sendPortToRunner(port);

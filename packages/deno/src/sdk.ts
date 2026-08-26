@@ -11,32 +11,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  amqplibIntegration,
-  anthropicAIIntegration,
-  awsIntegration,
-  expressIntegration,
-  firebaseIntegration,
-  genericPoolIntegration,
-  googleGenAIIntegration,
-  graphqlIntegration,
-  hapiIntegration,
-  kafkajsIntegration,
-  koaIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  lruMemoizerIntegration,
-  mongoIntegration,
-  mongooseIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  openAIIntegration,
-  postgresIntegration,
-  postgresJsIntegration,
-  tediousIntegration,
-  vercelAIIntegration,
-  redisIntegration,
-} from '@sentry/server-utils/orchestrion';
+import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -64,39 +39,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoContextIntegration(),
     denoServeIntegration(),
     denoHttpIntegration(),
-    redisIntegration(),
-    graphqlIntegration(),
-    vercelAIIntegration(),
-    // orchestrion-based instrumentations. We add a deliberate list here rather
-    // than every channel integration: each one needs a Deno test proving it
-    // records spans.
-    //
-    // The orchestrion channels may be injected after (or while) the SDK loads.
-    // If they never load, these are no-ops.
-    amqplibIntegration(),
-    anthropicAIIntegration(),
-    awsIntegration(),
-    expressIntegration(),
-    firebaseIntegration(),
-    genericPoolIntegration(),
-    googleGenAIIntegration(),
-    hapiIntegration(),
-    kafkajsIntegration(),
-    koaIntegration(),
-    langChainIntegration(),
-    langGraphIntegration(),
-    lruMemoizerIntegration(),
-    mongoIntegration(),
-    mongooseIntegration(),
-    mysqlIntegration(),
-    mysql2Integration(),
-    openAIIntegration(),
-    postgresIntegration(),
-    postgresJsIntegration(),
-    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
+    // server-utils integrations
+    ...getErrorIntegrations(),
+    ...getTracingIntegrations(),
   ];
 }
 

@@ -28,10 +28,13 @@
  */
 
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR, startSpanManual, withActiveSpan } from '../../tracing';
+import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { ROUTER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
+import { startSpanManual } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import type { SpanAttributes } from '../../types/span';
 import { getActiveSpan } from '../../utils/spanUtils';
@@ -55,14 +58,14 @@ import {
   getLayerMetadata,
   isLayerIgnored,
 } from './utils';
-import { getIsolationScope } from '../../currentScopes';
+import { getClient, getIsolationScope } from '../../currentScopes';
 import { getDefaultIsolationScope } from '../../defaultScopes';
 import { getOriginalFunction, markFunctionWrapped } from '../../utils/object';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 
 // TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
-  [ExpressLayerType_MIDDLEWARE]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  [ExpressLayerType_MIDDLEWARE]: MIDDLEWARE,
   [ExpressLayerType_REQUEST_HANDLER]: 'handler',
   [ExpressLayerType_ROUTER]: 'router',
 };
@@ -164,7 +167,13 @@ export function patchLayer(
       DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
     }
 
-    return startSpanManual({ name, attributes }, span => {
+    const client = getClient();
+    // With span streaming, span names have to be low cardinality, so router spans are named after their route.
+    const isStreamedRouterSpan = type === ExpressLayerType_ROUTER && !!client && hasSpanStreamingEnabled(client);
+
+    const spanName = isStreamedRouterSpan ? actualMatchedRoute || ROUTER_SPAN_NAME_FALLBACK : name;
+
+    return startSpanManual({ name: spanName, attributes }, span => {
       let spanHasEnded = false;
       // TODO: Fix router spans (getRouterPath does not work properly) to
       // have useful names before removing this branch

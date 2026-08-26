@@ -9,7 +9,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.httpIntegration({
-      dropSpansForIncomingRequestStatusCodes: [499, [300, 399]],
+      ignoreStatusCodes: [499, [300, 399]],
     }),
   ],
 });

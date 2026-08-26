@@ -1,6 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core/browser';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
 
@@ -58,6 +58,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startBrowserTracingPageLoadSpanSpy.mockReturnValue(mockPageloadSpan as any);
+    (SentryBrowser.WINDOW as any).location = { pathname: '/posts/999', search: '' };
 
     vi.stubGlobal('window', {
       location: {
@@ -84,10 +85,43 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       name: '/posts/$postId',
       attributes: expect.objectContaining({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/posts/$postId',
-        'url.path.params.postId': '999',
+        'url.path.parameter.postId': '999',
       }),
+    });
+  });
+
+  describe('pageload route matching', () => {
+    // `window.location.pathname` carries the router basepath, but whether `matchRoutes` wants it is
+    // version-dependent (newer routers strip it in `parseLocation`, older ones inside `matchRoutes`).
+    // `state.location` is always in the form the router itself expects, so we match against that.
+    it('matches against the router location, not window.location', () => {
+      (SentryBrowser.WINDOW as any).location = { pathname: '/app/posts/999', search: '?q=1' };
+
+      const integration = tanstackRouterBrowserTracingIntegration(
+        { ...mockRouter, state: { location: { pathname: '/posts/999', search: { q: 1 } } } },
+        { instrumentPageLoad: true, instrumentNavigation: false },
+      );
+
+      integration.afterAllSetup!(mockClient as any);
+
+      expect(mockRouter.matchRoutes).toHaveBeenCalledWith('/posts/999', { q: 1 }, expect.any(Object));
+      expect(mockRouter.options.parseSearch).not.toHaveBeenCalled();
+    });
+
+    it('falls back to window.location when the router exposes no location', () => {
+      (SentryBrowser.WINDOW as any).location = { pathname: '/posts/999', search: '?q=1' };
+
+      const integration = tanstackRouterBrowserTracingIntegration(mockRouter, {
+        instrumentPageLoad: true,
+        instrumentNavigation: false,
+      });
+
+      integration.afterAllSetup!(mockClient as any);
+
+      expect(mockRouter.options.parseSearch).toHaveBeenCalledWith('?q=1');
+      expect(mockRouter.matchRoutes).toHaveBeenCalledWith('/posts/999', {}, expect.any(Object));
     });
   });
 
@@ -122,7 +156,6 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
         [URL_TEMPLATE]: '/posts/$postId',
         'url.path': '/posts/2',
         'url.full': expect.any(String),
-        'url.path.params.postId': '2',
         'url.path.parameter.postId': '2',
         'params.postId': '2',
       }),

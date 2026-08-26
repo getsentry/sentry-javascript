@@ -61,32 +61,6 @@ describe('init', () => {
     expect(optionsPassed?.integrations.length).toBeGreaterThan(0);
   });
 
-  it('installs spanStreamingIntegration by default', () => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
-    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: undefined });
-
-    init(options);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.some(integration => integration.name === 'SpanStreaming')).toBe(true);
-  });
-
-  it('does not install spanStreamingIntegration when traceLifecycle is static', () => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
-    const options = getDefaultBrowserOptions({
-      dsn: PUBLIC_DSN,
-      defaultIntegrations: undefined,
-      traceLifecycle: 'static',
-    });
-
-    init(options);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.some(integration => integration.name === 'SpanStreaming')).toBe(false);
-  });
-
   test("doesn't install default integrations if told not to", () => {
     const DEFAULT_INTEGRATIONS: Integration[] = [
       new MockIntegration('MockIntegration 0.3'),
@@ -97,17 +71,6 @@ describe('init', () => {
 
     expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
     expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(0);
-  });
-
-  it('installs spanStreamingIntegration with defaultIntegrations disabled', () => {
-    // @ts-expect-error this is fine for testing
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
-    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: false });
-
-    init(options);
-
-    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-    expect(optionsPassed?.integrations.some(integration => integration.name === 'SpanStreaming')).toBe(true);
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {

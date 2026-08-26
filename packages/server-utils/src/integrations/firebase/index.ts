@@ -16,11 +16,11 @@ const _firebaseIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven firebase integration.
+ * Diagnostics-channel-based firebase integration.
  *
  * Subscribes to the `orchestrion:@firebase/firestore:*` and `orchestrion:firebase-functions:*`
- * diagnostics_channels the orchestrion code transform injects into firestore's `addDoc`/`getDocs`/
+ * diagnostics_channels Sentry's code transform injects into firestore's `addDoc`/`getDocs`/
  * `setDoc`/`deleteDoc` and firebase-functions' `onX` registration functions, emitting spans identical
- * to the OTel integration. Requires the orchestrion runtime hook or bundler plugin.
+ * to the OTel integration. Requires the Sentry runtime hook or bundler plugin.
  */
 export const firebaseIntegration = defineIntegration(_firebaseIntegration);

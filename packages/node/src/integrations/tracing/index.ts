@@ -1,60 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { prismaIntegration } from '@sentry/server-utils';
-import {
-  amqplibIntegration,
-  anthropicAIIntegration,
-  expressIntegration,
-  firebaseIntegration,
-  genericPoolIntegration,
-  googleGenAIIntegration,
-  graphqlIntegration,
-  hapiIntegration,
-  kafkajsIntegration,
-  koaIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  lruMemoizerIntegration,
-  mongoIntegration,
-  mongooseIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  openAIIntegration,
-  postgresIntegration,
-  postgresJsIntegration,
-  redisIntegration,
-  tediousIntegration,
-  vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
-import { fastifyIntegration } from './fastify';
+import { getTracingIntegrations } from '@sentry/server-utils';
 
 export function getAutoPerformanceIntegrations(): Integration[] {
-  return [
-    expressIntegration(),
-    fastifyIntegration(),
-    graphqlIntegration(),
-    mongoIntegration(),
-    mongooseIntegration(),
-    mysqlIntegration(),
-    mysql2Integration(),
-    redisIntegration(),
-    postgresIntegration(),
-    prismaIntegration(),
-    hapiIntegration(),
-    koaIntegration(),
-    tediousIntegration(),
-    genericPoolIntegration(),
-    kafkajsIntegration(),
-    amqplibIntegration(),
-    lruMemoizerIntegration(),
-    // AI providers
-    // LangChain must come first to disable AI provider integrations before they instrument
-    langChainIntegration(),
-    langGraphIntegration(),
-    vercelAIIntegration(),
-    openAIIntegration(),
-    anthropicAIIntegration(),
-    googleGenAIIntegration(),
-    postgresJsIntegration(),
-    firebaseIntegration(),
-  ];
+  return getTracingIntegrations();
 }

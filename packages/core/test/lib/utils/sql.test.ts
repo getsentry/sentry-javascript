@@ -230,4 +230,8 @@ describe('getSqlQuerySummary', () => {
       expect(getSqlQuerySummary(query)).toBe(`SELECT ${table}`);
     });
   });
+
+  it('returns empty srting for whitespace-only queries', () => {
+    expect(getSqlQuerySummary('   ')).toBe('');
+  });
 });

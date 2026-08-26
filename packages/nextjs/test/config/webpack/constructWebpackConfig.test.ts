@@ -93,6 +93,27 @@ describe('constructWebpackConfigFunction()', () => {
     getBuildPluginOptionsSpy.mockRestore();
   });
 
+  it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+    const finalNextConfig = materializeFinalNextConfig(
+      {
+        ...exportedNextConfig,
+        webpack: () => ({ ...clientWebpackConfig }) as any,
+      },
+      undefined,
+      {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      },
+    );
+
+    const finalWebpackConfig = finalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    // The SDK must not generate source maps it will neither upload nor delete - they would be served
+    // publicly from `.next/static`. Generating them is the user's call via `devtool`.
+    expect(finalWebpackConfig?.devtool).toBeUndefined();
+  });
+
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({

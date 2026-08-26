@@ -10,7 +10,6 @@ import {
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
@@ -34,14 +33,15 @@ import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetada
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { enhanceRunHandlerRootSpan } from './enhanceRunHandlerRootSpan';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 export { pinoIntegration } from '../common/pinoIntegrationShim';
+export { vercelAIIntegration } from '../common/vercelAIIntegrationShim';
 
 // Override core span methods with Next.js-specific implementations that support Cache Components
 export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
@@ -142,8 +142,8 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP);
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, MIDDLEWARE);
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     }
 
     // Backfill op and source for pages-router API routes: we no longer create this span in the wrapper,
@@ -153,7 +153,7 @@ export function init(options: VercelEdgeOptions = {}): void {
       String(spanAttributes?.[ATTR_NEXT_SPAN_NAME]).startsWith(ATTR_NEXT_PAGES_API_ROUTE_TYPE)
     ) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     }
 
     // The `BaseServer.handleRequest` span is the incoming request root span (e.g. for app-router server
@@ -202,11 +202,4 @@ export function init(options: VercelEdgeOptions = {}): void {
     // Noop
     // The statement above can throw because process is not defined on the client
   }
-}
-
-/**
- * Just a passthrough in case this is imported from the client.
- */
-export function withSentryConfig<T>(exportedUserNextConfig: T): T {
-  return exportedUserNextConfig;
 }

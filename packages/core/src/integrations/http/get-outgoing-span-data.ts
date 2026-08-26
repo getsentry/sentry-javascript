@@ -1,15 +1,23 @@
 import type { Span, SpanAttributes } from '../../types/span';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
+import { getContentLengthFromHeaders } from '../../utils/request';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
 import {
-  HTTP_HOST,
-  HTTP_METHOD,
-  HTTP_TARGET,
-  NET_PEER_NAME,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   SENTRY_KIND,
   URL_FULL,
   USER_AGENT_ORIGINAL,
@@ -33,17 +41,13 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
   return {
     name,
     attributes: {
-      // TODO(v11): Update these to the Sentry semantic attributes for urls.
-      // https://getsentry.github.io/sentry-conventions/attributes/
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
-      /* eslint-disable typescript/no-deprecated */
-      [HTTP_METHOD]: request.method,
-      [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
-      [NET_PEER_NAME]: request.host,
-      [HTTP_HOST]: request.getHeader('host') as string | undefined,
-      /* eslint-enable typescript/no-deprecated */
+      // The old `http.target` (path plus query) has no separate replacement here: `url.path`,
+      // `url.query` and `http.request.method` all come from `attributes` below.
+      [SERVER_ADDRESS]: request.host,
+      [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
       [USER_AGENT_ORIGINAL]: userAgent || undefined,
       ...attributes,
     },
@@ -56,42 +60,26 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
  */
 export function setIncomingResponseSpanData(response: HttpIncomingMessage, span: Span): void {
   const { statusCode, statusMessage, httpVersion, socket } = response;
-  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'ip_tcp' : 'ip_udp';
+  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'tcp' : 'udp';
 
   span.setAttributes({
-    'http.response.status_code': statusCode,
-    'network.protocol.version': httpVersion,
-    // TODO(v11): Update these to the Sentry semantic attributes for urls.
-    // https://getsentry.github.io/sentry-conventions/attributes/
-    'http.flavor': httpVersion,
-    'network.transport': transport,
-    'net.transport': transport,
-    'http.status_text': statusMessage?.toUpperCase(),
-    'http.status_code': statusCode,
-    ...getResponseContentLengthAttributes(response),
+    [HTTP_RESPONSE_STATUS_CODE]: statusCode,
+    [NETWORK_PROTOCOL_NAME]: 'http',
+    [NETWORK_PROTOCOL_VERSION]: httpVersion,
+    [NETWORK_TRANSPORT]: transport,
+    'http.response.status_text': statusMessage?.toUpperCase(),
+    [HTTP_RESPONSE_BODY_SIZE]: getContentLengthFromHeaders(response.headers),
     ...getSocketAttrs(socket),
   });
 }
 
 function getSocketAttrs(socket: HttpIncomingMessage['socket']): SpanAttributes {
   if (!socket) return {};
-  const { remoteAddress, remotePort } = socket;
+  const { localAddress, localPort, remoteAddress, remotePort } = socket;
   return {
-    'network.peer.address': remoteAddress,
-    'network.peer.port': remotePort,
-    'net.peer.ip': remoteAddress,
-    'net.peer.port': remotePort,
+    [NETWORK_LOCAL_ADDRESS]: localAddress,
+    [NETWORK_LOCAL_PORT]: localPort,
+    [NETWORK_PEER_ADDRESS]: remoteAddress,
+    [NETWORK_PEER_PORT]: remotePort,
   };
-}
-
-function getResponseContentLengthAttributes(response: HttpIncomingMessage): SpanAttributes {
-  const { headers } = response;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { 'http.response_content_length': length }
-      : { 'http.response_content_length_uncompressed': length }
-    : {};
 }

@@ -6,9 +6,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
@@ -68,7 +67,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
   expect(navigationTraceId).toBeDefined();
   expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
-  expect(pageloadSpan.name).toEqual('/index.html');
+  expect(pageloadSpan.name).toEqual('Pageload');
 
   expect(navigationSpan).toEqual({
     attributes: {
@@ -154,10 +153,6 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: '/index.html',
       },
-      'sentry.source': {
-        type: 'string',
-        value: 'url',
-      },
       'sentry.segment.name.source': {
         type: 'string',
         value: 'url',
@@ -223,7 +218,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'integer',
       value: 1,
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
       type: 'string',
       value: 'url',
     },
@@ -248,7 +243,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'integer',
       value: 1,
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
       type: 'string',
       value: 'url',
     },

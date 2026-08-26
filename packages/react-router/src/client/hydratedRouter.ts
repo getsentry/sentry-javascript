@@ -9,7 +9,6 @@ import {
   isThenable,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import type { DataRouter } from 'react-router';
@@ -22,7 +21,7 @@ import {
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
 } from './utils';
-import { SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -49,16 +48,18 @@ export function instrumentHydratedRouter(): void {
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
-        const pageloadName = spanToJSON(pageloadSpan).name;
+        // Matched against `url.path` rather than the span name: with span streaming, the pageload
+        // span is named `Pageload` until a route is resolved, so the name may not hold the pathname.
+        const pageloadPath = spanToJSON(pageloadSpan).attributes[URL_PATH];
         const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
-          pageloadName &&
+          typeof pageloadPath === 'string' &&
           // this event is for the currently active pageload
-          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadName)
+          normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
           pageloadSpan.updateName(parameterizePageloadRoute);
           pageloadSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
             [URL_TEMPLATE]: parameterizePageloadRoute,
           });
@@ -133,7 +134,7 @@ export function instrumentHydratedRouter(): void {
         if (
           rootSpanAttributes[SENTRY_OP] === 'navigation' &&
           isClientInstrumentationApiUsed() &&
-          rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
+          rootSpanAttributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route'
         ) {
           return;
         }
@@ -152,7 +153,7 @@ export function instrumentHydratedRouter(): void {
         ) {
           rootSpan.updateName(parameterizedRoute);
           rootSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: parameterizedRoute,
           });
         }
@@ -190,7 +191,7 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
     {
       name,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+        [SENTRY_SEGMENT_NAME_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
         ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { type Client, setCurrentClient, type Span, trpcMiddleware } from '../../src';
 import * as currentScopes from '../../src/currentScopes';
 import * as exports from '../../src/exports';
-import * as tracing from '../../src/tracing';
+import * as tracing from '../../src/tracing/trace';
 import { resolveDataCollectionOptions } from '../../src/utils/data-collection/resolveDataCollectionOptions';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
@@ -61,8 +61,8 @@ describe('trpcMiddleware', () => {
         name: 'trpc/test.procedure',
         attributes: {
           'sentry.op': 'rpc',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.rpc.trpc',
-          'sentry.source': 'route',
           'rpc.system.name': 'trpc',
           'rpc.method': 'test.procedure',
           'trpc.procedure_path': 'test.procedure',
@@ -70,6 +70,22 @@ describe('trpcMiddleware', () => {
         },
         forceTransaction: false,
       },
+      expect.any(Function),
+    );
+  });
+
+  test('sets the segment name source when the tRPC span is the segment', async () => {
+    const middleware = trpcMiddleware();
+    const next = vi.fn().mockResolvedValue({ ok: true });
+
+    await middleware({ path: 'test.procedure', type: 'query', next });
+
+    expect(tracing.startSpanManual).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.segment.name.source': 'route',
+        }),
+      }),
       expect.any(Function),
     );
   });

@@ -98,6 +98,23 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
+  it('passes moduleMetadata and sourcemaps hooks to sentryVitePlugin', () => {
+    const rewriteSources = (source: string): string => source;
+    const resolveSourceMap = (artifactPath: string): string => `${artifactPath}.map`;
+
+    makeAddSentryVitePlugin({
+      moduleMetadata: { team: 'sdk' },
+      sourcemaps: { rewriteSources, resolveSourceMap },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: expect.objectContaining({ rewriteSources, resolveSourceMap }),
+      }),
+    );
+  });
+
   it('passes applicationKey to sentryVitePlugin', () => {
     makeAddSentryVitePlugin({
       applicationKey: 'my-app-key',

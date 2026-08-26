@@ -1,9 +1,9 @@
 import {
+  _INTERNAL_wrapRequestHandler as wrapRequestHandler,
   type CloudflareOptions,
   getDefaultIntegrations as getDefaultCloudflareIntegrations,
   setAsyncLocalStorageAsyncContextStrategy,
 } from '@sentry/cloudflare';
-import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
@@ -23,9 +23,10 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       rewriteFramesIntegration(),
       svelteKitSpansIntegration(),
     ],
-    // SvelteKit emits its own OpenTelemetry spans (Kit tracing), so — like the Node SvelteKit SDK — it
+    // SvelteKit emits its own OpenTelemetry spans (Kit tracing), so, like the Node SvelteKit SDK, it
     // defaults to registering the tracer provider instead of inheriting Cloudflare's no-provider default.
-    // A user-provided value still overrides this via `...options`.
+    // Only the `init`-backed wrapper from the main entry point honors this; `@sentry/cloudflare/request`
+    // ignores it. A user-provided value still overrides this via `...options`.
     enableOpenTelemetrySetup: true,
     ...options,
   };

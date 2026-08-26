@@ -15,13 +15,13 @@ interface LoaderOptions {
   /** Fixed import specifier for the module-injected snippet. */
   importSpecifier?: string;
   /**
-   * Absolute path to the `@sentry/server-utils/orchestrion` helper module. When
-   * set, the snippet imports a PER-FILE RELATIVE path to it: Turbopack rejects
-   * absolute-path imports ("server relative imports are not implemented yet"),
-   * and a bare specifier emitted inside a transformed package doesn't resolve
-   * from that package's location under isolated installs (pnpm). A relative
-   * specifier is resolved from the importing file and consumed entirely at
-   * build time. Takes precedence over `importSpecifier`.
+   * Absolute path to the `@sentry/server-utils` module the snippet imports from.
+   * When set, the snippet imports a PER-FILE RELATIVE path to it: Turbopack
+   * rejects absolute-path imports ("server relative imports are not implemented
+   * yet"), and a bare specifier emitted inside a transformed package doesn't
+   * resolve from that package's location under isolated installs (pnpm). A
+   * relative specifier is resolved from the importing file and consumed entirely
+   * at build time. Takes precedence over `importSpecifier`.
    */
   importHelperPath?: string;
 }

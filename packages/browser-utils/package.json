@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "web-vitals": "^6.0.1"
   },
   "scripts": {
@@ -49,6 +49,7 @@
     "clean": "rimraf build coverage sentry-browser-utils-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test:unit": "vitest run",
     "test": "vitest run",

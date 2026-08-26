@@ -83,7 +83,7 @@ export {
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
   captureSession,
@@ -128,7 +128,7 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
@@ -142,7 +142,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old

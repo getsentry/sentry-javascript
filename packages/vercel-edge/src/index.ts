@@ -85,7 +85,7 @@ export {
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
   spanToStaticSpanJSON,
@@ -118,4 +118,3 @@ export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';

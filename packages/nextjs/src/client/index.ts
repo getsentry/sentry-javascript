@@ -19,8 +19,6 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
-// Override core span methods with Next.js-specific implementations that support Cache Components
-export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
@@ -139,11 +137,4 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   );
 
   return customDefaultIntegrations;
-}
-
-/**
- * Just a passthrough in case this is imported from the client.
- */
-export function withSentryConfig<T>(exportedUserNextConfig: T): T {
-  return exportedUserNextConfig;
 }

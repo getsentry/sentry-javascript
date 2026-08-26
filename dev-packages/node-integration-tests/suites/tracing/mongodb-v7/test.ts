@@ -1,13 +1,11 @@
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest, isOrchestrionEnabled } from '../../../utils';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongodb 7 so the >= 6.4 promise-based `Connection.prototype.command`
-// band is exercised against a real mongodb. mongodb 7 requires Node >= 20.19, so this suite is
-// skipped on older Node (on Node 18 the driver throws `ReferenceError: crypto is not defined`).
-conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
+// band is exercised against a real mongodb.
+describe('MongoDB v7 auto-instrumentation', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -22,7 +20,7 @@ conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
 
   // `db.statement` (scrubbed full command doc) and `db.connection_string` vary
   // by driver version, so assert their presence rather than exact content;
@@ -32,12 +30,12 @@ conditionalTest({ min: 20 })('MongoDB v7 auto-instrumentation', () => {
       data: expect.objectContaining({
         'sentry.origin': origin,
         'sentry.op': 'db',
-        'db.system': 'mongodb',
-        'db.name': 'admin',
-        'db.mongodb.collection': 'movies',
-        'db.operation': operation,
+        'db.system.name': 'mongodb',
+        'db.namespace': 'admin',
+        'db.collection.name': 'movies',
+        'db.operation.name': operation,
         'db.connection_string': expect.any(String),
-        'db.statement': expect.any(String),
+        'db.query.text': expect.any(String),
       }),
       op: 'db',
       origin,

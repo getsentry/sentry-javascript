@@ -67,6 +67,10 @@ const SEGMENT_SPAN = {
       type: 'integer',
       value: expect.any(Number),
     },
+    'network.protocol.name': {
+      type: 'string',
+      value: 'http',
+    },
     'os.name': {
       type: 'string',
       value: expect.any(String),
@@ -110,10 +114,6 @@ const SEGMENT_SPAN = {
     'sentry.segment.name': {
       type: 'string',
       value: 'GET /test-sentry-span',
-    },
-    'sentry.source': {
-      type: 'string',
-      value: 'url',
     },
     'sentry.segment.name.source': {
       type: 'string',

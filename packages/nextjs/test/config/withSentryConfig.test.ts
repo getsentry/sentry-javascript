@@ -4,6 +4,7 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../../src/config/diagnosticsChannelInjection';
+import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
@@ -18,6 +19,34 @@ const EXPECTED_DEFAULT_EXTERNALS = [
 ];
 
 describe('withSentryConfig', () => {
+  // `next.config.js` / `next.config.mjs` get no type checking, so this warning is the only signal
+  // those users receive that the option is gone.
+  describe('removed `unstable_sentryWebpackPluginOptions`', () => {
+    it.each([
+      ['top-level', { unstable_sentryWebpackPluginOptions: { applicationKey: 'my-app' } }],
+      ['nested under `webpack`', { webpack: { unstable_sentryWebpackPluginOptions: { applicationKey: 'my-app' } } }],
+    ])('warns when set %s', (_name, sentryBuildOptions) => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      // @ts-expect-error - removed in v11, but JS configs get no type checking
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryBuildOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('unstable_sentryWebpackPluginOptions'));
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn for a config without removed options', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('unstable_'));
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
   it('includes expected properties', () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -553,6 +582,27 @@ describe('withSentryConfig', () => {
       // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+    });
+
+    it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions: SentryBuildOptions = {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      // The SDK must not generate source maps it will neither upload nor delete - they would be served
+      // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
@@ -1144,6 +1194,44 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
+    });
+  });
+
+  describe('moduleMetadata on Turbopack', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    // The Turbopack metadata loader only injects `applicationKey`, so `moduleMetadata` silently did
+    // nothing on Next.js 16+ where Turbopack is the default.
+    it('warns that moduleMetadata has no effect on Turbopack builds', () => {
+      process.env.TURBOPACK = '1';
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { moduleMetadata: { team: 'sdk' } });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+
+    it('does not warn about moduleMetadata on webpack builds', () => {
+      delete process.env.TURBOPACK;
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { moduleMetadata: { team: 'sdk' } });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+
+    it('does not warn on Turbopack when moduleMetadata is unset', () => {
+      process.env.TURBOPACK = '1';
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
     });
   });
 

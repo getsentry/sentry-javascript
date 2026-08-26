@@ -1,4 +1,4 @@
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, warnOnRemovedBuildOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -25,6 +25,8 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
   const svelteConfig = await loadSvelteConfig();
 
   const mergedOptions = {
@@ -170,7 +172,7 @@ async function readPackageMajor(
 
 /**
  * This function creates the options for the custom Sentry Vite plugin.
- * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
+ * The options are derived from the Sentry SvelteKit plugin options.
  *
  * only exported for testing
  */
@@ -195,7 +197,6 @@ export function generateVitePluginOptions(
       autoUploadSourceMaps: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       autoInstrument: _filtered2,
-      unstable_sentryVitePluginOptions,
       sentryUrl,
       ...newSvelteKitPluginOptions
     } = svelteKitPluginOptions;
@@ -207,24 +208,20 @@ export function generateVitePluginOptions(
 
       url: sentryUrl,
 
-      ...unstable_sentryVitePluginOptions,
-
       adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
 
-    if (svelteKitPluginOptions.sourcemaps || unstable_sentryVitePluginOptions?.sourcemaps) {
+    if (svelteKitPluginOptions.sourcemaps) {
       sentryVitePluginsOptions.sourcemaps = {
         ...svelteKitPluginOptions.sourcemaps,
-        ...unstable_sentryVitePluginOptions?.sourcemaps,
       };
     }
 
-    if (svelteKitPluginOptions.release || unstable_sentryVitePluginOptions?.release) {
+    if (svelteKitPluginOptions.release) {
       sentryVitePluginsOptions.release = {
         ...svelteKitPluginOptions.release,
-        ...unstable_sentryVitePluginOptions?.release,
       };
     }
   }

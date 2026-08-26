@@ -22,7 +22,7 @@ import {
   SENTRY_OP,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
@@ -41,8 +41,8 @@ import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRo
 const PACKAGE_NAME = '@sentry/instrumentation-fastify';
 const SUPPORTED_VERSIONS = '>=3.21.0 <6';
 
-const ORIGIN = 'auto.http.otel.fastify';
-const HOOK_OP = WEB_SERVER_MIDDLEWARE_SPAN_OP;
+const ORIGIN = 'auto.http.fastify';
+const HOOK_OP = MIDDLEWARE;
 // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
 const REQUEST_HANDLER_OP = 'handler';
 

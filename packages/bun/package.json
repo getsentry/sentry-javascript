@@ -44,7 +44,7 @@
   "dependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/node": "10.67.0",
     "@sentry/server-utils": "10.67.0"
   },
@@ -64,6 +64,7 @@
     "clean": "rimraf build coverage sentry-bun-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "run-s install:bun test:bun",

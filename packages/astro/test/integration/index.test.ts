@@ -76,7 +76,9 @@ describe('sentryAstro integration', () => {
 
   it('enables "hidden" source maps, adds filesToDeleteAfterUpload and adds the sentry vite plugin if an auth token is detected', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
@@ -123,7 +125,9 @@ describe('sentryAstro integration', () => {
 
   it('falls back to default output dir, if out and root dir are not available', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config: {} });
@@ -152,7 +156,9 @@ describe('sentryAstro integration', () => {
 
   it('sets the correct assets glob for vercel if the Vercel adapter is used', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -189,12 +195,9 @@ describe('sentryAstro integration', () => {
 
   it('prefers user-specified assets-globs over the default values', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        assets: ['dist/server/**/*, dist/client/**/*'],
-      },
+      org: 'my-org',
+      project: 'my-project',
+      sourcemaps: { assets: ['dist/server/**/*, dist/client/**/*'] },
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -231,12 +234,9 @@ describe('sentryAstro integration', () => {
 
   it('prefers user-specified filesToDeleteAfterUpload over the default values', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        filesToDeleteAfterUpload: ['./custom/path/**/*'],
-      },
+      org: 'my-org',
+      project: 'my-project',
+      sourcemaps: { filesToDeleteAfterUpload: ['./custom/path/**/*'] },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -259,64 +259,45 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
+  it('ignores the removed `sourceMapsUploadOptions` when computing the vite plugin options', async () => {
     const integration = sentryAstro({
-      bundleSizeOptimizations: {
-        excludeReplayShadowDom: true,
-      },
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        assets: ['dist/server/**/*, dist/client/**/*'],
-        unstable_sentryVitePluginOptions: {
-          org: 'my-other-org',
-          project: 'my-other-project',
-          applicationKey: 'my-application-key',
-          sourcemaps: {
-            assets: ['foo/*.js'],
-            ignore: ['bar/*.js'],
-          },
-          bundleSizeOptimizations: {
-            excludeReplayIframe: true,
-          },
-        },
-      },
+      org: 'my-org',
+      // @ts-expect-error - removed in v11
+      sourceMapsUploadOptions: { org: 'my-other-org', enabled: false },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      ...baseConfigHookObject,
-      updateConfig,
-      injectScript,
-      // @ts-expect-error - only passing in partial config
-      config: {
-        outDir: new URL('file://path/to/project/build'),
-      },
-    });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: 'my-other-org',
-        project: 'my-other-project',
-        applicationKey: 'my-application-key',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-        },
-        bundleSizeOptimizations: {
-          excludeReplayShadowDom: true,
-          excludeReplayIframe: true,
-        },
-      }),
-    );
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ org: 'my-org' }));
   });
+
+  it('forwards moduleMetadata to the vite plugin', async () => {
+    const integration = sentryAstro({ moduleMetadata: { team: 'sdk' } });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ moduleMetadata: { team: 'sdk' } }));
+  });
+
+  // TypeScript rejects the key (see `buildOptions.test-d.ts`); this covers JS configs, which get no
+  // type checking.
+  it.each(['unstable_sentryVitePluginOptions', 'sourceMapsUploadOptions'])(
+    'warns via the Astro logger when the removed `%s` is still set',
+    async removedOption => {
+      const integration = sentryAstro({ [removedOption]: { org: 'my-other-org' } });
+      // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+      expect(baseConfigHookObject.logger.warn).toHaveBeenCalledWith(expect.stringContaining(removedOption));
+    },
+  );
 
   it('passes top-level applicationKey to the vite plugin', async () => {
     const integration = sentryAstro({
       applicationKey: 'my-app-key',
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project' },
+      org: 'my-org',
+      project: 'my-project',
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
@@ -326,25 +307,6 @@ describe('sentryAstro integration', () => {
         applicationKey: 'my-app-key',
       }),
     );
-  });
-
-  it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
-    const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: false },
-    });
-
-    expect(integration.hooks['astro:config:setup']).toBeDefined();
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
-
-    // only the orchestrion plugin is wired, no sourcemaps plugin
-    expect(updateConfig).toHaveBeenCalledTimes(1);
-    expect(updateConfig).toHaveBeenCalledWith({
-      vite: {
-        plugins: [{ name: 'sentry-orchestrion-vite' }],
-      },
-    });
-    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
   it("doesn't enable source maps if `sourcemaps.disable` is `true`", async () => {
@@ -379,9 +341,7 @@ describe('sentryAstro integration', () => {
   });
 
   it("doesn't add the sourcemaps Vite plugin in dev mode", async () => {
-    const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true },
-    });
+    const integration = sentryAstro({});
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use

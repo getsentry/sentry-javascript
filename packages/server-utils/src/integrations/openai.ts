@@ -126,8 +126,8 @@ function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: O
 }
 
 /**
- * Orchestrion-driven OpenAI integration. Subscribes to the `orchestrion:openai:*`
+ * Diagnostics-channel-based OpenAI integration. Subscribes to the `orchestrion:openai:*`
  * diagnostics_channels injected into `openai`'s `create` methods (chat completions, responses, embeddings,
- * conversations), so it requires the orchestrion runtime hook or bundler plugin.
+ * conversations), so it requires the Sentry runtime hook or bundler plugin.
  */
 export const openAIIntegration = defineIntegration(_openAIIntegration);

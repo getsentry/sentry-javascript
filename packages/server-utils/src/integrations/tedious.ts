@@ -12,13 +12,13 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import {
-  DB_NAME,
-  DB_STATEMENT,
-  DB_SYSTEM,
+  DB_NAMESPACE,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
@@ -34,7 +34,7 @@ const ORIGIN = 'auto.db.tedious';
 const DB_SYSTEM_VALUE_MSSQL = 'mssql';
 const ATTR_DB_SQL_TABLE = 'db.sql.table';
 
-// Tracks the connection's active database (updated on `databaseChange`), read into `db.name` when a query
+// Tracks the connection's active database (updated on `databaseChange`), read into `db.namespace` when a query
 // runs. Mirrors the `CURRENT_DATABASE` symbol the vendored OTel instrumentation stashed on the connection.
 const currentDatabaseSymbol = Symbol('sentry.orchestrion.tedious.current-database');
 
@@ -130,14 +130,14 @@ function subscribeQuery(channelName: string, operation: string): void {
     const attributes: SpanAttributes = {
       [SENTRY_KIND]: 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [DB_SYSTEM]: DB_SYSTEM_VALUE_MSSQL,
-      [DB_NAME]: databaseName,
+      [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MSSQL,
+      [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
-      [DB_STATEMENT]: sql,
+      [DB_QUERY_TEXT]: sql,
       [ATTR_DB_SQL_TABLE]: request.table,
-      [NET_PEER_NAME]: connection.config?.server,
-      [NET_PEER_PORT]: connection.config?.options?.port,
+      [SERVER_ADDRESS]: connection.config?.server,
+      [SERVER_PORT]: connection.config?.options?.port,
     };
 
     const span = startInactiveSpan({
@@ -195,7 +195,7 @@ function extractSql(request: TediousRequest): string | undefined {
 
 /**
  * The span name is a low-cardinality label for the operation; the SDK's db-span inference later renames
- * the span description off `db.statement` when present. Mirrors the vendored OTel `getSpanName`.
+ * the span description off `db.query.text` when present. Mirrors the vendored OTel `getSpanName`.
  */
 function getSpanName(
   operation: string,
@@ -248,10 +248,10 @@ function instrumentTedious(): void {
 }
 
 /**
- * Orchestrion-driven tedious integration.
+ * Diagnostics-channel-based tedious integration.
  *
- * Subscribes to the `orchestrion:tedious:*` diagnostics_channels that the orchestrion code transform
+ * Subscribes to the `orchestrion:tedious:*` diagnostics_channels that Sentry's code transform
  * injects into tedious's `Connection` request methods (each traced as one db span) and `Connection.connect`
- * (active-database bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
+ * (active-database bookkeeping). Requires the Sentry runtime hook or bundler plugin to be active.
  */
 export const tediousIntegration = defineIntegration(_tediousIntegration);
