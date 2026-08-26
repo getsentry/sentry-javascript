@@ -3,6 +3,8 @@ import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   withActiveSpan,
@@ -116,20 +118,26 @@ export function getEventSpanOptions(event: string): {
 }
 
 /**
- * Returns span options for nest bullmq process spans.
+ * Returns span options for nest bullmq process spans. `queueName` is undefined when the `@Processor`
+ * decorator has no queue name.
  */
-export function getBullMQProcessSpanOptions(queueName: string): {
+export function getBullMQProcessSpanOptions(queueName: string | undefined): {
   name: string;
   attributes: Record<string, string>;
   forceTransaction: boolean;
 } {
+  const client = getClient();
+
+  const destination = queueName ?? 'unknown';
+  const streamedName = queueName ? `process ${queueName}` : 'process';
+
   return {
-    name: `${queueName} process`,
+    name: client && hasSpanStreamingEnabled(client) ? streamedName : `${destination} process`,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
       'messaging.system': 'bullmq',
-      'messaging.destination.name': queueName,
+      'messaging.destination.name': destination,
     },
     forceTransaction: true,
   };

@@ -22,7 +22,7 @@ export class SqsServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     const queueUrl = extractQueueUrl(request.commandInput);
     const queueName = extractQueueNameFromUrl(queueUrl);
-    let spanName: string | undefined;
+    let operation: string | undefined;
 
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
@@ -35,8 +35,8 @@ export class SqsServiceExtension implements ServiceExtension {
     switch (request.commandName) {
       case 'ReceiveMessage':
         {
-          spanName = `${queueName} receive`;
-          spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
+          operation = 'receive';
+          spanAttributes[MESSAGING_OPERATION_TYPE] = operation;
           spanAttributes[SENTRY_KIND] = 'consumer';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
@@ -47,14 +47,15 @@ export class SqsServiceExtension implements ServiceExtension {
 
       case 'SendMessage':
       case 'SendMessageBatch':
+        operation = 'send';
         spanAttributes[SENTRY_KIND] = 'producer';
-        spanName = `${queueName} send`;
         break;
     }
 
     return {
       spanAttributes,
-      spanName,
+      // Without a queue name the subscriber falls back to `<service>.<command>`.
+      spanName: operation && queueName ? `${queueName} ${operation}` : undefined,
     };
   }
 
@@ -146,5 +147,6 @@ function extractQueueNameFromUrl(queueUrl: string): string | undefined {
   const segments = queueUrl.split('/');
   if (segments.length === 0) return undefined;
 
-  return segments[segments.length - 1];
+  // A trailing slash leaves an empty last segment, which is not a queue name
+  return segments[segments.length - 1] || undefined;
 }

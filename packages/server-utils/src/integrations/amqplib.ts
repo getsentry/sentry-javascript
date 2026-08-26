@@ -4,7 +4,9 @@ import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,
   defineIntegration,
+  getClient,
   getTraceData,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -444,8 +446,13 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const routingKey = typeof routingKeyArg === 'string' ? routingKeyArg : '';
   let options = data.arguments[3] as PublishOptions | undefined;
 
+  const client = getClient();
+
+  // The default exchange has no name, so the streamed name is the operation on its own.
+  const streamedName = exchange ? `${MESSAGING_OPERATION_VALUE_SEND} ${exchange}` : MESSAGING_OPERATION_VALUE_SEND;
+
   const span = startInactiveSpan({
-    name: `publish ${normalizeExchange(exchange)}`,
+    name: client && hasSpanStreamingEnabled(client) ? streamedName : `publish ${normalizeExchange(exchange)}`,
     attributes: {
       [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
@@ -478,14 +485,22 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 
 /** Starts an inactive CONSUMER (process) span carrying the amqplib messaging attributes. */
 function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLike): Span {
+  const client = getClient();
+  const exchange = msg.fields?.exchange;
+
+  // `queue` falls back to the routing key (`order.created.12345`), so the streamed name uses the exchange.
+  const streamedName = exchange
+    ? `${MESSAGING_OPERATION_VALUE_PROCESS} ${exchange}`
+    : MESSAGING_OPERATION_VALUE_PROCESS;
+
   return startInactiveSpan({
-    name: `${queue} process`,
+    name: client && hasSpanStreamingEnabled(client) ? streamedName : `${queue} process`,
     attributes: {
       [SENTRY_OP]: QUEUE_PROCESS,
       [SENTRY_KIND]: 'consumer',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
-      [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,
+      [MESSAGING_DESTINATION_NAME]: exchange,
       [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
       [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,

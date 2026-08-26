@@ -180,4 +180,35 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
       { additionalDependencies },
     );
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
+    test('names streamed spans after the messaging conventions', { timeout: 60_000 }, async () => {
+      await createTestRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            // `sendToQueue` publishes to the default exchange, which has no name, so both names drop the
+            // destination instead of falling back to the routing key.
+            for (const origin of ['auto.amqplib.publisher', 'auto.amqplib.consumer']) {
+              const span = container.items.find(item => item.attributes['sentry.origin']?.value === origin);
+              expect(span).toBeDefined();
+              expect(span!.attributes['messaging.destination.name']?.value).toBe('');
+              expect(span!.attributes['messaging.rabbitmq.destination.routing_key']?.value).toBe('queue1');
+            }
+
+            const producerSpan = container.items.find(
+              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.publisher',
+            );
+            expect(producerSpan!.name).toBe('send');
+
+            const consumerSpan = container.items.find(
+              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
+            );
+            expect(consumerSpan!.name).toBe('process');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

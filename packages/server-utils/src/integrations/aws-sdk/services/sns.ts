@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getTraceData } from '@sentry/core';
+import { getClient, getTraceData, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   AWS_SNS_TOPIC_ARN as ATTR_AWS_SNS_TOPIC_ARN,
   MESSAGING_DESTINATION as ATTR_MESSAGING_DESTINATION,
@@ -30,7 +30,13 @@ export class SnsServiceExtension implements ServiceExtension {
       spanAttributes[ATTR_MESSAGING_DESTINATION] = destinationName;
       spanAttributes[MESSAGING_DESTINATION_NAME] = TopicArn || TargetArn || PhoneNumber || 'unknown';
 
-      spanName = `${PhoneNumber ? 'phone_number' : destinationName} send`;
+      const client = getClient();
+
+      // A `/` in the suffix means a platform-endpoint ARN (`endpoint/GCM/myapp/<uuid>`), not a topic name.
+      const isStreamedOpaqueDestination =
+        !PhoneNumber && destinationName.includes('/') && !!client && hasSpanStreamingEnabled(client);
+
+      spanName = isStreamedOpaqueDestination ? 'send' : `${PhoneNumber ? 'phone_number' : destinationName} send`;
     }
 
     const topicArn = request.commandInput?.TopicArn;
