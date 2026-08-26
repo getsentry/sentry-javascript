@@ -417,6 +417,10 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles streaming errors correctly', async () => {
       await createRunner()
+        // Stream errors surface via the MessageStream `error` event; attaching that listener stops it
+        // being raised as an unhandled rejection, so the instrumentation captures it. This test only
+        // asserts the spans.
+        .ignore('event')
         .expect({ transaction: EXPECTED_STREAM_ERROR_SPANS })
         .expect({
           span: container => {

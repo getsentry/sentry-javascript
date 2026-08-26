@@ -1,4 +1,4 @@
-import { SPAN_STATUS_ERROR } from '@sentry/core';
+import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { AnthropicAiStreamingEvent } from './types';
@@ -259,9 +259,16 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
-  stream.on('error', () => {
-    // The stream error is surfaced to the caller (the async iterator rejects, or their own `error`
-    // listener fires), so we only mark the span failed and do not record it.
+  stream.on('error', (error: unknown) => {
+    // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
+    // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
+    captureException(error, {
+      mechanism: {
+        handled: false,
+        type: 'auto.ai.anthropic.stream_error',
+      },
+    });
+
     if (span.isRecording()) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       span.end();
