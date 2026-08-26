@@ -171,7 +171,7 @@ function subscribeQuery(): void {
       const connectionString = connection?.connectionString;
       const table = extractTableName(builder);
       const operation = query?.method;
-      const name =
+      const dbNameSpace =
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
@@ -189,7 +189,7 @@ function subscribeQuery(): void {
         [ATTR_DB_SQL_TABLE]: table,
         [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
-        [DB_NAMESPACE]: name,
+        [DB_NAMESPACE]: dbNameSpace,
         [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
@@ -198,16 +198,13 @@ function subscribeQuery(): void {
       };
 
       const sentryClient = getClient();
-      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-      // instead of the full statement, falling back to `getName`'s `{operation} {namespace}.{table}`
-      // when there is no statement to summarize.
-      const streamedName =
+      const spanName =
         sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? querySummary || getName(name, operation, table) || DB_SPAN_NAME_FALLBACK
-          : undefined;
+          ? querySummary || getSecondaryStreamName(dbNameSpace, operation, table)
+          : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
 
       return startInactiveSpan({
-        name: streamedName ?? dbStatement ?? getName(name, operation, table) ?? 'knex.query',
+        name: spanName,
         parentSpan,
         attributes,
       });
@@ -283,6 +280,24 @@ function getName(db: string | undefined, operation?: string, table?: string): st
     return table ? `${operation} ${db}.${table}` : `${operation} ${db}`;
   }
   return db;
+}
+
+function getSecondaryStreamName(dbNameSpace: string | undefined, operation?: string, table?: string): string {
+  if (operation) {
+    if (table) {
+      return `${operation} ${table}`;
+    }
+    if (dbNameSpace) {
+      return `${operation} ${dbNameSpace}`;
+    }
+  }
+  if (table) {
+    return table;
+  }
+  if (dbNameSpace) {
+    return dbNameSpace;
+  }
+  return DB_SPAN_NAME_FALLBACK;
 }
 
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {

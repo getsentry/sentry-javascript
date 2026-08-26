@@ -88,6 +88,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                   'sentry.op': 'db',
                   'db.query.text':
                     'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
+                  'db.query.summary': 'SELECT "public"',
                   'db.system': 'postgresql',
                   'sentry.kind': 'client',
                 },
@@ -99,6 +100,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                 data: {
                   'sentry.op': 'db',
                   'db.query.text': 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
+                  'db.query.summary': 'DELETE "public"."User"',
                   'db.system': 'postgresql',
                   'sentry.kind': 'client',
                 },
@@ -108,6 +110,47 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
               // The db query span name must always be rewritten to the SQL text; the raw engine span
               // name should never leak through.
               expect(spans.find(span => span.description === 'prisma:engine:db_query')).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      afterSetupCommand: 'prisma generate --schema prisma/schema.prisma',
+      copyPaths: ['prisma'],
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument-span-streaming.mjs',
+    (createRunner, test) => {
+      test('should name db query spans after the query summary with span streaming', { timeout: 75_000 }, async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const querySpans = container.items.filter(item => item.attributes['db.query.text']);
+
+              // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
+              // quoted table (it stops at the first quoted identifier).
+              expect(
+                querySpans.map(span => ({
+                  name: span.name,
+                  summary: span.attributes['db.query.summary']?.value,
+                })),
+              ).toEqual([
+                { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+              ]);
+
+              // Neither the raw engine span name nor the full statement may end up as a span name.
+              expect(container.items.map(span => span.name)).not.toContain('prisma:engine:db_query');
+              querySpans.forEach(span => {
+                expect(span.name).not.toBe(span.attributes['db.query.text']?.value);
+              });
             },
           })
           .start()

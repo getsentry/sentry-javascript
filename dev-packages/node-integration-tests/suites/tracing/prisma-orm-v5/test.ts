@@ -72,6 +72,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'db.statement': expect.stringContaining('INSERT INTO'),
+          'db.query.summary': 'INSERT "public"."User"',
           'db.system': 'postgresql',
           'sentry.kind': 'client',
           'sentry.op': 'db',
@@ -84,6 +85,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'db.statement': expect.stringContaining('SELECT'),
+          'db.query.summary': 'SELECT "public"',
           'db.system': 'postgresql',
           'sentry.kind': 'client',
           'sentry.op': 'db',
@@ -96,6 +98,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'db.statement': expect.stringContaining('DELETE'),
+          'db.query.summary': 'DELETE "public"."User"',
           'db.system': 'postgresql',
           'sentry.kind': 'client',
           'sentry.op': 'db',
@@ -121,6 +124,52 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
         test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner().expect({ transaction: expectPrismaV5Spans }).start().completed();
         });
+      },
+      {
+        additionalDependencies: ADDITIONAL_DEPENDENCIES,
+        afterSetupCommand: AFTER_SETUP_COMMAND,
+        copyPaths: ['prisma'],
+      },
+    );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument-span-streaming.mjs',
+      (createRunner, test) => {
+        test(
+          'should name db query spans after the query summary with span streaming',
+          { timeout: 75_000 },
+          async () => {
+            await createRunner()
+              .expect({
+                span: container => {
+                  // v5 reports the SQL on the deprecated `db.statement` rather than `db.query.text`.
+                  const querySpans = container.items.filter(item => item.attributes['db.statement']);
+
+                  expect(
+                    querySpans.map(span => ({
+                      name: span.name,
+                      summary: span.attributes['db.query.summary']?.value,
+                    })),
+                  ).toEqual([
+                    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'BEGIN', summary: 'BEGIN' },
+                    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'COMMIT', summary: 'COMMIT' },
+                    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+                  ]);
+
+                  // The raw engine span name must never leak through.
+                  expect(container.items.map(span => span.name)).not.toContain('prisma:engine:db_query');
+                },
+              })
+              .start()
+              .completed();
+          },
+        );
       },
       {
         additionalDependencies: ADDITIONAL_DEPENDENCIES,

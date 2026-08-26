@@ -89,5 +89,63 @@ describe('Prisma ORM v7 Tests', () => {
         copyPaths: ['prisma', 'prisma.config.ts'],
       },
     );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument-span-streaming.mjs',
+      (createRunner, test) => {
+        test(
+          'should name db query spans after the query summary with span streaming',
+          { timeout: 75_000 },
+          async () => {
+            await createRunner()
+              .expect({
+                span: container => {
+                  // v7 runs the queries through the `pg` adapter, whose own spans are named after the full
+                  // statement by a different integration, so they are filtered out here.
+                  const querySpans = container.items.filter(
+                    item =>
+                      item.attributes['sentry.origin']?.value === 'auto.db.otel.prisma' &&
+                      item.attributes['db.query.text'],
+                  );
+
+                  // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
+                  // quoted table (it stops at the first quoted identifier).
+                  expect(
+                    querySpans.map(span => ({
+                      name: span.name,
+                      summary: span.attributes['db.query.summary']?.value,
+                    })),
+                  ).toEqual([
+                    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+                  ]);
+
+                  // Neither the raw client span name nor the full statement may end up as a span name.
+                  expect(container.items.map(span => span.name)).not.toContain('prisma:client:db_query');
+                  querySpans.forEach(span => {
+                    expect(span.name).not.toBe(span.attributes['db.query.text']?.value);
+                  });
+                },
+              })
+              .start()
+              .completed();
+          },
+        );
+      },
+      {
+        additionalDependencies: {
+          '@prisma/adapter-pg': '7.2.0',
+          '@prisma/client': '7.2.0',
+          pg: '^8.11.0',
+          prisma: '7.2.0',
+          typescript: '^5.9.0',
+        },
+        afterSetupCommand: 'prisma generate --schema prisma/schema.prisma && tsc -p prisma/tsconfig.json',
+        copyPaths: ['prisma', 'prisma.config.ts'],
+      },
+    );
   });
 });

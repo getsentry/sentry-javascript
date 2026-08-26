@@ -47,4 +47,44 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
       await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
+    test('should name spans after the operation with span streaming', async () => {
+      await createTestRunner()
+        .expect({
+          span: container => {
+            const dbSpans = container.items.filter(item => item.attributes['sentry.origin']?.value === ORIGIN);
+
+            // The SQL statement stays on `db.query.text`, but never reaches the span name.
+            expect(dbSpans.map(span => ({ name: span.name, text: span.attributes['db.query.text']?.value }))).toEqual([
+              { name: 'execSql master', text: 'SELECT 1 + 1 AS solution' },
+              { name: 'execSqlBatch master', text: 'SELECT 42; SELECT 42;' },
+              { name: 'execSql master', text: 'select !' },
+              {
+                name: 'execSql master',
+                text: 'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(30), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal);',
+              },
+              { name: 'callProcedure [dbo].[test_proced] master', text: '[dbo].[test_proced]' },
+              {
+                name: 'execSql master',
+                text: "if object_id('[dbo].[test_prepared]') is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)",
+              },
+              { name: 'prepare master', text: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)' },
+              { name: 'execute master', text: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)' },
+              {
+                name: 'execSql master',
+                text: "if object_id('[dbo].[test_bulk]') is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(30))",
+              },
+              {
+                name: 'execSqlBatch master',
+                text: 'insert bulk test_bulk([c1] int, [c2] nvarchar(50)) WITH (KEEP_NULLS)',
+              },
+              { name: 'execBulkLoad test_bulk master', text: undefined },
+            ]);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
