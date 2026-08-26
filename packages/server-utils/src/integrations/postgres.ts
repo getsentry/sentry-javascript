@@ -184,14 +184,14 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; at
   const querySummary = queryConfig?.text
     ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(queryConfig.text))
     : undefined;
-  // The description is the SQL statement. With span streaming, span names have to be low cardinality,
-  // so `{db.query.summary}` is used instead, falling back to `{db.namespace}` and then
-  // `{db.system.name}` when there is no statement to summarize.
-  const streamedName =
-    client && hasSpanStreamingEnabled(client) ? querySummary || params.database || DB_SYSTEM_POSTGRESQL : undefined;
+
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
+      : (queryConfig?.text ?? SPAN_QUERY_FALLBACK);
 
   return {
-    name: streamedName ?? queryConfig?.text ?? SPAN_QUERY_FALLBACK,
+    name,
     op: 'db',
     attributes: {
       ...getConnectionAttributes(params),

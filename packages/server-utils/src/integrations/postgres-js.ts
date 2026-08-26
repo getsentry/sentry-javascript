@@ -35,6 +35,8 @@ const INTEGRATION_NAME = 'PostgresJs' as const;
 
 const ORIGIN = 'auto.db.postgresjs';
 
+const DB_SYSTEM_NAME_POSTGRES = 'postgres';
+
 // Not part of `@sentry/conventions`, so we keep it inline (matches older OTel
 // `PostgresJsInstrumentation`).
 const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
@@ -278,9 +280,13 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       const client = getClient();
 
+      // Single-endpoint fallback: resolve context now so the span name and `requestHook` have
+      // it, and the first-query-per-connection (bare `execute`) path still gets attrs.
+      const context = resolveSingleEndpoint();
+
       const name =
         client && hasSpanStreamingEnabled(client)
-          ? querySummary || 'postgres'
+          ? querySummary || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
           : sanitizedSqlQuery || 'postgresjs.query';
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
@@ -290,7 +296,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [DB_SYSTEM_NAME]: 'postgres',
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
           [DB_QUERY_SUMMARY]: querySummary,
           [DB_OPERATION_NAME]: _INTERNAL_getPostgresOperationName(sanitizedSqlQuery),
@@ -300,9 +306,6 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       // Stash for the `execute`/`connect` channels to attach per-connection attributes.
       (query as Record<symbol, unknown>)[QUERY_SPAN] = span;
 
-      // Single-endpoint fallback: resolve context now so `requestHook` has it
-      // and the first-query-per-connection (bare `execute`) path still gets attrs.
-      const context = resolveSingleEndpoint();
       if (context) {
         setConnectionAttributes(span, query, context);
       }

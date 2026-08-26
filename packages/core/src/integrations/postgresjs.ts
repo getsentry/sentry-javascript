@@ -246,12 +246,14 @@ function _wrapSingleQueryHandle(
     const client = getClient();
     const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
 
-    const name =
-      client && hasSpanStreamingEnabled(client) ? querySummary || 'postgres' : sanitizedSqlQuery || 'postgresjs.query';
-
     const connectionContext = sqlInstance
       ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
       : undefined;
+
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? querySummary || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
+        : sanitizedSqlQuery || 'postgresjs.query';
 
     return startSpanManual(
       {
@@ -285,7 +287,7 @@ function _wrapSingleQueryHandle(
           apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
             try {
               // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-              span.setAttribute('db.operation.name', _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
+              span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
