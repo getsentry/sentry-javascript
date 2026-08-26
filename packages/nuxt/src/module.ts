@@ -29,7 +29,6 @@ import {
   addOTelCommonJSImportAlias,
   findDefaultSdkInitFile,
   getNitroMajorVersion,
-  isSentryServerConfigFile,
   toImportSpecifier,
 } from './vite/utils';
 
@@ -127,7 +126,7 @@ export default defineNuxtModule<ModuleOptions>({
       addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
 
       // Outside `nitro:init` so that `nuxt prepare` writes the file before the first `nuxt dev`.
-      if (isNitroV3 && isSentryServerConfigFile(serverConfigFile)) {
+      if (isNitroV3) {
         addDevServerConfigFile(nuxt, serverConfigFile);
       }
     }
@@ -194,9 +193,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (serverConfigFile) {
         addMiddlewareInstrumentation(nitro);
-      }
 
-      if (serverConfigFile && isSentryServerConfigFile(serverConfigFile)) {
         consoleSandbox(() => {
           const serverDir = nitro.options.output.serverDir;
 

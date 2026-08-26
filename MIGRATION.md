@@ -940,6 +940,22 @@ The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin 
 
 ### `@sentry/nuxt`
 
+Removed support for the `public/instrument.server.[ext]` file. Move the file to the root of your project, next to `nuxt.config.ts`, and rename it to `sentry.server.config.[ext]`. Its contents do not change.
+
+```
+// before
+public/instrument.server.ts
+
+// after
+sentry.server.config.ts
+```
+
+After the rename, the SDK also emits `.output/server/sentry.server.config.mjs` for you to preload:
+
+```bash
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+```
+
 The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
 
 ```ts

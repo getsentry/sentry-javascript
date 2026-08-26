@@ -9,7 +9,6 @@ import {
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
-  isSentryServerConfigFile,
   QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
   SENTRY_REEXPORTED_FUNCTIONS,
@@ -109,17 +108,13 @@ describe('findDefaultSdkInitFile', () => {
     expect(result).toBeUndefined();
   });
 
-  it('should return the server config file path if server.config and instrument exist', async () => {
+  it('ignores a public/instrument.server file', async () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return (
-        !(filePath instanceof URL) &&
-        (filePath.toString().includes('sentry.server.config.js') ||
-          filePath.toString().includes('instrument.server.js'))
-      );
+      return !(filePath instanceof URL) && filePath.toString().includes('instrument.server.js');
     });
 
     const result = await findDefaultSdkInitFile('server');
-    expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+    expect(result).toBeUndefined();
   });
 
   it('should return the latest layer config file path if client config exists', async () => {
@@ -146,11 +141,7 @@ describe('findDefaultSdkInitFile', () => {
 
   it('should return the latest layer config file path if server config exists', async () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return (
-        !(filePath instanceof URL) &&
-        (filePath.toString().includes('sentry.server.config.ts') ||
-          filePath.toString().includes('instrument.server.ts'))
-      );
+      return !(filePath instanceof URL) && filePath.toString().includes('sentry.server.config.ts');
     });
 
     const nuxtMock = {
@@ -190,23 +181,6 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
-  });
-});
-
-describe('isSentryServerConfigFile', () => {
-  it.each(['/my/app/sentry.server.config.ts', '/my/app/sentry.server.config.js', '/my/app/sentry.server.config.mts'])(
-    'returns true for %s',
-    filePath => {
-      expect(isSentryServerConfigFile(filePath)).toBe(true);
-    },
-  );
-
-  it('returns false for an instrument.server file', () => {
-    expect(isSentryServerConfigFile('/my/app/public/instrument.server.ts')).toBe(false);
-  });
-
-  it('only matches the basename', () => {
-    expect(isSentryServerConfigFile('/my.server.config.app/public/instrument.server.ts')).toBe(false);
   });
 });
 
