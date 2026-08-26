@@ -43,7 +43,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
-import { ROUTER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
+import { REQUEST_HANDLER_SPAN_NAME_FALLBACK, ROUTER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpanManual } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import type { SpanAttributes } from '../../types/span';
@@ -184,10 +184,19 @@ export function patchLayer(
     }
 
     const client = getClient();
-    // With span streaming, span names have to be low cardinality, so router spans are named after their route.
-    const isStreamedRouterSpan = type === ExpressLayerType_ROUTER && !!client && hasSpanStreamingEnabled(client);
+    // With span streaming, span names have to be low cardinality, so router
+    // and request handler spans are named after their route. A route that did
+    // not validate against the request URL can describe a different request,
+    // so those spans take the static fallback instead.
+    const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+    const isStreamedRouterSpan = isStreamedSpan && type === ExpressLayerType_ROUTER;
+    const isStreamedRequestHandlerSpan = isStreamedSpan && type === ExpressLayerType_REQUEST_HANDLER;
 
-    const spanName = isStreamedRouterSpan ? actualMatchedRoute || ROUTER_SPAN_NAME_FALLBACK : name;
+    const spanName = isStreamedRouterSpan
+      ? actualMatchedRoute || ROUTER_SPAN_NAME_FALLBACK
+      : isStreamedRequestHandlerSpan
+        ? actualMatchedRoute || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+        : name;
 
     return startSpanManual({ name: spanName, attributes }, span => {
       let spanHasEnded = false;

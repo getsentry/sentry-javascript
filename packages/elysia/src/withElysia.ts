@@ -1,4 +1,11 @@
-import { HTTP_ROUTE, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
@@ -9,6 +16,8 @@ import {
   getIsolationScope,
   getRootSpan,
   getTraceData,
+  hasSpanStreamingEnabled,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
@@ -18,10 +27,17 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
-  hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { AnyElysia, Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
+
+/**
+ * The part of Elysia's request context that the lifecycle spans read. Elysia types
+ * `.trace()`'s context as an index signature, which a required property would reject.
+ */
+interface LifecycleContext {
+  route?: string;
+}
 
 interface ElysiaHandlerOptions {
   shouldHandleError?: (context: ErrorContext) => boolean;
@@ -109,20 +125,38 @@ function defaultShouldHandleError(context: ErrorContext): boolean {
  * @param rootSpan - The root server span to parent lifecycle spans under.
  *   Must be passed explicitly because Elysia's .trace() listener callbacks run
  *   in a different async context where getActiveSpan() returns undefined.
+ * @param context - The request context. Read `route` off it inside the listener:
+ *   Elysia assigns the route when the request enters the compiled handler, which
+ *   is after `.trace()` hands out its listeners.
  */
-function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, rootSpan: Span | undefined): void {
+function instrumentLifecyclePhase(
+  phaseName: string,
+  listener: TraceListener,
+  rootSpan: Span | undefined,
+  context: LifecycleContext,
+): void {
   const op = ELYSIA_LIFECYCLE_OP_MAP[phaseName];
   if (!op) {
     return;
   }
 
   void listener(process => {
+    const client = getClient();
+    const isRequestHandlerSpan = op === HANDLER;
+    // With span streaming, span names have to be low cardinality, so request handler
+    // spans are named after their route.
+    const isStreamedRequestHandlerSpan = isRequestHandlerSpan && !!client && hasSpanStreamingEnabled(client);
+    // The route describes the span in both trace lifecycles, and the other server
+    // integrations put it on their request handler spans too.
+    const routeAttribute = isRequestHandlerSpan && context.route ? { [HTTP_ROUTE]: context.route } : {};
+
     const phaseSpan = startInactiveSpan({
-      name: phaseName,
+      name: isStreamedRequestHandlerSpan ? context.route || REQUEST_HANDLER_SPAN_NAME_FALLBACK : phaseName,
       parentSpan: rootSpan,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
+        ...routeAttribute,
       },
     });
 
@@ -132,11 +166,15 @@ function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, ro
       void process.onEvent(child => {
         const handlerName = child.name || 'anonymous';
         const childSpan = startInactiveSpan({
-          name: handlerName,
+          name: isStreamedRequestHandlerSpan ? context.route || REQUEST_HANDLER_SPAN_NAME_FALLBACK : handlerName,
           parentSpan: phaseSpan,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
+            ...routeAttribute,
+            // These spans are named after the route, so the handler name has no
+            // other place to go. Anonymous handlers have no name to record.
+            ...(isStreamedRequestHandlerSpan && child.name ? { [CODE_FUNCTION_NAME]: child.name } : {}),
           },
         });
 
@@ -285,7 +323,7 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
 
     for (const [phaseName, listener] of phases) {
       if (listener) {
-        instrumentLifecyclePhase(phaseName, listener, rootSpan);
+        instrumentLifecyclePhase(phaseName, listener, rootSpan, lifecycle.context);
       }
     }
   };

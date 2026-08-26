@@ -5,12 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Capture handlers registered by withElysia
 let onAfterHandleHandler: (context: unknown) => void;
 let onErrorHandler: (context: unknown) => void;
+let traceHandler: (lifecycle: unknown) => void;
 
 function createMockApp() {
   const app: Record<string, unknown> = {};
   app.use = vi.fn().mockReturnValue(app);
   app.wrap = vi.fn().mockReturnValue(app);
-  app.trace = vi.fn().mockReturnValue(app);
+  app.trace = vi.fn((_opts: unknown, handler: (lifecycle: unknown) => void) => {
+    traceHandler = handler;
+    return app;
+  });
   app.onRequest = vi.fn(() => app);
   app.onAfterHandle = vi.fn((_opts: unknown, handler: (context: unknown) => void) => {
     onAfterHandleHandler = handler;
@@ -30,9 +34,16 @@ const mockGetIsolationScope = vi.fn(() => ({
   setSDKProcessingMetadata: vi.fn(),
   setTransactionName: vi.fn(),
 }));
+let traceLifecycle: 'static' | 'stream' = 'stream';
 const mockGetClient = vi.fn(() => ({
   on: vi.fn(),
+  getOptions: () => ({ traceLifecycle }),
 }));
+const startedSpans: { name: string; attributes?: Record<string, unknown> }[] = [];
+const mockStartInactiveSpan = vi.fn((options: { name: string; attributes?: Record<string, unknown> }) => {
+  startedSpans.push({ name: options.name, attributes: options.attributes });
+  return { end: vi.fn() };
+});
 const mockRootSpan = {
   setAttribute: vi.fn(),
   setAttributes: vi.fn(),
@@ -56,6 +67,8 @@ vi.mock('@sentry/core', async importActual => {
     getClient: () => mockGetClient(),
     getRootSpan: () => mockGetRootSpan(),
     getTraceData: () => mockGetTraceData(),
+    startInactiveSpan: (options: { name: string; attributes?: Record<string, unknown> }) =>
+      mockStartInactiveSpan(options),
   };
 });
 
@@ -65,6 +78,8 @@ const { withElysia } = await import('../src/withElysia');
 describe('withElysia', () => {
   beforeEach(() => {
     mockApp = createMockApp();
+    startedSpans.length = 0;
+    traceLifecycle = 'stream';
   });
 
   afterEach(() => {
@@ -182,6 +197,116 @@ describe('withElysia', () => {
     it('does not capture string 4xx status codes', () => {
       triggerError('400');
       expect(mockCaptureException).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('request handler span names', () => {
+    /** Drive the registered trace handler through a single `Handle` phase. */
+    function runHandlePhase(handlerNames: string[], route = '/users/:id'): void {
+      traceHandler({
+        context: { request: new Request('http://localhost/users/123'), route },
+        onHandle: (callback: (process: unknown) => void) => {
+          callback({
+            total: handlerNames.length,
+            onEvent: (onChild: (child: unknown) => void) => {
+              for (const name of handlerNames) {
+                onChild({ name, onStop: () => {} });
+              }
+            },
+            onStop: () => {},
+          });
+        },
+      });
+    }
+
+    it('names the spans after the route when span streaming is enabled', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser']);
+
+      expect(startedSpans.map(span => span.name)).toEqual(['/users/:id', '/users/:id']);
+    });
+
+    it('uses the low cardinality fallback when the context carries no route', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser'], '');
+
+      expect(startedSpans.map(span => span.name)).toEqual(['Request handler', 'Request handler']);
+    });
+
+    it('keeps the phase and handler names in static mode', () => {
+      traceLifecycle = 'static';
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser']);
+
+      expect(startedSpans.map(span => span.name)).toEqual(['Handle', 'getUser']);
+    });
+
+    it('records the route on the handler spans in both trace lifecycles', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser']);
+
+      traceLifecycle = 'static';
+      // @ts-expect-error - mock app
+      withElysia(createMockApp());
+      runHandlePhase(['getUser']);
+
+      expect(startedSpans).toHaveLength(4);
+      for (const span of startedSpans) {
+        expect(span.attributes).toMatchObject({ 'http.route': '/users/:id' });
+      }
+    });
+
+    it('records no route when the context carries none', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser'], '');
+
+      expect(startedSpans[0]?.attributes).not.toHaveProperty('http.route');
+      expect(startedSpans[1]?.attributes).not.toHaveProperty('http.route');
+    });
+
+    it('records no route on the spans of other lifecycle phases', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      traceHandler({
+        context: { request: new Request('http://localhost/users/123'), route: '/users/:id' },
+        onRequest: (callback: (process: unknown) => void) => {
+          callback({ total: 0, onEvent: () => {}, onStop: () => {} });
+        },
+      });
+
+      expect(startedSpans).toHaveLength(1);
+      expect(startedSpans[0]?.attributes).toMatchObject({ 'sentry.op': 'middleware' });
+      expect(startedSpans[0]?.attributes).not.toHaveProperty('http.route');
+    });
+
+    it('records the handler name on the child span it renamed', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser']);
+
+      expect(startedSpans[1]?.attributes).toMatchObject({ 'code.function.name': 'getUser' });
+    });
+
+    it('records no handler name for an anonymous handler', () => {
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['']);
+
+      expect(startedSpans[1]?.attributes).not.toHaveProperty('code.function.name');
+    });
+
+    it('records no handler name in static mode, where the span name still carries it', () => {
+      traceLifecycle = 'static';
+      // @ts-expect-error - mock app
+      withElysia(mockApp);
+      runHandlePhase(['getUser']);
+
+      expect(startedSpans[1]?.attributes).not.toHaveProperty('code.function.name');
     });
   });
 
