@@ -5,8 +5,10 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -84,6 +86,30 @@ it('traces langgraph invoke and stream operations', async ({ signal }) => {
       expect(streamSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
         type: 'string',
         value: '[{"role":"user","content":"Stream the weather in SF"}]',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
+        type: 'string',
+        value: '[{"role":"assistant","content":"Mock response from LangGraph agent"}]',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+        type: 'string',
+        value: 'mock-model',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+        type: 'array',
+        value: ['stop'],
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+        type: 'integer',
+        value: 20,
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+        type: 'integer',
+        value: 10,
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+        type: 'integer',
+        value: 30,
       });
     })
     .start(signal);

@@ -249,7 +249,7 @@ function instrumentCompiledGraphOperation(
           if (streaming) {
             if (isAsyncIterable(result)) {
               span.setAttribute(GEN_AI_RESPONSE_STREAMING, true);
-              return instrumentStreamResult(result, span);
+              return instrumentStreamResult(result, span, inputMessages ?? null, recordOutputs);
             }
 
             span.end();
