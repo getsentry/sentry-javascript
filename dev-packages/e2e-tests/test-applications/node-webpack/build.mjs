@@ -2,7 +2,8 @@
 //   - `plain`:  no Sentry plugin.
 //   - `plugin`: with `sentryWebpackPlugin` (build-time instrumentation).
 // Only the `plugin` build runs the orchestrion code transform, which injects the "bundler ran" banner
-// into the entry chunk. Kept unminified so assert.mjs can match the banner verbatim.
+// into the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
+// rename them); assert.mjs matches it whitespace-insensitively.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';

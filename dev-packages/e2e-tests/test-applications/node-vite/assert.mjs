@@ -1,6 +1,6 @@
 /**
- * Asserts that `sentryVitePlugin` performs build-time instrumentation: its code transform injects the
- * orchestrion "bundler ran" banner into the entry chunk. A plain build (no plugin) does not.
+ * Asserts that `sentryVitePlugin` performs build-time instrumentation: its code transform injects
+ * the orchestrion "bundler ran" banner into the entry chunk. A plain build (no plugin) does not.
  *
  * @module
  */
@@ -18,9 +18,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const BUILD_TIME_TRANSFORM_MARKER = 'g.bundler=g.bundler||[]';
 
 function bundleText(name) {
-  const dir = join(__dirname, 'dist', name);
-  return readdirSync(dir)
-    .map(f => readFileSync(join(dir, f), 'utf8'))
+  const files = [];
+  const walk = dir => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else {
+        files.push(full);
+      }
+    }
+  };
+  walk(join(__dirname, 'dist', name));
+  return files
+    .map(f => readFileSync(f, 'utf8'))
     .join('\n')
     .replace(/\s+/g, '');
 }
@@ -35,10 +46,7 @@ function check(condition, message) {
 const plain = bundleText('plain');
 const plugin = bundleText('plugin');
 
-check(
-  !plain.includes(BUILD_TIME_TRANSFORM_MARKER),
-  'plain build (no plugin) does not run build-time instrumentation',
-);
+check(!plain.includes(BUILD_TIME_TRANSFORM_MARKER), 'plain build (no plugin) does not run build-time instrumentation');
 check(
   plugin.includes(BUILD_TIME_TRANSFORM_MARKER),
   'sentryVitePlugin runs build-time instrumentation (injects the orchestrion banner)',

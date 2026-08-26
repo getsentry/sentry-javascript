@@ -2,7 +2,8 @@
 //   - `plain`:  no Sentry plugin.
 //   - `plugin`: with `sentryEsbuildPlugin` (build-time instrumentation).
 // Only the `plugin` build runs the orchestrion code transform, which prepends the "bundler ran"
-// banner to the entry chunk. Kept unminified so assert.mjs can match the banner verbatim.
+// banner to the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
+// rename them); assert.mjs matches it whitespace-insensitively.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -13,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 function run(name, plugins) {
   return build({
     entryPoints: [join(__dirname, 'src', 'entry.mjs')],
-    outfile: join(__dirname, 'dist', name, 'main.mjs'),
+    outdir: join(__dirname, 'dist', name),
     bundle: true,
     platform: 'node',
     format: 'esm',

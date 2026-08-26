@@ -2,7 +2,8 @@
 //   - `plain`:  no Sentry plugin.
 //   - `plugin`: with `sentryRollupPlugin` (build-time instrumentation).
 // Only the `plugin` build runs the orchestrion code transform, which prepends the "bundler ran"
-// banner to the entry chunk. Kept unminified so assert.mjs can match the banner verbatim.
+// banner to the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
+// rename them); assert.mjs matches it whitespace-insensitively.
 // Rolldown is Rollup API-compatible, so it consumes the same `@sentry/node/rollup` plugin; it also
 // resolves node modules and CommonJS natively, so no extra resolve/commonjs plugins are needed.
 import { builtinModules } from 'node:module';

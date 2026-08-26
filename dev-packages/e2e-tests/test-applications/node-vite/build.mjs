@@ -4,7 +4,8 @@
 // The Sentry vite plugin's build-time code transform only applies to server builds (it gates itself
 // on `consumer === 'server'`), so this uses an SSR build rather than a client `lib` build. Only the
 // `plugin` build then injects the orchestrion "bundler ran" banner into the entry chunk. Kept
-// unminified so assert.mjs can match the banner verbatim.
+// unminified so the banner keeps its identifiers (a minifier would rename them); assert.mjs matches
+// it whitespace-insensitively.
 import { builtinModules } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
