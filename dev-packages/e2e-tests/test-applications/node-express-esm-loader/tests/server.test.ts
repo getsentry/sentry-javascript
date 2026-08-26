@@ -49,7 +49,7 @@ test('Should record a transaction for route with parameters', async ({ request }
       'network.transport': 'tcp',
       'sentry.kind': 'server',
       'sentry.op': 'http.server',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.sample_rate': 1,
       'sentry.segment.name.source': 'route',
     }),

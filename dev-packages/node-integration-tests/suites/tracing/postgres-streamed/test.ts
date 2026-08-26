@@ -77,7 +77,7 @@ const COMMON_DB_ATTRIBUTES = {
 /**
  * Builds the expected strict shape of a streamed postgres db span.
  *
- * Query spans carry a `db.statement` and the query origin (`auto.db.otel.postgres`, or
+ * Query spans carry a `db.statement` and the query origin (`auto.db.postgres`, or
  * `auto.db.postgres` under the generic orchestrion run — see `QUERY_ORIGIN`). The
  * `pg.connect` span has no `db.statement`, and since the pg instrumentation sets no origin on it, it
  * carries the default `manual` origin (written as an attribute on the streamed-span path; the
@@ -87,7 +87,7 @@ const COMMON_DB_ATTRIBUTES = {
  * (`127.0.0.1`) explicitly, so the reported peer name and connection string reflect that.
  *
  * `origin` defaults to `QUERY_ORIGIN`; blocks that force the OTel path (explicit `postgresIntegration()`)
- * pass `auto.db.otel.postgres` explicitly.
+ * pass `auto.db.postgres` explicitly.
  */
 function expectedDbSpan({
   name,

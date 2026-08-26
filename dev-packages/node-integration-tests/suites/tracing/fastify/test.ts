@@ -16,19 +16,19 @@ describe('fastify auto-instrumentation', () => {
               spans: expect.arrayContaining([
                 expect.objectContaining({
                   op: 'middleware',
-                  origin: 'auto.http.otel.fastify',
+                  origin: 'auto.http.fastify',
                   data: expect.objectContaining({
                     'fastify.type': 'hook',
                     'sentry.op': 'middleware',
-                    'sentry.origin': 'auto.http.otel.fastify',
+                    'sentry.origin': 'auto.http.fastify',
                   }),
                 }),
                 expect.objectContaining({
                   op: 'handler',
-                  origin: 'auto.http.otel.fastify',
+                  origin: 'auto.http.fastify',
                   data: expect.objectContaining({
                     'sentry.op': 'handler',
-                    'sentry.origin': 'auto.http.otel.fastify',
+                    'sentry.origin': 'auto.http.fastify',
                   }),
                 }),
                 expect.objectContaining({

@@ -21,7 +21,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
@@ -55,7 +55,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http',
   });
 
   expect(transactionEvent).toEqual(
@@ -65,7 +65,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
-            'sentry.origin': 'auto.http.otel.fastify',
+            'sentry.origin': 'auto.http.fastify',
             'sentry.op': 'middleware',
             'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - onRequest',
             'fastify.type': 'hook',
@@ -77,13 +77,13 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
-          origin: 'auto.http.otel.fastify',
+          origin: 'auto.http.fastify',
         },
         {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
-            'sentry.origin': 'auto.http.otel.fastify',
+            'sentry.origin': 'auto.http.fastify',
             'sentry.op': 'handler',
             'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - route-handler',
             'fastify.type': 'request-handler',
@@ -96,7 +96,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
-          origin: 'auto.http.otel.fastify',
+          origin: 'auto.http.fastify',
         },
         {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),

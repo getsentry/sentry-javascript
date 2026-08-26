@@ -19,7 +19,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // we want to drop them
     // this is the case with http.server spans of prerendered pages
     // we do not care about those, as they are effectively static
-    { op: 'http.server', attributes: { 'sentry.origin': 'auto.http.otel.http' } },
+    { op: 'http.server', attributes: { 'sentry.origin': 'auto.http' } },
   ];
 
   return initNodeSdk(opts);

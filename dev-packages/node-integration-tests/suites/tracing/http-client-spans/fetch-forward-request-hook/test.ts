@@ -35,7 +35,7 @@ describe('outgoing fetch spans - request/response hooks', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v0/),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 status: 'ok',
                 data: expect.objectContaining({
                   'sentry.request.hook': '/api/v0',
@@ -46,7 +46,7 @@ describe('outgoing fetch spans - request/response hooks', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v1/),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 status: 'not_found',
                 data: expect.objectContaining({
                   'sentry.request.hook': '/api/v1',

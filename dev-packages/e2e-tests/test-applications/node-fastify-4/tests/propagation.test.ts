@@ -57,7 +57,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   expect(outboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
@@ -92,13 +92,13 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http',
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.op': 'http.server',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
@@ -129,7 +129,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http',
   });
 });
 
@@ -188,7 +188,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   expect(outboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
@@ -223,13 +223,13 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http',
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http',
       'sentry.op': 'http.server',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
@@ -266,7 +266,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http',
   });
 });
 

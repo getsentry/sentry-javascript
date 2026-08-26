@@ -54,7 +54,7 @@ test.describe('distributed tracing', () => {
       contexts: {
         trace: {
           op: 'http.server',
-          origin: 'auto.http.otel.http',
+          origin: 'auto.http',
         },
       },
     });
@@ -127,7 +127,7 @@ test.describe('distributed tracing', () => {
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http',
           }),
         }),
       }),
@@ -141,7 +141,7 @@ test.describe('distributed tracing', () => {
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http',
             parent_span_id: httpClientSpan?.span_id, // http.client span is parent
           }),
         }),

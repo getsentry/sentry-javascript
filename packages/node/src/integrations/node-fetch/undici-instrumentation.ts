@@ -224,7 +224,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
   };
 
   // Sanitize data URLs to prevent long base64 strings in span attributes

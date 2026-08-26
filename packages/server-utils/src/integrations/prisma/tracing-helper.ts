@@ -38,7 +38,7 @@ const showAllTraces = ((): boolean => {
 
 const nonSampledTraceParent = `00-10-10-00`;
 
-const PRISMA_ORIGIN = 'auto.db.otel.prisma';
+const PRISMA_ORIGIN = 'auto.db.prisma';
 
 type Options = {
   ignoreSpanTypes: (string | RegExp)[];
