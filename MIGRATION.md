@@ -613,10 +613,6 @@ Affected SDKs: All SDKs.
 
 If you reference these attributes in custom instrumentation, `beforeSendSpan`, dashboards, or alerts, update them to the new names.
 
-#### URL attributes
-
-The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-
 #### HTTP attributes
 
 Legacy HTTP span attributes were replaced by their current semantic-convention equivalents:
@@ -636,6 +632,8 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 | `http.decoded_response_content_length` | `http.response.body.decoded_size` |
 | `http.response_transfer_size`          | `http.response.size`              |
 | `http.target`                          | `url.path` + `url.query`          |
+| `http.query`                           | `url.query`                       |
+| `http.fragment`                        | `url.fragment`                    |
 | `url.same_origin`                      | `http.request.same_origin`        |
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
@@ -685,7 +683,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The `code.filepath` and `code.function` span attributes on `ui.long_animation_frame` spans were renamed to `code.file.path` and `code.function.name`.
 - The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
 - The Cloudflare-specific `sentry.cloudflare_tracer` span attribute is no longer set. `@sentry/cloudflare` now creates spans through the shared `SentryTracerProvider`, so spans emitted via `@opentelemetry/api` no longer carry a marker distinguishing them from other Sentry spans.
-- Span attributes now use the shared `@sentry/conventions` package under the hood.
+- The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 
 #### Attribute constants
 
@@ -693,10 +691,6 @@ Span attributes now use the shared `@sentry/conventions` package under the hood.
 The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
 `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use `SENTRY_SEGMENT_NAME_SOURCE` (`sentry.segment.name.source`) instead.
 `sentry.segment.name.source` is only set on the root span. Setting it on a child span is a no-op: `setAttribute` ignores it, and a value passed in a child span's initial attributes is dropped when the span is linked to its parent.
-
-- The `http.query` and `http.fragment` span attributes were renamed to `url.query` and `url.fragment`.
-
-- The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 
 ### Span operation (`op`) changes
 
