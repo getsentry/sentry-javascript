@@ -1,8 +1,11 @@
 import { trace } from '@opentelemetry/api';
 import type { TransactionEvent } from '@sentry/core';
 import { getActiveSpan, spanToJSON, startSpan } from '@sentry/core';
-import { beforeEach, describe, expect, test } from 'vitest';
-import { init } from '../src/sdk';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { CloudflareOptions } from '../src/client';
+import { wrapRequestHandler } from '../src/request';
+import { _INTERNAL_wrapRequestHandler, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
 
 describe('opentelemetry compatibility', () => {
@@ -303,5 +306,68 @@ describe('opentelemetry compatibility', () => {
 
       expect(getActiveSpan()).toBe(parent);
     });
+  });
+});
+
+describe('request wrappers', () => {
+  beforeEach(() => {
+    resetSdk();
+    setAsyncLocalStorageAsyncContextStrategy();
+  });
+
+  async function runRequest(wrap: typeof _INTERNAL_wrapRequestHandler): Promise<TransactionEvent[]> {
+    const transactionEvents: TransactionEvent[] = [];
+    const waits: Promise<unknown>[] = [];
+    const context = { waitUntil: vi.fn(promise => waits.push(promise)), passThroughOnException: vi.fn() };
+
+    const options: CloudflareOptions = {
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      cacheClient: false,
+      enableOpenTelemetrySetup: true,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
+    };
+
+    const response = await wrap({ options, request: new Request('https://example.com/kit'), context }, () => {
+      trace.getTracer('kit').startActiveSpan('sveltekit.resolve', span => {
+        span.end();
+      });
+      return new Response('ok');
+    });
+
+    // The request span ends once the response body is consumed
+    await response.text();
+    await Promise.all(waits);
+
+    return transactionEvents;
+  }
+
+  test('_INTERNAL_wrapRequestHandler nests spans emitted via @opentelemetry/api under the request span', async () => {
+    const transactionEvents = await runRequest(_INTERNAL_wrapRequestHandler);
+
+    expect(transactionEvents).toHaveLength(1);
+    const [transactionEvent] = transactionEvents;
+
+    expect(transactionEvent?.contexts?.trace?.op).toBe('http.server');
+    expect(transactionEvent?.spans).toEqual([
+      expect.objectContaining({
+        description: 'sveltekit.resolve',
+        parent_span_id: transactionEvent?.contexts?.trace?.span_id,
+      }),
+    ]);
+  });
+
+  test('wrapRequestHandler from the /request entry point ignores enableOpenTelemetrySetup', async () => {
+    const transactionEvents = await runRequest(wrapRequestHandler);
+
+    expect(transactionEvents).toHaveLength(1);
+    const [transactionEvent] = transactionEvents;
+
+    expect(transactionEvent?.contexts?.trace?.op).toBe('http.server');
+    expect(transactionEvent?.spans).toEqual([]);
   });
 });
