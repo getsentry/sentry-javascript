@@ -250,11 +250,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     // HTTP client span - actual API URL with client operation
     expect(serverRequestHTTPClientSpan).toMatchObject({
       op: 'http.client',
-      origin: 'auto.http.otel.node_fetch',
+      origin: 'auto.http.node_fetch',
       description: 'GET http://localhost:3030/api/user/myUsername123.json', // http.client does not need to be parametrized
       data: {
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.otel.node_fetch',
+        'sentry.origin': 'auto.http.node_fetch',
         'url.full': expect.stringContaining('/api/user/myUsername123.json'),
         'url.path': '/api/user/myUsername123.json',
         'url.full': expect.stringContaining('/api/user/myUsername123.json'),

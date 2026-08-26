@@ -16,7 +16,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
@@ -51,7 +51,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(transactionEvent).toEqual(
@@ -72,7 +72,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'hook.callback.name': 'anonymous',
       'hook.name': 'fastify -> @sentry/instrumentation-fastify - onRequest',
       'sentry.op': 'middleware',
-      'sentry.origin': 'auto.http.otel.fastify',
+      'sentry.origin': 'auto.http.fastify',
     },
     description: '@sentry/instrumentation-fastify - onRequest',
     op: 'middleware',
@@ -82,7 +82,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     status: 'ok',
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.fastify',
+    origin: 'auto.http.fastify',
   });
 
   expect(spans).toContainEqual({

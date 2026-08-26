@@ -32,7 +32,7 @@ export function dropMiddlewareTunnelRequests(
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
-  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.node_fetch';
+  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.node_fetch';
   const isBaseServerHandleRequest = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest';
 
   // If the span is not a middleware span, fetch span, or BaseServer.handleRequest span, return

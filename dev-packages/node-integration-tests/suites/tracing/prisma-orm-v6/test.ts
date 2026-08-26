@@ -31,7 +31,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
               });
 
               const dbQuerySpan = spans.find(
-                s => s.data?.['sentry.origin'] === 'auto.db.otel.prisma' && s.data?.['db.query.text'],
+                s => s.data?.['sentry.origin'] === 'auto.db.prisma' && s.data?.['db.query.text'],
               );
               expect(dbQuerySpan).toBeDefined();
               const dbQueryParent = spans.find(s => s.span_id === dbQuerySpan?.parent_span_id);
@@ -43,7 +43,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                     ...span,
                     data: {
                       ...span.data,
-                      'sentry.origin': 'auto.db.otel.prisma',
+                      'sentry.origin': 'auto.db.prisma',
                     },
                     status: 'ok',
                   }),
