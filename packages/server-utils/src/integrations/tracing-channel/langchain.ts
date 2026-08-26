@@ -92,10 +92,10 @@ const _langChainChannelIntegration = ((options: LangChainOptions = {}) => {
       waitForTracingChannelBinding(() => {
         for (const channelName of langchainEmbeddingsChannels) {
           DEBUG_BUILD && debug.log(`[orchestrion:langchain] subscribing to channel "${channelName}"`);
-          bindTracingChannelToSpan(
-            diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
-            data => createEmbeddingsSpan(data, options),
-            { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
+          // Embedding errors reject to the caller, so we only open the span (which
+          // bindTracingChannelToSpan still marks failed on error) and do not capture them.
+          bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName), data =>
+            createEmbeddingsSpan(data, options),
           );
         }
       });
