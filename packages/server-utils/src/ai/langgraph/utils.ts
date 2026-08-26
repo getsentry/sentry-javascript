@@ -1,6 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import {
-  captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -141,13 +140,9 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
 
               return result;
             } catch (error) {
+              // The error is rethrown to the caller (invoke() rejects), so we only mark the span
+              // failed and do not record it.
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.langgraph.error',
-                },
-              });
               throw error;
             }
           },
