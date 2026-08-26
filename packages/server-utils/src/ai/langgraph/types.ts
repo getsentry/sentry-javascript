@@ -61,6 +61,7 @@ export interface StateGraphBuilder {
 export interface CompiledGraph {
   [key: string]: unknown;
   invoke?: (...args: unknown[]) => Promise<unknown>;
+  stream?: (...args: unknown[]) => Promise<AsyncIterable<unknown>>;
   name?: string;
   graph_name?: string;
   lc_kwargs?: {

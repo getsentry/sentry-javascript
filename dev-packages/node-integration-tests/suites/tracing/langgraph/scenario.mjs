@@ -44,6 +44,13 @@ async function run() {
         { role: 'user', content: 'Tell me about the weather' },
       ],
     });
+
+    const stream = await graph.stream({
+      messages: [{ role: 'user', content: 'Stream the weather forecast' }],
+    });
+    for await (const _chunk of stream) {
+      // Consuming the iterator is what runs the graph and completes the agent span.
+    }
   });
 
   await Sentry.flush(2000);

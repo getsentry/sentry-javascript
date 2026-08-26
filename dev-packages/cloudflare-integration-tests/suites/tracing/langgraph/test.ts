@@ -6,6 +6,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -17,7 +18,7 @@ import { createRunner } from '../../../runner';
 // want to test that the instrumentation does not break in our
 // cloudflare SDK.
 
-it('traces langgraph compile and invoke operations', async ({ signal }) => {
+it('traces langgraph invoke and stream operations', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
@@ -29,13 +30,14 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       const container = envelope[1]?.[1]?.[1] as any;
       expect(container).toBeDefined();
 
-      expect(container.items).toHaveLength(1);
+      expect(container.items).toHaveLength(2);
       expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
+        'invoke_agent weather_assistant',
         'invoke_agent weather_assistant',
       ]);
 
       const invokeAgentSpan = container.items.find(
-        (span: SerializedStreamedSpan) => span.name === 'invoke_agent weather_assistant',
+        (span: SerializedStreamedSpan) => span.attributes[GEN_AI_RESPONSE_STREAMING] === undefined,
       );
       expect(invokeAgentSpan).toBeDefined();
       expect(invokeAgentSpan!.status).toBe('ok');
@@ -72,6 +74,16 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
         type: 'integer',
         value: 30,
+      });
+
+      const streamSpan = container.items.find(
+        (span: SerializedStreamedSpan) => span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
+      );
+      expect(streamSpan).toBeDefined();
+      expect(streamSpan!.status).toBe('ok');
+      expect(streamSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+        type: 'string',
+        value: '[{"role":"user","content":"Stream the weather in SF"}]',
       });
     })
     .start(signal);

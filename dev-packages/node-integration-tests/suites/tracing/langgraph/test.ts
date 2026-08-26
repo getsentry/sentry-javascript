@@ -7,6 +7,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -30,14 +31,15 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
+            expect(container.items).toHaveLength(3);
             expect(container.items.map(span => span.name).sort()).toEqual([
+              'invoke_agent weather_assistant',
               'invoke_agent weather_assistant',
               'invoke_agent weather_assistant',
             ]);
 
             const invokeAgentSpans = container.items.filter(span => span.name === 'invoke_agent weather_assistant');
-            expect(invokeAgentSpans).toHaveLength(2);
+            expect(invokeAgentSpans).toHaveLength(3);
             for (const span of invokeAgentSpans) {
               expect(span.status).toBe('ok');
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
@@ -46,6 +48,11 @@ describe('LangGraph integration', () => {
               expect(span.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
               expect(span.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_assistant');
             }
+
+            const streamSpan = invokeAgentSpans.find(
+              span => span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true,
+            );
+            expect(streamSpan).toBeDefined();
           },
         })
         .start()
@@ -59,7 +66,7 @@ describe('LangGraph integration', () => {
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
+            expect(container.items).toHaveLength(3);
 
             const weatherTodaySpan = container.items.find(span =>
               getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
@@ -81,6 +88,14 @@ describe('LangGraph integration', () => {
             expect(weatherDetailsSpan!.name).toBe('invoke_agent weather_assistant');
             expect(weatherDetailsSpan!.status).toBe('ok');
             expect(weatherDetailsSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+
+            const weatherStreamSpan = container.items.find(span =>
+              getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
+                'Stream the weather forecast',
+              ),
+            );
+            expect(weatherStreamSpan).toBeDefined();
+            expect(weatherStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
           },
         })
         .start()
