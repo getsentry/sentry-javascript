@@ -275,11 +275,15 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedSqlQuery);
 
       const client = getClient();
-      const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || 'postgres' : undefined;
+
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || 'postgres'
+          : sanitizedSqlQuery || 'postgresjs.query';
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
-        name: streamedName || sanitizedSqlQuery || 'postgresjs.query',
+        name,
         op: 'db',
         attributes: {
           [SENTRY_KIND]: 'client',
