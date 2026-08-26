@@ -64,11 +64,11 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
 
       if (
         options.isEntry &&
-        source.includes(serverEntrypointFileName) &&
-        source.includes('.mjs') &&
-        !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+        normalizedSource.includes(serverEntrypointFileName) &&
+        normalizedSource.includes('.mjs') &&
+        !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
       ) {
-        const resolution = await this.resolve(source, importer, options);
+        const resolution = await this.resolve(normalizedSource, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
         if (!resolution || resolution?.external) return resolution;
@@ -90,8 +90,9 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
       }
 
       // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
+      // Pass isEntry:false to avoid double-wrapping (normalizedSource lacks query suffix).
       if (source.startsWith('file://')) {
-        const resolved = await this.resolve(normalizedSource, importer, options);
+        const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
         if (resolved) return resolved;
         return { id: normalizedSource };
       }

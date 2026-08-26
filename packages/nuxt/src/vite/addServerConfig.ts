@@ -201,8 +201,8 @@ function wrapEntryWithDynamicImport({
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
-      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
-        const resolution = await this.resolve(source, importer, options);
+      if (options.isEntry && normalizedSource.includes('.mjs') && !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+        const resolution = await this.resolve(normalizedSource, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
         if (!resolution || resolution?.external) return resolution;
@@ -229,8 +229,10 @@ function wrapEntryWithDynamicImport({
 
       // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
       // At runtime Node requires file:// on Windows, but Rollup needs a filesystem path.
+      // Pass isEntry:false to avoid re-entering the isEntry branch and double-wrapping
+      // (normalizedSource strips the SENTRY_WRAPPED_ENTRY query suffix).
       if (source.startsWith('file://')) {
-        const resolved = await this.resolve(normalizedSource, importer, options);
+        const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
         if (resolved) return resolved;
         return { id: normalizedSource };
       }
