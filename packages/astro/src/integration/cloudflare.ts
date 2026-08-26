@@ -38,18 +38,48 @@ export function sentryCloudflareNodeWarningPlugin(): VitePlugin {
 }
 
 /**
- * A Vite plugin that ensures the Sentry server config is loaded at the
- * top level of the Cloudflare Worker entry module, rather than only being
- * injected into SSR page modules via `injectScript('page-ssr', ...)`.
+ * Module ids that carry the Worker's default-export handler, across the adapter majors we support.
  *
- * Without this, Astro actions and API routes never call `Sentry.init()`,
- * because `injectScript('page-ssr')` only adds the import to page components.
- *
- * Additionally, this plugin wraps the Worker's default export handler with
- * `@sentry/cloudflare`'s `withSentry` to provide:
+ * `@astrojs/cloudflare` v13+ builds the Worker through `@cloudflare/vite-plugin`, whose entry module
+ * this is; its generated body ends with `export default mod.default ?? {};`. v12 had no such
+ * dependency and built the Worker straight from Astro's own SSR entry
+ * (https://github.com/withastro/astro/blob/09bbdbb1e62c388eb405eeea03554c15e01f2957/packages/integrations/cloudflare/src/entrypoints/server.ts#L23),
+ * an id Astro no longer produces.
+ */
+const WORKER_ENTRY_MODULE_IDS = ['virtual:cloudflare/worker-entry', 'astrojs-ssr-virtual-entry'];
+
+/**
+ * Environments that never produce the deployed Worker: the browser bundle, and the separate Worker
+ * Astro runs at build time to prerender routes. Both share the entry module id above.
+ */
+const SKIPPED_ENVIRONMENTS = ['client', 'prerender'];
+
+const DEFAULT_EXPORT_IDENTIFIER = '__SENTRY_DEFAULT_EXPORT__';
+
+interface DefaultExportRange {
+  /** Bounds of the whole `export default …;` statement. */
+  start: number;
+  end: number;
+  /** Bounds of the exported expression alone. */
+  expressionStart: number;
+  expressionEnd: number;
+}
+
+interface TransformContext {
+  environment?: { name?: string };
+  parse?(code: string): { body: Array<Record<string, unknown>> };
+}
+
+/**
+ * A Vite plugin that wraps the Cloudflare Worker's default export handler with `@sentry/cloudflare`'s
+ * `withSentry`, giving the Worker entry:
  * - `setAsyncLocalStorageAsyncContextStrategy()` for proper async context
  * - Per-request isolation scopes via `wrapRequestHandler`
  * - Trace context propagation
+ *
+ * This runs at the fetch boundary, so it covers every request. The `injectScript('page-ssr', ...)`
+ * import alone would not: it is evaluated lazily during a page render, so an API route, an action,
+ * or an error on the first request can be missed entirely.
  */
 export function sentryCloudflareVitePlugin(): VitePlugin {
   return {
@@ -57,29 +87,73 @@ export function sentryCloudflareVitePlugin(): VitePlugin {
     enforce: 'post',
 
     transform(code, id) {
-      // Match the Astro SSR virtual entry — this becomes dist/_worker.js/index.js
-      // The resolved virtual module ID is `\0@astrojs-ssr-virtual-entry`
-      if (!id.includes('astrojs-ssr-virtual-entry')) {
+      if (!WORKER_ENTRY_MODULE_IDS.some(entryId => id.includes(entryId))) {
         return undefined;
       }
 
-      // In @astrojs/cloudflare v12, the virtual entry module structure is:
-      // https://github.com/withastro/astro/blob/09bbdbb1e62c388eb405eeea03554c15e01f2957/packages/integrations/cloudflare/src/entrypoints/server.ts#L23
-      // We need to wrap `default` with `withSentry` before it's exported.
-      const defaultExportMatch = code.match(/export\s+default\s+([\w.]+)\s*;/);
+      // Astro bundles its own Vite, so the plugin context is typed by whichever major is installed.
+      const ctx = this as unknown as TransformContext;
 
-      if (!defaultExportMatch) {
+      const environmentName = ctx.environment?.name;
+      if (environmentName && SKIPPED_ENVIRONMENTS.includes(environmentName)) {
         return undefined;
       }
 
-      const originalExpr = defaultExportMatch[1];
-      const wrappedExport = `export default withSentry(() => undefined, ${originalExpr});`;
+      const defaultExport = findDefaultExport(ctx, code);
+      if (!defaultExport) {
+        return undefined;
+      }
+
+      const handler = code.slice(defaultExport.expressionStart, defaultExport.expressionEnd);
       const transformedCode = [
         "import { withSentry } from '@sentry/cloudflare';",
-        code.replace(defaultExportMatch[0], wrappedExport),
+        code.slice(0, defaultExport.start),
+        `const ${DEFAULT_EXPORT_IDENTIFIER} = ${handler};`,
+        `export default withSentry(() => undefined, ${DEFAULT_EXPORT_IDENTIFIER});`,
+        code.slice(defaultExport.end),
       ].join('\n');
 
       return { code: transformedCode, map: null };
     },
   };
+}
+
+/**
+ * Locate the `export default` statement and the expression it exports.
+ *
+ * The expression is read from the AST rather than matched textually, because its shape differs per
+ * adapter major, a bare identifier in v12 and `mod.default ?? {}` in the module `@cloudflare/vite-plugin`
+ * generates, and neither is guaranteed to stay as it is.
+ */
+function findDefaultExport(ctx: TransformContext, code: string): DefaultExportRange | undefined {
+  let body;
+  try {
+    body = ctx.parse?.(code).body;
+  } catch {
+    // A module we cannot parse is one we cannot safely rewrite.
+    return undefined;
+  }
+
+  for (const node of body ?? []) {
+    if (node.type !== 'ExportDefaultDeclaration') {
+      continue;
+    }
+
+    const declaration = node.declaration as { start?: number; end?: number } | undefined;
+    if (typeof node.start !== 'number' || typeof node.end !== 'number') {
+      return undefined;
+    }
+    if (typeof declaration?.start !== 'number' || typeof declaration.end !== 'number') {
+      return undefined;
+    }
+
+    return {
+      start: node.start,
+      end: node.end,
+      expressionStart: declaration.start,
+      expressionEnd: declaration.end,
+    };
+  }
+
+  return undefined;
 }

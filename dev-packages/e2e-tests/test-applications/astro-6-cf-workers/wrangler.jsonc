@@ -2,10 +2,16 @@
   "compatibility_date": "2026-03-12",
   "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
   "name": "astro-6-cf-workers",
-  "main": "./sentry.server.config.js",
-  "assets": {
-    "directory": "./dist",
-    "binding": "ASSETS",
+  // No `main` and no `assets`: from v13 the adapter builds the Worker through
+  // `@cloudflare/vite-plugin` and merges this config into `dist/server/wrangler.json`, which the
+  // `start` script runs. `@sentry/astro` wraps that entry's default export with `withSentry` at
+  // build time, so no hand-written worker entry is needed.
+  "vars": {
+    "SENTRY_DSN": "https://username@domain/123",
+    "SENTRY_ENVIRONMENT": "qa",
+    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+    "SENTRY_TUNNEL": "http://localhost:3031/",
+    "SENTRY_TRACE_LIFECYCLE": "static",
   },
   "observability": {
     "enabled": true,

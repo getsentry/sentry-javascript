@@ -178,11 +178,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
 
           if (isCloudflareWorkers && command !== 'dev') {
-            // For Cloudflare Workers production builds, additionally use a Vite plugin to:
-            // 1. Import the server config at the Worker entry level (so Sentry.init() runs
-            //    for ALL requests, not just SSR pages — covers actions and API routes)
-            // 2. Wrap the default export with `withSentry` from @sentry/cloudflare for
-            //    per-request isolation, async context, and trace propagation
+            // For Cloudflare Workers production builds, additionally wrap the Worker entry's default
+            // export with `withSentry` from @sentry/cloudflare. The `page-ssr` import above only runs
+            // while a page renders, so on its own it misses actions, API routes, and errors on the
+            // first request. The wrap sits at the fetch boundary and covers all of them, with
+            // per-request isolation, async context, and trace propagation.
             //
             // Note: We do NOT set `ssr.noExternal` here. The `@astrojs/cloudflare` adapter
             // already configures Vite to bundle all dependencies for Workers. Explicitly
