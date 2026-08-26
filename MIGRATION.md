@@ -1270,6 +1270,21 @@ The legacy per-transaction profiling sampling options were removed. Configure se
 
 ### `@sentry/nextjs`
 
+`withSentryConfig` and the `SentryBuildOptions` type moved to the `@sentry/nextjs/config` entry point and are no
+longer exported from `@sentry/nextjs`:
+
+```js
+// next.config.mjs
+
+// before
+import { withSentryConfig } from '@sentry/nextjs';
+
+// after
+import { withSentryConfig } from '@sentry/nextjs/config';
+```
+
+The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed along with it.
+
 The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
 moved under the `webpack` option in v10; use the replacement listed below instead:
 
