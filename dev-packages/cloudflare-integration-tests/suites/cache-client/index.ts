@@ -114,7 +114,6 @@ export const CacheDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableRpcTracePropagation: true,
   }),
   CacheDurableObjectBase,
 );
@@ -124,7 +123,6 @@ export const NoCacheDurableObject = Sentry.instrumentDurableObjectWithSentry(
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
     cacheClient: false,
-    enableRpcTracePropagation: true,
   }),
   NoCacheDurableObjectBase,
 );
@@ -133,7 +131,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['CACHE_DO', 'NO_CACHE_DO'],
   }),
   {
     async fetch(request, env, ctx) {
