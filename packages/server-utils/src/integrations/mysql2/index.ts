@@ -83,29 +83,25 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
     data => {
       const statement = getQueryText(data.arguments);
-      const client = getClient();
       const connectionAttributes = getConnectionAttributes(data.self?.config);
-      // The statement is sanitized before it is summarized, so that a string literal containing
-      // `from`/`join` can't leak a value into the summary.
       const querySummary = statement ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement)) : undefined;
-      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
-      // when there is no statement to summarize.
-      const streamedName =
+
+      const client = getClient();
+      const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : undefined;
+          : (statement ?? 'mysql2.query');
 
       return startInactiveSpan({
-        name: streamedName ?? statement ?? 'mysql2.query',
+        name,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          ...connectionAttributes,
           [DB_QUERY_TEXT]: statement || undefined,
           [DB_QUERY_SUMMARY]: querySummary,
+          ...connectionAttributes,
         },
       });
     },

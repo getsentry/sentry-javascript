@@ -35,6 +35,8 @@ const INTEGRATION_NAME = 'Mysql' as const;
 // `@opentelemetry/instrumentation-mysql`'s default shape.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 
+const DB_SYSTEM_NAME_VALUE_MYSQL = 'mysql' as const;
+
 /**
  * The shape orchestrion's transform attaches to the tracing-channel `context` object. Documented here
  * rather than imported because orchestrion's runtime doesn't export it.
@@ -85,21 +87,20 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const client = getClient();
-      // The statement is sanitized before it is summarized, so that a string literal containing
-      // `from`/`join` can't leak a value into the summary.
       const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
-      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
-      // when there is no statement to summarize.
-      const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || database || 'mysql' : undefined;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL
+          : (sql ?? 'mysql.query');
 
       return startInactiveSpan({
-        name: streamedName ?? sql ?? 'mysql.query',
+        name,
         op: 'db',
         attributes: {
           [SENTRY_KIND]: 'client',
-          [DB_SYSTEM_NAME]: 'mysql',
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
           ...(database ? { [DB_NAMESPACE]: database } : {}),

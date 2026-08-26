@@ -255,9 +255,6 @@ describe('mysql auto instrumentation', () => {
         trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       };
 
-      // With span streaming, both spans are named after `{db.query.summary}`. Neither statement
-      // selects from a table, so the summary is the bare operation. The full statement is still
-      // reported via `db.query.text`.
       expect(dbSpans).toEqual([
         {
           attributes: {

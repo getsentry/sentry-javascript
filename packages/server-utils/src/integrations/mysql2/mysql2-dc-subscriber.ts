@@ -104,20 +104,16 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       // literal before it leaves the process; `values` is never attached.
       const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
       const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
-      const client = getClient();
-      // `queryText` is already sanitized, so a string literal containing `from`/`join` can't leak a
-      // value into the summary.
       const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
-      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-      // instead of the full statement, falling back to `{db.namespace}` and then `{db.system.name}`
-      // when there is no statement to summarize.
+
+      const client = getClient();
       const streamedName =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : undefined;
+          : queryText || 'mysql2.query';
 
       return startInactiveSpan({
-        name: streamedName || queryText || 'mysql2.query',
+        name: streamedName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
