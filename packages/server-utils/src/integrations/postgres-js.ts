@@ -13,7 +13,7 @@ import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_reconstructPostgresQuery,
   _INTERNAL_sanitizeSqlQuery,
-  _INTERNAL_setPostgresConnectionAttributes,
+  _INTERNAL_getConnectionAttributes,
   _INTERNAL_getPostgresOperationName,
   debug,
   defineIntegration,
@@ -129,7 +129,9 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
     return;
   }
   queryRecord[CONNECTION_ATTRS_SET] = true;
-  _INTERNAL_setPostgresConnectionAttributes(span, context);
+  if (context) {
+    span.setAttributes(_INTERNAL_getConnectionAttributes(context));
+  }
 }
 
 /**

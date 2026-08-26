@@ -8,11 +8,23 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../tracing';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpanManual } from '../tracing/trace';
-import type { Span } from '../types/span';
+import type { Span, SpanAttributes } from '../types/span';
 import { getSqlQuerySummary } from '../utils/sql';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
@@ -235,34 +247,27 @@ function _wrapSingleQueryHandle(
     const client = getClient();
     const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
 
+    const name =
+      client && hasSpanStreamingEnabled(client) ? querySummary || 'postgres' : sanitizedSqlQuery || 'postgresjs.query';
+
+    const connectionContext = sqlInstance
+      ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
+      : undefined;
+
     return startSpanManual(
       {
-        // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-        // instead of the full statement, falling back to `{db.system.name}`.
-        name:
-          client && hasSpanStreamingEnabled(client)
-            ? querySummary || 'postgres'
-            : sanitizedSqlQuery || 'postgresjs.query',
-        op: 'db',
+        name,
+        attributes: {
+          [SENTRY_OP]: DB,
+          [SENTRY_ORIGIN]: 'auto.db.postgresjs',
+          [DB_SYSTEM_NAME]: 'postgres',
+          [DB_QUERY_TEXT]: sanitizedSqlQuery,
+          [DB_QUERY_SUMMARY]: querySummary,
+          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
+          ...(connectionContext && _getConnectionAttributes(connectionContext)),
+        },
       },
       (span: Span) => {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.postgresjs');
-
-        span.setAttributes({
-          'db.system.name': 'postgres',
-          'db.query.text': sanitizedSqlQuery,
-          'db.query.summary': querySummary,
-          'db.operation.name': _getOperationName(sanitizedSqlQuery),
-        });
-
-        const connectionContext = sqlInstance
-          ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as
-              | PostgresConnectionContext
-              | undefined)
-          : undefined;
-
-        _setConnectionAttributes(span, connectionContext);
-
         if (options.requestHook) {
           try {
             options.requestHook(span, sanitizedSqlQuery, connectionContext);
@@ -280,7 +285,7 @@ function _wrapSingleQueryHandle(
         queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
           apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
             try {
-              // Reset with the server-reported command, which is more reliable than the query text.
+              // Re-set the operation name with the server-reported command, which is more reliable than the query text.
               span.setAttribute('db.operation.name', _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
               span.end();
             } catch (e) {
@@ -412,28 +417,18 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
 }
 
 /**
- * Sets connection context attributes on a span.
+ * Returns connection context attributes.
  *
  * @internal Exported for the orchestrion (diagnostics-channel) integration.
  */
-export function _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
-  if (!connectionContext) {
-    return;
-  }
-  if (connectionContext.ATTR_DB_NAMESPACE) {
-    span.setAttribute('db.namespace', connectionContext.ATTR_DB_NAMESPACE);
-  }
-  if (connectionContext.ATTR_SERVER_ADDRESS) {
-    span.setAttribute('server.address', connectionContext.ATTR_SERVER_ADDRESS);
-  }
-  if (connectionContext.ATTR_SERVER_PORT !== undefined) {
-    // Port is stored as string in PostgresConnectionContext for requestHook backwards compatibility,
-    // but semantic conventions expect port as a number for span attributes
-    const portNumber = parseInt(connectionContext.ATTR_SERVER_PORT, 10);
-    if (!isNaN(portNumber)) {
-      span.setAttribute('server.port', portNumber);
-    }
-  }
+export function _getConnectionAttributes(connectionContext: PostgresConnectionContext): SpanAttributes {
+  const portNumber = connectionContext.ATTR_SERVER_PORT ? parseInt(connectionContext.ATTR_SERVER_PORT, 10) : undefined;
+
+  return {
+    [DB_NAMESPACE]: connectionContext.ATTR_DB_NAMESPACE,
+    [SERVER_ADDRESS]: connectionContext.ATTR_SERVER_ADDRESS,
+    ...(portNumber !== undefined && !isNaN(portNumber) && { [SERVER_PORT]: portNumber }),
+  };
 }
 
 /**
