@@ -28,7 +28,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should instrument LangGraph with default PII settings', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
@@ -67,7 +66,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('should instrument LangGraph with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'langgraph-test' } })
         .expect({
           span: container => {
@@ -107,7 +105,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('should capture tools from LangGraph agent', { timeout: 30000 }, async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'langgraph-tools-test' } })
         .expect({
           span: container => {
@@ -173,7 +170,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-thread-id.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should capture thread_id as gen_ai.conversation.id', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'langgraph-thread-id-test' } })
         .expect({
           span: container => {
@@ -219,7 +215,6 @@ describe('LangGraph integration', () => {
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -242,7 +237,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-resume.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should not throw when invoke is called with null input (resume scenario)', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'langgraph-resume-test',
@@ -372,7 +366,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: event => {
             const spans = event.spans ?? [];
@@ -411,7 +404,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: event => {
             const spans = event.spans ?? [];
@@ -463,7 +455,6 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: event => {
             const spans = event.spans ?? [];
