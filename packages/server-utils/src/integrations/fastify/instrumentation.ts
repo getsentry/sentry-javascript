@@ -332,9 +332,9 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     const op =
       hookType === HOOK_TYPE_INSTANCE ? HOOK_OP : hookType === HOOK_TYPE_HANDLER ? REQUEST_HANDLER_OP : undefined;
 
-    const hookName = spanAttributes[ATTRIBUTE_HOOK_NAME];
+    const attributeHookName = spanAttributes[ATTRIBUTE_HOOK_NAME];
 
-    const name = op && typeof hookName === 'string' ? hookName : `${hookName} - ${handlerName}`;
+    const name = op && typeof attributeHookName === 'string' ? attributeHookName : `${hookName} - ${handlerName}`;
 
     return startSpan(
       {
