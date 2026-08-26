@@ -22,6 +22,7 @@ it('traces a durable object method', async ({ signal }) => {
         }),
       );
     })
+    .unordered()
     .start(signal);
   await runner.makeRequest('get', '/hello');
   await runner.completed();
