@@ -7,23 +7,18 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   updateSpanName,
 } from '@sentry/core';
-import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
+import type { EntryContext } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 
-type OriginalHandleRequestWithoutMiddleware = (
+// The load context is `AppLoadContext` on react-router v7 and `RouterContextProvider` on v8, and apps
+// can extend `AppLoadContext` with declaration merging. Inference keeps the wrapper compatible with
+// all of these shapes.
+type OriginalHandleRequest<LoadContext> = (
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext,
-) => Promise<unknown>;
-
-type OriginalHandleRequestWithMiddleware = (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: RouterContextProvider,
+  loadContext: LoadContext,
 ) => Promise<unknown>;
 
 /**
@@ -32,33 +27,15 @@ type OriginalHandleRequestWithMiddleware = (
  * @param originalHandle - The original handleRequest function to wrap
  * @returns A wrapped version of the handle request function with Sentry instrumentation
  */
-export function wrapSentryHandleRequest(
-  originalHandle: OriginalHandleRequestWithoutMiddleware,
-): OriginalHandleRequestWithoutMiddleware;
-/**
- * Wraps the original handleRequest function to add Sentry instrumentation.
- *
- * @param originalHandle - The original handleRequest function to wrap
- * @returns A wrapped version of the handle request function with Sentry instrumentation
- */
-export function wrapSentryHandleRequest(
-  originalHandle: OriginalHandleRequestWithMiddleware,
-): OriginalHandleRequestWithMiddleware;
-/**
- * Wraps the original handleRequest function to add Sentry instrumentation.
- *
- * @param originalHandle - The original handleRequest function to wrap
- * @returns A wrapped version of the handle request function with Sentry instrumentation
- */
-export function wrapSentryHandleRequest(
-  originalHandle: OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware,
-): OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware {
+export function wrapSentryHandleRequest<LoadContext>(
+  originalHandle: OriginalHandleRequest<LoadContext>,
+): OriginalHandleRequest<LoadContext> {
   return async function sentryInstrumentedHandleRequest(
     request: Request,
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    loadContext: AppLoadContext | RouterContextProvider,
+    loadContext: LoadContext,
   ) {
     const parameterizedPath =
       routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
@@ -92,38 +69,9 @@ export function wrapSentryHandleRequest(
     }
 
     try {
-      // Type guard to call the correct overload based on loadContext type
-      if (isRouterContextProvider(loadContext)) {
-        // loadContext is RouterContextProvider
-        return await (originalHandle as OriginalHandleRequestWithMiddleware)(
-          request,
-          responseStatusCode,
-          responseHeaders,
-          routerContext,
-          loadContext,
-        );
-      } else {
-        // loadContext is AppLoadContext
-        return await (originalHandle as OriginalHandleRequestWithoutMiddleware)(
-          request,
-          responseStatusCode,
-          responseHeaders,
-          routerContext,
-          loadContext,
-        );
-      }
+      return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
     } finally {
       await flushIfServerless();
-    }
-
-    /**
-     * Helper type guard to determine if the context is a RouterContextProvider.
-     *
-     * @param ctx - The context to check
-     * @returns True if the context is a RouterContextProvider
-     */
-    function isRouterContextProvider(ctx: AppLoadContext | RouterContextProvider): ctx is RouterContextProvider {
-      return typeof (ctx as RouterContextProvider)?.get === 'function';
     }
   };
 }

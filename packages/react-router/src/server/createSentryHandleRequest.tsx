@@ -1,7 +1,7 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
+import type { EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
@@ -52,6 +52,9 @@ export interface SentryHandleRequestOptions {
    */
   botRegex?: RegExp;
 }
+
+// react-router v8 removed `AppLoadContext`. The SDK still supports v7, so mirror the v7 shape here.
+type AppLoadContext = Record<string, unknown>;
 
 type HandleRequestWithoutMiddleware = (
   request: Request,
@@ -145,5 +148,5 @@ export function createSentryHandleRequest(
   };
 
   // Wrap the handle request function for request parametrization
-  return wrapSentryHandleRequest(handleRequest) as HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+  return wrapSentryHandleRequest(handleRequest);
 }
