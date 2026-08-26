@@ -197,6 +197,94 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     expect(spanEnd).toHaveBeenCalledTimes(1);
   });
 
+  it('records response attributes when pipeThrough is unavailable', async () => {
+    const responseMessage = { role: 'assistant', content: 'Clear skies' };
+    const stream = new TestLangGraphStream([{ agent: { messages: [responseMessage] } }]);
+    Object.defineProperty(stream, 'pipeThrough', { value: undefined });
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, { recordOutputs: true });
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<unknown>> };
+
+    await (await graph.stream()).pipeTo(new WritableStream());
+
+    expect(spanSetAttribute).toHaveBeenCalledWith(
+      GEN_AI_RESPONSE_TEXT,
+      '[{"role":"assistant","content":"Clear skies"}]',
+    );
+    expect(spanEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-enter custom pipeThrough implementations from pipeTo', async () => {
+    const chunks: string[] = [];
+    const stream = new TestLangGraphStream(['first update', 'final update']);
+    Object.defineProperty(stream, 'pipeThrough', {
+      configurable: true,
+      value(
+        this: TestLangGraphStream<string>,
+        transform: ReadableWritablePair<unknown, string>,
+        options?: StreamPipeOptions,
+      ): ReadableStream<unknown> {
+        void this.pipeTo(transform.writable, options).catch(() => {});
+        return transform.readable;
+      },
+      writable: true,
+    });
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, {});
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+
+    await (
+      await graph.stream()
+    ).pipeTo(
+      new WritableStream({
+        write(chunk) {
+          chunks.push(chunk);
+        },
+      }),
+    );
+
+    expect(chunks).toEqual(['first update', 'final update']);
+    expect(spanEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards pipe options to the source pipeTo operation', async () => {
+    const stream = new TestLangGraphStream(['first update']);
+    const originalPipeTo = stream.pipeTo.bind(stream);
+    const sourcePipeTo = vi.fn((destination: WritableStream<string>, options?: StreamPipeOptions) =>
+      originalPipeTo(destination, options),
+    );
+    Object.defineProperty(stream, 'pipeTo', { configurable: true, value: sourcePipeTo, writable: true });
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, {});
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+    const destination = new WritableStream<string>();
+    const options = { preventClose: true, signal: new AbortController().signal };
+
+    await (await graph.stream()).pipeTo(destination, options);
+
+    expect(sourcePipeTo).toHaveBeenCalledWith(expect.any(WritableStream), options);
+    expect(destination.locked).toBe(false);
+    expect(spanEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('ends the span when pipeThrough output is consumed', async () => {
+    const responseMessage = { role: 'assistant', content: 'Clear skies' };
+    const stream = new TestLangGraphStream([{ agent: { messages: [responseMessage] } }]);
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, { recordOutputs: true });
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<unknown>> };
+
+    const transformed = (await graph.stream()).pipeThrough(new TransformStream());
+    await transformed.pipeTo(new WritableStream());
+    await Promise.resolve();
+
+    expect(spanSetAttribute).toHaveBeenCalledWith(
+      GEN_AI_RESPONSE_TEXT,
+      '[{"role":"assistant","content":"Clear skies"}]',
+    );
+    expect(spanEnd).toHaveBeenCalledTimes(1);
+  });
+
   it('ends the span when direct next calls consume the stream', async () => {
     const stream = new TestLangGraphStream(['first update']);
     const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };

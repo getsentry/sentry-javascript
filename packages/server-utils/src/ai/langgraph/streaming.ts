@@ -172,31 +172,54 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
 
   if (stream.pipeTo) {
     const originalPipeTo = stream.pipeTo.bind(stream);
-    const originalPipeThrough = stream.pipeThrough?.bind(stream);
-    stream.pipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
-      let pipePromise: Promise<void>;
+    const instrumentedPipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
+      let destinationWriter: WritableStreamDefaultWriter<unknown>;
       try {
-        pipePromise = withActiveSpan(span, () => {
-          if (!originalPipeThrough) {
-            return originalPipeTo(destination, options);
-          }
-
-          const passthrough = new TransformStream<unknown, unknown>({
-            transform(chunk, controller) {
-              lifecycle.recordChunk(chunk);
-              controller.enqueue(chunk);
-            },
-          });
-          const outputStream: ReadableStream<unknown> = originalPipeThrough(passthrough);
-          return outputStream.pipeTo(destination, options);
-        });
+        destinationWriter = destination.getWriter();
       } catch (error) {
         lifecycle.fail();
-        throw error;
+        return Promise.reject(error);
       }
 
-      return completeWithLifecycle(pipePromise, lifecycle);
+      const recordingDestination = new WritableStream<unknown>({
+        write(chunk) {
+          lifecycle.recordChunk(chunk);
+          return destinationWriter.write(chunk);
+        },
+        close() {
+          return destinationWriter.close();
+        },
+        abort(reason) {
+          return destinationWriter.abort(reason);
+        },
+      });
+
+      let pipePromise: Promise<void>;
+      try {
+        pipePromise = withActiveSpan(span, () => originalPipeTo(recordingDestination, options));
+      } catch (error) {
+        destinationWriter.releaseLock();
+        lifecycle.fail();
+        return Promise.reject(error);
+      }
+
+      return completeWithLifecycle(pipePromise, lifecycle).finally(() => {
+        destinationWriter.releaseLock();
+      });
     };
+
+    stream.pipeTo = instrumentedPipeTo;
+
+    if (stream.pipeThrough) {
+      stream.pipeThrough = (
+        transform: ReadableWritablePair<unknown, unknown>,
+        options?: StreamPipeOptions,
+      ): ReadableStream<unknown> => {
+        // pipeThrough exposes pipeline failures through the returned readable instead of its internal promise.
+        void instrumentedPipeTo(transform.writable, options).catch(() => {});
+        return transform.readable;
+      };
+    }
   }
 }
 
