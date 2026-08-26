@@ -14,14 +14,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // A distinctive slice of the orchestrion banner that the bundler plugin's build-time code transform
 // prepends to the entry chunk (see `ORCHESTRION_BUNDLER_MARKER_BANNER` in `@sentry/server-utils`).
 // It is emitted only when the plugin's build-time instrumentation runs, so it tells a `plugin` build
-// apart from a `plain` one. Builds are kept unminified so it survives verbatim.
+// apart from a `plain` one. We match against a whitespace-stripped bundle because some bundlers
+// (e.g. Rolldown) pretty-print the injected banner rather than emitting it verbatim.
 const BUILD_TIME_TRANSFORM_MARKER = 'g.bundler=g.bundler||[]';
 
 function bundleText(name) {
   const dir = join(__dirname, 'dist', name);
   return readdirSync(dir)
     .map(f => readFileSync(join(dir, f), 'utf8'))
-    .join('\n');
+    .join('\n')
+    .replace(/\s+/g, '');
 }
 
 let failed = false;
