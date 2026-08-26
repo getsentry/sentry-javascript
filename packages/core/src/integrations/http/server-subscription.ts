@@ -39,6 +39,8 @@ import type { SpanStatus } from '../../types/spanStatus';
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -46,12 +48,16 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_KIND,
   SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_TARGET,
   URL_FULL,
   URL_PATH,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 
@@ -317,22 +323,19 @@ function buildServerSpanWrap(
             [CLIENT_PORT]: remotePort,
             [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
             [NETWORK_PEER_PORT]: remotePort,
-            'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-            // Old Semantic Conventions attributes for compatibility
+            [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-            'http.method': method,
-            'http.target': filterCollectedUrl(
+            // eslint-disable-next-line typescript/no-deprecated
+            [HTTP_TARGET]: filterCollectedUrl(
               urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
               client,
             ),
-            'http.host': host,
+            [HTTP_REQUEST_METHOD]: method,
             [NETWORK_PROTOCOL_NAME]: 'http',
             [NETWORK_PROTOCOL_VERSION]: httpVersion,
-            'http.client_ip': collectClientAddress ? getForwardedClientAddress(ips) : undefined,
-            'http.user_agent': userAgent,
-            'http.scheme': scheme,
-            'http.flavor': httpVersion,
+            [USER_AGENT_ORIGINAL]: userAgent,
+            [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
             ...getRequestContentLengthAttribute(request),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
@@ -352,9 +355,8 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.status_text': response.statusMessage?.toUpperCase(),
-              'http.response.status_code': response.statusCode,
-              'http.status_code': response.statusCode,
+              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
@@ -447,7 +449,7 @@ function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAtt
   const encoding = headers['content-encoding'];
   return length >= 0
     ? encoding && encoding !== 'identity'
-      ? { 'http.request_content_length': length }
-      : { 'http.request_content_length_uncompressed': length }
+      ? { 'http.request.body.size': length }
+      : { 'http.request.body.decoded_size': length }
     : {};
 }

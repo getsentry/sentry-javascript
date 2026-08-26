@@ -15,7 +15,7 @@ describe('getRouteMetadata', () => {
       name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
-        'http.method': 'get',
+        'http.request.method': 'get',
         'hapi.type': 'router',
       },
     });
@@ -26,7 +26,7 @@ describe('getRouteMetadata', () => {
       name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
-        'http.method': 'get',
+        'http.request.method': 'get',
         'hapi.type': 'plugin',
         'hapi.plugin.name': 'my-plugin',
       },

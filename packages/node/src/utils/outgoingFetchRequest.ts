@@ -1,4 +1,4 @@
-import { HTTP_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
   filterCollectedUrlQuery,
@@ -259,7 +259,7 @@ function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData
     return {
       url: getSanitizedUrlString(parsedUrl),
       // eslint-disable-next-line typescript/no-deprecated
-      [HTTP_METHOD]: request.method || 'GET',
+      [HTTP_REQUEST_METHOD]: request.method || 'GET',
       [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search)),
       [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
     };

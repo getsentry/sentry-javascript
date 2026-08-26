@@ -1,4 +1,4 @@
-import { HTTP_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, filterCollectedUrl } from '@sentry/core';
@@ -97,7 +97,7 @@ export function wrapRequestContextHandler(
       [AttributeNames.VERSION]: moduleVersion || undefined,
       [HTTP_ROUTE]: httpRoute || undefined,
       // oxlint-disable-next-line typescript/no-deprecated
-      [HTTP_METHOD]: req.method || undefined,
+      [HTTP_REQUEST_METHOD]: req.method || undefined,
       [URL_FULL]: filterCollectedUrl(req.originalUrl || req.url || undefined),
     };
     return startSpan({ name: spanName, attributes }, () => handler.apply(this, handlerArgs));

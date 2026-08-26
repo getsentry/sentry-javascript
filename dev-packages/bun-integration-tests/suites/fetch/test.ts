@@ -21,7 +21,7 @@ it('creates an http.client span for outgoing fetch requests', async ({ signal })
         origin: 'auto.http.fetch',
         description: expect.stringMatching(/^GET http:\/\/localhost:\d+\/allowed$/),
         data: expect.objectContaining({
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           type: 'fetch',
         }),
       });

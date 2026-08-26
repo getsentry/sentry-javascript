@@ -258,7 +258,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
         'code.function.name': 'load',
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'sentry.sample_rate': 1,
       },
       op: 'function',

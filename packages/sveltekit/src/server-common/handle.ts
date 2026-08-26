@@ -23,7 +23,13 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
-import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -213,7 +219,7 @@ async function instrumentHandle(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
-              'http.method': event.request.method,
+              [HTTP_REQUEST_METHOD]: event.request.method,
               [URL_FULL]: filterCollectedUrl(event.url.href),
               [URL_PATH]: event.url.pathname,
               ...(routeId && {

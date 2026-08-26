@@ -34,17 +34,14 @@ test('Should record a transaction for route with parameters', async ({ request }
   expect(transactionEvent.transaction).toEqual('GET /test-transaction/:param');
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'http.flavor': '1.1',
-      'http.host': 'localhost:3030',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.response.status_code': 200,
       'http.route': '/test-transaction/:param',
-      'http.scheme': 'http',
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'url.scheme': 'http',
+      'http.response.status_text': 'OK',
       'http.target': '/test-transaction/1',
       'url.full': 'http://localhost:3030/test-transaction/1',
-      'http.user_agent': expect.any(String),
+      'user_agent.original': expect.any(String),
       'network.local.address': expect.any(String),
       'server.address': 'localhost',
       'network.local.port': 3030,
@@ -128,7 +125,7 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
   expect(transactionEvent.transaction).toEqual('GET /test-mysql');
   expect(transactionEvent.contexts?.trace?.status).toEqual('ok');
-  expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(200);
+  expect(transactionEvent.contexts?.trace?.data?.['http.response.status_code']).toEqual(200);
 
   const spans = transactionEvent.spans || [];
   expect(spans).toContainEqual(

@@ -50,12 +50,12 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.op': 'http.server',
           'sentry.segment.name.source': 'url',
           'code.function.name': 'requestHandler',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'url.full': 'http://localhost/users',
         }),
       }),
     );
-    expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 200);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
     expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
     expect(span.setStatus).toHaveBeenCalledWith({ code: 1 });
     expect(span.end).toHaveBeenCalledTimes(1);
@@ -72,7 +72,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
   });
 
   it('matchServerRoutes: enriches the active request span with the matched route', () => {
-    span = makeSpan({ 'http.method': 'GET' });
+    span = makeSpan({ 'http.request.method': 'GET' });
     getActiveSpanSpy.mockReturnValue(span);
     const ctx = {
       arguments: [[], '/users/123'],
@@ -116,14 +116,14 @@ describe('remixIntegration (Orchestrion-based)', () => {
           'sentry.origin': 'auto.http.remix',
           'sentry.op': 'function',
           'code.function.name': 'loader',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'url.full': 'http://localhost/users/123',
           'match.route.id': 'routes/users.$userId',
           'match.params.userId': '123',
         }),
       }),
     );
-    expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 200);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 200);
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
@@ -155,13 +155,13 @@ describe('remixIntegration (Orchestrion-based)', () => {
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'action',
-          'http.method': 'POST',
+          'http.request.method': 'POST',
         }),
       }),
     );
     // The span ends only after the async form-data read resolves.
     await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
-    expect(span.setAttribute).toHaveBeenCalledWith('http.status_code', 201);
+    expect(span.setAttribute).toHaveBeenCalledWith('http.response.status_code', 201);
     expect(span.setAttribute).toHaveBeenCalledWith('remix.action_form_data.actionType', 'create');
   });
 });
