@@ -120,6 +120,7 @@ export {
   getOtlpTracesEndpoint,
   processSessionIntegration,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

@@ -13,6 +13,7 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
+  isObjectLike,
   ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -20,6 +21,7 @@ import {
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type {
+  HapiRequest,
   LifecycleMethod,
   PatchableExtMethod,
   PatchableServerRoute,
@@ -32,7 +34,47 @@ import type {
 } from './hapi-types';
 import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
-import { setHttpServerSpanRouteAttribute } from '../utils/setHttpServerSpanRouteAttribute';
+import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
+
+/**
+ * Default function deciding whether an error should be sent to Sentry.
+ *
+ * Captures 5xx errors and any error whose status can't be resolved; skips 3xx
+ * and 4xx (client errors / redirects) and 2xx-and-below outliers are captured
+ * as they usually signal an unmapped thrown error. Mirrors the defaults used by
+ * the other server framework integrations.
+ */
+export function defaultShouldHandleError(error: unknown, request: HapiRequest): boolean {
+  const statusCode = getResponseStatusCode(request, error);
+  if (typeof statusCode !== 'number') {
+    return true;
+  }
+  // 3xx and 4xx errors are not sent by default.
+  return statusCode >= 500 || statusCode <= 299;
+}
+
+/**
+ * Resolve the HTTP status for an errored hapi request: prefer the resolved
+ * response (Boom `output.statusCode`, else `statusCode`), falling back to a Boom
+ * error passed directly.
+ */
+function getResponseStatusCode(request: HapiRequest, error: unknown): number | undefined {
+  const response = request.response;
+  if (isObjectLike(response)) {
+    if (response.isBoom && isObjectLike(response.output) && typeof response.output.statusCode === 'number') {
+      return response.output.statusCode;
+    }
+    if (typeof response.statusCode === 'number') {
+      return response.statusCode;
+    }
+  }
+
+  if (isObjectLike(error) && isObjectLike(error.output) && typeof error.output.statusCode === 'number') {
+    return error.output.statusCode;
+  }
+
+  return undefined;
+}
 
 type SpanAttributes = Record<string, string | undefined>;
 
