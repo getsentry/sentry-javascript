@@ -20,7 +20,7 @@ describe('httpServerSpans-streamed (no route)', () => {
             expect(serverSpan?.is_segment).toBe(true);
             // Without a route the name must not carry the URL path.
             expect(serverSpan?.name).toBe('GET');
-            expect(serverSpan?.attributes['sentry.source']).toEqual({ type: 'string', value: 'url' });
+            expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'url' });
             // The path is still available as an attribute, which is what `ignoreSpans`/`tracesSampler` match on.
             expect(serverSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/users/42' });
           },

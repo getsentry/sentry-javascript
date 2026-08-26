@@ -52,7 +52,9 @@ describe('Bun HTTP Server Integration', () => {
 
     expect(span).toBeDefined();
     expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
-    expect(span?.name).toBe('GET /users');
+    // No router resolves a route here, so with span streaming the name is the request method.
+    expect(span?.name).toBe('GET');
+    expect(span?.attributes['url.path']).toBe('/users');
     expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
   });
 
@@ -81,7 +83,8 @@ describe('Bun HTTP Server Integration', () => {
 
     expect(span).toBeDefined();
     expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
-    expect(span?.name).toBe('QUERY /search');
+    expect(span?.name).toBe('QUERY');
+    expect(span?.attributes['url.path']).toBe('/search');
     expect(span?.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
