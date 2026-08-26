@@ -84,7 +84,9 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     data => {
       const statement = getQueryText(data.arguments);
       const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const querySummary = statement ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement)) : undefined;
+      const querySummary = statement
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement, 'mysql'))
+        : undefined;
 
       const client = getClient();
       const name =

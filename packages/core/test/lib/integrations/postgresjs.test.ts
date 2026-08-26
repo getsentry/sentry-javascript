@@ -399,6 +399,54 @@ describe('PostgresJs portable instrumentation', () => {
           'SELECT * from generate_series(?,?) as x',
         );
       });
+
+      it('does not let comment syntax inside a literal cut the literal short', () => {
+        expect(_sanitizeSqlQuery("SELECT * FROM t WHERE a = 'from secret--x'")).toBe('SELECT * FROM t WHERE a = ?');
+        expect(_sanitizeSqlQuery("SELECT * FROM t WHERE a = 'from secret/*x*/'")).toBe('SELECT * FROM t WHERE a = ?');
+      });
+
+      it('honors backslash escapes in PostgreSQL escape strings', () => {
+        expect(_sanitizeSqlQuery(String.raw`SELECT * FROM t WHERE a = E'it\'s from secret' AND b = 1`)).toBe(
+          'SELECT * FROM t WHERE a = ? AND b = ?',
+        );
+      });
+    });
+
+    describe("dialect: 'mysql'", () => {
+      it.each([
+        // MySQL reads `"..."` as a string literal, not as an identifier, unless ANSI_QUOTES is set
+        ['SELECT * FROM users WHERE name = "John"', 'SELECT * FROM users WHERE name = ?'],
+        ['SELECT * FROM users WHERE a = "x" AND b = \'y\'', 'SELECT * FROM users WHERE a = ? AND b = ?'],
+        ['SELECT * FROM `users` WHERE `name` = "John"', 'SELECT * FROM `users` WHERE `name` = ?'],
+        ['SELECT * FROM t WHERE a = "x" # trailing comment', 'SELECT * FROM t WHERE a = ?'],
+        // backslash escapes — the shape mysql/mysql2 emit when they inline a value
+        [String.raw`SELECT * FROM users WHERE name = 'O\'Brien'`, 'SELECT * FROM users WHERE name = ?'],
+        [String.raw`SELECT * FROM users WHERE bio = 'a \"quote\" here'`, 'SELECT * FROM users WHERE bio = ?'],
+        [String.raw`SELECT * FROM t WHERE a = 'x\\' AND b = 'y'`, 'SELECT * FROM t WHERE a = ? AND b = ?'],
+      ])('sanitizes %p', (input, expected) => {
+        expect(_sanitizeSqlQuery(input, 'mysql')).toBe(expected);
+      });
+
+      it('keeps a quote inside a backticked identifier from opening a literal', () => {
+        expect(_sanitizeSqlQuery("SELECT `it's` FROM t WHERE a = 'x'", 'mysql')).toBe(
+          "SELECT `it's` FROM t WHERE a = ?",
+        );
+      });
+    });
+
+    describe('regression: values must not survive as summary targets', () => {
+      // A literal that survives sanitization and happens to contain `from`/`join`/`select` is read
+      // as a table name by getSqlQuerySummary, which puts it in `db.query.summary` and — with span
+      // streaming — in the span name.
+      it.each([
+        ['SELECT * FROM users WHERE name = "from bob@secret.com"', 'bob@secret.com'],
+        ['SELECT * FROM users WHERE bio = "i come from Berlin and join clubs"', 'Berlin'],
+        ['INSERT INTO t (c) VALUES ("select from s3cret-token")', 's3cret-token'],
+        [String.raw`SELECT * FROM users WHERE name = 'O\'Brien from ACME'`, 'ACME'],
+        [String.raw`UPDATE t SET a = 'x\'y from Z' WHERE id = 5`, 'from Z'],
+      ])('strips the value out of %p', (input, value) => {
+        expect(_sanitizeSqlQuery(input, 'mysql')).not.toContain(value);
+      });
     });
   });
 
