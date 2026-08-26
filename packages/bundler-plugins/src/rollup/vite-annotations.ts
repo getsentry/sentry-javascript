@@ -10,7 +10,7 @@ type ViteModule = {
 
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 
-export type ViteAnnotationHooks = {
+type ViteAnnotationHooks = {
   transform(
     code: string,
     id: string,
@@ -44,4 +44,20 @@ export function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
   }
 
   return viteParseAstAsyncPromise;
+}
+
+export function createViteAnnotationHooks(ignoredComponents: string[]): ViteAnnotationHooks {
+  let hooksPromise: Promise<ViteAnnotationHooks> | undefined;
+
+  return {
+    transform(code, id, meta) {
+      if (!hooksPromise) {
+        hooksPromise = import('../core/component-annotation-vite').then(({ createViteComponentNameAnnotateHooks }) =>
+          createViteComponentNameAnnotateHooks(ignoredComponents, getViteParseAstAsync),
+        );
+      }
+
+      return hooksPromise.then(hooks => hooks.transform(code, id, meta));
+    },
+  };
 }

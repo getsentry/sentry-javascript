@@ -1,5 +1,5 @@
 import { rolldown as rolldown112 } from 'rolldown';
-import { rolldown as rolldown123 } from 'rolldown-1-2';
+import { rolldown as rolldown125 } from 'rolldown-1-2-5';
 import { describe, expect, it } from 'vitest';
 import { sentryRollupPlugin } from '../../src/rollup';
 
@@ -48,7 +48,7 @@ async function createBuild(version: RolldownVersion, includeUnrelatedEntry: bool
     ],
   };
 
-  return version === '1.1.2' ? rolldown112(options) : rolldown123(options);
+  return version === '1.1.2' ? rolldown112(options) : rolldown125(options);
 }
 
 async function build(

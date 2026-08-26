@@ -6,7 +6,6 @@ import {
   isJsFile,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
-  stringToUUID,
   COMMENT_USE_STRICT_REGEX,
   createDebugIdUploadFunction,
   globFiles,
@@ -18,9 +17,14 @@ import type { ComponentAnnotationTransformMeta } from '../core/component-annotat
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
-import { finalizeRolldownDebugIds, ROLLDOWN_DEBUG_ID_PLACEHOLDER } from './rolldown-debug-id';
-import { getRollupMajorVersion, hasExistingDebugID } from './utils';
-import { getViteParseAstAsync, type ViteAnnotationHooks } from './vite-annotations';
+import {
+  finalizeRolldownDebugIds,
+  getDebugIdForChunk,
+  hasExistingDebugID,
+  type GeneratedBundle,
+} from './debug-id-injection';
+import { getRollupMajorVersion } from './rollup-version';
+import { createViteAnnotationHooks } from './vite-annotations';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -105,25 +109,7 @@ export function _rollupPluginInternal(
     buildTool === 'vite' &&
     buildToolMajorVersion === '8' &&
     !options.reactComponentAnnotation?._experimentalInjectIntoHtml
-      ? (() => {
-          let viteAnnotationHooksPromise: Promise<ViteAnnotationHooks> | undefined;
-
-          return {
-            transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-              if (!viteAnnotationHooksPromise) {
-                viteAnnotationHooksPromise = import('../core/component-annotation-vite').then(
-                  ({ createViteComponentNameAnnotateHooks }) =>
-                    createViteComponentNameAnnotateHooks(
-                      options.reactComponentAnnotation?.ignoredComponents || [],
-                      getViteParseAstAsync,
-                    ),
-                );
-              }
-
-              return viteAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
-            },
-          };
-        })()
+      ? createViteAnnotationHooks(options.reactComponentAnnotation?.ignoredComponents || [])
       : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
@@ -191,9 +177,7 @@ export function _rollupPluginInternal(
     const injectCode = staticInjectionCode.clone();
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      // Rolldown's renderChunk code contains temporary hash placeholders whose values can vary between builds.
-      // The fixed-width placeholder is replaced after Rolldown resolves them, without shifting source map positions.
-      const debugId = this?.meta?.rolldownVersion ? ROLLDOWN_DEBUG_ID_PLACEHOLDER : stringToUUID(code);
+      const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
@@ -233,7 +217,7 @@ export function _rollupPluginInternal(
   function generateBundle(
     this: GenerateBundlePluginContext | undefined,
     _outputOptions: unknown,
-    bundle: Parameters<typeof finalizeRolldownDebugIds>[0],
+    bundle: GeneratedBundle,
   ): void {
     if (!this?.meta?.rolldownVersion) {
       return;
@@ -278,10 +262,14 @@ export function _rollupPluginInternal(
   }
 
   const name = `sentry-${buildTool}-plugin`;
-  const generateBundleHook =
-    buildTool === 'vite' && buildToolMajorVersion === '8'
-      ? { order: 'post' as const, handler: generateBundle }
-      : generateBundle;
+  function createGenerateBundleHook() {
+    if (buildTool === 'vite' && buildToolMajorVersion === '8') {
+      return { order: 'post' as const, handler: generateBundle };
+    }
+
+    return generateBundle;
+  }
+  const generateBundleHook = createGenerateBundleHook();
 
   if (shouldTransform) {
     const transformHook =
