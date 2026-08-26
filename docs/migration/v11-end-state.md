@@ -638,6 +638,8 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
 
+On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
+
 #### Network attributes
 
 Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:

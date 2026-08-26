@@ -25,7 +25,12 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
-import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
+import {
+  getContentLengthFromHeaders,
+  headersToDict,
+  httpHeadersToSpanAttributes,
+  httpRequestToRequestData,
+} from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
 import { getUrlFragment, getUrlQuery, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
@@ -34,7 +39,6 @@ import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
   CLIENT_ADDRESS,
@@ -335,7 +339,7 @@ function buildServerSpanWrap(
             [USER_AGENT_ORIGINAL]: userAgent,
             [URL_SCHEME]: scheme,
             [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
-            ...getRequestContentLengthAttribute(request),
+            'http.request.body.size': getContentLengthFromHeaders(request.headers),
             ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
@@ -438,16 +442,4 @@ export function isStaticAssetRequest(urlPath: string): boolean {
 function isKnownPrefetchRequest(req: HttpIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
   return req.headers['next-router-prefetch'] === '1';
-}
-
-function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const { headers } = request;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { 'http.request.body.size': length }
-      : { 'http.request.body.decoded_size': length }
-    : {};
 }

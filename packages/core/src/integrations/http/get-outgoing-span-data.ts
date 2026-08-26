@@ -1,6 +1,7 @@
 import type { Span, SpanAttributes } from '../../types/span';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
+import { getContentLengthFromHeaders } from '../../utils/request';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -67,7 +68,7 @@ export function setIncomingResponseSpanData(response: HttpIncomingMessage, span:
     [NETWORK_PROTOCOL_VERSION]: httpVersion,
     [NETWORK_TRANSPORT]: transport,
     'http.response.status_text': statusMessage?.toUpperCase(),
-    ...getResponseContentLengthAttributes(response),
+    [HTTP_RESPONSE_BODY_SIZE]: getContentLengthFromHeaders(response.headers),
     ...getSocketAttrs(socket),
   });
 }
@@ -81,16 +82,4 @@ function getSocketAttrs(socket: HttpIncomingMessage['socket']): SpanAttributes {
     [NETWORK_PEER_ADDRESS]: remoteAddress,
     [NETWORK_PEER_PORT]: remotePort,
   };
-}
-
-function getResponseContentLengthAttributes(response: HttpIncomingMessage): SpanAttributes {
-  const { headers } = response;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { [HTTP_RESPONSE_BODY_SIZE]: length }
-      : { 'http.response.body.decoded_size': length }
-    : {};
 }

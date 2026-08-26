@@ -159,16 +159,16 @@ describe('setIncomingResponseSpanData', () => {
     );
   });
 
-  it('includes uncompressed content-length when content-encoding is identity', () => {
+  it('includes content-length as the encoded body size when content-encoding is identity', () => {
     const span = makeMockSpan();
     const response = makeMockResponse({
       headers: { 'content-length': '42', 'content-encoding': 'identity' },
     });
     setIncomingResponseSpanData(response, span);
-    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.decoded_size': 42 }));
+    expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.body.size': 42 }));
   });
 
-  it('includes compressed content-length when content-encoding is gzip', () => {
+  it('includes content-length as the encoded body size when content-encoding is gzip', () => {
     const span = makeMockSpan();
     const response = makeMockResponse({
       headers: { 'content-length': '100', 'content-encoding': 'gzip' },
