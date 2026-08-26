@@ -40,6 +40,7 @@ import type {
   RegistrationChannelContext,
 } from './types';
 import { defaultShouldHandleError } from './utils';
+import { isExpressErrorHandled, markExpressErrorHandled } from './error-handled';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 const ORIGIN = 'auto.http.express';
@@ -110,10 +111,17 @@ export function instrumentExpress(
 
 /**
  * Capture an error surfaced on a layer's `handle_request` channel — the throw
- * site, which runs before any user error-handling middleware. Duplicate captures
- * (the error bubbling through parent layers, or a user also calling
- * `setupExpressErrorHandler`) are collapsed by `captureException`'s per-object
- * dedup, so only the first send survives.
+ * site, which runs before any user error-handling middleware.
+ *
+ * Each request's error is handled exactly once: the same error surfaces on every
+ * parent layer's `error` event as it bubbles, and a user may also still call the
+ * deprecated `setupExpressErrorHandler`. We mark the request the first time we
+ * see it, so later layers and that middleware defer to this decision — the
+ * integration is the single registered handler and its `shouldHandleError` wins.
+ * This deliberately does not rely on `captureException`'s global dedup, which is
+ * only set when an error is actually captured and so cannot express a
+ * "deliberately skipped" decision (leaving the deprecated middleware free to
+ * capture it and override `shouldHandleError`).
  *
  * `shouldHandleError` is the raw integration option: `false` disables capture
  * entirely, a function customizes the gate, and `undefined` falls back to
@@ -123,14 +131,26 @@ export function captureLayerError(
   data: HandleChannelContext,
   shouldHandleError: ExpressShouldHandleError | undefined,
 ): void {
-  if (shouldHandleError === false) {
-    return;
-  }
-
   const error = data.error;
 
   // `next('route')` / `next('router')` are Express control-flow signals, not errors.
   if (!error || error === 'route' || error === 'router') {
+    return;
+  }
+
+  // Take responsibility for this request's error exactly once (see the doc comment above). The marker
+  // lives on the request — the same instance across every bubbling layer and the error middleware,
+  // and always a mutable object, unlike the thrown value which may be frozen or a primitive. Mark
+  // before the `shouldHandleError` gate so a "skip" decision also suppresses the deprecated middleware.
+  const request = data.arguments?.[0] as ExpressRequest | undefined;
+  if (request) {
+    if (isExpressErrorHandled(request)) {
+      return;
+    }
+    markExpressErrorHandled(request);
+  }
+
+  if (shouldHandleError === false) {
     return;
   }
 

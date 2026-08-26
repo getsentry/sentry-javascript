@@ -298,12 +298,52 @@ describe('express error handling', () => {
   });
 
   describe('setupExpressErrorHandler', () => {
+    // Precedence: with both the channel-based integration and the deprecated middleware present, the
+    // integration is the single registered handler. Its `shouldHandleError` (error_2 only) decides
+    // what is captured (mechanism `auto.http.express`), so `error_1` is dropped even though the
+    // deprecated middleware's default predicate would capture it, and `error_2` is captured once.
     createCjsTests(
       __dirname,
       'scenario-setup-error-handler.mjs',
+      'instrument-should-handle-error.mjs',
+      (createRunner, test) => {
+        test('expressIntegration takes precedence over the deprecated handler', async () => {
+          const runner = createRunner()
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      mechanism: {
+                        type: 'auto.http.express',
+                        handled: false,
+                      },
+                      value: 'error_2',
+                    },
+                  ],
+                },
+              },
+            })
+            .start();
+
+          // dropped by the integration's shouldHandleError; the deprecated handler must NOT capture it either
+          runner.makeRequest('get', '/test1', { expectError: true });
+          // captured once, by the integration
+          runner.makeRequest('get', '/test2', { expectError: true });
+
+          await runner.completed();
+        });
+      },
+    );
+
+    // Fallback: with `expressIntegration` disabled, the deprecated middleware is the sole capturer and
+    // its own `shouldHandleError` applies (mechanism `auto.middleware.express`).
+    createCjsTests(
+      __dirname,
+      'scenario-setup-error-handler-fallback.mjs',
       'instrument-setup-error-handler.mjs',
       (createRunner, test) => {
-        test('captures only errors for which shouldHandleError returns true', async () => {
+        test('deprecated handler captures with its own shouldHandleError when expressIntegration is disabled', async () => {
           const runner = createRunner()
             .expect({
               event: {

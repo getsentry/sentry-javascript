@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
-import { captureLayerError } from '../../../src/integrations/express/instrumentation';
-import type { HandleChannelContext } from '../../../src/integrations/express/types';
+import { captureLayerError } from '../../src/integrations/express/instrumentation';
+import type { HandleChannelContext } from '../../src/integrations/express/types';
 
 function makeErrorData(error: unknown, span?: unknown): HandleChannelContext {
   return { error, _sentrySpan: span } as unknown as HandleChannelContext;
