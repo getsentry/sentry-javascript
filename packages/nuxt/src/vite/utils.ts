@@ -25,7 +25,6 @@ export async function getNitroMajorVersion(): Promise<number> {
 
 /**
  *  Find the default SDK init file for the given type (client or server).
- *  The sentry.server.config file is prioritized over the instrument.server file.
  */
 export async function findDefaultSdkInitFile(
   type: 'server' | 'client',
@@ -33,19 +32,7 @@ export async function findDefaultSdkInitFile(
   options?: SentryNuxtModuleOptions,
 ): Promise<string | undefined> {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
-  const relativePaths: string[] = [];
-
-  if (type === 'server') {
-    for (const ext of possibleFileExtensions) {
-      relativePaths.push(`sentry.${type}.config.${ext}`);
-      // TODO: instrument.server could be removed - in the docs/wizard we only provide sentry.server.config.[ext]
-      relativePaths.push(path.join('public', `instrument.${type}.${ext}`));
-    }
-  } else {
-    for (const ext of possibleFileExtensions) {
-      relativePaths.push(`sentry.${type}.config.${ext}`);
-    }
-  }
+  const relativePaths = possibleFileExtensions.map(ext => `sentry.${type}.config.${ext}`);
 
   // Get layers from highest priority to lowest
   const layers = [...(nuxt?.options._layers ?? [])].reverse();
@@ -72,15 +59,6 @@ export async function findDefaultSdkInitFile(
 }
 
 export const SERVER_CONFIG_FILENAME = 'sentry.server.config';
-
-/**
- * Whether `findDefaultSdkInitFile('server')` resolved a `sentry.server.config` file.
- *
- * We won't need this helper anymore once we remove support for `public/instrument.server.*` in `findDefaultSdkInitFile()`.
- */
-export function isSentryServerConfigFile(filePath: string): boolean {
-  return path.basename(filePath).startsWith(SERVER_CONFIG_FILENAME);
-}
 
 /** Builds the value for `node --import`. Node reads it as a URL, so it needs forward slashes on Windows too. */
 export function toImportSpecifier(fromDir: string, filePath: string): string {
