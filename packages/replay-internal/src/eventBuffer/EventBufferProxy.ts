@@ -131,9 +131,8 @@ export class EventBufferProxy implements EventBuffer {
       // Can now clear fallback buffer as it's no longer necessary
       this._fallback.clear();
     } catch (error) {
-      // If the worker was intentionally destroyed (e.g. on session expiry) while
-      // events were still being compressed, silently ignore the rejection — it is
-      // expected behaviour and not worth reporting to Sentry.
+      // Destroying the worker (e.g. when the session expires) rejects the
+      // in-flight requests. This is expected teardown, not a failure.
       if (error instanceof WorkerDestroyedError) {
         return;
       }
