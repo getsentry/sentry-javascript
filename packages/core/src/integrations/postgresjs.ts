@@ -1,6 +1,7 @@
 // Portable instrumentation for https://github.com/porsager/postgres
 // This can be used in any environment (Node.js, Cloudflare Workers, etc.)
 // without depending on OpenTelemetry module hooking.
+/* eslint-disable max-lines */
 
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
