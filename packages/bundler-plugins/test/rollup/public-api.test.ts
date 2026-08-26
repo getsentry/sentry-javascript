@@ -9,7 +9,10 @@ const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock,
       babelCoreImportMock: vi.fn(),
       transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
       viteAnnotationModuleImportMock: vi.fn(),
-      viteAnnotationTransformMock: vi.fn(async () => ({ code: 'fast-path', map: null })),
+      viteAnnotationTransformMock: vi.fn(async () => ({
+        code: 'fast-path',
+        map: null,
+      })),
     };
   });
 
@@ -101,6 +104,12 @@ test('uses a Rollup 3-compatible function transform hook for Rollup builds', () 
   expect(typeof vitePlugin.transform).toBe('object');
 });
 
+test('runs Vite 8 debug ID finalization after other generateBundle hooks', () => {
+  const vitePlugin = _rollupPluginInternal({ release: { inject: false } }, 'vite', '8') as Plugin;
+
+  expect(vitePlugin.generateBundle).toMatchObject({ order: 'post' });
+});
+
 describe('sentryRollupPlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,7 +132,7 @@ describe('sentryRollupPlugin', () => {
 describe('Hooks', () => {
   const [plugin] = sentryRollupPlugin({ release: { inject: false } }) as [Plugin];
 
-  const renderChunk = plugin.renderChunk as (
+  const renderChunk = plugin.renderChunk as unknown as (
     code: string,
     chunkInfo: { fileName: string; facadeModuleId?: string },
   ) => {
@@ -294,12 +303,171 @@ bootstrap();`;
       });
 
       it('should inject into regular JS chunks (no HTML facade)', () => {
-        const result = renderChunk(`console.log("Hello");`, { fileName: 'bundle.js' });
+        const result = renderChunk(`console.log("Hello");`, {
+          fileName: 'bundle.js',
+        });
         expect(result).not.toBeNull();
         expect(result?.code).toMatchInlineSnapshot(
           `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79f18a7f-ca16-4168-9797-906c82058367",e._sentryDebugIdIdentifier="sentry-dbid-79f18a7f-ca16-4168-9797-906c82058367");}catch(e){}}();console.log("Hello");"`,
         );
       });
     });
+  });
+});
+
+describe('Rolldown debug ID finalization', () => {
+  const [plugin] = sentryRollupPlugin({
+    release: { inject: false },
+    sourcemaps: { disable: 'disable-upload' },
+  }) as [Plugin];
+  const rolldownContext = { meta: { rolldownVersion: '1.2.3' } };
+  const rollupContext: { meta: { rolldownVersion?: string } } = { meta: {} };
+  const renderChunk = plugin.renderChunk as unknown as (
+    this: typeof rolldownContext,
+    code: string,
+    chunkInfo: { fileName: string },
+  ) => { code: string } | null;
+  const generateBundle = plugin.generateBundle as (
+    this: typeof rollupContext,
+    outputOptions: unknown,
+    bundle: Record<string, { type: 'chunk'; fileName: string; code: string }>,
+  ) => void;
+
+  function extractDebugId(code: string): string {
+    const debugIds = code.match(/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/g);
+    expect(debugIds).toHaveLength(2);
+    expect(new Set(debugIds)).toHaveLength(1);
+
+    return debugIds?.[0] ?? '';
+  }
+
+  function renderAndFinalize(code: string, fileName: string): string {
+    const result = renderChunk.call(rolldownContext, code, { fileName });
+    expect(result).not.toBeNull();
+
+    const bundle = {
+      [fileName]: {
+        type: 'chunk' as const,
+        fileName,
+        code: result?.code || '',
+      },
+    };
+    generateBundle.call(rolldownContext, {}, bundle);
+
+    return bundle[fileName]?.code ?? '';
+  }
+
+  it('defers the debug ID until Rolldown has finalized the chunk', () => {
+    const result = renderChunk.call(rolldownContext, 'console.log("test");', {
+      fileName: 'bundle.js',
+    });
+
+    expect(result?.code).toContain('SENTRY_DEBUG_ID_PLACEHOLDER_00000000');
+
+    const finalizedCode = renderAndFinalize('console.log("test");', 'bundle.js');
+    expect(finalizedCode).not.toContain('SENTRY_DEBUG_ID_PLACEHOLDER_00000000');
+    expect(extractDebugId(finalizedCode)).not.toBe('');
+  });
+
+  it('generates stable IDs from finalized code and filenames', () => {
+    const firstBuild = renderAndFinalize('console.log("test");', 'bundle.js');
+    const secondBuild = renderAndFinalize('console.log("test");', 'bundle.js');
+
+    expect(extractDebugId(firstBuild)).toBe(extractDebugId(secondBuild));
+  });
+
+  it('changes the ID when finalized code changes', () => {
+    const firstBuild = renderAndFinalize('console.log("first");', 'bundle.js');
+    const secondBuild = renderAndFinalize('console.log("second");', 'bundle.js');
+
+    expect(extractDebugId(firstBuild)).not.toBe(extractDebugId(secondBuild));
+  });
+
+  it('assigns different IDs to identical chunks with different filenames', () => {
+    const firstChunk = renderAndFinalize('console.log("test");', 'first.js');
+    const secondChunk = renderAndFinalize('console.log("test");', 'second.js');
+
+    expect(extractDebugId(firstChunk)).not.toBe(extractDebugId(secondChunk));
+  });
+
+  it('does not replace placeholder-shaped strings in user code', () => {
+    const userCode = 'console.log("SENTRY_DEBUG_ID_PLACEHOLDER_00000000");';
+    const finalizedCode = renderAndFinalize(userCode, 'bundle.js');
+
+    expect(finalizedCode).toContain(userCode);
+  });
+
+  it('does not replace placeholder-shaped strings before the injected snippet', () => {
+    const userCode = '// SENTRY_DEBUG_ID_PLACEHOLDER_00000000\nconsole.log("test");';
+    const finalizedCode = renderAndFinalize(userCode, 'bundle.js');
+
+    expect(finalizedCode).toContain('// SENTRY_DEBUG_ID_PLACEHOLDER_00000000');
+    expect(finalizedCode).toContain('console.log("test");');
+    expect(extractDebugId(finalizedCode)).not.toBe('');
+  });
+
+  it('does not replace a marker-shaped string before the injected identifier', () => {
+    const userCode = '// sentry-dbid-SENTRY_DEBUG_ID_PLACEHOLDER_00000000\nconsole.log("test");';
+    const finalizedCode = renderAndFinalize(userCode, 'bundle.js');
+
+    expect(finalizedCode).toContain('// sentry-dbid-SENTRY_DEBUG_ID_PLACEHOLDER_00000000');
+    expect(finalizedCode).toContain('console.log("test");');
+    expect(extractDebugId(finalizedCode)).not.toBe('');
+  });
+
+  it('does not finalize marker-shaped Rollup user code', () => {
+    const code = 'console.log("sentry-dbid-SENTRY_DEBUG_ID_PLACEHOLDER_00000000");';
+    const bundle = {
+      'bundle.js': { type: 'chunk' as const, fileName: 'bundle.js', code },
+    };
+
+    generateBundle.call(rollupContext, {}, bundle);
+
+    expect(bundle['bundle.js'].code).toBe(code);
+  });
+
+  it('fails when the injected debug ID placeholder is incomplete', () => {
+    const bundle = {
+      'bundle.js': {
+        type: 'chunk' as const,
+        fileName: 'bundle.js',
+        code: 'globalThis._sentryDebugIdIdentifier="sentry-dbid-SENTRY_DEBUG_ID_PLACEHOLDER_00000000";',
+      },
+    };
+
+    expect(() => generateBundle.call(rolldownContext, {}, bundle)).toThrow(
+      'Failed to locate the Sentry debug ID placeholder for chunk `bundle.js`.',
+    );
+  });
+
+  it('ignores non-chunk assets', () => {
+    const code = 'sentry-dbid-SENTRY_DEBUG_ID_PLACEHOLDER_00000000';
+    const bundle = {
+      'asset.js': { type: 'asset' as const, fileName: 'asset.js', code },
+    };
+
+    generateBundle.call(rolldownContext, {}, bundle as never);
+
+    expect(bundle['asset.js'].code).toBe(code);
+  });
+
+  it('leaves existing debug IDs untouched in Rolldown', () => {
+    const code = 'globalThis._sentryDebugIdIdentifier="sentry-dbid-f6ccd6f4-7ea0-4854-8384-1c9f8340af81";';
+
+    expect(renderChunk.call(rolldownContext, code, { fileName: 'bundle.js' })).toBeNull();
+  });
+
+  it('does not inject a placeholder when sourcemaps are disabled', () => {
+    const [disabledPlugin] = sentryRollupPlugin({
+      release: { inject: false },
+      sourcemaps: { disable: true },
+    }) as [Plugin];
+    const disabledRenderChunk = disabledPlugin.renderChunk as unknown as typeof renderChunk;
+
+    expect(
+      disabledRenderChunk.call(rolldownContext, 'console.log("test");', {
+        fileName: 'bundle.js',
+      }),
+    ).toBeNull();
   });
 });

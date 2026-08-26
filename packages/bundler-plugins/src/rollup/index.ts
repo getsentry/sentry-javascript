@@ -14,88 +14,28 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
 } from '../core';
-import type {
-  ComponentAnnotationTransformMeta,
-  ComponentAnnotationTransformResult,
-} from '../core/component-annotation-vite';
+import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-vite';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
-import { createRequire } from 'node:module';
+import { finalizeRolldownDebugIds, ROLLDOWN_DEBUG_ID_PLACEHOLDER } from './rolldown-debug-id';
+import { getRollupMajorVersion, hasExistingDebugID } from './utils';
+import { getViteParseAstAsync, type ViteAnnotationHooks } from './vite-annotations';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
 
-type ViteModule = {
-  parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
+type RenderChunkPluginContext = {
+  meta?: {
+    rolldownVersion?: string;
+  };
 };
 
-type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-type ViteAnnotationHooks = {
-  transform(
-    code: string,
-    id: string,
-    meta?: ComponentAnnotationTransformMeta,
-  ): Promise<ComponentAnnotationTransformResult>;
-};
-
-let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
+type GenerateBundlePluginContext = RenderChunkPluginContext;
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
-
-function hasExistingDebugID(code: string): boolean {
-  // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
-  const chunkStartSnippet = code.slice(0, 6000);
-  const chunkEndSnippet = code.slice(-500);
-
-  if (chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=')) {
-    return true; // Debug ID already present, skip injection
-  }
-
-  return false;
-}
-
-function getRollupMajorVersion(): string | undefined {
-  try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore - Rollup already transpiles this for us
-    const req = createRequire(import.meta.url);
-    const rollup = req('rollup') as { VERSION?: string };
-    return rollup.VERSION?.split('.')[0];
-  } catch {
-    // do nothing, we'll just not report a version
-  }
-
-  return undefined;
-}
-
-function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
-  if (!viteParseAstAsyncPromise) {
-    viteParseAstAsyncPromise = Promise.resolve()
-      .then(async () => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Vite is an optional runtime peer for this package
-        const viteModule = createRequire(import.meta.url)('vite') as ViteModule;
-
-        if (typeof viteModule.parseAstAsync !== 'function') {
-          return null;
-        }
-
-        try {
-          await viteModule.parseAstAsync('const x = <div />;', { lang: 'tsx' });
-        } catch {
-          return null;
-        }
-
-        return viteModule.parseAstAsync;
-      })
-      .catch(() => null);
-  }
-
-  return viteParseAstAsyncPromise;
-}
 
 /**
  * @ignore - this is the internal plugin factory function only used for the Vite plugin!
@@ -230,6 +170,7 @@ export function _rollupPluginInternal(
   }
 
   function renderChunk(
+    this: RenderChunkPluginContext | undefined,
     code: string,
     chunk: { fileName: string; facadeModuleId?: string | null },
     _?: unknown,
@@ -250,7 +191,9 @@ export function _rollupPluginInternal(
     const injectCode = staticInjectionCode.clone();
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      const debugId = stringToUUID(code); // generate a deterministic debug ID
+      // Rolldown's renderChunk code contains temporary hash placeholders whose values can vary between builds.
+      // The fixed-width placeholder is replaced after Rolldown resolves them, without shifting source map positions.
+      const debugId = this?.meta?.rolldownVersion ? ROLLDOWN_DEBUG_ID_PLACEHOLDER : stringToUUID(code);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
@@ -280,8 +223,23 @@ export function _rollupPluginInternal(
 
     return {
       code: ms.toString(),
-      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' as unknown as undefined }),
+      map: ms.generateMap({
+        file: chunk.fileName,
+        hires: 'boundary' as unknown as undefined,
+      }),
     };
+  }
+
+  function generateBundle(
+    this: GenerateBundlePluginContext | undefined,
+    _outputOptions: unknown,
+    bundle: Parameters<typeof finalizeRolldownDebugIds>[0],
+  ): void {
+    if (!this?.meta?.rolldownVersion) {
+      return;
+    }
+
+    finalizeRolldownDebugIds(bundle);
   }
 
   async function writeBundle(
@@ -302,7 +260,9 @@ export function _rollupPluginInternal(
             '/**/*.mjs.map',
             '/**/*.cjs.map',
           ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
-          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
+          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, {
+            root: outputDir,
+          });
           await upload(buildArtifacts);
         } else if (outputOptions.file) {
           await upload([outputOptions.file]);
@@ -318,6 +278,10 @@ export function _rollupPluginInternal(
   }
 
   const name = `sentry-${buildTool}-plugin`;
+  const generateBundleHook =
+    buildTool === 'vite' && buildToolMajorVersion === '8'
+      ? { order: 'post' as const, handler: generateBundle }
+      : generateBundle;
 
   if (shouldTransform) {
     const transformHook =
@@ -333,6 +297,7 @@ export function _rollupPluginInternal(
       buildStart,
       transform: transformHook,
       renderChunk,
+      generateBundle: generateBundleHook,
       writeBundle,
     };
   }
@@ -341,6 +306,7 @@ export function _rollupPluginInternal(
     name,
     buildStart,
     renderChunk,
+    generateBundle: generateBundleHook,
     writeBundle,
   };
 }
