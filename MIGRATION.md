@@ -793,6 +793,7 @@ The following span names were adjusted:
 | Span op                                                                  | Before                                                                                                                      | After                                                                                                                    |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                               |
+| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                        |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                 |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)     |
 | `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                               |
@@ -800,6 +801,8 @@ The following span names were adjusted:
 | `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                          |
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
+
+`http.server` requests that resolve to a route are **unchanged** — those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
 
 Some consequences to be aware of:
 
@@ -830,6 +833,29 @@ Sentry.init({
   ignoreSpans: [{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
 });
 ```
+
+The same applies to `tracesSampler`, which also runs at span start. A web framework matches the route
+_after_ that point, so an `http.server` span is named `GET` when your rule is evaluated — never
+`GET /health`. Name-based rules stop matching **silently**: no error, no warning, just unexpected quota
+usage. No route attribute is set at that point either, so match on `url.path`:
+
+```js
+Sentry.init({
+  // Before
+  tracesSampler: ({ name, inheritOrSampleWith }) => inheritOrSampleWith(name === 'GET /health' ? 0 : 1),
+
+  // After
+  tracesSampler: ({ attributes, inheritOrSampleWith }) =>
+    inheritOrSampleWith(attributes?.['url.path'] === '/health' ? 0 : 1),
+});
+```
+
+On `@sentry/nextjs` the incoming-request span comes from Next.js' own OpenTelemetry instrumentation, so
+match on `url.full` or `http.target` if `url.path` is absent. `normalizedRequest.url` is also available on
+the sampling context.
+
+Error grouping is **not** affected by the `http.server` change: the scope's transaction name still holds
+the full `${method} ${path}`.
 
 ### AI integrations no longer trace non-inference operations
 
