@@ -1849,7 +1849,7 @@
   resolved "https://registry.yarnpkg.com/@babel/helper-validator-identifier/-/helper-validator-identifier-7.29.7.tgz#bd87084ced0c796ec46bda492de6e83d29e89fc2"
   integrity sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==
 
-"@babel/helper-validator-option@^7.18.6", "@babel/helper-validator-option@^7.27.1", "@babel/helper-validator-option@^7.29.7":
+"@babel/helper-validator-option@^7.18.6", "@babel/helper-validator-option@^7.29.7":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/helper-validator-option/-/helper-validator-option-7.29.7.tgz#cf315be940213b354eb4abcc0bd01ebe3f73bc2a"
   integrity sha512-N9ZErrD+yW5geCDtBqnOoxmR8+tNKiGuxKlDpuJxfsqpa2dFcexaziGAE/qoHLiDDreVNMupxGmSoNlyvsA3gw==
@@ -2416,7 +2416,7 @@
     "@babel/helper-module-transforms" "^7.29.7"
     "@babel/helper-plugin-utils" "^7.29.7"
 
-"@babel/plugin-transform-modules-commonjs@^7.18.6", "@babel/plugin-transform-modules-commonjs@^7.27.1", "@babel/plugin-transform-modules-commonjs@^7.29.7":
+"@babel/plugin-transform-modules-commonjs@^7.18.6", "@babel/plugin-transform-modules-commonjs@^7.29.7":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/plugin-transform-modules-commonjs/-/plugin-transform-modules-commonjs-7.29.7.tgz#70e6835abf2663dafbe94b8ef1f51de7351ef135"
   integrity sha512-j0vCldybPC5b5dwCQOJ21uKtHzt7hxLygJTg9eF1ScfaikEDNfzn94XoW5Fi+seBR0nCyL23xaBFFkq7dTM8XQ==
@@ -2651,7 +2651,7 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.29.7"
 
-"@babel/plugin-transform-typescript@^7.16.8", "@babel/plugin-transform-typescript@^7.20.13", "@babel/plugin-transform-typescript@^7.28.5", "@babel/plugin-transform-typescript@^7.28.6", "@babel/plugin-transform-typescript@^7.29.7":
+"@babel/plugin-transform-typescript@^7.16.8", "@babel/plugin-transform-typescript@^7.20.13", "@babel/plugin-transform-typescript@^7.28.6", "@babel/plugin-transform-typescript@^7.29.7":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/plugin-transform-typescript/-/plugin-transform-typescript-7.29.7.tgz#f0449c3df7037bbe232043476851c38f5e4a7615"
   integrity sha512-jK52h8LaLc7JarhQV2ofeFMts4H7vnOXnqZNA6fYglBTZewRBE51KWt3BUltW1P+KoPsYkHoJeXePuz4zo2LMw==
@@ -2883,18 +2883,7 @@
     "@babel/plugin-transform-react-jsx-development" "^7.29.7"
     "@babel/plugin-transform-react-pure-annotations" "^7.29.7"
 
-"@babel/preset-typescript@^7.16.7":
-  version "7.28.5"
-  resolved "https://registry.yarnpkg.com/@babel/preset-typescript/-/preset-typescript-7.28.5.tgz#540359efa3028236958466342967522fd8f2a60c"
-  integrity sha512-+bQy5WOI2V6LJZpPVxY+yp66XdZ2yifu0Mc1aP5CQKgjn4QM5IN2i5fAZ4xKop47pr8rpVhiAeu+nDQa12C8+g==
-  dependencies:
-    "@babel/helper-plugin-utils" "^7.27.1"
-    "@babel/helper-validator-option" "^7.27.1"
-    "@babel/plugin-syntax-jsx" "^7.27.1"
-    "@babel/plugin-transform-modules-commonjs" "^7.27.1"
-    "@babel/plugin-transform-typescript" "^7.28.5"
-
-"@babel/preset-typescript@^7.29.7":
+"@babel/preset-typescript@^7.16.7", "@babel/preset-typescript@^7.29.7":
   version "7.29.7"
   resolved "https://sfw.security.sentry.io/npm/@babel/preset-typescript/-/preset-typescript-7.29.7.tgz#de9be1f47b785c979ec7b3a71f4cd8bae5267b62"
   integrity sha512-/Foi8vKY2EVbed/1eZx0gJEEwHAIxogrySI7rULcRIvhZzbvoE/b5qG5Ghc0WKAFKOHA9SD1x7RsFlOYdutIiQ==
@@ -18097,12 +18086,7 @@ isarray@~1.0.0:
   resolved "https://registry.yarnpkg.com/isarray/-/isarray-1.0.0.tgz#bb935d48582cba168c06834957a54a3e07124f11"
   integrity sha1-u5NdSFgsuhaMBoNJV6VKPgcSTxE=
 
-isbot@^5.1.22:
-  version "5.1.34"
-  resolved "https://registry.yarnpkg.com/isbot/-/isbot-5.1.34.tgz#219ee5b4c8c6bbc092e722c0f8d775a3bad17f8b"
-  integrity sha512-aCMIBSKd/XPRYdiCQTLC8QHH4YT8B3JUADu+7COgYIZPvkeoMcUHMRjZLM9/7V8fCj+l7FSREc1lOPNjzogo/A==
-
-isbot@^5.1.40:
+isbot@^5.1.22, isbot@^5.1.40:
   version "5.2.1"
   resolved "https://sfw.security.sentry.io/npm/isbot/-/isbot-5.2.1.tgz#2bf32184192bdd3352debdbb8bd0b549ac0bb2cf"
   integrity sha512-dJ+LpKyClQZ7NG+j3OensC/mAZkGpukE9YUrgPYvAZj2doVL0edfDgywTUh5CXa0o+nW9a1V9e5+CJTX8+SxRw==
