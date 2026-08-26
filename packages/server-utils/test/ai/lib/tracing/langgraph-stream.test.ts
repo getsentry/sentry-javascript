@@ -294,6 +294,8 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     const reader = instrumentedStream.getReader();
 
     expect(() => instrumentedStream.pipeThrough(new TransformStream())).toThrow(TypeError);
+    expect(spanSetStatus).not.toHaveBeenCalled();
+    expect(spanEnd).not.toHaveBeenCalled();
 
     reader.releaseLock();
   });
@@ -308,6 +310,8 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     const instrumentedStream = await graph.stream();
 
     expect(() => instrumentedStream.pipeThrough(transform)).toThrow(TypeError);
+    expect(spanSetStatus).not.toHaveBeenCalled();
+    expect(spanEnd).not.toHaveBeenCalled();
 
     writer.releaseLock();
   });

@@ -217,7 +217,6 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
         options?: StreamPipeOptions,
       ): ReadableStream<unknown> => {
         if (stream.locked || transform.writable.locked) {
-          lifecycle.fail();
           throw new TypeError('Cannot pipe through a locked stream.');
         }
 
