@@ -1291,7 +1291,7 @@ moved under the `webpack` option in v10; use the replacement listed below instea
 
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### Removed `unstable_` bundler plugin options
 
@@ -1299,14 +1299,14 @@ The `unstable_sentry*PluginOptions` escape hatch was removed from every SDK. It 
 bundler plugins shipped on a separate release cadence from the SDK; they now live in the SDK monorepo and
 move in lockstep, so every supported plugin option is reachable as a first-class build option.
 
-| SDK                    | Removed option                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `@sentry/astro`        | `unstable_sentryVitePluginOptions` (top-level and inside `sourceMapsUploadOptions`) |
-| `@sentry/nextjs`       | `unstable_sentryWebpackPluginOptions` (top-level and inside `webpack`)              |
-| `@sentry/nuxt`         | `unstable_sentryBundlerPluginOptions`                                               |
-| `@sentry/react-router` | `unstable_sentryVitePluginOptions`                                                  |
-| `@sentry/solidstart`   | `unstable_sentryVitePluginOptions`                                                  |
-| `@sentry/sveltekit`    | `unstable_sentryVitePluginOptions`                                                  |
+| SDK                    | Removed option                                                         |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `@sentry/astro`        | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/nextjs`       | `unstable_sentryWebpackPluginOptions` (top-level and inside `webpack`) |
+| `@sentry/nuxt`         | `unstable_sentryBundlerPluginOptions`                                  |
+| `@sentry/react-router` | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/solidstart`   | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/sveltekit`    | `unstable_sentryVitePluginOptions`                                     |
 
 Set the option you need directly on the Sentry build options instead. Most real-world usage of this escape
 hatch was to set `applicationKey`, which has a top-level equivalent in every SDK:
@@ -1407,6 +1407,33 @@ export default defineConfig({
   - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
 
 ### `@sentry/astro`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryAstro()`. Move its fields to the top level of the `sentryAstro()` options. Note that `assets` and `filesToDeleteAfterUpload` moved into `sourcemaps`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  integrations: [
+    sentry({
+      // before
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        assets: ['./dist/**/*'],
+      },
+
+      // after
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        assets: ['./dist/**/*'],
+      },
+    }),
+  ],
+});
+```
 
 Runtime SDK options (`dsn`, `environment`, `release` as a string, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate`, `replaysOnErrorSampleRate`) can no longer be passed to `sentryAstro()`. Configure them in `sentry.client.config.ts` / `sentry.server.config.ts` instead. `release` and `debug` on `sentryAstro()` are now build-time options (`release` for source map uploads, `debug` for build-time logging). If no config files exist, the generated default init snippets still pick them up (`release.name` as the runtime `release`, `debug` for SDK debug logging). The generated client snippet now always includes the `Replay` integration with default sample rates — to customize or remove it (previously done by setting both replay sample rates to `0`), create a `sentry.client.config.ts`.
 
