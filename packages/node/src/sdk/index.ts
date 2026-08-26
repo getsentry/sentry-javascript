@@ -169,8 +169,6 @@ function _init(
   ) {
     registerDiagnosticsChannelInjection();
   }
-    registerDiagnosticsChannelInjection();
-  }
 
   // Only use Node SDK defaults if none provided.
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
