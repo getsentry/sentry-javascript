@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBuildLogger } from '../buildLogger';
 import type { RouteInfo, RouteManifest } from './types';
 
 /**
@@ -25,6 +26,10 @@ export type CreateRouteManifestOptions = {
    * Pass an empty array to disable optional prefix matching entirely.
    */
   localeParamNames?: string[];
+  /**
+   * Suppresses the SDK's own build-time logs.
+   */
+  silent?: boolean;
 };
 
 let manifestCache: RouteManifest | null = null;
@@ -149,6 +154,7 @@ function scanAppDirectory(
   basePath: string = '',
   includeRouteGroups: boolean = false,
   localeParamNames: string[] = DEFAULT_LOCALE_PARAM_NAMES,
+  silent?: boolean,
 ): RouteManifest {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
@@ -207,7 +213,7 @@ function scanAppDirectory(
         }
 
         const newBasePath = routeSegment ? `${basePath}/${routeSegment}` : basePath;
-        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups, localeParamNames);
+        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups, localeParamNames, silent);
 
         dynamicRoutes.push(...subRoutes.dynamicRoutes);
         staticRoutes.push(...subRoutes.staticRoutes);
@@ -215,8 +221,7 @@ function scanAppDirectory(
       }
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Error building route manifest:', error);
+    getBuildLogger(silent).warn('[@sentry/nextjs] Error building route manifest:', error);
   }
 
   return { dynamicRoutes, staticRoutes, isrRoutes };
@@ -267,6 +272,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     options?.basePath,
     options?.includeRouteGroups,
     localeParamNames,
+    options?.silent,
   );
 
   const manifest: RouteManifest = {
