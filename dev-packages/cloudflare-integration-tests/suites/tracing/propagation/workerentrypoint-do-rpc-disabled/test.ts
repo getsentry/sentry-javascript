@@ -2,10 +2,9 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
 
-it('does not propagate trace when rpcTracePropagationBindings is empty (WorkerEntrypoint)', async ({ signal }) => {
-  let workerTraceId: string | undefined;
-  let doTraceId: string | undefined;
-
+it('does not trace an RPC method call when rpcTracePropagationBindings is empty (WorkerEntrypoint)', async ({
+  signal,
+}) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as Event;
@@ -13,54 +12,30 @@ it('does not propagate trace when rpcTracePropagationBindings is empty (WorkerEn
       expect(transactionEvent).toEqual(
         expect.objectContaining({
           contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-            }),
+            trace: expect.objectContaining({ op: 'http.server' }),
           }),
+          transaction: 'GET /rpc/hello',
         }),
       );
-
-      const txName = transactionEvent.transaction as string;
-      const traceId = transactionEvent.contexts?.trace?.trace_id as string;
-
-      if (txName === 'GET /do/hello') {
-        workerTraceId = traceId;
-      } else if (txName === 'GET /hello') {
-        doTraceId = traceId;
-      }
     })
+    // Ordered: a `sayHello` transaction from the receiver would arrive here and fail this
+    // expectation. Without the trailing Sentry argument the receiver never traces the call.
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as Event;
 
       expect(transactionEvent).toEqual(
         expect.objectContaining({
           contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-            }),
+            trace: expect.objectContaining({ op: 'http.server' }),
           }),
+          transaction: 'GET /sentinel',
         }),
       );
-
-      const txName = transactionEvent.transaction as string;
-      const traceId = transactionEvent.contexts?.trace?.trace_id as string;
-
-      if (txName === 'GET /do/hello') {
-        workerTraceId = traceId;
-      } else if (txName === 'GET /hello') {
-        doTraceId = traceId;
-      }
     })
-    .unordered()
     .start(signal);
 
-  const response = await runner.makeRequest<string>('get', '/do/hello');
-  expect(response).toBe('Hello, World!');
+  expect(await runner.makeRequest<string>('get', '/rpc/hello')).toBe('Hello, World!');
+  expect(await runner.makeRequest<string>('get', '/sentinel')).toBe('Sentinel');
 
   await runner.completed();
-
-  // Both transactions should exist but have different trace IDs (no propagation)
-  expect(workerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workerTraceId).not.toBe(doTraceId);
 });
