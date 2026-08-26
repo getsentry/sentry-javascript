@@ -261,7 +261,7 @@ it('does not change RPC method arguments for a binding left off the allowlist', 
   await runner.completed();
 });
 
-it('does not inject RPC trace metadata into receiver calls when rpcTracePropagationTargets is empty', async ({
+it('does not inject RPC trace metadata into receiver calls when rpcTracePropagationBindings is empty', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)

@@ -74,7 +74,7 @@ describe('instrumentEnv', () => {
     expect(instrumented.UNKNOWN).toBe(unknownBinding);
   });
 
-  it('does not instrument DurableObjectNamespace when rpcTracePropagationTargets is empty', () => {
+  it('does not instrument DurableObjectNamespace when rpcTracePropagationBindings is empty', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -93,7 +93,7 @@ describe('instrumentEnv', () => {
     const allowed = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
     const denied = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
     const env = { COUNTER: allowed, SESSIONS: denied };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: ['COUNTER'] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: ['COUNTER'] });
 
     expect((instrumented.COUNTER as any).__instrumented).toBe(true);
     expect(instrumented.SESSIONS).toBe(denied);
@@ -104,7 +104,7 @@ describe('instrumentEnv', () => {
   it('matches allowlisted binding names exactly rather than as substrings', () => {
     const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
     const env = { MY_COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: ['COUNTER'] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: ['COUNTER'] });
 
     expect(instrumented.MY_COUNTER).toBe(doNamespace);
   });
@@ -112,12 +112,12 @@ describe('instrumentEnv', () => {
   it('supports regular expressions in the allowlist', () => {
     const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
     const env = { SVC_ORDERS: doNamespace };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/^SVC_/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/^SVC_/] });
 
     expect((instrumented.SVC_ORDERS as any).__instrumented).toBe(true);
   });
 
-  it('detects and instruments DurableObjectNamespace bindings when rpcTracePropagationTargets matches', () => {
+  it('detects and instruments DurableObjectNamespace bindings when rpcTracePropagationBindings matches', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -125,7 +125,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     const result = instrumented.COUNTER;
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
@@ -140,7 +140,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     const first = instrumented.COUNTER;
     const second = instrumented.COUNTER;
@@ -163,7 +163,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace1, SESSIONS: doNamespace2 };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     instrumented.COUNTER;
     instrumented.SESSIONS;
@@ -173,7 +173,7 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace2);
   });
 
-  it('does not wrap JSRPC proxy when rpcTracePropagationTargets is empty', () => {
+  it('does not wrap JSRPC proxy when rpcTracePropagationBindings is empty', () => {
     const mockFetch = vi.fn();
     const jsrpcProxy = new Proxy(
       { fetch: mockFetch },
@@ -196,7 +196,7 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
   });
 
-  it('wraps JSRPC proxy with a Proxy that instruments fetch when rpcTracePropagationTargets matches', () => {
+  it('wraps JSRPC proxy with a Proxy that instruments fetch when rpcTracePropagationBindings matches', () => {
     const mockFetch = vi.fn();
     const jsrpcProxy = new Proxy(
       { fetch: mockFetch },
@@ -211,7 +211,7 @@ describe('instrumentEnv', () => {
       },
     );
     const env = { SERVICE: jsrpcProxy };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     const result = instrumented.SERVICE;
     // Should NOT be the same reference — it's wrapped in a Proxy
@@ -276,7 +276,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { MY_QUEUE: queue, COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     // Access both — DO instrumentation only fires on property access
     expect(instrumented.MY_QUEUE).not.toBe(queue);
@@ -370,7 +370,7 @@ describe('instrumentEnv', () => {
       );
     }
 
-    it('does not instrument mTLS Fetcher when rpcTracePropagationTargets is empty', () => {
+    it('does not instrument mTLS Fetcher when rpcTracePropagationBindings is empty', () => {
       const mockFetch = vi.fn();
       const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
       const env = { MY_CERT: mtlsFetcher };
@@ -389,7 +389,7 @@ describe('instrumentEnv', () => {
       const mockFetch = vi.fn().mockResolvedValue(new Response('mtls-response'));
       const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
       const env = { MY_CERT: mtlsFetcher };
-      const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       const response = await instrumented.MY_CERT.fetch('https://example.com/api', {
         headers: { Authorization: 'Bearer client-cert-token' },
@@ -406,7 +406,7 @@ describe('instrumentEnv', () => {
   });
 
   describe('JSRPC RPC method instrumentation', () => {
-    it('does not inject Sentry RPC meta by default (rpcTracePropagationTargets not set)', () => {
+    it('does not inject Sentry RPC meta by default (rpcTracePropagationBindings not set)', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -429,11 +429,11 @@ describe('instrumentEnv', () => {
 
       instrumented.SERVICE.myRpcMethod('arg1', 42);
 
-      // Without rpcTracePropagationTargets, no metadata should be injected
+      // Without rpcTracePropagationBindings, no metadata should be injected
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
     });
 
-    it('injects Sentry RPC meta when rpcTracePropagationTargets matches', () => {
+    it('injects Sentry RPC meta when rpcTracePropagationBindings matches', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -452,7 +452,7 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.myRpcMethod('arg1', 42);
 
@@ -483,7 +483,7 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.fetch('https://example.com');
 
@@ -508,7 +508,7 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: [/.*/] });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.myRpcMethod('arg1');
 
@@ -540,7 +540,7 @@ describe('instrumentEnv', () => {
         );
 
       const env = { ORDERS: createJsrpcBinding(allowedMethod), EXTERNAL: createJsrpcBinding(deniedMethod) };
-      const instrumented = instrumentEnv(env, { rpcTracePropagationTargets: ['ORDERS'] });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: ['ORDERS'] });
 
       instrumented.ORDERS.myRpcMethod('first');
       instrumented.EXTERNAL.myRpcMethod('first');

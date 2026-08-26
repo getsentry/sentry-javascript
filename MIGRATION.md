@@ -1322,14 +1322,14 @@ Sentry.httpIntegration({
   );
 ```
 
-- The `enableRpcTracePropagation` option was removed. Trace context is no longer propagated to every binding on `env`. List the bindings you call in `rpcTracePropagationTargets` instead. Strings match a binding name exactly, regular expressions match by pattern. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
+- The `enableRpcTracePropagation` option was removed. Trace context is no longer propagated to every binding on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings match a binding name exactly, regular expressions match by pattern. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
 
 ```diff
   export default Sentry.withSentry(
     (env) => ({
       dsn: env.SENTRY_DSN,
 -     enableRpcTracePropagation: true,
-+     rpcTracePropagationTargets: ['ORDERS', /^SVC_/],
++     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
     }),
     handler,
   );

@@ -10,7 +10,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    rpcTracePropagationTargets: ['ANOTHER_WORKER'],
+    rpcTracePropagationBindings: ['ANOTHER_WORKER'],
   }),
   {
     async fetch(request, env) {

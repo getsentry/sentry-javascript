@@ -35,7 +35,7 @@ export default Sentry.withSentry(
     // Targeted by binding name. Two bindings are deliberately left out:
     // `SUB_WORKER_UNINSTRUMENTED`, whose receiver has no Sentry to strip a trailing metadata
     // argument, and `SUB_WORKER_NO_PROPAGATION`, which covers the untargeted-binding path.
-    rpcTracePropagationTargets: ['SUB_WORKER'],
+    rpcTracePropagationBindings: ['SUB_WORKER'],
   }),
   {
     async fetch(request, env, ctx) {

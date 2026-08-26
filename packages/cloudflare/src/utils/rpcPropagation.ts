@@ -11,13 +11,13 @@ const PROPAGATE_TO_NONE = () => false;
  * match against.
  */
 export function createRpcPropagationResolver(options: CloudflareOptions | undefined): (bindingName: string) => boolean {
-  const targets = options?.rpcTracePropagationTargets;
+  const bindings = options?.rpcTracePropagationBindings;
 
-  if (!targets?.length) {
+  if (!bindings?.length) {
     return PROPAGATE_TO_NONE;
   }
 
   // Strings must match a binding name exactly, without this, an entry of `DB` would also enable
   // propagation for a binding named `MY_DB`. Regular expressions still give pattern matching.
-  return (bindingName: string) => stringMatchesSomePattern(bindingName, targets, true);
+  return (bindingName: string) => stringMatchesSomePattern(bindingName, bindings, true);
 }

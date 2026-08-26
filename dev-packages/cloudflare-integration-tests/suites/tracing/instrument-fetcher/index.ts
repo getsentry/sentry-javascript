@@ -33,7 +33,7 @@ export default withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    rpcTracePropagationTargets: ['ECHO_HEADERS_DO'],
+    rpcTracePropagationBindings: ['ECHO_HEADERS_DO'],
   }),
   {
     async fetch(request, env) {

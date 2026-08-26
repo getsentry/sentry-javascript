@@ -50,7 +50,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    rpcTracePropagationTargets: ['MY_DURABLE_OBJECT'],
+    rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   MyWorkerEntrypointBase,
 );

@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
+import type { ClientOptions, Options, ServerRuntimeClientOptions, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -347,13 +347,13 @@ interface BaseCloudflareOptions {
    * export default Sentry.withSentry(
    *   env => ({
    *     dsn: env.SENTRY_DSN,
-   *     rpcTracePropagationTargets: ['ORDERS', /^SVC_/],
+   *     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
    *   }),
    *   handler,
    * );
    * ```
    */
-  rpcTracePropagationTargets?: Array<string | RegExp>;
+  rpcTracePropagationBindings?: TracePropagationTargets;
 
   /**
    * Table names that should stay instrumented even though they match the reserved `cf_` prefix used

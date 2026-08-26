@@ -9,20 +9,20 @@ describe('createRpcPropagationResolver', () => {
   });
 
   it('propagates to nothing when the option is unset', () => {
-    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationTargets: undefined });
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: undefined });
 
     expect(shouldPropagate('MY_DO')).toBe(false);
     expect(shouldPropagate('EXTERNAL')).toBe(false);
   });
 
   it('propagates to nothing for an empty target list', () => {
-    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationTargets: [] });
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: [] });
 
     expect(shouldPropagate('MY_DO')).toBe(false);
   });
 
   it('propagates only to the targeted binding names', () => {
-    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationTargets: ['MY_DO', 'EXTERNAL'] });
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: ['MY_DO', 'EXTERNAL'] });
 
     expect(shouldPropagate('MY_DO')).toBe(true);
     expect(shouldPropagate('EXTERNAL')).toBe(true);
@@ -30,7 +30,7 @@ describe('createRpcPropagationResolver', () => {
   });
 
   it('matches binding names exactly, never as a substring', () => {
-    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationTargets: ['DB'] });
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: ['DB'] });
 
     expect(shouldPropagate('DB')).toBe(true);
     expect(shouldPropagate('MY_DB')).toBe(false);
@@ -38,7 +38,7 @@ describe('createRpcPropagationResolver', () => {
   });
 
   it('supports regular expressions for pattern matching', () => {
-    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationTargets: [/^SVC_/] });
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: [/^SVC_/] });
 
     expect(shouldPropagate('SVC_ORDERS')).toBe(true);
     expect(shouldPropagate('SVC_USERS')).toBe(true);

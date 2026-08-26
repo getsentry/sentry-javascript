@@ -41,7 +41,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    rpcTracePropagationTargets: ['TEST_DURABLE_OBJECT'],
+    rpcTracePropagationBindings: ['TEST_DURABLE_OBJECT'],
   }),
   {
     async fetch(_request: Request, env: Env): Promise<Response> {
