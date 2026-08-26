@@ -15,30 +15,30 @@ describe('fastify v5 auto-instrumentation', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 op: 'middleware',
-                origin: 'auto.http.otel.fastify',
+                origin: 'auto.http.fastify',
                 data: expect.objectContaining({
                   'fastify.type': 'hook',
                   'sentry.op': 'middleware',
-                  'sentry.origin': 'auto.http.otel.fastify',
+                  'sentry.origin': 'auto.http.fastify',
                 }),
               }),
               // Route-level hooks have no `op`, so the span name falls back to `${hook} - ${handler}`
               // using the original hook identifier (not the prefixed `hook.name` attribute).
               expect.objectContaining({
                 description: 'preHandler - routePreHandler',
-                origin: 'auto.http.otel.fastify',
+                origin: 'auto.http.fastify',
                 data: expect.objectContaining({
                   'fastify.type': 'route-hook',
                   'hook.callback.name': 'routePreHandler',
-                  'sentry.origin': 'auto.http.otel.fastify',
+                  'sentry.origin': 'auto.http.fastify',
                 }),
               }),
               expect.objectContaining({
                 op: 'handler',
-                origin: 'auto.http.otel.fastify',
+                origin: 'auto.http.fastify',
                 data: expect.objectContaining({
                   'sentry.op': 'handler',
-                  'sentry.origin': 'auto.http.otel.fastify',
+                  'sentry.origin': 'auto.http.fastify',
                 }),
               }),
               expect.objectContaining({
