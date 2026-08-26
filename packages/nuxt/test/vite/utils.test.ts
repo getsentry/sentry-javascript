@@ -1,5 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
 import * as fs from 'fs';
+import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   addOTelCommonJSImportAlias,
@@ -8,11 +9,13 @@ import {
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
+  isSentryServerConfigFile,
   QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
   SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
   SENTRY_WRAPPED_FUNCTIONS,
+  toImportSpecifier,
 } from '../../src/vite/utils';
 
 const resolvePathMock = vi.hoisted(() => vi.fn());
@@ -187,6 +190,36 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+  });
+});
+
+describe('isSentryServerConfigFile', () => {
+  it.each(['/my/app/sentry.server.config.ts', '/my/app/sentry.server.config.js', '/my/app/sentry.server.config.mts'])(
+    'returns true for %s',
+    filePath => {
+      expect(isSentryServerConfigFile(filePath)).toBe(true);
+    },
+  );
+
+  it('returns false for an instrument.server file', () => {
+    expect(isSentryServerConfigFile('/my/app/public/instrument.server.ts')).toBe(false);
+  });
+
+  it('only matches the basename', () => {
+    expect(isSentryServerConfigFile('/my.server.config.app/public/instrument.server.ts')).toBe(false);
+  });
+});
+
+describe('toImportSpecifier', () => {
+  it('builds a relative specifier Node accepts', () => {
+    expect(toImportSpecifier(path.join('/my', 'app'), path.join('/my', 'app', '.nuxt', 'dev', 'config.mjs'))).toBe(
+      './.nuxt/dev/config.mjs',
+    );
+  });
+
+  // On Windows `path.relative` returns backslashes, which Node rejects in an import specifier.
+  it('rewrites backslash separators to forward slashes', () => {
+    expect(toImportSpecifier('/my/app', '/my/app/.nuxt\\dev\\config.mjs')).toBe('./.nuxt/dev/config.mjs');
   });
 });
 

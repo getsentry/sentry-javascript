@@ -38,6 +38,7 @@ export async function findDefaultSdkInitFile(
   if (type === 'server') {
     for (const ext of possibleFileExtensions) {
       relativePaths.push(`sentry.${type}.config.${ext}`);
+      // TODO: instrument.server could be removed - in the docs/wizard we only provide sentry.server.config.[ext]
       relativePaths.push(path.join('public', `instrument.${type}.${ext}`));
     }
   } else {
@@ -68,6 +69,22 @@ export async function findDefaultSdkInitFile(
   }
 
   return undefined;
+}
+
+export const SERVER_CONFIG_FILENAME = 'sentry.server.config';
+
+/**
+ * Whether `findDefaultSdkInitFile('server')` resolved a `sentry.server.config` file.
+ *
+ * We won't need this helper anymore once we remove support for `public/instrument.server.*` in `findDefaultSdkInitFile()`.
+ */
+export function isSentryServerConfigFile(filePath: string): boolean {
+  return path.basename(filePath).startsWith(SERVER_CONFIG_FILENAME);
+}
+
+/** Builds the value for `node --import`. Node reads it as a URL, so it needs forward slashes on Windows too. */
+export function toImportSpecifier(fromDir: string, filePath: string): string {
+  return `./${path.relative(fromDir, filePath).split(/[\\/]/).join('/')}`;
 }
 
 /**

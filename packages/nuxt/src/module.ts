@@ -13,13 +13,25 @@ import type {} from '@nuxt/nitro-server';
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import {
+  addDevServerConfigFile,
+  addDynamicImportEntryFileWrapper,
+  addSentryTopImport,
+  addServerConfigToBuild,
+  DEV_SERVER_CONFIG_PATH,
+} from './vite/addServerConfig';
 import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
+import {
+  addOTelCommonJSImportAlias,
+  findDefaultSdkInitFile,
+  getNitroMajorVersion,
+  isSentryServerConfigFile,
+  toImportSpecifier,
+} from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -113,6 +125,11 @@ export default defineNuxtModule<ModuleOptions>({
       addMiddlewareImports();
       addStorageInstrumentation(nuxt, !isNitroV3);
       addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
+
+      // Outside `nitro:init` so that `nuxt prepare` writes the file before the first `nuxt dev`.
+      if (isNitroV3 && isSentryServerConfigFile(serverConfigFile)) {
+        addDevServerConfigFile(nuxt, serverConfigFile);
+      }
     }
 
     if (clientConfigFile || serverConfigFile) {
@@ -179,7 +196,7 @@ export default defineNuxtModule<ModuleOptions>({
         addMiddlewareInstrumentation(nitro);
       }
 
-      if (serverConfigFile?.includes('.server.config')) {
+      if (serverConfigFile && isSentryServerConfigFile(serverConfigFile)) {
         consoleSandbox(() => {
           const serverDir = nitro.options.output.serverDir;
 
@@ -201,14 +218,20 @@ export default defineNuxtModule<ModuleOptions>({
         });
 
         if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
+          // Nitro 3 (in Nuxt 5) is not bundled in dev mode. See `addDevServerConfigFile` for how we add the file now.
+          if (!(isNitroV3 && nitro.options.dev)) {
+            addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
+          }
 
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
             const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
 
             // For the default nitro node-preset build output this relative path would be: ./.output/server/sentry.server.config.mjs
-            const serverConfigRelativePath = `.${path.sep}${path.relative(nitro.options.rootDir, serverConfigPath)}`;
+            const serverConfigRelativePath = toImportSpecifier(nitro.options.rootDir, serverConfigPath);
+            const devConfigRelativePath = isNitroV3
+              ? toImportSpecifier(nuxt.options.rootDir, path.join(nuxt.options.buildDir, DEV_SERVER_CONFIG_PATH))
+              : serverConfigRelativePath;
 
             consoleSandbox(() => {
               // eslint-disable-next-line no-console
@@ -219,7 +242,7 @@ export default defineNuxtModule<ModuleOptions>({
               if (nitro.options.dev) {
                 // eslint-disable-next-line no-console
                 console.log(
-                  `[Sentry] During development, preload Sentry with the NODE_OPTIONS environment variable: \`NODE_OPTIONS='--import ${serverConfigRelativePath}' nuxt dev\`. The file is generated in the build directory (usually '.nuxt'). If you delete the build directory, run \`nuxt dev\` to regenerate it.`,
+                  `[Sentry] During development, preload Sentry with the NODE_OPTIONS environment variable: \`NODE_OPTIONS='--import ${devConfigRelativePath}' nuxt dev\`. The file is generated in the build directory (usually '.nuxt'). If you delete the build directory, run \`nuxt prepare\` to regenerate it.`,
                 );
               } else {
                 // eslint-disable-next-line no-console
