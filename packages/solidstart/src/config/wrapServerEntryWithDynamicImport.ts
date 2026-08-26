@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { consoleSandbox } from '@sentry/core';
 import type { InputPluginOption } from 'rollup';
@@ -57,8 +58,7 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         }
       }
 
-      const normalizedForCheck = normalizedSource.replace(/\\/g, '/');
-      if (normalizedForCheck.includes(`/${serverConfigFileName}`)) {
+      if (basename(normalizedSource).startsWith(serverConfigFileName)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 

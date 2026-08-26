@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createResolver } from '@nuxt/kit';
 import { debug } from '@sentry/core';
@@ -196,9 +197,7 @@ function wrapEntryWithDynamicImport({
         }
       }
 
-      // Normalize to forward slashes for cross-platform check (Windows uses backslashes)
-      const normalizedForCheck = normalizedSource.replace(/\\/g, '/');
-      if (normalizedForCheck.includes(`/${SERVER_CONFIG_FILENAME}`)) {
+      if (basename(normalizedSource).startsWith(SERVER_CONFIG_FILENAME)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
