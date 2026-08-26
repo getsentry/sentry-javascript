@@ -225,30 +225,31 @@ describe('makeAutoInstrumentationPlugin()', () => {
     // `onlyInstrumentClient` option computed from it is `false`); the config is exposed on the
     // SvelteKit Vite plugin's `api.options` instead.
     // The tracing config location differs by SvelteKit version:
+    // - SvelteKit 3 (>= 3.0.0-next.21): `tracing.server` (the `kit` nesting was flattened away)
     // - SvelteKit 3 (>= 3.0.0-next.8): `kit.tracing.server`
     // - SvelteKit 2.31+ and early Kit 3 prereleases: `kit.experimental.tracing.server`
     function configWithKitTracing(
       ssr: boolean,
       serverTracing: boolean,
-      location: 'tracing' | 'experimental' = 'tracing',
+      location: 'tracing' | 'experimental' | 'flat' = 'tracing',
     ): unknown {
-      const kit =
-        location === 'tracing'
-          ? { tracing: { server: serverTracing } }
-          : { experimental: { tracing: { server: serverTracing } } };
+      const tracing = { tracing: { server: serverTracing } };
+      const options =
+        location === 'flat' ? tracing : { kit: location === 'tracing' ? tracing : { experimental: tracing } };
+
       return {
         build: { ssr },
         plugins: [
           { name: 'some-other-plugin' },
           {
             name: 'vite-plugin-sveltekit-setup',
-            api: { options: { kit } },
+            api: { options },
           },
         ],
       };
     }
 
-    describe.each(['tracing', 'experimental'] as const)('with the config under `kit.%s`', location => {
+    describe.each(['tracing', 'experimental', 'flat'] as const)('with the config in the `%s` location', location => {
       it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js', 'path/to/+page.ts', 'path/to/+layout.mjs'])(
         "doesn't wrap %s in the SSR build when native tracing is enabled, even if `onlyInstrumentClient` is `false`",
         async (path: string) => {
