@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
@@ -309,13 +308,6 @@ function instrumentMethod<T extends unknown[], R>(
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
             } catch (error) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.google_genai',
-                  data: { function: methodPath },
-                },
-              });
               span.end();
               throw error;
             }
@@ -334,13 +326,11 @@ function instrumentMethod<T extends unknown[], R>(
             addPrivateRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
           }
 
+          // `onError` is a no-op because the rejection is rethrown to the caller and `startSpan` already
+          // marks the span errored; both leading callbacks are positional and only exist to reach `onSuccess`.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            error => {
-              captureException(error, {
-                mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
-              });
-            },
+            () => {},
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings

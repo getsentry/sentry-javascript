@@ -33,7 +33,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -333,7 +332,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -705,7 +703,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates openai related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -813,7 +810,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'main',
@@ -946,7 +942,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'main',
@@ -1332,7 +1327,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-conversation.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures conversation ID from Conversations API and previous_response_id', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'conversation-test',
@@ -1452,7 +1446,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-manual-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
     test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'chat-with-manual-conversation-id',
@@ -1485,7 +1478,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-separate-scope-1.mjs', 'instrument.mjs', (createRunner, test) => {
     test('isolates conversation IDs across separate scopes - conversation 1', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'GET /chat/conversation-1',
@@ -1517,7 +1509,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-separate-scope-2.mjs', 'instrument.mjs', (createRunner, test) => {
     test('isolates conversation IDs across separate scopes - conversation 2', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'GET /chat/conversation-2',
@@ -1553,7 +1544,6 @@ describe('OpenAI integration', () => {
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({
             transaction: {
               transaction: 'main',
@@ -1580,7 +1570,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
     test('preserves .withResponse() method and works correctly', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'main',
@@ -1611,7 +1600,6 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-truncation.mjs', (createRunner, test) => {
     test('redacts inline base64 image data in vision requests', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           transaction: {
             transaction: 'main',
