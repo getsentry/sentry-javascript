@@ -19,7 +19,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
   expect(rootSpan!.status).toBe('ok');
   expect(rootSpan!.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(rootSpan!.attributes['sentry.segment.name.source']?.value).toBe('route');
-  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http');
+  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
   expect(rootSpan!.attributes['http.response.status_code']?.value).toBe(200);
 
   const childSpans = spans.filter(span => !span.is_segment);

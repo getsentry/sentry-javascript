@@ -21,7 +21,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
@@ -56,7 +56,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(transactionEvent).toEqual(

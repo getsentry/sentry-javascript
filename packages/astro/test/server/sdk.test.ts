@@ -46,7 +46,7 @@ describe('Sentry server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(
         expect.objectContaining({
           ignoreSpans: expect.arrayContaining([
-            { op: 'http.server', attributes: { 'sentry.origin': 'auto.http' } },
+            { op: 'http.server', attributes: { 'sentry.origin': 'auto.http.http_server' } },
           ]),
         }),
       );
