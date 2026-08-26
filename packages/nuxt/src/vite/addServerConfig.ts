@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createResolver } from '@nuxt/kit';
 import { debug } from '@sentry/core';
 import * as fs from 'fs';
@@ -184,8 +184,20 @@ function wrapEntryWithDynamicImport({
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      if (source.includes(`/${SERVER_CONFIG_FILENAME}`)) {
-        return { id: source, moduleSideEffects: true };
+      // Rollup cannot load `file://` URLs directly; normalize to a filesystem path for resolution.
+      // The emitted import specifier stays as `file://` for Node's ESM loader (required on Windows),
+      // but Rollup needs a plain path to read the file during bundling.
+      let normalizedSource = source;
+      if (source.startsWith('file://')) {
+        try {
+          normalizedSource = fileURLToPath(source);
+        } catch {
+          return null;
+        }
+      }
+
+      if (normalizedSource.includes(`/${SERVER_CONFIG_FILENAME}`)) {
+        return { id: normalizedSource, moduleSideEffects: true };
       }
 
       if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
@@ -213,6 +225,15 @@ function wrapEntryWithDynamicImport({
               )
               .concat(QUERY_END_INDICATOR)}`;
       }
+
+      // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
+      // At runtime Node requires file:// on Windows, but Rollup needs a filesystem path.
+      if (source.startsWith('file://')) {
+        const resolved = await this.resolve(normalizedSource, importer, options);
+        if (resolved) return resolved;
+        return { id: normalizedSource };
+      }
+
       return null;
     },
     load(id: string) {

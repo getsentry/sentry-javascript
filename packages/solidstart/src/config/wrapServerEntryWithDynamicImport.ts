@@ -1,4 +1,4 @@
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { consoleSandbox } from '@sentry/core';
 import type { InputPluginOption } from 'rollup';
 
@@ -47,8 +47,18 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
   return {
     name: 'sentry-wrap-server-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      if (source.includes(`/${serverConfigFileName}`)) {
-        return { id: source, moduleSideEffects: true };
+      // Rollup cannot load `file://` URLs directly; normalize to a filesystem path for resolution.
+      let normalizedSource = source;
+      if (source.startsWith('file://')) {
+        try {
+          normalizedSource = fileURLToPath(source);
+        } catch {
+          return null;
+        }
+      }
+
+      if (normalizedSource.includes(`/${serverConfigFileName}`)) {
+        return { id: normalizedSource, moduleSideEffects: true };
       }
 
       if (
@@ -77,6 +87,14 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
               )
               .concat(QUERY_END_INDICATOR)}`;
       }
+
+      // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
+      if (source.startsWith('file://')) {
+        const resolved = await this.resolve(normalizedSource, importer, options);
+        if (resolved) return resolved;
+        return { id: normalizedSource };
+      }
+
       return null;
     },
     load(id: string) {
