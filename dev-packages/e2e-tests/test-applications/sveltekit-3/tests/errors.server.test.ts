@@ -98,22 +98,25 @@ test.describe('expected errors thrown with `error()`', () => {
   // the error *body* (a plain object), so the captured exception gets a synthesized message
   // ("Object captured as exception with keys: ...") rather than the message passed to `error()`.
   test("doesn't capture a 4xx error", async ({ page }) => {
-    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
+    let captured4xxError = false;
+    // Deliberately floating: this must never resolve, so it can't be awaited
+    void waitForError('sveltekit-3', errorEvent => {
       return !!errorEvent?.request?.url?.endsWith('/expected-error-4xx');
+    }).then(() => {
+      captured4xxError = true;
+    });
+
+    // The 5xx route *is* captured, so its error event is a concrete signal that the preceding
+    // 4xx request was fully processed - no sleeping on a timeout to prove a negative.
+    const signalErrorPromise = waitForError('sveltekit-3', errorEvent => {
+      return !!errorEvent?.request?.url?.endsWith('/expected-error-5xx');
     });
 
     await page.goto('/expected-error-4xx');
+    await page.goto('/expected-error-5xx');
+    await signalErrorPromise;
 
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('No error captured (timeout)')), 5000),
-    );
-
-    try {
-      await Promise.race([errorEventPromise, timeout]);
-      throw new Error('Expected no error to be captured, but an error was found');
-    } catch (e) {
-      expect((e as Error).message).toBe('No error captured (timeout)');
-    }
+    expect(captured4xxError).toBe(false);
   });
 
   test('captures a 5xx error', async ({ page }) => {

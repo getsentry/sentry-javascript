@@ -49,6 +49,10 @@ export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleCl
     return errorHandler(input) as void | App.Error;
   };
 
+  // Returning `T` (the caller's own hook type) is what keeps the result assignable to
+  // `HandleClientError` on both SvelteKit 2 and 3. The wrapper itself is written against our
+  // structural input type, which TS can't prove is identical to `T`, so it can't be narrowed
+  // without the double cast.
   return sentryErrorHandler as unknown as T;
 }
 
