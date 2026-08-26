@@ -1,4 +1,3 @@
-import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import {
@@ -119,13 +118,9 @@ export function instrumentStateGraphCompile(
 
           return compiledGraph;
         } catch (error) {
+          // The error is rethrown to the caller (compile() throws), so we only mark the span failed
+          // and do not record it.
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.langgraph.error',
-            },
-          });
           throw error;
         }
       });
@@ -242,13 +237,9 @@ export function instrumentCompiledGraphInvoke(
 
             return result;
           } catch (error) {
+            // The error is rethrown to the caller (invoke() rejects), so we only mark the span failed
+            // and do not record it.
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.langgraph.error',
-              },
-            });
             throw error;
           }
         },
