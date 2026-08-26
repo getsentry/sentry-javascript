@@ -1,12 +1,5 @@
 import { createRequire } from 'node:module';
 
-export function hasExistingDebugID(code: string): boolean {
-  const chunkStartSnippet = code.slice(0, 6000);
-  const chunkEndSnippet = code.slice(-500);
-
-  return chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=');
-}
-
 export function getRollupMajorVersion(): string | undefined {
   try {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

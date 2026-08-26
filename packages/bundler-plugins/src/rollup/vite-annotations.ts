@@ -1,22 +1,10 @@
 import { createRequire } from 'node:module';
-import type {
-  ComponentAnnotationTransformMeta,
-  ComponentAnnotationTransformResult,
-} from '../core/component-annotation-vite';
 
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
 };
 
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-
-export type ViteAnnotationHooks = {
-  transform(
-    code: string,
-    id: string,
-    meta?: ComponentAnnotationTransformMeta,
-  ): Promise<ComponentAnnotationTransformResult>;
-};
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 

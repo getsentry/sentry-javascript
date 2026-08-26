@@ -6,7 +6,6 @@ import {
   isJsFile,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
-  stringToUUID,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
@@ -19,9 +18,13 @@ import type { ComponentAnnotationTransformMeta } from '../core/component-annotat
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
-import { finalizeRolldownDebugIds, ROLLDOWN_DEBUG_ID_PLACEHOLDER } from './rolldown-debug-id';
-import { getRollupMajorVersion, hasExistingDebugID } from './utils';
-import { getViteParseAstAsync, type ViteAnnotationHooks } from './vite-annotations';
+import {
+  finalizeRolldownDebugIds,
+  getDebugIdForChunk,
+  hasExistingDebugID,
+} from './debug-id-injection';
+import { getRollupMajorVersion } from './rollup-version';
+import { getViteParseAstAsync } from './vite-annotations';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -35,13 +38,6 @@ type OutputBundle = Record<
   | { type: 'asset'; fileName: string; source: string | Uint8Array }
 >;
 
-type ViteModule = {
-  parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
-};
-
-type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-
-let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 type RenderChunkPluginContext = {
   meta?: {
     rolldownVersion?: string;
@@ -173,9 +169,7 @@ export function _rollupPluginInternal(
     const injectCode = staticInjectionCode.clone();
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      // Rolldown's renderChunk code contains temporary hash placeholders whose values can vary between builds.
-      // The fixed-width placeholder is replaced after Rolldown resolves them, without shifting source map positions.
-      const debugId = this?.meta?.rolldownVersion ? ROLLDOWN_DEBUG_ID_PLACEHOLDER : stringToUUID(code);
+      const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
