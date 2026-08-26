@@ -1335,7 +1335,7 @@ Sentry.httpIntegration({
   );
 ```
 
-- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object instruments its RPC methods unconditionally now, so there is nothing to replace it with on the receiver.
+- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object's prototype methods are now wrapped unconditionally, so every RPC method is instrumented and there is no longer an option to turn this on. Delete the option from your config.
 
 ```diff
   export const MyDO = Sentry.instrumentDurableObjectWithSentry(
