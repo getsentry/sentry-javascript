@@ -1,4 +1,4 @@
-import { stringMatchesSomePattern } from '@sentry/core';
+import { matchesTracePropagationTargets } from '@sentry/core';
 import type { CloudflareOptions } from '../client';
 
 const PROPAGATE_TO_NONE = () => false;
@@ -19,5 +19,5 @@ export function createRpcPropagationResolver(options: CloudflareOptions | undefi
 
   // Strings must match a binding name exactly, without this, an entry of `DB` would also enable
   // propagation for a binding named `MY_DB`. Regular expressions still give pattern matching.
-  return (bindingName: string) => stringMatchesSomePattern(bindingName, bindings, true);
+  return (bindingName: string) => matchesTracePropagationTargets(bindingName, bindings, true);
 }

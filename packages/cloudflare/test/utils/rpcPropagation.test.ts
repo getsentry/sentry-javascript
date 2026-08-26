@@ -45,4 +45,19 @@ describe('createRpcPropagationResolver', () => {
     expect(shouldPropagate('ORDERS')).toBe(false);
     expect(shouldPropagate('PREFIXED_SVC_ORDERS')).toBe(false);
   });
+
+  it('matches binding names case-insensitively', () => {
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: ['my_do', /^svc_/] });
+
+    expect(shouldPropagate('MY_DO')).toBe(true);
+    expect(shouldPropagate('SVC_ORDERS')).toBe(true);
+    expect(shouldPropagate('OTHER')).toBe(false);
+  });
+
+  it('matches consistently across calls for a regular expression with the `g` flag', () => {
+    const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: [/^SVC_/g] });
+
+    expect(shouldPropagate('SVC_ORDERS')).toBe(true);
+    expect(shouldPropagate('SVC_USERS')).toBe(true);
+  });
 });
