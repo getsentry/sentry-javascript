@@ -6,6 +6,7 @@ import {
   getPackageJson,
   parseMajorVersion,
   replaceBooleanFlagsInCode,
+  runWithConcurrency,
   serializeIgnoreOptions,
   stringToUUID,
 } from '../../src/core/utils';
@@ -307,5 +308,43 @@ describe('determineReleaseName', () => {
       process.env = originalEnv;
       execSyncSpy.mockRestore();
     }
+  });
+});
+
+describe('runWithConcurrency', () => {
+  it('returns results in task order regardless of completion order', async () => {
+    const delays = [30, 0, 20, 10];
+    const tasks = delays.map(
+      (delay, index) => () => new Promise<number>(resolve => setTimeout(() => resolve(index), delay)),
+    );
+
+    await expect(runWithConcurrency(tasks, 4)).resolves.toEqual([0, 1, 2, 3]);
+  });
+
+  it('never runs more than `concurrency` tasks at a time', async () => {
+    let inFlight = 0;
+    let peakInFlight = 0;
+
+    const tasks = Array.from({ length: 20 }, () => async () => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      inFlight--;
+    });
+
+    await runWithConcurrency(tasks, 3);
+
+    expect(peakInFlight).toBe(3);
+  });
+
+  it('runs every task even when there are fewer tasks than workers', async () => {
+    const ran: number[] = [];
+    const tasks = [0, 1].map(index => async () => {
+      ran.push(index);
+    });
+
+    await runWithConcurrency(tasks, 16);
+
+    expect(ran).toEqual([0, 1]);
   });
 });

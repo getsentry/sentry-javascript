@@ -7,6 +7,7 @@ import {
   createComponentNameAnnotateHooks,
   CodeInjection,
   getDebugIdSnippet,
+  createDebugIdStampingFunction,
   createDebugIdUploadFunction,
 } from '../core/index';
 import * as path from 'node:path';
@@ -275,14 +276,20 @@ export function sentryWebpackPluginFactory({
           (compilation: WebpackCompilation, callback: (err?: Error) => void) => {
             const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
             const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
+            const stampDebugIds = createDebugIdStampingFunction({ sentryBuildPluginManager });
 
             const run = async (): Promise<void> => {
               try {
                 await sentryBuildPluginManager.createRelease();
-                if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+                if (sourcemapsEnabled) {
                   const outputPath = compilation.outputOptions.path ?? path.resolve();
                   const buildArtifacts = Object.keys(compilation.assets).map(asset => path.join(outputPath, asset));
-                  await upload(buildArtifacts);
+
+                  if (options.sourcemaps?.disable === 'disable-upload') {
+                    await stampDebugIds(buildArtifacts);
+                  } else {
+                    await upload(buildArtifacts);
+                  }
                 }
               } finally {
                 freeGlobalDependencyOnBuildArtifacts();

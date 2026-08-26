@@ -21,6 +21,13 @@ export function createDebugIdUploadFunction({ sentryBuildPluginManager }: DebugI
   };
 }
 
+export function createDebugIdStampingFunction({ sentryBuildPluginManager }: DebugIdUploadPluginOptions) {
+  return async (buildArtifactPaths: string[]) => {
+    const cleanedPaths = buildArtifactPaths.map(stripQueryAndHashFromPath);
+    await sentryBuildPluginManager.stampDebugIdsOnSourceMaps(cleanedPaths);
+  };
+}
+
 export async function prepareBundleForDebugIdUpload(
   bundleFilePath: string,
   uploadFolder: string,
@@ -76,6 +83,77 @@ export async function prepareBundleForDebugIdUpload(
 }
 
 /**
+ * The outcome of stamping a single bundle's source map. `inlineSourceMap` is called out separately
+ * because it is the one case the caller has to surface to the user - the debug ID silently never
+ * lands anywhere.
+ */
+export type SourceMapStampResult = 'stamped' | 'alreadyStamped' | 'inlineSourceMap' | 'skipped';
+
+/**
+ * Writes the debug ID that was injected into a bundle into the bundle's emitted source map.
+ *
+ * This is the counterpart to `prepareBundleForDebugIdUpload` for the `sourcemaps.disable:
+ * 'disable-upload'` case: there is no upload to piggyback the temp-folder preparation on, so
+ * the emitted source map has to carry the debug ID itself for a later manual upload to be able
+ * to associate it with the bundle.
+ *
+ * The bundle itself is deliberately left byte-identical - hashes computed during the build
+ * (e.g. for subresource integrity) must stay valid. The map's `sources` are left alone as well,
+ * because unlike the throwaway upload copies this is a file the user keeps.
+ */
+export async function stampDebugIdOnEmittedSourceMap(
+  bundleFilePath: string,
+  logger: Logger,
+  resolveSourceMapHook: ResolveSourceMapHook | undefined,
+): Promise<SourceMapStampResult> {
+  let bundleContent: string;
+  try {
+    bundleContent = await fs.promises.readFile(bundleFilePath, 'utf8');
+  } catch (e) {
+    logger.error(`Could not read bundle to determine debug ID and source map: ${bundleFilePath}`, e);
+    return 'skipped';
+  }
+
+  const debugId = determineDebugIdFromBundleSource(bundleContent);
+  if (debugId === undefined) {
+    logger.debug(`Could not determine debug ID from bundle. Source map will not be stamped: ${bundleFilePath}`);
+    return 'skipped';
+  }
+
+  const sourceMapPath = await determineSourceMapPathFromBundle(
+    bundleFilePath,
+    bundleContent,
+    logger,
+    resolveSourceMapHook,
+  );
+  if (!sourceMapPath) {
+    // An inlined map lives inside the bundle, so stamping it would mean rewriting the bundle - which
+    // is exactly what this function must not do. Report it so the caller can tell the user.
+    return bundleHasInlineSourceMap(bundleContent) ? 'inlineSourceMap' : 'skipped';
+  }
+
+  const map = await readSourceMap(sourceMapPath, logger);
+  if (!map) {
+    return 'skipped';
+  }
+
+  if (map['debug_id'] === debugId && map['debugId'] === debugId) {
+    return 'alreadyStamped';
+  }
+
+  addDebugIdToSourceMap(map, debugId);
+
+  try {
+    await fs.promises.writeFile(sourceMapPath, JSON.stringify(map), 'utf8');
+    logger.debug(`Stamped debug ID ${debugId} onto source map: ${sourceMapPath}`);
+    return 'stamped';
+  } catch (e) {
+    logger.error(`Failed to write source map with stamped debug ID: ${sourceMapPath}`, e);
+    return 'skipped';
+  }
+}
+
+/**
  * Looks for a particular string pattern (`sdbid-[debug ID]`) in the bundle
  * source and extracts the bundle's debug ID from it.
  *
@@ -105,6 +183,14 @@ function addDebugIdToBundleSource(bundleSource: string, debugId: string): string
   } else {
     return `${bundleSource}\n//# debugId=${debugId}`;
   }
+}
+
+/**
+ * Whether the bundle carries its source map inlined as a `sourceMappingURL=data:` URI, rather than
+ * referencing a separate `.map` file.
+ */
+function bundleHasInlineSourceMap(bundleSource: string): boolean {
+  return /^\s*\/\/# sourceMappingURL=data:/m.test(bundleSource);
 }
 
 /**
@@ -188,26 +274,12 @@ async function prepareSourceMapForDebugIdUpload(
   rewriteSourcesHook: RewriteSourcesHook,
   logger: Logger,
 ): Promise<void> {
-  let sourceMapFileContent: string;
-  try {
-    sourceMapFileContent = await util.promisify(fs.readFile)(sourceMapPath, {
-      encoding: 'utf8',
-    });
-  } catch (e) {
-    logger.error(`Failed to read source map for debug ID upload: ${sourceMapPath}`, e);
+  const map = await readSourceMap(sourceMapPath, logger);
+  if (!map) {
     return;
   }
 
-  let map: Record<string, unknown>;
-  try {
-    map = JSON.parse(sourceMapFileContent) as { sources: unknown; [key: string]: unknown };
-    // For now we write both fields until we know what will become the standard - if ever.
-    map['debug_id'] = debugId;
-    map['debugId'] = debugId;
-  } catch {
-    logger.error(`Failed to parse source map for debug ID upload: ${sourceMapPath}`);
-    return;
-  }
+  addDebugIdToSourceMap(map, debugId);
 
   if (map['sources'] && Array.isArray(map['sources'])) {
     const mapDir = path.dirname(sourceMapPath);
@@ -222,6 +294,47 @@ async function prepareSourceMapForDebugIdUpload(
     logger.error(`Failed to prepare source map for debug ID upload: ${sourceMapPath}`, e);
     return;
   }
+}
+
+/**
+ * Reads and parses a source map file.
+ *
+ * `JSON.parse` accepts plenty of JSON that is not a source map - `null`, numbers, arrays. Writing debug
+ * IDs onto those either throws or, for arrays, silently succeeds and then serializes back to `[]`, which
+ * looks like a valid upload until symbolication fails. So anything that is not a plain object is rejected
+ * here rather than at each call site.
+ *
+ * @returns the parsed source map, or `undefined` if it could not be read, parsed or is not an object.
+ */
+async function readSourceMap(sourceMapPath: string, logger: Logger): Promise<Record<string, unknown> | undefined> {
+  let sourceMapFileContent: string;
+  try {
+    sourceMapFileContent = await fs.promises.readFile(sourceMapPath, 'utf8');
+  } catch (e) {
+    logger.error(`Failed to read source map: ${sourceMapPath}`, e);
+    return undefined;
+  }
+
+  let parsedSourceMap: unknown;
+  try {
+    parsedSourceMap = JSON.parse(sourceMapFileContent);
+  } catch (e) {
+    logger.error(`Failed to parse source map: ${sourceMapPath}`, e);
+    return undefined;
+  }
+
+  if (typeof parsedSourceMap !== 'object' || parsedSourceMap === null || Array.isArray(parsedSourceMap)) {
+    logger.error(`Source map is not a JSON object: ${sourceMapPath}`);
+    return undefined;
+  }
+
+  return parsedSourceMap as Record<string, unknown>;
+}
+
+function addDebugIdToSourceMap(map: Record<string, unknown>, debugId: string): void {
+  // For now we write both fields until we know what will become the standard - if ever.
+  map['debug_id'] = debugId;
+  map['debugId'] = debugId;
 }
 
 const PROTOCOL_REGEX = /^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//;

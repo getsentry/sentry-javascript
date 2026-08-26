@@ -4,6 +4,7 @@ import {
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   getDebugIdSnippet,
+  createDebugIdStampingFunction,
   createDebugIdUploadFunction,
   CodeInjection,
 } from '../core';
@@ -277,15 +278,21 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
       // Create release and optionally upload
       const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
       const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
+      const stampDebugIds = createDebugIdStampingFunction({ sentryBuildPluginManager });
 
       initialOptions.metafile = true;
       onEnd(async result => {
         try {
           await sentryBuildPluginManager.createRelease();
 
-          if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+          if (sourcemapsEnabled) {
             const buildArtifacts = result.metafile ? Object.keys(result.metafile.outputs) : [];
-            await upload(buildArtifacts);
+
+            if (options.sourcemaps?.disable === 'disable-upload') {
+              await stampDebugIds(buildArtifacts);
+            } else {
+              await upload(buildArtifacts);
+            }
           }
         } finally {
           freeGlobalDependencyOnBuildArtifacts();

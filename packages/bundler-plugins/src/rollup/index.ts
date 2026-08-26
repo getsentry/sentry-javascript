@@ -8,6 +8,7 @@ import {
   getDebugIdSnippet,
   stringToUUID,
   COMMENT_USE_STRICT_REGEX,
+  createDebugIdStampingFunction,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
@@ -132,6 +133,7 @@ export function _rollupPluginInternal(
 
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
+  const stampDebugIds = createDebugIdStampingFunction({ sentryBuildPluginManager });
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
   const staticInjectionCode = new CodeInjection();
 
@@ -284,6 +286,29 @@ export function _rollupPluginInternal(
     };
   }
 
+  async function resolveBuildArtifacts(
+    outputOptions: { dir?: string; file?: string },
+    bundle: { [fileName: string]: unknown },
+  ): Promise<string[]> {
+    if (outputOptions.dir) {
+      const JS_AND_MAP_PATTERNS = [
+        '/**/*.js',
+        '/**/*.mjs',
+        '/**/*.cjs',
+        '/**/*.js.map',
+        '/**/*.mjs.map',
+        '/**/*.cjs.map',
+      ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
+      return globFiles(JS_AND_MAP_PATTERNS, { root: outputOptions.dir });
+    }
+
+    if (outputOptions.file) {
+      return [outputOptions.file];
+    }
+
+    return Object.keys(bundle).map(asset => path.join(path.resolve(), asset));
+  }
+
   async function writeBundle(
     outputOptions: { dir?: string; file?: string },
     bundle: { [fileName: string]: unknown },
@@ -291,23 +316,12 @@ export function _rollupPluginInternal(
     try {
       await sentryBuildPluginManager.createRelease();
 
-      if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
-        if (outputOptions.dir) {
-          const outputDir = outputOptions.dir;
-          const JS_AND_MAP_PATTERNS = [
-            '/**/*.js',
-            '/**/*.mjs',
-            '/**/*.cjs',
-            '/**/*.js.map',
-            '/**/*.mjs.map',
-            '/**/*.cjs.map',
-          ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
-          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
-          await upload(buildArtifacts);
-        } else if (outputOptions.file) {
-          await upload([outputOptions.file]);
+      if (sourcemapsEnabled) {
+        const buildArtifacts = await resolveBuildArtifacts(outputOptions, bundle);
+
+        if (options.sourcemaps?.disable === 'disable-upload') {
+          await stampDebugIds(buildArtifacts);
         } else {
-          const buildArtifacts = Object.keys(bundle).map(asset => path.join(path.resolve(), asset));
           await upload(buildArtifacts);
         }
       }

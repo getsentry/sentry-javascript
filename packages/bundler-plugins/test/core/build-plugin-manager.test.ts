@@ -1,8 +1,8 @@
 import { createSentryBuildPluginManager, _resetDeployedReleasesForTesting } from '../../src/core/build-plugin-manager';
 import fs from 'fs';
 import { globFiles } from '../../src/core/glob';
-import { prepareBundleForDebugIdUpload } from '../../src/core/debug-id-upload';
-import type { MockedFunction } from 'vitest';
+import { prepareBundleForDebugIdUpload, stampDebugIdOnEmittedSourceMap } from '../../src/core/debug-id-upload';
+import type { MockedFunction, MockInstance } from 'vitest';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 
 const { mockCliExecute, mockCliUploadSourceMaps, mockCliNewDeploy, mockCliConstructor } = vi.hoisted(() => ({
@@ -44,6 +44,9 @@ vi.mock('../../src/core/debug-id-upload');
 const mockGlobFiles = globFiles as MockedFunction<typeof globFiles>;
 const mockPrepareBundleForDebugIdUpload = prepareBundleForDebugIdUpload as unknown as MockedFunction<
   typeof prepareBundleForDebugIdUpload
+>;
+const mockStampDebugIdOnEmittedSourceMap = stampDebugIdOnEmittedSourceMap as unknown as MockedFunction<
+  typeof stampDebugIdOnEmittedSourceMap
 >;
 
 describe('createSentryBuildPluginManager', () => {
@@ -416,6 +419,99 @@ describe('createSentryBuildPluginManager', () => {
         projects: ['p'],
         live: 'rejectOnError',
       });
+    });
+  });
+
+  describe('stampDebugIdsOnSourceMaps', () => {
+    function createManager(): ReturnType<typeof createSentryBuildPluginManager> {
+      return createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', sourcemaps: { disable: 'disable-upload' } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+    }
+
+    let consoleInfoSpy: MockInstance;
+    let consoleWarnSpy: MockInstance;
+    let originalNodeEnv: string | undefined;
+
+    beforeEach(() => {
+      originalNodeEnv = process.env['NODE_ENV'];
+      consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+      consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      if (originalNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = originalNodeEnv;
+      }
+    });
+
+    it('stamps every globbed JS chunk and reports how many maps now carry a debug ID', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/b.js', '/app/dist/a.js', '/app/dist/a.js.map', '/app/dist/x.txt']);
+      mockStampDebugIdOnEmittedSourceMap.mockResolvedValue('stamped');
+
+      await createManager().stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(mockStampDebugIdOnEmittedSourceMap).toHaveBeenCalledTimes(2);
+      expect(mockStampDebugIdOnEmittedSourceMap).toHaveBeenCalledWith('/app/dist/a.js', expect.anything(), undefined);
+      expect(mockStampDebugIdOnEmittedSourceMap).toHaveBeenCalledWith('/app/dist/b.js', expect.anything(), undefined);
+      expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('onto 2 source map(s)'));
+    });
+
+    it('counts maps that were already stamped by an earlier writeBundle run', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js']);
+      mockStampDebugIdOnEmittedSourceMap.mockResolvedValue('alreadyStamped');
+
+      await createManager().stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('onto 1 source map(s)'));
+    });
+
+    // Pointing users at a manual upload that cannot work is worse than saying nothing happened.
+    it('does not claim success when no map was stamped', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js']);
+      mockStampDebugIdOnEmittedSourceMap.mockResolvedValue('skipped');
+
+      await createManager().stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(consoleInfoSpy).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Didn't stamp a debug ID onto any source map"),
+      );
+    });
+
+    it('warns about bundles that inline their source map', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js', '/app/dist/b.js']);
+      mockStampDebugIdOnEmittedSourceMap.mockResolvedValue('inlineSourceMap');
+
+      await createManager().stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('2 bundle(s) inline their source map'));
+    });
+
+    // Dev servers keep their assets in memory, so touching the filesystem would only produce read errors.
+    it('does nothing in development mode', async () => {
+      process.env['NODE_ENV'] = 'development';
+
+      await createManager().stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(mockGlobFiles).not.toHaveBeenCalled();
+      expect(mockStampDebugIdOnEmittedSourceMap).not.toHaveBeenCalled();
+    });
+
+    it('exits early when assets is an empty array', async () => {
+      const manager = createSentryBuildPluginManager(
+        { authToken: 't', org: 'o', project: 'p', sourcemaps: { disable: 'disable-upload', assets: [] } },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+
+      await manager.stampDebugIdsOnSourceMaps(['/app/dist']);
+
+      expect(mockGlobFiles).not.toHaveBeenCalled();
+      expect(mockStampDebugIdOnEmittedSourceMap).not.toHaveBeenCalled();
     });
   });
 

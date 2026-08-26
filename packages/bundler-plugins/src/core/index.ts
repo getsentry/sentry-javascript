@@ -158,4 +158,4 @@ export {
   generateModuleMetadataInjectorCode,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export { createDebugIdUploadFunction } from './debug-id-upload';
+export { createDebugIdStampingFunction, createDebugIdUploadFunction } from './debug-id-upload';

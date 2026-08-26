@@ -15,10 +15,16 @@ import {
   arrayify,
   getProjects,
   getTurborepoEnvPassthroughWarning,
+  runWithConcurrency,
   serializeIgnoreOptions,
   stripQueryAndHashFromPath,
 } from './utils';
-import { defaultRewriteSourcesHook, prepareBundleForDebugIdUpload } from './debug-id-upload';
+import {
+  defaultRewriteSourcesHook,
+  prepareBundleForDebugIdUpload,
+  type SourceMapStampResult,
+  stampDebugIdOnEmittedSourceMap,
+} from './debug-id-upload';
 import { globFiles } from './glob';
 import { LIB_VERSION } from './version';
 
@@ -26,6 +32,10 @@ import { LIB_VERSION } from './version';
 // instances run in the same process (e.g. Next.js creates separate webpack compilers
 // for client, server, and edge). Keyed by release name.
 const _deployedReleases = new Set<string>();
+
+// Debug ID work reads whole bundles into memory, so it is spread over a fixed number of workers
+// rather than being done all at once.
+const DEBUG_ID_WORKER_COUNT = 16;
 
 /** @internal Exported for testing only. */
 export function _resetDeployedReleasesForTesting(): void {
@@ -87,6 +97,15 @@ export type SentryBuildPluginManager = {
    * Uploads sourcemaps using the "Debug ID" method. This function takes a list of build artifact paths that will be uploaded
    */
   uploadSourcemaps(buildArtifactPaths: string[], opts?: { prepareArtifacts?: boolean }): Promise<void>;
+
+  /**
+   * Writes the debug ID that was injected into each build artifact into the artifact's emitted source map.
+   *
+   * `uploadSourcemaps` does this on temporary copies it then uploads and deletes, so the emitted source maps
+   * never carry a debug ID. Call this instead of `uploadSourcemaps` when the upload is disabled via
+   * `sourcemaps.disable: 'disable-upload'` and the artifacts are meant to be uploaded manually later on.
+   */
+  stampDebugIdsOnSourceMaps(buildArtifactPaths: string[]): Promise<void>;
 
   /**
    * Will delete artifacts based on the passed `sourcemaps.filesToDeleteAfterUpload` option.
@@ -178,6 +197,9 @@ export function createSentryBuildPluginManager(
         /* noop */
       },
       uploadSourcemaps: async () => {
+        /* noop */
+      },
+      stampDebugIdsOnSourceMaps: async () => {
         /* noop */
       },
       deleteArtifacts: async () => {
@@ -303,6 +325,65 @@ export function createSentryBuildPluginManager(
       dependenciesOnBuildArtifacts.delete(dependencyIdentifier);
       notifyBuildArtifactDependencySubscribers();
     };
+  }
+
+  /**
+   * Resolves the JavaScript build artifacts that carry an injected debug ID, honoring the
+   * `sourcemaps.assets` and `sourcemaps.ignore` options.
+   */
+  async function resolveDebugIdChunkFilePaths(buildArtifactPaths: string[]): Promise<string[]> {
+    const assets = options.sourcemaps?.assets;
+
+    let globAssets: string | string[];
+    if (assets) {
+      globAssets = assets;
+    } else {
+      logger.debug('No `sourcemaps.assets` option provided, falling back to detected build artifacts.');
+      globAssets = buildArtifactPaths;
+    }
+
+    const globResult = await startSpan({ name: 'glob', scope: sentryScope }, async () =>
+      globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
+    );
+
+    const debugIdChunkFilePaths = globResult.filter(debugIdChunkFilePath => {
+      return !!stripQueryAndHashFromPath(debugIdChunkFilePath).match(/\.(js|mjs|cjs)$/);
+    });
+
+    // The order of the files output by glob() is not deterministic
+    // Ensure order within the files so that {debug-id}-{chunkIndex} coupling is consistent
+    debugIdChunkFilePaths.sort();
+
+    return debugIdChunkFilePaths;
+  }
+
+  /**
+   * Reports what the source map stamping actually accomplished.
+   *
+   * Stamping is best-effort per chunk, so "we found some chunks" is not the same as "the maps now carry a
+   * debug ID". Claiming the latter when nothing was written would point users at a manual upload that
+   * cannot possibly work.
+   */
+  function logStampingOutcome(results: SourceMapStampResult[]): void {
+    const inlineSourceMapCount = results.filter(result => result === 'inlineSourceMap').length;
+    if (inlineSourceMapCount > 0) {
+      logger.warn(
+        `${inlineSourceMapCount} bundle(s) inline their source map. Stamping those would mean rewriting the bundle, so they were skipped and will not symbolicate. Emit source maps as separate files to get debug IDs.`,
+      );
+    }
+
+    const stampedCount = results.filter(result => result === 'stamped' || result === 'alreadyStamped').length;
+
+    if (stampedCount === 0) {
+      logger.warn(
+        "Didn't stamp a debug ID onto any source map. Set the `debug` option to see why the individual build artifacts were skipped.",
+      );
+      return;
+    }
+
+    logger.info(
+      `Stamped debug IDs onto ${stampedCount} source map(s). Upload them with \`sentry-cli sourcemaps upload --debug-id-reference\` to symbolicate stack traces.`,
+    );
   }
 
   /**
@@ -628,28 +709,7 @@ export function createSentryBuildPluginManager(
               logger.info('Successfully uploaded source maps to Sentry');
             } else {
               // Prepare artifacts in temp folder before uploading
-              let globAssets: string | string[];
-              if (assets) {
-                globAssets = assets;
-              } else {
-                logger.debug(
-                  'No `sourcemaps.assets` option provided, falling back to uploading detected build artifacts.',
-                );
-                globAssets = buildArtifactPaths;
-              }
-
-              const globResult = await startSpan(
-                { name: 'glob', scope: sentryScope },
-                async () => await globFiles(globAssets, { ignore: options.sourcemaps?.ignore }),
-              );
-
-              const debugIdChunkFilePaths = globResult.filter(debugIdChunkFilePath => {
-                return !!stripQueryAndHashFromPath(debugIdChunkFilePath).match(/\.(js|mjs|cjs)$/);
-              });
-
-              // The order of the files output by glob() is not deterministic
-              // Ensure order within the files so that {debug-id}-{chunkIndex} coupling is consistent
-              debugIdChunkFilePaths.sort();
+              const debugIdChunkFilePaths = await resolveDebugIdChunkFilePaths(buildArtifactPaths);
 
               if (debugIdChunkFilePaths.length === 0) {
                 logger.warn(
@@ -666,8 +726,6 @@ export function createSentryBuildPluginManager(
 
                 // Prepare into temp folder, then upload
                 await startSpan({ name: 'prepare-bundles', scope: sentryScope }, async prepBundlesSpan => {
-                  // Preparing the bundles can be a lot of work and doing it all at once has the potential of nuking the heap so
-                  // instead we do it with a maximum of 16 concurrent workers
                   const preparationTasks = debugIdChunkFilePaths.map((chunkFilePath, chunkIndex) => async () => {
                     await prepareBundleForDebugIdUpload(
                       chunkFilePath,
@@ -678,20 +736,8 @@ export function createSentryBuildPluginManager(
                       options.sourcemaps?.resolveSourceMap,
                     );
                   });
-                  const workers: Promise<void>[] = [];
-                  const worker = async (): Promise<void> => {
-                    while (preparationTasks.length > 0) {
-                      const task = preparationTasks.shift();
-                      if (task) {
-                        await task();
-                      }
-                    }
-                  };
-                  for (let workerIndex = 0; workerIndex < 16; workerIndex++) {
-                    workers.push(worker());
-                  }
 
-                  await Promise.all(workers);
+                  await runWithConcurrency(preparationTasks, DEBUG_ID_WORKER_COUNT);
 
                   const files = await fs.promises.readdir(tmpUploadFolder);
                   const stats = files.map(file => fs.promises.stat(path.join(tmpUploadFolder, file)));
@@ -749,6 +795,64 @@ export function createSentryBuildPluginManager(
           }
         },
       );
+    },
+
+    /**
+     * Writes the debug ID that was injected into each build artifact into the artifact's emitted source map.
+     *
+     * `uploadSourcemaps` stamps temporary copies it uploads and then deletes, which leaves the emitted source maps
+     * without a debug ID. That is fine as long as the plugin does the upload, but not when the user disabled it via
+     * `sourcemaps.disable: 'disable-upload'` to upload the artifacts manually later on - without a debug ID in the
+     * map, that upload cannot be matched to the bundles at runtime.
+     *
+     * Only the source maps are written to. The bundles stay byte-identical so that hashes computed during the build
+     * (e.g. for subresource integrity) remain valid.
+     *
+     * @param buildArtifactPaths - The paths of the build artifacts whose source maps should be stamped
+     */
+    async stampDebugIdsOnSourceMaps(buildArtifactPaths: string[]) {
+      if (isDevMode) {
+        logger.debug('Running in development mode. Will not stamp debug IDs onto source maps.');
+        return;
+      }
+
+      const assets = options.sourcemaps?.assets;
+      if (Array.isArray(assets) && assets.length === 0) {
+        logger.debug('Empty `sourcemaps.assets` option provided. Will not stamp debug IDs onto source maps.');
+        return;
+      }
+
+      await startSpan({ name: 'debug-id-sourcemap-stamping', scope: sentryScope, forceTransaction: true }, async () => {
+        const freeStampingDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
+
+        try {
+          const debugIdChunkFilePaths = await resolveDebugIdChunkFilePaths(buildArtifactPaths);
+
+          if (debugIdChunkFilePaths.length === 0) {
+            logger.warn(
+              "Didn't find any matching sources to stamp with debug IDs. Please check the `sourcemaps.assets` option.",
+            );
+            return;
+          }
+
+          const results = await startSpan({ name: 'stamp-source-maps', scope: sentryScope }, async () => {
+            const stampingTasks = debugIdChunkFilePaths.map(
+              chunkFilePath => () =>
+                stampDebugIdOnEmittedSourceMap(chunkFilePath, logger, options.sourcemaps?.resolveSourceMap),
+            );
+
+            return runWithConcurrency(stampingTasks, DEBUG_ID_WORKER_COUNT);
+          });
+
+          logStampingOutcome(results);
+        } catch (e) {
+          sentryScope.captureException('Error in "debugIdStampingPlugin" writeBundle hook');
+          handleRecoverableError(e, false);
+        } finally {
+          freeStampingDependencyOnBuildArtifacts();
+          await safeFlushTelemetry(sentryClient);
+        }
+      });
     },
 
     /**

@@ -413,6 +413,28 @@ export function serializeIgnoreOptions(ignoreValue: string | string[] | undefine
 }
 
 /**
+ * Runs the given tasks with at most `concurrency` of them in flight at a time and returns their
+ * results in the order the tasks were passed in.
+ */
+export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, concurrency: number): Promise<T[]> {
+  const results = new Array<T>(tasks.length);
+
+  // All workers pull from one shared iterator, so each task is handed out exactly once and a worker
+  // that finishes early picks up the next one instead of waiting on a fixed slice.
+  const remainingTasks = tasks.entries();
+
+  const worker = async (): Promise<void> => {
+    for (const [index, task] of remainingTasks) {
+      results[index] = await task();
+    }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+  return results;
+}
+
+/**
  * Checks if a chunk contains only import/export statements and no substantial code.
  *
  * In Vite MPA (multi-page application) mode, HTML entry points create "facade" chunks
