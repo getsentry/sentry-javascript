@@ -7,7 +7,6 @@ import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/int
 import type { Span } from '../../../../src/types/span';
 import {
   HTTP_REQUEST_METHOD,
-  HTTP_TARGET,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -16,6 +15,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
+  URL_PATH,
 } from '@sentry/conventions/attributes';
 
 function makeMockRequest(overrides: Partial<Record<string, unknown>> = {}): HttpClientRequest {
@@ -76,20 +76,15 @@ describe('getOutgoingRequestSpanData', () => {
     expect(result.name).toMatch(/^POST /);
   });
 
-  it('includes URL_FULL, HTTP_REQUEST_METHOD, HTTP_TARGET, and server endpoint attributes', () => {
+  it('includes URL_FULL, HTTP_REQUEST_METHOD, URL_PATH, and server endpoint attributes', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest());
     expect(result.attributes).toMatchObject({
       [URL_FULL]: 'http://example.com/api/test',
       [HTTP_REQUEST_METHOD]: 'GET',
-      [HTTP_TARGET]: '/api/test',
+      [URL_PATH]: '/api/test',
       [SERVER_ADDRESS]: 'example.com',
       [SERVER_PORT]: 80,
     });
-  });
-
-  it('falls back to "/" for http.target when path is not set', () => {
-    const result = getOutgoingRequestSpanData(makeMockRequest({ path: undefined }));
-    expect(result.attributes!['http.target']).toBe('/');
   });
 
   it('includes user_agent.original when user-agent header is set', () => {
@@ -122,7 +117,7 @@ describe('setIncomingResponseSpanData', () => {
     expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'http.response.status_code': 201 }));
   });
 
-  it('sets network.protocol.version from httpVersion', () => {
+  it('sets network.protocol.version and http.flavor from httpVersion', () => {
     const span = makeMockSpan();
     setIncomingResponseSpanData(makeMockResponse({ httpVersion: '2.0' }), span);
     expect(span.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ 'network.protocol.version': '2.0' }));

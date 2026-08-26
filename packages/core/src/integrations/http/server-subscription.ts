@@ -27,7 +27,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
-import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
+import { getUrlFragment, getUrlQuery, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace, startSpanManual } from '../../tracing/trace';
@@ -53,13 +53,14 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_SEGMENT_NAME_SOURCE,
-  HTTP_TARGET,
+  URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
+  URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
-import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
+import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -326,11 +327,8 @@ function buildServerSpanWrap(
             [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
             [URL_FULL]: filterCollectedUrl(fullUrl, client),
             [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
-            // eslint-disable-next-line typescript/no-deprecated
-            [HTTP_TARGET]: filterCollectedUrl(
-              urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-              client,
-            ),
+            [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(urlObj?.search), client),
+            [URL_FRAGMENT]: getUrlFragment(urlObj?.hash),
             [HTTP_REQUEST_METHOD]: method,
             [NETWORK_PROTOCOL_NAME]: 'http',
             [NETWORK_PROTOCOL_VERSION]: httpVersion,

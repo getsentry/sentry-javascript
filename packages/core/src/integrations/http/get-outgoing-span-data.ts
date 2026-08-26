@@ -8,7 +8,6 @@ import type { StartSpanOptions } from '../../types/startSpanOptions';
 import {
   HTTP_RESPONSE_BODY_SIZE,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_TARGET,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -44,8 +43,8 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
-      // eslint-disable-next-line typescript/no-deprecated
-      [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
+      // The old `http.target` (path plus query) has no separate replacement here: `url.path`,
+      // `url.query` and `http.request.method` all come from `attributes` below.
       [SERVER_ADDRESS]: request.host,
       [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
       [USER_AGENT_ORIGINAL]: userAgent || undefined,

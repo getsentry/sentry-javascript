@@ -8,14 +8,14 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-inbound-headers/${id}`
     );
   });
 
   const outboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http/${id}`
     );
   });
 
@@ -66,7 +66,6 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': `/test-outgoing-http/${id}`,
       'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
@@ -107,7 +106,6 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -140,14 +138,14 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-inbound-headers/${id}`
     );
   });
 
   const outboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch/${id}`
     );
   });
 
@@ -199,7 +197,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': `/test-outgoing-fetch/${id}`,
       'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
@@ -240,7 +237,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -277,7 +273,7 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http-external-allowed`
     );
   });
 
@@ -314,7 +310,7 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http-external-disallowed`
     );
   });
 
@@ -338,7 +334,7 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch-external-allowed`
     );
   });
 
@@ -375,7 +371,7 @@ test('Does not propagate outgoing fetch requests not covered by tracePropagation
   const inboundTransactionPromise = waitForTransaction('node-koa', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch-external-disallowed`
     );
   });
 

@@ -5,7 +5,6 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_TARGET,
   CLIENT_ADDRESS,
   CLIENT_PORT,
   NETWORK_LOCAL_ADDRESS,
@@ -168,11 +167,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [URL_QUERY]: filterCollectedUrlQuery(query, client),
               [URL_FRAGMENT]: fragment,
               [HTTP_REQUEST_METHOD]: normalizedRequest.method,
-              // eslint-disable-next-line typescript/no-deprecated
-              [HTTP_TARGET]: filterCollectedUrl(
-                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-                client,
-              ),
               [USER_AGENT_ORIGINAL]: userAgent,
               [URL_SCHEME]: scheme,
               [SERVER_ADDRESS]: hostname,

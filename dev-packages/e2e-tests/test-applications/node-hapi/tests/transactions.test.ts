@@ -25,7 +25,6 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
-      'http.target': '/test-success',
       'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
@@ -131,13 +130,13 @@ test('Isolates requests', async ({ baseURL }) => {
   const transaction1Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/888'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/888'
     );
   });
   const transaction2Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/999'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/999'
     );
   });
 
