@@ -32,7 +32,7 @@ export {
   _reconstructQuery as _INTERNAL_reconstructPostgresQuery,
   _buildConnectionContext as _INTERNAL_buildPostgresConnectionContext,
   _setConnectionAttributes as _INTERNAL_setPostgresConnectionAttributes,
-  _setOperationName as _INTERNAL_setPostgresOperationName,
+  _getOperationName as _INTERNAL_getPostgresOperationName,
 } from './integrations/postgresjs';
 export type { PostgresConnectionContext } from './integrations/postgresjs';
 export { getSqlQuerySummary as _INTERNAL_getSqlQuerySummary } from './utils/sql';

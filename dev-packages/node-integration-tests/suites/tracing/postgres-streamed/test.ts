@@ -88,9 +88,6 @@ const COMMON_DB_ATTRIBUTES = {
  *
  * `origin` defaults to `QUERY_ORIGIN`; blocks that force the OTel path (explicit `postgresIntegration()`)
  * pass `auto.db.otel.postgres` explicitly.
- *
- * With span streaming, query spans are named after the low-cardinality query summary
- * (`{operation} {table}`) rather than the full statement, so `name` and `statement` differ.
  */
 function expectedDbSpan({
   name,

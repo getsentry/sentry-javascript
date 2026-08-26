@@ -1,5 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -13,7 +14,7 @@ import {
   _INTERNAL_reconstructPostgresQuery,
   _INTERNAL_sanitizeSqlQuery,
   _INTERNAL_setPostgresConnectionAttributes,
-  _INTERNAL_setPostgresOperationName,
+  _INTERNAL_getPostgresOperationName,
   debug,
   defineIntegration,
   getClient,
@@ -178,7 +179,8 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
       markEnded();
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
-        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery, command);
+        // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+        span.setAttribute(DB_OPERATION_NAME, _INTERNAL_getPostgresOperationName(sanitizedSqlQuery, command));
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in resolve:', e);
@@ -196,7 +198,6 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
         span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
         span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
         span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
-        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery);
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in reject:', e);
@@ -271,12 +272,9 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       const fullQuery = _INTERNAL_reconstructPostgresQuery(query.strings);
       const sanitizedSqlQuery = _INTERNAL_sanitizeSqlQuery(fullQuery);
 
-      const client = getClient();
-      // The query is already sanitized, so a string literal containing `from`/`join` can't leak a
-      // value into the summary.
       const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedSqlQuery);
-      // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-      // instead of the full statement, falling back to `{db.system.name}`.
+
+      const client = getClient();
       const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || 'postgres' : undefined;
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
@@ -289,6 +287,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
           [DB_SYSTEM_NAME]: 'postgres',
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
           [DB_QUERY_SUMMARY]: querySummary,
+          [DB_OPERATION_NAME]: _INTERNAL_getPostgresOperationName(sanitizedSqlQuery),
         },
       });
 

@@ -252,6 +252,7 @@ function _wrapSingleQueryHandle(
           'db.system.name': 'postgres',
           'db.query.text': sanitizedSqlQuery,
           'db.query.summary': querySummary,
+          'db.operation.name': _getOperationName(sanitizedSqlQuery),
         });
 
         const connectionContext = sqlInstance
@@ -279,7 +280,8 @@ function _wrapSingleQueryHandle(
         queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
           apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
             try {
-              _setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
+              // Reset with the server-reported command, which is more reliable than the query text.
+              span.setAttribute('db.operation.name', _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
@@ -300,7 +302,6 @@ function _wrapSingleQueryHandle(
               span.setAttribute('db.response.status_code', rejectArgs?.[0]?.code || 'unknown');
               span.setAttribute('error.type', rejectArgs?.[0]?.name || 'unknown');
 
-              _setOperationName(span, sanitizedSqlQuery);
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
@@ -436,20 +437,17 @@ export function _setConnectionAttributes(span: Span, connectionContext: Postgres
 }
 
 /**
- * Extracts DB operation name from SQL query and sets it on the span.
+ * Extracts the DB operation name from a SQL query, preferring the server-reported `command`.
  *
  * @internal Exported for the orchestrion (diagnostics-channel) integration.
  */
-export function _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
+export function _getOperationName(sanitizedQuery: string | undefined, command?: string): string | undefined {
   if (command) {
-    span.setAttribute('db.operation.name', command);
-    return;
+    return command;
   }
   // Fallback: extract operation from the SQL query
   const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
-  if (operationMatch?.[1]) {
-    span.setAttribute('db.operation.name', operationMatch[1].toUpperCase());
-  }
+  return operationMatch?.[1]?.toUpperCase();
 }
 
 /**
