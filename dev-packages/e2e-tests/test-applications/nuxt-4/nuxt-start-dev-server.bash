@@ -25,8 +25,11 @@ if [ ! -f ".nuxt/dev/sentry.server.config.mjs" ]; then
 fi
 
 # 3.  Cleanup
+# `pkill -P` only kills direct children, so the grandchild dev server holding the
+# port survives; newer Nuxt's directory-scoped dev lock then blocks the real start.
 echo "Found .nuxt/dev/sentry.server.config.mjs, stopping 'nuxt dev' process..."
-pkill -P $DEV_PID || kill $DEV_PID
+pkill -P $DEV_PID 2>/dev/null
+kill $DEV_PID 2>/dev/null
 
 # Wait for port to be released
 echo "Waiting for port $TEMP_PORT to be released..."
@@ -38,7 +41,13 @@ while lsof -i :$TEMP_PORT > /dev/null 2>&1 && [ $COUNTER -lt 10 ]; do
 done
 
 if lsof -i :$TEMP_PORT > /dev/null 2>&1; then
-    echo "WARNING: Port $TEMP_PORT still in use after 10 seconds, proceeding anyway..."
+    echo "Port $TEMP_PORT still in use, killing remaining processes bound to it..."
+    lsof -t -i :$TEMP_PORT | xargs -r kill -9 2>/dev/null
+    sleep 1
+fi
+
+if lsof -i :$TEMP_PORT > /dev/null 2>&1; then
+    echo "WARNING: Port $TEMP_PORT still in use, proceeding anyway..."
 else
     echo "Port $TEMP_PORT released successfully"
 fi
