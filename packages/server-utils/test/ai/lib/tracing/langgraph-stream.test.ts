@@ -285,6 +285,52 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     expect(spanEnd).toHaveBeenCalledTimes(1);
   });
 
+  it('throws when pipeThrough is called with a locked source', async () => {
+    const stream = new TestLangGraphStream(['first update']);
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, {});
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+    const instrumentedStream = await graph.stream();
+    const reader = instrumentedStream.getReader();
+
+    expect(() => instrumentedStream.pipeThrough(new TransformStream())).toThrow(TypeError);
+
+    reader.releaseLock();
+  });
+
+  it('throws when pipeThrough is called with a locked writable', async () => {
+    const stream = new TestLangGraphStream(['first update']);
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, {});
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+    const transform = new TransformStream();
+    const writer = transform.writable.getWriter();
+    const instrumentedStream = await graph.stream();
+
+    expect(() => instrumentedStream.pipeThrough(transform)).toThrow(TypeError);
+
+    writer.releaseLock();
+  });
+
+  it('errors the pipeThrough readable when the source pipe rejects', async () => {
+    const error = new Error('pipe failed');
+    const stream = new TestLangGraphStream(['first update']);
+    Object.defineProperty(stream, 'pipeTo', {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(error),
+      writable: true,
+    });
+    const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
+    const compile = instrumentStateGraphCompile(() => compiledGraph, {});
+    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+
+    const reader = (await graph.stream()).pipeThrough(new TransformStream()).getReader();
+
+    await expect(reader.read()).rejects.toThrow(error);
+    expect(spanSetStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    expect(spanEnd).toHaveBeenCalledTimes(1);
+  });
+
   it('ends the span when direct next calls consume the stream', async () => {
     const stream = new TestLangGraphStream(['first update']);
     const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };

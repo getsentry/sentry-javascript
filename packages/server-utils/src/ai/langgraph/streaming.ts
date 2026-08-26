@@ -65,6 +65,7 @@ interface ReadableStreamReaderLike {
 }
 
 interface InstrumentableReadableStream extends AsyncIterable<unknown> {
+  locked: boolean;
   getReader: (...args: unknown[]) => ReadableStreamReaderLike;
   cancel?: (reason?: unknown) => Promise<void>;
   pipeThrough?: (
@@ -215,8 +216,16 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
         transform: ReadableWritablePair<unknown, unknown>,
         options?: StreamPipeOptions,
       ): ReadableStream<unknown> => {
-        // pipeThrough exposes pipeline failures through the returned readable instead of its internal promise.
-        void instrumentedPipeTo(transform.writable, options).catch(() => {});
+        if (stream.locked || transform.writable.locked) {
+          lifecycle.fail();
+          throw new TypeError('Cannot pipe through a locked stream.');
+        }
+
+        void instrumentedPipeTo(transform.writable, options).catch(error => {
+          void transform.writable.abort(error).catch(() => {
+            // The pipe may already have propagated the failure through the transform.
+          });
+        });
         return transform.readable;
       };
     }
