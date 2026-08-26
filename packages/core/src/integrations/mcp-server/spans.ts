@@ -8,6 +8,8 @@
 import { getClient } from '../../currentScopes';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
@@ -83,6 +85,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   const { type, message, transport, extra, callback, options } = config;
   const { method } = message;
   const params = message.params;
+  const client = getClient();
 
   // Determine span name based on type and OTEL conventions
   let spanName: string;
@@ -90,8 +93,9 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     const targetInfo = extractTargetInfo(method, params || {});
     spanName = createSpanName(method, targetInfo.target);
   } else {
-    // For notifications, use method name directly per OpenTelemetry conventions
-    spanName = method;
+    // For notifications, use method name directly per OpenTelemetry conventions.
+    // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
+    spanName = method || (!!client && hasSpanStreamingEnabled(client) ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
   }
 
   const rawAttributes: Record<string, string | number> = {
@@ -101,7 +105,6 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     ...buildSentryAttributes(type),
   };
 
-  const client = getClient();
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
