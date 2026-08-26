@@ -34,7 +34,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -88,7 +87,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -139,7 +137,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -176,7 +173,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with tool calls', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -237,7 +233,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -295,7 +305,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -400,7 +424,6 @@ describe('Google GenAI integration', () => {
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -424,7 +447,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -463,7 +485,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
