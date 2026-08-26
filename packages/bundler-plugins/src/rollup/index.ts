@@ -19,7 +19,9 @@ import type { ComponentAnnotationTransformMeta } from '../core/component-annotat
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
-import { createRequire } from 'node:module';
+import { finalizeRolldownDebugIds, ROLLDOWN_DEBUG_ID_PLACEHOLDER } from './rolldown-debug-id';
+import { getRollupMajorVersion, hasExistingDebugID } from './utils';
+import { getViteParseAstAsync, type ViteAnnotationHooks } from './vite-annotations';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -40,60 +42,15 @@ type ViteModule = {
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
+type RenderChunkPluginContext = {
+  meta?: {
+    rolldownVersion?: string;
+  };
+};
+
+type GenerateBundlePluginContext = RenderChunkPluginContext;
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
-
-function hasExistingDebugID(code: string): boolean {
-  // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
-  const chunkStartSnippet = code.slice(0, 6000);
-  const chunkEndSnippet = code.slice(-500);
-
-  if (chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=')) {
-    return true; // Debug ID already present, skip injection
-  }
-
-  return false;
-}
-
-function getRollupMajorVersion(): string | undefined {
-  try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore - Rollup already transpiles this for us
-    const req = createRequire(import.meta.url);
-    const rollup = req('rollup') as { VERSION?: string };
-    return rollup.VERSION?.split('.')[0];
-  } catch {
-    // do nothing, we'll just not report a version
-  }
-
-  return undefined;
-}
-
-function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
-  if (!viteParseAstAsyncPromise) {
-    viteParseAstAsyncPromise = Promise.resolve()
-      .then(async () => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Vite is an optional runtime peer for this package
-        const viteModule = createRequire(import.meta.url)('vite') as ViteModule;
-
-        if (typeof viteModule.parseAstAsync !== 'function') {
-          return null;
-        }
-
-        try {
-          await viteModule.parseAstAsync('const x = <div />;', { lang: 'tsx' });
-        } catch {
-          return null;
-        }
-
-        return viteModule.parseAstAsync;
-      })
-      .catch(() => null);
-  }
-
-  return viteParseAstAsyncPromise;
-}
 
 /**
  * @ignore - this is the internal plugin factory function only used for the Vite plugin!
@@ -195,6 +152,7 @@ export function _rollupPluginInternal(
   }
 
   function renderChunk(
+    this: RenderChunkPluginContext | undefined,
     code: string,
     chunk: { fileName: string; facadeModuleId?: string | null },
     _?: unknown,
@@ -215,7 +173,9 @@ export function _rollupPluginInternal(
     const injectCode = staticInjectionCode.clone();
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      const debugId = stringToUUID(code); // generate a deterministic debug ID
+      // Rolldown's renderChunk code contains temporary hash placeholders whose values can vary between builds.
+      // The fixed-width placeholder is replaced after Rolldown resolves them, without shifting source map positions.
+      const debugId = this?.meta?.rolldownVersion ? ROLLDOWN_DEBUG_ID_PLACEHOLDER : stringToUUID(code);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
@@ -249,7 +209,19 @@ export function _rollupPluginInternal(
    * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
    * assets afterwards (e.g. subresource integrity) see the stamped content.
    */
-  function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
+  function generateBundle(
+    this: GenerateBundlePluginContext | undefined,
+    _outputOptions: unknown,
+    bundle: OutputBundle,
+  ): void {
+    if (this?.meta?.rolldownVersion) {
+      finalizeRolldownDebugIds(bundle);
+    }
+
+    if (options.sourcemaps?.disable !== 'disable-upload') {
+      return;
+    }
+
     for (const output of Object.values(bundle)) {
       if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
         continue;
@@ -291,7 +263,9 @@ export function _rollupPluginInternal(
             '/**/*.mjs.map',
             '/**/*.cjs.map',
           ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
-          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
+          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, {
+            root: outputDir,
+          });
           await upload(buildArtifacts);
         } else if (outputOptions.file) {
           await upload([outputOptions.file]);
@@ -314,15 +288,17 @@ export function _rollupPluginInternal(
           handler: transform,
         }
       : transform;
+  const generateBundleHook =
+    buildTool === 'vite' && buildToolMajorVersion === '8'
+      ? { order: 'post' as const, handler: generateBundle }
+      : generateBundle;
 
   return {
     name,
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    ...(options.sourcemaps?.disable === 'disable-upload'
-      ? { generateBundle: { order: 'pre' as const, handler: generateBundle } }
-      : {}),
+    generateBundle: generateBundleHook,
     writeBundle,
   };
 }
