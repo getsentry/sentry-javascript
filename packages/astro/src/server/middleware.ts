@@ -409,7 +409,8 @@ function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler
 /**
  * Join Astro route segments into a case-sensitive single path string.
  *
- * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Astro v5 and v6 lowercase the parametrized route. Joining segments manually
+ * is recommended to get the correct casing of the routes.
  * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
  * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
  */
@@ -425,7 +426,7 @@ function getParametrizedRoute(
   ctx: Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string },
 ): string | undefined {
   try {
-    // `routePattern` is available after Astro 5
+    // `routePattern` is available from Astro 5 on.
     const contextWithRoutePattern = ctx;
     const rawRoutePattern = contextWithRoutePattern.routePattern;
 
@@ -444,9 +445,12 @@ function getParametrizedRoute(
     )?.routeData?.segments;
 
     return (
-      // Astro v5+ - Joining the segments to get the correct casing of the parametrized route
+      // Astro v5 and v6 - Joining the segments to get the correct casing of the parametrized route
       (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
-      // Fallback (Astro v4 and earlier)
+      // Astro v7 - the manifest is no longer reachable from the context, but
+      // `routePattern` keeps the author's casing, so it needs no correction.
+      rawRoutePattern ||
+      // Fallback (Astro v4 and earlier, which has no `routePattern`)
       interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)
     );
   } catch {
