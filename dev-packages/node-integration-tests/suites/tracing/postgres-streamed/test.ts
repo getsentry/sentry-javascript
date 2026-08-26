@@ -117,6 +117,11 @@ function expectedDbSpan({
       type: 'string',
       value: statement,
     };
+    // The name of a db query span is its `db.query.summary` attribute
+    attributes['db.query.summary'] = {
+      type: 'string',
+      value: name,
+    };
     attributes['sentry.origin'] = {
       type: 'string',
       value: origin,
@@ -170,12 +175,12 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
 
               expect(dbSpans).toEqual([
                 expectedDbSpan({ name: 'pg.connect' }),
-                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT }),
+                expectedDbSpan({ name: 'CREATE TABLE "User"', statement: CREATE_USER_TABLE_STATEMENT }),
                 expectedDbSpan({
-                  name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  name: 'INSERT "User"',
                   statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                 }),
-                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"' }),
+                expectedDbSpan({ name: 'SELECT "User"', statement: 'SELECT * FROM "User"' }),
                 expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"' }),
               ]);
             },
@@ -201,13 +206,13 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
               // `ignoreConnectSpans`.
               const origin = 'auto.db.postgres';
               expect(dbSpans).toEqual([
-                expectedDbSpan({ name: CREATE_USER_TABLE_STATEMENT, statement: CREATE_USER_TABLE_STATEMENT, origin }),
+                expectedDbSpan({ name: 'CREATE TABLE "User"', statement: CREATE_USER_TABLE_STATEMENT, origin }),
                 expectedDbSpan({
-                  name: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                  name: 'INSERT "User"',
                   statement: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                   origin,
                 }),
-                expectedDbSpan({ name: 'SELECT * FROM "User"', statement: 'SELECT * FROM "User"', origin }),
+                expectedDbSpan({ name: 'SELECT "User"', statement: 'SELECT * FROM "User"', origin }),
                 expectedDbSpan({ name: 'DROP TABLE "User"', statement: 'DROP TABLE "User"', origin }),
               ]);
             },
@@ -240,17 +245,17 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
                   expect(dbSpans).toEqual([
                     expectedDbSpan({ name: 'pg.connect', host: '127.0.0.1' }),
                     expectedDbSpan({
-                      name: CREATE_NATIVE_USER_TABLE_STATEMENT,
+                      name: 'CREATE TABLE "NativeUser"',
                       statement: CREATE_NATIVE_USER_TABLE_STATEMENT,
                       host: '127.0.0.1',
                     }),
                     expectedDbSpan({
-                      name: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+                      name: 'INSERT "NativeUser"',
                       statement: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
                       host: '127.0.0.1',
                     }),
                     expectedDbSpan({
-                      name: 'SELECT * FROM "NativeUser"',
+                      name: 'SELECT "NativeUser"',
                       statement: 'SELECT * FROM "NativeUser"',
                       host: '127.0.0.1',
                     }),
