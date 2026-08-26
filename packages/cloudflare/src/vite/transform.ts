@@ -303,8 +303,12 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
 
   // `export default Foo` where `Foo` is a local class already wrapped by a named
   // export (e.g. a self-bound WorkerEntrypoint also used as the default handler).
-  // Wrapping again would produce `withSentry(withSentry(...))`.
-  if (decl.type === 'Identifier' && state.renamedLocals.has((decl as IdentifierNode).name)) return;
+  // Wrapping again would produce `withSentry(withSentry(...))`. The binding still
+  // points at the wrapped class, so the default export counts as auto-wrapped.
+  if (decl.type === 'Identifier' && state.renamedLocals.has((decl as IdentifierNode).name)) {
+    state.autoWrapped.add(undefined);
+    return;
+  }
 
   // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
   // MagicString positions are always relative to the original source.

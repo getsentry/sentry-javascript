@@ -726,6 +726,23 @@ describe('same-worker RPC binding floor', () => {
     expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
   });
 
+  it('enables a self service binding when the default export re-exports an already wrapped class', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      'export { AdminEntry };',
+      'export default AdminEntry;',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: new Map(),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'SELF' }],
+    })!;
+
+    expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
+  });
+
   it('drops a binding whose class was wrapped by hand', () => {
     // A hand-wrapped receiver runs on its own options and would see the trailing argument.
     const code = [
