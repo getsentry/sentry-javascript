@@ -423,13 +423,23 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
  * @internal Exported for the orchestrion (diagnostics-channel) integration.
  */
 export function _getConnectionAttributes(connectionContext: PostgresConnectionContext): SpanAttributes {
-  const portNumber = connectionContext.ATTR_SERVER_PORT ? parseInt(connectionContext.ATTR_SERVER_PORT, 10) : undefined;
+  const attributes: SpanAttributes = {};
 
-  return {
-    [DB_NAMESPACE]: connectionContext.ATTR_DB_NAMESPACE,
-    [SERVER_ADDRESS]: connectionContext.ATTR_SERVER_ADDRESS,
-    ...(portNumber !== undefined && !isNaN(portNumber) && { [SERVER_PORT]: portNumber }),
-  };
+  const portNumber = connectionContext.ATTR_SERVER_PORT ? parseInt(connectionContext.ATTR_SERVER_PORT, 10) : undefined;
+  const dbNamespace = connectionContext.ATTR_DB_NAMESPACE;
+  const serverAddress = connectionContext.ATTR_SERVER_ADDRESS;
+
+  if (dbNamespace) {
+    attributes[DB_NAMESPACE] = dbNamespace;
+  }
+  if (serverAddress) {
+    attributes[SERVER_ADDRESS] = serverAddress;
+  }
+  if (portNumber !== undefined && !isNaN(portNumber)) {
+    attributes[SERVER_PORT] = portNumber;
+  }
+
+  return attributes;
 }
 
 /**
