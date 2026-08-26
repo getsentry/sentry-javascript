@@ -57,7 +57,8 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         }
       }
 
-      if (normalizedSource.includes(`/${serverConfigFileName}`)) {
+      const normalizedForCheck = normalizedSource.replace(/\\/g, '/');
+      if (normalizedForCheck.includes(`/${serverConfigFileName}`)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 

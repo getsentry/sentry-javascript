@@ -196,7 +196,9 @@ function wrapEntryWithDynamicImport({
         }
       }
 
-      if (normalizedSource.includes(`/${SERVER_CONFIG_FILENAME}`)) {
+      // Normalize to forward slashes for cross-platform check (Windows uses backslashes)
+      const normalizedForCheck = normalizedSource.replace(/\\/g, '/');
+      if (normalizedForCheck.includes(`/${SERVER_CONFIG_FILENAME}`)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
