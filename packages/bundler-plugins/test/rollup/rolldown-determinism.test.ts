@@ -9,7 +9,7 @@ const virtualModules: Record<string, string> = {
   'virtual:unrelated': `console.log('unrelated');`,
 };
 
-type RolldownVersion = '1.1.2' | '1.2.3';
+type RolldownVersion = '1.1.2' | '1.2.5';
 type SourceMapMode = boolean | 'inline' | 'hidden';
 type OutputFormat = 'esm' | 'cjs';
 
@@ -80,7 +80,7 @@ function expectFinalizedDebugId(code: string): void {
   expect(new Set(debugIds)).toHaveLength(1);
 }
 
-describe.each(['1.1.2', '1.2.3'] satisfies RolldownVersion[])('Rolldown %s debug ID determinism', version => {
+describe.each(['1.1.2', '1.2.5'] satisfies RolldownVersion[])('Rolldown %s debug ID determinism', version => {
   it.each(outputCases)(
     'produces identical %s chunks in repeated builds with sourcemap=%s',
     async (format, sourcemap) => {

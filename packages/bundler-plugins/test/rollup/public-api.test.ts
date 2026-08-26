@@ -320,7 +320,7 @@ describe('Rolldown debug ID finalization', () => {
     release: { inject: false },
     sourcemaps: { disable: 'disable-upload' },
   }) as [Plugin];
-  const rolldownContext = { meta: { rolldownVersion: '1.2.3' } };
+  const rolldownContext = { meta: { rolldownVersion: '1.2.5' } };
   const rollupContext: { meta: { rolldownVersion?: string } } = { meta: {} };
   const renderChunk = plugin.renderChunk as unknown as (
     this: typeof rolldownContext,
