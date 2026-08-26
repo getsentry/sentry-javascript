@@ -203,10 +203,3 @@ export function init(options: VercelEdgeOptions = {}): void {
     // The statement above can throw because process is not defined on the client
   }
 }
-
-/**
- * Just a passthrough in case this is imported from the client.
- */
-export function withSentryConfig<T>(exportedUserNextConfig: T): T {
-  return exportedUserNextConfig;
-}

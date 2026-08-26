@@ -1,4 +1,4 @@
-const { withSentryConfig } = require('@sentry/nextjs');
+const { withSentryConfig } = require('@sentry/nextjs/config');
 
 // Simulate Vercel environment for cron monitoring tests
 process.env.VERCEL = '1';
