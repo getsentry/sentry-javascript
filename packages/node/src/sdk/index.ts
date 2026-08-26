@@ -163,10 +163,12 @@ function _init(
   // runtime with `enableRuntimeChannelInjection: false`, or at build time via the bundler plugins'
   // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
   // Install as early as possible, before the app imports its instrumented modules.
-  const useChannelInjection =
+  if (
     (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
-    options.enableRuntimeChannelInjection !== false;
-  if (useChannelInjection) {
+    options.enableRuntimeChannelInjection !== false
+  ) {
+    registerDiagnosticsChannelInjection();
+  }
     registerDiagnosticsChannelInjection();
   }
 
