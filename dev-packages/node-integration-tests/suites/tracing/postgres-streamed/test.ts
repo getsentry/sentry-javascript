@@ -100,7 +100,6 @@ function expectedDbSpan({
   host?: string;
   origin?: string;
 }): unknown {
-  // The name of a query span is its `db.query.summary`, which is reported as an attribute too.
   const attributes: Record<string, unknown> = {
     ...COMMON_DB_ATTRIBUTES,
     'server.address': {
@@ -118,6 +117,7 @@ function expectedDbSpan({
       type: 'string',
       value: statement,
     };
+    // The name of a db query span is its `db.query.summary` attribute
     attributes['db.query.summary'] = {
       type: 'string',
       value: name,
