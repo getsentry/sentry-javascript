@@ -94,15 +94,26 @@ export function registerDiagnosticsChannelInjection(): void {
   }
 
   // A downstream bundler that inlined + tree-shook this package strips the vendored transformer, so
-  // every runtime transform would throw a cryptic `TypeError` deep in the loader. Detect that once,
-  // warn actionably, and don't install hooks that can't work.
+  // every runtime transform would throw a cryptic `TypeError` deep in the loader. Detect that once
+  // and don't install hooks that can't work.
   if (isTransformerTreeShaken()) {
     marker.runtimeUnavailable = true;
-    warnRuntimeUnavailable(
-      '`@sentry/server-utils` was bundled into your application, so diagnostics-channel ' +
-        'auto-instrumentation is disabled. Keep `@sentry/server-utils` external in your server bundle, ' +
-        'or use the Sentry bundler plugin for build-time instrumentation.',
-    );
+    // If the build-time bundler plugin ran (a defined `bundler` marker Set, set by its entry banner),
+    // instrumentation was already injected at build time and the runtime hook is redundant — this is
+    // an expected, supported setup, so stay quiet (debug-only). Otherwise nothing is instrumented, so
+    // surface an always-on, actionable warning.
+    if (marker.bundler instanceof Set) {
+      debug.log(
+        'Runtime diagnostics-channel injection is disabled because `@sentry/server-utils` was bundled; ' +
+          'build-time instrumentation is active, so this is expected.',
+      );
+    } else {
+      warnRuntimeUnavailable(
+        '`@sentry/server-utils` was bundled into your application, so diagnostics-channel ' +
+          'auto-instrumentation is disabled. Keep `@sentry/server-utils` external in your server bundle, ' +
+          'or use the Sentry bundler plugin for build-time instrumentation.',
+      );
+    }
     return;
   }
 
