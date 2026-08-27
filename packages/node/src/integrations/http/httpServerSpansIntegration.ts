@@ -36,6 +36,8 @@ import type {
 } from '@sentry/core';
 import {
   debug,
+  DEFAULT_IGNORE_STATUS_CODES,
+  processHttpServerTransactionEvent,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
@@ -104,12 +106,7 @@ export interface HttpServerSpansIntegrationOptions {
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const ignoreStatusCodes = options.ignoreStatusCodes ?? [
-    [401, 404],
-    // 300 and 304 are possibly valid status codes we do not want to filter
-    [301, 303],
-    [305, 399],
-  ];
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   const { onSpanCreated } = options;
 
@@ -228,29 +225,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.[HTTP_RESPONSE_STATUS_CODE];
-        if (typeof statusCode === 'number') {
-          // Drop transaction if it has a status code that should be ignored
-          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-
-          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
-          // exporter already does this on its path; doing it here covers transactions produced
-          // by the `SentryTracerProvider`, which bypasses that exporter.
-          event.contexts = {
-            ...event.contexts,
-            response: {
-              ...event.contexts?.response,
-              status_code: statusCode,
-            },
-          };
-        }
-      }
-
-      return event;
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes);
     },
     afterAllSetup(client) {
       if (!DEBUG_BUILD) {
@@ -386,18 +361,4 @@ function getIncomingRequestAttributesOnResponse(
   }
 
   return newAttributes;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }

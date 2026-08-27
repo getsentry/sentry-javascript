@@ -41,6 +41,11 @@ export { getSqlQuerySummary as _INTERNAL_getSqlQuerySummary } from './utils/sql'
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations/http/server-subscription';
+export {
+  DEFAULT_IGNORE_STATUS_CODES,
+  processHttpServerTransactionEvent,
+  shouldFilterStatusCode,
+} from './integrations/http/server-transaction-event';
 export { recordRequestSession } from './integrations/http/record-request-session';
 export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
 export {

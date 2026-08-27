@@ -7,7 +7,7 @@ import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { init, startSpan } from '../build/esm/index.js';
+import { denoHttpIntegration, init, startSpan } from '../build/esm/index.js';
 import { makeTestTransport } from './transport.ts';
 
 function resetGlobals(): void {
@@ -215,5 +215,138 @@ Deno.test({
     );
     assertEquals(httpClientSpan!.data?.['http.request.method'], 'QUERY');
     assertEquals(httpClientSpan!.data?.['http.response.status_code'], 200);
+  },
+});
+
+/** Start a node:http server that echoes the status code named by the path, e.g. `/404`. */
+async function startStatusServer(): Promise<{ port: number; close: () => Promise<void> }> {
+  const server = http.createServer((req, res) => {
+    res.statusCode = Number(req.url?.replace('/', '')) || 200;
+    res.end('ok');
+  });
+  const port: number = await new Promise(resolve => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve((server.address() as { port: number }).port);
+    });
+  });
+  return { port, close: () => new Promise<void>(resolve => server.close(() => resolve())) };
+}
+
+Deno.test({
+  name: 'denoHttpIntegration: drops transactions with a default-ignored status code',
+  async fn() {
+    resetGlobals();
+    const sink = transactionSink();
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
+    });
+
+    const { port, close } = await startStatusServer();
+
+    // 404 is in the default ignore list, 200 is not. Request the ignored one
+    // first so that, by the time the 200 lands, the 404 has had its chance.
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/404`)).text(), 'ok');
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/200`)).text(), 'ok');
+
+    const kept = await withTimeout(
+      sink.waitFor(t => t.contexts?.trace?.data?.['http.response.status_code'] === 200),
+      5000,
+      'http.server transaction for the 200 response',
+    );
+
+    await close();
+
+    assertEquals(kept.transaction, 'GET /200');
+    // The shared handling also lifts the status onto the top-level `response` context.
+    assertEquals(kept.contexts?.response?.status_code, 200);
+
+    const dropped = sink.transactions.filter(t => t.contexts?.trace?.data?.['http.response.status_code'] === 404);
+    assertEquals(dropped.length, 0, `expected the 404 transaction to be dropped, got ${dropped.length}`);
+  },
+});
+
+Deno.test({
+  name: 'denoHttpIntegration: status code filtering also covers Deno.serve transactions',
+  async fn() {
+    resetGlobals();
+    const sink = transactionSink();
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
+    });
+
+    // `denoHttpIntegration` is a default integration and filters on the event, not on
+    // which instrumentation produced it, so `Deno.serve` transactions are filtered too.
+    const abortController = new AbortController();
+    let onListen: ((_: unknown) => void) | undefined;
+    const listening = new Promise(resolve => (onListen = resolve));
+    const server = Deno.serve(
+      { port: 0, signal: abortController.signal, onListen, hostname: '127.0.0.1' },
+      request => new Response('ok', { status: new URL(request.url).pathname === '/gone' ? 404 : 200 }),
+    );
+    await listening;
+    const port = server.addr.port;
+
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/gone`)).text(), 'ok');
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/ok`)).text(), 'ok');
+
+    const kept = await withTimeout(
+      sink.waitFor(t => t.contexts?.trace?.data?.['http.response.status_code'] === 200),
+      5000,
+      'Deno.serve transaction for the 200 response',
+    );
+
+    abortController.abort();
+    await server.finished;
+
+    assertEquals(kept.contexts?.response?.status_code, 200);
+
+    const dropped = sink.transactions.filter(t => t.contexts?.trace?.data?.['http.response.status_code'] === 404);
+    assertEquals(dropped.length, 0, `expected the 404 Deno.serve transaction to be dropped, got ${dropped.length}`);
+  },
+});
+
+/**
+ * Unlike the outgoing request hooks, `ignoreStatusCodes` is read in `processEvent`
+ * rather than `setupOnce`, so a re-configured integration takes effect on the new
+ * client even though the process-wide `setupOnce` has already run. That's why this
+ * can stay here instead of needing its own file.
+ */
+Deno.test({
+  name: 'denoHttpIntegration: ignoreStatusCodes overrides the default list',
+  async fn() {
+    resetGlobals();
+    const sink = transactionSink();
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
+      integrations: [denoHttpIntegration({ ignoreStatusCodes: [500] })],
+    });
+
+    const { port, close } = await startStatusServer();
+
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/500`)).text(), 'ok');
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/404`)).text(), 'ok');
+
+    // 404 is no longer ignored once the default list is replaced.
+    const kept = await withTimeout(
+      sink.waitFor(t => t.contexts?.trace?.data?.['http.response.status_code'] === 404),
+      5000,
+      'http.server transaction for the 404 response',
+    );
+
+    await close();
+
+    assertEquals(kept.transaction, 'GET /404');
+
+    const dropped = sink.transactions.filter(t => t.contexts?.trace?.data?.['http.response.status_code'] === 500);
+    assertEquals(dropped.length, 0, `expected the 500 transaction to be dropped, got ${dropped.length}`);
   },
 });

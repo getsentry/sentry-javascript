@@ -614,6 +614,31 @@ options were already named `tracePropagation`.
 This is unrelated to `propagateTraceparent` (whether the W3C `traceparent` header is sent alongside `sentry-trace`) and
 `tracePropagationTargets` (which URLs receive trace headers). Both keep their names.
 
+### Deno server transactions are dropped for some 3xx/4xx status codes
+
+Affected SDKs: `@sentry/deno`.
+
+`denoHttpIntegration` now honors `ignoreStatusCodes`, using the same default list as `httpIntegration` in the other
+server SDKs: incoming request transactions whose response status falls in `[[401, 404], [301, 303], [305, 399]]` are
+dropped. Previously the option was declared but never read, so these transactions were always kept. Pass your own list
+to change which codes are dropped, or an empty array to keep everything:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [Sentry.denoHttpIntegration({ ignoreStatusCodes: [] })],
+});
+```
+
+Because `denoHttpIntegration` is a default integration and filters on the finished transaction rather than on which
+instrumentation produced it, this applies to `Deno.serve` transactions as well, not just `node:http` ones.
+
+Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
+SDKs.
+
+`denoHttpIntegration` additionally accepts the outgoing request hooks `outgoingRequestHook`, `outgoingResponseHook` and
+`outgoingRequestApplyCustomAttributes`, matching `httpIntegration`.
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
