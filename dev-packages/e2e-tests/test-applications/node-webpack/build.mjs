@@ -1,9 +1,10 @@
-// Bundles the entrypoint with webpack twice, each a directly-runnable ESM bundle with `graphql`
-// inlined (only node builtins stay external):
-//   - `plain`:  no Sentry plugin -> graphql is not instrumented.
-//   - `plugin`: with `sentryWebpackPlugin` -> the orchestrion transform instruments graphql at build
-//     time.
-// `assert.mjs` runs both bundles and checks the graphql query works and which auto-spans appear.
+// Bundles the entrypoint with webpack four ways, each a directly-runnable ESM bundle:
+//   - `plain` / `plugin`:                   graphql inlined. Only `plugin` (with `sentryWebpackPlugin`)
+//                                           build-time instruments it. Run without `--import`.
+//   - `plain-external` / `plugin-external`: graphql kept external so the runtime `--import` hook can
+//                                           intercept it at load time. Run with `--import`.
+// `assert.mjs` runs all four and checks the graphql query works and that exactly one set of graphql
+// spans is emitted in each instrumented scenario (build-time or runtime, never both/double).
 // Kept unminified so the injected snippet keeps its identifiers.
 import { rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -15,7 +16,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
 
-function build(name, plugins) {
+// No auth/release/telemetry — we only care about the build-time transforms and defines.
+const makeSentryPlugin = () =>
+  sentryWebpackPlugin({
+    telemetry: false,
+    sourcemaps: { disable: true },
+    release: { create: false, finalize: false, inject: false },
+  });
+
+function build(name, { external, plugins }) {
   return new Promise((resolve, reject) => {
     webpack(
       {
@@ -23,6 +32,10 @@ function build(name, plugins) {
         mode: 'production',
         target: 'node',
         experiments: { topLevelAwait: true, outputModule: true },
+        externalsType: 'module',
+        // The `*-external` variants keep graphql out of the bundle, so it is resolved from
+        // node_modules at runtime and the `--import` hook can transform it as it loads.
+        externals: external ? { graphql: 'module graphql' } : {},
         output: {
           path: join(__dirname, 'dist', name),
           filename: 'main.mjs',
@@ -45,15 +58,7 @@ function build(name, plugins) {
   });
 }
 
-await build('plain', []);
-await build(
-  'plugin',
-  // No auth/release/telemetry — we only care about the build-time transforms and defines.
-  [
-    sentryWebpackPlugin({
-      telemetry: false,
-      sourcemaps: { disable: true },
-      release: { create: false, finalize: false, inject: false },
-    }),
-  ],
-);
+await build('plain', { external: false, plugins: [] });
+await build('plugin', { external: false, plugins: [makeSentryPlugin()] });
+await build('plain-external', { external: true, plugins: [] });
+await build('plugin-external', { external: true, plugins: [makeSentryPlugin()] });
