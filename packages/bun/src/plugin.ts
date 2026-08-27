@@ -38,9 +38,11 @@ type UnknownPlugin = any;
 // module system.
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
 import {
-  INSTRUMENTED_MODULE_NAMES,
   moduleInjectedTransforms,
   ORCHESTRION_BUNDLER_MARKER_BANNER,
+} from '@sentry/server-utils/orchestrion/bundler-transforms';
+import {
+  INSTRUMENTED_MODULE_NAMES,
   SENTRY_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '@sentry/server-utils/orchestrion/config';

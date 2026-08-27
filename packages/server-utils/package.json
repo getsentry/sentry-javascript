@@ -32,11 +32,6 @@
       "import": "./build/esm/orchestrion/config/index.js",
       "require": "./build/cjs/orchestrion/config/index.js"
     },
-    "./orchestrion/register": {
-      "types": "./build/types/orchestrion/runtime/register.d.ts",
-      "import": "./build/esm/orchestrion/runtime/register.js",
-      "require": "./build/cjs/orchestrion/runtime/register.js"
-    },
     "./orchestrion/vite": {
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
       "import": "./build/esm/orchestrion/bundler/vite.js",
@@ -61,20 +56,16 @@
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
       "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
-    "./orchestrion/import-hook": {
-      "import": "./build/orchestrion/import-hook.mjs"
-    },
-    "./orchestrion/hook": {
-      "import": "./build/esm/orchestrion/runtime/hook.js"
+    "./orchestrion/bundler-transforms": {
+      "types": "./build/types/orchestrion/bundler/moduleInjectedTransform.d.ts",
+      "import": "./build/esm/orchestrion/bundler/moduleInjectedTransform.js",
+      "require": "./build/cjs/orchestrion/bundler/moduleInjectedTransform.js"
     }
   },
   "typesVersions": {
     "*": {
       "orchestrion/config": [
         "build/types/orchestrion/config/index.d.ts"
-      ],
-      "orchestrion/register": [
-        "build/types/orchestrion/runtime/register.d.ts"
       ],
       "orchestrion/vite": [
         "build/types/orchestrion/bundler/vite.d.ts"
@@ -87,6 +78,9 @@
       ],
       "orchestrion/esbuild": [
         "build/types/orchestrion/bundler/esbuild.d.ts"
+      ],
+      "orchestrion/bundler-transforms": [
+        "build/types/orchestrion/bundler/moduleInjectedTransform.d.ts"
       ]
     }
   },
@@ -100,7 +94,6 @@
   },
   "devDependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
-    "@apm-js-collab/tracing-hooks": "^0.13.0",
     "@types/node": "^18.19.1",
     "meriyah": "^6.1.4",
     "vite": "^6.4.3"
@@ -135,8 +128,7 @@
           "{projectRoot}/build/esm",
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
-          "{projectRoot}/build/npm/cjs",
-          "{projectRoot}/build/orchestrion"
+          "{projectRoot}/build/npm/cjs"
         ]
       }
     }

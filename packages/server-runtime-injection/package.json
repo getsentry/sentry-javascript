@@ -1,0 +1,94 @@
+{
+  "name": "@sentry/server-runtime-injection",
+  "version": "10.67.0",
+  "description": "Runtime diagnostics-channel injection hooks for the Sentry JavaScript SDKs. Must be kept external (not bundled) when bundling a server.",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-runtime-injection",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
+  },
+  "files": [
+    "/build"
+  ],
+  "main": "build/cjs/register.js",
+  "module": "build/esm/register.js",
+  "types": "build/types/register.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./build/types/register.d.ts",
+      "import": "./build/esm/register.js",
+      "require": "./build/cjs/register.js"
+    },
+    "./register": {
+      "types": "./build/types/register.d.ts",
+      "import": "./build/esm/register.js",
+      "require": "./build/cjs/register.js"
+    },
+    "./hook": {
+      "import": "./build/esm/hook.js"
+    },
+    "./import-hook": {
+      "import": "./build/import-hook.mjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "register": [
+        "build/types/register.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/core": "10.67.0",
+    "@sentry/server-utils": "10.67.0"
+  },
+  "devDependencies": {
+    "@apm-js-collab/code-transformer": "^0.18.1",
+    "@apm-js-collab/tracing-hooks": "^0.13.0",
+    "@types/node": "^18.19.1",
+    "meriyah": "^6.1.4"
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:transpile:watch",
+    "build:dev:watch": "run-p build:transpile:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:tarball": "npm pack",
+    "clean": "rimraf build coverage sentry-server-runtime-injection-*.tgz",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "test:unit": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/orchestrion",
+          "{projectRoot}/build/import-hook.mjs"
+        ]
+      }
+    }
+  }
+}

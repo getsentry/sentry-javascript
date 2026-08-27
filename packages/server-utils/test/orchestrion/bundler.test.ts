@@ -297,13 +297,8 @@ describe('buildTimeInstrumentation: false', () => {
 describe('resolveOrchestrionRuntimeRequest', () => {
   it.each([
     // Self-references — resolve through this package's own exports map to the CJS build.
-    '@sentry/server-utils/orchestrion/register',
     '@sentry/server-utils/orchestrion/config',
-    // Dependencies of this package, including subpaths only reachable from its location.
-    '@apm-js-collab/tracing-hooks',
-    '@apm-js-collab/tracing-hooks/hook.mjs',
-    '@apm-js-collab/tracing-hooks/hook-sync.mjs',
-    '@apm-js-collab/tracing-hooks/lib/diagnostics.js',
+    // Dependencies of this package, resolvable only from its location.
     '@apm-js-collab/code-transformer',
   ])('resolves %s to an existing absolute path', request => {
     const resolved = resolveOrchestrionRuntimeRequest(request);
@@ -314,7 +309,7 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   });
 
   it('resolves self-references with require conditions, so the paths are loadable via require()', () => {
-    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/register')).toMatch(/[/\\]cjs[/\\]/);
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/config')).toMatch(/[/\\]cjs[/\\]/);
   });
 
   it('returns undefined for unresolvable requests', () => {

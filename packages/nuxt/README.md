@@ -29,7 +29,7 @@ functionality related to Nuxt.
 ## Troubleshoot
 
 If your server-side auto-instrumentation stops recording spans after bundling (e.g. certain Nitro
-presets), make sure `@sentry/server-utils` is kept **external** in the Nitro/server build rather than
+presets), make sure `@sentry/server-runtime-injection` is kept **external** in the Nitro/server build rather than
 inlined, as its runtime module hook must resolve from `node_modules`. `@sentry/node` logs a warning
 the first time an instrumented dependency loads uninstrumented.
 

@@ -1,20 +1,15 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
-import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
-// The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
-// `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
-// build instead of installed as runtime dependencies. Everything in the chain is plain JS, and
-// bundling removes two whole classes of downstream breakage:
+// The orchestrion build-time bundler-plugin chain (`@apm-js-collab/code-transformer-bundler-plugins`
+// → `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
+// build instead of installed as runtime dependencies. (The runtime injection chain lives in
+// `@sentry/server-runtime-injection`.) Everything here is plain JS, and bundling removes a class of
+// downstream breakage:
 //
-// 1. `require(esm)`: the chain's only sync entry (`hook-sync.mjs`) is ESM-only, so an installed
-//    dependency forces our CJS build through Node's `require(esm)` bridge — unavailable on the AWS
-//    Lambda runtime (`--no-experimental-require-module`) and broken on `Module.register()` loader
-//    threads on Node 22.15–24.12 (`The resolveSync() method is not implemented`). Compiled into our
-//    own dual build, the CJS variant is genuine CJS.
-// 2. Tracer/runtime exports-map mismatches: meriyah 6.1's `module-sync`-first exports map is
+// Tracer/runtime exports-map mismatches: meriyah 6.1's `module-sync`-first exports map is
 //    resolved differently by build-time tracers (`@vercel/nft`, nf3, Nitro externals) than by the
 //    runtime CJS loader, producing pruned server bundles that crash with `MODULE_NOT_FOUND`
 //    (https://github.com/vercel/nft/issues/603, https://github.com/nitrojs/nitro/issues/4456).
@@ -79,21 +74,7 @@ const thirdPartyLicensePlugin = license({
   },
 });
 
-const orchestrionRuntimeHooks = [
-  // EXPERIMENTAL — orchestrion.js runtime hook. A hand-written `.mjs` shim that SDKs reference via
-  // a `--import .../orchestrion/import-hook` flag. We pass it through rollup only to copy it into
-  // `build/orchestrion/` at the path the package.json `exports` map expects; `external: /.*/` keeps
-  // every import (e.g. `@sentry/server-utils/orchestrion/config`) as a runtime resolution against
-  // the installed package.
-  defineConfig({
-    input: 'src/orchestrion/runtime/import-hook.mjs',
-    external: /.*/,
-    output: { format: 'esm', file: 'build/orchestrion/import-hook.mjs' },
-  }),
-];
-
 export default [
-  ...orchestrionRuntimeHooks,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       // `src/orchestrion/config/index.ts` and the `src/orchestrion/bundler/*.ts`
@@ -101,21 +82,14 @@ export default [
       // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
       // we list them as separate entrypoints to guarantee they end up in build/esm
       // and build/cjs.
+      //
+      // The runtime diagnostics-channel injection (`register`/`hook`/`import-hook` + the vendored
+      // transformer chain) lives in `@sentry/server-runtime-injection` — it must stay external when
+      // apps bundle, so it is a separate package rather than a subpath here.
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
         'src/orchestrion/config/index.ts',
-        // `src/orchestrion/runtime/register.ts` backs the `./orchestrion/register`
-        // subpath export; the Node SDK `require`s it synchronously from
-        // `Sentry.init()` to install the channel-injection hooks.
-        'src/orchestrion/runtime/register.ts',
-        // The async module hooks passed to `Module.register()`. They load on Node's ESM loader
-        // thread, which cannot resolve bare specifiers into our bundled dependency graph — but
-        // relative imports of on-disk files work, and `build/esm` is a `"type": "module"` scope, so
-        // this entrypoint shares the vendored chunks with the rest of the build. The `./orchestrion/
-        // hook` export only maps its `import` condition (nothing ever `require()`s it), so the copy
-        // in `build/cjs` is unused.
-        'src/orchestrion/runtime/hook.mjs',
         'src/orchestrion/bundler/vite.ts',
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
