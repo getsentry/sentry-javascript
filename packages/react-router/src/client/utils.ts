@@ -126,9 +126,55 @@ export function normalizePathname(pathname: string): string {
   return normalized;
 }
 
-export function getParameterizedRoute(routerState: RouterState): string {
-  const lastMatch = routerState.matches[routerState.matches.length - 1];
-  return normalizePathname(lastMatch?.route.path || routerState.location.pathname);
+/**
+ * The route template for the current match, or `undefined` when nothing matched.
+ *
+ * Built from the whole matched chain rather than the leaf alone: nested routes carry paths
+ * relative to their parent, and index and layout routes carry none at all, so the leaf on its own
+ * is either a fragment of the route (`edit`) or missing entirely.
+ */
+function getRouteTemplate(routerState: RouterState): string | undefined {
+  const { matches } = routerState;
+
+  if (!matches.length) {
+    return undefined;
+  }
+
+  let template = '';
+  for (const match of matches) {
+    const routePath = match.route.path;
+    if (!routePath) {
+      continue;
+    }
+
+    template = routePath.startsWith('/') ? routePath : `${template.replace(/\/$/, '')}/${routePath}`;
+  }
+
+  // A chain without any path only ever matches the root.
+  return normalizePathname(template);
+}
+
+/**
+ * Names a root span after the route the router matched.
+ *
+ * With span streaming there is nothing low cardinality to fall back to when nothing matched, so
+ * the span keeps the name it started with rather than taking on the raw URL.
+ */
+export function updateSpanWithParameterizedRoute(span: Span, routerState: RouterState): void {
+  const routeTemplate = getRouteTemplate(routerState);
+  const client = getClient();
+
+  if (!routeTemplate && client && hasSpanStreamingEnabled(client)) {
+    return;
+  }
+
+  const parameterizedRoute = routeTemplate || normalizePathname(routerState.location.pathname);
+
+  span.updateName(parameterizedRoute);
+  span.setAttributes({
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+    [URL_TEMPLATE]: parameterizedRoute,
+  });
 }
 
 /**
@@ -152,12 +198,7 @@ export function finalizeNavigationSpanFromRouterState(span: Span, routerState: R
     routerState.navigation?.state === 'idle' &&
     normalizePathname(routerState.location.pathname) === normalizePathname(pathname)
   ) {
-    const parameterizedRoute = getParameterizedRoute(routerState);
-    span.updateName(parameterizedRoute);
-    span.setAttributes({
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-      [URL_TEMPLATE]: parameterizedRoute,
-    });
+    updateSpanWithParameterizedRoute(span, routerState);
   }
 }
 
