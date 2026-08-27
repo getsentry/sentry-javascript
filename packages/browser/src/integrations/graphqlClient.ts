@@ -1,6 +1,7 @@
 import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   defineIntegration,
+  hasSpanStreamingEnabled,
   isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
@@ -83,8 +84,11 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       const graphqlBody = getGraphQLRequestPayload(payload);
 
       if (graphqlBody) {
-        const operationInfo = _getGraphQLOperation(graphqlBody);
-        span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
+        // With span streaming the span already carries a low-cardinality name, so it must not be
+        // renamed back to something containing the URL.
+        if (!hasSpanStreamingEnabled(client)) {
+          span.updateName(`${httpMethod} ${httpUrl} (${_getGraphQLOperation(graphqlBody)})`);
+        }
 
         // Handle standard requests - capture the query document when enabled via dataCollection (default true)
         if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {

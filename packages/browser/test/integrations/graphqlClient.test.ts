@@ -317,6 +317,7 @@ describe('GraphqlClient', () => {
     function setupHandler(
       endpoints: Array<string | RegExp>,
       graphQLDocument = true,
+      traceLifecycle: 'static' | 'stream' = 'static',
     ): (span: SentrySpan, hint: FetchHint | XhrHint) => void {
       let capturedListener: ((span: SentrySpan, hint: FetchHint | XhrHint) => void) | undefined;
       const mockClient = {
@@ -325,6 +326,7 @@ describe('GraphqlClient', () => {
             capturedListener = cb;
           }
         },
+        getOptions: () => ({ traceLifecycle }),
         getDataCollectionOptions: () => ({ graphQL: { document: graphQLDocument, variables: true } }),
       } as unknown as Client;
 
@@ -369,6 +371,24 @@ describe('GraphqlClient', () => {
 
       const json = spanToJSON(span);
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
+      expect(json.attributes['graphql.document']).toBe(requestBody.query);
+    });
+
+    test('keeps the low-cardinality span name with span streaming enabled', () => {
+      const handler = setupHandler([/\/graphql$/], true, 'stream');
+      const span = new SentrySpan({
+        name: 'POST localhost:4000',
+        op: 'http.client',
+        attributes: {
+          'http.method': 'POST',
+          [URL_FULL]: 'http://localhost:4000/graphql',
+        },
+      });
+
+      handler(span, makeFetchHint('http://localhost:4000/graphql', requestBody));
+
+      const json = spanToJSON(span);
+      expect(json.name).toBe('POST localhost:4000');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
     });
 

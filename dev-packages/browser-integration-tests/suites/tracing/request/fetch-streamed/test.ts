@@ -29,7 +29,8 @@ sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page })
 
   requestSpans.forEach((span, index) =>
     expect(span).toMatchObject({
-      name: `GET http://sentry-test-site.example/${index}`,
+      // The URL path is high cardinality, so a streamed span name keeps only the domain.
+      name: 'GET sentry-test-site.example',
       parent_span_id: pageloadSpan?.span_id,
       span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),

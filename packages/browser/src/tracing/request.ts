@@ -369,10 +369,15 @@ function xhrCallback(
   // With span streaming, we always emit http.client spans, even without a parent span
   const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
+  // With span streaming, span names have to be low cardinality, so the URL path is dropped and only the
+  // domain is kept. `getFullURL` resolves relative URLs against the page origin, so one is almost always
+  // known here. Outgoing requests have no route to parameterize.
+  const streamedName = parsedUrl?.host ? `${method} ${parsedUrl.host}` : method;
+
   const span =
     shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan({
-          name: `${method} ${urlForSpanName}`,
+          name: !!client && hasSpanStreamingEnabled(client) ? streamedName : `${method} ${urlForSpanName}`,
           attributes: {
             type: 'xhr',
             // eslint-disable-next-line typescript/no-deprecated

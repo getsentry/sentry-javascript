@@ -1,10 +1,13 @@
-import { HTTP_REQUEST_METHOD, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   defineIntegration,
+  getClient,
   getSanitizedUrlStringFromUrlObject,
+  hasSpanStreamingEnabled,
+  isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -78,11 +81,18 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               ? getSanitizedUrlStringFromUrlObject(parsedUrl)
               : url;
 
+          // `http.client.stream` follows the same name rules as `http.client`: with span streaming the
+          // URL path is dropped and only the domain is kept. Relative URLs have no domain, and an
+          // outgoing request has no route to parameterize.
+          const client = getClient();
+          const domain = parsedUrl && !isURLObjectRelative(parsedUrl) ? parsedUrl.hostname : undefined;
+          const streamedName = domain ? `${method} ${domain}` : method;
           const streamSpan = startInactiveSpan({
-            name: `${method} ${sanitizedUrl}`,
+            name: !!client && hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,
             startTime: handlerData.endTimestamp,
             attributes: {
               [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url)),
+              [URL_DOMAIN]: domain,
               [HTTP_REQUEST_METHOD]: method,
               type: 'fetch',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
