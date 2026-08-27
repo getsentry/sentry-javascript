@@ -1,5 +1,7 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 // Ports `@opentelemetry/instrumentation-mysql2` (which patches `query`/`execute` on the connection
 // prototype) to orchestrion channel injection.
@@ -21,6 +23,7 @@ import { getModuleNames } from './module-names';
 // guard) — so `Auto` would crash streamed queries. `Callback` leaves that shape untouched (a rare,
 // row-streaming use that consumes the emitter's events), the tradeoff being it isn't traced.
 export const mysql2Config = [
+  registrationOnly({ name: 'mysql2', versionRange: '>=3.20.0', filePath: 'lib/base/connection.js' }),
   {
     channelName: 'query',
     module: { name: 'mysql2', versionRange: '>=1.4.2 <3.11.5', filePath: 'lib/connection.js' },

@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
 
 // `parse`/`validate`/`execute` are top-level named `function` declarations in graphql's compiled

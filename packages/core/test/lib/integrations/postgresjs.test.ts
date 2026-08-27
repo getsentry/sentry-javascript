@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _reconstructQuery, _sanitizeSqlQuery, instrumentPostgresJsSql } from '../../../src/integrations/postgresjs';
-import * as tracing from '../../../src/tracing';
+import * as tracing from '../../../src/tracing/trace';
 import * as spanUtils from '../../../src/utils/spanUtils';
 
 describe('PostgresJs portable instrumentation', () => {

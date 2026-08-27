@@ -6,11 +6,10 @@ import type {
   ResponseHookInfo,
   Span,
   StartSpanOptions,
-  TransactionSource,
 } from '@sentry/core/browser';
 import {
+  _INTERNAL_ensureBrowserSpanStreaming,
   addNonEnumerableProperty,
-  browserPerformanceTimeOrigin,
   consoleSandbox,
   dateTimestampInSeconds,
   debug,
@@ -23,24 +22,26 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
   startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
+  browserPerformanceTimeOrigin,
 } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
-  startTrackingInteractions,
+  isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
@@ -51,30 +52,9 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
-
-/**
- * We don't want to start a bunch of idle timers and PerformanceObservers
- * for web crawlers, as they may prevent the page from being seen as "idle"
- * by the crawler's rendering engine (e.g. Googlebot's headless Chromium).
- */
-const BOT_USER_AGENT_RE =
-  /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
-
-export function isBotUserAgent(): boolean {
-  const nav = WINDOW.navigator as Navigator | undefined;
-  if (!nav?.userAgent) {
-    return false;
-  }
-  return BOT_USER_AGENT_RE.test(nav.userAgent);
-}
-
-interface RouteInfo {
-  name: string | undefined;
-  source: TransactionSource | undefined;
-}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -248,15 +228,6 @@ export interface BrowserTracingOptions {
   enableReportPageLoaded: boolean;
 
   /**
-   * _experiments allows the user to send options to define how this integration works.
-   *
-   * Default: undefined
-   */
-  _experiments: Partial<{
-    enableInteractions: boolean;
-  }>;
-
-  /**
    * A callback which is called before a span for a pageload or navigation is started.
    * It receives the options passed to `startSpan`, and expects to return an updated options object.
    */
@@ -296,7 +267,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   enableReportPageLoaded: false,
-  _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -319,11 +289,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     });
   }
 
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
-
   /**
    * This is just a small wrapper that makes `document` optional.
    * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
@@ -334,7 +299,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -386,7 +350,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'custom';
     }
 
     finalStartSpanOptions.attributes = attributes;
@@ -400,9 +364,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }).end(now);
       return;
     }
-
-    latestRoute.name = finalStartSpanOptions.name;
-    latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
@@ -455,10 +416,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         startTrackingLongAnimationFrames();
       } else if (enableLongTask) {
         startTrackingLongTasks();
-      }
-
-      if (enableInteractions) {
-        startTrackingInteractions();
       }
 
       if (detectRedirects && optionalWindowDocument) {
@@ -616,6 +573,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         return;
       }
 
+      // Technically, every startSpan call already ensures that `spanStreamingIntegration` is installed,
+      // but we do it here anyway for the edge case that users disabled pageload and navigation spans and
+      // purely rely on manual startSpan calls.
+      _INTERNAL_ensureBrowserSpanStreaming(client);
+
       // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
       // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
       // browserTracingIntegration in the integrations array - has already been installed.
@@ -635,13 +597,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
-          const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
-            name: WINDOW.location.pathname,
-            // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: origin ? origin / 1000 : undefined,
+            // With span streaming, span names have to be low cardinality, and there is no route
+            // information available here.
+            name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
@@ -672,9 +633,13 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: parsed?.pathname || WINDOW.location.pathname,
+                // With span streaming, span names have to be low cardinality, and there is no route
+                // information available here.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
@@ -686,10 +651,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (markBackgroundSpan) {
         registerBackgroundTabDetection();
-      }
-
-      if (enableInteractions) {
-        registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
       instrumentOutgoingRequests(client, {
@@ -717,8 +678,22 @@ export function startBrowserTracingPageLoadSpan(
   spanOptions: StartSpanOptions,
   traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
 ): Span | undefined {
-  client.emit('startPageLoadSpan', spanOptions, traceOptions);
-  getCurrentScope().setTransactionName(spanOptions.name);
+  // `Pageload` is a low-cardinality span name, not a description of the page. The scope's
+  // transaction name is what error events are grouped by, so it keeps the URL instead.
+  const isFallbackSpanName = spanOptions.name === PAGELOAD_SPAN_NAME_FALLBACK;
+  getCurrentScope().setTransactionName(isFallbackSpanName ? WINDOW.location?.pathname : spanOptions.name);
+  // A pageload span always covers the entire page load, no matter how late the SDK or a routing
+  // instrumentation gets around to starting it. Everything that happened before (DNS, TLS, TTFB,
+  // HTML parsing, chunk loading) is part of the page load and the performance child spans we attach
+  // later are anchored at the time origin anyway.
+  const timeOrigin = browserPerformanceTimeOrigin();
+  const pageloadSpanOptions: StartSpanOptions = {
+    ...spanOptions,
+    // startTime needs to be in seconds, not ms
+    startTime: spanOptions.startTime ?? (timeOrigin ? timeOrigin / 1000 : undefined),
+  };
+
+  client.emit('startPageLoadSpan', pageloadSpanOptions, traceOptions);
 
   const pageloadSpan = getActiveIdleSpan(client);
 
@@ -743,7 +718,13 @@ export function startBrowserTracingNavigationSpan(
   client.emit('startNavigationSpan', spanOptions, { isRedirect, url });
 
   const scope = getCurrentScope();
-  scope.setTransactionName(spanOptions.name);
+  // `Navigation` is a low-cardinality span name, not a description of the page. The scope's
+  // transaction name is what error events are grouped by, so it keeps the URL instead. `url` is the
+  // destination, while `location` still points at the previous page during a `pushState`.
+  const isFallbackSpanName = spanOptions.name === NAVIGATION_SPAN_NAME_FALLBACK;
+  scope.setTransactionName(
+    isFallbackSpanName ? (url && parseStringToURLObject(url)?.pathname) || WINDOW.location?.pathname : spanOptions.name,
+  );
 
   // We store the normalized request data on the scope, so we get the request data at time of span creation
   // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
@@ -780,66 +761,6 @@ export function getServerTiming(name: string): string | undefined {
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;
-}
-
-/** Start listener for interaction transactions */
-function registerInteractionListener(
-  client: Client,
-  idleTimeout: BrowserTracingOptions['idleTimeout'],
-  finalTimeout: BrowserTracingOptions['finalTimeout'],
-  childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: RouteInfo,
-): void {
-  /**
-   * This is just a small wrapper that makes `document` optional.
-   * We want to be extra-safe and always check that this exists, to ensure weird environments do not blow up.
-   */
-  const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
-
-  let inflightInteractionSpan: Span | undefined;
-  const registerInteractionTransaction = (): void => {
-    const op = 'ui.action.click';
-
-    const activeIdleSpan = getActiveIdleSpan(client);
-    if (activeIdleSpan) {
-      const currentRootSpanOp = spanToJSON(activeIdleSpan).attributes[SENTRY_OP];
-      if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
-        DEBUG_BUILD &&
-          debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
-        return undefined;
-      }
-    }
-
-    if (inflightInteractionSpan) {
-      inflightInteractionSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'interactionInterrupted');
-      inflightInteractionSpan.end();
-      inflightInteractionSpan = undefined;
-    }
-
-    if (!latestRoute.name) {
-      DEBUG_BUILD && debug.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
-      return undefined;
-    }
-
-    inflightInteractionSpan = startIdleSpan(
-      {
-        name: latestRoute.name,
-        op,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
-        },
-      },
-      {
-        idleTimeout,
-        finalTimeout,
-        childSpanTimeout,
-      },
-    );
-  };
-
-  if (optionalWindowDocument) {
-    addEventListener('click', registerInteractionTransaction, { capture: true });
-  }
 }
 
 // We store the active idle span on the client object, so we can access it from exported functions

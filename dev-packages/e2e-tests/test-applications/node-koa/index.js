@@ -22,8 +22,6 @@ const http = require('http');
 const app1 = new Koa();
 app1.use(bodyParser());
 
-Sentry.setupKoaErrorHandler(app1);
-
 const router1 = new Router();
 
 router1.get('/test-success', ctx => {

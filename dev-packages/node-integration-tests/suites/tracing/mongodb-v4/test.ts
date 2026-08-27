@@ -1,7 +1,6 @@
 import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongodb 4 so the = 4.0 <6.4 callback-based command band and the
@@ -21,7 +20,7 @@ describe('MongoDB v4 auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
 
   const spanFor = (operation: string): unknown =>
     expect.objectContaining({

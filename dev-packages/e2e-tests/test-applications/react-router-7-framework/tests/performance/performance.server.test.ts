@@ -20,7 +20,7 @@ test.describe('server - performance', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.react_router.request_handler',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
           op: 'http.server',
           origin: 'auto.http.react_router.request_handler',
@@ -71,7 +71,7 @@ test.describe('server - performance', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.react_router.request_handler',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
           op: 'http.server',
           origin: 'auto.http.react_router.request_handler',

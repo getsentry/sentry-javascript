@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('koa auto-instrumentation', () => {
@@ -7,13 +6,19 @@ describe('koa auto-instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  // `createEsmAndCjsTests` auto-runs this suite with orchestrion on CI. The
-  // orchestrion path keeps span ops/attributes identical to the OTel path; only
-  // the origin differs to signal the injection mechanism, so we branch on
-  // `isOrchestrionEnabled()`.
-  const origin = isOrchestrionEnabled() ? 'auto.http.koa' : 'auto.http.otel.koa';
+  const origin = 'auto.http.koa';
 
   const EXPECTED_ERROR_EVENT = {
+    // The error is captured within the request's koa span, so it keeps its trace
+    // linkage (a `parent_span_id`) even though koa emits `error` after the
+    // middleware chain has unwound.
+    contexts: {
+      trace: {
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      },
+    },
     exception: {
       values: [
         {

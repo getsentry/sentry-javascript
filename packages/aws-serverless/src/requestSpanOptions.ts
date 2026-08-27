@@ -26,7 +26,7 @@ import {
   SENTRY_OP,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { FAAS_FUNCTION_AWS_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, filterCollectedUrl } from '@sentry/core';
 import type { Context } from 'aws-lambda';
@@ -48,8 +48,8 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
     name: context.functionName,
     forceTransaction: true,
     attributes: {
-      [SENTRY_OP]: FAAS_FUNCTION_AWS_SPAN_OP,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
+      [SENTRY_OP]: FUNCTION_AWS,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.aws_lambda',
       [SENTRY_KIND]: 'server',
       [ATTR_FAAS_EXECUTION]: context.awsRequestId,
       [ATTR_FAAS_ID]: context.invokedFunctionArn,

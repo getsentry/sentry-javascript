@@ -23,6 +23,7 @@ const LAZY_LOADABLE_NAMES = [
   'rewriteFramesIntegration',
   'browserProfilingIntegration',
   'userTimingIntegration',
+  'interactionsIntegration',
   'moduleMetadataIntegration',
 ] as const;
 

@@ -19,9 +19,9 @@ import {
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   SENTRY_KIND,
+  SERVER_ADDRESS,
+  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
@@ -57,7 +57,7 @@ interface Mysql2Connection {
 }
 
 /**
- * Orchestrion-driven mysql2 integration.
+ * Diagnostics-channel-based mysql2 integration.
  *
  * Subscribes to:
  *   - the `orchestrion:mysql2:query`/`:execute` channels the code transform
@@ -65,7 +65,7 @@ interface Mysql2Connection {
  *   - mysql2's native `node:diagnostics_channel` tracing channels
  *     (mysql2 `>= 3.20.0`), which the transform intentionally leaves alone.
  *
- * The two version ranges never overlap, so no query is double-counted. Requires the orchestrion
+ * The two version ranges never overlap, so no query is double-counted. Requires the Sentry
  * runtime hook or bundler plugin to be active.
  */
 function instrumentMysql2Orchestrion(): void {
@@ -124,9 +124,9 @@ function getConnectionAttributes(config: Mysql2ConnectionConfig | undefined): Sp
     [DB_NAMESPACE]: database || undefined,
     [DB_USER]: user || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_NAME]: host || undefined,
+    [SERVER_ADDRESS]: host || undefined,
     // oxlint-disable-next-line typescript/no-deprecated
-    [NET_PEER_PORT]: portIsNumber ? portNumber : undefined,
+    [SERVER_PORT]: portIsNumber ? portNumber : undefined,
   };
 }
 
@@ -151,7 +151,7 @@ const _mysql2Integration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven mysql2 integration.
+ * Diagnostics-channel-based mysql2 integration.
  *
  * Adds Sentry tracing instrumentation for the
  * [mysql2](https://www.npmjs.com/package/mysql2) library via diagnostics-channel
@@ -160,7 +160,7 @@ const _mysql2Integration = (() => {
  *
  * Known limitation vs. older OTel integration it replaced: the callback-less
  * streaming form (`connection.query(sql).on('result', ...)`) is not traced.
- * See the `mysql2` orchestrion config for why. The callback and promise forms
+ * See the `mysql2` transform config for why. The callback and promise forms
  * (the common case) are fully instrumented.
  */
 export const mysql2Integration = defineIntegration(_mysql2Integration);

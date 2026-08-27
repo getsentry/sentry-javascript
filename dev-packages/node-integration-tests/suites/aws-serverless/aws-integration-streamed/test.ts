@@ -1,11 +1,10 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // See the non-streamed `aws-integration` suite: only the origin differs between the OTel and
 // orchestrion diagnostics-channel runs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -78,7 +77,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       }),
     },
     // Two spans share the name `S3.GetObject`; disambiguate by HTTP status code.
-    item => item.attributes['http.status_code']?.value === 200,
+    item => item.attributes['http.response.status_code']?.value === 200,
   );
 
   // S3 - GetObject (errored, missing key)
@@ -92,7 +91,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
         'rpc.service': { value: 'S3', type: 'string' },
       }),
     },
-    item => item.attributes['http.status_code']?.value === 404,
+    item => item.attributes['http.response.status_code']?.value === 404,
   );
 
   // DynamoDB - PutItem

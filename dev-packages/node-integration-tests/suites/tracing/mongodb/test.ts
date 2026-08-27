@@ -2,11 +2,10 @@ import type { TransactionEvent } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('MongoDB auto-instrumentation', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -30,8 +29,8 @@ describe('MongoDB auto-instrumentation', () => {
       'db.collection.name': 'movies',
       'db.operation.name': 'find',
       'db.connection_string': expect.any(String),
-      'net.peer.name': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'server.address': expect.any(String),
+      'server.port': expect.any(Number),
       'db.query.text': '{"title":"?"}',
       'sentry.kind': 'client',
     },
@@ -49,8 +48,8 @@ describe('MongoDB auto-instrumentation', () => {
       'db.collection.name': 'movies',
       'db.operation.name': 'insert',
       'db.connection_string': expect.any(String),
-      'net.peer.name': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'server.address': expect.any(String),
+      'server.port': expect.any(Number),
       'db.query.text': '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
       'sentry.kind': 'client',
     },
@@ -68,8 +67,8 @@ describe('MongoDB auto-instrumentation', () => {
       'db.collection.name': '$cmd',
       'db.operation.name': 'isMaster',
       'db.connection_string': expect.any(String),
-      'net.peer.name': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'server.address': expect.any(String),
+      'server.port': expect.any(Number),
       'db.query.text':
         '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
       'sentry.kind': 'client',
@@ -89,8 +88,8 @@ describe('MongoDB auto-instrumentation', () => {
       'db.collection.name': 'movies',
       'db.operation.name': 'update',
       'db.connection_string': expect.any(String),
-      'net.peer.name': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'server.address': expect.any(String),
+      'server.port': expect.any(Number),
       'db.query.text': '{"title":"?"}',
       'sentry.kind': 'client',
     },
@@ -123,8 +122,8 @@ describe('MongoDB auto-instrumentation', () => {
       'db.namespace': 'admin',
       'db.collection.name': '$cmd',
       'db.connection_string': expect.any(String),
-      'net.peer.name': expect.any(String),
-      'net.peer.port': expect.any(Number),
+      'server.address': expect.any(String),
+      'server.port': expect.any(Number),
       'db.query.text': '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
       'sentry.kind': 'client',
     },

@@ -15,24 +15,26 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
 
   expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'db',
+      op: 'db.query',
       origin: 'auto.db.redis',
       description: 'set test-key [1 other arguments]',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'redis',
+        'db.operation.name': 'set',
         'db.query.text': 'set test-key [1 other arguments]',
       }),
     }),
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'db',
+      op: 'db.query',
       origin: 'auto.db.redis',
       description: 'get test-key',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'redis',
+        'db.operation.name': 'get',
         'db.query.text': 'get test-key',
       }),
     }),
@@ -62,8 +64,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
         'db.query.text': 'SELECT 1 + 1 AS solution',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 3306,
+        'server.address': expect.any(String),
+        'server.port': 3306,
       }),
     }),
   );
@@ -78,8 +80,8 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
         'db.query.text': 'SELECT NOW()',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
-        'net.peer.name': expect.any(String),
-        'net.peer.port': 3306,
+        'server.address': expect.any(String),
+        'server.port': 3306,
       }),
     }),
   );

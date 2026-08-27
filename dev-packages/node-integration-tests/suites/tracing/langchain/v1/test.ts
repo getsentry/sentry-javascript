@@ -1,4 +1,4 @@
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -16,13 +16,10 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
-// LangChain v1 requires Node.js 20+ (dropped Node 18 support)
-// See: https://docs.langchain.com/oss/javascript/migrate/langgraph-v1#dropped-node-18-support
-conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
+describe('LangChain integration (v1)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -317,10 +314,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
     },
     {
       additionalDependencies: {
-        // Pinned: langchain 1.5.7 imports DEFAULT_LANGSMITH_GATEWAY from @langchain/core/utils/gateway,
-        // which no published @langchain/core exports yet, breaking ESM named-export validation.
-        // Restore ^1.0.0 once a @langchain/core release exports it.
-        langchain: '1.5.6',
+        langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/openai': '^1.0.0',
       },

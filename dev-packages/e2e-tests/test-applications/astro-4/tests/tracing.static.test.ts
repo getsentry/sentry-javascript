@@ -36,7 +36,7 @@ test.describe('tracing in static/pre-rendered routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.template': '/test-static',
             'url.path': '/test-static',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/test-static$/),

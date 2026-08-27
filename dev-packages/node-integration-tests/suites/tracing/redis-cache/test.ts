@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -7,7 +6,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     cleanupChildProcesses();
   });
 
-  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.redis' : 'auto.db.otel.redis';
+  const redisOrigin = 'auto.db.redis';
+  const redisSpanOp = 'db.query';
 
   describe('ioredis non-cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -15,25 +15,25 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            'sentry.op': redisSpanOp,
             'db.system.name': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
+            'server.address': 'localhost',
+            'server.port': 6383,
             'db.query.text': 'set test-key [1 other arguments]',
           }),
         }),
         expect.objectContaining({
           description: 'get test-key',
-          op: 'db',
+          op: redisSpanOp,
           origin: redisOrigin,
           data: expect.objectContaining({
-            'sentry.op': 'db',
+            'sentry.op': redisSpanOp,
             'db.system.name': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
+            'server.address': 'localhost',
+            'server.port': 6383,
             'db.query.text': 'get test-key',
           }),
         }),
@@ -164,36 +164,18 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       transaction: 'redis-connect',
     };
 
-    const batchSpans = isOrchestrionEnabled()
-      ? [
-          expect.objectContaining({
-            description: 'MULTI',
-            op: 'db.query',
-            origin: redisOrigin,
-            data: expect.objectContaining({
-              'sentry.origin': redisOrigin,
-              'db.system.name': 'redis',
-              'db.operation.batch.size': 2,
-            }),
-          }),
-        ]
-      : [
-          expect.objectContaining({
-            description: 'SET redis-multi-key [1 other arguments]',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({
-              'db.system.name': 'redis',
-              'db.query.text': 'SET redis-multi-key [1 other arguments]',
-            }),
-          }),
-          expect.objectContaining({
-            description: 'GET redis-multi-key',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system.name': 'redis', 'db.query.text': 'GET redis-multi-key' }),
-          }),
-        ];
+    const batchSpans = [
+      expect.objectContaining({
+        description: 'MULTI',
+        op: 'db.query',
+        origin: redisOrigin,
+        data: expect.objectContaining({
+          'sentry.origin': redisOrigin,
+          'db.system.name': 'redis',
+          'db.operation.batch.size': 2,
+        }),
+      }),
+    ];
 
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span Redis 4',
@@ -286,7 +268,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-test-key',
-          op: isOrchestrionEnabled() ? 'db.query' : 'db',
+          op: 'db.query',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({
@@ -317,36 +299,18 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       transaction: 'redis-connect',
     };
 
-    const batchSpans = isOrchestrionEnabled()
-      ? [
-          expect.objectContaining({
-            description: 'MULTI',
-            op: 'db.query',
-            origin: redisOrigin,
-            data: expect.objectContaining({
-              'sentry.origin': redisOrigin,
-              'db.system.name': 'redis',
-              'db.operation.batch.size': 2,
-            }),
-          }),
-        ]
-      : [
-          expect.objectContaining({
-            description: 'SET redis-5-multi-key [1 other arguments]',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({
-              'db.system.name': 'redis',
-              'db.query.text': 'SET redis-5-multi-key [1 other arguments]',
-            }),
-          }),
-          expect.objectContaining({
-            description: 'GET redis-5-multi-key',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system.name': 'redis', 'db.query.text': 'GET redis-5-multi-key' }),
-          }),
-        ];
+    const batchSpans = [
+      expect.objectContaining({
+        description: 'MULTI',
+        op: 'db.query',
+        origin: redisOrigin,
+        data: expect.objectContaining({
+          'sentry.origin': redisOrigin,
+          'db.system.name': 'redis',
+          'db.operation.batch.size': 2,
+        }),
+      }),
+    ];
 
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span Redis 5',
@@ -439,7 +403,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // a failing command produces a span with an error status
         expect.objectContaining({
           description: 'INCR redis-5-test-key',
-          op: isOrchestrionEnabled() ? 'db.query' : 'db',
+          op: 'db.query',
           status: 'internal_error',
           origin: redisOrigin,
           data: expect.objectContaining({

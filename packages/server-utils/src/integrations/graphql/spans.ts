@@ -6,9 +6,11 @@
  */
 
 import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
-import { WEB_SERVER_GRAPHQL_SPAN_OP } from '@sentry/conventions/op';
+import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -16,7 +18,17 @@ import {
 } from '@sentry/core';
 import type { GraphqlDocumentNode } from './types';
 import { collectGraphqlDocument, getOperationSpanName, hasResultErrors, renameRootSpanWithOperation } from './utils';
-import { GRAPHQL_DATA_SYMBOL, ORIGIN, SPAN_NAME_EXECUTE, SPAN_NAME_PARSE, SPAN_NAME_VALIDATE } from './constants';
+import {
+  GRAPHQL_DATA_SYMBOL,
+  GRAPHQL_PROCESSING_TYPE,
+  ORIGIN,
+  PROCESSING_TYPE_EXECUTE,
+  PROCESSING_TYPE_PARSE,
+  PROCESSING_TYPE_VALIDATE,
+  SPAN_NAME_EXECUTE,
+  SPAN_NAME_PARSE,
+  SPAN_NAME_VALIDATE,
+} from './constants';
 import { getOperation, wrapFields, wrapFieldResolver } from './resolvers';
 import type {
   DocumentNode,
@@ -29,18 +41,29 @@ import type {
 
 const BASE_ATTRIBUTES = {
   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: WEB_SERVER_GRAPHQL_SPAN_OP,
+  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
 } as const;
 
 export function startParseSpan(): Span {
-  return startInactiveSpan({ name: SPAN_NAME_PARSE, attributes: { ...BASE_ATTRIBUTES } });
+  const client = getClient();
+
+  return startInactiveSpan({
+    name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_PARSE}` : SPAN_NAME_PARSE,
+    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE },
+  });
 }
 
 /** `documentAST` is the 2nd argument to `validate(schema, documentAST, …)`. */
 export function startValidateSpan(documentAST: unknown): Span {
+  const client = getClient();
+
   return startInactiveSpan({
-    name: SPAN_NAME_VALIDATE,
-    attributes: { ...BASE_ATTRIBUTES, [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode) },
+    name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_VALIDATE}` : SPAN_NAME_VALIDATE,
+    attributes: {
+      ...BASE_ATTRIBUTES,
+      [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_VALIDATE,
+      [GRAPHQL_DOCUMENT]: collectGraphqlDocument(documentAST as GraphqlDocumentNode),
+    },
   });
 }
 
@@ -150,10 +173,17 @@ export function startExecuteSpan(
   const operationType = operation?.operation;
   const operationName = operation?.name?.value ?? args.operationName ?? undefined;
 
+  const client = getClient();
+  const streamedName = `GraphQL ${operationType || PROCESSING_TYPE_EXECUTE}`;
+
   const span = startInactiveSpan({
-    name: getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? streamedName
+        : getOperationSpanName(operationType, operationName || undefined, SPAN_NAME_EXECUTE),
     attributes: {
       ...BASE_ATTRIBUTES,
+      [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_EXECUTE,
       [GRAPHQL_OPERATION_TYPE]: operationType,
       [GRAPHQL_OPERATION_NAME]: operationName || undefined,
       [GRAPHQL_DOCUMENT]: collectGraphqlDocument(document),

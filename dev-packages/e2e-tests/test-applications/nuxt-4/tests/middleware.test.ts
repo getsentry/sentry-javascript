@@ -45,7 +45,6 @@ test.describe('Server Middleware Instrumentation', () => {
           data: expect.objectContaining({
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nuxt',
-            'sentry.source': 'custom',
             'http.request.method': 'GET',
             'http.route': '/api/middleware-test',
           }),

@@ -12,42 +12,67 @@ let cachedManifestString: string | undefined = undefined;
 const compiledRegexCache: Map<string, RegExp> = new Map();
 const routeResultCache: Map<string, string | undefined> = new Map();
 
+// Specificity ranks for a single route segment, from most to least specific. `END` is the rank of
+// the position just past the last segment of a route, so that a route which stops is compared
+// against whatever the longer route continues with.
+const SEGMENT_STATIC = 0;
+const SEGMENT_DYNAMIC = 1;
+const SEGMENT_END = 2;
+const SEGMENT_CATCH_ALL = 3;
+const SEGMENT_OPTIONAL_CATCH_ALL = 4;
+
 /**
- * Calculate the specificity score for a route path.
- * Lower scores indicate more specific routes.
+ * Calculate the specificity rank for a single route segment.
+ * Lower ranks indicate more specific segments.
  */
-function getRouteSpecificity(routePath: string): number {
-  const segments = routePath.split('/').filter(Boolean);
-  let score = 0;
+function getSegmentSpecificity(segment: string | undefined): number {
+  if (segment === undefined) {
+    // The route has no more segments
+    return SEGMENT_END;
+  }
+  if (!segment.startsWith(':')) {
+    // Static segment: matches exactly one known value
+    return SEGMENT_STATIC;
+  }
 
-  for (const segment of segments) {
-    if (segment.startsWith(':')) {
-      const paramName = segment.substring(1);
-      if (paramName.endsWith('*?')) {
-        // Optional catch-all: [[...param]]
-        score += 1000;
-      } else if (paramName.endsWith('*')) {
-        // Required catch-all: [...param]
-        score += 100;
-      } else {
-        // Regular dynamic segment: [param]
-        score += 10;
-      }
+  const paramName = segment.substring(1);
+  if (paramName.endsWith('*?')) {
+    // Optional catch-all: [[...param]]
+    return SEGMENT_OPTIONAL_CATCH_ALL;
+  }
+  if (paramName.endsWith('*')) {
+    // Required catch-all: [...param]
+    return SEGMENT_CATCH_ALL;
+  }
+  // Regular dynamic segment: [param]
+  return SEGMENT_DYNAMIC;
+}
+
+/**
+ * Compare two route paths by specificity, ordering the most specific route first.
+ *
+ * Routes are compared segment by segment, with the first segment they disagree on deciding the
+ * winner. Comparing aggregate scores instead would rank a short catch-all like '/:locale/:rest*'
+ * above a longer but strictly narrower route like '/:locale/guides/:category/:rest*', because the
+ * longer route accumulates more score simply by having more segments.
+ *
+ * Routes of differing lengths are compared one segment past the shorter one, where `SEGMENT_END`
+ * decides whether continuing narrows the route or widens it: '/:locale/foo' is more specific than
+ * '/:locale', but '/:locale' is more specific than '/:locale/:rest*'.
+ */
+function compareRouteSpecificity(routePathA: string, routePathB: string): number {
+  const segmentsA = routePathA.split('/').filter(Boolean);
+  const segmentsB = routePathB.split('/').filter(Boolean);
+
+  const comparedSegmentCount = Math.min(segmentsA.length, segmentsB.length) + 1;
+  for (let i = 0; i < comparedSegmentCount; i++) {
+    const difference = getSegmentSpecificity(segmentsA[i]) - getSegmentSpecificity(segmentsB[i]);
+    if (difference !== 0) {
+      return difference;
     }
-    // Static segments add 0 to score as they are most specific
   }
 
-  if (segments.length > 0) {
-    // Add a small penalty based on inverse of segment count
-    // This ensures that routes with more segments are preferred
-    // e.g., '/:locale/foo' is more specific than '/:locale'
-    // We use a small value (1 / segments.length) so it doesn't override the main scoring
-    // but breaks ties between routes with the same number of dynamic segments
-    const segmentCountPenalty = 1 / segments.length;
-    score += segmentCountPenalty;
-  }
-
-  return score;
+  return 0;
 }
 
 /**
@@ -130,9 +155,9 @@ function findMatchingRoutes(
 ): string[] {
   const matches: string[] = [];
 
-  // Static path: no parameterization needed, return empty array
+  // Static path: no parameterization needed, return the route itself as already parameterized
   if (staticRoutes.some(r => r.path === route)) {
-    return matches;
+    return [route];
   }
 
   // Dynamic path: find the route pattern that matches the concrete route
@@ -198,7 +223,7 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
   const matches = findMatchingRoutes(normalizedRoute, staticRoutes, dynamicRoutes);
 
   // We can always do the `sort()` call, it will short-circuit when it has one array item
-  const result = matches.sort((a, b) => getRouteSpecificity(a) - getRouteSpecificity(b))[0];
+  const result = matches.sort(compareRouteSpecificity)[0];
 
   routeResultCache.set(normalizedRoute, result);
 

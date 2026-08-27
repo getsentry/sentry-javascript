@@ -8,10 +8,11 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -24,7 +25,13 @@ import {
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
-import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 
 export type SentryHandleOptions = {
   /**
@@ -149,7 +156,8 @@ async function instrumentHandle(
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
   const kitTracingEnabled = event.tracing?.enabled;
-  const dataCollectionOptions = getClient()?.getDataCollectionOptions();
+  const client = getClient();
+  const dataCollectionOptions = client?.getDataCollectionOptions();
 
   try {
     const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
@@ -175,12 +183,16 @@ async function instrumentHandle(
         const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
+        } else if (client && hasSpanStreamingEnabled(client)) {
+          // Without a route, SvelteKit's own span name holds the raw URL, which is too high
+          // cardinality to stream.
+          updateSpanName(kitRootSpan, event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK);
         }
 
         kitRootSpan.setAttributes({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
           [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
           [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
@@ -213,8 +225,8 @@ async function instrumentHandle(
             op: 'http.server',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-              'http.method': event.request.method,
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
+              [HTTP_REQUEST_METHOD]: event.request.method,
               [URL_FULL]: filterCollectedUrl(event.url.href),
               [URL_PATH]: event.url.pathname,
               ...(routeId && {
@@ -224,7 +236,11 @@ async function instrumentHandle(
                 ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
                 : {}),
             },
-            name: routeName,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              routeId || !client || !hasSpanStreamingEnabled(client)
+                ? routeName
+                : event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           resolveWithSentry,
         );

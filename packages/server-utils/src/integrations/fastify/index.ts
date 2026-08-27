@@ -1,16 +1,14 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, getClient } from '@sentry/core';
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
-import { instrumentFastify as _instrumentFastify } from './instrumentation';
+import { instrumentFastify } from './instrumentation';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
-import { subscribeToFastifyErrorChannel, handleFastifyError as _handleFastifyError } from './errors';
+import { subscribeToFastifyErrorChannel } from './errors';
 
 /**
  * Options for the Fastify integration.
  *
  * `shouldHandleError` - Callback method deciding whether error should be captured and sent to Sentry
- * This is used on Fastify v5 where Sentry handles errors in the diagnostics channel.
- * Fastify v3 and v4 use `setupFastifyErrorHandler` instead.
  *
  * @example
  *
@@ -30,9 +28,6 @@ import { subscribeToFastifyErrorChannel, handleFastifyError as _handleFastifyErr
 interface FastifyIntegrationOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
-   * This is used on Fastify v5 where Sentry handles errors in the diagnostics channel.
-   * Fastify v3 and v4 use `setupFastifyErrorHandler` instead.
-   *
    * @param error Captured Fastify error
    * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
    * @param reply Fastify reply (or any object containing at least statusCode)
@@ -49,7 +44,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
       _shouldHandleError = shouldHandleError || defaultShouldHandleError;
 
       subscribeToFastifyErrorChannel();
-      _instrumentFastify();
+      instrumentFastify();
     },
     getShouldHandleError() {
       return _shouldHandleError;
@@ -62,7 +57,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 
 /**
  * Adds Sentry tracing instrumentation for [Fastify](https://fastify.dev/).
- * This integration supports Fastify v5 only.
+ * This integration supports Fastify v3.21.0-v5.0.0.
  *
  * For more information, see the [fastify documentation](https://docs.sentry.io/platforms/javascript/guides/fastify/).
  *
@@ -78,11 +73,14 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
- * @deprecated This export is deprecated and will not longer be exposed in the next major version.
+ * Update the shouldHandleError callback for the Fastify integration.
+ *
+ * @deprecated Set `shouldHandleError` on `fastifyIntegration` instead. This method will be removed in a future version.
+ * ```
  */
-export const instrumentFastify = _instrumentFastify;
-
-/**
- * @deprecated This export is deprecated and will not longer be exposed in the next major version.
- */
-export const handleFastifyError = _handleFastifyError;
+export function setupFastifyErrorHandler(_fastify: unknown, options?: Partial<FastifyIntegrationOptions>): void {
+  if (options?.shouldHandleError) {
+    const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as FastifyIntegration | undefined;
+    integration?.setShouldHandleError(options.shouldHandleError);
+  }
+}

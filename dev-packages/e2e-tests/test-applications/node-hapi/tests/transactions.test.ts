@@ -14,28 +14,29 @@ test('Sends successful transaction', async ({ baseURL }) => {
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
-      'sentry.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.segment.name.source': 'route',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': 'http://localhost:3030/test-success',
       'url.path': '/test-success',
-      'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': '/test-success',
-      'http.user_agent': 'node',
-      'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'server.address': 'localhost',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
+      'user_agent.original': 'node',
+      'client.address': '::1',
+      'client.port': expect.any(Number),
+      'network.transport': 'tcp',
+      'network.local.address': expect.any(String),
+      'network.local.port': expect.any(Number),
+      'network.peer.address': expect.any(String),
+      'network.peer.port': expect.any(Number),
+      'network.protocol.name': 'http',
+      'network.protocol.version': '1.1',
+      'server.port': 3030,
+      'http.response.status_text': 'OK',
       'http.route': '/test-success',
       'http.request.header.accept': '*/*',
       'http.request.header.accept_encoding': 'gzip, deflate',
@@ -49,7 +50,7 @@ test('Sends successful transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(transactionEvent).toEqual(
@@ -72,7 +73,7 @@ test('Sends successful transaction', async ({ baseURL }) => {
     {
       data: {
         'hapi.type': 'router',
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'http.route': '/test-success',
         'sentry.op': 'router',
         'sentry.origin': 'auto.http.hapi',
@@ -129,13 +130,13 @@ test('Isolates requests', async ({ baseURL }) => {
   const transaction1Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/888'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/888'
     );
   });
   const transaction2Promise = waitForTransaction('node-hapi', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.contexts?.trace?.data?.['http.target'] === '/test-param/999'
+      transactionEvent?.contexts?.trace?.data?.['url.path'] === '/test-param/999'
     );
   });
 

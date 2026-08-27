@@ -335,6 +335,9 @@ export function createSentryBuildPluginManager(
     if (bundleSizeOptimizations.excludeTracing) {
       bundleSizeOptimizationReplacementValues['__SENTRY_TRACING__'] = false;
     }
+    if (bundleSizeOptimizations.excludeChannelInjection) {
+      bundleSizeOptimizationReplacementValues['__SENTRY_CHANNEL_INJECTION__'] = false;
+    }
     if (bundleSizeOptimizations.excludeReplayCanvas) {
       bundleSizeOptimizationReplacementValues['__RRWEB_EXCLUDE_CANVAS__'] = true;
     }

@@ -24,11 +24,6 @@ describe('Context', () => {
       vi.clearAllMocks();
     });
 
-    conditionalTest({ max: 18 })('it does not return free_memory on older node versions', () => {
-      const appContext = getAppContext();
-      expect(appContext.free_memory).toBeUndefined();
-    });
-
     conditionalTest({ min: 22 })(
       'returns free_memory if process.availableMemory is defined and returns a valid value',
       () => {

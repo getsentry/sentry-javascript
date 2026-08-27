@@ -46,6 +46,10 @@
       "node": "./build/cjs/index.server.js",
       "import": "./build/esm/index.server.js"
     },
+    "./config": {
+      "types": "./build/types/config/index.d.ts",
+      "default": "./build/cjs/config/index.js"
+    },
     "./async-storage-shim": {
       "import": {
         "default": "./build/esm/config/templates/requestAsyncStorageShim.js"
@@ -72,7 +76,7 @@
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
@@ -103,6 +107,7 @@
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit",

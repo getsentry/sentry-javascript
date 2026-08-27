@@ -4,7 +4,6 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { isOrchestrionEnabled } from '../../../utils';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
@@ -46,8 +45,8 @@ describe('mysql auto instrumentation', () => {
         data: expect.objectContaining({
           ...(origin ? { 'sentry.origin': origin } : {}),
           'db.system.name': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': port,
+          'server.address': 'localhost',
+          'server.port': port,
           'db.user': 'root',
         }),
         status: 'ok',
@@ -196,11 +195,11 @@ describe('mysql auto instrumentation', () => {
           type: 'string',
           value: 'root',
         },
-        'net.peer.name': {
+        'server.address': {
           type: 'string',
           value: 'localhost',
         },
-        'net.peer.port': {
+        'server.port': {
           type: 'integer',
           value: expect.any(Number),
         },
@@ -218,7 +217,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.mysql' : 'auto.db.otel.mysql',
+          value: 'auto.db.mysql',
         },
         'sentry.release': {
           type: 'string',

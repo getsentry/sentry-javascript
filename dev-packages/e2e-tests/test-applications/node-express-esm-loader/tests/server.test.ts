@@ -23,7 +23,7 @@ test('Should record a transaction for a parameterless route', async ({ request }
 
 test('Should record a transaction for route with parameters', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
-    return transactionEvent.contexts?.trace?.data?.['http.target'] === '/test-transaction/1';
+    return transactionEvent.contexts?.trace?.data?.['url.path'] === '/test-transaction/1';
   });
 
   await request.get('/test-transaction/1');
@@ -34,28 +34,24 @@ test('Should record a transaction for route with parameters', async ({ request }
   expect(transactionEvent.transaction).toEqual('GET /test-transaction/:param');
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'http.flavor': '1.1',
-      'http.host': 'localhost:3030',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.response.status_code': 200,
       'http.route': '/test-transaction/:param',
-      'http.scheme': 'http',
-      'http.status_code': 200,
-      'http.status_text': 'OK',
-      'http.target': '/test-transaction/1',
+      'url.scheme': 'http',
+      'http.response.status_text': 'OK',
       'url.full': 'http://localhost:3030/test-transaction/1',
-      'http.user_agent': expect.any(String),
-      'net.host.ip': expect.any(String),
-      'net.host.name': 'localhost',
-      'net.host.port': 3030,
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'net.transport': 'ip_tcp',
+      'user_agent.original': expect.any(String),
+      'network.local.address': expect.any(String),
+      'server.address': 'localhost',
+      'network.local.port': 3030,
+      'network.peer.address': expect.any(String),
+      'network.peer.port': expect.any(Number),
+      'network.transport': 'tcp',
       'sentry.kind': 'server',
       'sentry.op': 'http.server',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.sample_rate': 1,
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
     }),
   );
 
@@ -128,7 +124,7 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
   expect(transactionEvent.transaction).toEqual('GET /test-mysql');
   expect(transactionEvent.contexts?.trace?.status).toEqual('ok');
-  expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(200);
+  expect(transactionEvent.contexts?.trace?.data?.['http.response.status_code']).toEqual(200);
 
   const spans = transactionEvent.spans || [];
   expect(spans).toContainEqual(

@@ -455,6 +455,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
    * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   * Matching is case-insensitive, so `'myApi.com'` and `/^myApi\.com/` both match a request to `https://myapi.com`.
    *
    * Examples:
    * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:

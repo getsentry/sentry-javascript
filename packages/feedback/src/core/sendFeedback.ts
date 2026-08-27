@@ -8,7 +8,7 @@ import type {
 } from '@sentry/core';
 import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
-import { createFeedbackError, resolveFeedbackErrorMessage } from '../util/createFeedbackError';
+import { createFeedbackError } from '../util/createFeedbackError';
 
 /**
  * Public API to send a Feedback item to Sentry
@@ -47,7 +47,7 @@ export const sendFeedback: SendFeedback = (
     // After 30s, we want to clear anyhow
     const timeout = setTimeout(() => {
       cleanup();
-      reject(resolveFeedbackErrorMessage('ERROR_TIMEOUT', errorMessages));
+      reject(createFeedbackError('ERROR_TIMEOUT', errorMessages));
     }, 30_000);
 
     const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
@@ -64,10 +64,10 @@ export const sendFeedback: SendFeedback = (
       }
 
       if (response?.statusCode === 403) {
-        return reject(resolveFeedbackErrorMessage('ERROR_FORBIDDEN', errorMessages));
+        return reject(createFeedbackError('ERROR_FORBIDDEN', errorMessages));
       }
 
-      return reject(resolveFeedbackErrorMessage('ERROR_GENERIC', errorMessages));
+      return reject(createFeedbackError('ERROR_GENERIC', errorMessages));
     });
   });
 };

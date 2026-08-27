@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+// Set by the `assert-command` of the `vue-3 (no Options API)` variant
+const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
@@ -14,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'params.id': '456',
@@ -53,7 +56,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.navigation.vue',
           'sentry.op': 'navigation',
           'params.id': '123',
@@ -85,7 +88,7 @@ test('sends a pageload transaction with a nested route URL', async ({ page }) =>
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'params.id': '123',
@@ -117,7 +120,7 @@ test('sends a pageload transaction with a route name as transaction name if avai
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'navigation.route.id': 'AboutView',
@@ -135,7 +138,10 @@ test('sends a pageload transaction with a route name as transaction name if avai
   });
 });
 
-test('sends a lifecycle span for each tracked components', async ({ page }) => {
+test('sends a lifecycle span for the root and for each tracked component only', async ({ page }) => {
+  // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
+  test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
@@ -148,7 +154,7 @@ test('sends a lifecycle span for each tracked components', async ({ page }) => {
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'url.template': '/components',
@@ -159,64 +165,67 @@ test('sends a lifecycle span for each tracked components', async ({ page }) => {
         origin: 'auto.pageload.vue',
       },
     },
-    spans: expect.arrayContaining([
-      // enabled by default
-      expect.objectContaining({
-        data: {
-          'sentry.op': 'ui.render',
-          'sentry.origin': 'auto.ui.vue',
-        },
-        description: 'Application Render',
-        op: 'ui.render',
-        origin: 'auto.ui.vue',
-      }),
-      // enabled by default
-      expect.objectContaining({
-        data: {
-          'sentry.op': 'ui.mount',
-          'sentry.origin': 'auto.ui.vue',
-        },
-        description: 'Vue <Root>',
-        op: 'ui.mount',
-        origin: 'auto.ui.vue',
-      }),
-
-      // without `<>`
-      expect.objectContaining({
-        data: {
-          'sentry.op': 'ui.mount',
-          'sentry.origin': 'auto.ui.vue',
-        },
-        description: 'Vue <ComponentMainView>',
-        op: 'ui.mount',
-        origin: 'auto.ui.vue',
-      }),
-
-      // with `<>`
-      expect.objectContaining({
-        data: {
-          'sentry.op': 'ui.mount',
-          'sentry.origin': 'auto.ui.vue',
-        },
-        description: 'Vue <ComponentOneView>',
-        op: 'ui.mount',
-        origin: 'auto.ui.vue',
-      }),
-
-      // not tracked
-      expect.not.objectContaining({
-        data: {
-          'sentry.op': 'ui.mount',
-          'sentry.origin': 'auto.ui.vue',
-        },
-        description: 'Vue <ComponentTwoView>',
-        op: 'ui.mount',
-        origin: 'auto.ui.vue',
-      }),
-    ]),
     transaction: '/components',
     transaction_info: {
       source: 'route',
     },
   });
+
+  const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
+  const uiSpanDescriptions = uiSpans.map(span => span.description).sort();
+
+  expect(uiSpanDescriptions).toEqual([
+    'Application Render',
+    'Vue <ComponentMainView>',
+    'Vue <ComponentOneView>',
+    'Vue <Root>',
+  ]);
+
+  // enabled by default
+  const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+  expect(applicationRenderSpan).toMatchObject({
+    data: {
+      'sentry.op': 'ui.render',
+      'sentry.origin': 'auto.ui.vue',
+    },
+    op: 'ui.render',
+    origin: 'auto.ui.vue',
+  });
+
+  // enabled by default
+  const rootComponentSpan = uiSpans.find(span => span.description === 'Vue <Root>');
+  expect(rootComponentSpan).toMatchObject({
+    data: {
+      'sentry.op': 'ui.mount',
+      'sentry.origin': 'auto.ui.vue',
+    },
+    op: 'ui.mount',
+    origin: 'auto.ui.vue',
+  });
+
+  // without `<>`
+  const componentMainViewSpan = uiSpans.find(span => span.description === 'Vue <ComponentMainView>');
+  expect(componentMainViewSpan).toMatchObject({
+    data: {
+      'sentry.op': 'ui.mount',
+      'sentry.origin': 'auto.ui.vue',
+    },
+    op: 'ui.mount',
+    origin: 'auto.ui.vue',
+  });
+
+  // with `<>`
+  const componentOneViewSpan = uiSpans.find(span => span.description === 'Vue <ComponentOneView>');
+  expect(componentOneViewSpan).toMatchObject({
+    data: {
+      'sentry.op': 'ui.mount',
+      'sentry.origin': 'auto.ui.vue',
+    },
+    op: 'ui.mount',
+    origin: 'auto.ui.vue',
+  });
+
+  // `ComponentTwoView` renders on this route but is absent from `trackComponents`
+  // not tracked
+  expect(uiSpanDescriptions).not.toContain('Vue <ComponentTwoView>');
 });

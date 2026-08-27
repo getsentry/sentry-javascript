@@ -1,11 +1,58 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { CoreOptions as Options } from '../types/options';
+import type { TracePropagationTargets } from '../types/tracing';
 import { debug } from './debug-logger';
+import { isRegExp, isString } from './is';
 import type { LRUMap } from './lru';
-import { stringMatchesSomePattern } from './string';
 
 const NOT_PROPAGATED_MESSAGE =
   '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:';
+
+const NORMALIZED_REGEXP_CACHE = new WeakMap<RegExp, RegExp>();
+
+/**
+ * Returns an equivalent RegExp that ignores case and is safe to `test()` repeatedly.
+ *
+ * The `g` and `y` flags are dropped because they make `test()` stateful via `lastIndex`, which would make a target
+ * match only every other request. Results are cached since targets are matched once per outgoing request.
+ */
+function normalizeRegExpTarget(pattern: RegExp): RegExp {
+  const flags = `${pattern.flags.replace(/[gy]/g, '')}${pattern.ignoreCase ? '' : 'i'}`;
+  if (flags === pattern.flags) {
+    return pattern;
+  }
+
+  const cached = NORMALIZED_REGEXP_CACHE.get(pattern);
+  if (cached) {
+    return cached;
+  }
+
+  const normalizedPattern = new RegExp(pattern.source, flags);
+  NORMALIZED_REGEXP_CACHE.set(pattern, normalizedPattern);
+  return normalizedPattern;
+}
+
+/**
+ * Check if a URL matches any of the given `tracePropagationTargets`.
+ *
+ * Matching is case-insensitive: URL normalization (e.g. `new URL()`) lower-cases the origin, so a target
+ * written with the same casing as the request (`'myApi.com'`, `/^myApi\.com/`) would otherwise never match.
+ */
+export function matchesTracePropagationTargets(url: string, tracePropagationTargets: TracePropagationTargets): boolean {
+  const lowerCaseUrl = url.toLowerCase();
+
+  for (const target of tracePropagationTargets) {
+    if (isString(target)) {
+      if (lowerCaseUrl.includes(target.toLowerCase())) {
+        return true;
+      }
+    } else if (isRegExp(target) && normalizeRegExpTarget(target).test(url)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Check if a given URL should be propagated to or not.
@@ -27,7 +74,7 @@ export function shouldPropagateTraceForUrl(
     return cachedDecision;
   }
 
-  const decision = stringMatchesSomePattern(url, tracePropagationTargets);
+  const decision = matchesTracePropagationTargets(url, tracePropagationTargets);
   decisionMap?.set(url, decision);
 
   DEBUG_BUILD && !decision && debug.log(NOT_PROPAGATED_MESSAGE, url);

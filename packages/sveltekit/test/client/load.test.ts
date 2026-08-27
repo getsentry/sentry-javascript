@@ -1,8 +1,5 @@
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
@@ -13,8 +10,8 @@ const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImpl
 
 const mockStartSpan = vi.fn();
 
-vi.mock('@sentry/core', async () => {
-  const original = (await vi.importActual('@sentry/core')) as any;
+vi.mock('@sentry/core/browser', async () => {
+  const original = (await vi.importActual('@sentry/core/browser')) as any;
   return {
     ...original,
     startSpan: (...args: unknown[]) => {
@@ -110,7 +107,7 @@ describe('wrapLoadWithSentry', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           },
           name: '/users/[id]',
         },
@@ -138,7 +135,7 @@ describe('wrapLoadWithSentry', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           },
           name: '/users/123',
         },
@@ -168,7 +165,7 @@ describe('wrapLoadWithSentry', () => {
         expect.objectContaining({
           name: routeIdFromUntrack,
           attributes: expect.objectContaining({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           }),
         }),
         expect.any(Function),
