@@ -16,7 +16,11 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import {
+  isNotFoundNavigationError,
+  isPrerenderControlFlowError,
+  isRedirectNavigationError,
+} from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
@@ -89,6 +93,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   if (rootSpan) {
                     setHttpStatus(rootSpan, 404);
                   }
+                } else if (isPrerenderControlFlowError(error)) {
+                  // Next.js aborts prerenders by rejecting the promises it handed out. React discards those
+                  // rejections, so they are expected, do not affect the response, and must not be reported.
                 } else {
                   const errorStatus = { code: SPAN_STATUS_ERROR, message: 'internal_error' } as const;
                   activeSpan?.setStatus(errorStatus);
