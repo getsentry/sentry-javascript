@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canWrapLoad, makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
+import type { ResolvedKitConfig } from '../../src/vite/kitConfig';
 
 const DEFAULT_CONTENT = `
   export const load = () => {};
@@ -45,7 +46,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
       debug: true,
       load: true,
       serverLoad: true,
-      onlyInstrumentClient: false,
+      getKitConfig: async () => ({}),
     });
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(plugin.enforce).toEqual('pre');
@@ -67,7 +68,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: true,
         serverLoad: true,
-        onlyInstrumentClient: false,
+        getKitConfig: async () => ({}),
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
@@ -84,7 +85,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: false,
         serverLoad: false,
-        onlyInstrumentClient: false,
+        getKitConfig: async () => ({}),
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
@@ -107,7 +108,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: false,
         serverLoad: true,
-        onlyInstrumentClient: false,
+        getKitConfig: async () => ({}),
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
@@ -124,7 +125,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: false,
         serverLoad: false,
-        onlyInstrumentClient: false,
+        getKitConfig: async () => ({}),
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
@@ -132,7 +133,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
     });
   });
 
-  describe('when `onlyInstrumentClient` is `true`', () => {
+  describe('when SvelteKit native server tracing is enabled (client-only instrumentation)', () => {
     it.each([
       // server-only files
       'path/to/+page.server.ts',
@@ -145,7 +146,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: true,
         serverLoad: true,
-        onlyInstrumentClient: true,
+        getKitConfig: async () => ({ tracing: { server: true } }),
       });
 
       // @ts-expect-error this exists and is callable
@@ -168,7 +169,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
           debug: false,
           load: true,
           serverLoad: true,
-          onlyInstrumentClient: true,
+          getKitConfig: async () => ({ tracing: { server: true } }),
         });
 
         // @ts-expect-error this exists and is callable
@@ -202,7 +203,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
           debug: false,
           load: true,
           serverLoad: true,
-          onlyInstrumentClient: true,
+          getKitConfig: async () => ({ tracing: { server: true } }),
         });
 
         // @ts-expect-error this exists and is callable
@@ -220,48 +221,29 @@ describe('makeAutoInstrumentationPlugin()', () => {
     );
   });
 
-  describe('when SvelteKit native server tracing is detected via the Vite plugin `api`', () => {
-    // SvelteKit 3 no longer reads native-tracing config from `svelte.config.js` (so the
-    // `onlyInstrumentClient` option computed from it is `false`); the config is exposed on the
-    // SvelteKit Vite plugin's `api.options` instead.
-    // The tracing config location differs by SvelteKit version:
-    // - SvelteKit 3 (>= 3.0.0-next.21): `tracing.server` (the `kit` nesting was flattened away)
-    // - SvelteKit 3 (>= 3.0.0-next.8): `kit.tracing.server`
-    // - SvelteKit 2.31+ and early Kit 3 prereleases: `kit.experimental.tracing.server`
-    function configWithKitTracing(
-      ssr: boolean,
-      serverTracing: boolean,
-      location: 'tracing' | 'experimental' | 'flat' = 'tracing',
-    ): unknown {
+  describe('when SvelteKit native server tracing is enabled', () => {
+    // The location of the tracing flag differs by SvelteKit version:
+    // - SvelteKit 3 (>= 3.0.0-next.8): `tracing.server`
+    // - SvelteKit 2.31+ and early Kit 3 prereleases: `experimental.tracing.server`
+    // (the `kit` nesting of SvelteKit 2 configs is flattened away by the kit config resolver)
+    function kitConfigWithTracing(serverTracing: boolean, location: 'tracing' | 'experimental'): ResolvedKitConfig {
       const tracing = { tracing: { server: serverTracing } };
-      const options =
-        location === 'flat' ? tracing : { kit: location === 'tracing' ? tracing : { experimental: tracing } };
-
-      return {
-        build: { ssr },
-        plugins: [
-          { name: 'some-other-plugin' },
-          {
-            name: 'vite-plugin-sveltekit-setup',
-            api: { options },
-          },
-        ],
-      };
+      return location === 'tracing' ? tracing : { experimental: tracing };
     }
 
-    describe.each(['tracing', 'experimental', 'flat'] as const)('with the config in the `%s` location', location => {
+    describe.each(['tracing', 'experimental'] as const)('with the flag in the `%s` location', location => {
       it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js', 'path/to/+page.ts', 'path/to/+layout.mjs'])(
-        "doesn't wrap %s in the SSR build when native tracing is enabled, even if `onlyInstrumentClient` is `false`",
+        "doesn't wrap %s in the SSR build",
         async (path: string) => {
           const plugin = makeAutoInstrumentationPlugin({
             debug: false,
             load: true,
             serverLoad: true,
-            onlyInstrumentClient: false,
+            getKitConfig: async () => kitConfigWithTracing(true, location),
           });
 
           // @ts-expect-error this exists and is callable
-          plugin.configResolved(configWithKitTracing(true, true, location));
+          plugin.configResolved({ build: { ssr: true } });
 
           // @ts-expect-error this exists and is callable
           const loadResult = await plugin.load(path);
@@ -275,11 +257,11 @@ describe('makeAutoInstrumentationPlugin()', () => {
           debug: false,
           load: true,
           serverLoad: true,
-          onlyInstrumentClient: false,
+          getKitConfig: async () => kitConfigWithTracing(false, location),
         });
 
         // @ts-expect-error this exists and is callable
-        plugin.configResolved(configWithKitTracing(true, false, location));
+        plugin.configResolved({ build: { ssr: true } });
 
         const path = 'path/to/+page.server.ts';
         // @ts-expect-error this exists and is callable
@@ -298,7 +280,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
   describe('when the server build is detected via the Vite Environment API', () => {
     // On Vite 6+ `config.build.ssr` no longer reliably reflects the per-environment
     // build, so the plugin relies on the current environment (`this.environment.name`). When
-    // `onlyInstrumentClient` is `true`, universal load must not be wrapped in the `ssr` environment
+    // native tracing is enabled, universal load must not be wrapped in the `ssr` environment
     // (but should still be wrapped in `client`), even when `config.build.ssr`/`configResolved`
     // didn't flag a server build.
     it.each(['path/to/+page.ts', 'path/to/+layout.js', 'path/to/+page.server.ts'])(
@@ -308,7 +290,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
           debug: false,
           load: true,
           serverLoad: true,
-          onlyInstrumentClient: true,
+          getKitConfig: async () => ({ tracing: { server: true } }),
         });
 
         // `configResolved` is intentionally not called - `isServerBuild` stays `undefined`
@@ -324,7 +306,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: true,
         serverLoad: true,
-        onlyInstrumentClient: true,
+        getKitConfig: async () => ({ tracing: { server: true } }),
       });
 
       const path = 'path/to/+page.ts';

@@ -63,25 +63,25 @@ describe('getAdapterOutputDir', () => {
   };
 
   it('returns the output directory of the Node adapter', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: { adapter: mockedAdapter } }, 'node');
+    const outputDir = await getAdapterOutputDir({ adapter: mockedAdapter }, 'node');
     expect(outputDir).toEqual('customBuildDir');
   });
 
   it('returns the output directory of the Cloudflare adapter', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, 'cloudflare');
+    const outputDir = await getAdapterOutputDir({ outDir: 'customOutDir' }, 'cloudflare');
     expect(outputDir).toEqual('customOutDir/cloudflare');
   });
 
   it.each(['vercel', 'auto', 'other'] as SupportedSvelteKitAdapters[])(
     'returns the config.kit.outdir directory for adapter-%s',
     async adapter => {
-      const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, adapter);
+      const outputDir = await getAdapterOutputDir({ outDir: 'customOutDir' }, adapter);
       expect(outputDir).toEqual('customOutDir/output');
     },
   );
 
   it('falls back to the default out dir for all other adapters if outdir is not specified in the config', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: {} }, 'vercel');
+    const outputDir = await getAdapterOutputDir({}, 'vercel');
     expect(outputDir).toEqual('.svelte-kit/output');
   });
 });
@@ -93,7 +93,7 @@ describe('getHooksFileName', () => {
   });
 
   it('returns the custom hooks file name if specified in the config', () => {
-    const hooksFileName = getHooksFileName({ kit: { files: { hooks: { server: 'serverhooks' } } } }, 'server');
+    const hooksFileName = getHooksFileName({ files: { hooks: { server: 'serverhooks' } } }, 'server');
     expect(hooksFileName).toEqual('serverhooks');
   });
 });

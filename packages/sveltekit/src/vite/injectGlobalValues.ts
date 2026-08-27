@@ -1,8 +1,8 @@
 import { escapeStringForRegex, type InternalGlobal } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
-import { type BackwardsForwardsCompatibleSvelteConfig, getAdapterOutputDir, getHooksFileName } from './svelteConfig';
-import type { SentrySvelteKitPluginOptions } from './types';
+import type { ResolvedKitConfig } from './kitConfig';
+import { getHooksFileName } from './svelteConfig';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
@@ -32,33 +32,56 @@ export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValu
   return `${injectedValuesCode}\n`;
 }
 
+type GlobalValuesInjectionOptions = {
+  getKitConfig: () => Promise<ResolvedKitConfig>;
+  getAdapterOutputDir: () => Promise<string>;
+  debug?: boolean;
+};
+
 /**
- * Injects SvelteKit app configuration values the svelte.config.js into the
- * server's global object so that the SDK can pick up the information at runtime
+ * Injects SvelteKit app configuration values into the server's global object
+ * so that the SDK can pick up the information at runtime.
  */
-export async function makeGlobalValuesInjectionPlugin(
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
-  options: Pick<SentrySvelteKitPluginOptions, 'adapter' | 'debug'>,
-): Promise<Plugin> {
-  const { adapter = 'other', debug = false } = options;
+export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOptions): Plugin {
+  const { getKitConfig, getAdapterOutputDir, debug = false } = options;
 
-  const serverHooksFile = getHooksFileName(svelteConfig, 'server');
-  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, adapter);
+  // The SvelteKit config is only available once Vite has resolved its plugins, so we compute
+  // the injected values lazily (but only once) instead of at plugin creation time.
+  let injectionValuesPromise: Promise<{ globalSentryValues: GlobalSentryValues; hooksFileRegexp: RegExp }> | undefined;
 
-  const globalSentryValues: GlobalSentryValues = {
-    __sentry_sveltekit_output_dir: adapterOutputDir,
-  };
+  const getInjectionValues = (): Promise<{ globalSentryValues: GlobalSentryValues; hooksFileRegexp: RegExp }> =>
+    (injectionValuesPromise ??= (async () => {
+      const kitConfig = await getKitConfig();
 
-  if (debug) {
-    // eslint-disable-next-line no-console
-    console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
-  }
+      const serverHooksFile = getHooksFileName(kitConfig, 'server');
+      const adapterOutputDir = await getAdapterOutputDir();
 
-  // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
-  const hooksFileRegexp = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`);
+      const globalSentryValues: GlobalSentryValues = {
+        __sentry_sveltekit_output_dir: adapterOutputDir,
+      };
+
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
+      }
+
+      return {
+        globalSentryValues,
+        // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
+        hooksFileRegexp: new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`),
+      };
+    })());
 
   return {
     name: 'sentry-sveltekit-global-values-injection-plugin',
+
+    // Resolve eagerly rather than on the first `transform`: see the note on the adapter output dir
+    // in `sentrySvelteKit()`. Awaited so a failure surfaces as a config error instead of an
+    // unhandled rejection.
+    configResolved: async () => {
+      await getInjectionValues();
+    },
+
     resolveId: (id, _importer, _ref) => {
       if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
         return {
@@ -70,8 +93,9 @@ export async function makeGlobalValuesInjectionPlugin(
       return null;
     },
 
-    load: id => {
+    load: async id => {
       if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
+        const { globalSentryValues } = await getInjectionValues();
         return {
           code: getGlobalValueInjectionCode(globalSentryValues),
         };
@@ -80,6 +104,8 @@ export async function makeGlobalValuesInjectionPlugin(
     },
 
     transform: async (code, id) => {
+      const { hooksFileRegexp } = await getInjectionValues();
+
       const isServerEntryFile = /instrumentation\.server\./.test(id) || hooksFileRegexp.test(id);
 
       if (isServerEntryFile) {

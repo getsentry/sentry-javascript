@@ -47,9 +47,8 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
     },
-    { kit: {} },
+    { getAdapterOutputDir: async () => '.svelte-kit/output' },
   );
 
   return plugins.find(plugin => plugin.name === name);
@@ -313,9 +312,8 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
       },
-      { kit: {} },
+      { getAdapterOutputDir: async () => '.svelte-kit/output' },
     );
 
     // @ts-expect-error this function exists!
@@ -330,7 +328,6 @@ describe('deleteFilesAfterUpload', () => {
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
       release: {
         name: expect.any(String),
       },
@@ -391,12 +388,11 @@ describe('deleteFilesAfterUpload', () => {
           authToken: 'token',
           org: 'org',
           project: 'project',
-          adapter: 'other',
           sourcemaps: {
             filesToDeleteAfterUpload,
           },
         },
-        { kit: {} },
+        { getAdapterOutputDir: async () => '.svelte-kit/output' },
       );
 
       // @ts-expect-error this function exists!
@@ -411,7 +407,6 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
         release: {
           name: expect.any(String),
         },

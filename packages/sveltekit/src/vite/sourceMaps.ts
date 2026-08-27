@@ -7,8 +7,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
-import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -44,10 +42,12 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
  */
 export async function makeCustomSentryVitePlugins(
   options: CustomSentryVitePluginOptions,
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+  deps: {
+    /** Resolved once and shared with the other Sentry plugins - see the note in `sentrySvelteKit()` */
+    getAdapterOutputDir: () => Promise<string>;
+  },
 ): Promise<Plugin[]> {
-  const usedAdapter = options?.adapter || 'other';
-  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
+  const { getAdapterOutputDir } = deps;
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -128,7 +128,11 @@ export async function makeCustomSentryVitePlugins(
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: (config: UserConfig) => {
+    config: async (config: UserConfig) => {
+      // Kick this off here (not in `closeBundle`) so the adapter is invoked before the build
+      // writes its output - see the note on the adapter output dir in `sentrySvelteKit()`.
+      const adapterOutputDir = await getAdapterOutputDir();
+
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
       if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
@@ -176,7 +180,7 @@ export async function makeCustomSentryVitePlugins(
         return;
       }
 
-      const outDir = path.resolve(process.cwd(), adapterOutputDir);
+      const outDir = path.resolve(process.cwd(), await getAdapterOutputDir());
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
