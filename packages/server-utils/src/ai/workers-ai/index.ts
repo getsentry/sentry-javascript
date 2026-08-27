@@ -1,5 +1,7 @@
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -42,7 +44,8 @@ function instrumentRun(
 
     const operationName = getOperationName(inputs);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
-    const modelName = typeof model === 'string' ? model : 'unknown';
+    const modelName = typeof model === 'string' && model ? model : 'unknown';
+    const client = getClient();
 
     const isStreamRequested =
       !!inputs && typeof inputs === 'object' && (inputs as { stream?: unknown }).stream === true;
@@ -52,7 +55,11 @@ function instrumentRun(
       (runOptions.returnRawResponse === true || runOptions.websocket === true);
 
     const spanConfig = {
-      name: `${operationName} ${modelName}`,
+      // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+      name:
+        modelName !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
+          ? `${operationName} ${modelName}`
+          : operationName,
       op: `gen_ai.${operationName}`,
       attributes: requestAttributes,
     };

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as AiCoreUtils from '../../../../src/ai/core/utils';
 import type * as SentryCore from '@sentry/core';
 import {
@@ -42,11 +42,29 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-import { captureException } from '@sentry/core';
+import { captureException, getMainCarrier, setCurrentClient } from '@sentry/core';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+
+function setupClient(traceLifecycle: 'static' | 'stream'): void {
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      tracesSampleRate: 1,
+      traceLifecycle,
+    }),
+  );
+  setCurrentClient(client);
+  client.init();
+}
 
 describe('instrumentEmbeddingMethod', () => {
   beforeEach(() => {
     capturedSpanConfig = undefined;
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('creates a span with correct attributes', async () => {
@@ -103,7 +121,8 @@ describe('instrumentEmbeddingMethod', () => {
     expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('google_genai');
   });
 
-  it('handles missing instance properties gracefully', async () => {
+  it('keeps `embeddings unknown` when the model is missing in static mode', async () => {
+    setupClient('static');
     const original = vi.fn().mockResolvedValue([0.1]);
     const wrapped = instrumentEmbeddingMethod(original);
 
@@ -114,11 +133,36 @@ describe('instrumentEmbeddingMethod', () => {
     expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('langchain');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBeUndefined();
   });
+
+  it('uses the operation name when the model is missing and span streaming is enabled', async () => {
+    setupClient('stream');
+    const original = vi.fn().mockResolvedValue([0.1]);
+    const wrapped = instrumentEmbeddingMethod(original);
+
+    await wrapped.call({}, 'test');
+
+    expect(capturedSpanConfig!.name).toBe('embeddings');
+  });
+
+  it('uses the operation name when the model is not a string and span streaming is enabled', async () => {
+    setupClient('stream');
+    const original = vi.fn().mockResolvedValue([0.1]);
+    const wrapped = instrumentEmbeddingMethod(original);
+
+    await wrapped.call({ model: { id: 'text-embedding-3-small' } }, 'test');
+
+    expect(capturedSpanConfig!.name).toBe('embeddings');
+  });
 });
 
 describe('instrumentLangChainEmbeddings', () => {
   beforeEach(() => {
     capturedSpanConfig = undefined;
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('wraps both embedQuery and embedDocuments on an instance', async () => {
