@@ -102,7 +102,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       const outgoingRequestOptions: OutgoingHttpRequestInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
         spans,
-        propagateTrace: options.tracePropagation ?? true,
+        tracePropagation: options.tracePropagation ?? true,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
         outgoingRequestHook: (span: Span, request: ClientRequest) => {
           // Sanitize data URLs to prevent long base64 strings in span attributes

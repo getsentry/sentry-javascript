@@ -119,7 +119,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
       const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
         ...options,
         breadcrumbs,
-        propagateTrace: tracePropagation,
+        tracePropagation,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests
           ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
           : undefined,

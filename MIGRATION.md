@@ -591,6 +591,29 @@ Sentry.init({
 
 `sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
 
+### `propagateTrace` renamed to `tracePropagation`
+
+Affected SDKs: `@sentry/core` and dependents.
+
+The low-level HTTP instrumentation helpers exported from `@sentry/core` (`getHttpClientSubscriptions` and
+`patchHttpModuleClient`) took a `propagateTrace` option, while the public `httpIntegration` and
+`nativeNodeFetchIntegration` options were already named `tracePropagation`. The option is now called
+`tracePropagation` at every layer, matching `tracePropagationTargets`:
+
+```js
+// before
+patchHttpModuleClient(http, { propagateTrace: true });
+
+// after
+patchHttpModuleClient(http, { tracePropagation: true });
+```
+
+If you only configure `httpIntegration`, `nativeNodeFetchIntegration`, or `denoHttpIntegration`, nothing changes — those
+options were already named `tracePropagation`.
+
+This is unrelated to `propagateTraceparent` (whether the W3C `traceparent` header is sent alongside `sentry-trace`) and
+`tracePropagationTargets` (which URLs receive trace headers). Both keep their names.
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
