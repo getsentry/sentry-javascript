@@ -49,6 +49,21 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toBeUndefined();
   });
 
+  it('does not warn when build-time instrumentation is active (bundler marker present)', () => {
+    createMock.mockImplementation(() => {
+      throw new TypeError('parse is not a function');
+    });
+    // A defined `bundler` Set signals the build-time plugin ran, so the runtime hook is redundant.
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set() };
+
+    registerDiagnosticsChannelInjection();
+
+    // No user-facing warning — this is an expected, supported setup.
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toBeUndefined();
+  });
+
   it('does not warn again on subsequent calls (deduped)', () => {
     createMock.mockImplementation(() => {
       throw new TypeError('parse is not a function');
