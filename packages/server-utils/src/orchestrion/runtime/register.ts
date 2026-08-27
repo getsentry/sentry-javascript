@@ -69,7 +69,8 @@ function isTransformerTreeShaken(): boolean {
  */
 function warnRuntimeUnavailable(message: string): void {
   consoleSandbox(() => {
-    GLOBAL_OBJ.console?.warn(`[Sentry] ${message} See ${BUNDLING_DOCS_URL}`);
+    // oxlint-disable-next-line no-console
+    console.warn(`[Sentry] ${message} See ${BUNDLING_DOCS_URL}`);
   });
 }
 
