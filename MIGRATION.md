@@ -825,7 +825,7 @@ Affected SDKs: All server-side SDKs that support Express.
 
 `expressIntegration()` now captures errors thrown from your route handlers automatically, so calling `setupExpressErrorHandler(app)` is no longer necessary — the call can be removed. It is deprecated and will be removed in the next major version. To customize which errors are captured, pass `shouldHandleError` to `expressIntegration()` (by default, 5xx errors and errors without a resolvable status are captured, while 3xx/4xx errors are not).
 
-If you prefer to capture errors yourself, set `shouldHandleError: false` on `expressIntegration()` to opt out of automatic capture entirely, and call `Sentry.captureException` from your own error-handling middleware.
+If you prefer to capture errors yourself, set `expressIntegration({ shouldHandleError: false })` to opt out of automatic capture entirely, and call `Sentry.captureException` from your own error-handling middleware.
 
 The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version. The export of `expressErrroHandler` and `setupExpressErrorHandler` is moved from `@sentry/core` to `@sentry/server-utils`.
 
