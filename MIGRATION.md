@@ -843,7 +843,7 @@ The following span names were adjusted:
 
 `navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
 
-LangChain chain names and Vercel AI `functionId`s are not agent names, so they are no longer part of a streamed agent span name. They remain available on the `langchain.chain.name` and `gen_ai.function.id` attributes.
+LangChain chain names and Vercel AI `functionId`s are not agent names, so they are no longer part of a streamed agent span name. They remain available on the `langchain.chain.name` and `gen_ai.function_id` attributes.
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
 
