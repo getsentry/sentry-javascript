@@ -914,7 +914,28 @@ If you reference these spans in dashboards or alerts, update them accordingly.
 
 Affected SDKs: All server-side SDKs.
 
-`fastifyIntegration` is now a single, channel-based plugin that instruments Fastify v3.21 through v5, including error capture. Calling `setupFastifyErrorHandler(app)` is no longer required — errors are captured automatically once the integration is added `setupFastifyErrorHandler` is therefore deprecated and will be removed in the next major.
+`fastifyIntegration` is now a single, channel-based plugin that instruments Fastify v3.21 through v5, including error capture. Calling `setupFastifyErrorHandler(app)` is no longer required — errors are captured automatically once the integration is added. `setupFastifyErrorHandler` is therefore deprecated and will be removed in the next major.
+
+Because the integration owns error capture, `setupFastifyErrorHandler` no longer accepts a `shouldHandleError` option. Set it on `fastifyIntegration` instead — it applies to every supported Fastify version:
+
+```diff
+ Sentry.init({
+-  integrations: [Sentry.fastifyIntegration()],
++  integrations: [
++    Sentry.fastifyIntegration({
++      shouldHandleError(_error, _request, reply) {
++        return reply.statusCode >= 500;
++      },
++    }),
++  ],
+ });
+
+-Sentry.setupFastifyErrorHandler(app, {
+-  shouldHandleError(_error, _request, reply) {
+-    return reply.statusCode >= 500;
+-  },
+-});
+```
 
 ### `@sentry/nextjs`
 
@@ -1201,7 +1222,7 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
 - (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
-- (Fastify) The deprecated `setShouldHandleError` method was removed.
+- (Fastify) The deprecated `setShouldHandleError` method was removed, along with the `shouldHandleError` option on `setupFastifyErrorHandler`. Configure it on `fastifyIntegration` instead. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
 - (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
