@@ -127,7 +127,10 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./build/esm/vendored/source-map/**",
+    "./build/cjs/vendored/source-map/**"
+  ],
   "nx": {
     "targets": {
       "build:transpile": {
