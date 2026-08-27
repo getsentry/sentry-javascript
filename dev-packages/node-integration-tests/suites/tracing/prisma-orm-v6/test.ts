@@ -129,6 +129,9 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
     (createRunner, test) => {
       test('should name db query spans after the query summary with span streaming', { timeout: 75_000 }, async () => {
         await createRunner()
+          // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
+          // are not guaranteed to be in the first span envelope.
+          .unordered()
           .expect({
             span: container => {
               const querySpans = container.items.filter(item => item.attributes['db.query.text']);

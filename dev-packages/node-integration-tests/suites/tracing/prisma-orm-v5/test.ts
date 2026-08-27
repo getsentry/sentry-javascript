@@ -142,6 +142,9 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
           { timeout: 75_000 },
           async () => {
             await createRunner()
+              // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
+              // are not guaranteed to be in the first span envelope.
+              .unordered()
               .expect({
                 span: container => {
                   // v5 reports the SQL on the deprecated `db.statement` rather than `db.query.text`.

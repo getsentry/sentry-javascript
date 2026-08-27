@@ -100,6 +100,9 @@ describe('Prisma ORM v7 Tests', () => {
           { timeout: 75_000 },
           async () => {
             await createRunner()
+              // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
+              // are not guaranteed to be in the first span envelope.
+              .unordered()
               .expect({
                 span: container => {
                   // v7 runs the queries through the `pg` adapter, whose own spans are named after the full
