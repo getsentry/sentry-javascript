@@ -165,7 +165,10 @@ describe('with span streaming enabled', () => {
       .withWranglerArgs('--var', 'STREAMED:true')
       .expect(envelope => {
         const { segmentSpan, d1Spans } = getD1Spans(envelope);
-        expect(segmentSpan.name).toBe('GET /init');
+        // With span streaming, the server span name is low cardinality, so the request the
+        // envelope belongs to is only identifiable through `url.path`.
+        expect(segmentSpan.name).toBe('GET');
+        expect(segmentSpan.attributes['url.path']).toEqual({ type: 'string', value: '/init' });
 
         expect(d1Spans).toEqual([
           {
@@ -198,7 +201,8 @@ describe('with span streaming enabled', () => {
       })
       .expect(envelope => {
         const { segmentSpan, d1Spans } = getD1Spans(envelope);
-        expect(segmentSpan.name).toBe('GET /query');
+        expect(segmentSpan.name).toBe('GET');
+        expect(segmentSpan.attributes['url.path']).toEqual({ type: 'string', value: '/query' });
 
         expect(d1Spans).toEqual([
           {
