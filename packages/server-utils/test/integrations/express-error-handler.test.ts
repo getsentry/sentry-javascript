@@ -52,8 +52,11 @@ describe('captureLayerError', () => {
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
 
-  it('does not capture when there is no error', () => {
-    captureLayerError(makeErrorData(undefined), undefined);
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+  ])('does not capture when there is no error (%s)', (_label, error) => {
+    captureLayerError(makeErrorData(error), undefined);
 
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
