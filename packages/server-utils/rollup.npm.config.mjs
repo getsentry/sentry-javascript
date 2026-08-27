@@ -82,10 +82,6 @@ export default [
       // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
       // we list them as separate entrypoints to guarantee they end up in build/esm
       // and build/cjs.
-      //
-      // The runtime diagnostics-channel injection (`register`/`hook`/`import-hook` + the vendored
-      // transformer chain) lives in `@sentry/server-runtime-injection` — it must stay external when
-      // apps bundle, so it is a separate package rather than a subpath here.
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
@@ -95,6 +91,7 @@ export default [
         'src/orchestrion/bundler/webpack.ts',
         'src/orchestrion/bundler/webpack-loader.ts',
         'src/orchestrion/bundler/esbuild.ts',
+        'src/orchestrion/bundler/bun.ts',
       ],
       packageSpecificConfig: {
         plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],

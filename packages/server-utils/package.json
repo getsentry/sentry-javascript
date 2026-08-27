@@ -56,10 +56,10 @@
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
       "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
-    "./orchestrion/bundler-transforms": {
-      "types": "./build/types/orchestrion/bundler/moduleInjectedTransform.d.ts",
-      "import": "./build/esm/orchestrion/bundler/moduleInjectedTransform.js",
-      "require": "./build/cjs/orchestrion/bundler/moduleInjectedTransform.js"
+    "./orchestrion/bun": {
+      "types": "./build/types/orchestrion/bundler/bun.d.ts",
+      "import": "./build/esm/orchestrion/bundler/bun.js",
+      "require": "./build/cjs/orchestrion/bundler/bun.js"
     }
   },
   "typesVersions": {
@@ -79,8 +79,8 @@
       "orchestrion/esbuild": [
         "build/types/orchestrion/bundler/esbuild.d.ts"
       ],
-      "orchestrion/bundler-transforms": [
-        "build/types/orchestrion/bundler/moduleInjectedTransform.d.ts"
+      "orchestrion/bun": [
+        "build/types/orchestrion/bundler/bun.d.ts"
       ]
     }
   },
