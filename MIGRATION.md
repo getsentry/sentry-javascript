@@ -827,7 +827,7 @@ Affected SDKs: All server-side SDKs that support Express.
 
 If you prefer to capture errors yourself, set `shouldHandleError: false` on `expressIntegration()` to opt out of automatic capture entirely, and call `Sentry.captureException` from your own error-handling middleware.
 
-The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version.
+The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version. The export of `expressErrroHandler` and `setupExpressErrorHandler` is moved from `@sentry/core` to `@sentry/server-utils`.
 
 ### Span name changes
 
