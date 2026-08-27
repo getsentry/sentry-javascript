@@ -77,7 +77,7 @@
     "ioredis-5": "npm:ioredis@^5.11.0",
     "kafkajs": "2.2.4",
     "knex": "^2.5.1",
-    "koa": "^2.15.2",
+    "koa": "^3.2.1",
     "lru-memoizer": "2.3.0",
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^11.0.1",
