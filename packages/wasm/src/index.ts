@@ -2,7 +2,7 @@ import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core'
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import { patchWebAssembly } from './patchWebAssembly';
 import type { WasmDebugImage } from './registry';
-import { getImage, getImages, imageMatchesUrl, registerModule } from './registry';
+import { getImage, getImages, registerModule } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
@@ -63,8 +63,8 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
         const workerImages = getWorkerImages();
         event.debug_meta.images = [
           ...(event.debug_meta.images || []),
-          ...mainThreadImages.map(stripMatchUrls),
-          ...workerImages.map(stripMatchUrls),
+          ...mainThreadImages.map(stripInternalFields),
+          ...workerImages.map(stripInternalFields),
         ];
       }
 
@@ -146,8 +146,8 @@ function getWorkerImages(): Array<WasmDebugImage> {
   return WINDOW._sentryWasmImages || [];
 }
 
-function stripMatchUrls(image: WasmDebugImage): DebugImage {
-  const { _matchUrls, ...rest } = image;
+function stripInternalFields(image: WasmDebugImage): DebugImage {
+  const { _fromBuffer, ...rest } = image;
   return rest;
 }
 
@@ -155,7 +155,7 @@ function stripMatchUrls(image: WasmDebugImage): DebugImage {
  * Looks up an image by URL in worker images.
  */
 function getWorkerImage(url: string): number {
-  return getWorkerImages().findIndex(image => imageMatchesUrl(image, url));
+  return getWorkerImages().findIndex(image => image.type === 'wasm' && image.code_file === url);
 }
 
 /**
@@ -169,8 +169,8 @@ function getWorkerImage(url: string): number {
  *   - `self`: The worker's global scope (self).
  */
 export function registerWebWorkerWasm({ self }: RegisterWebWorkerWasmOptions): void {
-  patchWebAssembly((module, url, matchUrls) => {
-    const image = registerModule(module, url, matchUrls);
+  patchWebAssembly((module, url, fromBuffer) => {
+    const image = registerModule(module, url, fromBuffer);
 
     if (image) {
       self.postMessage({

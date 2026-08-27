@@ -6,7 +6,7 @@ import { patchFrames, registerWebWorkerWasm, wasmIntegration } from '../src/inde
 import { patchWebAssembly } from '../src/patchWebAssembly';
 import type { WasmDebugImage } from '../src/registry';
 import { getImages, IMAGES, registerModule } from '../src/registry';
-import { getHashCandidates, getModuleName, toByteView } from '../src/syntheticUrl';
+import { getModuleName, getSyntheticUrl, toByteView } from '../src/syntheticUrl';
 
 const BUILD_ID_BYTES = [0x0b, 0xa0, 0x20, 0xcd, 0xd2, 0x44, 0x4f, 0x7e, 0xaf, 0xdd, 0x25, 0x99, 0x9a, 0x8e, 0x90, 0x10];
 const BUILD_ID_HEX = '0ba020cdd2444f7eafdd25999a8e9010';
@@ -101,30 +101,39 @@ afterEach(() => {
 
 describe('non-streaming WebAssembly patching', () => {
   it('registers modules compiled via WebAssembly.instantiate(buffer) and matches real stack frames', async () => {
-    // Two modules with different content and sizes on both sides of V8's
-    // 16383-byte content-hashing cutoff, so that matching must go through the
-    // computed synthetic names and cannot silently succeed via the
-    // single-image fallback.
-    const small = buildWasm({ padding: 100 });
-    const large = buildWasm({ padding: 20000 });
+    // Two modules of different sizes, both above V8's 16383-byte
+    // content-hashing cutoff, so that matching must go through the computed
+    // synthetic names and cannot silently succeed via the single-module
+    // fallback.
+    const first = buildWasm({ padding: 17000 });
+    const second = buildWasm({ padding: 20000 });
 
-    const { instance: smallInstance } = await WebAssembly.instantiate(small);
-    const { instance: largeInstance } = await WebAssembly.instantiate(large);
+    const { instance: firstInstance } = await WebAssembly.instantiate(first);
+    const { instance: secondInstance } = await WebAssembly.instantiate(second);
 
     expect(getImages()).toHaveLength(2);
     expect(getImages()[0]?.code_id).toBe(BUILD_ID_HEX);
     expect(getImages()[0]?.code_file).toMatch(/^wasm:\/\/wasm\/[0-9a-f]{8}$/);
 
-    const smallFilename = trapAndGetWasmFilename(smallInstance);
-    const largeFilename = trapAndGetWasmFilename(largeInstance);
-
-    const frames = [frameForFilename(smallFilename), frameForFilename(largeFilename)];
+    const frames = [
+      frameForFilename(trapAndGetWasmFilename(firstInstance)),
+      frameForFilename(trapAndGetWasmFilename(secondInstance)),
+    ];
     const result = patchFrames(frames);
 
     expect(result).toBe(true);
     expect(frames[0]?.platform).toBe('native');
     expect(frames[0]?.addr_mode).toBe('rel:0');
     expect(frames[1]?.addr_mode).toBe('rel:1');
+  });
+
+  it('registers modules below the content-hash cutoff under a placeholder name', async () => {
+    await WebAssembly.instantiate(buildWasm({ padding: 100 }));
+
+    expect(getImages()).toHaveLength(1);
+    expect(getImages()[0]?.code_id).toBe(BUILD_ID_HEX);
+    expect(getImages()[0]?.code_file).toBe('wasm://wasm/unknown');
+    expect(getImages()[0]?._fromBuffer).toBe(true);
   });
 
   it('registers modules compiled via new WebAssembly.Module() synchronously', () => {
@@ -213,7 +222,7 @@ describe('non-streaming WebAssembly patching', () => {
 });
 
 describe('registerWebWorkerWasm()', () => {
-  it('forwards buffer images with their match urls and matches frames against them', async () => {
+  it('forwards buffer images and matches frames against them', async () => {
     const messages: Array<{ _sentryWasmImages?: WasmDebugImage[] }> = [];
     registerWebWorkerWasm({ self: { postMessage: (message: unknown) => messages.push(message as never) } });
 
@@ -222,7 +231,7 @@ describe('registerWebWorkerWasm()', () => {
 
     expect(messages).toHaveLength(1);
     const forwarded = messages[0]?._sentryWasmImages?.[0];
-    expect(forwarded?._matchUrls).toEqual(expect.arrayContaining([forwarded?.code_file]));
+    expect(forwarded?._fromBuffer).toBe(true);
 
     // simulate the main thread: the image only exists as a forwarded worker
     // image, exactly as webWorkerIntegration stores it
@@ -240,10 +249,9 @@ describe('registerWebWorkerWasm()', () => {
 });
 
 describe('processEvent', () => {
-  it('strips internal match urls from attached debug images', () => {
+  it('strips internal fields from attached debug images', () => {
     const bytes = buildWasm({ padding: 17000 });
-    new WebAssembly.Module(bytes);
-    const candidates = getHashCandidates(bytes);
+    const module = new WebAssembly.Module(bytes);
 
     const integration = wasmIntegration();
     const event = integration.processEvent?.(
@@ -252,7 +260,7 @@ describe('processEvent', () => {
           values: [
             {
               stacktrace: {
-                frames: [frameForFilename(`wasm://wasm/${candidates[0]}:wasm-function[0]:0x1e`)],
+                frames: [frameForFilename(`${getSyntheticUrl(module, bytes.byteLength)}:wasm-function[0]:0x1e`)],
               },
             },
           ],
@@ -264,15 +272,20 @@ describe('processEvent', () => {
 
     const images = event.debug_meta?.images as WasmDebugImage[] | undefined;
     expect(images).toHaveLength(1);
-    expect(images?.[0]).not.toHaveProperty('_matchUrls');
+    expect(images?.[0]).not.toHaveProperty('_fromBuffer');
     expect(images?.[0]?.code_id).toBe(BUILD_ID_HEX);
   });
 });
 
 describe('syntheticUrl helpers', () => {
-  it('computes the stable length-based hash for modules above the content-hash cutoff', () => {
-    const bytes = new Uint8Array(20038);
-    expect(getHashCandidates(bytes)).toEqual(['0001391a']);
+  it('derives the name from the byte length above the content-hash cutoff', () => {
+    const module = new WebAssembly.Module(buildWasm({ padding: 17000 }));
+    expect(getSyntheticUrl(module, 20038)).toBe('wasm://wasm/0001391a');
+  });
+
+  it('falls back to a placeholder name at or below the content-hash cutoff', () => {
+    const module = new WebAssembly.Module(buildWasm({ moduleName: 'mymod' }));
+    expect(getSyntheticUrl(module, 16383)).toBe('wasm://wasm/mymod-unknown');
   });
 
   it('normalizes BufferSource values', () => {

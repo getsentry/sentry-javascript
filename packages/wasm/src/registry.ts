@@ -1,12 +1,13 @@
 import type { DebugImage } from '@sentry/core';
 
 /**
- * A debug image with the additional synthetic script names the engine may use
- * for the module in stack frames. Only set for modules compiled from raw
- * bytes. The field crosses worker boundaries via postMessage and is stripped
- * before images are attached to an event.
+ * A debug image with a marker for modules that were compiled from raw bytes.
+ * The engine names those modules itself, so their `code_file` is only a
+ * prediction and frames may have to be matched against them by elimination.
+ * The field crosses worker boundaries via postMessage and is stripped before
+ * images are attached to an event.
  */
-export type WasmDebugImage = Extract<DebugImage, { type: 'wasm' }> & { _matchUrls?: string[] };
+export type WasmDebugImage = Extract<DebugImage, { type: 'wasm' }> & { _fromBuffer?: true };
 
 export const IMAGES: Array<WasmDebugImage> = [];
 
@@ -51,10 +52,9 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
  * @param module the compiled module
  * @param url the URL the module was loaded from, or the engine's synthetic
  *            script name for modules compiled from raw bytes
- * @param matchUrls additional synthetic script names the engine may use for
- *                  this module in stack frames
+ * @param fromBuffer whether the module was compiled from raw bytes
  */
-export function registerModule(module: WebAssembly.Module, url: string, matchUrls?: string[]): DebugImage | null {
+export function registerModule(module: WebAssembly.Module, url: string, fromBuffer?: boolean): DebugImage | null {
   const { buildId, debugFile } = getModuleInfo(module);
   if (!buildId) {
     return null;
@@ -89,8 +89,8 @@ export function registerModule(module: WebAssembly.Module, url: string, matchUrl
     debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
   };
 
-  if (matchUrls?.length) {
-    image._matchUrls = matchUrls;
+  if (fromBuffer) {
+    image._fromBuffer = true;
   }
 
   IMAGES.push(image);
@@ -105,18 +105,10 @@ export function getImages(): Array<WasmDebugImage> {
 }
 
 /**
- * Checks whether an image matches the given frame URL, either via its
- * `code_file` or one of the synthetic script names.
- */
-export function imageMatchesUrl(image: WasmDebugImage, url: string): boolean {
-  return image.type === 'wasm' && (image.code_file === url || !!image._matchUrls?.includes(url));
-}
-
-/**
  * Looks up an image by URL.
  *
  * @param url the URL of the WebAssembly module.
  */
 export function getImage(url: string): number {
-  return IMAGES.findIndex(image => imageMatchesUrl(image, url));
+  return IMAGES.findIndex(image => image.type === 'wasm' && image.code_file === url);
 }

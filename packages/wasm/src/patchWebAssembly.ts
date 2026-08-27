@@ -1,6 +1,6 @@
-import { getHashCandidates, getSyntheticUrls, toByteView } from './syntheticUrl';
+import { getSyntheticUrl, toByteView } from './syntheticUrl';
 
-export type RegisterModuleCallback = (module: WebAssembly.Module, url: string, matchUrls?: string[]) => void;
+export type RegisterModuleCallback = (module: WebAssembly.Module, url: string, fromBuffer?: boolean) => void;
 
 /**
  * Patches the WebAssembly APIs that compile modules so that every compiled
@@ -54,12 +54,8 @@ export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
     };
   }
 
-  const registerFromBuffer = (module: WebAssembly.Module, hashCandidates: string[]): void => {
-    const urls = getSyntheticUrls(module, hashCandidates);
-    const url = urls[0];
-    if (url) {
-      registerSafely(registerModule, module, url, urls);
-    }
+  const registerFromBuffer = (module: WebAssembly.Module, byteLength: number): void => {
+    registerSafely(registerModule, module, getSyntheticUrl(module, byteLength), true);
   };
 
   // Double-cast, because the overloaded native signature (buffer vs. module
@@ -70,15 +66,15 @@ export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
   ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>;
   WebAssembly.instantiate = function instantiate(source: unknown, ...rest: unknown[]): Promise<unknown> {
     const bytes = toByteView(source);
-    // Hash candidates must be captured before calling the original function,
-    // since the caller is free to mutate or transfer the buffer afterwards.
-    const hashCandidates = bytes && getHashCandidates(bytes);
+    // The length must be read before calling the original function, since the
+    // caller is free to mutate or transfer the buffer afterwards.
+    const byteLength = bytes?.byteLength;
     const result = origInstantiate(source, ...rest);
-    if (hashCandidates) {
+    if (byteLength !== undefined) {
       // Chaining (instead of attaching a side listener) keeps rejections of
       // fire-and-forget calls observable as unhandledrejection events.
       return result.then(rv => {
-        registerFromBuffer(rv.module, hashCandidates);
+        registerFromBuffer(rv.module, byteLength);
         return rv;
       });
     }
@@ -88,11 +84,11 @@ export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
   const origCompile = WebAssembly.compile as (source: unknown, ...rest: unknown[]) => Promise<WebAssembly.Module>;
   WebAssembly.compile = function compile(source: unknown, ...rest: unknown[]): Promise<WebAssembly.Module> {
     const bytes = toByteView(source);
-    const hashCandidates = bytes && getHashCandidates(bytes);
+    const byteLength = bytes?.byteLength;
     const result = origCompile(source, ...rest);
-    if (hashCandidates) {
+    if (byteLength !== undefined) {
       return result.then(module => {
-        registerFromBuffer(module, hashCandidates);
+        registerFromBuffer(module, byteLength);
         return module;
       });
     }
@@ -104,11 +100,10 @@ export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
   // behavior intact.
   WebAssembly.Module = new Proxy(WebAssembly.Module, {
     construct(target, args: unknown[], newTarget) {
-      const bytes = toByteView(args[0]);
-      const hashCandidates = bytes && getHashCandidates(bytes);
+      const byteLength = toByteView(args[0])?.byteLength;
       const module = Reflect.construct(target, args, newTarget) as WebAssembly.Module;
-      if (hashCandidates) {
-        registerFromBuffer(module, hashCandidates);
+      if (byteLength !== undefined) {
+        registerFromBuffer(module, byteLength);
       }
       return module;
     },
@@ -119,10 +114,10 @@ function registerSafely(
   registerModule: RegisterModuleCallback,
   module: WebAssembly.Module,
   url: string,
-  matchUrls?: string[],
+  fromBuffer?: boolean,
 ): void {
   try {
-    registerModule(module, url, matchUrls);
+    registerModule(module, url, fromBuffer);
   } catch {
     // a registration failure must never break the user's WebAssembly call
   }

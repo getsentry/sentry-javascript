@@ -36,42 +36,6 @@ const FRAME_MATCHER = {
 };
 
 sentryTest(
-  'captured exception should include modified frames and debug_meta for non-streaming instantiation',
-  async ({ getLocalTestUrl, page, browserName }) => {
-    if (shouldSkipWASMTests(browserName) || browserName === 'firefox') {
-      sentryTest.skip();
-    }
-
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    await serveWasmFixture(page);
-    await page.goto(url);
-
-    const { event } = await page.evaluate(async () => {
-      // @ts-expect-error this function exists
-      return window.getEvent();
-    });
-
-    expect(event.exception.values[0].stacktrace.frames).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          ...FRAME_MATCHER,
-          filename: expect.stringMatching(/^wasm:\/\/wasm\/[0-9a-f]{8}$/),
-        }),
-      ]),
-    );
-
-    expect(event.debug_meta).toMatchObject({ images: [IMAGE_MATCHER] });
-
-    // On V8 the small-module (content-hashed) synthetic name must match
-    // exactly, frames and image alike.
-    const wasmFrame = event.exception.values[0].stacktrace.frames.find(
-      (frame: { platform?: string }) => frame.platform === 'native',
-    );
-    expect(event.debug_meta.images[0].code_file).toBe(wasmFrame.filename);
-  },
-);
-
-sentryTest(
   'exactly matches the length-derived synthetic name for modules above the content-hash cutoff',
   async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipWASMTests(browserName) || browserName === 'firefox') {
