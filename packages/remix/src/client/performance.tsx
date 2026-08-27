@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -123,7 +124,8 @@ function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType
   const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
 
   const spanContext: StartSpanOptions = {
-    name,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',

@@ -55,6 +55,8 @@ export interface ParsedSourcemap {
   [key: string]: unknown;
   version?: number;
   sources?: string[];
+  /** Absent when the generator drops all sources (Rollup's `sourcemapExcludeSources`), null per dropped entry. */
+  sourcesContent?: (string | null)[];
   mappings?: string;
 }
 

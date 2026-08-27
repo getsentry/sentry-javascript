@@ -22,7 +22,10 @@ import type { Location, RouteObject } from '../../src/types';
 const mockUpdateName = vi.fn();
 const mockSetAttribute = vi.fn();
 const mockSpan = { updateName: mockUpdateName, setAttribute: mockSetAttribute } as unknown as Span;
-const mockClient = { addIntegration: vi.fn() } as unknown as Client;
+const mockClient = {
+  addIntegration: vi.fn(),
+  getOptions: () => ({ traceLifecycle: 'stream' }),
+} as unknown as Client;
 
 vi.mock('@sentry/core', async requireActual => {
   const actual = await requireActual();

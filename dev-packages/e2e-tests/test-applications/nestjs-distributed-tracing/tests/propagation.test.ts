@@ -8,14 +8,14 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-inbound-headers/${id}`
     );
   });
 
   const outboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http/${id}`
     );
   });
 
@@ -57,20 +57,17 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   expect(outboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': `http://localhost:3030/test-outgoing-http/${id}`,
       'url.path': `/test-outgoing-http/${id}`,
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-outgoing-http/${id}`,
-      'http.user_agent': expect.any(String),
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
+      'user_agent.original': expect.any(String),
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -81,8 +78,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-outgoing-http/:id',
       'http.request.header.accept': '*/*',
       'http.request.header.accept_encoding': 'gzip, deflate',
@@ -96,24 +92,21 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': `http://localhost:3030/test-inbound-headers/${id}`,
       'url.path': `/test-inbound-headers/${id}`,
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -124,8 +117,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-inbound-headers/:id',
       'http.request.header.baggage': expect.any(String),
       'http.request.header.connection': 'keep-alive',
@@ -137,7 +129,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 });
 
@@ -147,14 +139,14 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-inbound-headers/${id}`
     );
   });
 
   const outboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch/${id}`
     );
   });
 
@@ -196,20 +188,17 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   expect(outboundTransaction.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': `http://localhost:3030/test-outgoing-fetch/${id}`,
       'url.path': `/test-outgoing-fetch/${id}`,
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-outgoing-fetch/${id}`,
-      'http.user_agent': expect.any(String),
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
+      'user_agent.original': expect.any(String),
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -220,8 +209,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-outgoing-fetch/:id',
       'http.request.header.accept': '*/*',
       'http.request.header.accept_encoding': 'gzip, deflate',
@@ -235,24 +223,21 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
     data: expect.objectContaining({
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': `http://localhost:3030/test-inbound-headers/${id}`,
       'url.path': `/test-inbound-headers/${id}`,
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -263,8 +248,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-inbound-headers/:id',
     }),
     op: 'http.server',
@@ -272,7 +256,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: traceId,
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 });
 
@@ -280,7 +264,7 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http-external-allowed`
     );
   });
 
@@ -317,7 +301,7 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-http-external-disallowed`
     );
   });
 
@@ -341,7 +325,7 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch-external-allowed`
     );
   });
 
@@ -378,7 +362,7 @@ test('Does not propagate outgoing fetch requests not covered by tracePropagation
   const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`
+      transactionEvent.contexts?.trace?.data?.['url.path'] === `/test-outgoing-fetch-external-disallowed`
     );
   });
 

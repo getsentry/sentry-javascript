@@ -175,7 +175,7 @@ test.describe('performance events', () => {
       data: {
         'url.full': expect.stringContaining('/api/users'),
         type: 'fetch',
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'http.response.status_code': 200,
         'network.protocol.version': '1.1',
         'network.protocol.name': 'http',

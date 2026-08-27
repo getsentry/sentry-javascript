@@ -56,8 +56,8 @@ describe('mysql2 tracing channel Test', () => {
             transaction: event => {
               expect(event.transaction).toBe('Test Transaction');
               const spans = event.spans || [];
-              // The monkey-patch path (origin `auto.db.otel.mysql2`) must be inactive on 3.20.0+.
-              expect(spans.find(span => span.origin === 'auto.db.otel.mysql2')).toBeUndefined();
+              // The monkey-patch path (origin `auto.db.mysql2`) must be inactive on 3.20.0+.
+              expect(spans.find(span => span.origin === 'auto.db.mysql2')).toBeUndefined();
               // ...while the diagnostics-channel path is active.
               expect(spans.find(span => span.origin === 'auto.db.mysql2.diagnostic_channel')).toBeDefined();
             },

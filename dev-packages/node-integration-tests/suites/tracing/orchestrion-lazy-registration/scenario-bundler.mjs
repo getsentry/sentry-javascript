@@ -25,7 +25,7 @@ assert.equal(
 // real build this runs when the bundled module is first evaluated.
 orchestrionModuleInjected('generic-pool');
 
-assert.ok(marker.bundler?.includes('generic-pool'), 'expected the module to be recorded as bundler-injected');
+assert.ok(marker.bundler?.has('generic-pool'), 'expected the module to be recorded as bundler-injected');
 
 // The helper emitted `orchestrion.module-injected`, so the GenericPool
 // integration must have subscribed, even though generic-pool was never loaded

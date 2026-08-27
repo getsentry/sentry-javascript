@@ -1,6 +1,7 @@
 import type { Client, Span } from '@sentry/core';
 import {
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -119,7 +120,10 @@ function _instrumentNavigations(client: Client, navigatingStore: Readable<Naviga
     startBrowserTracingNavigationSpan(
       client,
       {
-        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name:
+          parameterizedRouteDestination ||
+          (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : rawRouteDestination || 'unknown'),
         op: 'navigation',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',

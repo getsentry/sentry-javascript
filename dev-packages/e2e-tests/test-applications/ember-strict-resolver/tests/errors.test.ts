@@ -30,6 +30,9 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
+  // Waits on a pageload transaction, which the streamed variant never emits.
+  test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'stream', 'transactions are not emitted with span streaming');
+
   const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });

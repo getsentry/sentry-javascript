@@ -19,7 +19,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
   expect(rootSpan!.status).toBe('ok');
   expect(rootSpan!.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(rootSpan!.attributes['sentry.segment.name.source']?.value).toBe('route');
-  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.otel.http');
+  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
   expect(rootSpan!.attributes['http.response.status_code']?.value).toBe(200);
 
   const childSpans = spans.filter(span => !span.is_segment);
@@ -74,7 +74,7 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
   expect(rootSpan.name).toBe('GET /test-exception/:id');
   expect(getSpanOp(rootSpan)).toBe('http.server');
   expect(rootSpan.status).toBe('error');
-  expect(rootSpan.attributes['http.status_code']?.value).toBe(500);
+  expect(rootSpan.attributes['http.response.status_code']?.value).toBe(500);
 });
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {

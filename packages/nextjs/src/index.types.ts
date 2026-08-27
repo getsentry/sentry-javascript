@@ -11,7 +11,6 @@ import type { ServerComponentContext, VercelCronsConfig } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
-export * from './config';
 export * from './client';
 export * from './server';
 export * from './edge';
@@ -51,8 +50,6 @@ export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
-
-export { withSentryConfig } from './config';
 
 /**
  * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.

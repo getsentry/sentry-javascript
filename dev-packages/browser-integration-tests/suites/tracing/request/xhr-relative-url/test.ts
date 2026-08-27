@@ -28,7 +28,7 @@ sentryTest('should create spans for xhr requests', async ({ getLocalTestUrl, pag
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'url.full': `${TEST_HOST}/test-req/${index}`,
         'server.address': 'sentry-test.io',
         type: 'xhr',

@@ -292,7 +292,9 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span2)).toBe(true);
     expect(span2.isRecording()).toBe(true);
     expect(spanToJSON(span2)).toEqual({
-      name: '/test',
+      // The raw URL stays in `url.path`/`url.full`: with span streaming, a navigation span name is
+      // low cardinality and falls back to 'Navigation' when there is no parameterized route.
+      name: 'Navigation',
       status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -335,7 +337,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span3)).toBe(true);
     expect(span3.isRecording()).toBe(true);
     expect(spanToJSON(span3)).toEqual({
-      name: '/test2',
+      name: 'Navigation',
       status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -423,7 +425,9 @@ describe('browserTracingIntegration', () => {
           [URL_FULL]: 'https://example.com/test',
           [URL_PATH]: '/test',
         },
-        name: '/test',
+        // Redirect spans are started through the same path as navigation spans, so they get the
+        // low-cardinality fallback name too.
+        name: 'Navigation',
         parent_span_id: span.spanContext().spanId,
       }),
     );
@@ -986,6 +990,24 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test navigation span');
+    });
+
+    it("never sets the low-cardinality 'Navigation' span name on `scope.transactionName`", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingNavigationSpan(client, { name: 'Navigation' }, { url: 'https://example.com/users/123?q=1' });
+
+      // The span name is low cardinality with span streaming enabled, but errors have to stay
+      // grouped by the actual page, so the scope keeps the destination path.
+      expect(spanToJSON(getActiveSpan()!).name).toBe('Navigation');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/users/123');
     });
 
     it("updates the scopes' propagationContexts on a navigation", () => {

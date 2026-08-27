@@ -52,7 +52,7 @@ sentryTest(
       expect(streamSpan).toMatchObject({
         name: 'GET http://sentry-test-site.example/delayed',
         attributes: expect.objectContaining({
-          'http.method': { type: 'string', value: 'GET' },
+          'http.request.method': { type: 'string', value: 'GET' },
           'url.full': { type: 'string', value: 'http://sentry-test-site.example/delayed' },
           type: { type: 'string', value: 'fetch' },
         }),

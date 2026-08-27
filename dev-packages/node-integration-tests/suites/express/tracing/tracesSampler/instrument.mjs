@@ -13,7 +13,7 @@ Sentry.init({
     return (
       samplingContext.name === 'GET /test/123' &&
       samplingContext.attributes['sentry.op'] === 'http.server' &&
-      samplingContext.attributes['http.method'] === 'GET'
+      samplingContext.attributes['http.request.method'] === 'GET'
     );
   },
 });

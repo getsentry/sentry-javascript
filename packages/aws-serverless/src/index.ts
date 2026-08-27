@@ -96,6 +96,7 @@ export {
   expressErrorHandler,
   setupExpressErrorHandler,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
@@ -122,6 +123,7 @@ export {
   workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

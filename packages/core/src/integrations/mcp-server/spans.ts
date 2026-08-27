@@ -8,6 +8,8 @@
 import { getClient } from '../../currentScopes';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
@@ -83,15 +85,19 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   const { type, message, transport, extra, callback, options } = config;
   const { method } = message;
   const params = message.params;
+  const client = getClient();
+  const spanStreamingEnabled = !!client && hasSpanStreamingEnabled(client);
 
   // Determine span name based on type and OTEL conventions
   let spanName: string;
   if (type === 'request') {
     const targetInfo = extractTargetInfo(method, params || {});
-    spanName = createSpanName(method, targetInfo.target);
+    const target = spanStreamingEnabled && !targetInfo.targetIsLowCardinality ? undefined : targetInfo.target;
+    spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
   } else {
-    // For notifications, use method name directly per OpenTelemetry conventions
-    spanName = method;
+    // For notifications, use method name directly per OpenTelemetry conventions.
+    // With span streaming, span names have to be low cardinality, so a message without a method name gets a static name.
+    spanName = method || (spanStreamingEnabled ? MCP_NOTIFICATION_SPAN_NAME_FALLBACK : method);
   }
 
   const rawAttributes: Record<string, string | number> = {
@@ -101,7 +107,6 @@ function createMcpSpan(config: McpSpanConfig): unknown {
     ...buildSentryAttributes(type),
   };
 
-  const client = getClient();
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
@@ -186,8 +191,12 @@ export function buildMcpServerSpanConfig(
   const { method } = jsonRpcMessage;
   const params = jsonRpcMessage.params;
 
+  const client = getClient();
+  const spanStreamingEnabled = !!client && hasSpanStreamingEnabled(client);
+
   const targetInfo = extractTargetInfo(method, params || {});
-  const spanName = createSpanName(method, targetInfo.target);
+  const target = spanStreamingEnabled && !targetInfo.targetIsLowCardinality ? undefined : targetInfo.target;
+  const spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
 
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra),
@@ -196,7 +205,6 @@ export function buildMcpServerSpanConfig(
     ...buildSentryAttributes('request'),
   };
 
-  const client = getClient();
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 

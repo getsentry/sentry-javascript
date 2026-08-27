@@ -6,7 +6,9 @@ import * as Sentry from '@sentry/ember';
 // Initialize Sentry
 Sentry.init({
   dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
-  traceLifecycle: 'static',
+  // Set by the `ember-strict-resolver (streamed)` test variant, which rebuilds the app to cover
+  // span streaming. Vite inlines this at build time, so it can't be flipped at runtime.
+  traceLifecycle: import.meta.env.VITE_TRACE_LIFECYCLE === 'stream' ? 'stream' : 'static',
   tracesSampleRate: 1.0,
   tunnel: 'http://localhost:3031/', // proxy server
 });

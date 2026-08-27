@@ -36,7 +36,6 @@ describe('OpenAI integration (V6)', () => {
     (createRunner, test) => {
       test('creates openai related spans with genAI recording disabled (v6)', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -346,7 +345,6 @@ describe('OpenAI integration (V6)', () => {
     (createRunner, test) => {
       test('creates openai related spans with genAI recording enabled (v6)', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -704,7 +702,6 @@ describe('OpenAI integration (V6)', () => {
     (createRunner, test) => {
       test('creates openai related spans with custom options (v6)', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -767,7 +764,6 @@ describe('OpenAI integration (V6)', () => {
     (createRunner, test) => {
       test('creates openai related spans with genAI recording disabled (v6)', async () => {
         await createRunner()
-          .ignore('event')
           .expect({
             transaction: {
               transaction: 'main',
@@ -910,7 +906,6 @@ describe('OpenAI integration (V6)', () => {
     (createRunner, test) => {
       test('creates openai related spans with genAI recording enabled (v6)', async () => {
         await createRunner()
-          .ignore('event')
           .expect({
             transaction: {
               transaction: 'main',

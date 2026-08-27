@@ -1,5 +1,5 @@
 import * as dc from 'node:diagnostics_channel';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   isObjectLike,
@@ -8,7 +8,9 @@ import {
   getHttpSpanDetailsFromUrlObject,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
@@ -103,8 +105,19 @@ function setupH3TracingChannels(): void {
         routePattern,
       );
 
+      const client = getClient();
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // Only applies to the http.server span; middleware spans keep their own naming.
+      const isUnparameterizedStreamedServerSpan =
+        data?.type !== 'middleware' &&
+        urlAttributes[SENTRY_SEGMENT_NAME_SOURCE] !== 'route' &&
+        !!client &&
+        hasSpanStreamingEnabled(client);
+
       const span = startInactiveSpan({
-        name: spanName,
+        name: isUnparameterizedStreamedServerSpan
+          ? data.event.req.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+          : spanName,
         attributes: {
           ...urlAttributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
@@ -175,8 +188,19 @@ function setupSrvxTracingChannels(): void {
           )
         : {};
 
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // Only applies to the http.server span; middleware spans keep their own naming.
+      // h3 renames this span via `setHttpServerSpanRouteAttribute` once it resolves the route.
+      const isUnparameterizedStreamedServerSpan =
+        !data.middleware &&
+        urlAttributes[SENTRY_SEGMENT_NAME_SOURCE] !== 'route' &&
+        !!client &&
+        hasSpanStreamingEnabled(client);
+
       return startInactiveSpan({
-        name: spanName,
+        name: isUnparameterizedStreamedServerSpan
+          ? data.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+          : spanName,
         attributes: {
           ...urlAttributes,
           ...headerAttributes,

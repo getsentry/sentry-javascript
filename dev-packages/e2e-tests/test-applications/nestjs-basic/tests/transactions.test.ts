@@ -42,20 +42,17 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.http_server',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': 'http://localhost:3030/test-transaction',
       'url.path': '/test-transaction',
-      'http.host': 'localhost:3030',
       'server.address': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': '/test-transaction',
-      'http.user_agent': 'node',
-      'http.flavor': '1.1',
+      'http.request.method': 'GET',
+      'url.scheme': 'http',
+      'user_agent.original': 'node',
       'client.address': '::1',
       'client.port': expect.any(Number),
       'network.transport': 'tcp',
@@ -66,8 +63,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
       'server.port': 3030,
-      'http.status_code': 200,
-      'http.status_text': 'OK',
+      'http.response.status_text': 'OK',
       'http.route': '/test-transaction',
       'http.request.header.accept': '*/*',
       'http.request.header.accept_encoding': 'gzip, deflate',
@@ -81,7 +77,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.http_server',
   });
 
   expect(transactionEvent).toEqual(

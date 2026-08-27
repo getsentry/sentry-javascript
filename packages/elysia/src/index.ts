@@ -96,9 +96,11 @@ export {
   expressErrorHandler,
   setupExpressErrorHandler,
   fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
@@ -116,6 +118,7 @@ export {
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

@@ -1,7 +1,6 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
 import {
-  captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -172,20 +171,13 @@ function instrumentMethod<T extends unknown[], R>(
             ) as unknown as R;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.openai.stream',
-                data: { function: methodPath },
-              },
-            });
             span.end();
             throw error;
           }
         })();
       });
 
-      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise);
     }
 
     // Non-streaming
@@ -199,25 +191,13 @@ function instrumentMethod<T extends unknown[], R>(
         addRequestAttributes(span, params, operationName);
       }
 
-      return originalResult.then(
-        result => {
-          addResponseAttributes(span, result, options.recordOutputs);
-          return result;
-        },
-        error => {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.openai',
-              data: { function: methodPath },
-            },
-          });
-          throw error;
-        },
-      );
+      return originalResult.then(result => {
+        addResponseAttributes(span, result, options.recordOutputs);
+        return result;
+      });
     });
 
-    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise);
   };
 }
 

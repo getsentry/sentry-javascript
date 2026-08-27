@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import {
-  captureException,
   getClient,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -186,19 +185,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // LLM Error Handler - note: handleLLMError with capital LLM
-    handleLLMError(error: Error, runId: string) {
+    handleLLMError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.llm_error_handler`,
-        },
-      });
     },
 
     // Chain Start Handler
@@ -265,19 +259,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain Error Handler
-    handleChainError(error: Error, runId: string) {
+    handleChainError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.chain_error_handler`,
-        },
-      });
     },
 
     // Tool Start Handler
@@ -343,19 +332,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool Error Handler
-    handleToolError(error: Error, runId: string) {
+    handleToolError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.tool_error_handler`,
-        },
-      });
     },
 
     // LangChain BaseCallbackHandler required methods

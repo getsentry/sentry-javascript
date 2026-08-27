@@ -41,8 +41,4 @@ export interface FastifyRequest {
 
 export interface FastifyIntegration extends Integration {
   getShouldHandleError: () => (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean;
-  // This will be removed in the next major version.
-  setShouldHandleError: (
-    shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean,
-  ) => void;
 }

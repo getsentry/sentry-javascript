@@ -201,7 +201,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanStart', span => handleOnSpanStart(span, client));
 
   // Normalize name/op/source/status on the request root span at span end, before it is serialized into
   // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles

@@ -12,12 +12,15 @@ import {
   SERVER_PORT,
   URL_FULL,
   URL_PATH,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getIsolationScope } from '../../../../src/currentScopes';
+import { Scope } from '../../../../src/scope';
+import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { setCurrentClient } from '../../../../src/sdk';
 import { HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpServerSubscriptions } from '../../../../src/integrations/http/server-subscription';
@@ -57,7 +60,7 @@ describe('getHttpServerSubscriptions', () => {
 
   async function makeRequest(
     path: string,
-    method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET',
+    method: 'GET' | 'HEAD' | 'OPTIONS' | 'POST' = 'GET',
     extraHeaders: Record<string, string> = {},
   ): Promise<void> {
     const { port } = server.address() as AddressInfo;
@@ -117,10 +120,8 @@ describe('getHttpServerSubscriptions', () => {
         op: 'http.server',
         origin: 'auto.http.server',
         data: expect.objectContaining({
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'http.response.status_code': 200,
-          'http.status_code': 200,
-          'http.target': '/users/42?foo=bar',
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.server',
@@ -138,6 +139,7 @@ describe('getHttpServerSubscriptions', () => {
           [NETWORK_PROTOCOL_NAME]: 'http',
           [NETWORK_PROTOCOL_VERSION]: '1.1',
           [NETWORK_TRANSPORT]: 'tcp',
+          [URL_QUERY]: 'foo=bar',
         }),
       }),
     );
@@ -182,24 +184,11 @@ describe('getHttpServerSubscriptions', () => {
     const data = transaction.contexts?.trace?.data;
     expect(data).not.toHaveProperty(CLIENT_ADDRESS);
     expect(data).not.toHaveProperty(NETWORK_PEER_ADDRESS);
-    // the deprecated alias of `client.address` carries the same IP, so it has to be gated too
-    expect(data).not.toHaveProperty('http.client_ip');
   });
 
-  it('reports the forwarded client address on the deprecated `http.client_ip` alias too', async () => {
-    server = http.createServer((_req, res) => res.end('ok'));
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
-    instrument(true);
-
-    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7, 198.51.100.1' });
-    const transaction = await waitForTransaction();
-
-    expect(transaction.contexts?.trace?.data).toEqual(expect.objectContaining({ 'http.client_ip': '203.0.113.7' }));
-  });
-
-  // `http.target` is the deprecated alias of `url.full` and carries the same query string, so it has to
-  // respect `dataCollection.urlQueryParams` too.
-  it('filters sensitive query params in `http.target` and `url.full`', async () => {
+  // `url.query` and `url.full` both carry the query string, so both have to respect
+  // `dataCollection.urlQueryParams`.
+  it('filters sensitive query params in `url.query` and `url.full`', async () => {
     server = http.createServer((_req, res) => res.end('ok'));
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
     instrument(true);
@@ -209,7 +198,7 @@ describe('getHttpServerSubscriptions', () => {
 
     expect(transaction.contexts?.trace?.data).toEqual(
       expect.objectContaining({
-        'http.target': '/users/42?token=[Filtered]&foo=bar',
+        [URL_QUERY]: 'token=[Filtered]&foo=bar',
         [URL_FULL]: expect.stringMatching(/\/users\/42\?token=\[Filtered\]&foo=bar$/),
         [URL_PATH]: '/users/42',
       }),
@@ -320,5 +309,47 @@ describe('getHttpServerSubscriptions', () => {
     await makeRequest('/now-traced');
     const transaction = await waitForTransaction();
     expect(transaction.transaction).toBe('GET /now-traced');
+  });
+
+  describe('with span streaming enabled', () => {
+    let streamingClient: TestClient;
+
+    beforeEach(() => {
+      streamingClient = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' }));
+      setCurrentClient(streamingClient);
+      streamingClient.init();
+      getIsolationScope().setClient(streamingClient);
+    });
+
+    async function startedSpanName(path: string, method: 'GET' | 'POST' = 'GET'): Promise<string> {
+      let spanName: string | undefined;
+      streamingClient.on('spanStart', span => {
+        spanName ??= spanToJSON(span).name;
+      });
+
+      server = http.createServer((_req, res) => res.end('ok'));
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true);
+
+      await makeRequest(path, method);
+      await vi.waitUntil(() => spanName !== undefined, { timeout: 1000, interval: 10 });
+      return spanName!;
+    }
+
+    it('names the span after the request method instead of the URL path', async () => {
+      expect(await startedSpanName('/users/42?foo=bar')).toBe('GET');
+    });
+
+    it('keeps the method distinct per request', async () => {
+      expect(await startedSpanName('/users/42', 'POST')).toBe('POST');
+    });
+
+    it('keeps the raw URL path as the scope transaction name', async () => {
+      const setTransactionName = vi.spyOn(Scope.prototype, 'setTransactionName');
+
+      expect(await startedSpanName('/users/42?foo=bar')).toBe('GET');
+
+      expect(setTransactionName).toHaveBeenCalledWith('GET /users/42');
+    });
   });
 });

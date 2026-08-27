@@ -14,6 +14,7 @@ import {
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -139,9 +140,15 @@ export function instrumentVueRouter(
     }
 
     if (options.instrumentNavigation && !activePageLoadSpan) {
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // A route name (`custom`) or matched route path (`route`) is low cardinality, a raw path is not.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation =
+        transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+
       startNavigationSpanFn(
         {
-          name: spanName,
+          name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
           op: 'navigation',
           attributes: {
             ...attributes,

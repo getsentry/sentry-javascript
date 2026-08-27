@@ -77,7 +77,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       }),
     },
     // Two spans share the name `S3.GetObject`; disambiguate by HTTP status code.
-    item => item.attributes['http.status_code']?.value === 200,
+    item => item.attributes['http.response.status_code']?.value === 200,
   );
 
   // S3 - GetObject (errored, missing key)
@@ -91,7 +91,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
         'rpc.service': { value: 'S3', type: 'string' },
       }),
     },
-    item => item.attributes['http.status_code']?.value === 404,
+    item => item.attributes['http.response.status_code']?.value === 404,
   );
 
   // DynamoDB - PutItem
