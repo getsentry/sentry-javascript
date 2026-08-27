@@ -434,10 +434,7 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
-        // With span streaming, span names have to be low cardinality — the description carries the
-        // filter list, which can hold user values — so `{db.operation.name} {db.collection.name}` is
-        // used instead. The filters are still reported via the `db.query` attribute.
-        const streamedName = client && hasSpanStreamingEnabled(client) ? `${operation} ${table}` : undefined;
+        const name = client && hasSpanStreamingEnabled(client) ? `${operation} ${table}` : description;
 
         const attributes: Record<string, any> = {
           'db.table': table,
@@ -460,7 +457,7 @@ function instrumentPostgRESTFilterBuilder(
 
         return startSpan(
           {
-            name: streamedName ?? description,
+            name,
             attributes,
           },
           span => {
