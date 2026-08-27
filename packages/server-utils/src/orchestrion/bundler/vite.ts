@@ -99,14 +99,6 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // ESM entry — a link-time crash at server startup. Bundling sidesteps
       // external ESM/CJS interop on both Vite majors, and the ESM barrel
       // tree-shakes to just the helper and the factories actually referenced.
-      //
-      // Note: we deliberately do NOT force `@sentry/node` into `ssr.external`
-      // here. Vite already externalizes it for node SSR by default (so the
-      // runtime hook resolves from `node_modules`), and this same plugin also
-      // runs in worker builds (`@sentry/cloudflare`, frameworks on
-      // `@cloudflare/vite-plugin`) where `@sentry/node` is unused and setting
-      // `resolve.external` is rejected outright. The runtime probe in
-      // `orchestrion/register` covers the cases where it does get bundled.
       return {
         ssr: { noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'] },
       };
