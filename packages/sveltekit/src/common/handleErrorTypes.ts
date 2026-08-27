@@ -12,33 +12,39 @@
 export type CaughtErrorKind = 'app' | 'framework' | 'validation' | 'unknown';
 
 /**
+ * The `handleError` input as of SvelteKit 3, where errors are discriminated by `kind` and the
+ * status lives on the error instead of the input.
+ */
+export type CaughtErrorInput = {
+  kind: CaughtErrorKind;
+  error: unknown;
+  /** Only present for `kind: 'validation'` */
+  issues?: unknown[];
+};
+
+/**
+ * The `handleError` input on SvelteKit 1.x and 2.x, which had no `kind` and carried the status and
+ * message on the input itself.
+ *
+ * SvelteKit 3 keeps both alive in dev builds as deprecated getters that log a warning when read.
+ * Modelling the two shapes as a discriminated union is what stops us reading them on a SvelteKit 3
+ * input: as far as the type system is concerned, `status` doesn't exist there.
+ */
+export type LegacyCaughtErrorInput = {
+  kind?: undefined;
+  error: unknown;
+  status?: number;
+  message?: string;
+};
+
+/**
  * The input of a SvelteKit `handleError` hook, covering SvelteKit 1.x, 2.x and 3.
  *
  * We declare this structurally instead of importing SvelteKit's `HandleServerError`/
  * `HandleClientError`, because those types moved from `@sveltejs/kit` to `@sveltejs/kit/hooks`
  * in SvelteKit 3 and neither import path type-checks against both majors.
  */
-export type SentryHandleErrorInput = {
-  error: unknown;
-
-  /** SvelteKit 3+ only */
-  kind?: CaughtErrorKind;
-
-  /** SvelteKit 3+, and only for `kind: 'validation'` */
-  issues?: unknown[];
-
-  /**
-   * SvelteKit 1.x and 2.x only — SvelteKit 3 moved the status onto the error itself.
-   * Careful: in SvelteKit 3 dev builds this still exists as a deprecated getter that logs a
-   * warning when read, so only access it when `kind` is absent.
-   */
-  status?: number;
-
-  /**
-   * SvelteKit 1.x and 2.x only. Same deprecation caveat as {@link SentryHandleErrorInput.status}.
-   */
-  message?: string;
-};
+export type SentryHandleErrorInput = CaughtErrorInput | LegacyCaughtErrorInput;
 
 /** The `handleError` input on the server, where we also read from the request event. */
 export type SentryHandleServerErrorInput = SentryHandleErrorInput & {
@@ -77,17 +83,28 @@ export function getErrorStatus(error: unknown): number | undefined {
 /**
  * Whether an error passed to `handleError` should be sent to Sentry.
  *
- * Only relevant for SvelteKit 3+, where every error reaches `handleError` — including expected
- * ones thrown with `error(...)` and framework errors like 404s, neither of which showed up here
- * on SvelteKit 2. We apply the same rule the rest of the SDK uses for thrown `HttpError`s
- * (see `sendErrorToSentry`): 4xx are expected and noisy, 5xx are worth reporting.
- *
- * @returns `undefined` if the input isn't a SvelteKit 3 one, so callers can apply their own
- * version-specific logic.
+ * @param isExpectedLegacyError checks whether a SvelteKit 1.x/2.x error is an expected one. Those
+ * versions have no `kind`, and what counts as expected differs between server and client.
  */
-export function shouldCaptureCaughtError(input: SentryHandleErrorInput): boolean | undefined {
-  if (!input.kind) {
-    return undefined;
+export function shouldCaptureError(input: SentryHandleErrorInput, isExpectedLegacyError: () => boolean): boolean {
+  if (input.kind) {
+    return shouldCaptureCaughtError(input);
+  }
+
+  return !isExpectedLegacyError();
+}
+
+/**
+ * The SvelteKit 3+ rule. Every error reaches `handleError` there — including expected ones thrown
+ * with `error(...)` and framework errors like 404s, neither of which showed up here on SvelteKit 2.
+ * We apply the same rule the rest of the SDK uses for thrown `HttpError`s (see `sendErrorToSentry`):
+ * 4xx are expected and noisy, 5xx are worth reporting.
+ */
+function shouldCaptureCaughtError(input: CaughtErrorInput): boolean {
+  // Invalid remote function arguments are a caller mistake, not an app failure. SvelteKit always
+  // gives these a 400, but don't let that be the only reason we skip them.
+  if (input.kind === 'validation') {
+    return false;
   }
 
   // Unexpected errors have no status of their own; SvelteKit reports them as 500s.

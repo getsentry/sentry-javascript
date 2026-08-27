@@ -288,3 +288,25 @@ describe('handleErrorWithSentry (server) types', () => {
     expect(withCustomHandler).toBeTypeOf('function');
   });
 });
+
+describe('handleError (server) validation errors', () => {
+  beforeEach(() => {
+    mockCaptureException.mockClear();
+    consoleErrorSpy.mockClear();
+  });
+
+  // SvelteKit always gives validation errors a 400, so the status rule alone would cover them.
+  // These pin the explicit `kind` check, so the behaviour doesn't depend on that Kit internal.
+  it.each([undefined, 500, 503])("doesn't capture a validation error with status %s", async status => {
+    const wrappedHandleError = handleErrorWithSentry();
+
+    await wrappedHandleError({
+      kind: 'validation',
+      error: { status, message: 'Bad Request' },
+      issues: [{ message: 'Expected string' }],
+      event: requestEvent,
+    });
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+});

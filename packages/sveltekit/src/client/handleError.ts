@@ -1,7 +1,7 @@
-import { isObjectLike, consoleSandbox } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
 import type { AnyErrorHandler, SentryHandleClientErrorInput } from '../common/handleErrorTypes';
-import { shouldCaptureCaughtError } from '../common/handleErrorTypes';
+import { getErrorStatus, shouldCaptureError } from '../common/handleErrorTypes';
 
 type ClientErrorHandler = (input: SentryHandleClientErrorInput) => unknown;
 
@@ -14,7 +14,7 @@ type SentryHandleClientError = (input: SentryHandleClientErrorInput) => void | A
 // Mirrors SvelteKit's own default client error handler, which differs by major version:
 // - SvelteKit 1.x/2.x log every error
 // - SvelteKit 3 only logs unexpected errors
-// see: https://github.com/sveltejs/kit/blob/version-3/packages/kit/src/core/sync/write_client_manifest.js
+// see: https://github.com/sveltejs/kit/blob/49f0808f3e983d0cb5a4d586cf0d1678467431ed/packages/kit/src/core/sync/write_client_manifest.js#L157-L160
 function defaultErrorHandler({ kind, error }: SentryHandleClientErrorInput): void {
   if (kind && kind !== 'unknown') {
     return;
@@ -34,9 +34,9 @@ function defaultErrorHandler({ kind, error }: SentryHandleClientErrorInput): voi
 export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleClientError>(handleError?: T): T {
   const errorHandler = (handleError ?? defaultErrorHandler) as ClientErrorHandler;
 
-  const sentryErrorHandler = (input: SentryHandleClientErrorInput): void | App.Error => {
-    if (!shouldSendToSentry(input)) {
-      return errorHandler(input) as void | App.Error;
+  const sentryErrorHandler = (input: SentryHandleClientErrorInput): unknown => {
+    if (!shouldCaptureError(input, () => isExpectedLegacyError(input))) {
+      return errorHandler(input);
     }
 
     captureException(input.error, {
@@ -46,7 +46,7 @@ export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleCl
       },
     });
 
-    return errorHandler(input) as void | App.Error;
+    return errorHandler(input);
   };
 
   // Returning `T` (the caller's own hook type) is what keeps the result assignable to
@@ -56,20 +56,17 @@ export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleCl
   return sentryErrorHandler as unknown as T;
 }
 
-function shouldSendToSentry(input: SentryHandleClientErrorInput): boolean {
-  // SvelteKit 3 tells us where the error came from. Note that we must not touch `input.status`
-  // in this case: it only exists as a deprecated getter in dev builds and logs a warning when read.
-  const shouldCapture = shouldCaptureCaughtError(input);
-  if (shouldCapture !== undefined) {
-    return shouldCapture;
+/**
+ * Whether a SvelteKit 1.x/2.x error is an expected 4xx we don't want to capture.
+ *
+ * SvelteKit 3 errors are classified by `shouldCaptureError` instead.
+ */
+function isExpectedLegacyError(input: SentryHandleClientErrorInput): boolean {
+  if (input.kind) {
+    // Not a SvelteKit 1.x/2.x input - narrows the union so `status` below is readable
+    return false;
   }
 
-  return !is4xxError(input);
-}
-
-// 4xx are expected errors and thus we don't want to capture them
-// Only relevant for SvelteKit 1.x and 2.x — see `shouldCaptureCaughtError` for SvelteKit 3.
-function is4xxError(input: SentryHandleClientErrorInput): boolean {
   const { status } = input;
 
   if (status && status >= 400 && status < 500) {
@@ -79,7 +76,7 @@ function is4xxError(input: SentryHandleClientErrorInput): boolean {
   // SvelteKit __data.json requests return HTTP 200 with errors embedded in JSON,
   // so get_status() may resolve to 500 for a deserialized plain error object.
   // Fall back to checking input.error.status directly.
-  const errorStatus = isObjectLike(input.error) ? (input.error as Record<string, unknown>)['status'] : undefined;
+  const errorStatus = getErrorStatus(input.error);
 
-  return typeof errorStatus === 'number' && errorStatus >= 400 && errorStatus < 500;
+  return errorStatus !== undefined && errorStatus >= 400 && errorStatus < 500;
 }

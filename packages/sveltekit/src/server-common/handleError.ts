@@ -1,6 +1,6 @@
 import { captureException, consoleSandbox, flushIfServerless } from '@sentry/core';
 import type { AnyErrorHandler, SentryHandleServerErrorInput } from '../common/handleErrorTypes';
-import { shouldCaptureCaughtError } from '../common/handleErrorTypes';
+import { shouldCaptureError } from '../common/handleErrorTypes';
 import { getCloudflareExecutionContext } from './utils';
 
 type ServerErrorHandler = (input: SentryHandleServerErrorInput) => unknown;
@@ -15,15 +15,17 @@ type SentryHandleServerError = (input: SentryHandleServerErrorInput) => Promise<
 // - SvelteKit 1.x/2.x log the error's stack trace
 // - SvelteKit 3 only logs unexpected errors (walking the `cause` chain), and logs the issues of
 //   remote function validation errors
-// see: https://github.com/sveltejs/kit/blob/version-3/packages/kit/src/runtime/server/index.js
-function defaultErrorHandler({ kind, error, issues }: SentryHandleServerErrorInput): void {
-  if (kind === 'validation') {
+// see: https://github.com/sveltejs/kit/blob/49f0808f3e983d0cb5a4d586cf0d1678467431ed/packages/kit/src/runtime/server/index.js#L132-L156
+function defaultErrorHandler(input: SentryHandleServerErrorInput): void {
+  if (input.kind === 'validation') {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
-      console.error('Remote function schema validation failed:', issues);
+      console.error('Remote function schema validation failed:', input.issues);
     });
     return;
   }
+
+  const { kind, error } = input;
 
   if (kind && kind !== 'unknown') {
     // Don't log stack traces for expected app errors or framework errors like 404s
@@ -63,9 +65,9 @@ function defaultErrorHandler({ kind, error, issues }: SentryHandleServerErrorInp
 export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleServerError>(handleError?: T): T {
   const errorHandler = (handleError ?? defaultErrorHandler) as ServerErrorHandler;
 
-  const sentryErrorHandler = async (input: SentryHandleServerErrorInput): Promise<void | App.Error> => {
-    if (!shouldSendToSentry(input)) {
-      return errorHandler(input) as void | App.Error;
+  const sentryErrorHandler = async (input: SentryHandleServerErrorInput): Promise<unknown> => {
+    if (!shouldCaptureError(input, () => isExpectedLegacyError(input))) {
+      return errorHandler(input);
     }
 
     captureException(input.error, {
@@ -87,7 +89,7 @@ export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleSe
       await flushIfServerless();
     }
 
-    return errorHandler(input) as void | App.Error;
+    return errorHandler(input);
   };
 
   // Returning `T` (the caller's own hook type) is what keeps the result assignable to
@@ -97,23 +99,18 @@ export function handleErrorWithSentry<T extends AnyErrorHandler = SentryHandleSe
   return sentryErrorHandler as unknown as T;
 }
 
-function shouldSendToSentry(input: SentryHandleServerErrorInput): boolean {
-  // SvelteKit 3 tells us where the error came from. Note that we must not touch `input.status`
-  // in this case: it only exists as a deprecated getter in dev builds and logs a warning when read.
-  const shouldCapture = shouldCaptureCaughtError(input);
-  if (shouldCapture !== undefined) {
-    return shouldCapture;
+/**
+ * Whether a SvelteKit 1.x/2.x error is an expected one we don't want to capture: a "Not found"
+ * error for an unmatched route, or any other 4xx.
+ *
+ * SvelteKit 3 errors are classified by `shouldCaptureError` instead.
+ */
+function isExpectedLegacyError(input: SentryHandleServerErrorInput): boolean {
+  if (input.kind) {
+    // Not a SvelteKit 1.x/2.x input - narrows the union so `status` below is readable
+    return false;
   }
 
-  return !is4xxError(input);
-}
-
-/**
- * When a page request fails because the page is not found, SvelteKit throws a "Not found" error.
- *
- * Only relevant for SvelteKit 1.x and 2.x — see {@link shouldCaptureCaughtError} for SvelteKit 3.
- */
-function is4xxError(input: SentryHandleServerErrorInput): boolean {
   const { error, event, status } = input;
 
   // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
