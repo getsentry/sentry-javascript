@@ -83,7 +83,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
       return environment.config.consumer === 'server';
     },
-    config(): { ssr: { noExternal: string[]; external: string[] } } {
+    config(): { ssr: { noExternal: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by
       // default, leaving them as bare `require()`/`import` calls resolved from
@@ -100,23 +100,15 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // external ESM/CJS interop on both Vite majors, and the ESM barrel
       // tree-shakes to just the helper and the factories actually referenced.
       //
-      // Conversely, `@sentry/node` must stay EXTERNAL. Its `init()` installs the
-      // runtime diagnostics-channel hook via `@sentry/server-utils/orchestrion/
-      // register`, which loads the vendored code transformer and, on older Node,
-      // `Module.register`s a hook module by a self-referential specifier that
-      // only resolves from the package's real `node_modules` location. Bundling
-      // `@sentry/node` therefore strips the transformer (tree-shaking) AND breaks
-      // that self-reference. It's a different package from the `@sentry/server-
-      // utils` barrel above, so listing it here is not a package-granularity
-      // conflict; explicit `ssr.external` entries also win over `noExternal`, so
-      // this holds even against a preset that would otherwise inline it. A
-      // matching runtime warning in `orchestrion/register` covers bundlers this
-      // plugin can't reach.
+      // Note: we deliberately do NOT force `@sentry/node` into `ssr.external`
+      // here. Vite already externalizes it for node SSR by default (so the
+      // runtime hook resolves from `node_modules`), and this same plugin also
+      // runs in worker builds (`@sentry/cloudflare`, frameworks on
+      // `@cloudflare/vite-plugin`) where `@sentry/node` is unused and setting
+      // `resolve.external` is rejected outright. The runtime probe in
+      // `orchestrion/register` covers the cases where it does get bundled.
       return {
-        ssr: {
-          noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'],
-          external: ['@sentry/node'],
-        },
+        ssr: { noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'] },
       };
     },
     configResolved(config: ResolvedConfig): void {
