@@ -1,6 +1,7 @@
-import { debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
+import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { create } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
@@ -12,6 +13,9 @@ type NodeModule = {
   register?: typeof register;
 };
 
+// Surfaced in the always-on warnings below so users can find the fix.
+const BUNDLING_DOCS_URL = 'https://docs.sentry.io/platforms/javascript/guides/node/troubleshooting/';
+
 /** `Module.registerHooks` only became stable in Node 24.13 / 25.1. */
 function hasStableSyncModuleHooks(isDeno: boolean): boolean {
   // The minimum supported Deno (2.8.3) always has stable sync module hooks.
@@ -21,6 +25,52 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
 
   const { major = 0, minor = 0 } = parseSemver(process.versions.node ?? '0.0.0');
   return major > 25 || (major === 25 && minor >= 1) || (major === 24 && minor >= 13);
+}
+
+/**
+ * Detect whether the vendored code-transformer chain (meriyah/astring/source-map, bundled into this
+ * package) survived downstream bundling.
+ *
+ * This package ships the transformer inline and is meant to run from `node_modules` (external). When
+ * an app bundler instead inlines `@sentry/server-utils` and tree-shakes it, those vendored deps are
+ * stripped to empty objects, so `parse`/`generate` become `undefined` and the FIRST module the hook
+ * tries to transform throws `TypeError: parse is not a function` — deep in the loader, once per
+ * module, only visible with `debug: true`. Running one throwaway in-memory transform up front turns
+ * that into a single, actionable, always-on warning (see `warnRuntimeUnavailable`). A healthy build
+ * returns normally; a tree-shaken one throws a `TypeError`.
+ */
+function isTransformerTreeShaken(): boolean {
+  try {
+    create(
+      [
+        {
+          channelName: 'probe',
+          module: { name: '@sentry/orchestrion-probe', versionRange: '*', filePath: 'probe.js' },
+          functionQuery: { className: 'C', methodName: 'm', kind: 'Async' },
+        },
+      ],
+      'node:diagnostics_channel',
+    )
+      .getTransformer('@sentry/orchestrion-probe', '0.0.0', 'probe.js')
+      ?.transform('class C { async m(x) { return x; } }', 'esm');
+    return false;
+  } catch (error) {
+    // Tree-shaken: `parse`/`generate`/`create` are `undefined` → TypeError. A healthy build either
+    // succeeds or throws a domain `Error` (e.g. "Failed to find injection points"), never a TypeError.
+    return error instanceof TypeError;
+  }
+}
+
+/**
+ * Emit a single, always-on warning that runtime channel injection is disabled, with the actionable
+ * fix. Unlike `debug.warn` (gated behind `debug: true`), this reaches every user — otherwise the
+ * SDK silently records no channel-based spans. Deduped via a global marker so repeat calls (e.g.
+ * `init()` plus `--import`) warn at most once.
+ */
+function warnRuntimeUnavailable(message: string): void {
+  consoleSandbox(() => {
+    GLOBAL_OBJ.console?.warn(`[Sentry] ${message} See ${BUNDLING_DOCS_URL}`);
+  });
 }
 
 /**
@@ -36,7 +86,23 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
  * the channel-based integrations subscribe to.
  */
 export function registerDiagnosticsChannelInjection(): void {
-  if (GLOBAL_OBJ?.__SENTRY_ORCHESTRION__?.runtime) {
+  const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
+
+  // Already hooked, or we already ran and found runtime injection unavailable (and warned once).
+  if (marker.runtime || marker.runtimeUnavailable) {
+    return;
+  }
+
+  // A downstream bundler that inlined + tree-shook this package strips the vendored transformer, so
+  // every runtime transform would throw a cryptic `TypeError` deep in the loader. Detect that once,
+  // warn actionably, and don't install hooks that can't work.
+  if (isTransformerTreeShaken()) {
+    marker.runtimeUnavailable = true;
+    warnRuntimeUnavailable(
+      '`@sentry/server-utils` was bundled into your application, so diagnostics-channel ' +
+        'auto-instrumentation is disabled. Keep `@sentry/server-utils` external in your server bundle, ' +
+        'or use the Sentry bundler plugin for build-time instrumentation.',
+    );
     return;
   }
 
@@ -102,17 +168,18 @@ export function registerDiagnosticsChannelInjection(): void {
       new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
       debug.log('Registered diagnostics-channel injection via Module.register()');
     } else {
+      marker.runtimeUnavailable = true;
       debug.warn('No available Node API to register diagnostics-channel injection hooks; skipping.');
       return;
     }
   } catch (error) {
-    debug.warn(
-      'Failed to register diagnostics-channel injection hooks; channel-based integrations will not record spans.',
-      error,
+    marker.runtimeUnavailable = true;
+    warnRuntimeUnavailable(
+      'Failed to register diagnostics-channel injection hooks, so channel-based integrations will not record spans.',
     );
+    debug.warn('Diagnostics-channel injection registration error:', error);
     return;
   }
 
-  GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
-  GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
+  marker.runtime = marker.runtime || [];
 }
