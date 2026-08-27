@@ -6,7 +6,7 @@
 // Some of the exports collide, which is not allowed, unless we redefine the colliding
 // exports in this file - which we do below.
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
-import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
+import type { AnyErrorHandler } from './common/handleErrorTypes';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
@@ -22,7 +22,7 @@ export { initCloudflareSentryHandle } from './worker';
 /** Initializes Sentry SvelteKit SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 
-export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(handleError?: T): T;
+export declare function handleErrorWithSentry<T extends AnyErrorHandler>(handleError?: T): T;
 
 /**
  * Wrap a universal load function (e.g. +page.js or +layout.js) with Sentry functionality
