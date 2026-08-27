@@ -68,8 +68,10 @@ const sanitizedFileNames = info =>
 // notice requirement and the Apache-2.0 §4(d) NOTICE requirement. Only bundled (non-external)
 // packages are collected — our own `@sentry/*` deps stay external and are excluded.
 //
-// Both the CJS and ESM build variants run this and bundle the same dependency set, so each writes
-// the same file; the last write wins and the content is identical.
+// This single instance is shared across BOTH the main (`preserveModules`) config and the runtime
+// (`register`/`hook`) config below: `rollup-plugin-license` accumulates scanned dependencies into
+// one Map across every build it runs in, so whichever build writes last emits the union of both
+// configs' bundled deps — a complete list, even though the two configs bundle different subsets.
 const thirdPartyLicensePlugin = license({
   thirdParty: {
     includePrivate: false,
@@ -92,6 +94,50 @@ const orchestrionRuntimeHooks = [
   }),
 ];
 
+// `interop`/`paths` overrides shared by both configs' outputs (see the main config's inline notes):
+// builtins need `'default'` interop and `node:`-prefixed specifiers because the commonjs-converted
+// vendored dependencies import them as unprefixed default imports.
+const vendorInterop = id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule');
+const vendorPaths = Object.fromEntries(builtinModules.map(m => [m, `node:${m}`]));
+
+// The two runtime entrypoints backing the `./orchestrion/register` and `./orchestrion/hook` subpath
+// exports are the only ones that pull in the orchestrion transformer chain
+// (`@apm-js-collab/code-transformer` → meriyah/esquery/astring/source-map). Under `preserveModules`,
+// `@rollup/plugin-commonjs` emits those CJS deps as an empty proxy object (`var meriyah = {}`)
+// populated by a *separate* module through cross-module property writes (`meriyah.parse = parse`)
+// reachable only via a bare side-effect import. Downstream re-bundlers (Next.js server, serverless,
+// nitro/vite — rollup and rolldown alike) tree-shake those "unused" writes away, leaving the proxy
+// empty so `parse`/`generate`/the SourceMap constructors are `undefined` at runtime and every
+// instrumented module crashes when loaded (https://github.com/getsentry/sentry-javascript/issues/23664).
+//
+// So these two entrypoints are built WITHOUT `preserveModules`: the transformer chain lands in one
+// self-contained shared chunk where each dep's proxy object, its population, and its consumer are
+// co-located in a single module. Rollup never separates a property write from a read within one
+// module, so the chain survives downstream tree-shaking even under this package's `sideEffects:false`.
+// The rest of the package keeps `preserveModules` (below) for fine-grained consumer tree-shaking.
+const orchestrionRuntimeEntrypoints = makeNPMConfigVariants(
+  makeBaseNPMConfig({
+    packageSpecificConfig: {
+      // Keyed inputs so the entry chunks land at the exact paths the `exports` map points at, even
+      // without `preserveModules`.
+      input: {
+        'orchestrion/runtime/register': 'src/orchestrion/runtime/register.ts',
+        'orchestrion/runtime/hook': 'src/orchestrion/runtime/hook.mjs',
+      },
+      plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+      output: {
+        exports: 'named',
+        preserveModules: false,
+        entryFileNames: '[name].js',
+        // The shared transformer chunk sits beside its two entrypoints.
+        chunkFileNames: 'orchestrion/runtime/vendored-[hash].js',
+        interop: vendorInterop,
+        paths: vendorPaths,
+      },
+    },
+  }),
+);
+
 export default [
   ...orchestrionRuntimeHooks,
   ...makeNPMConfigVariants(
@@ -101,21 +147,14 @@ export default [
       // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
       // we list them as separate entrypoints to guarantee they end up in build/esm
       // and build/cjs.
+      // `src/orchestrion/runtime/register.ts` (the `./orchestrion/register` subpath the Node SDK
+      // `require`s from `Sentry.init()`) and `src/orchestrion/runtime/hook.mjs` (the async
+      // `Module.register()` hooks) are built by the separate `orchestrionRuntimeEntrypoints` config
+      // above, without `preserveModules` — see the note there.
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
         'src/orchestrion/config/index.ts',
-        // `src/orchestrion/runtime/register.ts` backs the `./orchestrion/register`
-        // subpath export; the Node SDK `require`s it synchronously from
-        // `Sentry.init()` to install the channel-injection hooks.
-        'src/orchestrion/runtime/register.ts',
-        // The async module hooks passed to `Module.register()`. They load on Node's ESM loader
-        // thread, which cannot resolve bare specifiers into our bundled dependency graph — but
-        // relative imports of on-disk files work, and `build/esm` is a `"type": "module"` scope, so
-        // this entrypoint shares the vendored chunks with the rest of the build. The `./orchestrion/
-        // hook` export only maps its `import` condition (nothing ever `require()`s it), so the copy
-        // in `build/cjs` is unused.
-        'src/orchestrion/runtime/hook.mjs',
         'src/orchestrion/bundler/vite.ts',
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
@@ -133,14 +172,17 @@ export default [
           // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
           // externals. The commonjs-converted vendored dependencies import Node builtins that way
           // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
-          // CJS — so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
-          // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
-          // `node:`-prefixed.
-          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+          // CJS — so builtins need `'default'` interop (the module itself is the default export). The
+          // vendored deps also import builtins unprefixed (`import … from 'tty'`), which Deno rejects
+          // and vite-node (Node 26) misresolves as a relative path, so `paths` emits them
+          // `node:`-prefixed. Both are shared with the runtime config above.
+          interop: vendorInterop,
+          paths: vendorPaths,
         },
       },
     }),
   ),
+  // Built last so its shared `thirdPartyLicensePlugin` instance writes the complete, accumulated
+  // license list (see the plugin definition above).
+  ...orchestrionRuntimeEntrypoints,
 ];
