@@ -29,8 +29,10 @@ functionality related to Nuxt.
 ## Troubleshoot
 
 If your server-side auto-instrumentation stops recording spans after bundling (e.g. certain Nitro
-presets), make sure `@sentry/server-utils` is kept **external** in the Nitro/server build rather than
-inlined — its runtime module hook must resolve from `node_modules`. `@sentry/node` logs a warning at
-startup when it detects it was bundled.
+presets), check whether the libraries you expect spans for were inlined into the server bundle: once
+a library is bundled there is no module load left for the runtime hook to intercept, and it has to be
+instrumented at build time instead. `@sentry/node` logs a warning at startup whenever it ends up
+without runtime instrumentation. See
+[Bundling your server](https://github.com/getsentry/sentry-javascript/tree/master/packages/node#bundling-your-server).
 
 If you encounter any issues with error tracking or integrations, refer to the official [Sentry Nuxt SDK documentation](https://docs.sentry.io/platforms/javascript/guides/nuxt/). If the documentation does not provide the necessary information, consider opening an issue on GitHub.

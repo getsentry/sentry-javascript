@@ -75,20 +75,22 @@ NODE_OPTIONS="--import ./instrument.mjs" npm run start
 ### Bundling your server
 
 `@sentry/node` installs its automatic (diagnostics-channel) instrumentation through a runtime module
-hook that ships in `@sentry/server-utils` and is designed to run from `node_modules`. There are two
-supported ways to keep auto-instrumentation working when you bundle your server:
+hook that ships in `@sentry/server-utils`. Bundling the SDK into your server is supported: the hook
+keeps instrumenting the dependencies you leave external.
 
-1. **Keep `@sentry/server-utils` external** (do not inline it into the bundle) so the runtime hook
-   loads from `node_modules`. Most bundlers externalize `node_modules` for a Node target by default;
-   if yours inlines everything, mark `@sentry/server-utils` as external explicitly.
-2. **Instrument at build time** with the Sentry bundler plugins (`@sentry/node/esbuild`,
-   `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which inject the
-   instrumentation into your bundled dependencies during the build. In this mode the runtime hook is
-   not needed.
+Two setups still need a deliberate choice:
 
-If you bundle `@sentry/server-utils` **and** don't use the build-time plugin, its internal code
-transformer is stripped and runtime auto-instrumentation is disabled — `@sentry/node` warns at
-startup when it detects this. (When the build-time plugin is used, there is no warning, since
+- **You bundle your dependencies too.** Once a library is inlined there is no module load left for
+  the runtime hook to intercept, so instrument at build time with the Sentry bundler plugins
+  (`@sentry/node/esbuild`, `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which
+  inject the instrumentation into your bundled dependencies during the build.
+- **You deploy the bundle without `node_modules` on Node.js older than 24.13.** Those versions
+  install the hook through an API that resolves `@sentry/server-utils` from disk, so it needs the
+  package to still be there. Either keep `@sentry/server-utils` external, or use the build-time
+  plugins above.
+
+`@sentry/node` warns at startup whenever it ends up without runtime instrumentation, so you do not
+have to guess which case you are in. (When the build-time plugin is used, there is no warning, since
 instrumentation is already in place.)
 
 ## Links
