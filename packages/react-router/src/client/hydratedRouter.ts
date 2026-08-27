@@ -6,7 +6,9 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   isThenable,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -16,10 +18,10 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
 import {
   finalizeNavigationSpanFromRouterState,
-  getParameterizedRoute,
   normalizePathname,
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
+  updateSpanWithParameterizedRoute,
 } from './utils';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
@@ -51,18 +53,13 @@ export function instrumentHydratedRouter(): void {
         // Matched against `url.path` rather than the span name: with span streaming, the pageload
         // span is named `Pageload` until a route is resolved, so the name may not hold the pathname.
         const pageloadPath = spanToJSON(pageloadSpan).attributes[URL_PATH];
-        const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
           typeof pageloadPath === 'string' &&
           // this event is for the currently active pageload
           normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
-          pageloadSpan.updateName(parameterizePageloadRoute);
-          pageloadSpan.setAttributes({
-            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
-            [URL_TEMPLATE]: parameterizePageloadRoute,
-          });
+          pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.pageload.react_router');
+          updateSpanWithParameterizedRoute(pageloadSpan, router.state);
         }
       }
 
@@ -140,7 +137,6 @@ export function instrumentHydratedRouter(): void {
         }
 
         const rootSpanName = rootSpanJson.name;
-        const parameterizedRoute = getParameterizedRoute(newState);
         const spanPathname = rootSpanAttributes[URL_PATH] as string | undefined;
         const destinationPathname = normalizePathname(newState.location.pathname);
 
@@ -151,11 +147,7 @@ export function instrumentHydratedRouter(): void {
           (destinationPathname === normalizePathname(rootSpanName) ||
             (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
-          rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({
-            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [URL_TEMPLATE]: parameterizedRoute,
-          });
+          updateSpanWithParameterizedRoute(rootSpan, newState);
         }
       });
       return true;
@@ -189,7 +181,9 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
   return startBrowserTracingNavigationSpan(
     client,
     {
-      name,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // The route is resolved once the router settles, which updates the span name then.
+      name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',

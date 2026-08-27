@@ -70,7 +70,7 @@ describe('instrumentHydratedRouter', () => {
         'url.path': '/foo/bar',
       },
     }));
-    (core.getClient as any).mockReturnValue({});
+    (core.getClient as any).mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
   });
 
@@ -208,7 +208,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: '/items/123',
+        name: 'Navigation',
       }),
       // the destination URL keeps the query string, even though the span name doesn't
       { url: 'https://example.com/items/123?foo=bar' },
@@ -221,7 +221,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: 'settings',
+        name: 'Navigation',
       }),
       { url: 'https://example.com/foo/bar/settings' },
     );
@@ -260,7 +260,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: '/foo/bar',
+        name: 'Navigation',
       }),
       { url: 'https://example.com/foo/bar' },
     );
@@ -283,7 +283,8 @@ describe('instrumentHydratedRouter', () => {
 
     await navigateResult;
 
-    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    // The destination stays on the URL attributes, the span name is low cardinality.
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('Navigation');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
       'sentry.segment.name.source': 'url',
       'url.path': '/foo',
@@ -334,7 +335,7 @@ describe('instrumentHydratedRouter', () => {
     instrumentHydratedRouter();
     mockRouter.navigate(-1);
 
-    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('Navigation');
     expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(1);
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
       'sentry.segment.name.source': 'url',

@@ -3,7 +3,7 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { SENTRY_SEGMENT_NAME_SOURCE, NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
 
@@ -19,6 +19,7 @@ vi.mock('@sentry/core', async () => {
     getActiveSpan: vi.fn().mockReturnValue({
       spanContext: () => ({ traceId: '1234', spanId: '5678' }),
     }),
+    getClient: vi.fn(),
   };
 });
 
@@ -439,6 +440,64 @@ describe('instrumentVueRouter()', () => {
     beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
 
     expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  describe('with span streaming enabled', () => {
+    beforeEach(() => {
+      vi.mocked(SentryCore.getClient).mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+      } as unknown as SentryCore.Client);
+    });
+
+    afterEach(() => {
+      vi.mocked(SentryCore.getClient).mockReturnValue(undefined);
+    });
+
+    it('falls back to a low cardinality name when the route is not parameterized', () => {
+      const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
+      instrumentVueRouter(
+        mockVueRouter,
+        { routeLabel: 'path', instrumentPageLoad: true, instrumentNavigation: true },
+        mockStartSpan,
+      );
+
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      const to = testRoutes.unmatchedRoute!;
+      beforeEachCallback(to, testRoutes['initialPageloadRoute']!); // fake initial pageload
+      beforeEachCallback(to, testRoutes.normalRoute1!);
+
+      expect(mockStartSpan).toHaveBeenLastCalledWith(
+        {
+          name: 'Navigation',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+            ...getAttributesForRoute(to),
+          },
+          op: 'navigation',
+        },
+        expect.any(String),
+      );
+    });
+
+    it('keeps a route name, which is already low cardinality', () => {
+      const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
+      instrumentVueRouter(
+        mockVueRouter,
+        { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
+        mockStartSpan,
+      );
+
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      const to = testRoutes.namedRoute!;
+      beforeEachCallback(to, testRoutes['initialPageloadRoute']!); // fake initial pageload
+      beforeEachCallback(to, testRoutes.normalRoute1!);
+
+      expect(mockStartSpan).toHaveBeenLastCalledWith(
+        expect.objectContaining({ name: 'login-screen' }),
+        expect.any(String),
+      );
+    });
   });
 });
 
