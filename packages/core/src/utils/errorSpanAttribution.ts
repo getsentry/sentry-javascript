@@ -7,12 +7,16 @@ import { spanToTraceContext } from './spanUtils';
 /**
  * The trace context of the span an error escaped, keyed by the error itself.
  *
- * We store the plain trace context rather than the span, so that an error object cannot keep a
- * whole span tree alive for as long as it is referenced.
+ * We store the trace context rather than the span because that is the shape we apply to the event
+ * later, and it snapshots the span as it failed instead of reading it back once it has ended.
  */
 const escapedSpanTraceContexts = new WeakMap<object, TraceContext>();
 
-function toKey(error: unknown): object | undefined {
+/**
+ * A `WeakMap` can only be keyed by an object, so an error thrown as a primitive (`throw 'boom'`)
+ * has nothing we can hang the span on and is left unattributed.
+ */
+function toWeakMapKey(error: unknown): object | undefined {
   return isPrimitive(error) ? undefined : error;
 }
 
@@ -25,7 +29,7 @@ function toKey(error: unknown): object | undefined {
  * their span id would point at a span that does not exist.
  */
 export function recordEscapedErrorSpan(error: unknown, span: Span): void {
-  const key = toKey(error);
+  const key = toWeakMapKey(error);
 
   if (!key || !span.isRecording() || escapedSpanTraceContexts.has(key)) {
     return;
@@ -43,7 +47,7 @@ export function recordEscapedErrorSpan(error: unknown, span: Span): void {
  * would leave the envelope header and body naming different traces.
  */
 export function applyEscapedErrorSpanToEvent(event: Event, hint: EventHint): void {
-  const key = toKey(hint.originalException);
+  const key = toWeakMapKey(hint.originalException);
   const traceContext = key && escapedSpanTraceContexts.get(key);
   const eventTraceContext = event.contexts?.trace;
 
