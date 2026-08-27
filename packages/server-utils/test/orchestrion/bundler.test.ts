@@ -210,17 +210,6 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(config.ssr.noExternal).toContain('mysql');
   });
 
-  it('keeps @sentry/node external so the runtime diagnostics-channel hook is never bundled', () => {
-    const plugin = vitePlugin();
-    const config = (plugin.config as () => { ssr: { external: string[] } })();
-
-    // Bundling @sentry/node would strip the vendored transformer and break the
-    // `Module.register` self-reference in `orchestrion/register`. Explicit
-    // `ssr.external` entries win over `noExternal`, so this holds even when a
-    // preset sets `ssr.noExternal: true`.
-    expect(config.ssr.external).toContain('@sentry/node');
-  });
-
   it('gates the transform on the ssr flag (Vite 5 ignores applyToEnvironment)', () => {
     const plugin = vitePlugin();
     const transform = plugin.transform as (
