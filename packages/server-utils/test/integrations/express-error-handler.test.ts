@@ -52,13 +52,18 @@ describe('captureLayerError', () => {
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['undefined', undefined],
-    ['null', null],
-  ])('does not capture when there is no error (%s)', (_label, error) => {
+  it.each([[undefined], [null], [false], [0], ['']])('does not capture when there is no error (%j)', error => {
     captureLayerError(makeErrorData(error), undefined);
 
     expect(captureExceptionSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([[1], [true], ['asdasdas']])('captures primitive errors (%j)', error => {
+    captureLayerError(makeErrorData(error), undefined);
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { type: 'auto.http.express', handled: false },
+    });
   });
 
   it('honors a custom shouldHandleError', () => {
