@@ -120,7 +120,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SQS - SendMessage (producer)
   expectSpan('SQS SendMessage', {
-    name: 'my-queue send',
+    name: 'send my-queue',
     attributes: expect.objectContaining({
       'rpc.method': { value: 'SendMessage', type: 'string' },
       'rpc.service': { value: 'SQS', type: 'string' },
@@ -134,7 +134,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SQS - ReceiveMessage (consumer)
   expectSpan('SQS ReceiveMessage', {
-    name: 'my-queue receive',
+    name: 'receive my-queue',
     attributes: expect.objectContaining({
       'rpc.method': { value: 'ReceiveMessage', type: 'string' },
       'messaging.system': { value: 'aws_sqs', type: 'string' },
@@ -146,7 +146,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SNS - Publish (producer)
   expectSpan('SNS Publish', {
-    name: 'my-topic send',
+    name: 'send my-topic',
     attributes: expect.objectContaining({
       'rpc.method': { value: 'Publish', type: 'string' },
       'rpc.service': { value: 'SNS', type: 'string' },

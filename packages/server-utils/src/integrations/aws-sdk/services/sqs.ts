@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getTraceData, propagationContextFromHeaders } from '@sentry/core';
+import { getClient, getTraceData, hasSpanStreamingEnabled, propagationContextFromHeaders } from '@sentry/core';
 import {
   MESSAGING_BATCH_MESSAGE_COUNT,
   MESSAGING_DESTINATION_NAME,
@@ -36,7 +36,6 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'ReceiveMessage':
         {
           operation = 'receive';
-          spanAttributes[MESSAGING_OPERATION_TYPE] = operation;
           spanAttributes[SENTRY_KIND] = 'consumer';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
@@ -52,10 +51,16 @@ export class SqsServiceExtension implements ServiceExtension {
         break;
     }
 
+    if (operation) {
+      spanAttributes[MESSAGING_OPERATION_TYPE] = operation;
+    }
+
+    const client = getClient();
+    const isStreamed = !!client && hasSpanStreamingEnabled(client);
+
     return {
       spanAttributes,
-      // Without a queue name the subscriber falls back to `<service>.<command>`.
-      spanName: operation && queueName ? `${queueName} ${operation}` : undefined,
+      spanName: buildSpanName(operation, queueName, isStreamed),
     };
   }
 
@@ -135,6 +140,26 @@ function linkReceivedMessageToProducer(span: Span, message: SQS.Message): void {
       },
     });
   }
+}
+
+/**
+ * Streamed names follow the messaging conventions, `<operation type> <destination>`. Transaction-mode
+ * names keep the order they had. Either way a command with no `QueueUrl` drops to the operation alone,
+ * which wins over the aws-sdk house style (`SQS.ReceiveMessage`). That style still names the commands
+ * with no messaging operation, which is why this returns undefined for them.
+ */
+function buildSpanName(
+  operation: string | undefined,
+  queueName: string | undefined,
+  isStreamed: boolean,
+): string | undefined {
+  if (!operation) {
+    return undefined;
+  }
+  if (!queueName) {
+    return operation;
+  }
+  return isStreamed ? `${operation} ${queueName}` : `${queueName} ${operation}`;
 }
 
 function extractQueueUrl(commandInput: CommandInput): string {

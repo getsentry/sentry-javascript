@@ -244,7 +244,7 @@ function subscribeDispatch(): void {
 
       ensureChannelState(channel);
       const info = fields?.consumerTag ? channel[CHANNEL_CONSUMER_INFO]?.get(fields.consumerTag) : undefined;
-      const queue = info?.queue ?? msg.fields?.routingKey ?? '<unknown>';
+      const queue = info?.queue ?? msg.fields?.routingKey;
       const noAck = info?.noAck ?? false;
 
       const headers = msg.properties?.headers;
@@ -447,9 +447,10 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   let options = data.arguments[3] as PublishOptions | undefined;
 
   const client = getClient();
-
-  // The default exchange has no name, so the streamed name is the operation on its own.
-  const streamedName = exchange ? `${MESSAGING_OPERATION_VALUE_SEND} ${exchange}` : MESSAGING_OPERATION_VALUE_SEND;
+  const destination = resolveDestination(exchange, routingKey);
+  const streamedName = destination
+    ? `${MESSAGING_OPERATION_VALUE_SEND} ${destination}`
+    : MESSAGING_OPERATION_VALUE_SEND;
 
   const span = startInactiveSpan({
     name: client && hasSpanStreamingEnabled(client) ? streamedName : `publish ${normalizeExchange(exchange)}`,
@@ -457,7 +458,7 @@ function startPublishSpan(data: AmqpChannelContext): Span {
       [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
-      [MESSAGING_DESTINATION_NAME]: exchange,
+      [MESSAGING_DESTINATION_NAME]: destination,
       [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: routingKey,
       [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_SEND,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_SEND,
@@ -484,23 +485,26 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 }
 
 /** Starts an inactive CONSUMER (process) span carrying the amqplib messaging attributes. */
-function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLike): Span {
+function startConsumeSpan(queue: string | undefined, msg: ConsumeMessage, channel: ChannelLike): Span {
   const client = getClient();
-  const exchange = msg.fields?.exchange;
-
-  // `queue` falls back to the routing key (`order.created.12345`), so the streamed name uses the exchange.
-  const streamedName = exchange
-    ? `${MESSAGING_OPERATION_VALUE_PROCESS} ${exchange}`
+  const destination = resolveDestination(msg.fields?.exchange, msg.fields?.routingKey);
+  const streamedName = destination
+    ? `${MESSAGING_OPERATION_VALUE_PROCESS} ${destination}`
     : MESSAGING_OPERATION_VALUE_PROCESS;
 
   return startInactiveSpan({
-    name: client && hasSpanStreamingEnabled(client) ? streamedName : `${queue} process`,
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? streamedName
+        : queue
+          ? `${queue} ${MESSAGING_OPERATION_VALUE_PROCESS}`
+          : MESSAGING_OPERATION_VALUE_PROCESS,
     attributes: {
       [SENTRY_OP]: QUEUE_PROCESS,
       [SENTRY_KIND]: 'consumer',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
-      [MESSAGING_DESTINATION_NAME]: exchange,
+      [MESSAGING_DESTINATION_NAME]: destination,
       [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
       [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,
@@ -574,6 +578,19 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
     }
   }
   return attributes;
+}
+
+/**
+ * The default exchange has no name and binds every queue under a key equal to the queue's own name, so
+ * a routing key used with it is the queue name. On a named exchange the routing key is per-message
+ * (`order.created.12345`), so only the exchange is used.
+ *
+ * @see https://www.rabbitmq.com/docs/exchanges#default-exchange
+ * @internal Exported for tests; every scenario publishes through `sendToQueue`.
+ */
+export function resolveDestination(exchange: string | undefined, routingKey: string | undefined): string | undefined {
+  // `undefined` so an absent destination is omitted rather than reported as an empty string.
+  return exchange || routingKey || undefined;
 }
 
 function normalizeExchange(exchangeName: string): string {

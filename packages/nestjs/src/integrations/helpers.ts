@@ -1,11 +1,15 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
+import {
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, MIDDLEWARE, QUEUE_PROCESS } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   withActiveSpan,
 } from '@sentry/core';
@@ -117,27 +121,35 @@ export function getEventSpanOptions(event: string): {
   };
 }
 
+const PROCESS_OPERATION = 'process';
+
 /**
  * Returns span options for nest bullmq process spans. `queueName` is undefined when the `@Processor`
  * decorator has no queue name.
  */
 export function getBullMQProcessSpanOptions(queueName: string | undefined): {
   name: string;
-  attributes: Record<string, string>;
+  attributes: Record<string, string | undefined>;
   forceTransaction: boolean;
 } {
   const client = getClient();
+  const isStreamed = !!client && hasSpanStreamingEnabled(client);
 
-  const destination = queueName ?? 'unknown';
-  const streamedName = queueName ? `process ${queueName}` : 'process';
+  // Only the word order differs between lifecycles (to keep the old naming pattern).
+  const name = queueName
+    ? isStreamed
+      ? `${PROCESS_OPERATION} ${queueName}`
+      : `${queueName} ${PROCESS_OPERATION}`
+    : PROCESS_OPERATION;
 
   return {
-    name: client && hasSpanStreamingEnabled(client) ? streamedName : `${destination} process`,
+    name,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+      [SENTRY_OP]: QUEUE_PROCESS,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
-      'messaging.system': 'bullmq',
-      'messaging.destination.name': destination,
+      [MESSAGING_SYSTEM]: 'bullmq',
+      [MESSAGING_OPERATION_TYPE]: PROCESS_OPERATION,
+      [MESSAGING_DESTINATION_NAME]: queueName,
     },
     forceTransaction: true,
   };

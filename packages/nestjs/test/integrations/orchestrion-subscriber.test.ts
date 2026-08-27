@@ -931,27 +931,31 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     expect(spanToJSON(spanInside!).name).toBe('emails process');
   });
 
-  it('bullmq @Processor: drops the destination from a streamed span name when the queue is unresolved', async () => {
-    installTestAsyncContextStrategy();
-    initTestClient();
-    subscribeToNestChannels();
+  it.each(['stream', 'static'] as const)(
+    'bullmq @Processor: names an unresolved queue `process` in %s mode',
+    async traceLifecycle => {
+      installTestAsyncContextStrategy();
+      initTestClient(traceLifecycle);
+      subscribeToNestChannels();
 
-    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, [undefined], () => undefined);
+      const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, [undefined], () => undefined);
 
-    let spanInside: Span | undefined;
-    class AnonymousProcessor {
-      public async process(): Promise<void> {
-        spanInside = getActiveSpan();
+      let spanInside: Span | undefined;
+      class AnonymousProcessor {
+        public async process(): Promise<void> {
+          spanInside = getActiveSpan();
+        }
       }
-    }
-    wrappedDecorator(AnonymousProcessor);
+      wrappedDecorator(AnonymousProcessor);
 
-    await new AnonymousProcessor().process();
-    const json = spanToJSON(spanInside!);
-    expect(json.name).toBe('process');
-    // Only the name drops the placeholder. The attribute keeps it.
-    expect(json.attributes).toMatchObject({ 'messaging.destination.name': 'unknown' });
-  });
+      await new AnonymousProcessor().process();
+      const json = spanToJSON(spanInside!);
+      expect(json.name).toBe('process');
+      // An unresolved queue is an absent destination, so the attribute is omitted rather than sent as
+      // a placeholder.
+      expect(json.attributes['messaging.destination.name']).toBeUndefined();
+    },
+  );
 
   it('schedule @Timeout: captures sync errors with the timeout mechanism', () => {
     installTestAsyncContextStrategy();

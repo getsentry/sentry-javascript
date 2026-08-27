@@ -809,7 +809,11 @@ Only the Express, Koa and Hapi integrations resolve a route template for `router
 
 Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ integrations used their own word order or verb, so their names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. Cloudflare Queues and the kafkajs producer already matched the conventions, so their names are the same in both trace lifecycles. The operation name an integration reports upstream stays on `messaging.operation.name`.
 
-An AWS SNS `Publish` to a platform endpoint no longer puts the endpoint ARN in the span name, because that ARN ends in a per-device id (`endpoint/GCM/myapp/<uuid> send` becomes `send`). Publishing to a topic is unchanged (`my-topic send`), and the full ARN remains on `messaging.destination.name`.
+AWS SQS and SNS span names follow the messaging conventions too, so the operation comes first (`my-queue receive` becomes `receive my-queue`, `my-topic send` becomes `send my-topic`). A streamed SNS `Publish` to a platform endpoint is named `send`, because the endpoint ARN it used to carry ends in a per-device id (`endpoint/GCM/myapp/<uuid> send`). The full ARN remains on `messaging.destination.name`.
+
+An amqplib span's destination is the exchange it uses, or the routing key when it uses the default exchange. RabbitMQ binds every queue to the default exchange under a key equal to the queue's own name, so `sendToQueue` spans are named after their queue (`send my-queue`) instead of dropping the destination. `messaging.destination.name` reports the same value, and the routing key remains on `messaging.rabbitmq.destination.routing_key` in full.
+
+Because a name built from an operation type has to be able to say which operation it means, the NestJS BullMQ, AWS SNS and AWS SQS `SendMessage` spans now carry the `messaging.operation.type` attribute they name themselves after. The other messaging integrations already set it. The attribute is set in both trace lifecycles.
 
 Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
 
