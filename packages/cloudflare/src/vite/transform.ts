@@ -555,11 +555,12 @@ function wrapLocalClassExport(
   ctx: TransformContext,
   state: TransformState,
 ): void {
-  if (state.renamedLocals.has(localName)) return;
+  const classId = localClass.id;
+  if (!classId || state.renamedLocals.has(localName)) return;
   state.renamedLocals.add(localName);
 
   const renamedClass = `__SENTRY_ORIGINAL_${localName}__`;
-  state.ms.overwrite(localClass.id!.start, localClass.id!.end, renamedClass);
+  state.ms.overwrite(classId.start, classId.end, renamedClass);
   state.ms.appendLeft(
     localClass.end,
     `\nconst ${localName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
