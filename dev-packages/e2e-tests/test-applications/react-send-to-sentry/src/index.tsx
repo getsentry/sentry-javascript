@@ -44,16 +44,22 @@ Object.defineProperty(window, 'sentryReplayId', {
   },
 });
 
+// The trace id is recorded alongside the event id because events are looked up through the
+// organization trace endpoint, which is keyed by trace rather than by event.
 Sentry.addEventProcessor(event => {
-  if (
-    event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
-  ) {
-    const eventId = event.event_id;
-    if (eventId) {
-      window.recordedTransactions = window.recordedTransactions || [];
-      window.recordedTransactions.push(eventId);
-    }
+  const eventId = event.event_id;
+  const traceId = event.contexts?.trace?.trace_id;
+  const op = event.contexts?.trace?.op;
+
+  if (!eventId || !traceId) {
+    return event;
+  }
+
+  if (event.type === 'transaction' && (op === 'pageload' || op === 'navigation')) {
+    window.recordedTransactions = window.recordedTransactions || [];
+    window.recordedTransactions.push({ eventId, traceId, op });
+  } else if (!event.type && event.exception) {
+    window.capturedException = { eventId, traceId };
   }
 
   return event;
