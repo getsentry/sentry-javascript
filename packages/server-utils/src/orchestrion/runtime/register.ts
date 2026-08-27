@@ -123,7 +123,14 @@ export function registerDiagnosticsChannelInjection(): void {
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
-  const mod = Module as NodeModule;
+  //
+  // Prefer `default`: webpack compiles a `node:module` external to `createRequire(…)('node:module')`
+  // and wraps it in a synthetic namespace, and because `node:module` exports a *function* that
+  // wrapper only carries `default`. Reading `registerHooks`/`register` off the namespace then yields
+  // `undefined` and a webpack-bundled SDK falls through to "no available Node API". Node's own ESM
+  // namespace exposes `default` too (the same object), and the CJS build has no `default` at all, so
+  // this covers every shape.
+  const mod = ((Module as { default?: NodeModule }).default ?? Module) as NodeModule;
 
   setDiagnosticsHook(({ moduleName, error }): void => {
     if (error) {
