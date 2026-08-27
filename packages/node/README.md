@@ -75,16 +75,21 @@ NODE_OPTIONS="--import ./instrument.mjs" npm run start
 ### Bundling your server
 
 `@sentry/node` installs its automatic (diagnostics-channel) instrumentation through a runtime module
-hook that ships in `@sentry/server-utils` and is designed to run from `node_modules`. If you bundle
-your server (esbuild, webpack, rollup, or a framework that bundles the server output), keep
-`@sentry/server-utils` **external** — do not inline it into the bundle. Bundling it strips its
-internal code transformer, which silently disables auto-instrumentation (`@sentry/node` will warn at
-startup when it detects this).
+hook that ships in `@sentry/server-utils` and is designed to run from `node_modules`. There are two
+supported ways to keep auto-instrumentation working when you bundle your server:
 
-Most setups don't bundle the SDK. If you do, either mark `@sentry/server-utils` as external in your
-bundler config, or use the build-time instrumentation from the Sentry bundler plugins instead
-(`@sentry/node/esbuild`, `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which
-inject the instrumentation into your bundled dependencies at build time.
+1. **Keep `@sentry/server-utils` external** (do not inline it into the bundle) so the runtime hook
+   loads from `node_modules`. Most bundlers externalize `node_modules` for a Node target by default;
+   if yours inlines everything, mark `@sentry/server-utils` as external explicitly.
+2. **Instrument at build time** with the Sentry bundler plugins (`@sentry/node/esbuild`,
+   `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which inject the
+   instrumentation into your bundled dependencies during the build. In this mode the runtime hook is
+   not needed.
+
+If you bundle `@sentry/server-utils` **and** don't use the build-time plugin, its internal code
+transformer is stripped and runtime auto-instrumentation is disabled — `@sentry/node` warns at
+startup when it detects this. (When the build-time plugin is used, there is no warning, since
+instrumentation is already in place.)
 
 ## Links
 
