@@ -53,6 +53,31 @@ const debugNodeAlias = {
   },
 };
 
+// `@apm-js-collab/code-transformer` reaches meriyah and astring through `require()`, so node-resolve
+// picks each package's CJS build and `@rollup/plugin-commonjs` emits it as an empty
+// `_virtual/<dep>.js` proxy that a *separate* module fills in through cross-module property writes
+// (`meriyah.parse = parse`), reachable only via a bare side-effect import. Downstream tree-shakers
+// delete that import, so `parse`/`generate` are `undefined` and every instrumented module load
+// throws (https://github.com/getsentry/sentry-javascript/issues/23664).
+//
+// Both packages also publish an ESM build. Re-resolving the bare specifier *without* the `require`
+// condition that `@rollup/plugin-commonjs` asks for picks that build instead, and the transformer
+// then binds `parse`/`generate` through a plain value import that no tree-shaker can drop. It also
+// deduplicates meriyah: `src/orchestrion/bundler/moduleInjectedTransform.ts` already imports it as
+// ESM, so before this the build shipped meriyah's CJS *and* ESM copy, ~324 kB each.
+//
+// source-map (0.6.1) publishes no ESM build and so keeps the fragile shape. That is what the
+// `sideEffects` allowlist in this package's `package.json` covers.
+const esmVendorAlias = {
+  name: 'esm-vendor-alias',
+  resolveId: {
+    order: 'pre',
+    handler(source, importer) {
+      return source === 'meriyah' || source === 'astring' ? this.resolve(source, importer, { skipSelf: true }) : null;
+    },
+  },
+};
+
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
 // prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
@@ -123,7 +148,7 @@ export default [
         'src/orchestrion/bundler/esbuild.ts',
       ],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugNodeAlias, esmVendorAlias, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
