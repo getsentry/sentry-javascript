@@ -130,18 +130,14 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
 }
 
 function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
-  const client = getClient();
-  // The statement is sanitized before it is summarized, so that a string literal containing
-  // `from`/`join` can't leak a value into the summary.
   const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
-  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-  // instead of the full statement, falling back to `{db.system.name}` when there is no statement to
-  // summarize — D1 exposes no collection, namespace or server to pair the operation with.
-  const streamedName = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : undefined;
+
+  const client = getClient();
+  const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : query;
 
   return {
     op: 'db.query',
-    name: streamedName ?? query,
+    name,
     attributes: {
       'db.system.name': 'cloudflare-d1',
       'db.operation.name': type,
