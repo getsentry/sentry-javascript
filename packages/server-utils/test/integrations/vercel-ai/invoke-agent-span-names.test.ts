@@ -41,8 +41,10 @@ describe('Vercel AI invoke_agent span names', () => {
     span?.end();
   }
 
-  it('keeps `invoke_agent {functionId}` in static mode', () => {
-    const endedSpans = setupClient('static');
+  // `functionId` is a developer-supplied label, so it is bounded and stays in the name in both
+  // lifecycles, the same way a tool name does on `gen_ai.execute_tool` spans.
+  it.each(['static', 'stream'] as const)('keeps `invoke_agent {functionId}` in %s mode', traceLifecycle => {
+    const endedSpans = setupClient(traceLifecycle);
     startInvokeAgentSpan('weather_agent');
 
     const span = spanToStaticSpanJSON(endedSpans[0]!);
@@ -50,12 +52,10 @@ describe('Vercel AI invoke_agent span names', () => {
     expect(span.data?.[GEN_AI_FUNCTION_ID]).toBe('weather_agent');
   });
 
-  it('uses `invoke_agent` when span streaming is enabled', () => {
-    const endedSpans = setupClient('stream');
-    startInvokeAgentSpan('weather_agent');
+  it.each(['static', 'stream'] as const)('uses `invoke_agent` without a functionId in %s mode', traceLifecycle => {
+    const endedSpans = setupClient(traceLifecycle);
+    startInvokeAgentSpan();
 
-    const span = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(span.description).toBe('invoke_agent');
-    expect(span.data?.[GEN_AI_FUNCTION_ID]).toBe('weather_agent');
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('invoke_agent');
   });
 });

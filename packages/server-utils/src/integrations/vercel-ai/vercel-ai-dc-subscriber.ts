@@ -26,7 +26,6 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
   getClient,
-  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -430,11 +429,7 @@ function buildInvokeAgentSpan(
   if (callId) {
     operationIdByCallId.set(callId, { operationId, isStream });
   }
-  // With span streaming, the name follows the `{operation}` agent template. `functionId` is not
-  // `gen_ai.agent.name` — it stays available on `gen_ai.function_id`.
-  const client = getClient();
-  const nameSuffix = client && hasSpanStreamingEnabled(client) ? undefined : functionId;
-  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_OPERATION, nameSuffix, {
+  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_OPERATION, functionId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
