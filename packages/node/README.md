@@ -72,6 +72,20 @@ If it is not possible for you to pass the `--import` flag to the Node.js binary,
 NODE_OPTIONS="--import ./instrument.mjs" npm run start
 ```
 
+### Bundling your server
+
+`@sentry/node` installs its automatic (diagnostics-channel) instrumentation through a runtime module
+hook that ships in `@sentry/server-utils` and is designed to run from `node_modules`. If you bundle
+your server (esbuild, webpack, rollup, or a framework that bundles the server output), keep
+`@sentry/server-utils` **external** — do not inline it into the bundle. Bundling it strips its
+internal code transformer, which silently disables auto-instrumentation (`@sentry/node` will warn at
+startup when it detects this).
+
+Most setups don't bundle the SDK. If you do, either mark `@sentry/server-utils` as external in your
+bundler config, or use the build-time instrumentation from the Sentry bundler plugins instead
+(`@sentry/node/esbuild`, `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which
+inject the instrumentation into your bundled dependencies at build time.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
