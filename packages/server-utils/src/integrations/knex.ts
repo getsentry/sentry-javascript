@@ -7,7 +7,6 @@ import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
-  DB_SPAN_NAME_FALLBACK,
   debug,
   defineIntegration,
   getActiveSpan,
@@ -173,6 +172,7 @@ function subscribeQuery(): void {
       const operation = query?.method;
       const dbNameSpace =
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
+      const dbSystem = mapSystem(client?.driverName);
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       // The statement is sanitized before it is summarized, so that a string literal containing
@@ -185,7 +185,7 @@ function subscribeQuery(): void {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
-        [DB_SYSTEM_NAME]: mapSystem(client?.driverName),
+        [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
         [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
@@ -200,7 +200,7 @@ function subscribeQuery(): void {
       const sentryClient = getClient();
       const spanName =
         sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? querySummary || getSecondaryStreamName(dbNameSpace, operation, table)
+          ? querySummary || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
           : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
 
       return startInactiveSpan({
@@ -282,7 +282,12 @@ function getName(db: string | undefined, operation?: string, table?: string): st
   return db;
 }
 
-function getSecondaryStreamName(dbNameSpace: string | undefined, operation?: string, table?: string): string {
+function getSecondaryStreamName(
+  dbSystem: string | undefined,
+  dbNameSpace: string | undefined,
+  operation?: string,
+  table?: string,
+): string {
   if (operation) {
     if (table) {
       return `${operation} ${table}`;
@@ -297,7 +302,9 @@ function getSecondaryStreamName(dbNameSpace: string | undefined, operation?: str
   if (dbNameSpace) {
     return dbNameSpace;
   }
-  return DB_SPAN_NAME_FALLBACK;
+  // Mirrors the postgres integration, which falls back to `{db.system.name}` rather than to a static
+  // name. `db.system.name` is only unset when the knex client reports no driver.
+  return dbSystem ?? 'knex.query';
 }
 
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {

@@ -149,11 +149,6 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                 text: 'SELECT c1, c2 FROM [dbo].[test_prepared]',
               },
               {
-                name: 'SELECT [dbo].[test_prepared]',
-                summary: 'SELECT [dbo].[test_prepared]',
-                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1',
-              },
-              {
                 // TODO: (check if correct) Both sides of the join survive into the summary.
                 name: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
                 summary: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
@@ -165,6 +160,11 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                 name: 'SELECT [dbo].[test_prepared]',
                 summary: 'SELECT [dbo].[test_prepared]',
                 text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = 42',
+              },
+              {
+                name: 'SELECT [dbo].[test_prepared]',
+                summary: 'SELECT [dbo].[test_prepared]',
+                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1',
               },
               {
                 // TODO: (fix) The `from` inside the string literal must not be read as a table: the statement is
