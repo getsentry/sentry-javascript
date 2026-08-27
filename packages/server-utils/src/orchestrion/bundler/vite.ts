@@ -83,7 +83,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
       return environment.config.consumer === 'server';
     },
-    config(): { ssr: { noExternal: string[] } } {
+    config(): { ssr: { noExternal: string[]; external: string[] } } {
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by
       // default, leaving them as bare `require()`/`import` calls resolved from
@@ -99,8 +99,24 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // ESM entry — a link-time crash at server startup. Bundling sidesteps
       // external ESM/CJS interop on both Vite majors, and the ESM barrel
       // tree-shakes to just the helper and the factories actually referenced.
+      //
+      // Conversely, `@sentry/node` must stay EXTERNAL. Its `init()` installs the
+      // runtime diagnostics-channel hook via `@sentry/server-utils/orchestrion/
+      // register`, which loads the vendored code transformer and, on older Node,
+      // `Module.register`s a hook module by a self-referential specifier that
+      // only resolves from the package's real `node_modules` location. Bundling
+      // `@sentry/node` therefore strips the transformer (tree-shaking) AND breaks
+      // that self-reference. It's a different package from the `@sentry/server-
+      // utils` barrel above, so listing it here is not a package-granularity
+      // conflict; explicit `ssr.external` entries also win over `noExternal`, so
+      // this holds even against a preset that would otherwise inline it. A
+      // matching runtime warning in `orchestrion/register` covers bundlers this
+      // plugin can't reach.
       return {
-        ssr: { noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'] },
+        ssr: {
+          noExternal: [...instrumentedModuleNames(options.instrumentations), '@sentry/server-utils'],
+          external: ['@sentry/node'],
+        },
       };
     },
     configResolved(config: ResolvedConfig): void {
