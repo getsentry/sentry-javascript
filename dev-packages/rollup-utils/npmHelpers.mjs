@@ -64,6 +64,15 @@ export function makeBaseNPMConfig(options = {}) {
     // need more (e.g. top-level await) raise it through `packageSpecificConfig`.
     transform: {
       target: 'es2020',
+
+      // The inferred 'browser' platform defines `process.env.NODE_ENV`, which folds every
+      // `process.env.NODE_ENV !== 'development'` guard to a constant and lets DCE delete the
+      // branch behind it. That silently dropped the orchestrion and source-map plugins from the
+      // vite integrations' ESM output while the CJS half kept them. Mapping it to itself keeps
+      // the runtime lookup, so the guard is evaluated by the consumer as it always was.
+      define: {
+        'process.env.NODE_ENV': 'process.env.NODE_ENV',
+      },
     },
 
     output: {
