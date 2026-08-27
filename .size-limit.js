@@ -447,6 +447,25 @@ module.exports = [
       return config;
     },
   },
+  {
+    name: '@sentry/node - without channel injection',
+    path: 'packages/node/build/esm/index.js',
+    import: createImport('init'),
+    gzip: true,
+    limit: '104 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_CHANNEL_INJECTION__: false,
+        }),
+      );
+      config.optimization.minimize = true;
+      return config;
+    },
+  },
   // AWS SDK (ESM)
   {
     name: '@sentry/aws-serverless',

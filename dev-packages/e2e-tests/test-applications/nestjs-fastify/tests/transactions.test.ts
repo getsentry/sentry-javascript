@@ -1,12 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// TODO(provider): The SentryTracerProvider (now the default for @sentry/node) creates native spans,
-// so the vendored fastify instrumentation renaming hook spans via `span.updateName()` in its
-// `spanStart` listener stamps `sentry.source: 'custom'` on them. The OTel SDK path never set a source
-// on these child spans, so this assertion fails. The fix is to name the span at creation in the
-// instrumentation instead of renaming it (cf. the fastify streamlining in #21706); re-enable then.
-test.skip('Sends an API route transaction', async ({ baseURL }) => {
+test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -27,6 +22,7 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
       'sentry.kind': 'server',
       'http.response.status_code': 200,
       'url.full': 'http://localhost:3030/test-transaction',
+      'url.path': '/test-transaction',
       'server.address': 'localhost',
       'http.request.method': 'GET',
       'url.scheme': 'http',
@@ -58,120 +54,137 @@ test.skip('Sends an API route transaction', async ({ baseURL }) => {
     origin: 'auto.http.http_server',
   });
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.fastify',
-            'sentry.op': 'middleware',
-            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - onRequest',
-            'fastify.type': 'hook',
-            'hook.callback.name': 'runMiddie',
-          },
-          description: '@fastify/middie - onRequest',
-          op: 'middleware',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'auto.http.fastify',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.fastify',
-            'sentry.op': 'handler',
-            'hook.name': 'fastify -> @sentry/instrumentation-fastify -> @fastify/middie - route-handler',
-            'fastify.type': 'request-handler',
-            'http.route': '/test-transaction',
-            'hook.callback.name': 'anonymous',
-          },
-          description: '@fastify/middie - route-handler',
-          op: 'handler',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'auto.http.fastify',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'function',
-            component: '@nestjs/core',
-            'nestjs.version': expect.any(String),
-            'nestjs.type': 'request_context',
-            'http.request.method': 'GET',
-            'url.full': '/test-transaction',
-            'http.route': '/test-transaction',
-            'nestjs.controller': 'AppController',
-            'nestjs.callback': 'testTransaction',
-          },
-          description: 'GET /test-transaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'function',
-          origin: 'auto.http.nestjs',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'handler',
-            component: '@nestjs/core',
-            'nestjs.version': expect.any(String),
-            'nestjs.type': 'handler',
-            'nestjs.callback': 'testTransaction',
-          },
-          description: 'testTransaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'handler',
-          origin: 'auto.http.nestjs',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: { 'sentry.origin': 'manual' },
-          description: 'test-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: { 'sentry.origin': 'manual' },
-          description: 'child-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      transaction: 'GET /test-transaction',
-      transaction_info: {
-        source: 'route',
-      },
-      type: 'transaction',
-    }),
-  );
+  expect(transactionEvent).toMatchObject({
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    transaction: 'GET /test-transaction',
+    transaction_info: {
+      source: 'route',
+    },
+    type: 'transaction',
+  });
+
+  const spans = transactionEvent.spans || [];
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: {
+      'sentry.origin': 'auto.http.fastify',
+      'sentry.op': 'handler',
+      'http.request.method': 'GET',
+      'url.path': '/test-transaction',
+      'http.route': '/test-transaction',
+      'http.response.status_code': 200,
+    },
+    description: 'GET /test-transaction',
+    op: 'handler',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'auto.http.fastify',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: {
+      'sentry.origin': 'auto.http.fastify',
+      'sentry.op': 'middleware',
+      'hook.name': 'fastify -> @fastify/middie - onRequest',
+      'fastify.type': 'hook',
+      'hook.callback.name': 'runMiddie',
+    },
+    description: 'fastify -> @fastify/middie - onRequest',
+    op: 'middleware',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'auto.http.fastify',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: {
+      'sentry.origin': 'auto.http.fastify',
+      'sentry.op': 'handler',
+      'hook.name': 'fastify -> @fastify/middie - route-handler',
+      'fastify.type': 'request-handler',
+      'http.route': '/test-transaction',
+      'hook.callback.name': 'anonymous',
+    },
+    description: 'fastify -> @fastify/middie - route-handler',
+    op: 'handler',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'auto.http.fastify',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: {
+      'sentry.origin': 'auto.http.nestjs',
+      'sentry.op': 'function',
+      component: '@nestjs/core',
+      'nestjs.type': 'request_context',
+      'nestjs.controller': 'AppController',
+      'nestjs.callback': 'testTransaction',
+      'nestjs.version': expect.any(String),
+      'http.route': '/test-transaction',
+      'http.request.method': 'GET',
+      'url.full': '/test-transaction',
+    },
+    description: 'AppController.testTransaction',
+    op: 'function',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'auto.http.nestjs',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: {
+      'sentry.origin': 'auto.http.nestjs',
+      'sentry.op': 'handler',
+      component: '@nestjs/core',
+      'nestjs.version': expect.any(String),
+      'nestjs.type': 'handler',
+      'nestjs.callback': 'testTransaction',
+    },
+    description: 'testTransaction',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    op: 'handler',
+    origin: 'auto.http.nestjs',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: { 'sentry.origin': 'manual' },
+    description: 'test-span',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'manual',
+  });
+  expect(spans).toContainEqual({
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    data: { 'sentry.origin': 'manual' },
+    description: 'child-span',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    origin: 'manual',
+  });
 
   const spanDescriptions = transactionEvent.spans.map(span => span.description);
   expect(spanDescriptions).not.toContain('SentryTracingInterceptor');

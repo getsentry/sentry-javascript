@@ -98,6 +98,49 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('sentryHandle with span streaming', () => {
+  let streamingClient: NodeClient;
+
+  beforeEach(() => {
+    streamingClient = new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0, traceLifecycle: 'stream' }));
+    setCurrentClient(streamingClient);
+    streamingClient.init();
+  });
+
+  async function rootSpanNameFor(event: Parameters<Handle>[0]['event']): Promise<string | undefined> {
+    let rootSpan: Span | undefined;
+    streamingClient.on('spanEnd', span => {
+      if (span === getRootSpan(span)) {
+        rootSpan = span;
+      }
+    });
+
+    await sentryHandle({ handleUnknownRoutes: true })({ event, resolve: async () => mockResponse });
+
+    return rootSpan && spanToJSON(rootSpan).name;
+  }
+
+  it('keeps the parameterized route as the span name', async () => {
+    expect(await rootSpanNameFor(mockEvent())).toEqual('GET /users/[id]');
+  });
+
+  it('names a span without a resolved route after the request method', async () => {
+    expect(await rootSpanNameFor(mockEvent({ route: { id: null } }))).toEqual('GET');
+  });
+
+  it("replaces SvelteKit's own root span name when no route resolves", async () => {
+    const kitRootSpan = SentryCore.startInactiveSpan({ name: 'GET http://localhost:3000/users/123' });
+
+    await sentryHandle({ handleUnknownRoutes: true })({
+      event: mockEvent({ route: { id: null }, tracing: { enabled: true, root: kitRootSpan } }),
+      resolve: async () => mockResponse,
+    });
+
+    expect(spanToJSON(kitRootSpan).name).toEqual('GET');
+    kitRootSpan.end();
+  });
+});
+
 describe('sentryHandle', () => {
   describe.each([
     // isSync, isError, expectedResponse

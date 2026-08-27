@@ -7,6 +7,8 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -111,7 +113,9 @@ export function createSentryClientInstrumentation(
           startBrowserTracingNavigationSpan(
             client,
             {
-              name: pathname,
+              // With span streaming, span names have to be low cardinality, so we can't fall back to
+              // the URL. The route hooks parameterize the span once they resolve.
+              name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname,
               attributes: {
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -154,7 +158,9 @@ export function createSentryClientInstrumentation(
               navigationSpan = startBrowserTracingNavigationSpan(
                 client,
                 {
-                  name: currentPathname,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back
+                  // to the URL. The route is resolved once the navigation settles.
+                  name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : currentPathname,
                   attributes: {
                     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -199,7 +205,9 @@ export function createSentryClientInstrumentation(
             navigationSpan = startBrowserTracingNavigationSpan(
               client,
               {
-                name: toPath,
+                // With span streaming, span names have to be low cardinality, so we can't fall back to
+                // the URL. The route hooks parameterize the span once they resolve.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : toPath,
                 attributes: {
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',

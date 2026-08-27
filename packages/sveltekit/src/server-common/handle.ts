@@ -8,7 +8,9 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
@@ -154,7 +156,8 @@ async function instrumentHandle(
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
   const kitTracingEnabled = event.tracing?.enabled;
-  const dataCollectionOptions = getClient()?.getDataCollectionOptions();
+  const client = getClient();
+  const dataCollectionOptions = client?.getDataCollectionOptions();
 
   try {
     const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
@@ -180,6 +183,10 @@ async function instrumentHandle(
         const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
+        } else if (client && hasSpanStreamingEnabled(client)) {
+          // Without a route, SvelteKit's own span name holds the raw URL, which is too high
+          // cardinality to stream.
+          updateSpanName(kitRootSpan, event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK);
         }
 
         kitRootSpan.setAttributes({
@@ -229,7 +236,11 @@ async function instrumentHandle(
                 ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
                 : {}),
             },
-            name: routeName,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              routeId || !client || !hasSpanStreamingEnabled(client)
+                ? routeName
+                : event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           resolveWithSentry,
         );

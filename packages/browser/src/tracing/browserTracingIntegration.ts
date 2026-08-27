@@ -22,6 +22,7 @@ import {
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -632,7 +633,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: parsed?.pathname || WINDOW.location.pathname,
+                // With span streaming, span names have to be low cardinality, and there is no route
+                // information available here.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
@@ -713,7 +718,13 @@ export function startBrowserTracingNavigationSpan(
   client.emit('startNavigationSpan', spanOptions, { isRedirect, url });
 
   const scope = getCurrentScope();
-  scope.setTransactionName(spanOptions.name);
+  // `Navigation` is a low-cardinality span name, not a description of the page. The scope's
+  // transaction name is what error events are grouped by, so it keeps the URL instead. `url` is the
+  // destination, while `location` still points at the previous page during a `pushState`.
+  const isFallbackSpanName = spanOptions.name === NAVIGATION_SPAN_NAME_FALLBACK;
+  scope.setTransactionName(
+    isFallbackSpanName ? (url && parseStringToURLObject(url)?.pathname) || WINDOW.location?.pathname : spanOptions.name,
+  );
 
   // We store the normalized request data on the scope, so we get the request data at time of span creation
   // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL

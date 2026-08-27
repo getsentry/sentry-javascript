@@ -591,6 +591,29 @@ Sentry.init({
 
 `sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
 
+### `propagateTrace` renamed to `tracePropagation`
+
+Affected SDKs: `@sentry/core` and dependents.
+
+The low-level HTTP instrumentation helpers exported from `@sentry/core` (`getHttpClientSubscriptions` and
+`patchHttpModuleClient`) took a `propagateTrace` option, while the public `httpIntegration` and
+`nativeNodeFetchIntegration` options were already named `tracePropagation`. The option is now called
+`tracePropagation` at every layer, matching `tracePropagationTargets`:
+
+```js
+// before
+patchHttpModuleClient(http, { propagateTrace: true });
+
+// after
+patchHttpModuleClient(http, { tracePropagation: true });
+```
+
+If you only configure `httpIntegration`, `nativeNodeFetchIntegration`, or `denoHttpIntegration`, nothing changes — those
+options were already named `tracePropagation`.
+
+This is unrelated to `propagateTraceparent` (whether the W3C `traceparent` header is sent alongside `sentry-trace`) and
+`tracePropagationTargets` (which URLs receive trace headers). Both keep their names.
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
@@ -612,6 +635,22 @@ on casing, or use `tracePropagationTargets` in combination with a more specific 
 
 As part of this, the `g` and `y` flags are ignored on `tracePropagationTargets` regular expressions. These flags made
 matching stateful via `lastIndex`, so a target like `/myApi\.com/g` previously matched only every other request.
+
+### `sendFeedback` rejects with an `Error`
+
+Affected SDKs: All SDKs running in the browser.
+
+`Sentry.sendFeedback()` now rejects with an `Error` in all cases. Previously it rejected with a plain string when the request timed out, was rejected with a 403, or otherwise failed to send, while the synchronous validation paths (empty message, no client configured) already threw an `Error`. The message text itself is unchanged, and is still customizable through the `errorMessages` hint, so read it off `error.message`:
+
+```js
+try {
+  await Sentry.sendFeedback({ message: 'Hello' });
+} catch (error) {
+  // v10: a string on send failures, an Error on validation failures
+  // v11: always an Error
+  console.log(error.message);
+}
+```
 
 ### Span attribute changes
 
@@ -793,13 +832,19 @@ The following span names were adjusted:
 | Span op                                                                  | Before                                                                                                                      | After                                                                                                                    |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                               |
+| `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Navigation` if the SDK has none                                                             |
+| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                        |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                 |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)     |
 | `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                               |
 | `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`) |
 | `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                          |
 
+`navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
+
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
+
+`http.server` requests that resolve to a route are **unchanged** — those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
 
 Some consequences to be aware of:
 
@@ -813,9 +858,9 @@ Resource URIs are unbounded, so they are no longer part of an `mcp.server` span 
 
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
 
-Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references. The same applies to `ui.action.click` spans, which are named after the current route.
 
-`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload span name is named `'Pageload'` and might receive its final, resolved route name later.
+`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload or navigation span is named `'Pageload'`/`'Navigation'` and might receive its final, resolved route name later.
 `ignoreSpans` filters matching a URL path no longer apply to them.
 Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
 
@@ -831,6 +876,29 @@ Sentry.init({
 });
 ```
 
+The same applies to `tracesSampler`, which also runs at span start. A web framework matches the route
+_after_ that point, so an `http.server` span is named `GET` when your rule is evaluated — never
+`GET /health`. Name-based rules stop matching **silently**: no error, no warning, just unexpected quota
+usage. No route attribute is set at that point either, so match on `url.path`:
+
+```js
+Sentry.init({
+  // Before
+  tracesSampler: ({ name, inheritOrSampleWith }) => inheritOrSampleWith(name === 'GET /health' ? 0 : 1),
+
+  // After
+  tracesSampler: ({ attributes, inheritOrSampleWith }) =>
+    inheritOrSampleWith(attributes?.['url.path'] === '/health' ? 0 : 1),
+});
+```
+
+On `@sentry/nextjs` the incoming-request span comes from Next.js' own OpenTelemetry instrumentation, so
+match on `url.full` or `http.target` if `url.path` is absent. `normalizedRequest.url` is also available on
+the sampling context.
+
+Error grouping is **not** affected by the `http.server` change: the scope's transaction name still holds
+the full `${method} ${path}`.
+
 ### AI integrations no longer trace non-inference operations
 
 Affected SDKs: All server-side SDKs.
@@ -841,6 +909,12 @@ AI integrations now only trace model invocations, tool calls, and agent invocati
 - LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
 
 If you reference these spans in dashboards or alerts, update them accordingly.
+
+### Fastify: `setupFastifyErrorHandler` is deprecated
+
+Affected SDKs: All server-side SDKs.
+
+`fastifyIntegration` is now a single, channel-based plugin that instruments Fastify v3.21 through v5, including error capture. Calling `setupFastifyErrorHandler(app)` is no longer required — errors are captured automatically once the integration is added `setupFastifyErrorHandler` is therefore deprecated and will be removed in the next major.
 
 ### `@sentry/nextjs`
 
@@ -1132,6 +1206,7 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
 - (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
+- (Fastify) The deprecated `instrumentFastify` and `handleFastifyError` exports were removed. `fastifyIntegration` now instruments Fastify (v3.21–v5) and captures errors on its own, so neither export is needed. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 - The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.

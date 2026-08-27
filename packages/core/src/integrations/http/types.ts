@@ -148,7 +148,7 @@ export interface HttpInstrumentationOptions {
    * (`sentry-trace`, `baggage`, `traceparent`) into outgoing requests.
    * @default false
    */
-  propagateTrace?: boolean;
+  tracePropagation?: boolean;
 
   /**
    * Skip span / breadcrumb creation for requests to matching URLs.

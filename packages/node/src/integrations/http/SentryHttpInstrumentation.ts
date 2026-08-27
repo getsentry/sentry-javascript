@@ -38,7 +38,7 @@ export interface OutgoingHttpRequestInstrumentationOptions {
    *
    * @default `true`
    */
-  propagateTrace?: boolean;
+  tracePropagation?: boolean;
 
   /**
    * Do not instrument outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -76,7 +76,7 @@ export function instrumentHttpOutgoingRequests(
   const patchOptions = {
     applyCustomAttributesOnSpan,
     ...options,
-    propagateTrace: options.propagateTrace ?? true,
+    tracePropagation: options.tracePropagation ?? true,
     spans: options.spans ?? true,
     ignoreOutgoingRequests(url, request) {
       return isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request));

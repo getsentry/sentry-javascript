@@ -4,11 +4,19 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
 } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
-import { getIsolationScope, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
+import {
+  getIsolationScope,
+  getRootSpan,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  spanToJSON,
+} from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
 import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
@@ -19,14 +27,30 @@ import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './ve
  * This function is used to enhance the span with additional information such as the route, the method, the headers, etc.
  * It is called for every span that is started by Next.js.
  * @param span The span that is starting.
+ * @param client The client the hook is registered on.
  */
-export function handleOnSpanStart(span: Span): void {
+export function handleOnSpanStart(span: Span, client: Client): void {
   const spanAttributes = spanToJSON(span).attributes;
   const rootSpan = getRootSpan(span);
   const rootSpanAttributes = spanToJSON(rootSpan).attributes;
   const isRootSpan = span === rootSpan;
 
   dropMiddlewareTunnelRequests(span, spanAttributes);
+
+  // Next.js names the incoming-request span after the raw URL. With span streaming, span names have to
+  // be low cardinality, so we replace it here at span start; the `next.route` hoisting below renames it
+  // to `${method} ${route}` once Next.js reports a route.
+  if (
+    isRootSpan &&
+    spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' &&
+    hasSpanStreamingEnabled(client)
+  ) {
+    // eslint-disable-next-line typescript/no-deprecated
+    const method = spanAttributes[HTTP_REQUEST_METHOD] ?? spanAttributes[HTTP_METHOD];
+    createLiveRootSpanAdapter(span).setName(
+      (typeof method === 'string' ? method.toUpperCase() : '') || HTTP_SPAN_NAME_FALLBACK,
+    );
+  }
 
   // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
   // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.

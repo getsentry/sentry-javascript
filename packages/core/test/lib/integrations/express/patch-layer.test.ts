@@ -70,6 +70,7 @@ vi.mock('../../../../src/defaultScopes', () => ({
 
 const mockSpans: MockSpan[] = [];
 beforeEach(() => (mockSpans.length = 0));
+beforeEach(() => (transactionNames.length = 0));
 class MockSpan {
   ended = false;
   status: { code: number; message: string } = { code: 0, message: 'OK' };
@@ -131,11 +132,33 @@ const checkSpans = (expectations: Partial<MockSpanJSON>[]) => {
 };
 
 let hasActiveSpan = true;
-const parentSpan = {};
+// Stands in for the root `http.server` span so the route-to-root-span write can be asserted.
+const parentSpan = {
+  name: 'GET',
+  attributes: { 'sentry.op': 'http.server' } as Record<string, unknown>,
+  updateName(name: string) {
+    this.name = name;
+    return this;
+  },
+  setAttribute(key: string, value: unknown) {
+    this.attributes[key] = value;
+    return this;
+  },
+};
+beforeEach(() => {
+  parentSpan.name = 'GET';
+  parentSpan.attributes = { 'sentry.op': 'http.server' };
+});
 vi.mock('../../../../src/utils/spanUtils', async () => ({
   ...(await import('../../../../src/utils/spanUtils')),
   getActiveSpan() {
     return hasActiveSpan ? parentSpan : undefined;
+  },
+  getRootSpan(span: unknown) {
+    return span;
+  },
+  spanToJSON(span: { attributes?: Record<string, unknown> }) {
+    return { attributes: span.attributes ?? {} };
   },
 }));
 
@@ -365,6 +388,90 @@ describe('patchLayer', () => {
     ]);
     res.emit('finish');
     checkSpans([]);
+  });
+
+  it('writes the resolved route onto the root http.server span when span streaming is enabled', () => {
+    // Regression guard: with streaming the root span starts named `GET`, and nothing else on this
+    // path renames it — a routed request would otherwise keep the method-only name.
+    spanStreamingEnabled = true;
+
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/a/b/c/layerPath',
+      method: 'get',
+    }) as unknown as ExpressRequest;
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+    const layer = { name: 'handle', handle: vi.fn() } as unknown as ExpressLayer;
+
+    storeLayer(req, 'a');
+    storeLayer(req, '/:boo');
+
+    patchLayer(() => ({}), layer);
+    layer.handle(req, res);
+
+    expect(parentSpan.name).toBe('GET /a/:boo');
+    expect(parentSpan.attributes['http.route']).toBe('/a/:boo');
+    expect(parentSpan.attributes['sentry.segment.name.source']).toBe('route');
+  });
+
+  it('names the root route `GET /` rather than leaving the route empty', () => {
+    // `getConstructedRoute` skips `/`, so the root handler must take its route from the matched route.
+    spanStreamingEnabled = true;
+
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/',
+      method: 'get',
+    }) as unknown as ExpressRequest;
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+    const layer = { name: 'handle', handle: vi.fn() } as unknown as ExpressLayer;
+
+    storeLayer(req, '/');
+
+    patchLayer(() => ({}), layer);
+    layer.handle(req, res);
+
+    expect(parentSpan.name).toBe('GET /');
+    expect(parentSpan.attributes['http.route']).toBe('/');
+  });
+
+  it('applies the route from mounted middleware, not only from request handlers', () => {
+    // `app.use('/trpc', handler)` matches a route without being a request handler.
+    spanStreamingEnabled = true;
+
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/trpc/foo',
+      method: 'get',
+    }) as unknown as ExpressRequest;
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+    // A layer name other than `handle`/`bound dispatch`/`router` is treated as middleware.
+    const layer = { name: 'trpcMiddleware', handle: vi.fn() } as unknown as ExpressLayer;
+
+    storeLayer(req, '/trpc');
+
+    patchLayer(() => ({}), layer);
+    layer.handle(req, res);
+
+    expect(parentSpan.name).toBe('GET /trpc');
+    expect(parentSpan.attributes['http.route']).toBe('/trpc');
+  });
+
+  it('leaves the root span name alone without span streaming', () => {
+    spanStreamingEnabled = false;
+
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/a/b/c/layerPath',
+      method: 'get',
+    }) as unknown as ExpressRequest;
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+    const layer = { name: 'handle', handle: vi.fn() } as unknown as ExpressLayer;
+
+    storeLayer(req, 'a');
+    storeLayer(req, '/:boo');
+
+    patchLayer(() => ({}), layer);
+    layer.handle(req, res);
+
+    expect(parentSpan.name).toBe('GET');
+    expect(parentSpan.attributes['http.route']).toBeUndefined();
   });
 
   it('sets tx name in isolation scope', async () => {
