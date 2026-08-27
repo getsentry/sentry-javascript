@@ -412,7 +412,7 @@ describe('LangChain integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
-    test('uses invoke_agent for chain spans when span streaming is enabled', async () => {
+    test('leads chain span names with the operation when span streaming is enabled', async () => {
       await createRunner()
         .ignore('event')
         .expect({
@@ -420,7 +420,12 @@ describe('LangChain integration', () => {
             const chainSpans = container.items.filter(
               span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
             );
-            expect(chainSpans.map(span => span.name).sort()).toEqual(['invoke_agent', 'invoke_agent', 'invoke_agent']);
+            // The `unknown_chain` sentinel is dropped, so that span falls back to the bare operation.
+            expect(chainSpans.map(span => span.name).sort()).toEqual([
+              'invoke_agent',
+              'invoke_agent format_prompt',
+              'invoke_agent parse_output',
+            ]);
             for (const span of chainSpans) {
               expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
             }

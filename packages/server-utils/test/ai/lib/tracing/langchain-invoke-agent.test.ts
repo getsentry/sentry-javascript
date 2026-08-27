@@ -60,13 +60,20 @@ describe('LangChain invoke_agent span names', () => {
     expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chain unknown_chain');
   });
 
-  it('uses `invoke_agent` when span streaming is enabled', () => {
+  it('leads with the operation and keeps the chain name when span streaming is enabled', () => {
     const endedSpans = setupClient('stream');
     runChain('format_prompt');
 
     const span = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(span.description).toBe('invoke_agent');
+    expect(span.description).toBe('invoke_agent format_prompt');
     expect(span.data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
     expect(span.data?.['langchain.chain.name']).toBe('format_prompt');
+  });
+
+  it('drops the `unknown_chain` sentinel when span streaming is enabled', () => {
+    const endedSpans = setupClient('stream');
+    runChain();
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('invoke_agent');
   });
 });

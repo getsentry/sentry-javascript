@@ -228,9 +228,13 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       startSpanManual(
         {
-          // With span streaming, the name follows the `{operation}` agent template. The chain
-          // name stays available on `langchain.chain.name`.
-          name: client && hasSpanStreamingEnabled(client) ? 'invoke_agent' : `chain ${chainName}`,
+          // With span streaming, the name leads with the operation per the agent templates. The
+          // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
+          name: !(client && hasSpanStreamingEnabled(client))
+            ? `chain ${chainName}`
+            : chainName === 'unknown_chain'
+              ? 'invoke_agent'
+              : `invoke_agent ${chainName}`,
           op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,
