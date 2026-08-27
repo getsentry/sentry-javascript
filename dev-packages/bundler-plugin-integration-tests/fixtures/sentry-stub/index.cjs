@@ -6,8 +6,7 @@
  * The real CLI talks to Sentry over HTTP. In these tests we only care about *which* commands the
  * bundler plugin issues and with what arguments, so this stub records each call to
  * `sentry-cli-mock.json` (under `SENTRY_TEST_OUT_DIR`) as a flat CLI-style argument array and
- * resolves without doing any network work. This mirrors the previous approach of patching
- * `@sentry/cli`'s `execute()` to dump its args.
+ * resolves without doing any network work.
  */
 
 const fs = require('fs');
