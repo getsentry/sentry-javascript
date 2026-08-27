@@ -6,6 +6,8 @@ import { EventEmitter } from 'node:events';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
@@ -15,6 +17,7 @@ import {
 } from '@sentry/core';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -130,6 +133,8 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
+    const querySummary =
+      sql && operation !== 'callProcedure' ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
@@ -140,19 +145,19 @@ function subscribeQuery(channelName: string, operation: string): void {
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
       [DB_QUERY_TEXT]: sql,
+      [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_DB_SQL_TABLE]: request.table,
       [SERVER_ADDRESS]: connection.config?.server,
       [SERVER_PORT]: connection.config?.options?.port,
     };
 
     const client = getClient();
-    // `getSpanName` already builds `{db.operation.name}` paired with the bulk-load table, the stored
-    // procedure or `{db.namespace}`, so with span streaming — where span names have to be low
-    // cardinality — it is used instead of the SQL statement.
-    const spanName = getSpanName(operation, databaseName, sql, request.table);
 
     const span = startInactiveSpan({
-      name: client && hasSpanStreamingEnabled(client) ? spanName : sql || spanName,
+      name:
+        client && hasSpanStreamingEnabled(client)
+          ? (querySummary ?? getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table))
+          : sql || getSecondarySpanName(operation, databaseName, sql, request.table),
       attributes,
     });
 
@@ -207,7 +212,7 @@ function extractSql(request: TediousRequest): string | undefined {
  * The span name is a low-cardinality label for the operation; the SDK's db-span inference later renames
  * the span description off `db.query.text` when present. Mirrors the vendored OTel `getSpanName`.
  */
-function getSpanName(
+function getSecondarySpanName(
   operation: string,
   db: string | undefined,
   sql: string | undefined,
@@ -221,6 +226,22 @@ function getSpanName(
     return db ? `${operation} ${sql} ${db}` : `${operation} ${sql}`;
   }
   // Avoid `sql` in the general case because of its high cardinality.
+  return db ? `${operation} ${db}` : operation;
+}
+
+function getLowCardinalitySecondarySpanName(
+  operation: string,
+  db: string | undefined,
+  sql: string | undefined,
+  bulkLoadTable: string | undefined,
+): string {
+  if (operation === 'execBulkLoad' && bulkLoadTable) {
+    return `${operation} ${bulkLoadTable}`;
+  }
+  if (operation === 'callProcedure') {
+    // `sql` refers to the procedure name for `callProcedure`, so it is low-cardinality in this case.
+    return `${operation} ${sql}`;
+  }
   return db ? `${operation} ${db}` : operation;
 }
 
