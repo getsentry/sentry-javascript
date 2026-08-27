@@ -1,6 +1,8 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
+import { existsSync } from 'node:fs';
 import * as Module from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
@@ -140,9 +142,43 @@ export function registerDiagnosticsChannelInjection(): void {
 
       // Our own bundled copy of the tracing-hooks async hooks (see `src/hook.mjs`) — the dependency
       // itself is bundled into this package's build and no longer resolvable as a bare specifier at
-      // runtime. This self-referential specifier only resolves while this package lives at its real
-      // `node_modules` location, which is why it must stay external (never bundled into an app).
-      mod.register('@sentry/server-runtime-injection/hook', {
+      // runtime.
+      //
+      // Registered by path rather than through the `@sentry/server-runtime-injection/hook`
+      // self-reference, because `Module.register` resolves its specifier at RUNTIME: build-time
+      // tracers (`@vercel/nft`) never learn the hook is needed and leave it out of traced output.
+      // `output: 'standalone'`, Docker and Vercel builds then lose channel instrumentation
+      // entirely, and only say so behind `debug: true`. A literal relative path is static, so the
+      // tracer follows it like any other dependency, and it is still computed at runtime from
+      // `__filename`/`import.meta.url`, so nothing absolute is baked into the build.
+      //
+      // Built from `join()` rather than `new URL('./hook.js', import.meta.url)` because webpack
+      // reads that second form as an asset reference: it copies the hook next to the app bundle
+      // without its vendored chunks, which would leave the loader thread importing a file whose
+      // own imports are missing.
+      let hookPath: string;
+      /*! rollup-include-cjs-only */
+      // This file is `build/cjs/register.js`; the loader thread needs the ESM build, which shares
+      // the vendored dependency chunks.
+      hookPath = join(__dirname, '../esm/hook.js');
+      /*! rollup-include-cjs-only-end */
+      /*! rollup-include-esm-only */
+      hookPath = join(dirname(fileURLToPath(import.meta.url)), 'hook.js');
+      /*! rollup-include-esm-only-end */
+
+      // The path only points at the shipped hook while this package runs from `node_modules`. A
+      // copy bundled into an app sits somewhere else entirely, so it keeps the self-reference,
+      // which at least resolves against the app's own install. The same fallback catches a broken
+      // path after a build layout change, hence the log: tracers would quietly stop following the
+      // hook again, and this line is the only thing that says so.
+      const hookFound = existsSync(hookPath);
+      if (!hookFound) {
+        debug.warn(`No orchestrion ESM hook at ${hookPath}; falling back to the package specifier.`);
+      }
+
+      const hookSpecifier = hookFound ? pathToFileURL(hookPath).href : '@sentry/server-runtime-injection/hook';
+
+      mod.register(hookSpecifier, {
         parentURL,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
         transferList: [diagnosticsPort],
