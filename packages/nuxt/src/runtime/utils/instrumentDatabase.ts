@@ -18,6 +18,7 @@ import {
 import { flushIfServerless } from '@sentry/core/server';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
+import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -32,6 +33,13 @@ const patchedStatement = new WeakSet<PreparedStatement>();
  * The Sentry origin for the database plugin.
  */
 const SENTRY_ORIGIN = 'auto.db.nuxt';
+
+/**
+ * db0 exposes no db system we could name the span after, so unsummarizable statements fall back to
+ * this static name.
+ * @see https://getsentry.github.io/sentry-conventions/names/#db-queries
+ */
+const DB_SPAN_NAME_FALLBACK = 'Database operation';
 
 /**
  * Creates the Nitro database plugin setup by instrumenting the configured database instances.
@@ -75,7 +83,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   }
 
   const metadata: DatabaseSpanData = {
-    'db.system.name': config?.connector ?? db.dialect,
+    [DB_SYSTEM_NAME]: config?.connector ?? db.dialect,
     ...getDatabaseSpanData(config),
   };
 
@@ -226,23 +234,19 @@ function createBreadcrumb(query: string): void {
  * Creates a start span options object.
  */
 function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
-  const client = getClient();
-  // The statement is sanitized before it is summarized, so that a string literal containing
-  // `from`/`join` can't leak a value into the summary.
   const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
-  // With span streaming, span names have to be low cardinality, so `{db.query.summary}` is used
-  // instead of the full statement, falling back to `{db.namespace}` when there is no statement to
-  // summarize.
-  const streamedName =
+
+  const client = getClient();
+  const name =
     client && hasSpanStreamingEnabled(client)
-      ? querySummary || (data['db.namespace'] as string | undefined) || DB_SPAN_NAME_FALLBACK
-      : undefined;
+      ? querySummary || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
+      : query;
 
   return {
-    name: streamedName ?? query,
+    name,
     attributes: {
-      'db.query.text': query,
-      'db.query.summary': querySummary,
+      [DB_QUERY_TEXT]: query,
+      [DB_QUERY_SUMMARY]: querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,

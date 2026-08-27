@@ -1,60 +1,49 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
-import type { Span } from '@sentry/nuxt';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nuxt-3', async transactionEvent => {
-    return transactionEvent.transaction === '/test-param/:param()';
+  const pageloadSpanPromise = waitForStreamedSpan('nuxt-3', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/test-param/1234`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'route',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-          'params.param': '1234',
-          'url.template': '/test-param/:param()',
-          'url.path': '/test-param/1234',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/test-param\/1234$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    transaction: '/test-param/:param()',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(pageloadSpan.name).toBe('/test-param/:param()');
+  expect(pageloadSpan.status).toBe('ok');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+    'sentry.op': { type: 'string', value: 'pageload' },
+    'params.param': { type: 'string', value: '1234' },
+    'url.template': { type: 'string', value: '/test-param/:param()' },
+    'url.path': { type: 'string', value: '/test-param/1234' },
   });
+  expect(pageloadSpan.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/test-param\/1234$/);
 });
 
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nuxt-3', async transactionEvent => {
-    return transactionEvent.transaction === '/client-error';
-  });
+  const spansPromise = collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  );
 
   await page.goto(`/client-error`);
 
-  const rootSpan = await transactionPromise;
-  const errorButtonSpan = rootSpan.spans.find((span: Span) => span.description === 'Vue <ErrorButton>');
+  const spans = await spansPromise;
+  const errorButtonSpan = spans.find(span => span.name === 'Vue <ErrorButton>');
 
-  const expected = {
-    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.mount' },
-    description: 'Vue <ErrorButton>',
-    op: 'ui.mount',
+  expect(errorButtonSpan).toMatchObject({
+    name: 'Vue <ErrorButton>',
+    is_segment: false,
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.ui.vue',
-  };
-
-  expect(errorButtonSpan).toMatchObject(expected);
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
+  });
 });
