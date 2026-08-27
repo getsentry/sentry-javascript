@@ -1,7 +1,8 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+// oxlint-disable-next-line typescript/no-deprecated
+export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-utils';
 export {
   amqplibIntegration,
   anthropicAIIntegration,

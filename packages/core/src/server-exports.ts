@@ -18,14 +18,15 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
-// eslint-disable-next-line typescript/no-deprecated
-export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
+/* oxlint-disable typescript/no-deprecated -- deprecated Express exports, kept until the next major */
+export { patchExpressModule } from './integrations/express/index';
 export type {
   ExpressIntegrationOptions,
   ExpressHandlerOptions,
   ExpressMiddleware,
   ExpressErrorMiddleware,
 } from './integrations/express/types';
+/* oxlint-enable typescript/no-deprecated */
 export {
   instrumentPostgresJsSql,
   _sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,

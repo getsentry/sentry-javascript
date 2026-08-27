@@ -3,6 +3,7 @@ import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  captureException,
   debug,
   getActiveSpan,
   getClient,
@@ -13,6 +14,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stringMatchesSomePattern,
+  withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -32,9 +34,13 @@ import type {
   ExpressLayerType,
   ExpressRequest,
   ExpressResponse,
+  ExpressShouldHandleError,
   HandleChannelContext,
+  MiddlewareError,
   RegistrationChannelContext,
 } from './types';
+import { defaultShouldHandleError } from './utils';
+import { isExpressErrorHandled, markExpressErrorHandled } from './error-handled';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 const ORIGIN = 'auto.http.express';
@@ -91,14 +97,82 @@ export function instrumentExpress(
     // Pop the layer path when the layer hands off via `next`. `asyncStart` fires
     // when `next` is called and *before* the downstream layer runs, so the
     // per-request path chain reflects only the current chain when each layer
-    // reconstructs its route. Only `asyncStart` is relevant here.
+    // reconstructs its route. The `error` event captures throws at the layer
+    // level (see `captureLayerError`), before any user error-handling middleware.
     channel.subscribe({
       start: NOOP,
       asyncEnd: NOOP,
       end: NOOP,
-      error: NOOP,
+      error: data => captureLayerError(data, options.shouldHandleError),
       asyncStart: popLayerPathForLayer,
     });
+  }
+}
+
+/**
+ * Capture an error surfaced on a layer's `handle_request` channel — the throw
+ * site, which runs before any user error-handling middleware.
+ *
+ * Each request's error is handled exactly once: the same error surfaces on every
+ * parent layer's `error` event as it bubbles, and a user may also still call the
+ * deprecated `setupExpressErrorHandler`. We mark the request the first time we
+ * see it, so later layers and that middleware defer to this decision — the
+ * integration is the single registered handler and its `shouldHandleError` wins.
+ * This deliberately does not rely on `captureException`'s global dedup, which is
+ * only set when an error is actually captured and so cannot express a
+ * "deliberately skipped" decision (leaving the deprecated middleware free to
+ * capture it and override `shouldHandleError`).
+ *
+ * `shouldHandleError` is the raw integration option: `false` disables capture
+ * entirely, a function customizes the gate, and `undefined` falls back to
+ * {@link defaultShouldHandleError}.
+ */
+export function captureLayerError(
+  data: HandleChannelContext,
+  shouldHandleError: ExpressShouldHandleError | undefined,
+): void {
+  const error = data.error;
+
+  // `next('route')` / `next('router')` are Express control-flow signals, not errors.
+  if (!error || error === 'route' || error === 'router') {
+    return;
+  }
+
+  // Take responsibility for this request's error exactly once (see the doc comment above). The marker
+  // lives on the request — the same instance across every bubbling layer and the error middleware,
+  // and always a mutable object, unlike the thrown value which may be frozen or a primitive. Mark
+  // before the `shouldHandleError` gate so a "skip" decision also suppresses the deprecated middleware.
+  const request = data.arguments?.[0] as ExpressRequest | undefined;
+  if (request) {
+    if (isExpressErrorHandled(request)) {
+      return;
+    }
+    markExpressErrorHandled(request);
+  }
+
+  if (shouldHandleError === false) {
+    return;
+  }
+
+  if (!(shouldHandleError ?? defaultShouldHandleError)(error as MiddlewareError)) {
+    return;
+  }
+
+  const capture = (): string =>
+    captureException(error, {
+      mechanism: {
+        type: 'auto.http.express',
+        handled: false,
+      },
+    });
+
+  // The channel's `error` event runs outside the layer span's async context, so
+  // re-activate the bound span (when present) to parent the error event to the
+  // request's trace instead of capturing it context-free.
+  if (data._sentrySpan) {
+    withActiveSpan(data._sentrySpan, capture);
+  } else {
+    capture();
   }
 }
 

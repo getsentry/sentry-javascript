@@ -27,6 +27,10 @@
  * limitations under the License.
  */
 
+// This module backs the deprecated Express exports (superseded by `expressIntegration()`), so it
+// references the deprecated `ExpressIntegrationOptions` type.
+/* oxlint-disable typescript/no-deprecated */
+
 import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
