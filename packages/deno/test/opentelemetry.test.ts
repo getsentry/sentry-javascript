@@ -88,14 +88,14 @@ Deno.test('should capture spans emitted via @opentelemetry/api', async () => {
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
 
   assertEquals(transactionEvent2?.spans?.length, 1);
   assertEquals(transactionEvent2?.transaction, 'test 2');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['test.attribute'], 'test');
 
   const childSpan = transactionEvent2?.spans?.[0];
@@ -135,7 +135,7 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   assertEquals(transactionEvent?.transaction, 'sentry span');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
   // Note: Sentry-created spans don't have the deno_tracer marker
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], undefined);
 

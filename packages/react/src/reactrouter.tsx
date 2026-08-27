@@ -9,16 +9,18 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import type { ReactElement } from 'react';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type { Action, Location } from './types';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // We need to disable eslint no-explicit-any because any is required for the
 // react-router typings.
@@ -158,11 +160,12 @@ function instrumentReactRouter(
     if (initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
       startBrowserTracingPageLoadSpan(client, {
-        name,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : PAGELOAD_SPAN_NAME_FALLBACK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
           ...(source === 'route' && { [URL_TEMPLATE]: name }),
         },
       });
@@ -174,11 +177,12 @@ function instrumentReactRouter(
       if (action && (action === 'PUSH' || action === 'POP')) {
         const [name, source] = normalizeTransactionName(location.pathname);
         startBrowserTracingNavigationSpan(client, {
-          name,
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
             ...(source === 'route' && { [URL_TEMPLATE]: name }),
           },
         });
@@ -237,7 +241,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
       if (activeRootSpan) {
         activeRootSpan.updateName(route);
         activeRootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: route,
         });
       }

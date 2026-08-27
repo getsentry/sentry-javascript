@@ -2,7 +2,6 @@ export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export {
   amqplibIntegration,
   anthropicAIIntegration,
@@ -29,7 +28,7 @@ export {
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
+} from '@sentry/server-utils';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -41,8 +40,13 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupFastifyErrorHandler,
 } from '@sentry/server-utils';
+// oxlint-disable-next-line typescript/no-deprecated
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
+// oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
   launchDarklyIntegration,
@@ -97,7 +101,6 @@ export {
   setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   Scope,
@@ -209,6 +212,7 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
+export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

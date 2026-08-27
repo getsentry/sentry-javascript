@@ -82,7 +82,7 @@ describe('wrapPromiseWithMethods', () => {
       request_id: 'req_123',
     });
     const instrumented = Promise.resolve('instrumented-data');
-    const wrapped = wrapPromiseWithMethods(original, instrumented, 'auto.ai.test');
+    const wrapped = wrapPromiseWithMethods(original, instrumented);
 
     const result = await wrapped;
     expect(result).toBe('instrumented-data');
@@ -94,7 +94,7 @@ describe('wrapPromiseWithMethods', () => {
       request_id: 'req_123',
     });
     const instrumented = Promise.resolve('instrumented-data');
-    const wrapped = wrapPromiseWithMethods(original, instrumented, 'auto.ai.test');
+    const wrapped = wrapPromiseWithMethods(original, instrumented);
 
     const withResponseResult = await (wrapped as typeof original).withResponse();
     expect(withResponseResult).toEqual({
@@ -111,7 +111,7 @@ describe('wrapPromiseWithMethods', () => {
       request_id: 'req_123',
     });
     const instrumented = Promise.resolve('instrumented-data');
-    const wrapped = wrapPromiseWithMethods(original, instrumented, 'auto.ai.test');
+    const wrapped = wrapPromiseWithMethods(original, instrumented);
 
     const response = await (wrapped as typeof original).asResponse();
     expect(response).toBe(mockResponse);
@@ -120,7 +120,7 @@ describe('wrapPromiseWithMethods', () => {
   it('returns instrumentedPromise when original is not thenable', async () => {
     const instrumented = Promise.resolve('instrumented-data');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wrapped = wrapPromiseWithMethods(null as any, instrumented, 'auto.ai.test');
+    const wrapped = wrapPromiseWithMethods(null as any, instrumented);
 
     const result = await wrapped;
     expect(result).toBe('instrumented-data');
@@ -132,7 +132,7 @@ describe('wrapPromiseWithMethods', () => {
       request_id: 'req_123',
     });
     const instrumented = Promise.reject(new Error('instrumented-error'));
-    const wrapped = wrapPromiseWithMethods(original, instrumented, 'auto.ai.test');
+    const wrapped = wrapPromiseWithMethods(original, instrumented);
 
     await expect(wrapped).rejects.toThrow('instrumented-error');
   });

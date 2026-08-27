@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '36 KB',
+    limit: '30 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -16,7 +16,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '34 KB',
+    limit: '28 KB',
     disablePlugins: ['@size-limit/esbuild'],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -40,7 +40,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '32 KB',
+    limit: '28 KB',
     disablePlugins: ['@size-limit/esbuild'],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -230,7 +230,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '37 KB',
+    limit: '32 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -430,7 +430,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '87 KB',
+    limit: '92 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
@@ -447,6 +447,25 @@ module.exports = [
       return config;
     },
   },
+  {
+    name: '@sentry/node - without channel injection',
+    path: 'packages/node/build/esm/index.js',
+    import: createImport('init'),
+    gzip: true,
+    limit: '104 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_CHANNEL_INJECTION__: false,
+        }),
+      );
+      config.optimization.minimize = true;
+      return config;
+    },
+  },
   // AWS SDK (ESM)
   {
     name: '@sentry/aws-serverless',
@@ -454,7 +473,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '97 KB',
+    limit: '99 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
@@ -485,7 +504,7 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    limit: '522 KiB',
+    limit: '540 KiB',
     disablePlugins: ['@size-limit/webpack'],
     webpack: false,
     modifyEsbuildConfig: function (config) {

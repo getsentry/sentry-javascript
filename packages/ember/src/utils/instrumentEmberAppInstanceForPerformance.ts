@@ -5,15 +5,24 @@ import type {
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
+import { getAbsoluteUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, WINDOW } from '@sentry/browser';
 import {
-  getAbsoluteUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startInactiveSpan,
-  WINDOW,
-} from '@sentry/browser';
-import { SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { filterCollectedUrl, getCurrentScope, spanToJSON, type Client, type Span } from '@sentry/core';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+import {
+  filterCollectedUrl,
+  getCurrentScope,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+  ROUTER_SPAN_NAME_FALLBACK,
+  spanToJSON,
+  type Client,
+  type Span,
+} from '@sentry/core';
 import { getBackburner } from './utils.ts';
 
 interface EmberRouterMain {
@@ -56,9 +65,14 @@ export function instrumentEmberAppInstanceForPerformance(
     const routeInfo = url ? routerService.recognize(url) : undefined;
 
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
-      name: routeInfo ? `route:${routeInfo.name}` : url || WINDOW.location.pathname,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      name: routeInfo
+        ? `route:${routeInfo.name}`
+        : hasSpanStreamingEnabled(client)
+          ? PAGELOAD_SPAN_NAME_FALLBACK
+          : url || WINDOW.location.pathname,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeInfo ? 'route' : 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         toRoute: routeInfo?.name,
@@ -100,7 +114,7 @@ export function instrumentEmberAppInstanceForPerformance(
         activeRootSpan = startBrowserTracingNavigationSpan(client, {
           name: `route:${toRoute}`,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
             ...urlAttributes,
             fromRoute,
@@ -108,7 +122,7 @@ export function instrumentEmberAppInstanceForPerformance(
           },
         });
       }
-    } else if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+    } else if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'url') {
       // We make sure to update the pageload span with the current URL, if we couldn't get it before
       // In this case we re-load the router:main reference, as this may change and we may have a stale reference
       const location = getRouterMain(appInstance).location;
@@ -117,7 +131,7 @@ export function instrumentEmberAppInstanceForPerformance(
         const routeInfo = routerService.recognize(url);
         activeRootSpan.updateName(`route:${toRoute}`);
         activeRootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           ..._getRouteUrlAttributes(client, url, routeInfo?.params),
           toRoute: toRoute,
         });
@@ -135,7 +149,9 @@ export function instrumentEmberAppInstanceForPerformance(
         [SENTRY_OP]: 'router',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
       },
-      name: `route:${fromRoute} -> route:${toRoute}`,
+      // With span streaming, span names have to be low cardinality, and Ember gives us no route
+      // template for the transition itself, so it's the fallback.
+      name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `route:${fromRoute} -> route:${toRoute}`,
       onlyIfParent: true,
     });
   });

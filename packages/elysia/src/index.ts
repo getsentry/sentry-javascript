@@ -89,16 +89,18 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
   expressErrorHandler,
   setupExpressErrorHandler,
   fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
@@ -116,6 +118,7 @@ export {
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

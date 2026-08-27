@@ -2,7 +2,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { captureException, getClient, isThenable } from '@sentry/core';
+import { getClient, isThenable } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS,
@@ -15,7 +15,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 
 export interface GenAiOptions {
   /**
@@ -61,7 +61,7 @@ const NON_INFERENCE_OPERATIONS = new Set(['unknown']);
  * non-inference operations (`unknown`) become the generic `function` op.
  */
 export function getGenAiSpanOp(operationName: string): string {
-  return NON_INFERENCE_OPERATIONS.has(operationName) ? GENERAL_FUNCTION_SPAN_OP : `gen_ai.${operationName}`;
+  return NON_INFERENCE_OPERATIONS.has(operationName) ? FUNCTION : `gen_ai.${operationName}`;
 }
 
 /**
@@ -238,22 +238,11 @@ export function extractSystemInstructions(messages: unknown[] | unknown): {
 async function createWithResponseWrapper<T>(
   originalWithResponse: Promise<unknown>,
   instrumentedPromise: Promise<T>,
-  mechanismType: string,
 ): Promise<unknown> {
-  // Attach catch handler to originalWithResponse immediately to prevent unhandled rejection
-  // If instrumentedPromise rejects first, we still need this handled
-  const safeOriginalWithResponse = originalWithResponse.catch(error => {
-    captureException(error, {
-      mechanism: {
-        handled: false,
-        type: mechanismType,
-      },
-    });
-    throw error;
-  });
-
-  const instrumentedResult = await instrumentedPromise;
-  const originalWrapper = await safeOriginalWithResponse;
+  // Awaited together rather than in sequence so both promises get a handler attached synchronously.
+  // Awaiting them one after the other leaves the second unobserved when the first rejects, which
+  // surfaces as an unhandled rejection.
+  const [instrumentedResult, originalWrapper] = await Promise.all([instrumentedPromise, originalWithResponse]);
 
   // Combine instrumented result with original metadata
   if (originalWrapper && typeof originalWrapper === 'object' && 'data' in originalWrapper) {
@@ -276,7 +265,6 @@ async function createWithResponseWrapper<T>(
 export function wrapPromiseWithMethods<R>(
   originalPromiseLike: Promise<R>,
   instrumentedPromise: Promise<R>,
-  mechanismType: string,
 ): Promise<R> {
   // If the original result is not thenable, return the instrumented promise
   if (!isThenable(originalPromiseLike)) {
@@ -300,7 +288,7 @@ export function wrapPromiseWithMethods<R>(
       if (prop === 'withResponse' && typeof value === 'function') {
         return function wrappedWithResponse(this: unknown): unknown {
           const originalWithResponse = (value as (...args: unknown[]) => unknown).call(target);
-          return createWithResponseWrapper(originalWithResponse, instrumentedPromise, mechanismType);
+          return createWithResponseWrapper(originalWithResponse, instrumentedPromise);
         };
       }
 

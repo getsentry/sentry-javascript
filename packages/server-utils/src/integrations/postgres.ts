@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -10,10 +11,14 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   isObjectLike,
   bindScopeToEmitter,
   defineIntegration,
+  getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -173,14 +178,26 @@ function subscribeQueryLikeChannel(
 function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
+  const client = getClient();
+  // The statement is sanitized before it is summarized, so that a string literal containing
+  // `from`/`join` can't leak a value into the summary.
+  const querySummary = queryConfig?.text
+    ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(queryConfig.text))
+    : undefined;
+
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
+      : (queryConfig?.text ?? SPAN_QUERY_FALLBACK);
+
   return {
-    // The description is the SQL statement
-    name: queryConfig?.text ?? SPAN_QUERY_FALLBACK,
+    name,
     op: 'db',
     attributes: {
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_QUERY_TEXT]: queryConfig?.text || undefined,
+      [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };
@@ -274,12 +291,12 @@ function getConnectionString(params: PgConnectionParams): string {
 }
 
 /**
- * Orchestrion-driven `pg` (node-postgres) integration.
+ * Diagnostics-channel-based `pg` (node-postgres) integration.
  *
  * Subscribes to the `orchestrion:pg:query`/`:connect` and
- * `orchestrion:pg-pool:connect` diagnostics_channels that the orchestrion code
+ * `orchestrion:pg-pool:connect` diagnostics_channels that Sentry's code
  * transform injects into `pg`'s `Client.prototype.query`/`connect`
- * and `pg-pool`'s `Pool.prototype.connect`. Requires the orchestrion runtime
+ * and `pg-pool`'s `Pool.prototype.connect`. Requires the Sentry runtime
  * hook or bundler plugin to be active.
  */
 export const postgresIntegration = defineIntegration(_postgresIntegration);

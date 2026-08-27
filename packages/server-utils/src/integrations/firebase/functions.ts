@@ -1,11 +1,16 @@
-import { FAAS_NAME, FAAS_TRIGGER, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
-import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
+import {
+  FAAS_NAME,
+  FAAS_TRIGGER,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
+import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
   flush,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
@@ -59,8 +64,8 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
       [FAAS_TRIGGER]: triggerType,
       'faas.provider': 'firebase',
       [SENTRY_KIND]: 'server',
-      [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+      [SENTRY_OP]: FUNCTION_GCP,
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
     };
 
     if (process.env.GCLOUD_PROJECT) {

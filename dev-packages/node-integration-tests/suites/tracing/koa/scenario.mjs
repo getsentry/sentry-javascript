@@ -1,5 +1,4 @@
 import Router from '@koa/router';
-import * as Sentry from '@sentry/node';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import Koa from 'koa';
 
@@ -7,8 +6,8 @@ const port = 5698;
 
 const app = new Koa();
 
-// Registered first so it wraps every downstream middleware/route in its try/catch.
-Sentry.setupKoaErrorHandler(app);
+// The error handler is auto-registered by the koa instrumentation on app start,
+// so `setupKoaErrorHandler` is intentionally not called here.
 
 // Plain middleware -> produces a `middleware` span named after the function.
 app.use(async function simpleMiddleware(ctx, next) {

@@ -91,8 +91,8 @@ function instrumentMysql(): void {
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
           ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
-          ...(host ? { [SERVER_ADDRESS]: host } : {}),
-          ...(portIsNumber ? { [SERVER_PORT]: portNumber } : {}),
+          [SERVER_ADDRESS]: host,
+          [SERVER_PORT]: portIsNumber ? portNumber : undefined,
         },
       });
     },
@@ -164,11 +164,11 @@ function getJDBCString(host: string | undefined, port: number | undefined, datab
 }
 
 /**
- * Orchestrion-driven mysql integration.
+ * Diagnostics-channel-based mysql integration.
  *
- * Subscribes to the `orchestrion:mysql:query` diagnostics_channel that the
- * orchestrion code transform injects into `mysql/lib/Connection.js`'s
- * `Connection.prototype.query`. Requires the orchestrion runtime hook or
+ * Subscribes to the `orchestrion:mysql:query` diagnostics_channel that
+ * Sentry's code transform injects into `mysql/lib/Connection.js`'s
+ * `Connection.prototype.query`. Requires the Sentry runtime hook or
  * bundler plugin to be active.
  */
 export const mysqlIntegration = defineIntegration(_mysqlIntegration);

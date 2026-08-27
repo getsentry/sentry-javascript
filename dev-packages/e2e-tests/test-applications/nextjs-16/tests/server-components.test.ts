@@ -21,7 +21,7 @@ test('Sends a transaction for a request to app router with URL', async ({ page }
       'sentry.op': 'http.server',
       'sentry.origin': 'auto',
       'sentry.sample_rate': 1,
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'http.method': 'GET',
       'http.response.status_code': 200,
       'http.route': '/parameterized/[one]/beep/[two]',

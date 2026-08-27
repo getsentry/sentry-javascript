@@ -1,9 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import {
-  DATABASE_CACHE_GET_SPAN_OP,
-  DATABASE_CACHE_PUT_SPAN_OP,
-  DATABASE_CACHE_REMOVE_SPAN_OP,
-} from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   isObjectLike,
   captureException,
@@ -66,16 +62,16 @@ const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemR
  * The precise method stays available on `db.operation.name`.
  */
 const METHOD_SPAN_OPS = {
-  hasItem: DATABASE_CACHE_GET_SPAN_OP,
-  getItem: DATABASE_CACHE_GET_SPAN_OP,
-  getItemRaw: DATABASE_CACHE_GET_SPAN_OP,
-  getItems: DATABASE_CACHE_GET_SPAN_OP,
-  getKeys: DATABASE_CACHE_GET_SPAN_OP,
-  setItem: DATABASE_CACHE_PUT_SPAN_OP,
-  setItemRaw: DATABASE_CACHE_PUT_SPAN_OP,
-  setItems: DATABASE_CACHE_PUT_SPAN_OP,
-  removeItem: DATABASE_CACHE_REMOVE_SPAN_OP,
-  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
+  hasItem: CACHE_GET,
+  getItem: CACHE_GET,
+  getItemRaw: CACHE_GET,
+  getItems: CACHE_GET,
+  getKeys: CACHE_GET,
+  setItem: CACHE_PUT,
+  setItemRaw: CACHE_PUT,
+  setItems: CACHE_PUT,
+  removeItem: CACHE_REMOVE,
+  clear: CACHE_REMOVE,
 } as const satisfies Partial<Record<DriverMethod, string>>;
 
 /**

@@ -16,7 +16,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -53,7 +53,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/user/:id',
           'url.path': '/user/5',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),

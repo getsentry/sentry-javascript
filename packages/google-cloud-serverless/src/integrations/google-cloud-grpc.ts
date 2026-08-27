@@ -1,5 +1,5 @@
 import { RPC_METHOD, RPC_SERVICE, RPC_SYSTEM_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { FAAS_GRPC_SPAN_OP } from '@sentry/conventions/op';
+import { GRPC } from '@sentry/conventions/op';
 import type { Client, IntegrationFn } from '@sentry/core';
 import { defineIntegration, fill, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
@@ -105,7 +105,7 @@ export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodNa
       name: `${callType} ${methodName}`,
       onlyIfParent: true,
       attributes: {
-        [SENTRY_OP]: FAAS_GRPC_SPAN_OP,
+        [SENTRY_OP]: GRPC,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
         [RPC_SYSTEM_NAME]: 'grpc',
         [RPC_SERVICE]: serviceIdentifier,

@@ -112,7 +112,7 @@ test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
 
   const transaction = await transactionPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(transaction.spans?.some(s => s.data?.['code.function.name'] === 'loader' && s.op === 'function')).toBe(true);
 });
 
@@ -125,7 +125,7 @@ test('Parameterizes a 3-level nested API route on the server', async ({ page }) 
 
   const transaction = await transactionPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Parameterizes a deeply nested route on the server', async ({ page }) => {
@@ -137,7 +137,7 @@ test('Parameterizes a deeply nested route on the server', async ({ page }) => {
 
   const transaction = await transactionPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Parameterizes a flat dot-notation route on the server', async ({ page }) => {
@@ -149,7 +149,7 @@ test('Parameterizes a flat dot-notation route on the server', async ({ page }) =
 
   const transaction = await transactionPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Records action and loader spans on a parameterized action route', async ({ request }) => {
@@ -192,7 +192,7 @@ test('Records loader spans on a deferred loader response', async ({ page }) => {
 
   const transaction = await transactionPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(
     transaction.spans?.some(
       s =>

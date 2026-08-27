@@ -67,8 +67,8 @@ describe('Mongoose tracing channel Test', () => {
           .expect({
             transaction: event => {
               const spans = event.spans || [];
-              // The monkey-patch path (origin `auto.db.otel.mongoose`) must be inactive on 9.7+.
-              expect(spans.find(span => span.origin === 'auto.db.otel.mongoose')).toBeUndefined();
+              // The monkey-patch path (origin `auto.db.mongoose`) must be inactive on 9.7+.
+              expect(spans.find(span => span.origin === 'auto.db.mongoose')).toBeUndefined();
               // ...while the diagnostics-channel path is active.
               expect(spans.find(span => span.origin === 'auto.db.mongoose.diagnostic_channel')).toBeDefined();
             },

@@ -3151,6 +3151,39 @@ describe('Client', () => {
       client.emit('beforeEnvelope', mockEnvelope);
     });
 
+    it('calls an afterEnvelope hook after the transport send resolves', async () => {
+      let resolveSend: (() => void) | undefined;
+      const sendPromise = new Promise<void>(resolve => {
+        resolveSend = resolve;
+      });
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          transport: () => ({
+            send: vi.fn().mockReturnValue(sendPromise),
+            flush: vi.fn().mockResolvedValue(true),
+          }),
+        }),
+      );
+      const mockEnvelope = [
+        {
+          event_id: '12345',
+        },
+        [],
+      ] as Envelope;
+      const callback = vi.fn();
+      client.on('afterEnvelope', callback);
+
+      const result = client.sendEnvelope(mockEnvelope);
+      expect(callback).not.toHaveBeenCalled();
+
+      resolveSend?.();
+      await result;
+
+      expect(callback).toHaveBeenCalledOnce();
+      expect(callback).toHaveBeenCalledWith(mockEnvelope);
+    });
+
     it('returns a cleanup function that, when executed, unregisters a hook', async () => {
       vi.useFakeTimers();
       expect.assertions(8);

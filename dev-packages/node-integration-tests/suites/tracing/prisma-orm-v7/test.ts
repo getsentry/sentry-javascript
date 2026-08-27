@@ -31,16 +31,14 @@ describe('Prisma ORM v7 Tests', () => {
                 });
 
                 const prismaDbQuerySpan = spans.find(
-                  s => s.data?.['sentry.origin'] === 'auto.db.otel.prisma' && s.data?.['db.query.text'],
+                  s => s.data?.['sentry.origin'] === 'auto.db.prisma' && s.data?.['db.query.text'],
                 );
                 expect(prismaDbQuerySpan).toBeDefined();
                 const dbQueryParent = spans.find(s => s.span_id === prismaDbQuerySpan?.parent_span_id);
                 expect(dbQueryParent?.description).toBe('prisma:client:operation');
 
                 // Verify Prisma spans have the correct origin
-                const prismaSpans = spans.filter(
-                  span => span.data && span.data['sentry.origin'] === 'auto.db.otel.prisma',
-                );
+                const prismaSpans = spans.filter(span => span.data && span.data['sentry.origin'] === 'auto.db.prisma');
                 expect(prismaSpans.length).toBeGreaterThanOrEqual(5);
 
                 // Check for key Prisma span descriptions

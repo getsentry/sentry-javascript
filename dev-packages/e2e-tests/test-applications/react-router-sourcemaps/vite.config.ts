@@ -1,5 +1,5 @@
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router';
+import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 // Guards against debug IDs being injected twice - once by the Vite plugin and once by

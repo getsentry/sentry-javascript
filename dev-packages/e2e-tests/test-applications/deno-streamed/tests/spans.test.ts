@@ -67,6 +67,10 @@ const SEGMENT_SPAN = {
       type: 'integer',
       value: expect.any(Number),
     },
+    'network.protocol.name': {
+      type: 'string',
+      value: 'http',
+    },
     'os.name': {
       type: 'string',
       value: expect.any(String),
@@ -109,11 +113,7 @@ const SEGMENT_SPAN = {
     },
     'sentry.segment.name': {
       type: 'string',
-      value: 'GET /test-sentry-span',
-    },
-    'sentry.source': {
-      type: 'string',
-      value: 'url',
+      value: 'GET',
     },
     'sentry.segment.name.source': {
       type: 'string',
@@ -154,7 +154,7 @@ const SEGMENT_SPAN = {
   },
   end_timestamp: expect.any(Number),
   is_segment: true,
-  name: 'GET /test-sentry-span',
+  name: 'GET',
   span_id: expect.stringMatching(/^[\da-f]{16}$/),
   start_timestamp: expect.any(Number),
   status: 'ok',
@@ -200,7 +200,7 @@ test('Sends streamed spans (http.server and manual with Sentry.startSpan)', asyn
         },
         'sentry.segment.name': {
           type: 'string',
-          value: 'GET /test-sentry-span',
+          value: 'GET',
         },
       },
       end_timestamp: expect.any(Number),
@@ -230,10 +230,10 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
   const httpServerSpan = spans.find(span => getSpanOp(span) === 'http.server');
   expect(httpServerSpan).toEqual({
     ...SEGMENT_SPAN,
-    name: 'GET /test-interop',
+    name: 'GET',
     attributes: {
       ...SEGMENT_SPAN.attributes,
-      'sentry.segment.name': { type: 'string', value: 'GET /test-interop' },
+      'sentry.segment.name': { type: 'string', value: 'GET' },
       'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-interop$/) },
       'url.path': { type: 'string', value: '/test-interop' },
     },
@@ -272,7 +272,7 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
       },
       'sentry.segment.name': {
         type: 'string',
-        value: 'GET /test-interop',
+        value: 'GET',
       },
     },
     end_timestamp: expect.any(Number),
@@ -313,7 +313,7 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
       },
       'sentry.segment.name': {
         type: 'string',
-        value: 'GET /test-interop',
+        value: 'GET',
       },
       'sentry.deno_tracer': {
         type: 'boolean',

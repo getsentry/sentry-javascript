@@ -44,6 +44,8 @@
     "@langchain/core": "^0.3.80",
     "@langchain/openai": "^0.5.0",
     "@langchain/langgraph": "^0.2.32",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
@@ -103,7 +105,7 @@
   },
   "devDependencies": {
     "@opentelemetry/instrumentation-http": "0.220.0",
-    "@sentry/conventions": "0.19.0",
+    "@sentry/conventions": "0.20.0",
     "@sentry-internal/test-utils": "10.67.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

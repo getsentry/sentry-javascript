@@ -34,6 +34,7 @@
     "clean": "rimraf dist declarations *.tgz .turbo",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "prepack": "rollup --config",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
@@ -44,7 +45,7 @@
     "@embroider/addon-shim": "^1.10.2",
     "@embroider/macros": "^1.20.2",
     "@sentry/browser": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "decorator-transforms": "^2.3.2"
   },

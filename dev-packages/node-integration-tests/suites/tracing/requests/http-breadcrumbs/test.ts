@@ -19,7 +19,7 @@ describe('outgoing http', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v0`,
                   status_code: 404,
                   ADDED_PATH: '/api/v0',
@@ -30,7 +30,7 @@ describe('outgoing http', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v1`,
                   status_code: 404,
                   ADDED_PATH: '/api/v1',
@@ -41,7 +41,7 @@ describe('outgoing http', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v2`,
                   status_code: 404,
                   ADDED_PATH: '/api/v2',
@@ -52,7 +52,7 @@ describe('outgoing http', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v3`,
                   status_code: 404,
                   ADDED_PATH: '/api/v3',

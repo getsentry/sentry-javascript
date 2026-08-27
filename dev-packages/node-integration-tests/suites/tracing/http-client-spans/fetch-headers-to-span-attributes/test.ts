@@ -26,7 +26,7 @@ describe('outgoing fetch spans - headers to span attributes', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v0/),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 data: expect.objectContaining({
                   'http.request.header.x-test-header': ['test-value'],
                   'http.response.header.x-powered-by': ['Express'],

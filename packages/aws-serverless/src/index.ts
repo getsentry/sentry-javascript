@@ -89,13 +89,14 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
   expressErrorHandler,
   setupExpressErrorHandler,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
@@ -122,6 +123,7 @@ export {
   workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
@@ -173,7 +175,7 @@ export {
   rewriteFramesIntegration,
 } from '@sentry/core';
 
-export { awsIntegration } from '@sentry/server-utils/orchestrion';
+export { awsIntegration } from '@sentry/server-utils';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';

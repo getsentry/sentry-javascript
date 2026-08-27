@@ -16,7 +16,7 @@ test('should create consistent parameterized transaction for default locale with
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       },
     },
@@ -38,7 +38,7 @@ test('should create consistent parameterized transaction for non-default locale 
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       },
     },
@@ -60,7 +60,7 @@ test('should parameterize locale root page correctly for default locale without 
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       },
     },
@@ -82,7 +82,7 @@ test('should parameterize locale root page correctly for non-default locale with
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       },
     },

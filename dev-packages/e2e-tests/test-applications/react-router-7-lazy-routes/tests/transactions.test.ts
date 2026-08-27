@@ -609,7 +609,7 @@ test('Creates pageload transaction with parameterized route for delayed lazy rou
 
   expect(pageloadEvent.transaction).toBe('/delayed-lazy/:id');
   expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(pageloadEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Creates navigation transaction with parameterized route for delayed lazy route', async ({ page }) => {
@@ -636,7 +636,7 @@ test('Creates navigation transaction with parameterized route for delayed lazy r
 
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Creates navigation transaction when navigating with query parameters from home to route', async ({ page }) => {
@@ -669,7 +669,7 @@ test('Creates navigation transaction when navigating with query parameters from 
   // Query parameters don't affect the transaction name (still /delayed-lazy/:id)
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(navigationEvent.contexts?.trace?.status).toBe('ok');
 });
 
@@ -703,7 +703,7 @@ test('Creates separate navigation transaction when changing only query parameter
   // Query-only navigation should create a navigation transaction
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(navigationEvent.contexts?.trace?.status).toBe('ok');
 });
 
@@ -790,7 +790,7 @@ test('Creates navigation transaction when changing only hash on same route', asy
   // Hash-only navigation should create a navigation transaction
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(navigationEvent.contexts?.trace?.status).toBe('ok');
 });
 
@@ -880,7 +880,7 @@ test('Creates navigation transaction when changing both query and hash on same r
   // Combined query + hash navigation should create a navigation transaction
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
   expect(navigationEvent.contexts?.trace?.status).toBe('ok');
 });
 
@@ -914,7 +914,7 @@ test('Creates navigation transaction with correct name for slow lazy route', asy
   // Verify the transaction has the correct parameterized route name
   expect(navigationEvent.transaction).toBe('/slow-fetch/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Rapid navigation does not corrupt transaction names when lazy handlers resolve late', async ({ page }) => {
@@ -993,7 +993,7 @@ test('Correctly names pageload transaction for slow lazy route with fetch', asyn
   // Verify the transaction has the correct parameterized route name
   expect(pageloadEvent.transaction).toBe('/slow-fetch/:id');
   expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(pageloadEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
   // Verify the transaction contains a fetch span
   const spans = pageloadEvent.spans || [];
@@ -1249,7 +1249,7 @@ test('Slow lazy route pageload with early span end still gets parameterized rout
   expect(event.transaction).toBe('/slow-fetch/:id');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
   const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
   expect(['idleTimeout', 'externalFinish']).toContain(idleSpanFinishReason);
@@ -1272,7 +1272,7 @@ test('Wildcard route pageload gets upgraded to parameterized route name (regress
   expect(event.transaction).toBe('/wildcard-lazy/:id');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 // Regression: Navigation to slow lazy route should get parameterized name even if span ends early.
@@ -1306,7 +1306,7 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   expect(event.transaction).toBe('/wildcard-lazy/:id');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
@@ -1460,7 +1460,7 @@ test('Route manifest provides correct name when navigation span ends before lazy
   expect(event.transaction).toBe('/wildcard-lazy/:id');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({ page }) => {
@@ -1481,7 +1481,7 @@ test('Route manifest provides correct name when pageload span ends before lazy r
   expect(event.transaction).toBe('/wildcard-lazy/:id');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 });
 
 test('GQL fetch span is attributed to the correct navigation transaction when navigating from index to lazy GQL page', async ({

@@ -9,7 +9,7 @@ const { registerDiagnosticsChannelInjection, detectOrchestrionSetup } = vi.hoist
 vi.mock('@sentry/server-utils/orchestrion/register', () => ({
   registerDiagnosticsChannelInjection,
 }));
-vi.mock('@sentry/server-utils/orchestrion', async importOriginal => {
+vi.mock('@sentry/server-utils', async importOriginal => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return { ...actual, detectOrchestrionSetup };
 });
@@ -22,10 +22,9 @@ declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-// Channel-based (orchestrion diagnostics-channel) instrumentation is the default in v11: `init()`
-// installs the injection hooks unconditionally when span recording is enabled, and skips them when
-// tracing is off (there would be no channel subscribers to feed).
-describe('diagnostics-channel injection default', () => {
+// Runtime diagnostics-channel injection is installed by default, independent of tracing (the channel
+// integrations capture errors as well as spans). It can be turned off via `enableRuntimeChannelInjection: false`.
+describe('diagnostics-channel injection', () => {
   beforeEach(() => {
     global.__SENTRY__ = {};
     vi.spyOn(debug, 'enable').mockImplementation(() => undefined);
@@ -37,17 +36,50 @@ describe('diagnostics-channel injection default', () => {
     vi.clearAllMocks();
   });
 
-  it('registers the injection hooks and runs detection when span recording is enabled', () => {
+  it('registers the injection hooks and runs detection by default with tracing enabled', () => {
     init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
 
     expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
     expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
-  it('does not register the injection hooks when tracing is disabled', () => {
+  it('registers the injection hooks by default even when tracing is disabled', () => {
     init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the injection hooks but still runs detection when `enableRuntimeChannelInjection` is false', () => {
+    init({
+      dsn: PUBLIC_DSN,
+      tracesSampleRate: 1,
+      enableRuntimeChannelInjection: false,
+      enableOpenTelemetrySetup: false,
+    });
+
     expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
-    expect(detectOrchestrionSetup).not.toHaveBeenCalled();
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers the injection hooks when `enableRuntimeChannelInjection` is true and tracing is disabled', () => {
+    init({ dsn: PUBLIC_DSN, enableRuntimeChannelInjection: true, enableOpenTelemetrySetup: false });
+
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the injection hooks but still runs detection when the `__SENTRY_CHANNEL_INJECTION__` build flag is false', () => {
+    // Simulates the bundler plugins' `bundleSizeOptimizations.excludeChannelInjection` text-replacing the flag.
+    vi.stubGlobal('__SENTRY_CHANNEL_INJECTION__', false);
+
+    try {
+      init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
+
+      expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+      expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

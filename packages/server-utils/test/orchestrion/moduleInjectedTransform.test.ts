@@ -28,8 +28,10 @@ describe('channel integration definitions', () => {
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
 
-  it('references only real named exports of @sentry/server-utils/orchestrion', async () => {
-    const barrel = await import('../../src/orchestrion/index');
+  it('references only real named exports of @sentry/server-utils', async () => {
+    // The injected snippet imports each factory from `@sentry/server-utils`
+    // (the `DEFAULT_IMPORT_SPECIFIER`), so the export must exist on that entry.
+    const barrel = await import('../../src/index');
     for (const { exportName } of CHANNEL_INTEGRATION_DEFINITIONS) {
       expect(typeof (barrel as Record<string, unknown>)[exportName]).toBe('function');
     }
@@ -72,14 +74,19 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code.split('\n')[0]).toContain("'use strict'");
-    // Imports ONLY the mysql factory plus the generic helper, from a single require.
+    // Imports the helper and ONLY the mysql factory, from a single require of
+    // the main entry.
     expect(result!.code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     // The helper is called with the REAL module name, so no reverse lookup is
     // needed at runtime and the lazy-subscription event matches what channel
     // integrations wait for.
     expect(result!.code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
+    // The result is assigned to a global. `@sentry/server-utils` is `sideEffects: false` and the
+    // helper returns `void`, so a bare call statement is one a bundler can prove droppable.
+    // rollup >= 4.63.0 removes it, leaving the module instrumented but unsubscribed.
+    expect(result!.code).toContain('globalThis.__SENTRY_ORCHESTRION_INJECT__ = orchestrionModuleInjected(');
     // No separate @sentry/core import at the injection site — the helper owns that.
     expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.
@@ -97,7 +104,7 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*orchestrionModuleInjected,\s*postgresIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*orchestrionModuleInjected,\s*postgresIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
     );
     expect(result!.code).not.toContain('@sentry/core');
     expect(result!.code).toContain('orchestrionModuleInjected("pg", postgresIntegration)');
@@ -120,8 +127,9 @@ describe('module-injected transform', () => {
     const result = t.transform('function doWork(){ return 1; }\n', join(root, 'node_modules/my-lib/lib/index.js'));
 
     expect(result).not.toBeNull();
+    // No factory for this module, so the snippet imports only the helper.
     expect(result!.code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     expect(result!.code).toContain('orchestrionModuleInjected("my-lib")');
   });
@@ -147,7 +155,7 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     expect(result!.code).toContain('orchestrionModuleInjected("ioredis", redisIntegration)');
     // The library publishes its own channels, so nothing else is injected: no
@@ -163,7 +171,7 @@ describe('module-injected transform', () => {
 
     expect(result).not.toBeNull();
     expect(result!.code).toMatch(
-      /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils\/orchestrion["']/,
+      /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
     );
     expect(result!.code).toContain('orchestrionModuleInjected("ai", vercelAIIntegration)');
     expect(result!.code).not.toContain('diagnostics_channel');
@@ -173,7 +181,7 @@ describe('module-injected transform', () => {
   it('honors a custom import specifier (Turbopack passes an absolute path)', () => {
     const t = createCodeTransformer({
       ...orchestrionTransformOptions({}),
-      customTransforms: moduleInjectedTransforms('/abs/path/to/orchestrion/index.js'),
+      customTransforms: moduleInjectedTransforms('/abs/path/to/server-utils/index.js'),
     });
     const result = t.transform(
       "'use strict';\nfunction Connection(){}\nConnection.prototype.query = function query(sql, cb){ return cb(); };\n",
@@ -181,7 +189,11 @@ describe('module-injected transform', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result!.code).toContain('require("/abs/path/to/orchestrion/index.js")');
-    expect(result!.code).not.toContain('require("@sentry/server-utils/orchestrion")');
+    // The helper and factory import resolves against the override, not the
+    // default bare specifier.
+    expect(result!.code).toMatch(
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\("\/abs\/path\/to\/server-utils\/index\.js"\)/,
+    );
+    expect(result!.code).not.toContain('require("@sentry/server-utils")');
   });
 });

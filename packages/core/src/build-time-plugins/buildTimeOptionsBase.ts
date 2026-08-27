@@ -496,4 +496,19 @@ interface BundleSizeOptimizationsOptions {
    * @default false
    */
   excludeReplayWorker?: boolean;
+
+  /**
+   * Exclude the Node SDK's runtime diagnostics-channel injection from the bundle.
+   *
+   * If set to `true`, the plugin will attempt to tree-shake (remove) code that installs the Node SDK's
+   * runtime module hooks (e.g. for Express instrumentation) at load time. Note that the success of this
+   * depends on tree-shaking being enabled in your build tooling.
+   *
+   * Only enable this when the diagnostics channels are injected at build time (via the bundler plugin) or
+   * when you otherwise do not rely on the runtime channel injection. This is equivalent to setting
+   * `enableRuntimeChannelInjection: false` in the SDK's `init` options.
+   *
+   * @default false
+   */
+  excludeChannelInjection?: boolean;
 }

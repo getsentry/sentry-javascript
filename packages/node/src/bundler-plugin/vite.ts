@@ -1,12 +1,14 @@
 import { sentryVitePlugin as sentryViteBundlerPlugin } from '@sentry/bundler-plugins/vite';
 import type { SentryVitePluginOptions as SentryVitePluginOptionsBase } from '@sentry/bundler-plugins/vite';
+import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
+import type { VitePlugin } from '@sentry/server-utils/orchestrion/vite';
 
 export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
   /**
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
-  instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+  instrumentations?: InstrumentationConfig[];
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.
@@ -17,8 +19,6 @@ export type SentryVitePluginOptions = SentryVitePluginOptionsBase & {
    */
   buildTimeInstrumentation?: boolean;
 };
-
-type VitePlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 
 /**
  * Vite plugin that bundles the Sentry Vite bundler plugin (source maps, release

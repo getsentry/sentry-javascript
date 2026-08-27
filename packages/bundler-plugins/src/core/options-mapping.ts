@@ -60,6 +60,7 @@ export type NormalizedOptions = {
     | {
         excludeDebugStatements?: boolean;
         excludeTracing?: boolean;
+        excludeChannelInjection?: boolean;
         excludeReplayCanvas?: boolean;
         excludeReplayShadowDom?: boolean;
         excludeReplayIframe?: boolean;

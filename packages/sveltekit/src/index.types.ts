@@ -47,6 +47,9 @@ export declare function wrapLoadWithSentry<T extends (...args: any) => any>(orig
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
+export declare const startSpan: typeof clientSdk.startSpan;
+export declare const startSpanManual: typeof clientSdk.startSpanManual;
+export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;
 export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
 // oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
