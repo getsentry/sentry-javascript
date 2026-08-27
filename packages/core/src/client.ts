@@ -4,6 +4,7 @@ import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
+import { applyEscapedErrorSpanToEvent } from './utils/errorSpanAttribution';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
@@ -1441,6 +1442,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         trace: { ...evt.contexts?.trace, ...getTraceContextFromScope(currentScope) },
         ...evt.contexts,
       };
+
+      // Runs once the trace context is settled, so it also corrects events captured with no active
+      // span, whose trace context only exists as of the merge above.
+      applyEscapedErrorSpanToEvent(evt, hint);
 
       const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 

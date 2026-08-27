@@ -14,6 +14,7 @@ import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
+import { recordEscapedErrorSpan } from '../utils/errorSpanAttribution';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
@@ -667,7 +668,9 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   return wrapper(() =>
     handleCallbackErrors(
       () => callback(),
-      () => {
+      error => {
+        recordEscapedErrorSpan(error, span);
+
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
         const { status } = spanToStaticSpanJSON(span);
         if (span.isRecording() && status === 'ok') {
