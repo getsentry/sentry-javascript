@@ -10,7 +10,7 @@
 
   Across all AI integrations (OpenAI, Anthropic, Google GenAI, LangChain, and LangGraph), the SDK no longer sends an event to Sentry for errors that the AI framework propagates to your code. Previously the instrumentation reported these as unhandled (`handled: false`) before your own error handling ran, so an error your code caught still showed up in Sentry as an unhandled crash. The span is still marked as errored and the error still propagates, so reporting is left to your application: if your code does not handle the error, it reaches Sentry's global error handlers and is captured as unhandled, just like any other uncaught error. Errors that a provider surfaces as data on an otherwise successful response (such as Anthropic error-shaped responses or Google GenAI blocked content) are still captured, since your code never sees them propagate.
 
-Work in this release was contributed by @ryanrho-mercor and @lux-in-tenebris-lucet. Thank you for your contributions!
+Work in this release was contributed by @ryanrho-mercor, @lux-in-tenebris-lucet, and @suhailopensource. Thank you for your contributions!
 
 ## 10.71.0
 
