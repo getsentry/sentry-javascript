@@ -31,27 +31,21 @@ const packageRoot = resolve(__dirname, '../..');
 const registerEntry = join(packageRoot, 'build/esm/orchestrion/runtime/register.js');
 
 let tmpDir: string;
+let reBundledCode: string;
 
-beforeAll(() => {
+// The build + rollup re-bundle happen here, not in the test body, so the whole (potentially slow)
+// job runs under one generous timeout. The nx build cache is Node-version-scoped, so on Node
+// versions other than the one the CI build job ran on, `build/` is absent and gets built here.
+beforeAll(async () => {
   // The vendored chain only exists after this package's rollup build, so the test operates on
-  // `build/esm`. CI builds before running unit tests; build on demand for local runs.
+  // `build/esm`; build on demand when it is missing.
   if (!existsSync(registerEntry)) {
     execSync('yarn build:transpile', { cwd: packageRoot, stdio: 'inherit' });
   }
   tmpDir = mkdtempSync(join(tmpdir(), 'orchestrion-treeshake-'));
-});
 
-afterAll(() => {
-  if (tmpDir) {
-    rmSync(tmpDir, { recursive: true, force: true });
-  }
-});
-
-/**
- * Re-bundle the built `register` entry the way a downstream bundler would: importing it from this
- * package (so Rollup reads its `sideEffects` field) and tree-shaking. Returns the emitted code.
- */
-async function reBundleRegisterAsDownstream(): Promise<string> {
+  // Re-bundle the built `register` entry the way a downstream bundler would: importing it from this
+  // package (so Rollup reads its `sideEffects` field) and tree-shaking.
   const entryPath = join(tmpDir, 'entry.mjs');
   writeFileSync(
     entryPath,
@@ -69,22 +63,25 @@ async function reBundleRegisterAsDownstream(): Promise<string> {
       /* the vendored graph has benign circular deps; keep the test output quiet */
     },
   });
-
   const { output } = await bundle.generate({ format: 'esm' });
   await bundle.close();
-  return output[0].code;
-}
+  reBundledCode = output[0].code;
+}, 180_000);
+
+afterAll(() => {
+  if (tmpDir) {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
 
 describe('vendored orchestrion transformer survives downstream tree-shaking', () => {
-  it('keeps meriyah, astring and source-map populated after re-bundling the register entry', async () => {
-    const code = await reBundleRegisterAsDownstream();
-
+  it('keeps meriyah, astring and source-map populated after re-bundling the register entry', () => {
     // Each vendored CJS dep is populated by a cross-module property write. If downstream
     // tree-shaking dropped it, the proxy stays `var meriyah = {}` and these assignments vanish —
     // the exact breakage from #23664. Their presence means the chain stayed wired up.
-    expect(code).toContain('meriyah.parse = parse');
-    expect(code).toMatch(/astring\.generate =/);
-    expect(code).toMatch(/sourceMap\.SourceMapConsumer =/);
-    expect(code).toMatch(/sourceMap\.SourceMapGenerator =/);
+    expect(reBundledCode).toContain('meriyah.parse = parse');
+    expect(reBundledCode).toMatch(/astring\.generate =/);
+    expect(reBundledCode).toMatch(/sourceMap\.SourceMapConsumer =/);
+    expect(reBundledCode).toMatch(/sourceMap\.SourceMapGenerator =/);
   });
 });
