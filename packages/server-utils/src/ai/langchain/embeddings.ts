@@ -1,4 +1,11 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, stringify } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+  stringify,
+} from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -69,13 +76,18 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+  const client = getClient();
 
   if (recordInputs && input != null) {
     attributes[GEN_AI_EMBEDDINGS_INPUT] = stringify(input, String);
   }
 
   return {
-    name: `embeddings ${modelName}`,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name:
+      (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+        ? `embeddings ${modelName}`
+        : 'embeddings',
     op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
     attributes: attributes as Record<string, SpanAttributeValue>,
   };

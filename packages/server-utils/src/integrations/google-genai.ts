@@ -5,6 +5,8 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
@@ -108,9 +110,11 @@ function createGenAiSpan(
   const attributes = extractRequestAttributes(operation, params, data.self);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  const client = getClient();
 
   const span = startInactiveSpan({
-    name: `${operation} ${model}`,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
     op: getGenAiSpanOp(operation),
     attributes,
   });

@@ -823,7 +823,7 @@ The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a
 
 Affected SDKs: All SDKs.
 
-With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
+With [span streaming](#span-streaming-is-now-the-default) enabled (the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
@@ -836,12 +836,15 @@ The following span names were adjusted:
 | `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                               |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                        |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                            |
+| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                    | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                        |
 | `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation (`chain format_prompt`)                           | `{operation} {agent}`, where the agent is the LangGraph agent name, the LangChain chain name or the Vercel AI `functionId` (`invoke_agent format_prompt`), or `{operation}` if the SDK has none |
 | `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                                                                      |
 | `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`)                                                                        |
 | `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                                                                                                 |
 
 `navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
+
+Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
 
 Only the `chain` prefix changes: LangChain agent spans now lead with the operation, like every other agent span. The chain name itself is bounded, so it stays in the name and remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged in both lifecycles. A chain the SDK cannot name falls back to `invoke_agent` rather than `chain unknown_chain`.
 
@@ -866,7 +869,8 @@ Child spans of a service or root span carry its name in their `sentry.segment.na
 `ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload or navigation span is named `'Pageload'`/`'Navigation'` and might receive its final, resolved route name later.
 `ignoreSpans` filters matching a URL path no longer apply to them.
 Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
-Likewise, filters matching `chain format_prompt` no longer apply to a streamed LangChain agent span (`'invoke_agent format_prompt'`).
+Likewise, filters matching `chat unknown` no longer apply to a streamed chat span (`'chat'`).
+The same goes for filters matching `chain format_prompt`, which no longer apply to a streamed LangChain agent span (`'invoke_agent format_prompt'`).
 
 Match on attributes instead:
 
