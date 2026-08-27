@@ -1,4 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/esbuild';
+import type { Plugin } from 'esbuild';
 import { escapeStringForRegex } from '@sentry/core';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
@@ -28,7 +29,7 @@ function matchesEsbuildExternal(entry: string, moduleName: string): boolean {
  * await esbuild.build({ plugins: [sentryOrchestrionPlugin()] });
  * ```
  */
-export function sentryOrchestrionPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformer> {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   const plugin = codeTransformer(orchestrionTransformOptions(options));
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   const setup = plugin.setup;

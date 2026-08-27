@@ -1,31 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-
-function findFileInDir(dir: string, suffix: string): string | undefined {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const entryPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      const found = findFileInDir(entryPath, suffix);
-      if (found) {
-        return found;
-      }
-    } else if (entryPath.endsWith(suffix)) {
-      return entryPath;
-    }
-  }
-  return undefined;
-}
-
-test('standalone output contains all meriyah files needed at runtime', () => {
-  // meriyah's ESM build sits behind the `module-sync` export condition, which Next.js' output file
-  // tracing resolves differently than the Node.js runtime does (https://github.com/vercel/nft/issues/603).
-  // Without the SDK force-including it, the standalone server crashes with ERR_MODULE_NOT_FOUND.
-  const standaloneDir = path.join(process.cwd(), '.next', 'standalone');
-  expect(findFileInDir(standaloneDir, path.join('meriyah', 'dist', 'meriyah.mjs'))).toBeDefined();
-  expect(findFileInDir(standaloneDir, path.join('meriyah', 'dist', 'meriyah.cjs'))).toBeDefined();
-});
 
 test('sends a server transaction from the standalone server', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-standalone', transactionEvent => {

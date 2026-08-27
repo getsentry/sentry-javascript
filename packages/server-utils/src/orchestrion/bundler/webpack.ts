@@ -2,16 +2,21 @@
 // separately because Turbopack can only take webpack loaders (via `turbopack.rules`), not plugins.
 
 import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
 import type { Compiler } from 'webpack';
 import type { InstrumentationConfig } from '..';
 import { instrumentedModuleNames, SENTRY_INSTRUMENTATIONS } from '../config';
 import codeTransformerWebpack from '@apm-js-collab/code-transformer-bundler-plugins/webpack';
 import type { PluginOptions } from './options';
 
-export { serializeInstrumentations } from '@apm-js-collab/code-transformer-bundler-plugins/core';
-export type { SerializableInstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import { serializeInstrumentations as serializeInstrumentationsImpl } from '@apm-js-collab/code-transformer-bundler-plugins/core';
+import type { AnyInstrumentationConfig, SerializableInstrumentationConfig } from '../apmTypes';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
+
+// Explicitly annotated with the vendored types so the emitted declaration doesn't reference
+// `@apm-js-collab/code-transformer-bundler-plugins` — a bundled devDependency consumers don't have.
+export const serializeInstrumentations: (configs: AnyInstrumentationConfig[]) => SerializableInstrumentationConfig[] =
+  serializeInstrumentationsImpl;
+export type { SerializableInstrumentationConfig } from '../apmTypes';
 
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
@@ -26,21 +31,31 @@ function getOrchestrionRequire(): ReturnType<typeof createRequire> {
   return nodeRequire;
 }
 
-/** Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader). */
+/**
+ * Absolute path to the code-transform loader (a webpack loader; also usable as a Turbopack loader).
+ * Resolved via self-reference to this package's own bundled copy — the `@apm-js-collab` packages
+ * are bundled devDependencies and not resolvable on user installs.
+ */
 export function getOrchestrionLoaderPath(): string {
-  return getOrchestrionRequire().resolve('@apm-js-collab/code-transformer-bundler-plugins/webpack-loader');
+  return getOrchestrionRequire().resolve('@sentry/server-utils/orchestrion/webpack-loader');
 }
 
 /**
- * Absolute path to the `@apm-js-collab/tracing-hooks` package directory, resolved from this
- * package's own dependency graph. SDKs inject it at build time so the runtime module hook can
- * load the package even where the bare specifier doesn't resolve (bundled SDK code under
- * isolated installs, e.g. pnpm).
+ * Resolves a request for one of the orchestrion runtime packages (`@sentry/server-utils` itself, via
+ * self-reference, or its `@apm-js-collab/*` dependencies) to an absolute path, from this package's
+ * own on-disk location — where the whole dependency graph always resolves, regardless of the
+ * consuming app's install layout. Returns `undefined` when the request can't be resolved.
+ *
+ * Bundler configs use this to emit absolute-path `commonjs` externals: a bare-specifier external
+ * emitted into a bundled chunk resolves from the chunk's output location at runtime, which fails
+ * under isolated installs (pnpm) where these packages are transitive dependencies.
  */
-export function getTracingHooksDirectory(): string {
-  const packageJsonPath = getOrchestrionRequire().resolve('@apm-js-collab/tracing-hooks/package.json');
-  // This avoids any backslash-escaping concerns on Windows
-  return dirname(packageJsonPath).replace(/\\/g, '/');
+export function resolveOrchestrionRuntimeRequest(request: string): string | undefined {
+  try {
+    return getOrchestrionRequire().resolve(request);
+  } catch {
+    return undefined;
+  }
 }
 
 /** The central instrumentation config, to pass as the loader's `instrumentations` option. */
@@ -69,13 +84,34 @@ function externalizedWebpackModules(externals: unknown, moduleNames: string[]): 
   );
 }
 
+// The upstream plugin computes its loader path relative to its own file location, which after
+// bundling points into our `vendored/` tree at a file rollup never emitted. Replace it in the
+// rule the plugin just unshifted with our own bundled loader entrypoint.
+function fixupLoaderPath(compiler: Compiler): void {
+  for (const rule of compiler.options.module?.rules ?? []) {
+    if (!rule || typeof rule !== 'object' || !('use' in rule) || !Array.isArray(rule.use)) {
+      continue;
+    }
+    for (const use of rule.use) {
+      if (
+        use &&
+        typeof use === 'object' &&
+        typeof use.loader === 'string' &&
+        use.loader.endsWith('webpack-loader.cjs')
+      ) {
+        use.loader = getOrchestrionLoaderPath();
+      }
+    }
+  }
+}
+
 /**
  * The code-transform webpack plugin, pre-fed the instrumentation config.
  *
  * Instrumented packages marked as `externals` never pass through the code
  * transform, so a compilation warning is emitted for them.
  */
-export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): ReturnType<typeof codeTransformerWebpack> {
+export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): { apply(compiler: Compiler): void } {
   const plugin = codeTransformerWebpack(orchestrionTransformOptions(options));
   const moduleNames = instrumentedModuleNames(options.instrumentations);
   // The upstream plugin is a class instance, so `apply` is overridden in place
@@ -89,6 +125,7 @@ export function sentryOrchestrionWebpackPlugin(options: PluginOptions = {}): Ret
       });
     }
     apply(compiler);
+    fixupLoaderPath(compiler);
   };
   return plugin;
 }

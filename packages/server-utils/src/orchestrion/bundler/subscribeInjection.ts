@@ -1,4 +1,4 @@
-import type { CustomTransform } from '@apm-js-collab/code-transformer';
+import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
 import { SUBSCRIBE_INJECTIONS } from '../config';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';

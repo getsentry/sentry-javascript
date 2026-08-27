@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '../apmTypes';
 import { toSubscribeInjections } from './subscribe-injection';
 
 // The AWS SDK (v3) routes every command through the smithy `Client.prototype.send` method. Which
