@@ -18,7 +18,8 @@ describe('http.client span with streaming enabled', () => {
             );
 
             expect(httpClientSpan).toBeDefined();
-            expect(httpClientSpan?.name).toMatch(/^GET .*\/external$/);
+            // The URL path is high cardinality, so a streamed span name keeps only the domain.
+            expect(httpClientSpan?.name).toBe('GET localhost');
           },
         })
         .start();

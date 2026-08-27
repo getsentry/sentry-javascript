@@ -79,7 +79,12 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // Streamed `http.client` names are the request method alone, so match on `url.full` instead.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -96,7 +101,12 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   baseURL,
 }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // Streamed `http.client` names are the request method alone, so match on `url.full` instead.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);

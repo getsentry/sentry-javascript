@@ -1,8 +1,11 @@
 import type { Span, SpanAttributes } from '../../types/span';
+import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 import { getContentLengthFromHeaders } from '../../utils/request';
-import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
+import { getHttpSpanDetailsFromUrlObject, isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
@@ -29,17 +32,21 @@ import {
  */
 export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpanOptions {
   const url = getRequestUrlFromClientRequest(request);
-  const [name, attributes] = getHttpSpanDetailsFromUrlObject(
-    parseStringToURLObject(url),
-    'client',
-    'auto.http.client',
-    request,
-  );
+  const urlObject = parseStringToURLObject(url);
+  const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'client', 'auto.http.client', request);
 
   const userAgent = request.getHeader('user-agent');
 
+  // With span streaming, span names have to be low cardinality, so the URL path is dropped and only the
+  // domain is kept. Outgoing requests have no route to parameterize.
+  const client = getClient();
+  const method = request.method?.toUpperCase();
+  const domain = urlObject && !isURLObjectRelative(urlObject) ? urlObject.hostname : undefined;
+  const streamedName = method ? (domain ? `${method} ${domain}` : method) : HTTP_SPAN_NAME_FALLBACK;
+  const spanName = !!client && hasSpanStreamingEnabled(client) ? streamedName : name;
+
   return {
-    name,
+    name: spanName,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       [SENTRY_KIND]: 'client',
