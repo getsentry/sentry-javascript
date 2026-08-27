@@ -84,10 +84,12 @@ Two setups still need a deliberate choice:
   the runtime hook to intercept, so instrument at build time with the Sentry bundler plugins
   (`@sentry/node/esbuild`, `@sentry/node/webpack`, `@sentry/node/vite`, `@sentry/node/rollup`), which
   inject the instrumentation into your bundled dependencies during the build.
-- **You deploy the bundle without `node_modules` on Node.js older than 24.13.** Those versions
-  install the hook through an API that resolves `@sentry/server-utils` from disk, so it needs the
-  package to still be there. Either keep `@sentry/server-utils` external, or use the build-time
-  plugins above.
+- **You are on Node.js older than 24.13.** Those versions install the hook through an API that
+  resolves `@sentry/server-utils` from disk against a path baked into the bundle at build time. If
+  that path no longer resolves at runtime (a single-file deploy without `node_modules`, or a webpack
+  bundle run on a different machine than it was built on) the hook cannot install. Either keep
+  `@sentry/server-utils` external, or use the build-time plugins above. Node.js 24.13 and newer
+  install the hook entirely in-process and are unaffected.
 
 `@sentry/node` warns at startup whenever it ends up without runtime instrumentation, so you do not
 have to guess which case you are in. (When the build-time plugin is used, there is no warning, since
