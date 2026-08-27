@@ -5,7 +5,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 // `Module.register('@sentry/server-utils/orchestrion/hook', …)`, a runtime call `@vercel/nft` cannot
 // trace, so `build/esm/orchestrion/runtime/hook.js` is never copied into the standalone output and
 // channel-based instrumentation silently does nothing. Un-fixme once that is fixed.
-// https://linear.app/getsentry/issue/JSSDK-20
+// https://linear.app/getsentry/issue/JS-3451
 test.fixme('sends a server transaction from the standalone server', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-standalone', transactionEvent => {
     return transactionEvent.transaction === 'GET /';
