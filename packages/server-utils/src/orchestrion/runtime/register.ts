@@ -106,7 +106,7 @@ export function registerDiagnosticsChannelInjection(): void {
     if (marker.bundler instanceof Set) {
       debug.log(
         'Runtime diagnostics-channel injection is disabled because `@sentry/server-utils` was bundled; ' +
-          'build-time instrumentation is active, so this is expected.',
+          'build-time instrumentation is active.',
       );
     } else {
       warnRuntimeUnavailable(
