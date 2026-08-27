@@ -1,5 +1,12 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startSpan,
+  startSpanManual,
+} from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -170,21 +177,12 @@ function handleStreamingRequest<T extends unknown[], R>(
   target: (...args: T) => R | Promise<R>,
   invocationThis: unknown,
   args: T,
-  requestAttributes: Record<string, unknown>,
-  operationName: string,
-  methodPath: string,
+  spanConfig: { name: string; op: string; attributes: Record<string, SpanAttributeValue> },
   params: Record<string, unknown> | undefined,
   options: AnthropicAiOptions,
   isStreamRequested: boolean,
   isStreamingMethod: boolean,
 ): R | Promise<R> {
-  const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
-  const spanConfig = {
-    name: `${operationName} ${model}`,
-    op: getGenAiSpanOp(operationName),
-    attributes: requestAttributes as Record<string, SpanAttributeValue>,
-  };
-
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
     let originalResult!: Promise<R>;
@@ -262,7 +260,17 @@ function instrumentMethod<T extends unknown[], R>(
 
       const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes(args, operationName);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const client = getClient();
+      // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+      const spanConfig = {
+        name:
+          (typeof model === 'string' && model !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+            ? `${operationName} ${model}`
+            : operationName,
+        op: getGenAiSpanOp(operationName),
+        attributes: requestAttributes as Record<string, SpanAttributeValue>,
+      };
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
@@ -272,9 +280,7 @@ function instrumentMethod<T extends unknown[], R>(
           target,
           invocationThis,
           args,
-          requestAttributes,
-          operationName,
-          methodPath,
+          spanConfig,
           params,
           options,
           isStreamRequested,
@@ -284,25 +290,18 @@ function instrumentMethod<T extends unknown[], R>(
 
       let originalResult!: Promise<R>;
 
-      const instrumentedPromise = startSpan(
-        {
-          name: `${operationName} ${model}`,
-          op: getGenAiSpanOp(operationName),
-          attributes: requestAttributes as Record<string, SpanAttributeValue>,
-        },
-        span => {
-          originalResult = target.apply(invocationThis, args) as Promise<R>;
+      const instrumentedPromise = startSpan(spanConfig, span => {
+        originalResult = target.apply(invocationThis, args) as Promise<R>;
 
-          if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params);
-          }
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
 
-          return originalResult.then(result => {
-            addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
-            return result;
-          });
-        },
-      );
+        return originalResult.then(result => {
+          addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+          return result;
+        });
+      });
 
       return wrapPromiseWithMethods(originalResult, instrumentedPromise);
     },
