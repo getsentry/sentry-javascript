@@ -190,6 +190,42 @@ describe('instrumentOutgoingRequests', () => {
     expect(utils.spanToJSON(requestSpan!).name).toBe('QUERY https://example.com/rest/v1/users');
   });
 
+  it('strips userinfo and the port from the streamed XHR span name and `url.domain`', () => {
+    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'GET',
+          url: 'https://user:pass@example.com:8443/rest/v1/users',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as utils.HandlerDataXhr);
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('example.com');
+    expect(requestSpanJson.attributes['server.address']).toBe('example.com:8443');
+  });
+
   describe('XHR trace header span', () => {
     afterEach(() => {
       vi.restoreAllMocks();

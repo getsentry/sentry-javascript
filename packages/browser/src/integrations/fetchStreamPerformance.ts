@@ -4,7 +4,6 @@ import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   defineIntegration,
-  getClient,
   getSanitizedUrlStringFromUrlObject,
   hasSpanStreamingEnabled,
   isURLObjectRelative,
@@ -40,7 +39,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
   return {
     name: 'FetchStreamPerformance' as const,
 
-    setup() {
+    setup(client) {
       // End the stream span when the response body finishes resolving
       addFetchEndInstrumentationHandler(handlerData => {
         if (handlerData.response) {
@@ -84,11 +83,10 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
           // `http.client.stream` follows the same name rules as `http.client`: with span streaming the
           // URL path is dropped and only the domain is kept. Relative URLs have no domain, and an
           // outgoing request has no route to parameterize.
-          const client = getClient();
           const domain = parsedUrl && !isURLObjectRelative(parsedUrl) ? parsedUrl.hostname : undefined;
           const streamedName = domain ? `${method} ${domain}` : method;
           const streamSpan = startInactiveSpan({
-            name: !!client && hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,
+            name: hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,
             startTime: handlerData.endTimestamp,
             attributes: {
               [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url)),

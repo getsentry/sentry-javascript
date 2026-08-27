@@ -43,7 +43,14 @@ import {
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -159,11 +166,16 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       // so we extend this in here
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
-        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        // `parseUrl` returns the raw authority, which can carry userinfo. Credentials must never reach
+        // a span name or attribute.
+        const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
           [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
           [SERVER_ADDRESS]: host,
+          // Unlike `server.address`, `url.domain` excludes the port. `getSpanStartOptions` cannot set it
+          // for relative URLs, which only resolve to an origin once `getFullURL` has run.
+          [URL_DOMAIN]: host?.replace(/:\d+$/, ''),
         });
 
         if (enableHTTPTimings) {
@@ -369,10 +381,16 @@ function xhrCallback(
   // With span streaming, we always emit http.client spans, even without a parent span
   const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
+  // `parseUrl` returns the raw authority, which can carry userinfo. Credentials must never reach a span
+  // name or attribute.
+  const host = parsedUrl?.host?.replace(/^.*@/, '');
+  // Unlike `server.address`, `url.domain` excludes the port.
+  const domain = host?.replace(/:\d+$/, '');
+
   // With span streaming, span names have to be low cardinality, so the URL path is dropped and only the
   // domain is kept. `getFullURL` resolves relative URLs against the page origin, so one is almost always
   // known here. Outgoing requests have no route to parameterize.
-  const streamedName = parsedUrl?.host ? `${method} ${parsedUrl.host}` : method;
+  const streamedName = domain ? `${method} ${domain}` : method;
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
@@ -383,7 +401,8 @@ function xhrCallback(
             // eslint-disable-next-line typescript/no-deprecated
             [HTTP_REQUEST_METHOD]: method,
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-            [SERVER_ADDRESS]: parsedUrl?.host,
+            [SERVER_ADDRESS]: host,
+            [URL_DOMAIN]: domain,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),

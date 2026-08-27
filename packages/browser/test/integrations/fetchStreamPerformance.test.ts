@@ -20,15 +20,14 @@ describe('fetchStreamPerformanceIntegration', () => {
       return () => {};
     });
     vi.spyOn(utils, 'addFetchEndInstrumentationHandler').mockImplementation(() => () => {});
-    vi.spyOn(utils, 'getClient').mockReturnValue({
-      getOptions: () => ({ traceLifecycle }),
-      getDataCollectionOptions: () => ({ urlQueryParams: true }),
-    } as unknown as Client);
     const startInactiveSpanSpy = vi
       .spyOn(utils, 'startInactiveSpan')
       .mockReturnValue(new utils.SentryNonRecordingSpan());
 
-    fetchStreamPerformanceIntegration().setup?.({} as Client);
+    fetchStreamPerformanceIntegration().setup?.({
+      getOptions: () => ({ traceLifecycle }),
+      getDataCollectionOptions: () => ({ urlQueryParams: true }),
+    } as unknown as Client);
 
     // A streamed response is detected by a streaming content type and a missing content-length.
     fetchHandler?.({

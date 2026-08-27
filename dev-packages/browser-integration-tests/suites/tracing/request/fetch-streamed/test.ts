@@ -39,6 +39,7 @@ sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page })
       attributes: expect.objectContaining({
         'http.request.method': { type: 'string', value: 'GET' },
         'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
+        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
         'server.address': { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'fetch' },
       }),
