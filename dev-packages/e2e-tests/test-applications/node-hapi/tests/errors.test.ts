@@ -41,10 +41,16 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
+  // The error is attributed to the route handler span that threw, which is a child of the request
+  // span the transaction is built from.
   expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
-  expect(errorEvent.contexts?.trace?.span_id).toBe(transactionEvent.contexts?.trace?.span_id);
+  expect(errorEvent.contexts?.trace?.parent_span_id).toBe(transactionEvent.contexts?.trace?.span_id);
+
+  const blamedSpan = transactionEvent.spans?.find(span => span.span_id === errorEvent.contexts?.trace?.span_id);
+  expect(blamedSpan?.op).toBe('router');
 });
 
 test('sends error with parameterized transaction name', async ({ baseURL }) => {
