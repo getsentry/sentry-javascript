@@ -22,6 +22,11 @@ function build(name) {
           library: { type: 'module' },
           chunkFormat: 'module',
         },
+        // graphql is the module the runtime hook has to instrument, so it has to stay out of the
+        // bundle. Everything else, `@sentry/server-utils` included, is inlined: that is the setup
+        // where downstream tree-shaking used to silently strip the code transformer
+        // (https://github.com/getsentry/sentry-javascript/issues/23664).
+        externals: { graphql: 'import graphql' },
         // Keep output readable; tree-shaking (module elimination via
         // `sideEffects: false`) happens regardless of minification, and
         // it's important to be able to debug when it messes up.
