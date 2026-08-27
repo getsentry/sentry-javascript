@@ -1,8 +1,11 @@
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DEBUG_BUILD } from '../../debug-build';
-import { getClient, debug, captureException } from '@sentry/core';
+import { addNonEnumerableProperty, captureException, getClient } from '@sentry/core';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
+
+// Marks a request whose error has already been captured, so the two code paths that surface the same
+// error (the diagnostics channel and the `onError` hook on Fastify v5) don't send it twice.
+const kErrorCaptured = Symbol('sentry.fastifyErrorCaptured');
 
 function getFastifyIntegration(): FastifyIntegration | undefined {
   const client = getClient();
@@ -20,40 +23,30 @@ export function subscribeToFastifyErrorChannel(): void {
       reply: FastifyReply;
     };
 
-    handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
+    handleFastifyError(request, reply, error);
   });
 }
 
 /**
  * Handle a Fastify error, and possibly send it to Sentry.
+ *
+ * On Fastify v5 a route handler error surfaces on both the diagnostics channel
+ * and the `onError` hook, so this runs twice for the same request. We mark the
+ * request with a non-enumerable symbol once it has been captured, and bail out
+ * on subsequent calls, so the same error is only sent once. Errors that reach
+ * only one path (e.g. thrown in an `onRequest` hook, or on Fastify v3/v4 which
+ * has no channel) are captured once.
  */
-export function handleFastifyError(
-  this: {
-    diagnosticsChannelExists?: boolean;
-  },
-  error: Error,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  handlerOrigin: 'diagnostics-channel' | 'onError-hook',
-): void {
-  const shouldHandleError = getFastifyIntegration()?.getShouldHandleError() || defaultShouldHandleError;
-  // Diagnostics channel runs before the onError hook, so we can use it to check if the handler was already registered
-  if (handlerOrigin === 'diagnostics-channel') {
-    this.diagnosticsChannelExists = true;
-  }
-
-  if (this.diagnosticsChannelExists && handlerOrigin === 'onError-hook') {
-    DEBUG_BUILD &&
-      debug.warn(
-        'Fastify error handler was already registered via diagnostics channel.',
-        'You can safely remove `setupFastifyErrorHandler` call and set `shouldHandleError` on the integration options.',
-      );
-
-    // If the diagnostics channel already exists, we don't need to handle the error again
+export function handleFastifyError(request: FastifyRequest, reply: FastifyReply, error: Error): void {
+  if ((request as Record<symbol, unknown>)[kErrorCaptured]) {
     return;
   }
 
+  const shouldHandleError = getFastifyIntegration()?.getShouldHandleError() || defaultShouldHandleError;
+
   if (shouldHandleError(error, request, reply)) {
+    addNonEnumerableProperty(request, kErrorCaptured, true);
+
     captureException(error, {
       mechanism: {
         handled: false,

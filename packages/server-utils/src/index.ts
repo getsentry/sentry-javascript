@@ -16,9 +16,7 @@ export { orchestrionModuleInjected } from './utils/moduleInjected';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
-  handleFastifyError,
-  // oxlint-disable-next-line typescript/no-deprecated
-  instrumentFastify,
+  setupFastifyErrorHandler,
 } from './integrations/fastify';
 
 /**
