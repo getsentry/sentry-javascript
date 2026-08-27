@@ -1443,8 +1443,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         ...evt.contexts,
       };
 
-      // Runs once the trace context is settled, so it also corrects events captured with no active
-      // span, whose trace context only exists as of the merge above.
+      // Deliberately after the merge above: an error captured with no active span has no trace
+      // context until then, and without its trace id we cannot tell whether the span we recorded
+      // belongs to the same trace, which risks the event disagreeing with the DSC we build below.
       applyEscapedErrorSpanToEvent(evt, hint);
 
       const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
