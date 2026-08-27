@@ -1,15 +1,19 @@
-// Bundles the entrypoint with webpack twice:
-//   - `plain`:  no Sentry plugin.
-//   - `plugin`: with `sentryWebpackPlugin` (build-time instrumentation).
-// Only the `plugin` build runs the orchestrion code transform, which injects the "bundler ran" banner
-// into the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
-// rename them); assert.mjs matches it whitespace-insensitively.
+// Bundles the entrypoint with webpack twice, each a directly-runnable ESM bundle with `graphql`
+// inlined (only node builtins stay external):
+//   - `plain`:  no Sentry plugin -> graphql is not instrumented.
+//   - `plugin`: with `sentryWebpackPlugin` -> the orchestrion transform instruments graphql at build
+//     time.
+// `assert.mjs` runs both bundles and checks the graphql query works and which auto-spans appear.
+// Kept unminified so the injected snippet keeps its identifiers.
+import { rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
 import { sentryWebpackPlugin } from '@sentry/node/webpack';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
 
 function build(name, plugins) {
   return new Promise((resolve, reject) => {
@@ -23,7 +27,6 @@ function build(name, plugins) {
           path: join(__dirname, 'dist', name),
           filename: 'main.mjs',
           module: true,
-          library: { type: 'module' },
           chunkFormat: 'module',
         },
         optimization: { minimize: false },

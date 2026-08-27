@@ -1,41 +1,39 @@
 /**
- * Asserts that `sentryRollupPlugin` performs build-time instrumentation: its code transform injects
- * the orchestrion "bundler ran" banner into the entry chunk. A plain build (no plugin) does not.
+ * Runs both built bundles and asserts that build-time instrumentation actually fires at runtime:
+ *   - both builds: the graphql query returns data (the SDK/plugin doesn't break the app or crash the
+ *     bundle at boot),
+ *   - `plugin` build: graphql auto-spans appear with origin `auto.graphql.diagnostic_channel`,
+ *   - `plain` build: they do not (negative control — no plugin, runtime hook disabled).
+ *
+ * A boot crash surfaces as a non-zero child exit / missing `__RESULT__` line, which fails the assert
+ * rather than being silently swallowed.
  *
  * @module
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// A distinctive slice of the orchestrion banner that the bundler plugin's build-time code transform
-// prepends to the entry chunk (see `ORCHESTRION_BUNDLER_MARKER_BANNER` in `@sentry/server-utils`).
-// It is emitted only when the plugin's build-time instrumentation runs, so it tells a `plugin` build
-// apart from a `plain` one. Before matching we strip block comments and whitespace, because bundlers
-// format the injected banner differently — Rolldown pretty-prints it and inserts a `/* @__PURE__ */`
-// annotation. The banner initializes the set with `new Set()`, hence the stripped `newSet()` form.
-const BUILD_TIME_TRANSFORM_MARKER = 'g.bundler=g.bundler||newSet()';
+const GRAPHQL_ORIGIN = 'auto.graphql.diagnostic_channel';
 
-function bundleText(name) {
-  const files = [];
-  const walk = dir => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-      } else {
-        files.push(full);
-      }
-    }
-  };
-  walk(join(__dirname, 'dist', name));
-  return files
-    .map(f => readFileSync(f, 'utf8'))
-    .join('\n')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\s+/g, '');
+// Entry filename varies by output format (`.mjs` for ESM bundlers, `.cjs` for esbuild's node/CJS output).
+function entryPath(name) {
+  const dir = join(__dirname, 'dist', name);
+  const entry = ['main.mjs', 'main.cjs', 'main.js'].map(f => join(dir, f)).find(existsSync);
+  if (!entry) throw new Error(`no built entry (main.mjs/.cjs/.js) found in ${dir}`);
+  return entry;
+}
+
+function runBundle(name) {
+  const stdout = execFileSync(process.execPath, [entryPath(name)], { encoding: 'utf8' });
+  const line = stdout.split('\n').find(l => l.startsWith('__RESULT__'));
+  if (!line) {
+    throw new Error(`${name} build did not print a __RESULT__ line. Output:\n${stdout}`);
+  }
+  return JSON.parse(line.slice('__RESULT__'.length));
 }
 
 let failed = false;
@@ -45,13 +43,20 @@ function check(condition, message) {
   if (!condition) failed = true;
 }
 
-const plain = bundleText('plain');
-const plugin = bundleText('plugin');
+const plain = runBundle('plain');
+const plugin = runBundle('plugin');
 
-check(!plain.includes(BUILD_TIME_TRANSFORM_MARKER), 'plain build (no plugin) does not run build-time instrumentation');
+const hasGraphqlOrigin = result => result.spans.some(s => s.origin === GRAPHQL_ORIGIN);
+
+check(plain.data?.hello === 'world', 'plain build: graphql query works');
+check(plugin.data?.hello === 'world', 'plugin build: graphql query works');
 check(
-  plugin.includes(BUILD_TIME_TRANSFORM_MARKER),
-  'sentryRollupPlugin runs build-time instrumentation (injects the orchestrion banner)',
+  !hasGraphqlOrigin(plain),
+  'plain build (no plugin) does not auto-instrument graphql (no auto.graphql.diagnostic_channel span)',
+);
+check(
+  hasGraphqlOrigin(plugin),
+  'Sentry bundler plugin auto-instruments graphql at build time (emits auto.graphql.diagnostic_channel span)',
 );
 
 if (failed) {

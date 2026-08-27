@@ -1,11 +1,13 @@
-// Bundles the entrypoint with Vite (SSR) twice:
-//   - `plain`:  no Sentry plugin.
-//   - `plugin`: with `sentryVitePlugin` (build-time instrumentation).
+// Bundles the entrypoint with Vite (SSR) twice, each a directly-runnable ESM bundle with `graphql`
+// inlined (only node builtins stay external):
+//   - `plain`:  no Sentry plugin -> graphql is not instrumented.
+//   - `plugin`: with `sentryVitePlugin` -> the orchestrion transform instruments graphql at build
+//     time.
 // The Sentry vite plugin's build-time code transform only applies to server builds (it gates itself
-// on `consumer === 'server'`), so this uses an SSR build rather than a client `lib` build. Only the
-// `plugin` build then injects the orchestrion "bundler ran" banner into the entry chunk. Kept
-// unminified so the banner keeps its identifiers (a minifier would rename them); assert.mjs matches
-// it whitespace-insensitively.
+// on `consumer === 'server'`), so this uses an SSR build rather than a client `lib` build.
+// `assert.mjs` runs both bundles and checks the graphql query works and which auto-spans appear.
+// Kept unminified so the injected snippet keeps its identifiers.
+import { rmSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +15,8 @@ import { build } from 'vite';
 import { sentryVitePlugin } from '@sentry/node/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
 
 function run(name, plugins) {
   return build({

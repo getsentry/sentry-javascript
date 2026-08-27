@@ -1,9 +1,11 @@
-// Bundles the entrypoint with Rollup twice:
-//   - `plain`:  no Sentry plugin.
-//   - `plugin`: with `sentryRollupPlugin` (build-time instrumentation).
-// Only the `plugin` build runs the orchestrion code transform, which prepends the "bundler ran"
-// banner to the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
-// rename them); assert.mjs matches it whitespace-insensitively.
+// Bundles the entrypoint with Rollup twice, each a directly-runnable ESM bundle with `graphql`
+// inlined (only node builtins stay external):
+//   - `plain`:  no Sentry plugin -> graphql is not instrumented.
+//   - `plugin`: with `sentryRollupPlugin` -> the orchestrion transform instruments graphql at build
+//     time.
+// `assert.mjs` runs both bundles and checks the graphql query works and which auto-spans appear.
+// Kept unminified so the injected snippet keeps its identifiers.
+import { rmSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +16,8 @@ import { sentryRollupPlugin } from '@sentry/node/rollup';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const external = [...builtinModules, ...builtinModules.map(m => `node:${m}`)];
+
+rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
 
 async function run(name, extra) {
   const bundle = await rollup({
