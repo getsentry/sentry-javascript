@@ -48,6 +48,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
+import type { WebVitalsOptions } from '../integrations/webVitals';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
@@ -124,17 +125,16 @@ export interface BrowserTracingOptions {
    * If true, Sentry will capture first input delay and add it to the corresponding transaction.
    *
    * Default: true
+   *
+   * @deprecated Use {@link BrowserTracingOptions.webVitals} instead: `webVitals: { ignore: ['inp'] }`.
    */
   enableInp: boolean;
 
   /**
-   * If true, Sentry will also report LCP, CLS and INP for soft navigations, using the browser's
-   * [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment).
-   * Forwarded to the auto-registered `webVitalsIntegration` as `reportSoftNavs`.
-   *
-   * Default: false
+   * Options for the `webVitalsIntegration` that is auto-registered when none is present.
+   * Ignored if you register `webVitalsIntegration` yourself.
    */
-  enableSoftNavWebVitals: boolean;
+  webVitals?: WebVitalsOptions;
 
   /**
    * @deprecated This option is no longer used. Element timing is now tracked via the standalone
@@ -271,8 +271,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   markBackgroundSpan: true,
   enableLongTask: true,
   enableLongAnimationFrame: true,
+  // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
   enableInp: true,
-  enableSoftNavWebVitals: false,
   ignoreResourceSpans: [],
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
@@ -307,10 +307,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
   const {
+    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    enableSoftNavWebVitals,
+    webVitals,
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -605,10 +606,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
       // browserTracingIntegration in the integrations array - has already been installed.
       if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        const ignore = webVitals?.ignore ?? [];
         client.addIntegration(
           webVitalsIntegration({
-            ignore: enableInp ? [] : ['inp'],
-            reportSoftNavs: enableSoftNavWebVitals,
+            ...webVitals,
+            ignore: enableInp || ignore.includes('inp') ? ignore : [...ignore, 'inp'],
           }),
         );
       }

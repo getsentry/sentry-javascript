@@ -204,10 +204,31 @@ describe('browserTracingIntegration', () => {
     expect(client.getIntegrationByName('WebVitals')).toBeDefined();
   });
 
+  it('forwards webVitals options to the auto-registered integration', () => {
+    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration({ webVitals: { softNavigations: false } })],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(webVitalsSpy).toHaveBeenCalledWith(expect.objectContaining({ softNavigations: false }));
+  });
+
   it.each([
-    ['defaults to off', {}, false],
-    ['is forwarded when enabled', { enableSoftNavWebVitals: true }, true],
-  ])('enableSoftNavWebVitals %s', (_name, options, expected) => {
+    ['leaves the ignore list alone when INP is enabled', {}, []],
+    // oxlint-disable-next-line typescript/no-deprecated
+    ['appends inp to the ignore list when disabled', { enableInp: false }, ['inp']],
+    [
+      'keeps user-provided entries when appending inp',
+      // oxlint-disable-next-line typescript/no-deprecated
+      { enableInp: false, webVitals: { ignore: ['cls' as const] } },
+      ['cls', 'inp'],
+    ],
+  ])('enableInp %s', (_name, options, expected) => {
     const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
@@ -218,7 +239,7 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    expect(webVitalsSpy).toHaveBeenCalledWith(expect.objectContaining({ reportSoftNavs: expected }));
+    expect(webVitalsSpy).toHaveBeenCalledWith(expect.objectContaining({ ignore: expected }));
   });
 
   it('works with tracing disabled', () => {
