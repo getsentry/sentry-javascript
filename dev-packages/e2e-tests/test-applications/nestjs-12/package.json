@@ -1,24 +1,26 @@
 {
-  "name": "nestjs-11",
+  "name": "nestjs-12",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
+    "start": "node --import ./dist/instrument.js dist/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
-    "test:build": "pnpm install",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/testing@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/microservices": "^11.0.0",
-    "@nestjs/schedule": "^5.0.0",
-    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
+    "@nestjs/microservices": "^12.0.0",
+    "@nestjs/schedule": "^12.0.0",
+    "@nestjs/platform-express": "^12.0.0",
     "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
@@ -26,11 +28,11 @@
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
-    "@types/express": "^4.17.17",
-    "@types/node": "^18.19.1",
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/schematics": "^12.0.0",
+    "@nestjs/testing": "^12.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -39,7 +41,7 @@
     "supertest": "^6.3.3",
     "ts-loader": "^9.4.3",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "~5.0.0"
+    "typescript": "~5.9.0"
   },
   "pnpm": {
     "overrides": {
