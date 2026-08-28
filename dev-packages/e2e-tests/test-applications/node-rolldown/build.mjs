@@ -35,6 +35,7 @@ async function run(name, { external, plugins }) {
     // runtime and the `--import` hook can transform it as it loads.
     external: external ? [...nodeExternals, 'graphql'] : nodeExternals,
     plugins: [...plugins],
+    platform: 'node',
     onwarn: () => {},
   });
   await bundle.write({ dir: join(__dirname, 'dist', name), format: 'es', entryFileNames: 'main.mjs' });
