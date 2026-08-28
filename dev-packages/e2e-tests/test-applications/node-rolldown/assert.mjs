@@ -17,7 +17,7 @@
  * @module
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,6 +47,27 @@ function run(name, { withImport = false } = {}) {
 
 const graphqlSpanCount = result => result.spans.filter(s => s.origin === GRAPHQL_ORIGIN).length;
 
+// Guards the build config, not just its runtime output. The span assertions below can pass by
+// accident when the externalization knob is a no-op (e.g. a Vite SSR build externalizes deps by
+// default, so a mis-set toggle silently ships an external graphql in every variant while the counts
+// still come out right). Assert the bundle SHAPE instead: an inlined build carries graphql's own
+// source (its exported `GraphQLSchema`) and has no bare `graphql` import left; an external build
+// keeps the bare `graphql` import/require and never inlines that source. Bundler-agnostic — matches
+// ESM `from 'graphql'` and CJS `require('graphql')` alike.
+const GRAPHQL_BARE_REFERENCE = /(?:from|require\()\s*['"]graphql['"]/;
+const GRAPHQL_SOURCE_MARKER = 'GraphQLSchema';
+
+function assertBundleShape(name, { inlined }) {
+  const bundle = readFileSync(entryPath(name), 'utf8');
+  const hasBareReference = GRAPHQL_BARE_REFERENCE.test(bundle);
+  const hasGraphqlSource = bundle.includes(GRAPHQL_SOURCE_MARKER);
+  if (inlined) {
+    check(!hasBareReference && hasGraphqlSource, `${name}: graphql is inlined into the bundle`);
+  } else {
+    check(hasBareReference && !hasGraphqlSource, `${name}: graphql is kept external to the bundle`);
+  }
+}
+
 const scenarios = {
   plain: run('plain'),
   plugin: run('plugin'),
@@ -67,6 +88,11 @@ function check(condition, message) {
 for (const [label, result] of Object.entries(scenarios)) {
   check(result.data?.hello === 'world', `${label}: graphql query works`);
 }
+
+assertBundleShape('plain', { inlined: true });
+assertBundleShape('plugin', { inlined: true });
+assertBundleShape('plain-external', { inlined: false });
+assertBundleShape('plugin-external', { inlined: false });
 
 check(oneSet > 0, 'plugin build (build-time) emits a set of graphql spans');
 check(graphqlSpanCount(scenarios.plain) === 0, 'plain build (no plugin, no --import) emits no graphql spans');

@@ -27,9 +27,17 @@ const makeSentryPlugin = () =>
     release: { create: false, finalize: false, inject: false },
   });
 
-function run(name, { external, plugins }) {
+function run(name, { graphqlExternal, plugins }) {
   return build({
     logLevel: 'silent',
+    // Whether graphql is inlined or external is governed by Vite's SSR externalization
+    // (`ssr.external` / `ssr.noExternal`), NOT `rollupOptions.external`: a Vite SSR build
+    // externalizes node_modules deps by default, so without an explicit `ssr.noExternal` graphql
+    // stays external no matter what `rollupOptions.external` says. Set it per-variant so the
+    // build-time (inlined) and runtime (external) paths are each genuinely exercised. For the
+    // `*-external` variants `ssr.external` also wins over the plugin's own `noExternal` force-bundle,
+    // so graphql is left for the runtime `--import` hook to transform as it loads from node_modules.
+    ssr: graphqlExternal ? { external: ['graphql'] } : { noExternal: ['graphql'] },
     build: {
       outDir: join(__dirname, 'dist', name),
       emptyOutDir: true,
@@ -40,9 +48,7 @@ function run(name, { external, plugins }) {
       // SSR build so the plugin's build-time transform applies (it only runs for server builds).
       ssr: join(__dirname, 'src', 'entry.mjs'),
       rollupOptions: {
-        // The `*-external` variants keep graphql out of the bundle, so it is resolved from node_modules
-        // at runtime and the `--import` hook can transform it as it loads.
-        external: external ? [...nodeExternals, 'graphql'] : nodeExternals,
+        external: nodeExternals,
         output: { entryFileNames: 'main.mjs', format: 'es' },
       },
     },
@@ -50,10 +56,10 @@ function run(name, { external, plugins }) {
   });
 }
 
-await run('plain', { external: false, plugins: [] });
-await run('plugin', { external: false, plugins: [makeSentryPlugin()] });
-await run('plain-external', { external: true, plugins: [] });
-await run('plugin-external', { external: true, plugins: [makeSentryPlugin()] });
+await run('plain', { graphqlExternal: false, plugins: [] });
+await run('plugin', { graphqlExternal: false, plugins: [makeSentryPlugin()] });
+await run('plain-external', { graphqlExternal: true, plugins: [] });
+await run('plugin-external', { graphqlExternal: true, plugins: [makeSentryPlugin()] });
 
 // eslint-disable-next-line no-console
 console.log('built plain + plugin (inlined) and plain-external + plugin-external with vite');
