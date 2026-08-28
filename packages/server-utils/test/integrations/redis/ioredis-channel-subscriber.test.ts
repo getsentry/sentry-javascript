@@ -48,10 +48,46 @@ describe('startIORedisCommandSpan', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        // `{db.operation.name} {server.address}:{server.port}` — redis has no collection or namespace
-        name: 'set localhost:6379',
+        // `{db.operation.name}` — redis has nothing low cardinality to pair the operation with
+        name: 'set',
         // the serialized statement, which carries the key, is still reported as an attribute
-        attributes: expect.objectContaining({ 'db.query.text': 'set test-key [1 other arguments]' }),
+        attributes: expect.objectContaining({
+          'db.query.text': 'set test-key [1 other arguments]',
+        }),
+      }),
+    );
+  });
+
+  it('names the span after the redis function it calls with span streaming enabled', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'fcall', args: ['my_func', '1', 'test-key'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // `{db.operation.name} {db.stored_procedure.name}` — a redis function is named, so unlike
+        // an ordinary command it has a low cardinality second token to pair with
+        name: 'fcall my_func',
+        attributes: expect.objectContaining({
+          'db.stored_procedure.name': 'my_func',
+        }),
+      }),
+    );
+  });
+
+  it('leaves the stored procedure unset when the function name was redacted', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'fcall', args: ['?', '1', 'test-key'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'fcall',
+        attributes: expect.not.objectContaining({ 'db.stored_procedure.name': expect.anything() }),
       }),
     );
   });

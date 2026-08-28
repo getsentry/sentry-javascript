@@ -683,9 +683,9 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
   describe('streamed', () => {
     // The blocks above assert the same commands as transactions. With span streaming, span names
     // have to be low cardinality, so `db.query` spans drop the serialized statement from their
-    // name — it stays on `db.query.text` — and are named
-    // `{db.operation.name} {server.address}:{server.port}` instead. Cache spans are still named
-    // after the cache key by the cache hook, and batch spans keep their `MULTI`/`PIPELINE` name.
+    // name — it stays on `db.query.text` — and are named after `db.operation.name` instead, the
+    // bare command. Cache spans are still named after the cache key by the cache hook, and batch
+    // spans keep their `MULTI`/`PIPELINE` name.
     const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
       type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
       value,
@@ -760,7 +760,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                 expect(container.items.find(item => item.is_segment)?.name).toBe(segmentName);
 
                 expect(childSpans(container)).toEqual([
-                  span('set localhost:6383', redisSpanOp, {
+                  span('set', redisSpanOp, {
                     'db.operation.name': 'set',
                     'db.query.text': 'set test-key [1 other arguments]',
                   }),
@@ -785,7 +785,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'cache.key': ['ioredis-cache:test-key-setex'],
                     'cache.item_size': 2,
                   }),
-                  span('get localhost:6383', redisSpanOp, {
+                  span('get', redisSpanOp, {
                     'db.operation.name': 'get',
                     'db.query.text': 'get test-key',
                   }),
@@ -827,8 +827,6 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       });
     });
 
-    // node-redis v4 fills in `socket.host`, so its `db.query` spans get the
-    // `{db.operation.name} {server.address}:{server.port}` name.
     describe('redis-4', () => {
       const segmentName = 'Test Span Redis 4';
       const connection = { 'server.address': 'localhost', 'server.port': 6383 };
@@ -851,7 +849,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                 ]);
 
                 expect(childSpans(container)).toEqual([
-                  span('SET localhost:6383', redisSpanOp, {
+                  span('SET', redisSpanOp, {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-test-key [1 other arguments]',
                   }),
@@ -876,7 +874,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'cache.key': ['redis-cache:test-key-setex'],
                     'cache.item_size': 2,
                   }),
-                  span('GET localhost:6383', redisSpanOp, {
+                  span('GET', redisSpanOp, {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-test-key',
                   }),
@@ -910,9 +908,9 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'cache.key': ['redis-cache:test-key'],
                   }),
                   // Batch spans are named after the batch operation, which is already low cardinality.
-                  span('MULTI', redisSpanOp, { 'db.operation.batch.size': 2 }),
+                  span('MULTI', redisSpanOp, { 'db.operation.name': 'MULTI', 'db.operation.batch.size': 2 }),
                   span(
-                    'INCR localhost:6383',
+                    'INCR',
                     redisSpanOp,
                     {
                       'db.operation.name': 'INCR',
@@ -931,9 +929,6 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       });
     });
 
-    // node-redis v5 leaves `socket.host` unset when only a port is passed, so there is no
-    // `server.address` to pair the operation with and the span name falls back to
-    // `{db.system.name}`.
     describe('redis-5', () => {
       const segmentName = 'Test Span Redis 5';
       const connection = { 'server.port': 6383 };
@@ -953,7 +948,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                 ]);
 
                 expect(childSpans(container)).toEqual([
-                  span('redis', redisSpanOp, {
+                  span('SET', redisSpanOp, {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-5-test-key [1 other arguments]',
                   }),
@@ -975,7 +970,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'cache.key': ['redis-5-cache:test-key-setex'],
                     'cache.item_size': 2,
                   }),
-                  span('redis', redisSpanOp, {
+                  span('GET', redisSpanOp, {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-5-test-key',
                   }),
@@ -1004,9 +999,9 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'db.query.text': 'DEL redis-5-cache:test-key',
                     'cache.key': ['redis-5-cache:test-key'],
                   }),
-                  span('MULTI', redisSpanOp, { 'db.operation.batch.size': 2 }),
+                  span('MULTI', redisSpanOp, { 'db.operation.name': 'MULTI', 'db.operation.batch.size': 2 }),
                   span(
-                    'redis',
+                    'INCR',
                     redisSpanOp,
                     {
                       'db.operation.name': 'INCR',

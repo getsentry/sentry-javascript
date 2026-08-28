@@ -15,8 +15,6 @@ import {
   isObjectLike,
   defineIntegration,
   getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -24,6 +22,7 @@ import {
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
+import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
 import type { RedisCacheOptions } from './redis-cache';
 import { applyRedisCacheAttributes } from './redis-cache';
@@ -103,24 +102,16 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
   const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
-  const host = attributes[SERVER_ADDRESS];
-  const port = attributes[SERVER_PORT];
-
-  const client = getClient();
-  const name =
-    client && hasSpanStreamingEnabled(client)
-      ? host && port != null
-        ? `${commandName} ${host}:${port}`
-        : DB_SYSTEM_VALUE_REDIS
-      : dbStatement || `redis-${commandName}`;
+  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(commandName, commandArgs);
 
   return startInactiveSpan({
-    name,
+    name: streamedName || dbStatement || `redis-${commandName}`,
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
       [SENTRY_OP]: DB_QUERY,
       [DB_OPERATION_NAME]: commandName,
+      ...namingAttributes,
       [DB_QUERY_TEXT]: dbStatement,
     },
   });
@@ -262,13 +253,15 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
     const commands = data.arguments?.[0];
     const size = Array.isArray(commands) ? commands.length : undefined;
     const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
+    const operation = getOperation(data);
     return startInactiveSpan({
-      name: getOperation(data),
+      name: operation,
       attributes: {
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+        [DB_OPERATION_NAME]: operation,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
         ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
         ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),

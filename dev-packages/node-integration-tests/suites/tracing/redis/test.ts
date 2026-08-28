@@ -74,7 +74,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
     // The same three commands as above, asserted on the streamed span container. Only the span
     // name differs: with span streaming names have to be low cardinality, so the serialized
     // statement is reported through `db.query.text` alone and the name becomes
-    // `{db.operation.name} {server.address}:{server.port}`.
+    // `{db.operation.name}` — for redis, the bare command.
     const COMMON_ATTRIBUTES = {
       'db.system.name': { type: 'string', value: 'redis' },
       'server.address': { type: 'string', value: 'localhost' },
@@ -114,7 +114,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
               }
             : {}),
         },
-        name: `${operation} localhost:6380`,
+        name: operation,
         end_timestamp: expect.any(Number),
         is_segment: false,
         parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
