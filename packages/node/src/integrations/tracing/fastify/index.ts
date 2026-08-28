@@ -77,8 +77,10 @@ interface FastifyHandlerOptions {
    * @param request Fastify request (or any object containing at least method, routeOptions.url, and routerPath)
    * @param reply Fastify reply (or any object containing at least statusCode)
    *
-   * @deprecated Set `shouldHandleError` on `fastifyIntegration()` instead. It applies to every supported
-   * Fastify version. This option will be removed in v11.
+   * @deprecated Configure `shouldHandleError` on `fastifyIntegration()` rather than here, where it
+   * applies to every supported Fastify version. This option will be removed in v11.
+   *
+   * @example
    *
    * ```javascript
    * Sentry.init({
@@ -145,8 +147,7 @@ export const fastifyIntegration = defineIntegration((options: Partial<FastifyInt
  * Add an Fastify error handler to capture errors to Sentry.
  *
  * @param fastify The Fastify instance to which to add the error handler
- * @param options Configuration options for the handler. Deprecated: set `shouldHandleError` on
- * `fastifyIntegration()` instead. This parameter will be removed in v11.
+ * @param options Configuration options for the handler
  *
  * @example
  * ```javascript

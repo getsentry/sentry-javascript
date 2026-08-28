@@ -228,7 +228,22 @@ export interface ExpressHandlerOptions {
    *
    * @param error Captured middleware error
    *
-   * @deprecated Set `shouldHandleError` on `expressIntegration()` instead. This option will be removed in v11.
+   * @deprecated Configure `shouldHandleError` on `expressIntegration()` rather than here. Keep calling
+   * `setupExpressErrorHandler(app)` as that is what captures the errors. This option will be removed in v11.
+   *
+   * @example
+   *
+   * ```javascript
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.expressIntegration({
+   *       shouldHandleError(error) {
+   *         return (error.statusCode ?? 500) >= 500;
+   *       },
+   *     }),
+   *   ],
+   * });
+   * ```
    */
   shouldHandleError?(this: void, error: MiddlewareError): boolean;
 }
