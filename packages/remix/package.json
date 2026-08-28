@@ -1,6 +1,6 @@
 {
   "name": "@sentry/remix",
-  "version": "11.0.0-alpha.1",
+  "version": "11.0.0-alpha.2",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
@@ -54,10 +54,10 @@
   "dependencies": {
     "@remix-run/router": "^1.23.4",
     "@sentry/conventions": "^0.20.0",
-    "@sentry/core": "11.0.0-alpha.1",
-    "@sentry/node": "11.0.0-alpha.1",
-    "@sentry/react": "11.0.0-alpha.1",
-    "@sentry/server-utils": "11.0.0-alpha.1",
+    "@sentry/core": "11.0.0-alpha.2",
+    "@sentry/node": "11.0.0-alpha.2",
+    "@sentry/react": "11.0.0-alpha.2",
+    "@sentry/server-utils": "11.0.0-alpha.2",
     "sentry": "^0.44.0",
     "yargs": "^17.6.0"
   },
