@@ -153,12 +153,12 @@ describe('spanStreamingIntegration (core)', () => {
     expect(mockSpanBufferInstance.drain).not.toHaveBeenCalled();
   });
 
-  it('does not flush when the segment span ends unless flushOnSegmentEnd is set', () => {
+  it('does not flush when the segment span ends if flushOnSegmentEnd is disabled', () => {
     vi.useFakeTimers();
     const client = new TestClient({
       ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
-      integrations: [spanStreamingIntegration()],
+      integrations: [spanStreamingIntegration({ flushOnSegmentEnd: false })],
       traceLifecycle: 'stream',
     });
 
