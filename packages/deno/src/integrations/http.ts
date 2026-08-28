@@ -109,6 +109,10 @@ export interface DenoHttpIntegrationOptions {
    * Filtering runs in `processEvent` on the finished transaction, not when the span is created,
    * so it also applies to `Deno.serve` transactions. Pass `[]` to keep everything.
    *
+   * Only takes effect with `traceLifecycle: 'static'`. The default `'stream'` lifecycle does not
+   * produce transaction events, so the filter does not run. Node's `httpIntegration` has the same
+   * limitation.
+   *
    * @default `[[401, 404], [301, 303], [305, 399]]`
    */
   ignoreStatusCodes?: (number | [number, number])[];

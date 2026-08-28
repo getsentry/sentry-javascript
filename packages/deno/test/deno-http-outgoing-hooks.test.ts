@@ -15,6 +15,52 @@ import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { denoHttpIntegration, init, startSpan } from '../build/esm/index.js';
 
+/**
+ * `beforeSendTransaction` hook plus a `waitFor(predicate)` helper
+ * resolves when a matching transaction arrives (or has already arrived)
+ */
+function transactionSink(): {
+  transactions: TransactionEvent[];
+  beforeSendTransaction: (event: TransactionEvent) => null;
+  waitFor: (predicate: (event: TransactionEvent) => boolean) => Promise<TransactionEvent>;
+} {
+  const transactions: TransactionEvent[] = [];
+  const waiters: { predicate: (e: TransactionEvent) => boolean; resolve: (e: TransactionEvent) => void }[] = [];
+  return {
+    transactions,
+    beforeSendTransaction(event) {
+      transactions.push(event);
+      for (let i = waiters.length - 1; i >= 0; i--) {
+        const w = waiters[i]!;
+        if (w.predicate(event)) {
+          waiters.splice(i, 1);
+          w.resolve(event);
+        }
+      }
+      return null;
+    },
+    waitFor(predicate) {
+      const already = transactions.find(predicate);
+      if (already) return Promise.resolve(already);
+      return new Promise<TransactionEvent>(resolve => {
+        waiters.push({ predicate, resolve });
+      });
+    },
+  };
+}
+
+// Bind a promise so a real "never arrives" bug fails the test.
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${what} after ${ms}ms`)), ms);
+  });
+  // Clear the timer on either resolution so Deno's leak detector is happy.
+  return Promise.race([p, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
+
 const calls: string[] = [];
 
 Deno.test({
@@ -22,15 +68,12 @@ Deno.test({
   async fn() {
     getMainCarrier().__SENTRY__ = undefined;
 
-    const transactions: TransactionEvent[] = [];
+    const sink = transactionSink();
     init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
       traceLifecycle: 'static',
-      beforeSendTransaction: (event: TransactionEvent) => {
-        transactions.push(event);
-        return null;
-      },
+      beforeSendTransaction: sink.beforeSendTransaction,
       integrations: [
         denoHttpIntegration({
           outgoingRequestHook: (span, request) => {
@@ -73,16 +116,19 @@ Deno.test({
       });
     });
 
+    const parent = await withTimeout(
+      sink.waitFor(t => t.transaction === 'parent'),
+      5000,
+      "'parent' transaction",
+    );
+
     abortController.abort();
     await target.finished;
 
-    const parent = transactions.find(t => t.transaction === 'parent');
-    assertExists(parent, `expected a 'parent' transaction, got ${transactions.map(t => t.transaction).join(', ')}`);
-
-    const httpClientSpan = parent!.spans?.find(s => s.op === 'http.client');
+    const httpClientSpan = parent.spans?.find(s => s.op === 'http.client');
     assertExists(
       httpClientSpan,
-      `expected an http.client child span, got ops: ${parent!.spans?.map(s => s.op).join(', ')}`,
+      `expected an http.client child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
     );
 
     assertEquals(httpClientSpan!.data?.['outgoingRequestHook'], 'GET');

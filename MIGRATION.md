@@ -630,6 +630,10 @@ Sentry.init({
 });
 ```
 
+This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
+The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
+`httpIntegration` has the same limitation.
+
 Because `denoHttpIntegration` is a default integration and filters on the finished transaction rather than on which
 instrumentation produced it, this applies to `Deno.serve` transactions as well, not just `node:http` ones.
 
