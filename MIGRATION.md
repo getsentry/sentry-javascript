@@ -846,7 +846,7 @@ The following span names were adjusted:
 
 Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
 
-Only the `chain` prefix changes: LangChain agent spans now lead with the operation, like every other agent span. The chain name itself is bounded, so it stays in the name and remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged in both lifecycles. A chain the SDK cannot name falls back to `invoke_agent` rather than `chain unknown_chain`.
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
 
@@ -870,7 +870,6 @@ Child spans of a service or root span carry its name in their `sentry.segment.na
 `ignoreSpans` filters matching a URL path no longer apply to them.
 Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
 Likewise, filters matching `chat unknown` no longer apply to a streamed chat span (`'chat'`).
-The same goes for filters matching `chain format_prompt`, which no longer apply to a streamed LangChain agent span (`'invoke_agent format_prompt'`).
 
 Match on attributes instead:
 
