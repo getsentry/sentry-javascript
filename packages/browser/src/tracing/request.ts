@@ -12,7 +12,6 @@ import {
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
-  getLocationHref,
   getTraceData,
   getUrlFragment,
   getUrlQuery,
@@ -37,6 +36,7 @@ import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  getLocationHref,
   parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,

@@ -18,7 +18,6 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
@@ -41,6 +40,7 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  getLocationHref,
   isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,

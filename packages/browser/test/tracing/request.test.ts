@@ -193,7 +193,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
     afterEach(() => {
@@ -232,7 +232,7 @@ describe('shouldAttachHeaders', () => {
 
     beforeEach(() => {
       locationHrefSpy = vi
-        .spyOn(utils, 'getLocationHref')
+        .spyOn(browserUtils, 'getLocationHref')
         .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
@@ -364,7 +364,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => '');
     });
 
     afterEach(() => {
