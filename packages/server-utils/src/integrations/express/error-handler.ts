@@ -1,7 +1,7 @@
-import { captureException, getIsolationScope, httpRequestToRequestData } from '@sentry/core';
+import { captureException, getClient, getIsolationScope, httpRequestToRequestData } from '@sentry/core';
 import { isExpressErrorHandled } from './error-handled';
-import type { ExpressHandlerOptions, ExpressRequest, ExpressResponse, MiddlewareError } from './types';
-import { defaultShouldHandleError } from './utils';
+import type { ExpressIntegration, ExpressRequest, ExpressResponse, MiddlewareError } from './types';
+import { INTEGRATION_NAME, shouldCaptureError } from './utils';
 
 type ExpressErrorMiddleware = (
   error: MiddlewareError,
@@ -11,6 +11,10 @@ type ExpressErrorMiddleware = (
 ) => void;
 
 type ExpressMiddleware = (request: ExpressRequest, res: ExpressResponse, next: () => void) => void;
+
+function getExpressIntegration(): ExpressIntegration | undefined {
+  return getClient()?.getIntegrationByName<ExpressIntegration>(INTEGRATION_NAME);
+}
 
 /**
  * Set request data on the isolation scope so a captured error carries request context. Mirrors the
@@ -30,7 +34,7 @@ function setSDKProcessingMetadata(request: ExpressRequest): void {
  * @deprecated `expressIntegration()` now captures errors automatically. This export is deprecated and
  * will be removed in the next major version.
  */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
+export function expressErrorHandler(): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(error, request, res, next): void {
     // When an error happens, the request handler middleware does not run, so we set it here too.
     setSDKProcessingMetadata(request);
@@ -45,9 +49,9 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
       return;
     }
 
-    const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-
-    if (shouldHandleError(error)) {
+    // `shouldHandleError` is configured on `expressIntegration()` only. Without the integration
+    // registered, the default predicate applies.
+    if (shouldCaptureError(getExpressIntegration()?.getShouldHandleError(), error)) {
       const eventId = captureException(error, {
         mechanism: { type: 'auto.middleware.express', handled: false },
       });
@@ -71,20 +75,16 @@ function expressRequestHandler(): ExpressMiddleware {
  * The error handler must be before any other middleware and after all controllers.
  *
  * @param app The Express instance
- * @param options {ExpressHandlerOptions} Configuration options for the handler
  *
  * @deprecated `expressIntegration()` now captures errors automatically, so calling this is no longer
  * necessary. To customize which errors are captured, pass `shouldHandleError` to `expressIntegration()`.
  * This export is deprecated and will be removed in the next major version.
  */
-export function setupExpressErrorHandler(
-  app: {
-    // oxlint-disable-next-line no-explicit-any
-    use: (middleware: any) => unknown;
-  },
-  options?: ExpressHandlerOptions,
-): void {
+export function setupExpressErrorHandler(app: {
+  // oxlint-disable-next-line no-explicit-any
+  use: (middleware: any) => unknown;
+}): void {
   app.use(expressRequestHandler());
   // oxlint-disable-next-line typescript/no-deprecated
-  app.use(expressErrorHandler(options));
+  app.use(expressErrorHandler());
 }

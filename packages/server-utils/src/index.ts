@@ -53,7 +53,7 @@ export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
 /* oxlint-disable typescript/no-deprecated -- deprecated Express error-handler exports, kept until the next major */
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
-export type { ExpressHandlerOptions } from './integrations/express/types';
+export type { ExpressIntegrationOptions } from './integrations/express/types';
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
 

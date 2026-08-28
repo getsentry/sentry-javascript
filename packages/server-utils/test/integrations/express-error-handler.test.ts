@@ -4,7 +4,12 @@ import { isExpressErrorHandled } from '../../src/integrations/express/error-hand
 // oxlint-disable-next-line typescript/no-deprecated
 import { expressErrorHandler } from '../../src/integrations/express/error-handler';
 import { captureLayerError } from '../../src/integrations/express/instrumentation';
-import type { ExpressRequest, ExpressResponse, HandleChannelContext } from '../../src/integrations/express/types';
+import type {
+  ExpressRequest,
+  ExpressResponse,
+  ExpressShouldHandleError,
+  HandleChannelContext,
+} from '../../src/integrations/express/types';
 
 function makeErrorData(error: unknown, span?: unknown): HandleChannelContext {
   return { error, _sentrySpan: span } as unknown as HandleChannelContext;
@@ -210,6 +215,14 @@ describe('expressErrorHandler', () => {
     };
   }
 
+  /** Registers an `expressIntegration()` carrying the given `shouldHandleError`. */
+  function registerIntegration(shouldHandleError: ExpressShouldHandleError | undefined): void {
+    const integration = { name: 'Express', getShouldHandleError: () => shouldHandleError };
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getIntegrationByName: (name: string) => (name === 'Express' ? integration : undefined),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+  }
+
   // A request whose error the integration already captured, before this middleware runs.
   function makeHandledRequest(): ExpressRequest {
     const request = makeRequest();
@@ -227,6 +240,35 @@ describe('expressErrorHandler', () => {
       mechanism: { type: 'auto.middleware.express', handled: false },
     });
     expect(res.sentry).toBe('event-id');
+  });
+
+  it('captures a 4xx error when expressIntegration widens the gate', () => {
+    registerIntegration(error => (error.statusCode as number) >= 400);
+    const error = Object.assign(new Error('teapot'), { statusCode: 418 });
+
+    expressErrorHandler()(error, makeRequest(), makeResponse(), vi.fn());
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { type: 'auto.middleware.express', handled: false },
+    });
+  });
+
+  it('skips a 5xx error when expressIntegration narrows the gate', () => {
+    registerIntegration(() => false);
+    const error = Object.assign(new Error('boom'), { statusCode: 500 });
+
+    expressErrorHandler()(error, makeRequest(), makeResponse(), vi.fn());
+
+    expect(captureExceptionSpy).not.toHaveBeenCalled();
+  });
+
+  it('captures nothing when expressIntegration sets shouldHandleError to false', () => {
+    registerIntegration(false);
+    const error = Object.assign(new Error('boom'), { statusCode: 500 });
+
+    expressErrorHandler()(error, makeRequest(), makeResponse(), vi.fn());
+
+    expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
 
   it('does not capture a 4xx error', () => {

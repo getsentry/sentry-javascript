@@ -829,6 +829,27 @@ If you prefer to capture errors yourself, set `expressIntegration({ shouldHandle
 
 The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version. The export of `expressErrorHandler` and `setupExpressErrorHandler` is moved from `@sentry/core` to `@sentry/server-utils`.
 
+The `setupExpressErrorHandler` and `expressErrorHandler` no longer accept a `shouldHandleError` option, and the `ExpressHandlerOptions` type was removed. Set the callback on `expressIntegration()` instead:
+
+```diff
+ Sentry.init({
+-  integrations: [Sentry.expressIntegration()],
++  integrations: [
++    Sentry.expressIntegration({
++      shouldHandleError(error) {
++        return (error.statusCode ?? 500) >= 400;
++      },
++    }),
++  ],
+ });
+
+-Sentry.setupExpressErrorHandler(app, {
+-  shouldHandleError(error) {
+-    return (error.statusCode ?? 500) >= 400;
+-  },
+-});
+```
+
 ### Span name changes
 
 Affected SDKs: All SDKs.
@@ -1241,6 +1262,7 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
 - (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
+- (Express) The `shouldHandleError` option was removed from `setupExpressErrorHandler` and `expressErrorHandler`, along with the `ExpressHandlerOptions` type. Configure it on `expressIntegration()` instead. See [Express: errors are captured automatically](#express-errors-are-captured-automatically).
 - (Fastify) The deprecated `instrumentFastify` and `handleFastifyError` exports were removed. `fastifyIntegration` now instruments Fastify (v3.21–v5) and captures errors on its own, so neither export is needed. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).

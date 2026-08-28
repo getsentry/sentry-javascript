@@ -187,15 +187,3 @@ export type ExpressErrorMiddleware = (
   res: ExpressResponse,
   next: (error: MiddlewareError) => void,
 ) => void;
-
-/**
- * @deprecated `expressIntegration()` captures errors automatically; pass `shouldHandleError` to it to
- * customize capture. This type is deprecated and will be removed in the next major version.
- */
-export interface ExpressHandlerOptions {
-  /**
-   * Callback method deciding whether error should be captured and sent to Sentry
-   * @param error Captured middleware error
-   */
-  shouldHandleError?(this: void, error: MiddlewareError): boolean;
-}

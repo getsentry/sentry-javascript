@@ -3,12 +3,9 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { expressModuleNames } from '../../orchestrion/config/express';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
-import type { ExpressIntegrationOptions } from './types';
+import type { ExpressIntegration, ExpressIntegrationOptions } from './types';
 import { instrumentExpress } from './instrumentation';
-
-// NOTE: this uses the same name as the OTel integration by design.
-// When enabled, the OTel 'Express' integration is omitted from the default set.
-const INTEGRATION_NAME = 'Express' as const;
+import { INTEGRATION_NAME } from './utils';
 
 const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
   return {
@@ -19,7 +16,12 @@ const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
         diagnosticsChannel.tracingChannel,
       ]);
     },
-  };
+    // Read by the deprecated `expressErrorHandler`, which captures only when this integration
+    // could not (no orchestrion transform), so both paths use the same callback.
+    getShouldHandleError() {
+      return options.shouldHandleError;
+    },
+  } satisfies ExpressIntegration;
 }) satisfies IntegrationFn;
 
 /**
