@@ -48,6 +48,10 @@ export interface SentryCloudflareVitePluginOptions {
      * Durable Object class with `instrumentDurableObjectWithSentry`. Both
      * `vite build` and `vite dev` are instrumented.
      *
+     * The plugin also adds the bindings that resolve to the wrapped classes (this worker's own
+     * Durable Objects and self service bindings) to `rpcTracePropagationBindings`. Bindings to
+     * other workers stay opt-in, their receivers may not run Sentry.
+     *
      * @default false
      * @experimental May change or be removed in any release.
      */
