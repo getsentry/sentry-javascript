@@ -8,6 +8,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getMainCarrier,
+  metrics,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -31,6 +32,7 @@ import {
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
+import { bfcacheIntegration } from '../../src/integrations/bfcache';
 import * as webVitalsModule from '../../src/integrations/webVitals';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
@@ -846,6 +848,101 @@ describe('browserTracingIntegration', () => {
 
       expect(() => WINDOW.dispatchEvent(new Event('pagehide'))).not.toThrow();
       expect(getActiveSpan()).toBeUndefined();
+    });
+  });
+
+  describe('bfcache restores', () => {
+    function firePageShow(persisted: boolean): void {
+      const event = new Event('pageshow') as PageTransitionEvent;
+      Object.defineProperty(event, 'persisted', { value: persisted });
+      WINDOW.dispatchEvent(event);
+    }
+
+    function initClient(options = {}): BrowserClient {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false, ...options })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+      return client;
+    }
+
+    it('starts a navigation span when the page is restored from the bfcache', () => {
+      initClient();
+
+      firePageShow(true);
+
+      const span = getActiveSpan()!;
+      expect(span).toBeDefined();
+      expect(spanToJSON(span).attributes).toEqual(
+        expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
+          'browser.navigation.type': 'bfcache',
+        }),
+      );
+    });
+
+    it('ignores a pageshow that is not a bfcache restore', () => {
+      initClient();
+
+      firePageShow(false);
+
+      expect(getActiveSpan()).toBeUndefined();
+    });
+
+    it('starts a new trace, rather than continuing the one from before the freeze', () => {
+      initClient();
+
+      firePageShow(true);
+      const firstTraceId = spanToJSON(getActiveSpan()!).trace_id;
+
+      vi.advanceTimersByTime(1600);
+      firePageShow(true);
+      const secondTraceId = spanToJSON(getActiveSpan()!).trace_id;
+
+      expect(firstTraceId).toBeDefined();
+      expect(secondTraceId).not.toBe(firstTraceId);
+    });
+
+    it('does not start a span when navigation instrumentation is off', () => {
+      initClient({ instrumentNavigation: false });
+
+      firePageShow(true);
+
+      expect(getActiveSpan()).toBeUndefined();
+    });
+
+    // Pins a known ordering problem rather than endorsing it. `bfcacheIntegration` registers its
+    // `pageshow` listener from `setupOnce`, which core always runs before every `afterAllSetup`,
+    // so its hit/miss metric is emitted before this navigation span exists and lands on the trace
+    // the page had before it was frozen. See the note on the pageshow handler.
+    it('emits the bfcache metric on the pre-freeze trace, before the navigation span exists', () => {
+      const countSpy = vi.spyOn(metrics, 'count').mockImplementation(() => {});
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false }), bfcacheIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const traceIdBeforeRestore = getCurrentScope().getPropagationContext().traceId;
+
+      let traceIdAtMetricTime: string | undefined;
+      countSpy.mockImplementation(() => {
+        traceIdAtMetricTime = getCurrentScope().getPropagationContext().traceId;
+      });
+
+      firePageShow(true);
+
+      const navigationTraceId = spanToJSON(getActiveSpan()!).trace_id;
+      expect(traceIdAtMetricTime).toBe(traceIdBeforeRestore);
+      expect(traceIdAtMetricTime).not.toBe(navigationTraceId);
     });
   });
 

@@ -39,6 +39,7 @@ import {
 } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
+  BROWSER_NAVIGATION_TYPE_ATTRIBUTE,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
@@ -670,6 +671,41 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                 },
               },
               { url: to, isRedirect: navigationIsRedirect },
+            );
+          });
+
+          // A bfcache restore resurrects the frozen document, so there is no document load and no
+          // usable history event: `popstate` either doesn't fire or is swallowed because the URL is
+          // unchanged from when the page was frozen. Without a span of its own, everything after the
+          // restore joins the trace the page had before it was frozen, separated by however long it
+          // sat in the cache.
+          WINDOW.addEventListener?.('pageshow', (event: PageTransitionEvent) => {
+            if (!event.persisted) {
+              return;
+            }
+
+            // A navigation has happened, so the pageload guard in the history handler above must not
+            // suppress the next one.
+            startingUrl = undefined;
+
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                // Deliberately no `startTime`: the span starts now, at the restore. The
+                // `PerformanceNavigationTiming` entry still describes the original document load and
+                // would date the span to before the page was frozen.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : WINDOW.location?.pathname || '/',
+                attributes: {
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
+                  // A bfcache restore is near-instant, so these spans would otherwise drag
+                  // navigation duration percentiles down with no way to tell them apart.
+                  [BROWSER_NAVIGATION_TYPE_ATTRIBUTE]: 'bfcache',
+                },
+              },
+              { url: WINDOW.location?.href },
             );
           });
         }
