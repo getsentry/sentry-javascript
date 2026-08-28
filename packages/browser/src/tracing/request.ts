@@ -12,7 +12,6 @@ import {
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
-  getLocationHref,
   getTraceData,
   getUrlFragment,
   getUrlQuery,
@@ -44,6 +43,7 @@ import {
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
 import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { getLocationHref } from '../helpers';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {

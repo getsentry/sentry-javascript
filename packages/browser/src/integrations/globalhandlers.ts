@@ -6,7 +6,6 @@ import {
   debug,
   defineIntegration,
   getClient,
-  getLocationHref,
   isPrimitive,
   isString,
   stripDataUrlContent,
@@ -15,7 +14,7 @@ import {
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
-import { shouldIgnoreOnError } from '../helpers';
+import { getLocationHref, shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 

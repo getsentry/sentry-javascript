@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core/browser';
 import * as utils from '@sentry/core/browser';
+import * as helpers from '../../src/helpers';
 import * as browserUtils from '@sentry/browser-utils';
 import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
@@ -193,7 +194,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
+      locationHrefSpy = vi.spyOn(helpers, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
     afterEach(() => {
@@ -232,7 +233,7 @@ describe('shouldAttachHeaders', () => {
 
     beforeEach(() => {
       locationHrefSpy = vi
-        .spyOn(utils, 'getLocationHref')
+        .spyOn(helpers, 'getLocationHref')
         .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
@@ -364,7 +365,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
+      locationHrefSpy = vi.spyOn(helpers, 'getLocationHref').mockImplementation(() => '');
     });
 
     afterEach(() => {

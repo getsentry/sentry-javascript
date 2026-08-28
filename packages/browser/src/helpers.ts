@@ -4,7 +4,6 @@ import {
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
-  getLocationHref,
   getOriginalFunction,
   GLOBAL_OBJ,
   markFunctionWrapped,
@@ -204,4 +203,17 @@ export function getHttpRequestData(): { url: string; headers: Record<string, str
   };
 
   return request;
+}
+
+
+
+/**
+ * A safe form of location.href.
+ */
+export function getLocationHref(): string {
+  try {
+    return WINDOW.document.location.href;
+  } catch {
+    return '';
+  }
 }

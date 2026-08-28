@@ -1,6 +1,6 @@
-import { consoleSandbox, getLocationHref } from '@sentry/core/browser';
+import { consoleSandbox } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../helpers';
+import { getLocationHref, WINDOW } from '../helpers';
 
 type ExtensionRuntime = {
   runtime?: {

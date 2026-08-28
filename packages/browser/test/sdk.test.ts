@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
 import { init } from '../src/sdk';
+import * as helpers from '../src/helpers';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -168,7 +169,7 @@ describe('init', () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         const locationHrefSpy = vi
-          .spyOn(SentryCore, 'getLocationHref')
+          .spyOn(helpers, 'getLocationHref')
           .mockImplementation(() => `${extensionProtocol}://mock-extension-id/dedicated-page.html`);
 
         Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });
