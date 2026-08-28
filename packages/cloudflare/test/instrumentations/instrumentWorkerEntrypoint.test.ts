@@ -300,10 +300,7 @@ describe('instrumentWorkerEntrypoint', () => {
         }
       }
       const obj = Reflect.construct(
-        instrumentWorkerEntrypoint(
-          () => ({ enableRpcTracePropagation: true }),
-          TestClass as unknown as WorkerEntrypointConstructor,
-        ),
+        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
         [createMockExecutionContext(), {}],
       );
 
@@ -315,7 +312,7 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(obj.readValue(rpcMeta)).toBe('secret');
     });
 
-    it('strips RPC metadata even when trace propagation is disabled', () => {
+    it('strips RPC metadata without any propagation option', () => {
       const rpcMeta = { __sentry_rpc_meta__: { 'sentry-trace': 'trace-data' } };
       const TestClass = class extends WorkerEntrypoint {
         inspect(...args: unknown[]) {
@@ -323,10 +320,7 @@ describe('instrumentWorkerEntrypoint', () => {
         }
       };
       const obj = Reflect.construct(
-        instrumentWorkerEntrypoint(
-          () => ({ enableRpcTracePropagation: false }),
-          TestClass as unknown as WorkerEntrypointConstructor,
-        ),
+        instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor),
         [createMockExecutionContext(), {}],
       );
 
@@ -542,7 +536,7 @@ describe('instrumentWorkerEntrypoint', () => {
       vi.clearAllMocks();
     });
 
-    it('passes instrumented env to the constructor when enableRpcTracePropagation is enabled', () => {
+    it('passes instrumented env to the constructor when rpcTracePropagationBindings matches', () => {
       const mockContext = createMockExecutionContext();
       const doNamespace = {
         idFromName: vi.fn(),
@@ -564,7 +558,7 @@ describe('instrumentWorkerEntrypoint', () => {
       };
 
       const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: true }),
+        () => ({ rpcTracePropagationBindings: [/.*/] }),
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       Reflect.construct(instrumented, [mockContext, mockEnv]);
@@ -572,7 +566,7 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(constructorEnv).not.toBe(mockEnv);
     });
 
-    it('exposes instrumented DurableObjectNamespace via this.env when enableRpcTracePropagation is enabled', async () => {
+    it('exposes instrumented DurableObjectNamespace via this.env when rpcTracePropagationBindings matches', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -603,7 +597,7 @@ describe('instrumentWorkerEntrypoint', () => {
       };
 
       const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: true }),
+        () => ({ rpcTracePropagationBindings: [/.*/] }),
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
@@ -617,7 +611,7 @@ describe('instrumentWorkerEntrypoint', () => {
       });
     });
 
-    it('returns original DurableObjectNamespace via this.env when enableRpcTracePropagation is disabled', async () => {
+    it('returns original DurableObjectNamespace via this.env when rpcTracePropagationBindings is empty', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -647,17 +641,14 @@ describe('instrumentWorkerEntrypoint', () => {
         }
       };
 
-      const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: false }),
-        TestClass as unknown as WorkerEntrypointConstructor,
-      );
+      const instrumented = instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor);
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
       await obj.fetch(new Request('https://example.com'));
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
     });
 
-    it('injects Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is enabled', async () => {
+    it('injects Sentry RPC meta into JSRPC calls via this.env when rpcTracePropagationBindings matches', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -687,7 +678,7 @@ describe('instrumentWorkerEntrypoint', () => {
       };
 
       const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: true }),
+        () => ({ rpcTracePropagationBindings: [/.*/] }),
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
@@ -701,7 +692,7 @@ describe('instrumentWorkerEntrypoint', () => {
       });
     });
 
-    it('does not inject Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is disabled', async () => {
+    it('does not inject Sentry RPC meta into JSRPC calls via this.env when rpcTracePropagationBindings is empty', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -730,10 +721,7 @@ describe('instrumentWorkerEntrypoint', () => {
         }
       };
 
-      const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: false }),
-        TestClass as unknown as WorkerEntrypointConstructor,
-      );
+      const instrumented = instrumentWorkerEntrypoint(() => ({}), TestClass as unknown as WorkerEntrypointConstructor);
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
       await obj.fetch(new Request('https://example.com'));
 
@@ -762,7 +750,7 @@ describe('instrumentWorkerEntrypoint', () => {
       };
 
       const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: true }),
+        () => ({ rpcTracePropagationBindings: [/.*/] }),
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
@@ -789,7 +777,7 @@ describe('instrumentWorkerEntrypoint', () => {
       };
 
       const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: true }),
+        () => ({ rpcTracePropagationBindings: [/.*/] }),
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);

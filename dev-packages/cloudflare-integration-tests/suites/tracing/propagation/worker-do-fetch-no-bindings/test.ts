@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
 
-it('does not propagate trace from worker to durable object when enableRpcTracePropagation is disabled', async ({
+it('propagates trace from worker to durable object over stub.fetch() when rpcTracePropagationBindings is empty', async ({
   signal,
 }) => {
   let workerTraceId: string | undefined;
@@ -57,14 +57,13 @@ it('does not propagate trace from worker to durable object when enableRpcTracePr
   await runner.completed();
 
   expect(workerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workerTraceId).not.toBe(doTraceId);
+  expect(doTraceId).toBe(workerTraceId);
 
   expect(workerSpanId).toBeDefined();
-  expect(doParentSpanId).toBeUndefined();
+  expect(doParentSpanId).toBe(workerSpanId);
 });
 
-it('does not propagate trace from queue handler to durable object when enableRpcTracePropagation is disabled', async ({
+it('propagates trace from queue handler to durable object over stub.fetch() when rpcTracePropagationBindings is empty', async ({
   signal,
 }) => {
   let queueTraceId: string | undefined;
@@ -139,14 +138,13 @@ it('does not propagate trace from queue handler to durable object when enableRpc
   await runner.completed();
 
   expect(queueTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(queueTraceId).not.toBe(doTraceId);
+  expect(doTraceId).toBe(queueTraceId);
 
   expect(queueSpanId).toBeDefined();
-  expect(doParentSpanId).toBeUndefined();
+  expect(doParentSpanId).toBe(queueSpanId);
 });
 
-it('does not propagate trace from scheduled handler to durable object when enableRpcTracePropagation is disabled', async ({
+it('propagates trace from scheduled handler to durable object over stub.fetch() when rpcTracePropagationBindings is empty', async ({
   signal,
 }) => {
   let scheduledTraceId: string | undefined;
@@ -201,9 +199,8 @@ it('does not propagate trace from scheduled handler to durable object when enabl
   await runner.completed();
 
   expect(scheduledTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(scheduledTraceId).not.toBe(doTraceId);
+  expect(doTraceId).toBe(scheduledTraceId);
 
   expect(scheduledSpanId).toBeDefined();
-  expect(doParentSpanId).toBeUndefined();
+  expect(doParentSpanId).toBe(scheduledSpanId);
 });
