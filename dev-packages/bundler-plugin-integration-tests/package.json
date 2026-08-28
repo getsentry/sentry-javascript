@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-plugin-integration-tests",
-  "version": "11.0.0-alpha.1",
+  "version": "11.0.0-alpha.2",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
     "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@sentry/bundler-plugins": "11.0.0-alpha.1"
+    "@sentry/bundler-plugins": "11.0.0-alpha.2"
   },
   "devDependencies": {
     "premove": "^4.0.0",

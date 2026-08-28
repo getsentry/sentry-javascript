@@ -7,12 +7,12 @@
     "react": "19.2.4",
     "vite": "4.5.14",
     "@vitejs/plugin-react": "5.2.0",
-    "@sentry/bundler-plugins": "11.0.0-alpha.1"
+    "@sentry/bundler-plugins": "11.0.0-alpha.2"
   },
   "pnpm": {
     "overrides": {
-      "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-11.0.0-alpha.1.tgz",
-      "@sentry/core": "file:../../../../packages/core/sentry-core-11.0.0-alpha.1.tgz",
+      "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-11.0.0-alpha.2.tgz",
+      "@sentry/core": "file:../../../../packages/core/sentry-core-11.0.0-alpha.2.tgz",
       "sentry": "file:../sentry-stub"
     }
   }

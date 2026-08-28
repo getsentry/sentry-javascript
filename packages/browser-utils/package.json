@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser-utils",
-  "version": "11.0.0-alpha.1",
+  "version": "11.0.0-alpha.2",
   "description": "Browser Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser-utils",
@@ -33,7 +33,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "11.0.0-alpha.1",
+    "@sentry/core": "11.0.0-alpha.2",
     "@sentry/conventions": "^0.20.0",
     "web-vitals": "^6.0.1"
   },

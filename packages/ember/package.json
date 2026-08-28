@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "11.0.0-alpha.1",
+  "version": "11.0.0-alpha.2",
   "description": "Official Sentry SDK for Ember.js",
   "keywords": [
     "ember-addon"
@@ -44,9 +44,9 @@
   "dependencies": {
     "@embroider/addon-shim": "^1.10.2",
     "@embroider/macros": "^1.20.2",
-    "@sentry/browser": "11.0.0-alpha.1",
+    "@sentry/browser": "11.0.0-alpha.2",
     "@sentry/conventions": "^0.20.0",
-    "@sentry/core": "11.0.0-alpha.1",
+    "@sentry/core": "11.0.0-alpha.2",
     "decorator-transforms": "^2.3.2"
   },
   "devDependencies": {
