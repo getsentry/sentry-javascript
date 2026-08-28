@@ -12,6 +12,12 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Append one CLI invocation to `sentry-cli-mock.json`.
+ *
+ * `SENTRY_TEST_OUT_DIR` is the bundler's output directory, so `readOutputFiles()` picks the file up
+ * with the built assets and every fixture's inline snapshot pins the commands the plugin issued.
+ */
 function record(args) {
   const outDir = process.env['SENTRY_TEST_OUT_DIR'];
   if (!outDir) {
