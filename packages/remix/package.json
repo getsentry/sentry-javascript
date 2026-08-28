@@ -52,7 +52,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@remix-run/router": "^1.23.3",
+    "@remix-run/router": "^1.23.4",
     "@sentry/cli": "^2.58.6",
     "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
