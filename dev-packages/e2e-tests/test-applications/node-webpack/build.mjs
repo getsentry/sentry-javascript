@@ -1,17 +1,21 @@
-// Bundles the entrypoint with webpack (the pinned version in package.json
-// kept current, since webpack's `createRequire` following has changed across
-// releases). Output goes to ./dist/app/ for assert.mjs to inspect.
+// Bundles the entrypoint with webpack twice:
+//   - `plain`:  no Sentry plugin.
+//   - `plugin`: with `sentryWebpackPlugin` (build-time instrumentation).
+// Only the `plugin` build runs the orchestrion code transform, which injects the "bundler ran" banner
+// into the entry chunk. Kept unminified so the banner keeps its identifiers (a minifier would
+// rename them); assert.mjs matches it whitespace-insensitively.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
+import { sentryWebpackPlugin } from '@sentry/node/webpack';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function build(name) {
+function build(name, plugins) {
   return new Promise((resolve, reject) => {
     webpack(
       {
-        entry: join(__dirname, 'src', `${name}.mjs`),
+        entry: join(__dirname, 'src', 'entry.mjs'),
         mode: 'production',
         target: 'node',
         experiments: { topLevelAwait: true, outputModule: true },
@@ -22,10 +26,8 @@ function build(name) {
           library: { type: 'module' },
           chunkFormat: 'module',
         },
-        // Keep output readable; tree-shaking (module elimination via
-        // `sideEffects: false`) happens regardless of minification, and
-        // it's important to be able to debug when it messes up.
         optimization: { minimize: false },
+        plugins,
       },
       (err, stats) => {
         if (err) return reject(err);
@@ -40,4 +42,15 @@ function build(name) {
   });
 }
 
-await build('entry');
+await build('plain', []);
+await build(
+  'plugin',
+  // No auth/release/telemetry — we only care about the build-time transforms and defines.
+  [
+    sentryWebpackPlugin({
+      telemetry: false,
+      sourcemaps: { disable: true },
+      release: { create: false, finalize: false, inject: false },
+    }),
+  ],
+);

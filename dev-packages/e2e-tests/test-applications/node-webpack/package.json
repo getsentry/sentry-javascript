@@ -1,0 +1,23 @@
+{
+  "name": "node-webpack",
+  "description": "ensure the Sentry webpack plugin performs build-time instrumentation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && node ./build.mjs",
+    "test:assert": "node ./assert.mjs"
+  },
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+  },
+  "devDependencies": {
+    "webpack": "5.107.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
