@@ -1,6 +1,4 @@
-import SentryCli from '@sentry/cli';
 import { debug } from '@sentry/core';
-import * as fs from 'fs';
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
 import type { transformAsync as babelTransformAsync } from '@babel/core';
 import type componentNameAnnotatePlugin from '../babel-plugin';
@@ -30,15 +28,6 @@ function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
   }
 
   return babelAnnotationRuntimePromise;
-}
-
-/**
- * Determines whether the Sentry CLI binary is in its expected location.
- * This function is useful since `@sentry/cli` installs the binary via a post-install
- * script and post-install scripts may not always run. E.g. with `npm i --ignore-scripts`.
- */
-export function sentryCliBinaryExists(): boolean {
-  return fs.existsSync(SentryCli.getPath());
 }
 
 // We need to be careful not to inject the snippet before any `"use strict";`s.

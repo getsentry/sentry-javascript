@@ -53,12 +53,12 @@
   },
   "dependencies": {
     "@remix-run/router": "^1.23.4",
-    "@sentry/cli": "^2.58.6",
     "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",
     "@sentry/server-utils": "10.67.0",
+    "sentry": "^0.44.0",
     "yargs": "^17.6.0"
   },
   "devDependencies": {
