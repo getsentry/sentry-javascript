@@ -7,10 +7,7 @@ import type {
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataConsole,
-  HandlerDataDom,
   HandlerDataFetch,
-  HandlerDataHistory,
-  HandlerDataXhr,
   IntegrationFn,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
@@ -28,7 +25,7 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry/browser-utils';
+import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr, XhrHint } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
