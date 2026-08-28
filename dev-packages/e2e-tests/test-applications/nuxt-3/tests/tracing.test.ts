@@ -90,6 +90,7 @@ test.describe('distributed tracing', () => {
     const httpClientSpan = clientSpans.find(span => span.name === `GET /api/user/${PARAM}`);
 
     expect(pageloadSpan).toMatchObject({
+      name: '/test-param/user/:userId()',
       is_segment: true,
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'pageload' },
@@ -107,9 +108,9 @@ test.describe('distributed tracing', () => {
         'sentry.op': { type: 'string', value: 'http.client' },
         'sentry.origin': { type: 'string', value: 'auto.http.browser' },
         'http.request.method': { type: 'string', value: 'GET' },
+        'url.full': { type: 'string', value: expect.stringContaining(`/api/user/${PARAM}`) },
       }),
     });
-    expect(httpClientSpan?.attributes['url.full']?.value).toEqual(expect.stringContaining(`/api/user/${PARAM}`));
 
     expect(ssrSpan).toMatchObject({
       name: 'GET /test-param/user/:userId()', // parametrized route

@@ -1,12 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans } from '@sentry-internal/test-utils';
 
-// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
-// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
-// Accumulate until the request's root span is seen, then keep only the spans of its trace.
-//
-// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
-// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
 async function collectStorageSpans(route: string) {
   const spans = await collectStreamedSpans('nuxt-3', spans =>
     spans.some(span => span.is_segment && span.attributes['url.path']?.value === route),

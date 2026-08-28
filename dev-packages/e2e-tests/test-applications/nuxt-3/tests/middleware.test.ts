@@ -1,19 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
-const ROUTE = '/api/middleware-test';
-
-// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
-// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
-// Accumulate until the request's root span is seen, then keep only the spans of its trace.
-//
-// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
-// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
 async function collectRequestSpans() {
   const spans = await collectStreamedSpans('nuxt-3', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === ROUTE),
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test'),
   );
-  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === ROUTE);
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test');
 
   return spans.filter(span => span.trace_id === rootSpan?.trace_id);
 }
@@ -38,14 +30,14 @@ test.describe('Server Middleware Instrumentation', () => {
     expect(middlewareSpans).toHaveLength(11);
 
     // Check for specific middleware spans
-    const findByName = (name: string) =>
+    const findSpanByName = (name: string) =>
       middlewareSpans.find(span => span.attributes['nuxt.middleware.name']?.value === name);
 
-    const firstMiddlewareSpan = findByName('01.first');
-    const secondMiddlewareSpan = findByName('02.second');
-    const authMiddlewareSpan = findByName('03.auth');
-    const hooksOnRequestSpan = findByName('04.hooks');
-    const arrayHooksHandlerSpan = findByName('05.array-hooks');
+    const firstMiddlewareSpan = findSpanByName('01.first');
+    const secondMiddlewareSpan = findSpanByName('02.second');
+    const authMiddlewareSpan = findSpanByName('03.auth');
+    const hooksOnRequestSpan = findSpanByName('04.hooks');
+    const arrayHooksHandlerSpan = findSpanByName('05.array-hooks');
 
     expect(firstMiddlewareSpan).toBeDefined();
     expect(secondMiddlewareSpan).toBeDefined();
@@ -89,12 +81,14 @@ test.describe('Server Middleware Instrumentation', () => {
     await request.get('/api/middleware-test');
     const spans = await spansPromise;
 
-    const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === ROUTE);
+    const segmentSpan = spans.find(
+      span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test',
+    );
     const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
-    // All middleware spans should be children of the request's root span
+    // All middleware spans should be children of the request's segment span
     middlewareSpans.forEach(span => {
-      expect(span.parent_span_id).toBe(rootSpan?.span_id);
+      expect(span.parent_span_id).toBe(segmentSpan?.span_id);
     });
   });
 
@@ -160,12 +154,12 @@ test.describe('Server Middleware Instrumentation', () => {
     expect(hooksSpans).toHaveLength(3);
 
     // Find specific hook spans
-    const findByHook = (hook: string) =>
+    const findSpanByHook = (hook: string) =>
       hooksSpans.find(span => span.attributes['nuxt.middleware.hook.name']?.value === hook);
 
-    const onRequestSpan = findByHook('onRequest');
-    const handlerSpan = findByHook('handler');
-    const onBeforeResponseSpan = findByHook('onBeforeResponse');
+    const onRequestSpan = findSpanByHook('onRequest');
+    const handlerSpan = findSpanByHook('handler');
+    const onBeforeResponseSpan = findSpanByHook('onBeforeResponse');
 
     expect(onRequestSpan).toBeDefined();
     expect(handlerSpan).toBeDefined();
@@ -180,6 +174,11 @@ test.describe('Server Middleware Instrumentation', () => {
     [onRequestSpan, handlerSpan, onBeforeResponseSpan].forEach(span => {
       expect(span?.attributes['nuxt.middleware.name']?.value).toBe('04.hooks');
     });
+
+    // Verify hook-specific attributes
+    expect(onRequestSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('onRequest');
+    expect(handlerSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('handler');
+    expect(onBeforeResponseSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('onBeforeResponse');
 
     // Verify no index attributes for single hooks
     expect(onRequestSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();

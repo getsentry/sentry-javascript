@@ -19,8 +19,8 @@ test('sends a pageload root span with a parameterized URL', async ({ page }) => 
     'params.param': { type: 'string', value: '1234' },
     'url.template': { type: 'string', value: '/test-param/:param()' },
     'url.path': { type: 'string', value: '/test-param/1234' },
+    'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/test-param\/1234$/) },
   });
-  expect(pageloadSpan.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/test-param\/1234$/);
 });
 
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {

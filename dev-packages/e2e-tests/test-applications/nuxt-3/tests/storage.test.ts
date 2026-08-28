@@ -1,12 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans } from '@sentry-internal/test-utils';
 
-// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
-// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
-// Accumulate until the request's root span is seen, then keep only the spans of its trace.
-//
-// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
-// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
 async function collectStorageSpans(route: string) {
   const spans = await collectStreamedSpans('nuxt-3', spans =>
     spans.some(span => span.is_segment && span.attributes['url.path']?.value === route),
@@ -35,12 +29,12 @@ test.describe('Storage Instrumentation', () => {
     const findSpansByMethod = (method: string) =>
       allStorageSpans.filter(span => span.attributes['db.operation.name']?.value === method);
 
-    const findByKey = (method: string, key: string) =>
+    const findSpanByCacheKey = (method: string, key: string) =>
       findSpansByMethod(method).find(span => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value === key);
 
     // Test setItem spans
     expect(findSpansByMethod('setItem').length).toBeGreaterThanOrEqual(1);
-    const setItemSpan = findByKey('setItem', prefixKey('user:123'));
+    const setItemSpan = findSpanByCacheKey('setItem', prefixKey('user:123'));
     expect(setItemSpan).toBeDefined();
     expect(setItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.put' },
@@ -55,7 +49,7 @@ test.describe('Storage Instrumentation', () => {
 
     // Test setItemRaw spans
     expect(findSpansByMethod('setItemRaw').length).toBeGreaterThanOrEqual(1);
-    const setItemRawSpan = findByKey('setItemRaw', prefixKey('raw:data'));
+    const setItemRawSpan = findSpanByCacheKey('setItemRaw', prefixKey('raw:data'));
 
     expect(setItemRawSpan).toBeDefined();
     expect(setItemRawSpan?.attributes).toMatchObject({
@@ -69,7 +63,7 @@ test.describe('Storage Instrumentation', () => {
 
     // Test hasItem spans - should have cache hit attribute
     expect(findSpansByMethod('hasItem').length).toBeGreaterThanOrEqual(1);
-    const hasItemSpan = findByKey('hasItem', prefixKey('user:123'));
+    const hasItemSpan = findSpanByCacheKey('hasItem', prefixKey('user:123'));
     expect(hasItemSpan).toBeDefined();
     expect(hasItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
@@ -83,7 +77,7 @@ test.describe('Storage Instrumentation', () => {
 
     // Test getItem spans - should have cache hit attribute
     expect(findSpansByMethod('getItem').length).toBeGreaterThanOrEqual(1);
-    const getItemSpan = findByKey('getItem', prefixKey('user:123'));
+    const getItemSpan = findSpanByCacheKey('getItem', prefixKey('user:123'));
     expect(getItemSpan).toBeDefined();
     expect(getItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
@@ -98,7 +92,7 @@ test.describe('Storage Instrumentation', () => {
 
     // Test getItemRaw spans - should have cache hit attribute
     expect(findSpansByMethod('getItemRaw').length).toBeGreaterThanOrEqual(1);
-    const getItemRawSpan = findByKey('getItemRaw', prefixKey('raw:data'));
+    const getItemRawSpan = findSpanByCacheKey('getItemRaw', prefixKey('raw:data'));
     expect(getItemRawSpan).toBeDefined();
     expect(getItemRawSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
@@ -123,7 +117,7 @@ test.describe('Storage Instrumentation', () => {
 
     // Test removeItem spans
     expect(findSpansByMethod('removeItem').length).toBeGreaterThanOrEqual(1);
-    const removeItemSpan = findByKey('removeItem', prefixKey('batch:1'));
+    const removeItemSpan = findSpanByCacheKey('removeItem', prefixKey('batch:1'));
     expect(removeItemSpan).toBeDefined();
     expect(removeItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
