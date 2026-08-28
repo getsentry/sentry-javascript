@@ -113,7 +113,7 @@
     "@babel/core": "^7.18.5",
     "@sentry/core": "10.67.0",
     "dotenv": "^17.4.2",
-    "find-up": "^5.0.0",
+    "find-up": "^8.0.0",
     "glob": "^13.0.6",
     "magic-string": "~0.30.8",
     "sentry": "^0.44.0",
