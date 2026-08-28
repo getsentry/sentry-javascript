@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
+import type { ClientOptions, Options, ServerRuntimeClientOptions, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   applySdkMetadata,
@@ -188,47 +188,56 @@ interface BaseCloudflareOptions {
   skipOpenTelemetrySetup?: boolean;
 
   /**
-   * Enable trace propagation for RPC calls between Workers, Durable Objects, and Service Bindings.
+   * The bindings on `env` that outgoing RPC calls propagate trace context to.
    *
-   * When enabled, trace context (sentry-trace + baggage) is propagated across:
-   * - `stub.fetch()` calls to Durable Objects (via HTTP headers)
-   * - Service binding `fetch()` calls (via HTTP headers)
-   * - RPC method calls to Durable Objects and WorkerEntrypoints (via trailing argument)
+   * Strings match a binding name exactly, regular expressions match by pattern. An empty array
+   * (the default) propagates to nothing.
    *
-   * When enabled on the **receiver side** (DurableObject or WorkerEntrypoint), the SDK will also:
-   * - Extract and continue traces from incoming RPC calls
-   * - Create spans for each RPC method invocation
-   * - Capture errors thrown by RPC methods
+   * RPC has no headers to carry trace context, so the SDK appends it as a trailing argument to
+   * every RPC method call on a matching binding. Only a Sentry-instrumented receiver strips that
+   * argument again. Anywhere else it arrives as a real argument and changes what the method was
+   * called with, so list only the bindings whose receiver you know runs Sentry.
    *
-   * **Important:** This option should be enabled on **both sides** for full trace propagation.
+   * Propagation over `stub.fetch()` and service binding `fetch()` uses HTTP headers and is not
+   * affected by this option.
    *
-   * @default false
+   * When you build with the Sentry Cloudflare Vite plugin, bindings that resolve to *this* worker
+   * (its own Durable Objects, its self service bindings) are added for you, because the plugin
+   * instruments those receivers itself. Whatever you list here is added on top of them.
+   *
+   * Setting this takes precedence over `enableRpcTracePropagation`: an allow list is the more
+   * precise statement, so a worker that sets both propagates only to the listed bindings.
+   *
+   * The receiver still needs `enableRpcTracePropagation: true` to continue the trace it is sent.
+   *
+   * @default []
    * @example
    * ```ts
-   * // Worker side (caller)
+   * // Propagate to `env.ORDERS` and every `env.SVC_*` binding
    * export default Sentry.withSentry(
-   *   (env) => ({
+   *   env => ({
    *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
+   *     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
    *   }),
    *   handler,
    * );
-   *
-   * // Durable Object side (receiver)
-   * export const MyDO = Sentry.instrumentDurableObjectWithSentry(
-   *   (env) => ({
-   *     dsn: env.SENTRY_DSN,
-   *     enableRpcTracePropagation: true,
-   *   }),
-   *   MyDOBase,
-   * );
-   *
-   * // WorkerEntrypoint side (receiver)
-   * export const MyEntrypoint = Sentry.withSentry(
-   *   env => ({ dsn: env.SENTRY_DSN, enableRpcTracePropagation: true }),
-   *   MyEntrypointBase,
-   * );
    * ```
+   */
+  rpcTracePropagationBindings?: TracePropagationTargets;
+
+  /**
+   * Whether trace context is propagated over RPC calls between Workers, Durable Objects, and
+   * Service Bindings.
+   *
+   * On the caller side, `true` appends the trace context as a trailing argument to every RPC method
+   * call on `env`, including bindings whose receiver does not run Sentry and therefore never strips
+   * that argument again. On the receiver side, `true` continues an incoming trace, creates a span
+   * per RPC method invocation, and captures errors thrown by RPC methods.
+   *
+   * @deprecated Use `rpcTracePropagationBindings` to name the bindings you call. This option will
+   * be removed in a future major version. Receivers keep using it until then.
+   *
+   * @default false
    */
   enableRpcTracePropagation?: boolean;
 

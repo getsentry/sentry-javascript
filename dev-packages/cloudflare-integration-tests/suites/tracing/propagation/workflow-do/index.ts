@@ -37,7 +37,8 @@ export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    // The workflow is itself a caller: `run` reaches the Durable Object through `this.env`.
+    rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   MyWorkflowBase,
 );
@@ -46,7 +47,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['MY_WORKFLOW'],
   }),
   {
     async fetch(request, env) {
