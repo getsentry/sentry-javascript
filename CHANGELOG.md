@@ -4,11 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.72.0
+
 ### Important Changes
 
 - **AI integrations no longer report errors that propagate to the caller ([#23638](https://github.com/getsentry/sentry-javascript/pull/23638), [#23639](https://github.com/getsentry/sentry-javascript/pull/23639), [#23640](https://github.com/getsentry/sentry-javascript/pull/23640))**
 
   Across all AI integrations (OpenAI, Anthropic, Google GenAI, LangChain, and LangGraph), the SDK no longer sends an event to Sentry for errors that the AI framework propagates to your code. Previously the instrumentation reported these as unhandled (`handled: false`) before your own error handling ran, so an error your code caught still showed up in Sentry as an unhandled crash. The span is still marked as errored and the error still propagates, so reporting is left to your application: if your code does not handle the error, it reaches Sentry's global error handlers and is captured as unhandled, just like any other uncaught error. Errors that a provider surfaces as data on an otherwise successful response (such as Anthropic error-shaped responses or Google GenAI blocked content) are still captured, since your code never sees them propagate.
+
+- **feat(v10/cloudflare): Add `rpcTracePropagationBindings` ([#23737](https://github.com/getsentry/sentry-javascript/pull/23737), [#23738](https://github.com/getsentry/sentry-javascript/pull/23738))**
+
+  The new `rpcTracePropagationBindings` option names the `env` bindings that outgoing RPC calls propagate trace context to. Strings match a binding name exactly, regular expressions match by pattern, and the default empty array propagates to nothing. RPC has no headers to carry trace context, so the SDK appends it as a trailing argument that only a Sentry-instrumented receiver removes again. List only the bindings whose receiver you know runs Sentry. Setting the option takes precedence over `enableRpcTracePropagation`, which is now deprecated. When you build with the Sentry Cloudflare Vite plugin, the bindings that resolve to this worker (its own Durable Objects and self service bindings) are derived from your wrangler config and added for you.
+
+### Other Changes
+
+- fix(v10/astro): support astro v7 route patterns properly ([#23657](https://github.com/getsentry/sentry-javascript/pull/23657))
+- fix(v10/bundler-plugins): Preserve full file path in component annotation source maps ([#23595](https://github.com/getsentry/sentry-javascript/pull/23595))
+- fix(v10/core): Store child span timeout handle in `_childSpanTimeoutID` ([#23673](https://github.com/getsentry/sentry-javascript/pull/23673))
+- fix(v10/node): Only end the process session when it is still ok ([#23731](https://github.com/getsentry/sentry-javascript/pull/23731))
+- fix(v10/react-router): Use react-router's own instrumentation types instead of a mirrored copy ([#23589](https://github.com/getsentry/sentry-javascript/pull/23589))
+- fix(v10/replay): Suppress Worker destroyed error on session expiry ([#23654](https://github.com/getsentry/sentry-javascript/pull/23654))
+- fix(v10/server-utils): Keep orchestrion registration out of tree-shaking ([#23591](https://github.com/getsentry/sentry-javascript/pull/23591))
+- fix(v10/server-utils): Stop shipping orchestrion bundler plugins as production dependencies ([#23667](https://github.com/getsentry/sentry-javascript/pull/23667))
+- fix(v10/server-utils): Support openai v7 in auto-instrumentation ([#23713](https://github.com/getsentry/sentry-javascript/pull/23713))
+- fix(v10/sveltekit): Detect native tracing in flattened SvelteKit 3 config ([#23656](https://github.com/getsentry/sentry-javascript/pull/23656))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(v10): Add external contributor to CHANGELOG.md ([#23626](https://github.com/getsentry/sentry-javascript/pull/23626))
+- docs(v10): Changelog + contributor credit for AI caller-handled error fixes ([#23641](https://github.com/getsentry/sentry-javascript/pull/23641))
+- test(v10/e2e): Fix scripts for nuxt dev server ([#23658](https://github.com/getsentry/sentry-javascript/pull/23658))
+- test(v10/e2e): Look up events via the organization trace endpoint ([#23680](https://github.com/getsentry/sentry-javascript/pull/23680))
+- test(v10/e2e): Look up the symbolicated event via the eventids endpoint ([#23681](https://github.com/getsentry/sentry-javascript/pull/23681))
+
+</details>
 
 Work in this release was contributed by @ryanrho-mercor, @lux-in-tenebris-lucet, and @suhailopensource. Thank you for your contributions!
 
