@@ -9,6 +9,7 @@ import {
   markFunctionWrapped,
   withScope,
 } from '@sentry/core/browser';
+import { getLocationHref } from '@sentry/browser-utils';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -203,17 +204,4 @@ export function getHttpRequestData(): { url: string; headers: Record<string, str
   };
 
   return request;
-}
-
-
-
-/**
- * A safe form of location.href.
- */
-export function getLocationHref(): string {
-  try {
-    return WINDOW.document.location.href;
-  } catch {
-    return '';
-  }
 }

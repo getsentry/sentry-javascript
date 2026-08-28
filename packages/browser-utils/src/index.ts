@@ -22,6 +22,8 @@ export { interactionsIntegration } from './performance/interactions';
 
 export { isBotUserAgent } from './isBotUserAgent';
 
+export { getLocationHref } from './getLocationHref';
+
 export { userTimingIntegration } from './performance/userTiming';
 
 export { extractNetworkProtocol } from './performance/utils';

@@ -40,13 +40,14 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  getLocationHref,
   isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
-import { getHttpRequestData, getLocationHref, WINDOW } from '../helpers';
+import { getHttpRequestData, WINDOW } from '../helpers';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';

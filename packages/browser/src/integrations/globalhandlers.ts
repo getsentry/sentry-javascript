@@ -13,8 +13,9 @@ import {
 } from '@sentry/core/browser';
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
+import { getLocationHref } from '@sentry/browser-utils';
 import { eventFromUnknownInput } from '../eventbuilder';
-import { getLocationHref, shouldIgnoreOnError } from '../helpers';
+import { shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
