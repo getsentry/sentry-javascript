@@ -12,7 +12,7 @@ import {
   SDK_VERSION,
 } from '@sentry/core';
 
-const supportedVersions = ['>=4.0.0 <7'];
+const supportedVersions = ['>=4.0.0 <8'];
 
 export interface OpenAiIntegration extends Integration {
   options: OpenAiOptions;
