@@ -292,6 +292,7 @@ export function finalizeWithRpcInstrumentation<T extends object>(
 
   // When using the deprecated `instrumentPrototypeMethods` option, always create spans.
   // When using the new `enableRpcTracePropagation`, only create spans when RPC metadata is present.
+  // eslint-disable-next-line typescript/no-deprecated
   const alwaysTrace = options.enableRpcTracePropagation === undefined;
 
   rpcInstanceStates.set(obj, { options, context, alwaysTrace });

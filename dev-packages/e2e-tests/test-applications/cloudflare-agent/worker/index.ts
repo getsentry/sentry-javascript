@@ -14,6 +14,7 @@ const sentryOptions = (env: Env) => ({
   tunnel: `http://localhost:3031/`,
   tracesSampleRate: 1,
   enableRpcTracePropagation: true,
+  rpcTracePropagationBindings: ['MyAgent', 'MyChatAgent', 'MyManualChatAgent'],
   // Keep gen_ai spans embedded in the transaction (instead of streamed as a separate envelope
   // container) so they can be asserted on `transaction.spans`.
   streamGenAiSpans: false,

@@ -101,7 +101,7 @@ export default Sentry.withSentry(
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   {
     async fetch(request, env) {

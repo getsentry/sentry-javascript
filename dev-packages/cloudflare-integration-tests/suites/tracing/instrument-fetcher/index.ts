@@ -31,7 +31,7 @@ export default withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['ECHO_HEADERS_DO'],
   }),
   {
     async fetch(request, env) {

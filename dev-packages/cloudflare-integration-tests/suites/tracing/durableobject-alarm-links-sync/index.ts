@@ -25,8 +25,8 @@ class SyncAlarmDurableObjectBase extends DurableObject<Env> {
 export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    tracesSampleRate: 1.0,
     enableRpcTracePropagation: true,
+    tracesSampleRate: 1.0,
   }),
   SyncAlarmDurableObjectBase,
 );
@@ -35,7 +35,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['TEST_DURABLE_OBJECT'],
   }),
   {
     async fetch(request: Request, env: Env): Promise<Response> {
