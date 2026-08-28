@@ -1,10 +1,12 @@
 // Bundled entrypoint, run directly with `node` (no `--import` runtime hook). `Sentry.init` runs
-// first so the graphql channel subscriber is ready, then the workload is imported and run. Spans are
-// collected via the `spanEnd` hook (transport- and trace-lifecycle-independent) and printed as a
-// single machine-readable line for `assert.mjs`.
+// first so the instrumentation's channel subscriber is ready, then the workload is imported and run.
+// Spans are collected via the `spanEnd` hook (transport- and trace-lifecycle-independent) and written
+// to the file named by `SENTRY_E2E_RESULT_FILE` for `assert.mjs` to read back. The workload's return
+// value rides along as `result` so the assertion can check it without knowing what the workload does.
 //
 // The body is an async function rather than top-level await so the same source bundles to both ESM
 // and CommonJS (esbuild emits CJS for a node target, which disallows top-level await).
+import { writeFileSync } from 'node:fs';
 import * as Sentry from '@sentry/node';
 
 async function main() {
@@ -24,18 +26,22 @@ async function main() {
     spans.push({ name: json.name, origin: json.attributes?.['sentry.origin'] });
   });
 
-  const { runGraphqlQuery } = await import('./app.mjs');
+  const { runWorkload } = await import('./app.mjs');
 
-  let data;
-  await Sentry.startSpan({ name: 'graphql-work' }, async () => {
-    const result = await runGraphqlQuery();
-    data = result.data;
+  let result;
+  await Sentry.startSpan({ name: 'workload' }, async () => {
+    result = await runWorkload();
   });
 
   await Sentry.flush(2000);
 
-  // eslint-disable-next-line no-console
-  console.log(`__RESULT__${JSON.stringify({ data, spans })}`);
+  const resultFile = process.env.SENTRY_E2E_RESULT_FILE;
+  if (!resultFile) {
+    throw new Error('SENTRY_E2E_RESULT_FILE is required (assertBundlerInstrumentation sets it).');
+  }
+  // Write synchronously so the payload is fully flushed before `process.exit`. `console.log` + exit
+  // can truncate or EPIPE when stdout is a pipe (the exit lands before the buffered write drains).
+  writeFileSync(resultFile, JSON.stringify({ result, spans }));
   process.exit(0);
 }
 

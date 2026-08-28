@@ -15,6 +15,7 @@
     "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
   },
   "devDependencies": {
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "graphql": "16.9.0",
     "rolldown": "1.2.5"
   },
