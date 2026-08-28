@@ -103,7 +103,7 @@ export function getSyntheticUrl(module: WebAssembly.Module, byteLength: number):
   // V8 stores string hashes in the upper 30 bits of a tagged field.
   const suffix =
     byteLength > V8_MAX_HASH_CALC_LENGTH
-      ? ((byteLength * 4 + 2) >>> 0).toString(16).padStart(8, '0')
+      ? (byteLength * 4 + 2).toString(16).padStart(8, '0')
       : UNKNOWN_HASH_PLACEHOLDER;
   return `wasm://wasm/${prefix}${suffix}`;
 }
