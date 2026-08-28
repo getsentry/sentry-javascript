@@ -566,6 +566,18 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           _pageloadSpan.end();
         }
       });
+
+      // `pagehide` is the last moment a document can still send. `registerBackgroundTabDetection`
+      // waits for `visibilitychange`, which on a same-tab navigation fires *after* `pagehide` has
+      // already frozen the page into the bfcache, so a root span ended there can never leave. Its
+      // children have been streamed all along, so missing this point produces a rootless trace.
+      WINDOW.addEventListener?.('pagehide', () => {
+        const activeSpan = getActiveIdleSpan(client);
+        if (activeSpan && !spanToJSON(activeSpan).end_timestamp) {
+          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'documentHidden');
+          activeSpan.end();
+        }
+      });
     },
 
     afterAllSetup(client) {
