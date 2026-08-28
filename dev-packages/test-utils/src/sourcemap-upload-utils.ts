@@ -38,6 +38,7 @@ export interface RequestRecord {
     checksum: string;
     chunks: string[];
     projects: string[];
+    version?: string;
   };
 }
 
