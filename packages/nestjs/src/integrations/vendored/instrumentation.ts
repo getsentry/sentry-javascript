@@ -34,7 +34,7 @@ interface RouterExecutionContext {
   create(instance: Controller, callback: (...args: unknown[]) => unknown, ...args: unknown[]): unknown;
 }
 
-const supportedVersions = ['>=4.0.0 <12'];
+const supportedVersions = ['>=4.0.0 <13'];
 
 export class NestInstrumentation extends InstrumentationBase {
   static readonly COMPONENT = '@nestjs/core';

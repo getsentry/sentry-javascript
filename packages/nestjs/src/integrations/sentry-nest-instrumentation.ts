@@ -9,7 +9,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 
-const supportedVersions = ['>=8.0.0 <12'];
+const supportedVersions = ['>=8.0.0 <13'];
 const COMPONENT = '@nestjs/common';
 
 /**
