@@ -5,12 +5,15 @@ test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
-  // Streamed spans are flushed across multiple envelopes as they end, so the cache child spans can
-  // arrive in a different envelope than the `is_segment` root span. Accumulate until the root is seen.
-  function collectCacheSpans() {
-    return collectStreamedSpans('nuxt-3', spans =>
-      spans.some(span => span.name === 'GET /api/cache-test' && span.is_segment),
-    ).then(spans => spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt'));
+  async function collectCacheSpans() {
+    const spans = await collectStreamedSpans('nuxt-3', spans =>
+      spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test'),
+    );
+    const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test');
+
+    return spans.filter(
+      span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
+    );
   }
 
   test('instruments cachedFunction and cachedEventHandler calls and creates spans with correct attributes', async ({
@@ -28,7 +31,7 @@ test.describe('Cache Instrumentation', () => {
     const findSpansByMethod = (method: string) =>
       allCacheSpans.filter(span => span.attributes['db.operation.name']?.value === method);
 
-    const keyOf = (span: (typeof allCacheSpans)[number]) => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value;
+    const getCacheKey = (span: (typeof allCacheSpans)[number]) => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value;
 
     // Test getItem spans for cachedFunction - should have both cache miss and cache hit
     const getItemSpans = findSpansByMethod('getItem');
@@ -37,8 +40,8 @@ test.describe('Cache Instrumentation', () => {
     // Find cache miss (first call to getCachedUser('123'))
     const cacheMissSpan = getItemSpans.find(
       span =>
-        typeof keyOf(span) === 'string' &&
-        (keyOf(span) as string).includes('user:123') &&
+        typeof getCacheKey(span) === 'string' &&
+        (getCacheKey(span) as string).includes('user:123') &&
         !span.attributes[SEMANTIC_ATTRIBUTE_CACHE_HIT]?.value,
     );
     if (cacheMissSpan) {
@@ -47,15 +50,15 @@ test.describe('Cache Instrumentation', () => {
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: false },
         'db.operation.name': { type: 'string', value: 'getItem' },
+        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
       });
-      expect(cacheMissSpan.attributes['db.collection.name']?.value).toMatch(/^(cache)?$/);
     }
 
     // Find cache hit (second call to getCachedUser('123'))
     const cacheHitSpan = getItemSpans.find(
       span =>
-        typeof keyOf(span) === 'string' &&
-        (keyOf(span) as string).includes('user:123') &&
+        typeof getCacheKey(span) === 'string' &&
+        (getCacheKey(span) as string).includes('user:123') &&
         span.attributes[SEMANTIC_ATTRIBUTE_CACHE_HIT]?.value,
     );
     if (cacheHitSpan) {
@@ -64,8 +67,8 @@ test.describe('Cache Instrumentation', () => {
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
         'db.operation.name': { type: 'string', value: 'getItem' },
+        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
       });
-      expect(cacheHitSpan.attributes['db.collection.name']?.value).toMatch(/^(cache)?$/);
     }
 
     // Test setItem spans for cachedFunction - when cache miss occurs, value is set
@@ -73,26 +76,26 @@ test.describe('Cache Instrumentation', () => {
     expect(setItemSpans.length).toBeGreaterThan(0);
 
     const cacheSetSpan = setItemSpans.find(
-      span => typeof keyOf(span) === 'string' && (keyOf(span) as string).includes('user:123'),
+      span => typeof getCacheKey(span) === 'string' && (getCacheKey(span) as string).includes('user:123'),
     );
     if (cacheSetSpan) {
       expect(cacheSetSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.put' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         'db.operation.name': { type: 'string', value: 'setItem' },
+        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
       });
-      expect(cacheSetSpan.attributes['db.collection.name']?.value).toMatch(/^(cache)?$/);
     }
 
     // Test that we have spans for different cached functions
     const dataKeySpans = getItemSpans.filter(
-      span => typeof keyOf(span) === 'string' && (keyOf(span) as string).includes('data:test-key'),
+      span => typeof getCacheKey(span) === 'string' && (getCacheKey(span) as string).includes('data:test-key'),
     );
     expect(dataKeySpans.length).toBeGreaterThan(0);
 
     // Test that we have spans for cachedEventHandler
     const cachedHandlerSpans = getItemSpans.filter(
-      span => typeof keyOf(span) === 'string' && (keyOf(span) as string).includes('cachedHandler'),
+      span => typeof getCacheKey(span) === 'string' && (getCacheKey(span) as string).includes('cachedHandler'),
     );
     expect(cachedHandlerSpans.length).toBeGreaterThan(0);
 

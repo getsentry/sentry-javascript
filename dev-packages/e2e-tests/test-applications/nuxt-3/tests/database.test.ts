@@ -1,12 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
-// Streamed spans are flushed across multiple envelopes as they end, so the db child spans can arrive
-// in a different envelope than the `is_segment` root span. Accumulate until the root span is seen.
-function collectDbSpans() {
-  return collectStreamedSpans('nuxt-3', spans =>
-    spans.some(span => span.name === 'GET /api/db-test' && span.is_segment),
-  ).then(spans => spans.filter(span => getSpanOp(span) === 'db.query'));
+// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
+// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
+// Accumulate until the request's root span is seen, then keep only the spans of its trace.
+//
+// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
+// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
+async function collectDbSpans() {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test'),
+  );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id && getSpanOp(span) === 'db.query');
 }
 
 test.describe('database integration', () => {
@@ -87,11 +94,13 @@ test.describe('database integration', () => {
     expect(dbSpan).toBeDefined();
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT messages' },
+      'db.query.text': {
+        type: 'string',
+        value: 'INSERT INTO messages (content, created_at) VALUES (?, ?)',
+      },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
-    // The `.sql` tag only exposes the first template chunk, so the statement is truncated at the first value
-    expect(dbSpan?.attributes['db.query.text']?.value).toContain('INSERT INTO messages');
   });
 
   test('captures db.exec() span', async ({ request }) => {
@@ -110,8 +119,16 @@ test.describe('database integration', () => {
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
 
-    // DDL statements are summarized as `{operation} {table}` as well
-    expect(dbSpans.map(span => span.name)).toEqual(expect.arrayContaining(['DROP TABLE logs', 'CREATE TABLE logs']));
+    // DDL statements are summarized as `{operation} {table}` as well, with the statement on the attribute
+    expect(dbSpans.find(span => span.name === 'DROP TABLE logs')?.attributes).toMatchObject({
+      'db.query.text': { type: 'string', value: 'DROP TABLE IF EXISTS logs' },
+    });
+    expect(dbSpans.find(span => span.name === 'CREATE TABLE logs')?.attributes).toMatchObject({
+      'db.query.text': {
+        type: 'string',
+        value: 'CREATE TABLE logs (id INTEGER PRIMARY KEY, message TEXT, level TEXT)',
+      },
+    });
   });
 
   test('captures database error and marks span as failed', async ({ request }) => {

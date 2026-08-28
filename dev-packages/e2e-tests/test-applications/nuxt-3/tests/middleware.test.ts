@@ -1,12 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
-// Streamed spans are flushed across multiple envelopes as they end, so the middleware child spans can
-// arrive in a different envelope than the `is_segment` root span. Accumulate until the root span is seen.
-function collectRequestSpans() {
-  return collectStreamedSpans('nuxt-3', spans =>
-    spans.some(span => span.name === 'GET /api/middleware-test' && span.is_segment),
+const ROUTE = '/api/middleware-test';
+
+// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
+// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
+// Accumulate until the request's root span is seen, then keep only the spans of its trace.
+//
+// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
+// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
+async function collectRequestSpans() {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === ROUTE),
   );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === ROUTE);
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id);
 }
 
 test.describe('Server Middleware Instrumentation', () => {
@@ -80,7 +89,7 @@ test.describe('Server Middleware Instrumentation', () => {
     await request.get('/api/middleware-test');
     const spans = await spansPromise;
 
-    const rootSpan = spans.find(span => span.name === 'GET /api/middleware-test' && span.is_segment);
+    const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === ROUTE);
     const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
     // All middleware spans should be children of the request's root span

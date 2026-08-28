@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
-// Streamed spans are flushed across multiple envelopes as they end, so the db child spans can arrive
-// in a different envelope than the `is_segment` root span. Accumulate until the root span is seen.
-function collectDbSpans() {
-  return collectStreamedSpans('nuxt-3', spans =>
-    spans.some(span => span.name === 'GET /api/db-multi-test' && span.is_segment),
-  ).then(spans => spans.filter(span => getSpanOp(span) === 'db.query'));
+async function collectDbSpans() {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-multi-test'),
+  );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-multi-test');
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id && getSpanOp(span) === 'db.query');
 }
 
 test.describe('multiple database instances', () => {
@@ -82,18 +83,21 @@ test.describe('multiple database instances', () => {
     // Each instance keeps its own namespace, while the span name stays low cardinality
     expect(sessionSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT sessions' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM sessions WHERE id = ?' },
       'db.namespace': { type: 'string', value: 'db.sqlite' },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
     expect(accountSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT accounts' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM accounts WHERE id = ?' },
       'db.namespace': { type: 'string', value: 'users_db.sqlite' },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
     expect(metricSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT metrics' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM metrics WHERE id = ?' },
       'db.namespace': { type: 'string', value: 'analytics_db.sqlite' },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
@@ -118,6 +122,7 @@ test.describe('multiple database instances', () => {
     expect(logsInsertSpan).toBeDefined();
     expect(logsInsertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
+      'db.query.text': { type: 'string', value: 'INSERT INTO logs (message) VALUES (?)' },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'db.namespace': { type: 'string', value: 'db.sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
@@ -126,6 +131,7 @@ test.describe('multiple database instances', () => {
     expect(auditLogsInsertSpan).toBeDefined();
     expect(auditLogsInsertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT audit_logs' },
+      'db.query.text': { type: 'string', value: 'INSERT INTO audit_logs (action) VALUES (?)' },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'db.namespace': { type: 'string', value: 'users_db.sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },

@@ -5,10 +5,10 @@ import {
   _INTERNAL_sanitizeSqlQuery,
   addBreadcrumb,
   captureException,
-  getClient,
-  hasSpanStreamingEnabled,
   DB_SPAN_NAME_FALLBACK,
   debug,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
@@ -33,13 +33,6 @@ const patchedStatement = new WeakSet<PreparedStatement>();
  * The Sentry origin for the database plugin.
  */
 const SENTRY_ORIGIN = 'auto.db.nuxt';
-
-/**
- * db0 exposes no db system we could name the span after, so unsummarizable statements fall back to
- * this static name.
- * @see https://getsentry.github.io/sentry-conventions/names/#db-queries
- */
-const DB_SPAN_NAME_FALLBACK = 'Database operation';
 
 /**
  * Creates the Nitro database plugin setup by instrumenting the configured database instances.
@@ -100,7 +93,8 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   // https://github.com/unjs/db0/blob/main/src/database.ts#L64
   db.sql = new Proxy(db.sql, {
     apply(target, thisArg, args: Parameters<typeof db.sql>) {
-      const query = args[0]?.[0] ?? '';
+      const [strings, ...values] = args;
+      const query = strings ? buildSqlTemplateQuery(strings, values) : '';
       const opts = createStartSpanOptions(query, metadata);
 
       return startSpan(
@@ -120,6 +114,29 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   });
 
   db.__sentry_instrumented__ = true;
+}
+
+/**
+ * Rebuilds the parameterized statement that db0 hands to the connector from the `.sql` template
+ * tag's arguments. Mirrors db0's own template handling: interpolated values become `?` placeholders,
+ * except values wrapped in `{}`, which db0 inlines into the statement (e.g. table names).
+ *
+ * @see https://github.com/unjs/db0/blob/main/src/template.ts
+ */
+function buildSqlTemplateQuery(strings: TemplateStringsArray, values: unknown[]): string {
+  let query = strings[0] || '';
+
+  for (let i = 1; i < strings.length; i++) {
+    const chunk = strings[i] ?? '';
+
+    if (query.endsWith('{') && chunk.startsWith('}')) {
+      query = `${query.slice(0, -1)}${values[i - 1]}${chunk.slice(1)}`;
+    } else {
+      query += `?${chunk}`;
+    }
+  }
+
+  return query.trim();
 }
 
 /**

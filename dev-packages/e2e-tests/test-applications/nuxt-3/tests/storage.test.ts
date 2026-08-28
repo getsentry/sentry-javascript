@@ -1,17 +1,30 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans } from '@sentry-internal/test-utils';
 
+// Streamed spans are flushed across multiple envelopes as they end, so spans of one request arrive
+// spread over several envelopes, interleaved with spans of earlier requests that are still buffered.
+// Accumulate until the request's root span is seen, then keep only the spans of its trace.
+//
+// The root span is matched on `url.path`: with span streaming its name is only parameterized once the
+// route resolves, which doesn't happen for un-parameterized routes or requests that end in an error.
+async function collectStorageSpans(route: string) {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === route),
+  );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === route);
+
+  return spans.filter(
+    span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
+  );
+}
+
 test.describe('Storage Instrumentation', () => {
   const prefixKey = (key: string) => `test-storage:${key}`;
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
   test('instruments all storage operations and creates spans with correct attributes', async ({ request }) => {
-    // Streamed spans are flushed across multiple envelopes as they end, so the storage child spans can
-    // arrive in a different envelope than the `is_segment` root span. Accumulate until the root is seen.
-    const storageSpansPromise = collectStreamedSpans('nuxt-3', spans =>
-      spans.some(span => span.name === 'GET /api/storage-test' && span.is_segment),
-    ).then(spans => spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt'));
+    const storageSpansPromise = collectStorageSpans('/api/storage-test');
 
     const response = await request.get('/api/storage-test');
     expect(response.status()).toBe(200);
