@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.0.0-alpha.2
+
+This is an alpha release of the upcoming major release of version 11.
+This release does not yet entail a comprehensive changelog as version 11 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `11.0.0-alpha.2`](https://github.com/getsentry/sentry-javascript/blob/11.0.0-alpha.2/MIGRATION.md#upgrading-from-10x-to-11x).
+
+Please note that the migration guide is work in progress and subject to change.
+
 ## 11.0.0-alpha.1
 
 This is an alpha release of the upcoming major release of version 11.
