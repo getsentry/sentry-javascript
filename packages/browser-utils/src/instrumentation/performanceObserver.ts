@@ -58,6 +58,19 @@ export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
 // entrypoint carries a `declare global` block that references DOM globals not present in every
 // TypeScript lib version (e.g. `NavigationType`), which leaks into and breaks consumers on older
 // TS. Keeping this local keeps web-vitals' global augmentations out of our published types.
+/**
+ * The navigation types web-vitals reports a metric for. Wider than the set the
+ * `browser.navigation.type` attribute uses - see `toBrowserNavigationType`.
+ */
+export type MetricNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'prerender'
+  | 'restore'
+  | 'soft-navigation';
+
 interface Metric {
   /**
    * The name of the metric (in acronym form).
@@ -106,14 +119,7 @@ interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType:
-    | 'navigate'
-    | 'reload'
-    | 'back-forward'
-    | 'back-forward-cache'
-    | 'prerender'
-    | 'restore'
-    | 'soft-navigation';
+  navigationType: MetricNavigationType;
 
   /**
    * The id of the navigation the metric belongs to. For soft navigations this is the

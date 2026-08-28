@@ -11,8 +11,27 @@ import {
 import { startInactiveSpan } from '@sentry/core/browser';
 import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
+import type { MetricNavigationType } from '../instrumentation/performanceObserver';
 import type { WebVitalReportEvent } from './reportEvents';
 import { SOFT_NAVIGATION_ID_ATTRIBUTE } from './softNavs';
+
+// TODO(conventions): replace with `BROWSER_NAVIGATION_TYPE` from `@sentry/conventions/attributes`
+// once https://github.com/getsentry/sentry-conventions/pull/600 is released.
+const BROWSER_NAVIGATION_TYPE_ATTRIBUTE = 'browser.navigation.type';
+
+// web-vitals reports a wider set of navigation types than the attribute defines. Only the states
+// Navigation Timing cannot express keep their own value; every ordinary document navigation folds
+// into `navigate`, including a back/forward that missed the bfcache and a discarded-tab restore.
+const BROWSER_NAVIGATION_TYPES: Partial<Record<MetricNavigationType, string>> = {
+  reload: 'reload',
+  prerender: 'prerender',
+  'back-forward-cache': 'bfcache',
+  'soft-navigation': 'soft-navigation',
+};
+
+function toBrowserNavigationType(navigationType: MetricNavigationType): string {
+  return BROWSER_NAVIGATION_TYPES[navigationType] ?? 'navigate';
+}
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -46,6 +65,8 @@ interface WebVitalSpanOptions {
   endTime?: number;
   /** Set when the vital was reported for a soft navigation rather than the initial page load. */
   softNavigationId?: number;
+  /** The navigation the vital was measured on, as reported by web-vitals. */
+  navigationType?: MetricNavigationType;
   /**
    * When `true`, the span is sent on its own as a v2 streamed span instead of being folded into a
    * transaction. Used for INP when span streaming is disabled (it reports late, so it can't ride
@@ -74,6 +95,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     endTime,
     standalone,
     softNavigationId,
+    navigationType,
   } = options;
 
   // Taken off the segment span itself, so it can't diverge from it: a routing instrumentation may
@@ -107,6 +129,10 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
 
   if (softNavigationId != null) {
     attributes[SOFT_NAVIGATION_ID_ATTRIBUTE] = softNavigationId;
+  }
+
+  if (navigationType) {
+    attributes[BROWSER_NAVIGATION_TYPE_ATTRIBUTE] = toBrowserNavigationType(navigationType);
   }
 
   // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see

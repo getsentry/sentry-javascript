@@ -331,6 +331,50 @@ describe('_emitWebVitalSpan', () => {
       });
     }).not.toThrow();
   });
+
+  it.each([
+    ['navigate', 'navigate'],
+    ['reload', 'reload'],
+    ['prerender', 'prerender'],
+    ['soft-navigation', 'soft-navigation'],
+    ['back-forward-cache', 'bfcache'],
+    // Ordinary document navigations the attribute has no separate value for.
+    ['back-forward', 'navigate'],
+    ['restore', 'navigate'],
+  ] as const)('reports navigationType %s as browser.navigation.type %s', (navigationType, expected) => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
+      value: 50,
+      startTime: 1.0,
+      navigationType,
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'browser.navigation.type': expected }),
+      }),
+    );
+  });
+
+  it('omits browser.navigation.type when the navigation type is unknown', () => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
+      value: 50,
+      startTime: 1.0,
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'browser.navigation.type': expect.anything() }),
+      }),
+    );
+  });
 });
 
 describe('_sendLcpSpan', () => {
@@ -765,9 +809,11 @@ describe('soft navigation web vitals', () => {
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
     expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[0]![0].attributes?.['browser.navigation.type']).toBe('navigate');
     expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
     expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
     expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(calls[1]![0].attributes?.['browser.navigation.type']).toBe('soft-navigation');
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
   });
 
