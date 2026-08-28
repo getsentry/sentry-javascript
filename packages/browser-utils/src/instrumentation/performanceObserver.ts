@@ -58,6 +58,19 @@ export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
 // entrypoint carries a `declare global` block that references DOM globals not present in every
 // TypeScript lib version (e.g. `NavigationType`), which leaks into and breaks consumers on older
 // TS. Keeping this local keeps web-vitals' global augmentations out of our published types.
+/**
+ * The navigation types web-vitals reports a metric for. Wider than the set the
+ * `browser.navigation.type` attribute uses - see `toBrowserNavigationType`.
+ */
+export type MetricNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'prerender'
+  | 'restore'
+  | 'soft-navigation';
+
 interface Metric {
   /**
    * The name of the metric (in acronym form).
@@ -106,14 +119,7 @@ interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType:
-    | 'navigate'
-    | 'reload'
-    | 'back-forward'
-    | 'back-forward-cache'
-    | 'prerender'
-    | 'restore'
-    | 'soft-navigation';
+  navigationType: MetricNavigationType;
 
   /**
    * The id of the navigation the metric belongs to. For soft navigations this is the
@@ -156,6 +162,8 @@ let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
 let _previousFcp: Metric | undefined;
+
+const stopListeners: Partial<Record<InstrumentHandlerType, StopListening>> = {};
 
 let _reportSoftNavs = false;
 
@@ -373,18 +381,24 @@ function addMetricObserver(
 ): CleanupHandlerCallback {
   addHandler(type, callback);
 
-  let stopListening: StopListening | undefined;
-
   if (!instrumented[type]) {
-    stopListening = instrumentFn();
     instrumented[type] = true;
+    // Deferred by a microtask rather than started here, because web-vitals reads its options once,
+    // when the observer is created. Registering a handler would otherwise pin those options for
+    // every other consumer of this observer, so whichever integration happened to run first would
+    // decide whether soft navigations and bfcache restores are reported. Client setup is
+    // synchronous, so every `enable*Reporting()` call has landed by the time this runs, and the
+    // observers are buffered so no entries are missed in the meantime.
+    void Promise.resolve().then(() => {
+      stopListeners[type] = instrumentFn();
+    });
   }
 
   if (previousValue) {
     callback({ metric: previousValue });
   }
 
-  return getCleanupCallback(type, callback, stopOnCallback ? stopListening : undefined);
+  return getCleanupCallback(type, callback, stopOnCallback);
 }
 
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
@@ -421,11 +435,13 @@ function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallb
 function getCleanupCallback(
   type: InstrumentHandlerType,
   callback: InstrumentHandlerCallback,
-  stopListening: StopListening,
+  stopOnCleanup = false,
 ): CleanupHandlerCallback {
   return () => {
-    if (stopListening) {
-      stopListening();
+    // Looked up rather than captured: the observer is started in a microtask, so its stop function
+    // does not exist yet when this callback is built.
+    if (stopOnCleanup) {
+      stopListeners[type]?.();
     }
 
     const typeHandlers = handlers[type];

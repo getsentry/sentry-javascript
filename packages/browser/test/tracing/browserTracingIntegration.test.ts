@@ -204,6 +204,23 @@ describe('browserTracingIntegration', () => {
     expect(client.getIntegrationByName('WebVitals')).toBeDefined();
   });
 
+  it('does not auto-register when the user supplies their own webVitalsIntegration', () => {
+    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+    const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
+    webVitalsSpy.mockClear();
+
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(), userWebVitals],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(webVitalsSpy).not.toHaveBeenCalled();
+  });
+
   it('forwards webVitals options to the auto-registered integration', () => {
     const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
     const client = new BrowserClient(

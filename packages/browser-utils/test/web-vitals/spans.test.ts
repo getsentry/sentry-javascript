@@ -331,6 +331,50 @@ describe('_emitWebVitalSpan', () => {
       });
     }).not.toThrow();
   });
+
+  it.each([
+    ['navigate', 'navigate'],
+    ['reload', 'reload'],
+    ['prerender', 'prerender'],
+    ['soft-navigation', 'soft-navigation'],
+    ['back-forward-cache', 'bfcache'],
+    // Ordinary document navigations the attribute has no separate value for.
+    ['back-forward', 'navigate'],
+    ['restore', 'navigate'],
+  ] as const)('reports navigationType %s as browser.navigation.type %s', (navigationType, expected) => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
+      value: 50,
+      startTime: 1.0,
+      navigationType,
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'browser.navigation.type': expected }),
+      }),
+    );
+  });
+
+  it('omits browser.navigation.type when the navigation type is unknown', () => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
+      value: 50,
+      startTime: 1.0,
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'browser.navigation.type': expect.anything() }),
+      }),
+    );
+  });
 });
 
 describe('_sendLcpSpan', () => {
@@ -413,6 +457,15 @@ describe('_sendLcpSpan', () => {
     );
   });
 
+  it('lasts the reported value when there is no entry to end at', () => {
+    // A soft navigation 2000ms into the page. Ending at the time origin would put the end before
+    // the start.
+    _sendLcpSpan(250, undefined, undefined, undefined, 2, 'soft-navigation', 2000);
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 3 }));
+    expect(mockSpan.end).toHaveBeenCalledWith(3.25);
+  });
+
   it('drops implausible LCP values', () => {
     _sendLcpSpan(0, undefined);
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
@@ -493,16 +546,25 @@ describe('_sendClsSpan', () => {
     );
   });
 
-  it('sends a streamed CLS span without entry data', () => {
+  it('anchors a CLS span without entry data to the start of the navigation', () => {
     _sendClsSpan(0, undefined);
 
-    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Layout shift',
-        startTime: 1.5,
+        // timeOrigin 1000 / 1000, i.e. the start of the page rather than the report time
+        startTime: 1,
       }),
     );
+  });
+
+  it('falls back to the current time when there is no performance time origin', () => {
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(undefined);
+
+    _sendClsSpan(0, undefined);
+
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 1.5 }));
   });
 });
 
@@ -765,10 +827,63 @@ describe('soft navigation web vitals', () => {
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
     expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[0]![0].attributes?.['browser.navigation.type']).toBe('navigate');
     expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
     expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
     expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(calls[1]![0].attributes?.['browser.navigation.type']).toBe('soft-navigation');
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
+  });
+
+  it('starts a soft navigation LCP span at the navigation, not the document time origin', () => {
+    const end = vi.fn();
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end } as any);
+
+    trackLcpAsSpan(client, true);
+
+    // web-vitals reports the value relative to the soft navigation while the entry keeps its
+    // absolute time: a 300ms LCP on a navigation that started 2000ms into the document.
+    lcpCallback({
+      metric: {
+        value: 300,
+        navigationId: 2,
+        navigationType: 'soft-navigation',
+        navigationStartTime: 2000,
+        entries: [{ startTime: 2300, element: {} }],
+      },
+    });
+
+    // (timeOrigin 1000 + navigationStartTime 2000) / 1000
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 3 }));
+    // Ends 300ms later, so the span lasts exactly the LCP it reports and stays inside its parent.
+    expect(end).toHaveBeenCalledWith(3.3);
+  });
+
+  it('starts a soft navigation CLS of 0 at the navigation, not at the report time', () => {
+    trackClsAsSpan(client, true);
+
+    // No layout shifts, so there is no entry to place the span at. The report only happens once the
+    // navigation is over, so the current time would land the span on the following route.
+    clsCallback({
+      metric: {
+        value: 0,
+        navigationId: 2,
+        navigationType: 'soft-navigation',
+        navigationStartTime: 2000,
+        entries: [],
+      },
+    });
+
+    // (timeOrigin 1000 + navigationStartTime 2000) / 1000
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 3 }));
+  });
+
+  it('keeps a page load LCP span anchored to the document time origin', () => {
+    trackLcpAsSpan(client, true);
+
+    lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 1 }));
   });
 
   it('drops soft navigation vitals that could not be correlated', () => {

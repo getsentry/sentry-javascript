@@ -12,7 +12,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import type { InteractionType } from './inp';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
-import type { InstrumentationHandlerCallback } from '../instrumentation/performanceObserver';
+import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
   addInpInstrumentationHandler,
@@ -92,15 +92,28 @@ export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
   if (reportSoftNavs) {
     trackWebVitalPerNavigation(client, addLcpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
       const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
-      _sendLcpSpan(metric.value, entry, parentSpan, undefined, softNavigationId);
+      _sendLcpSpan(
+        metric.value,
+        entry,
+        parentSpan,
+        undefined,
+        softNavigationId,
+        metric.navigationType,
+        metric.navigationStartTime,
+      );
     });
     return;
   }
 
   let lcpValue = 0;
   let lcpEntry: LargestContentfulPaint | undefined;
+  let lcpNavigationType: MetricNavigationType | undefined;
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
+    // The navigation type describes the page, not the entry, so it is worth keeping even for a
+    // report we otherwise discard.
+    lcpNavigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
     if (!entry || !isValidLcpMetric(metric.value)) {
       return;
@@ -110,7 +123,7 @@ export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent);
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent, undefined, lcpNavigationType);
     cleanupLcpHandler();
   });
 }
@@ -124,6 +137,8 @@ export function _sendLcpSpan(
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
+  navigationType?: MetricNavigationType,
+  navigationStartTime?: number,
 ): void {
   if (!isValidLcpMetric(lcpValue)) {
     return;
@@ -132,8 +147,13 @@ export function _sendLcpSpan(
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
   const performanceTimeOrigin = browserPerformanceTimeOrigin() || 0;
-  const timeOrigin = msToSec(performanceTimeOrigin);
-  const endTime = msToSec(performanceTimeOrigin + (entry?.startTime || 0));
+  // A soft navigation's LCP is measured from the triggering interaction, not the document time
+  // origin. Starting the span there too keeps it inside the navigation span it is parented to and
+  // keeps its duration equal to the value it reports.
+  const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
+  // Without an entry there is no render time to end at, so the span lasts the value it reports,
+  // like an entry-less INP does. Ending at the time origin instead would invert the span.
+  const endTime = entry ? msToSec(performanceTimeOrigin + entry.startTime) : startTime + msToSec(lcpValue);
   const name = entry ? htmlTreeAsString(entry.element) : 'Largest contentful paint';
 
   const attributes: SpanAttributes = {};
@@ -154,9 +174,10 @@ export function _sendLcpSpan(
     attributes,
     parentSpan: pageloadSpan,
     reportEvent,
-    startTime: timeOrigin,
+    startTime,
     endTime,
     softNavigationId,
+    navigationType,
   });
 }
 
@@ -171,15 +192,28 @@ export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
   if (reportSoftNavs) {
     trackWebVitalPerNavigation(client, addClsInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
       const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
-      _sendClsSpan(metric.value, entry, parentSpan, undefined, softNavigationId);
+      _sendClsSpan(
+        metric.value,
+        entry,
+        parentSpan,
+        undefined,
+        softNavigationId,
+        metric.navigationType,
+        metric.navigationStartTime,
+      );
     });
     return;
   }
 
   let clsValue = 0;
   let clsEntry: LayoutShift | undefined;
+  let clsNavigationType: MetricNavigationType | undefined;
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
+    // A CLS of 0 is reported with no entries and still emits a span, so the navigation type has to
+    // be captured before the entry check rather than alongside the value.
+    clsNavigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
@@ -189,7 +223,7 @@ export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent);
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent, undefined, clsNavigationType);
     cleanupClsHandler();
   });
 }
@@ -203,10 +237,17 @@ export function _sendClsSpan(
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
+  navigationType?: MetricNavigationType,
+  navigationStartTime?: number,
 ): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = entry ? msToSec((browserPerformanceTimeOrigin() || 0) + entry.startTime) : timestampInSeconds();
+  const performanceTimeOrigin = browserPerformanceTimeOrigin();
+  // A CLS of 0 has no shift to place the span at. It is reported when the navigation it was
+  // measured on is already over - the next soft navigation, or pagehide - so the current time would
+  // land it outside that navigation, on the route that follows it.
+  const offset = entry?.startTime ?? navigationStartTime ?? 0;
+  const startTime = performanceTimeOrigin ? msToSec(performanceTimeOrigin + offset) : timestampInSeconds();
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
 
   const attributes: SpanAttributes = {};
@@ -228,6 +269,7 @@ export function _sendClsSpan(
     reportEvent,
     startTime,
     softNavigationId,
+    navigationType,
   });
 }
 
@@ -332,6 +374,7 @@ export function _sendInpSpan(
     },
     startTime,
     endTime: startTime + duration,
+    navigationType: metric?.navigationType,
     parentSpan: spanToUse,
     standalone,
     softNavigationId,
