@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
-import { spanStreamingIntegration } from '../integrations/browserSpanStreaming';
+import { spanStreamingIntegration } from '../integrations/spanStreaming';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
@@ -37,7 +37,7 @@ export function _INTERNAL_ensureBrowserSpanStreaming(client: Client | undefined 
   }
 
   clientsWithIntegration.add(client);
-  client.addIntegration(spanStreamingIntegration());
+  client.addIntegration(spanStreamingIntegration({ flushOnSegmentEnd: true }));
 }
 
 /**
