@@ -15,6 +15,8 @@ import {
   isObjectLike,
   defineIntegration,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -101,8 +103,19 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
   const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
+  const host = attributes[SERVER_ADDRESS];
+  const port = attributes[SERVER_PORT];
+
+  const client = getClient();
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? host && port != null
+        ? `${commandName} ${host}:${port}`
+        : DB_SYSTEM_VALUE_REDIS
+      : dbStatement || `redis-${commandName}`;
+
   return startInactiveSpan({
-    name: dbStatement || `redis-${commandName}`,
+    name,
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,

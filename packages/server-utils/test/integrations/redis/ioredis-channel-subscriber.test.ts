@@ -39,6 +39,23 @@ describe('startIORedisCommandSpan', () => {
     );
   });
 
+  it('names the span from the conventions with span streaming enabled', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // `{db.operation.name} {server.address}:{server.port}` — redis has no collection or namespace
+        name: 'set localhost:6379',
+        // the serialized statement, which carries the key, is still reported as an attribute
+        attributes: expect.objectContaining({ 'db.query.text': 'set test-key [1 other arguments]' }),
+      }),
+    );
+  });
+
   it('emits a single span when the same command is re-sent from the offline queue', () => {
     const command = { name: 'set', args: ['test-key', 'test-value'] };
 

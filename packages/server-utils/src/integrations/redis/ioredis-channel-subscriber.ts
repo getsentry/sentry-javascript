@@ -10,7 +10,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
@@ -76,8 +76,19 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
   tracedCommands.add(command);
   const { host, port } = getConnectionOptions(data.self);
   const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
+  const client = getClient();
+  // The serialized statement carries command arguments, so with span streaming — where span names have
+  // to be low cardinality — `{db.operation.name} {server.address}:{server.port}` is used instead.
+  // Redis has no collection or namespace to pair with, so `{db.system.name}` is next.
+  const streamedName =
+    client && hasSpanStreamingEnabled(client)
+      ? host && port != null
+        ? `${command.name} ${host}:${port}`
+        : 'redis'
+      : undefined;
+
   return startInactiveSpan({
-    name: statement,
+    name: streamedName || statement,
     attributes: {
       [SENTRY_KIND]: 'client',
       ...connectionAttributes(host, port),
