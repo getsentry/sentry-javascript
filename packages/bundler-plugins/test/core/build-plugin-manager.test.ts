@@ -10,6 +10,7 @@ const {
   mockReleaseCreate,
   mockReleaseFinalize,
   mockReleaseSetCommits,
+  mockReleaseDeploy,
   mockSourcemapUpload,
   mockSourcemapInject,
   mockRun,
@@ -18,6 +19,7 @@ const {
   mockReleaseCreate: vi.fn(),
   mockReleaseFinalize: vi.fn(),
   mockReleaseSetCommits: vi.fn(),
+  mockReleaseDeploy: vi.fn(),
   mockSourcemapUpload: vi.fn(),
   mockSourcemapInject: vi.fn(),
   mockRun: vi.fn(),
@@ -31,6 +33,7 @@ vi.mock('sentry', () => ({
         create: mockReleaseCreate,
         finalize: mockReleaseFinalize,
         'set-commits': mockReleaseSetCommits,
+        deploy: mockReleaseDeploy,
       },
       sourcemap: {
         upload: mockSourcemapUpload,
@@ -786,8 +789,10 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.createRelease();
 
-      expect(mockRun).toHaveBeenCalledTimes(1);
-      expect(mockRun).toHaveBeenCalledWith('release', 'deploy', 'test-release', 'production');
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'test-release', environment: 'production' }),
+      );
     });
 
     it('should not create duplicate deploy records when createRelease is called multiple times on the same instance', async () => {
@@ -808,7 +813,7 @@ describe('createSentryBuildPluginManager', () => {
       await manager.createRelease();
       await manager.createRelease();
 
-      expect(mockRun).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
     });
 
     it('should not create duplicate deploy records across separate plugin instances with the same release name', async () => {
@@ -841,7 +846,7 @@ describe('createSentryBuildPluginManager', () => {
       await managerA.createRelease();
       await managerB.createRelease();
 
-      expect(mockRun).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
     });
 
     it('should allow deploys for different release names', async () => {
@@ -874,9 +879,13 @@ describe('createSentryBuildPluginManager', () => {
       await managerA.createRelease();
       await managerB.createRelease();
 
-      expect(mockRun).toHaveBeenCalledTimes(2);
-      expect(mockRun).toHaveBeenCalledWith('release', 'deploy', 'release-1', 'production');
-      expect(mockRun).toHaveBeenCalledWith('release', 'deploy', 'release-2', 'production');
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(2);
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'release-1', environment: 'production' }),
+      );
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'release-2', environment: 'production' }),
+      );
     });
 
     it('should not create a deploy when deploy option is not set', async () => {
@@ -892,7 +901,7 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.createRelease();
 
-      expect(mockRun).not.toHaveBeenCalled();
+      expect(mockReleaseDeploy).not.toHaveBeenCalled();
     });
   });
 });

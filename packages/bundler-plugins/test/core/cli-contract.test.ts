@@ -159,8 +159,6 @@ describe('SentryCliAdapter against the real CLI', () => {
   it('creates a deploy with an environment and a name', async () => {
     const before = recordedRequests();
 
-    // The name is the third positional. As `--name` the CLI rejects the argv, `run()` resolves
-    // with undefined anyway, and no deploy is created - so assert the request, not the promise.
     await createAdapter().newDeploy('1.0.0', {
       env: 'production',
       name: 'Deploy #42',

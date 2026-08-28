@@ -128,35 +128,15 @@ export class SentryCliAdapter {
       return;
     }
 
-    // `sentry release deploy` takes three positionals - `<org/version> <environment> [<name>]` -
-    // but up to CLI 0.42 the generated `release.deploy()` exposed them as a single
-    // `orgVersionEnvironmentName` string that it forwarded as one argv token, with no separator
-    // that splits it back apart. Passing "1.0.0 production" fails with "Expected argument for
-    // environment", so `run()` is the only way to pass them separately. Once the SDK's minimum
-    // CLI version includes the split params, this can become `release.deploy({...})`.
-    const args = ['release', 'deploy', name, deploy.env];
-
-    if (deploy.name) {
-      args.push(deploy.name);
-    }
-
-    if (deploy.url) {
-      args.push('--url', deploy.url);
-    }
-
-    if (deploy.started !== undefined) {
-      args.push('--started', String(deploy.started));
-    }
-
-    if (deploy.finished !== undefined) {
-      args.push('--finished', String(deploy.finished));
-    }
-
-    if (deploy.time !== undefined) {
-      args.push('--time', String(deploy.time));
-    }
-
-    await this.#sdk.run(...args);
+    await this.#sdk.release.deploy({
+      orgVersion: name,
+      environment: deploy.env,
+      name: deploy.name,
+      url: deploy.url,
+      started: deploy.started !== undefined ? String(deploy.started) : undefined,
+      finished: deploy.finished !== undefined ? String(deploy.finished) : undefined,
+      time: deploy.time !== undefined ? String(deploy.time) : undefined,
+    });
   }
 
   /**
