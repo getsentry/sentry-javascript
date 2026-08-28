@@ -238,7 +238,7 @@ function getLowCardinalitySecondarySpanName(
   if (operation === 'execBulkLoad' && bulkLoadTable) {
     return `${operation} ${bulkLoadTable}`;
   }
-  if (operation === 'callProcedure') {
+  if (operation === 'callProcedure' && sql) {
     // `sql` refers to the procedure name for `callProcedure`, so it is low-cardinality in this case.
     return `${operation} ${sql}`;
   }
