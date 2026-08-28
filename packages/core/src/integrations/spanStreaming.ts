@@ -18,12 +18,14 @@ interface SpanStreamingOptions {
    * This is used in the browser, where we never know when the page is closed or navigated away from,
    * so spans must be sent timely.
    *
-   * @default false
+   * @default true
    */
   flushOnSegmentEnd?: boolean;
 }
 
 export const spanStreamingIntegration = defineIntegration((options: SpanStreamingOptions = {}) => {
+  const flushOnSegmentEnd = options.flushOnSegmentEnd ?? true;
+
   return {
     name: INTEGRATION_NAME,
 
@@ -51,10 +53,8 @@ export const spanStreamingIntegration = defineIntegration((options: SpanStreamin
         buffer.flush(traceId);
       });
 
-      if (options.flushOnSegmentEnd) {
-        // In addition to capturing the span, we also flush the trace when the segment
-        // span ends to ensure things are sent timely. We never know when the browser
-        // is closed, users navigate away, etc.
+      if (flushOnSegmentEnd) {
+        // Also flush the trace when the segment span ends to ensure things are sent timely.
         client.on('afterSegmentSpanEnd', segmentSpan => {
           const traceId = segmentSpan.spanContext().traceId;
           // `safeUnref` so an enabled `flushOnSegmentEnd` on a server runtime can't keep the

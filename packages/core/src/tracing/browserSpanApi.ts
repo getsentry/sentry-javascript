@@ -37,7 +37,7 @@ export function _INTERNAL_ensureBrowserSpanStreaming(client: Client | undefined 
   }
 
   clientsWithIntegration.add(client);
-  client.addIntegration(spanStreamingIntegration({ flushOnSegmentEnd: true }));
+  client.addIntegration(spanStreamingIntegration());
 }
 
 /**
