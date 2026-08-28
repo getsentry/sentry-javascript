@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, and @mcbbugu. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, and @suhailopensource. Thank you for your contributions!
 
 - feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
   - `DenoAmqplib` => `Amqplib`
