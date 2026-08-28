@@ -93,6 +93,7 @@ function instrumentMethod(
     true,
   );
 
+  // eslint-disable-next-line typescript/no-deprecated
   if (!options.enableRpcTracePropagation) {
     return captureMethod;
   }
