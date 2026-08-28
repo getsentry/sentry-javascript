@@ -1,10 +1,10 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -43,14 +43,14 @@ sentryTest('should create a navigation transaction on page navigation', async ({
   expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
   expect(navigationRequest.contexts?.trace?.data).toMatchObject({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
@@ -121,7 +121,7 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
   expect(navigationRequest.contexts?.trace?.data).toMatchObject({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
@@ -141,7 +141,7 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
   expect(navigationRequest2.contexts?.trace?.data).toMatchObject({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });

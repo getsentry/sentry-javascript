@@ -119,6 +119,8 @@ function getOrCreateFlushLockRegistry(context: ExecutionContextCompat): FlushLoc
 /**
  * Flushes the client and then disposes of it to allow garbage collection.
  * This should be called at the end of each request to prevent memory leaks.
+ * Cached clients (`cacheClient`) are reused across invocations, so
+ * they are flushed but not disposed.
  *
  * This function never rejects. On Workers, a rejected promise passed to
  * `ctx.waitUntil` marks the whole invocation as `outcome: exception` even when
@@ -139,10 +141,14 @@ export async function flushAndDispose(client: Client | undefined, timeout = 2000
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to flush client', e);
   } finally {
-    try {
-      client?.dispose();
-    } catch (e) {
-      DEBUG_BUILD && debug.warn('Failed to dispose client', e);
+    // Only dispose per-invocation clients. Cached clients (`cacheClient`)
+    // are reused across invocations and must not be disposed at an invocation boundary.
+    if (!(client as { isCachedClient?: boolean } | undefined)?.isCachedClient) {
+      try {
+        client?.dispose();
+      } catch (e) {
+        DEBUG_BUILD && debug.warn('Failed to dispose client', e);
+      }
     }
   }
 }

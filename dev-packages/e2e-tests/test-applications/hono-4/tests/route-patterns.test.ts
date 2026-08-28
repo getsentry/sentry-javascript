@@ -23,7 +23,7 @@ test.describe('HTTP methods', () => {
       const transaction = await transactionPromise;
       expect(transaction.transaction).toBe(`${method} ${PREFIX}`);
       expect(transaction.contexts?.trace?.op).toBe('http.server');
-      expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
       const spans = transaction.spans || [];
       const middlewareSpans = spans.filter(s => s.op === 'middleware');
@@ -45,7 +45,7 @@ test.describe('route registration styles', () => {
       const transaction = await transactionPromise;
       expect(transaction.transaction).toBe(`GET ${PREFIX}${path}`);
       expect(transaction.contexts?.trace?.op).toBe('http.server');
-      expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
       const spans = transaction.spans || [];
       const middlewareSpans = spans.filter(s => s.op === 'middleware');
@@ -67,7 +67,7 @@ test.describe('route registration styles', () => {
 
       const transaction = await transactionPromise;
       expect(transaction.transaction).toBe(`POST ${PREFIX}${path}`);
-      expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
       const spans = transaction.spans || [];
       const middlewareSpans = spans.filter(s => s.op === 'middleware');
@@ -139,7 +139,7 @@ test('async handler sends transaction', async ({ baseURL }) => {
   const transaction = await transactionPromise;
   expect(transaction.transaction).toBe(`GET ${PREFIX}/async`);
   expect(transaction.contexts?.trace?.op).toBe('http.server');
-  expect(transaction.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
 
   const spans = transaction.spans || [];
   const middlewareSpans = spans.filter(s => s.op === 'middleware');

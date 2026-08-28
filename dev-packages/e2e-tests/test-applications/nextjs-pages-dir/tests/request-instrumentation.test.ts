@@ -14,7 +14,7 @@ test.skip('Should send a transaction with a http span', async ({ request }) => {
   expect((await transactionPromise).spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.client',
       }),

@@ -1,9 +1,12 @@
 import type { Client } from '@sentry/core/browser';
 import * as utils from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BrowserClient } from '../../src/client';
 import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the vi environment (even with an
@@ -26,6 +29,7 @@ describe('instrumentOutgoingRequests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     client = new MockClient() as unknown as Client;
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), undefined);
   });
 
   it('instruments fetch and xhr requests', () => {
@@ -54,6 +58,74 @@ describe('instrumentOutgoingRequests', () => {
     expect(addXhrSpy).not.toHaveBeenCalled();
   });
 
+  it('creates a QUERY fetch span with the QUERY method attribute', () => {
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'QUERY', url: 'https://example.com/rest/v1/users?select=id' },
+      args: ['https://example.com/rest/v1/users?select=id'],
+      startTimestamp: Date.now(),
+    });
+
+    expect(fetchHandler).toBeDefined();
+    expect(requestSpan).toBeDefined();
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
+    expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
+  });
+
+  it('creates a QUERY XHR span with the QUERY method attribute', () => {
+    let xhrHandler: ((data: browserUtils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'QUERY',
+          url: 'https://example.com/rest/v1/users?select=id',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as browserUtils.HandlerDataXhr);
+
+    expect(xhrHandler).toBeDefined();
+    expect(requestSpan).toBeDefined();
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
+    expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
+  });
+
   describe('XHR trace header span', () => {
     afterEach(() => {
       vi.restoreAllMocks();
@@ -62,7 +134,7 @@ describe('instrumentOutgoingRequests', () => {
     it('uses the active propagation context for an ignored child span', () => {
       const activeSpan = new utils.SentryNonRecordingSpan();
       const ignoredSpan = new utils.SentryNonRecordingSpan({ dropReason: 'ignored' });
-      let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+      let xhrHandler: ((data: browserUtils.HandlerDataXhr) => void) | undefined;
 
       vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
         xhrHandler = handler;
@@ -91,7 +163,7 @@ describe('instrumentOutgoingRequests', () => {
           setRequestHeader: vi.fn(),
         },
         startTimestamp: Date.now(),
-      } as utils.HandlerDataXhr);
+      } as browserUtils.HandlerDataXhr);
 
       expect(xhrHandler).toBeDefined();
       expect(getTraceDataSpy).toHaveBeenCalledWith({
@@ -121,7 +193,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
     afterEach(() => {
@@ -160,7 +232,7 @@ describe('shouldAttachHeaders', () => {
 
     beforeEach(() => {
       locationHrefSpy = vi
-        .spyOn(utils, 'getLocationHref')
+        .spyOn(browserUtils, 'getLocationHref')
         .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
@@ -222,6 +294,16 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
+
+      // matching is case-insensitive in both directions, because `new URL()` lower-cases the origin
+      ['https://MY-ORIGIN.com', 'my-origin', true],
+      ['https://my-origin.com', 'MY-ORIGIN', true],
+      ['https://my-origin.com', /^https:\/\/MY-ORIGIN\.com\//, true],
+      ['https://MY-ORIGIN.com', /^https:\/\/my-origin\.com\//, true],
+      ['https://my-origin.com/API/my-route', '/api/', true],
+      ['https://my-origin.com/api/my-route', '/API/', true],
+      ['https://my-origin.com/API/my-route', /^\/api\//, true],
+      ['https://MY-ORIGIN.com', 'not-my-origin', false], // still no match on a genuinely different target
     ])(
       'for url %j and tracePropagationTarget %j on page "https://my-origin.com/api/my-route" should return %j',
       (url, matcher, result) => {
@@ -282,7 +364,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => '');
     });
 
     afterEach(() => {
@@ -367,6 +449,13 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
+
+      // matching is case-insensitive in both directions, because `new URL()` lower-cases the origin
+      ['https://MY-ORIGIN.com', 'my-origin', true],
+      ['https://my-origin.com', 'MY-ORIGIN', true],
+      ['https://my-origin.com/', /^https:\/\/MY-ORIGIN\.com\//, true],
+      ['https://MY-ORIGIN.com/', /^https:\/\/my-origin\.com\//, true],
+      ['https://MY-ORIGIN.com', 'not-my-origin', false], // still no match on a genuinely different target
     ])('for url %j and tracePropagationTarget %j should return %j', (url, matcher, result) => {
       expect(shouldAttachHeaders(url, [matcher])).toBe(result);
     });

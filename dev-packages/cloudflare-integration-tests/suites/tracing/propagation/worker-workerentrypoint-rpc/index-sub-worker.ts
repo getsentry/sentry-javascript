@@ -46,7 +46,6 @@ export const BindingEntrypoint = Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
     initialScope: { tags: { initial_scope: 'applied' } },
     beforeSend(event) {
       event.tags = { ...event.tags, before_send: 'applied' };
@@ -57,15 +56,24 @@ export const BindingEntrypoint = Sentry.withSentry(
   MySubWorkerEntrypointBase,
 );
 
+// Instrumented like any other receiver. It is the caller that leaves this binding out of its
+// targets, which is now the only way to opt a binding out of trace propagation.
 export const NoPropagationEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: false,
     transportOptions: { fetch: fetch.bind(globalThis) },
   }),
   MySubWorkerEntrypointBase,
 );
+
+// Deliberately not wrapped with Sentry: nothing strips a trailing RPC metadata argument here, so
+// this is what a caller corrupts if it propagates to a receiver it has no guarantees about.
+export class UninstrumentedEntrypoint extends WorkerEntrypoint<Env> {
+  get(key: string): { argumentCount: number; key: string } {
+    return { argumentCount: arguments.length, key };
+  }
+}
 
 export default BindingEntrypoint;

@@ -1,16 +1,16 @@
-import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
-import { WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   captureException,
   continueTrace,
   getActiveSpan,
+  getClient,
   getIsolationScope,
   getRootSpan,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startInactiveSpan,
   startSpanManual,
@@ -18,6 +18,8 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { AnyElysia, Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
 
@@ -31,16 +33,16 @@ const ELYSIA_ORIGIN = 'auto.http.elysia';
  * Map Elysia lifecycle phase names to Sentry span ops.
  */
 const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
-  Request: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  Parse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  Transform: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  BeforeHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  Request: MIDDLEWARE,
+  Parse: MIDDLEWARE,
+  Transform: MIDDLEWARE,
+  BeforeHandle: MIDDLEWARE,
   // TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
   Handle: 'handler',
-  AfterHandle: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  MapResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  AfterResponse: WEB_SERVER_MIDDLEWARE_SPAN_OP,
-  Error: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+  AfterHandle: MIDDLEWARE,
+  MapResponse: MIDDLEWARE,
+  AfterResponse: MIDDLEWARE,
+  Error: MIDDLEWARE,
 };
 
 function isBun(): boolean {
@@ -66,7 +68,7 @@ function updateRouteTransactionName(request: Request, method: string, route: str
   function applyRouteToSpan(span: Span): void {
     updateSpanName(span, transactionName);
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [HTTP_ROUTE]: route,
     });
   }
@@ -201,13 +203,19 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
               baggage: request.headers.get('baggage'),
             },
             () => {
+              const client = getClient();
               return startSpanManual(
                 {
                   op: 'http.server',
-                  name: `${request.method} ${new URL(request.url).pathname}`,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back to the
+                  // URL path. `updateRouteTransactionName` renames the span once Elysia resolves the route.
+                  name:
+                    client && hasSpanStreamingEnabled(client)
+                      ? request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+                      : `${request.method} ${new URL(request.url).pathname}`,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [URL_FULL]: filterCollectedUrl(request.url),
                     [URL_PATH]: new URL(request.url).pathname,
                   },

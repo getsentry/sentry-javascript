@@ -107,8 +107,8 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     data: expect.objectContaining({
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
-      'db.operation': 'auth.signInWithPassword',
-      'db.system': 'postgresql',
+      'db.operation.name': 'auth.signInWithPassword',
+      'db.system.name': 'postgresql',
     }),
   });
 
@@ -124,8 +124,8 @@ sentryTest('should capture Supabase authentication spans', async ({ getLocalTest
     data: expect.objectContaining({
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
-      'db.operation': 'auth.signOut',
-      'db.system': 'postgresql',
+      'db.operation.name': 'auth.signOut',
+      'db.system.name': 'postgresql',
     }),
   });
 });
@@ -158,8 +158,8 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     data: expect.objectContaining({
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
-      'db.operation': 'auth.signInWithPassword',
-      'db.system': 'postgresql',
+      'db.operation.name': 'auth.signInWithPassword',
+      'db.system.name': 'postgresql',
     }),
   });
 });

@@ -14,7 +14,7 @@
     "lint:fix": "oxlint . --fix --type-aware"
   },
   "dependencies": {
-    "@actions/artifact": "^6.1.0",
+    "@actions/artifact": "^6.2.1",
     "@actions/core": "1.10.1",
     "@actions/exec": "1.1.1",
     "@actions/github": "^5.0.0",

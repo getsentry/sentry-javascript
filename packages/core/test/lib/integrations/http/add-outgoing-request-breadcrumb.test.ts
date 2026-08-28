@@ -71,7 +71,7 @@ describe('addOutgoingRequestBreadcrumb', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           url: 'http://example.com/api/test',
-          'http.method': 'POST',
+          'http.request.method': 'POST',
           status_code: 201,
         }),
       }),
@@ -165,7 +165,7 @@ describe('addOutgoingRequestBreadcrumb', () => {
     addOutgoingRequestBreadcrumb(makeMockRequest({ method: undefined }), makeMockResponse());
 
     const callArg = vi.mocked(breadcrumbsModule.addBreadcrumb).mock.calls[0]![0];
-    expect(callArg.data?.['http.method']).toBe('GET');
+    expect(callArg.data?.['http.request.method']).toBe('GET');
   });
 
   // Breadcrumbs never reach the span pipeline, so this is the only place `urlQueryParams` is applied to them.

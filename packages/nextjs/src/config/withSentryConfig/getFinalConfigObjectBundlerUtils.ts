@@ -3,6 +3,7 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../diagnosticsChannelInjection';
+import { getBuildLogger } from '../buildLogger';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
@@ -36,12 +37,33 @@ export function getBundlerInfo(nextJsVersion: string | undefined): BundlerInfo {
 /**
  * Warns if turbopack is in use but the detected Next.js version is unsupported.
  */
-export function maybeWarnAboutUnsupportedTurbopack(nextJsVersion: string | undefined, bundlerInfo: BundlerInfo): void {
+export function maybeWarnAboutUnsupportedTurbopack(
+  nextJsVersion: string | undefined,
+  bundlerInfo: BundlerInfo,
+  silent?: boolean,
+): void {
   // Warn if using turbopack with an unsupported Next.js version
   if (!bundlerInfo.isTurbopackSupported && bundlerInfo.isTurbopack) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(silent).warn(
       `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+    );
+  }
+}
+
+/**
+ * Warns if `moduleMetadata` is set on a Turbopack build, where it currently has no effect.
+ *
+ * The Turbopack metadata loader only injects `applicationKey`; arbitrary `moduleMetadata` is
+ * webpack-only for now. Without this warning the option would be a silent no-op on Next.js 16+,
+ * where Turbopack is the default.
+ */
+export function maybeWarnAboutTurbopackModuleMetadata(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (bundlerInfo.isTurbopack && userSentryOptions.moduleMetadata) {
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] WARNING: `moduleMetadata` is currently only applied on webpack builds and has no effect on Turbopack builds. Use `applicationKey` if you need `thirdPartyErrorFilterIntegration` support, which works on both bundlers.',
     );
   }
 }
@@ -60,8 +82,7 @@ export function maybeWarnAboutUnsupportedRunAfterProductionCompileHook(
     !supportsProductionCompileHook(nextJsVersion ?? '') &&
     bundlerInfo.isWebpack
   ) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(userSentryOptions.silent).warn(
       '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
     );
   }
@@ -199,8 +220,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
     return;
   }
 
-  // eslint-disable-next-line no-console
-  console.warn(
+  getBuildLogger(userSentryOptions.silent).warn(
     '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
   );
 }
@@ -225,9 +245,10 @@ export function maybeEnableTurbopackSourcemaps(
     return;
   }
 
+  const logger = getBuildLogger(userSentryOptions.silent);
+
   if (userSentryOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+    logger.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
   }
   incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
@@ -237,8 +258,7 @@ export function maybeEnableTurbopackSourcemaps(
   }
 
   if (userSentryOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    logger.warn(
       '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
     );
   }

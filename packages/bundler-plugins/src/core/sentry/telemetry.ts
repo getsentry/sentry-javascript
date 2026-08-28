@@ -1,4 +1,3 @@
-import SentryCli from '@sentry/cli';
 import type { Client } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
@@ -7,7 +6,7 @@ import { SENTRY_SAAS_URL } from '../options-mapping';
 import { Scope } from '@sentry/core';
 import { createStackParser, nodeStackLineParser } from '@sentry/core';
 import { makeOptionallyEnabledNodeTransport } from './transports';
-import { getProjects } from '../utils';
+import { SentryCliAdapter } from '../cli';
 import { LIB_VERSION } from '../version';
 
 const SENTRY_SAAS_HOSTNAME = 'sentry.io';
@@ -127,7 +126,7 @@ export function setTelemetryDataOnScope(
 }
 
 export async function allowedToSendTelemetry(options: NormalizedOptions): Promise<boolean> {
-  const { silent, org, project, authToken, url, headers, telemetry, release } = options;
+  const { telemetry, url } = options;
 
   // `options.telemetry` defaults to true
   if (telemetry === false) {
@@ -138,31 +137,9 @@ export async function allowedToSendTelemetry(options: NormalizedOptions): Promis
     return true;
   }
 
-  const cli = new SentryCli(null, {
-    url,
-    authToken,
-    org,
-    project: getProjects(project)?.[0],
-    vcsRemote: release.vcsRemote,
-    silent,
-    headers,
-  });
-
-  let cliInfo;
-  try {
-    // Makes a call to SentryCLI to get the Sentry server URL the CLI uses.
-    // We need to check and decide to use telemetry based on the CLI's response to this call
-    // because only at this time we checked a possibly existing .sentryclirc file. This file
-    // could point to another URL than the default URL.
-    cliInfo = await cli.execute(['info'], false);
-  } catch {
-    return false;
-  }
-
-  const cliInfoUrl = cliInfo
-    .split(/(\r\n|\n|\r)/)[0]
-    ?.replace(/^Sentry Server: /, '')
-    ?.trim();
+  // Ask the CLI which Sentry server URL it resolves to. This can differ from the default (or the
+  // configured `url`) because the CLI also honors a possibly existing `.sentryclirc` file.
+  const cliInfoUrl = await new SentryCliAdapter(options).getServerUrl();
 
   if (cliInfoUrl === undefined) {
     return false;

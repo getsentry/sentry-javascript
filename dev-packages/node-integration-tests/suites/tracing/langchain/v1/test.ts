@@ -1,4 +1,4 @@
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -16,13 +16,10 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
 
-// LangChain v1 requires Node.js 20+ (dropped Node 18 support)
-// See: https://docs.langchain.com/oss/javascript/migrate/langgraph-v1#dropped-node-18-support
-conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
+describe('LangChain integration (v1)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

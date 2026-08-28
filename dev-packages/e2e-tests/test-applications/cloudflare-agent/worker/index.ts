@@ -12,7 +12,7 @@ const sentryOptions = (env: Env) => ({
   dsn: env.E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`,
   tracesSampleRate: 1,
-  enableRpcTracePropagation: true,
+  rpcTracePropagationBindings: ['MyAgent', 'MyChatAgent', 'MyManualChatAgent'],
   durableObjectStorageSpanAllowlist: ['cf_user_key'],
 });
 

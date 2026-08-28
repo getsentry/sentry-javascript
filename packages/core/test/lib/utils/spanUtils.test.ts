@@ -5,7 +5,6 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentryNonRecordingSpan,
@@ -27,8 +26,10 @@ import type { SpanStatus } from '../../../src/types/spanStatus';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
+  addChildSpanToSpan,
   getActiveSpan,
   getRootSpan,
+  getSpanDescendants,
   spanIsSampled,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
@@ -40,6 +41,7 @@ import {
   updateSpanName,
 } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 function createMockedOtelSpan({
   spanId,
@@ -872,12 +874,78 @@ describe('getActiveSpan', () => {
   });
 });
 
+describe('addChildSpanToSpan', () => {
+  it('does not track children on an unsampled span', () => {
+    const parent = new SentrySpan({ name: 'parent', sampled: false });
+    const child = new SentrySpan({ name: 'child', sampled: false });
+
+    addChildSpanToSpan(parent, child);
+
+    expect(getRootSpan(child)).toBe(parent);
+    expect((parent as unknown as { _sentryChildSpans?: Set<Span> })._sentryChildSpans).toBeUndefined();
+  });
+
+  it('does not track children on a segment span that stopped recording', () => {
+    const parent = new SentrySpan({ name: 'parent', sampled: true });
+    parent.end();
+
+    const child = new SentrySpan({ name: 'child', sampled: true });
+    addChildSpanToSpan(parent, child);
+
+    // the child that was not tracked can still find its root span
+    expect(getRootSpan(child)).toBe(parent);
+    expect(getSpanDescendants(parent)).toEqual([parent]);
+  });
+
+  it('keeps tracking children on an ended span while its segment span is still recording', () => {
+    const segment = new SentrySpan({ name: 'segment', sampled: true });
+    const parent = new SentrySpan({ name: 'parent', sampled: true });
+    addChildSpanToSpan(segment, parent);
+    parent.end();
+
+    const child = new SentrySpan({ name: 'child', sampled: true });
+    addChildSpanToSpan(parent, child);
+
+    // the segment span is still open, so its transaction has not been assembled yet
+    expect(getSpanDescendants(segment)).toEqual([segment, parent, child]);
+  });
+
+  it('stops tracking children on an ended span once its segment span has ended', () => {
+    const segment = new SentrySpan({ name: 'segment', sampled: true });
+    const parent = new SentrySpan({ name: 'parent', sampled: true });
+    addChildSpanToSpan(segment, parent);
+    parent.end();
+    segment.end();
+
+    const child = new SentrySpan({ name: 'child', sampled: true });
+    addChildSpanToSpan(parent, child);
+
+    // the child that was not tracked can still find its root span
+    expect(getRootSpan(child)).toBe(segment);
+    expect(getSpanDescendants(segment)).toEqual([segment, parent]);
+  });
+
+  it('keeps tracking children on a still-recording span after its segment span ended', () => {
+    const segment = new SentrySpan({ name: 'segment', sampled: true });
+    const lateChild = new SentrySpan({ name: 'late child', sampled: true });
+    addChildSpanToSpan(segment, lateChild);
+    segment.end();
+
+    const grandChild = new SentrySpan({ name: 'grandchild', sampled: true });
+    addChildSpanToSpan(lateChild, grandChild);
+
+    // a late child that outlives its segment is re-emitted as its own orphan transaction with its
+    // subtree, so the subtree must keep collecting
+    expect(getSpanDescendants(lateChild)).toEqual([lateChild, grandChild]);
+  });
+});
+
 describe('updateSpanName', () => {
   it('updates the span name and source', () => {
-    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } });
     updateSpanName(span, 'new-name');
     const spanJSON = spanToJSON(span);
     expect(spanJSON.name).toBe('new-name');
-    expect(spanJSON.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanJSON.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 });

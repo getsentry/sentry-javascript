@@ -1,20 +1,7 @@
 import * as path from 'node:path';
-import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
-import {
-  applySdkMetadata,
-  debug,
-  DEFAULT_ENVIRONMENT,
-  DEV_ENVIRONMENT,
-  flush,
-  getGlobalScope,
-  vercelWaitUntil,
-} from '@sentry/core';
-import {
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  httpIntegration,
-  init as initNode,
-  type NodeOptions,
-} from '@sentry/node';
+import type { Client, Event, EventProcessor } from '@sentry/core';
+import { applySdkMetadata, debug, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, getGlobalScope } from '@sentry/core';
+import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -35,7 +22,6 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    defaultIntegrations: getNuxtDefaultIntegrations(options),
     ...options,
   };
 
@@ -100,34 +86,6 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
     }) satisfies EventProcessor,
     { id: 'NuxtClientSourceMapErrorFilter' },
   );
-}
-
-function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
-  return [
-    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
-    // The httpIntegration is added as defaultIntegration, so users can still overwrite it
-    httpIntegration({
-      instrumentation: {
-        responseHook: () => {
-          // Makes it possible to end the tracing span before closing the Vercel lambda (https://vercel.com/docs/functions/functions-api-reference#waituntil)
-          vercelWaitUntil(flushSafelyWithTimeout());
-        },
-      },
-    }),
-  ];
-}
-
-/**
- * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
- */
-async function flushSafelyWithTimeout(): Promise<void> {
-  try {
-    DEBUG_BUILD && debug.log('Flushing events...');
-    await flush(2000);
-    DEBUG_BUILD && debug.log('Done flushing events');
-  } catch (e) {
-    DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
-  }
 }
 
 /**

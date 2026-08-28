@@ -25,17 +25,17 @@ describe('maybeParameterizeRemixRoute', () => {
   });
 
   describe('when manifest has static routes', () => {
-    it('should return undefined for static routes', () => {
+    it('returns the route itself for static routes', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }, { path: '/blog/posts' }],
         dynamicRoutes: [],
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/contact')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/blog/posts')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
+      expect(maybeParameterizeRemixRoute('/about')).toBe('/about');
+      expect(maybeParameterizeRemixRoute('/contact')).toBe('/contact');
+      expect(maybeParameterizeRemixRoute('/blog/posts')).toBe('/blog/posts');
     });
   });
 
@@ -84,8 +84,8 @@ describe('maybeParameterizeRemixRoute', () => {
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
+      expect(maybeParameterizeRemixRoute('/about')).toBe('/about');
     });
 
     it('should handle splat/catch-all routes', () => {
@@ -222,7 +222,7 @@ describe('maybeParameterizeRemixRoute', () => {
       };
       globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRemixRoute('/')).toBe('/');
     });
 
     it('should handle complex nested dynamic routes', () => {
@@ -246,10 +246,10 @@ describe('maybeParameterizeRemixRoute', () => {
 
   describe('realistic Remix patterns', () => {
     it.each([
-      ['/', undefined],
-      ['/about', undefined],
-      ['/contact', undefined],
-      ['/blog/posts', undefined],
+      ['/', '/'],
+      ['/about', '/about'],
+      ['/contact', '/contact'],
+      ['/blog/posts', '/blog/posts'],
 
       ['/users/123', '/users/:id'],
       ['/users/john-doe', '/users/:id'],
@@ -357,6 +357,30 @@ describe('maybeParameterizeRemixRoute', () => {
 
       // Unmatched patterns should fall back to catch-all
       expect(maybeParameterizeRemixRoute('/some/other/path')).toBe('/:*');
+    });
+
+    it('should prefer a longer route over a shorter splat that also matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:lang/:*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['lang', '*'],
+          },
+          {
+            path: '/:lang/guides/:category/:*',
+            regex: '^/([^/]+)/guides/([^/]+)/(.+)$',
+            paramNames: ['lang', 'category', '*'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRemixRoute('/fr/guides/renting/foo')).toBe('/:lang/guides/:category/:*');
+
+      // The splat still wins where nothing narrower matches
+      expect(maybeParameterizeRemixRoute('/fr/anything/else')).toBe('/:lang/:*');
     });
   });
 

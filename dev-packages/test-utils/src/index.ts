@@ -15,7 +15,17 @@ export {
   getSpanOp,
 } from './event-proxy-server';
 
-export { findAbsolutePathImports } from './build-output';
+export {
+  findAbsolutePathImports,
+  findSourceMapFiles,
+  findSourceMappingUrlComments,
+  findInjectedDebugIds,
+  bundleReferencesModule,
+} from './build-output';
+export type { OutputScanOptions } from './build-output';
+
+export { assertBundlerInstrumentation } from './bundler-instrumentation';
+export type { InstrumentationFixture } from './bundler-instrumentation';
 
 export { getPlaywrightConfig } from './playwright-config';
 export { createBasicSentryServer, createTestServer } from './server';

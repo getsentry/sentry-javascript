@@ -12,7 +12,6 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
-  getAutoPerformanceIntegrations,
   httpIntegration,
   init as initNode,
   modulesIntegration,
@@ -21,20 +20,12 @@ import {
   onUnhandledRejectionIntegration,
   processSessionIntegration,
 } from '@sentry/node';
-import { channelIntegrations, isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import { bunServerIntegration } from './integrations/bunserver';
 import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
-
-/**
- * The orchestrion channel-subscriber integrations, listening on the diagnostics
- * channels that `@sentry/bun/plugin` injects at build time.
- */
-function getChannelIntegrations(): Integration[] {
-  return Object.values(channelIntegrations).map(integrationFactory => integrationFactory());
-}
+import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 
 /**
  * The performance integrations for bun: the OTel auto-performance set, but with
@@ -49,19 +40,7 @@ function getPerformanceIntegrations(options: Options): Integration[] {
     return [];
   }
 
-  const autoPerformanceIntegrations = getAutoPerformanceIntegrations();
-  if (!isOrchestrionInjected()) {
-    return autoPerformanceIntegrations;
-  }
-
-  const channelIntegrationInstances = getChannelIntegrations();
-  // The OTel integrations these channel subscribers replace, keyed by the name they share with them.
-  const replacedOtelIntegrationNames = new Set(channelIntegrationInstances.map(integration => integration.name));
-
-  return [
-    ...autoPerformanceIntegrations.filter(integration => !replacedOtelIntegrationNames.has(integration.name)),
-    ...channelIntegrationInstances,
-  ];
+  return getTracingIntegrations();
 }
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
@@ -85,6 +64,9 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     modulesIntegration(),
     processSessionIntegration(),
+    // Framework-level integrations. These are not performance-only: they also handle error capture, so
+    // they are added by default rather than gated behind tracing
+    ...getErrorIntegrations(),
     // Bun Specific
     bunServerIntegration(),
     bunHttpServerIntegration(),

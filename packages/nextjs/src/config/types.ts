@@ -1,5 +1,10 @@
-import type { GLOBAL_OBJ } from '@sentry/core';
-import type { SentryWebpackPluginOptions } from '@sentry/bundler-plugins/webpack';
+import type {
+  BuildTimeOptionsBase,
+  GLOBAL_OBJ,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ReactComponentAnnotationOptions,
+} from '@sentry/core';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -147,322 +152,51 @@ export type SentryBuildWebpackOptions = {
   };
 
   /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
-
-  /**
    * Options related to react component name annotations.
    * Disabled by default, unless a value is set for this option.
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   *
+   * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
    */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     */
-    enabled?: boolean;
-
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     */
-    ignoredComponents?: string[];
-  };
+  reactComponentAnnotation?: ReactComponentAnnotationOptions; // TODO(v12): remove this option
 };
 
-export type SentryBuildOptions = {
-  /**
-   * The slug of the Sentry organization associated with the app.
-   *
-   * This value can also be specified via the `SENTRY_ORG` environment variable.
-   */
-  org?: string;
-
+/**
+ * Build-time options for the Sentry Next.js SDK, passed as the second argument to `withSentryConfig`.
+ *
+ * This builds on {@link BuildTimeOptionsBase}, the option set shared across Sentry's meta-framework
+ * SDKs. Options are only overridden below where Next.js genuinely deviates — either in shape
+ * (`project`, `sourcemaps`, `release`) or in behavior that differs between webpack and Turbopack.
+ */
+export type SentryBuildOptions = Omit<
+  BuildTimeOptionsBase,
+  'project' | 'sourcemaps' | 'release' | 'buildTimeInstrumentation' | 'applicationKey' | 'moduleMetadata'
+> & {
   /**
    * The slug of the Sentry project associated with the app.
+   *
+   * Multiple projects can be passed to upload the build's source maps to each of them.
    *
    * This value can also be specified via the `SENTRY_PROJECT` environment variable.
    */
   project?: string | string[];
 
   /**
-   * The authentication token to use for all communication with Sentry.
-   * Can be obtained from https://sentry.io/orgredirect/organizations/:orgslug/settings/auth-tokens/.
-   *
-   * This value can also be specified via the `SENTRY_AUTH_TOKEN` environment variable.
-   */
-  authToken?: string;
-
-  /**
-   * The base URL of your Sentry instance. Use this if you are using a self-hosted
-   * or Sentry instance other than sentry.io.
-   *
-   * This value can also be set via the `SENTRY_URL` environment variable.
-   *
-   * Defaults to https://sentry.io/, which is the correct value for SaaS customers.
-   */
-  sentryUrl?: string;
-
-  /**
-   * Headers added to every outgoing network request.
-   */
-  headers?: Record<string, string>;
-
-  /**
-   * If set to true, internal plugin errors and performance data will be sent to Sentry.
-   *
-   * At Sentry we like to use Sentry ourselves to deliver faster and more stable products.
-   * We're very careful of what we're sending. We won't collect anything other than error
-   * and high-level performance data. We will never collect your code or any details of the
-   * projects in which you're using this plugin.
-   *
-   * Defaults to `true`.
-   */
-  telemetry?: boolean;
-
-  /**
-   * Suppresses all Sentry SDK build logs.
-   *
-   * Defaults to `false`.
-   */
-  // TODO: Actually implement this for the non-plugin code.
-  silent?: boolean;
-
-  /**
-   * Prints additional debug information about the SDK and uploading source maps when building the application.
-   *
-   * Defaults to `false`.
-   */
-  // TODO: Actually implement this for the non-plugin code.
-  debug?: boolean;
-
-  /**
    * Options for source maps uploading.
    */
-  sourcemaps?: {
-    /**
-     * Disable any functionality related to source maps.
-     */
-    disable?: boolean;
-
-    /**
-     * A glob or an array of globs that specifies the build artifacts that should be uploaded to Sentry.
-     *
-     * If this option is not specified, the plugin will try to upload all JavaScript files and source map files that are created during build.
-     *
-     * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
-     *
-     * Use the `debug` option to print information about which files end up being uploaded.
-     */
-    assets?: string | string[];
-
-    /**
-     * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
-     *
-     * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
-     * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
-     *
-     * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
-     *
-     * Use the `debug` option to print information about which files end up being uploaded.
-     */
-    ignore?: string | string[];
-
-    /**
-     * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
-     *
-     * Defaults to `true`.
-     */
-    deleteSourcemapsAfterUpload?: boolean;
-
-    /**
-     * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
-     *
-     * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
-     *
-     * Use this option when you need fine-grained control over which source maps are deleted.
-     *
-     * @example
-     * ```javascript
-     * withSentryConfig(nextConfig, {
-     *   sourcemaps: {
-     *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
-     *   },
-     * });
-     * ```
-     */
-    filesToDeleteAfterUpload?: string | string[];
-
-    /**
-     * Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map.
-     *
-     * The hook receives the following arguments:
-     * - `source` - the source file path from the source map's `sources` field
-     * - `map` - the source map object
-     * - `context` - an optional object containing `mapDir`, the absolute path to the directory of the source map file
-     *
-     * If not provided, the SDK defaults to stripping webpack-specific prefixes (`webpack://_N_E/`).
-     *
-     * Defaults to making all sources relative to `process.cwd()` while building.
-     */
-    // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
-    rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
-  };
+  sourcemaps?: SentryBuildSourceMapsOptions;
 
   /**
    * Options related to managing the Sentry releases for a build.
    *
+   * Note that `release.inject` is not configurable. The Next.js SDK always injects the release value
+   * itself, because the bundler plugin's own release injection breaks the `app` directory.
+   *
    * More info: https://docs.sentry.io/product/releases/
    */
-  release?: {
-    /**
-     * Unique identifier for the release you want to create.
-     *
-     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
-     *
-     * Defaults to automatically detecting a value for your environment.
-     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
-     * (the latter requires access to git CLI and for the root directory to be a valid repository)
-     *
-     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
-     */
-    name?: string;
-
-    /**
-     * Whether the plugin should create a release on Sentry during the build.
-     * Note that a release may still appear in Sentry even if this is value is `false` because any Sentry event that has a release value attached will automatically create a release.
-     * (for example via the `inject` option)
-     *
-     * Defaults to `true`.
-     */
-    create?: boolean;
-
-    /**
-     * Whether the Sentry release should be automatically finalized (meaning an end timestamp is added) after the build ends.
-     *
-     * Defaults to `true`.
-     */
-    finalize?: boolean;
-
-    /**
-     * Unique identifier for the distribution, used to further segment your release.
-     * Usually your build number.
-     */
-    dist?: string;
-
-    /**
-     * Version control system remote name.
-     *
-     * This value can also be specified via the `SENTRY_VSC_REMOTE` environment variable.
-     *
-     * Defaults to 'origin'.
-     */
-    vcsRemote?: string;
-
-    /**
-     * Associates the release with its commits in Sentry.
-     */
-    setCommits?: (
-      | {
-          /**
-           * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
-           * and `previousCommit` as described in the option's documentation.
-           *
-           * If you set this to `true`, manually specified `commit` and `previousCommit`
-           * options will be overridden. It is best to not specify them at all if you
-           * set this option to `true`.
-           */
-          auto: true;
-
-          repo?: undefined;
-          commit?: undefined;
-        }
-      | {
-          auto?: false | undefined;
-
-          /**
-           * The full repo name as defined in Sentry.
-           *
-           * Required if the `auto` option is not set to `true`.
-           */
-          repo: string;
-
-          /**
-           * The current (last) commit in the release.
-           *
-           * Required if the `auto` option is not set to `true`.
-           */
-          commit: string;
-        }
-    ) & {
-      /**
-       * The commit before the beginning of this release (in other words,
-       * the last commit of the previous release).
-       *
-       * Defaults to the last commit of the previous release in Sentry.
-       *
-       * If there was no previous release, the last 10 commits will be used.
-       */
-      previousCommit?: string;
-
-      /**
-       * If the flag is to `true` and the previous release commit was not found
-       * in the repository, the plugin creates a release with the default commits
-       * count instead of failing the command.
-       *
-       * Defaults to `false`.
-       */
-      ignoreMissing?: boolean;
-
-      /**
-       * If this flag is set, the setCommits step will not fail and just exit
-       * silently if no new commits for a given release have been found.
-       *
-       * Defaults to `false`.
-       */
-      ignoreEmpty?: boolean;
-    };
-
-    /**
-     * Adds deployment information to the release in Sentry.
-     */
-    deploy?: {
-      /**
-       * Environment for this release. Values that make sense here would
-       * be `production` or `staging`.
-       */
-      env: string;
-
-      /**
-       * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
-       */
-      started?: number | string;
-
-      /**
-       * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
-       */
-      finished?: number | string;
-
-      /**
-       * Deployment duration (in seconds). Can be used instead of started and finished.
-       */
-      time?: number;
-
-      /**
-       * Human readable name for the deployment.
-       */
-      name?: string;
-
-      /**
-       * URL that points to the deployment.
-       */
-      url?: string;
-    };
-  };
+  release?: Omit<NonNullable<BuildTimeOptionsBase['release']>, 'inject'>;
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.
@@ -488,48 +222,29 @@ export type SentryBuildOptions = {
   applicationKey?: string;
 
   /**
-   * Options to configure various bundle size optimizations related to the Sentry SDK.
+   * Metadata that should be associated with the built application.
+   *
+   * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
+   * `beforeSend`, event processors, or the transport), allowing for custom event filtering logic or
+   * routing of events. Read it at runtime via `moduleMetadataIntegration`.
+   *
+   * Note: This currently only applies to webpack builds. On Turbopack builds it has no effect and
+   * the SDK warns at build time. For `thirdPartyErrorFilterIntegration` support use
+   * `applicationKey`, which works on both bundlers.
    */
-  bundleSizeOptimizations?: {
-    /**
-     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) any debugging code within itself during the build.
-     * Note that the success of this depends on tree shaking being enabled in your build tooling.
-     *
-     * Setting this option to `true` will disable features like the SDK's `debug` option.
-     */
-    excludeDebugStatements?: boolean;
+  moduleMetadata?: ModuleMetadata | ModuleMetadataCallback;
 
-    /**
-     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code within itself that is related to tracing and performance monitoring.
-     * Note that the success of this depends on tree shaking being enabled in your build tooling.
-     * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
-     */
-    excludeTracing?: boolean;
-
-    /**
-     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
-     * Note that the success of this depends on tree shaking being enabled in your build tooling.
-     *
-     * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
-     */
-    excludeReplayShadowDom?: boolean;
-
-    /**
-     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
-     * Note that the success of this depends on tree shaking being enabled in your build tooling.
-     *
-     * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
-     */
-    excludeReplayIframe?: boolean;
-
-    /**
-     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay's Compression Web Worker.
-     * Note that the success of this depends on tree shaking being enabled in your build tooling.
-     *
-     * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
-     */
-    excludeReplayWorker?: boolean;
-  };
+  /**
+   * Options related to react component name annotations.
+   * Disabled by default, unless a value is set for this option.
+   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
+   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in
+   * breadcrumbs and performance monitoring.
+   *
+   * For webpack builds, this is forwarded to `@sentry/bundler-plugins/webpack`.
+   * For Turbopack builds, this applies the annotations via a custom loader and requires Next.js 16+.
+   */
+  reactComponentAnnotation?: ReactComponentAnnotationOptions;
 
   /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
@@ -556,23 +271,6 @@ export type SentryBuildOptions = {
    * NOTE: This feature only works with Next.js 11+
    */
   tunnelRoute?: string | boolean;
-
-  /**
-   * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
-   *
-   * By default, the plugin will simply throw an error, thereby stopping the bundling process.
-   * If an `errorHandler` callback is provided, compilation will continue, unless an error is
-   * thrown in the provided callback.
-   *
-   * To allow compilation to continue but still emit a warning, set this option to the following:
-   *
-   * ```js
-   * (err) => {
-   *   console.warn(err);
-   * }
-   * ```
-   */
-  errorHandler?: (err: Error) => void;
 
   /**
    * Suppress the warning about the `onRouterTransitionStart` hook.
@@ -606,6 +304,11 @@ export type SentryBuildOptions = {
    * routeManifestInjection: {
    *   exclude: (route) => route.includes('hidden')
    * }
+   *
+   * // Treat a custom param name as an optional i18n prefix
+   * routeManifestInjection: {
+   *   localeParamNames: ['lng']
+   * }
    * ```
    */
   routeManifestInjection?:
@@ -625,6 +328,20 @@ export type SentryBuildOptions = {
          * - A function that receives a route path and returns `true` to exclude it
          */
         exclude?: Array<string | RegExp> | ((route: string) => boolean);
+
+        /**
+         * Route param names that represent an i18n locale prefix, e.g. the `lng` in `app/[lng]/page.tsx`.
+         *
+         * Routes whose first param matches one of these names are also matched against paths that omit
+         * the prefix, so that unprefixed default-locale URLs (e.g. next-intl's `localePrefix: 'as-needed'`)
+         * are parameterized as the localized route instead of falling through to a catch-all.
+         *
+         * This replaces the built-in list rather than extending it. Pass an empty array to disable
+         * optional prefix matching entirely.
+         *
+         * @default ['locale', 'lang', 'language', 'lng']
+         */
+        localeParamNames?: string[];
       };
 
   /**
@@ -655,17 +372,78 @@ export type SentryBuildOptions = {
      * When enabled, JSX elements are annotated with `data-sentry-component`,
      * `data-sentry-element`, and `data-sentry-source-file` attributes.
      * Requires Next.js 16+.
+     *
+     * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
      */
     turbopackReactComponentAnnotation?: {
+      /**
+       * Whether the component name annotate plugin should be enabled or not.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       enabled?: boolean;
+
+      /**
+       * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+       *
+       * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
+       */
       ignoredComponents?: string[];
-    };
+    }; // TODO(v12): remove this option
   }>;
 
   /**
    * Options related to webpack builds, has no effect if you are using Turbopack.
    */
   webpack?: SentryBuildWebpackOptions;
+};
+
+type SentryBuildSourceMapsOptions = Omit<
+  NonNullable<BuildTimeOptionsBase['sourcemaps']>,
+  'ignore' | 'filesToDeleteAfterUpload'
+> & {
+  /**
+   * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
+   *
+   * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
+   * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
+   *
+   * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
+   *
+   * Use the `debug` option to print information about which files end up being uploaded.
+   */
+  ignore?: string | string[];
+
+  /**
+   * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
+   *
+   * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
+   *
+   * Use this option when you need fine-grained control over which source maps are deleted.
+   *
+   * @example
+   * ```javascript
+   * withSentryConfig(nextConfig, {
+   *   sourcemaps: {
+   *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
+   *   },
+   * });
+   * ```
+   */
+  filesToDeleteAfterUpload?: string | string[];
+
+  /**
+   * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being
+   * uploaded to Sentry.
+   *
+   * Only applies to source maps the SDK generated itself. Setting `disable` to `true` or `"disable-upload"` leaves
+   * source map generation entirely to your Next.js config, so nothing is auto-deleted either.
+   *
+   * Defaults to `true`.
+   */
+  // TODO(v12): Collapse into `filesToDeleteAfterUpload`, which already overrides this and is part of the shared
+  // build-time options. Two ways to express the same thing is one too many for a public API.
+  deleteSourcemapsAfterUpload?: boolean;
 };
 
 export type NextConfigFunction = (

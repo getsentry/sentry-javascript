@@ -36,7 +36,7 @@ sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page })
       end_timestamp: expect.any(Number),
       trace_id: pageloadSpan?.trace_id,
       attributes: expect.objectContaining({
-        'http.method': { type: 'string', value: 'GET' },
+        'http.request.method': { type: 'string', value: 'GET' },
         'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
         'server.address': { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'fetch' },

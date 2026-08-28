@@ -53,7 +53,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@sentry/browser-utils": "11.0.0-alpha.1",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "11.0.0-alpha.1",
     "@sentry/node": "11.0.0-alpha.1",
     "@sentry/react": "11.0.0-alpha.1",
@@ -76,6 +76,7 @@
     "clean": "rimraf build coverage sentry-tanstackstart-react-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

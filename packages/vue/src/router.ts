@@ -1,5 +1,6 @@
 import { captureException, getAbsoluteUrl } from '@sentry/browser';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   NAVIGATION_ROUTE_ID,
   PARAMS_KEY_BASE,
   SENTRY_OP,
@@ -9,10 +10,13 @@ import {
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 
@@ -116,9 +120,13 @@ export function instrumentVueRouter(
     // Update the existing page load span with parametrized route information
     if (options.instrumentPageLoad && activePageLoadSpan) {
       const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
-      if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-        activePageLoadSpan.updateName(spanName);
-        activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+      if (existingAttributes[SENTRY_SEGMENT_NAME_SOURCE] !== 'custom') {
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        const client = getClient();
+        const isUnparameterizedStreamedPageload =
+          transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : spanName);
+        activePageLoadSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, transactionSource);
       }
 
       // Set router attributes on the existing pageload transaction
@@ -132,14 +140,20 @@ export function instrumentVueRouter(
     }
 
     if (options.instrumentNavigation && !activePageLoadSpan) {
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // A route name (`custom`) or matched route path (`route`) is low cardinality, a raw path is not.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation =
+        transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+
       startNavigationSpanFn(
         {
-          name: spanName,
+          name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
           op: 'navigation',
           attributes: {
             ...attributes,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+            [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
           },
         },
         getAbsoluteUrl(to.fullPath ?? to.path),

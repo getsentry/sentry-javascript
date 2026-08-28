@@ -56,7 +56,7 @@ export type InternalGlobal = {
   _sentryModuleMetadata?: Record<string, any>;
   _sentryWrappedDepth?: number;
   /**
-   * Orchestrion bundler and runtime detection.
+   * Bundler and runtime instrumentation detection.
    */
   __SENTRY_ORCHESTRION__?: {
     /** Empty array signifies runtime hooked */
@@ -64,10 +64,10 @@ export type InternalGlobal = {
     /**
      * Module names recorded as each bundler-transformed module loads (the
      * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
-     * entry banner ensures `[]` at boot, so a defined array — even empty —
-     * signifies the plugin ran.
+     * entry banner ensures an empty `Set` at boot, so a defined set — even
+     * empty — signifies the plugin ran.
      */
-    bundler?: string[];
+    bundler?: Set<string>;
     /**
      * Channel-subscriber integration factories stored by the snippet the
      * bundler transform splices into each instrumented module, keyed by module

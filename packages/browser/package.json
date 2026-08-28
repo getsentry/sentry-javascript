@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@sentry/browser-utils": "11.0.0-alpha.1",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/feedback": "11.0.0-alpha.1",
     "@sentry/replay": "11.0.0-alpha.1",
     "@sentry/replay-canvas": "11.0.0-alpha.1",
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "11.0.0-alpha.1",
-    "fake-indexeddb": "^6.2.4"
+    "fake-indexeddb": "^6.2.5"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
@@ -64,6 +64,7 @@
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs/prod}/*.js && es-check es2020 ./build/npm/esm/prod/*.js --module",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",

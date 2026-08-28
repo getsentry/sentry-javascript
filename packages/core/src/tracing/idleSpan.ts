@@ -16,6 +16,7 @@ import {
   spanToStaticSpanJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
+import { _INTERNAL_ensureBrowserSpanStreaming } from './browserSpanApi';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
@@ -89,6 +90,9 @@ interface IdleSpanOptions {
  * An idle span is always the active span.
  */
 export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Partial<IdleSpanOptions> = {}): Span {
+  const client = getClient();
+  _INTERNAL_ensureBrowserSpanStreaming(client);
+
   // Activities store a list of active spans
   const activities = new Map<string, boolean>();
 
@@ -115,7 +119,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     trimIdleSpanEndTimestamp = true,
   } = options;
 
-  const client = getClient();
   const scope = getCurrentScope();
 
   if (!client || !hasSpansEnabled()) {
@@ -131,7 +134,10 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   }
 
   const previousActiveSpan = getActiveSpan();
-  const span = _startIdleSpan(startSpanOptions);
+
+  const span = startInactiveSpan(startSpanOptions);
+  _setSpanForScope(getCurrentScope(), span);
+  DEBUG_BUILD && debug.log('[Tracing] Started span is an idle span');
 
   // We patch span.end to ensure we can run some things before the span is ended
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -240,7 +246,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    */
   function _restartChildSpanTimeout(endTimestamp?: number): void {
     _cancelChildSpanTimeout();
-    _idleTimeoutID = setTimeout(() => {
+    _childSpanTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
         span.end(endTimestamp);
@@ -410,16 +416,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       span.end();
     }
   }, finalTimeout);
-
-  return span;
-}
-
-function _startIdleSpan(options: StartSpanOptions): Span {
-  const span = startInactiveSpan(options);
-
-  _setSpanForScope(getCurrentScope(), span);
-
-  DEBUG_BUILD && debug.log('[Tracing] Started span is an idle span');
 
   return span;
 }

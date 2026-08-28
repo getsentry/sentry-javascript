@@ -12,6 +12,7 @@ import {
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
+import { createRpcPropagationResolver } from '../../utils/rpcPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
@@ -43,6 +44,8 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
   if (!env || typeof env !== 'object') {
     return env;
   }
+
+  const shouldPropagateRpcTrace = createRpcPropagationResolver(options);
 
   return new Proxy(env, {
     get(target, prop, receiver) {
@@ -91,12 +94,10 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
-      if (options?.enableRpcTracePropagation === false) {
-        return item;
-      }
+      const propagateRpcTrace = shouldPropagateRpcTrace(String(prop));
 
       if (isDurableObjectNamespace(item)) {
-        const instrumented = instrumentDurableObjectNamespace(item);
+        const instrumented = instrumentDurableObjectNamespace(item, propagateRpcTrace);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }
@@ -110,7 +111,12 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
               return instrumentFetcher((...args) => Reflect.apply(value, target, args));
             }
 
-            if (typeof value === 'function' && typeof p === 'string' && !STUB_NON_RPC_METHODS.has(p)) {
+            if (
+              propagateRpcTrace &&
+              typeof value === 'function' &&
+              typeof p === 'string' &&
+              !STUB_NON_RPC_METHODS.has(p)
+            ) {
               return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
             }
 

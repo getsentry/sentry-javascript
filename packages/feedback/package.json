@@ -36,7 +36,7 @@
     "@sentry/core": "11.0.0-alpha.1"
   },
   "devDependencies": {
-    "preact": "^10.19.4"
+    "preact": "^10.29.8"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
@@ -53,6 +53,7 @@
     "clean": "rimraf build sentry-feedback-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

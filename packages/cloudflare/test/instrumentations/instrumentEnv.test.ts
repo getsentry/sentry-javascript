@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
 
 vi.mock('../../src/instrumentations/instrumentDurableObjectNamespace', () => ({
-  instrumentDurableObjectNamespace: vi.fn((namespace: unknown) => ({
+  instrumentDurableObjectNamespace: vi.fn((namespace: unknown, propagateRpcTrace: boolean) => ({
     __instrumented: true,
     __original: namespace,
+    __propagateRpcTrace: propagateRpcTrace,
   })),
   STUB_NON_RPC_METHODS: new Set(['fetch', 'connect', 'dup']),
 }));
@@ -74,7 +75,7 @@ describe('instrumentEnv', () => {
     expect(instrumented.UNKNOWN).toBe(unknownBinding);
   });
 
-  it('does not instrument DurableObjectNamespace when enableRpcTracePropagation is disabled', () => {
+  it('instruments DurableObjectNamespace bindings without RPC propagation when the allowlist is empty', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -82,41 +83,38 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
+    const instrumented = instrumentEnv(env);
 
-    // DO bindings pass through untouched when RPC propagation is disabled
-    expect(instrumented.COUNTER).toBe(doNamespace);
-    expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
+    expect((instrumented.COUNTER as any).__instrumented).toBe(true);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, false);
   });
 
-  it('detects and instruments DurableObjectNamespace bindings by default', () => {
-    const doNamespace = {
-      idFromName: vi.fn(),
-      idFromString: vi.fn(),
-      get: vi.fn(),
-      newUniqueId: vi.fn(),
-    };
-    const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, {});
+  it('enables RPC propagation only for the DurableObjectNamespace bindings named in the allowlist', () => {
+    const allowed = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const denied = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { COUNTER: allowed, SESSIONS: denied };
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: ['COUNTER'] });
 
-    const result = instrumented.COUNTER;
-    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
-    expect((result as any).__instrumented).toBe(true);
+    expect((instrumented.COUNTER as any).__instrumented).toBe(true);
+    expect((instrumented.SESSIONS as any).__instrumented).toBe(true);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(allowed, true);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(denied, false);
   });
 
-  it('detects and instruments DurableObjectNamespace bindings when enableRpcTracePropagation is enabled', () => {
-    const doNamespace = {
-      idFromName: vi.fn(),
-      idFromString: vi.fn(),
-      get: vi.fn(),
-      newUniqueId: vi.fn(),
-    };
-    const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+  it('matches allowlisted binding names exactly rather than as substrings', () => {
+    const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { MY_COUNTER: doNamespace };
+    instrumentEnv(env, { rpcTracePropagationBindings: ['COUNTER'] }).MY_COUNTER;
 
-    const result = instrumented.COUNTER;
-    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
-    expect((result as any).__instrumented).toBe(true);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, false);
+  });
+
+  it('supports regular expressions in the allowlist', () => {
+    const doNamespace = { idFromName: vi.fn(), idFromString: vi.fn(), get: vi.fn(), newUniqueId: vi.fn() };
+    const env = { SVC_ORDERS: doNamespace };
+    instrumentEnv(env, { rpcTracePropagationBindings: [/^SVC_/] }).SVC_ORDERS;
+
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, true);
   });
 
   it('caches instrumented bindings across repeated access', () => {
@@ -127,7 +125,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     const first = instrumented.COUNTER;
     const second = instrumented.COUNTER;
@@ -150,20 +148,20 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace1, SESSIONS: doNamespace2 };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     instrumented.COUNTER;
     instrumented.SESSIONS;
 
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledTimes(2);
-    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace1);
-    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace2);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace1, true);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace2, true);
   });
 
-  it('does not wrap JSRPC proxy when enableRpcTracePropagation is disabled', () => {
-    const mockFetch = vi.fn();
+  it('wraps JSRPC bindings for fetch instrumentation even when the allowlist is empty', () => {
+    const rpcMethod = vi.fn();
     const jsrpcProxy = new Proxy(
-      { fetch: mockFetch },
+      { fetch: vi.fn(), myRpcMethod: rpcMethod },
       {
         get(target, prop) {
           if (prop in target) {
@@ -175,35 +173,13 @@ describe('instrumentEnv', () => {
       },
     );
     const env = { SERVICE: jsrpcProxy };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
+    const instrumented = instrumentEnv(env);
 
-    const result = instrumented.SERVICE;
-    // Should be the same reference — not wrapped when propagation is disabled
-    expect(result).toBe(jsrpcProxy);
-    expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
-  });
-
-  it('wraps JSRPC proxy with a Proxy that instruments fetch when enableRpcTracePropagation is enabled', () => {
-    const mockFetch = vi.fn();
-    const jsrpcProxy = new Proxy(
-      { fetch: mockFetch },
-      {
-        get(target, prop) {
-          if (prop in target) {
-            return Reflect.get(target, prop);
-          }
-          // JSRPC behavior: return truthy for any property
-          return () => {};
-        },
-      },
-    );
-    const env = { SERVICE: jsrpcProxy };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
-
-    const result = instrumented.SERVICE;
-    // Should NOT be the same reference — it's wrapped in a Proxy
+    const result = instrumented.SERVICE as { myRpcMethod: (arg: string) => void };
     expect(result).not.toBe(jsrpcProxy);
-    expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
+
+    result.myRpcMethod('arg1');
+    expect(rpcMethod).toHaveBeenCalledWith('arg1');
   });
 
   it('does not instrument JSRPC proxies as DurableObjectNamespace', () => {
@@ -263,12 +239,12 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { MY_QUEUE: queue, COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+    const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
     // Access both — DO instrumentation only fires on property access
     expect(instrumented.MY_QUEUE).not.toBe(queue);
     instrumented.COUNTER;
-    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, true);
   });
 
   it('wraps RateLimit bindings in a proxy and forwards calls', async () => {
@@ -357,13 +333,24 @@ describe('instrumentEnv', () => {
       );
     }
 
-    it('does not instrument mTLS Fetcher when enableRpcTracePropagation is disabled', () => {
-      const mockFetch = vi.fn();
+    it('instruments mTLS Fetcher fetch when rpcTracePropagationBindings is empty', async () => {
+      vi.spyOn(SentryCore, '_INTERNAL_getTracingHeadersForFetchRequest').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
       const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
       const env = { MY_CERT: mtlsFetcher };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
+      const instrumented = instrumentEnv(env);
 
-      expect(instrumented.MY_CERT).toBe(mtlsFetcher);
+      expect(instrumented.MY_CERT).not.toBe(mtlsFetcher);
+
+      await instrumented.MY_CERT.fetch('https://example.com/api');
+
+      const [, init] = mockFetch.mock.calls[0]!;
+      expect(new Headers(init?.headers).get('sentry-trace')).toBe(
+        '12345678901234567890123456789012-1234567890123456-1',
+      );
     });
 
     it('preserves existing headers and response on mTLS Fetcher fetch', async () => {
@@ -376,7 +363,7 @@ describe('instrumentEnv', () => {
       const mockFetch = vi.fn().mockResolvedValue(new Response('mtls-response'));
       const mtlsFetcher = createMtlsFetcherProxy(mockFetch);
       const env = { MY_CERT: mtlsFetcher };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       const response = await instrumented.MY_CERT.fetch('https://example.com/api', {
         headers: { Authorization: 'Bearer client-cert-token' },
@@ -393,7 +380,7 @@ describe('instrumentEnv', () => {
   });
 
   describe('JSRPC RPC method instrumentation', () => {
-    it('does not inject Sentry RPC meta when enableRpcTracePropagation is disabled', () => {
+    it('does not inject Sentry RPC meta by default (rpcTracePropagationBindings not set)', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -412,15 +399,15 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: false });
+      const instrumented = instrumentEnv(env);
 
       instrumented.SERVICE.myRpcMethod('arg1', 42);
 
-      // With enableRpcTracePropagation disabled, no metadata should be injected
+      // Without rpcTracePropagationBindings, no metadata should be injected
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
     });
 
-    it('injects Sentry RPC meta when enableRpcTracePropagation is true', () => {
+    it('injects Sentry RPC meta when rpcTracePropagationBindings matches', () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -439,7 +426,7 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.myRpcMethod('arg1', 42);
 
@@ -470,7 +457,7 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.fetch('https://example.com');
 
@@ -495,11 +482,50 @@ describe('instrumentEnv', () => {
         },
       );
       const env = { SERVICE: jsrpcProxy };
-      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
 
       instrumented.SERVICE.myRpcMethod('arg1');
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
+
+    // A receiver without Sentry never strips the trailing metadata argument, so a caller has to be
+    // able to limit propagation to the bindings it knows are instrumented.
+    // See https://github.com/getsentry/sentry-javascript/issues/23233.
+    it('injects meta only into JSRPC calls on allowlisted bindings', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const allowedMethod = vi.fn();
+      const deniedMethod = vi.fn();
+      const createJsrpcBinding = (rpcMethod: ReturnType<typeof vi.fn>) =>
+        new Proxy(
+          { fetch: vi.fn(), myRpcMethod: rpcMethod },
+          {
+            get(target, prop) {
+              if (prop in target) {
+                return Reflect.get(target, prop);
+              }
+              return () => {};
+            },
+          },
+        );
+
+      const env = { ORDERS: createJsrpcBinding(allowedMethod), EXTERNAL: createJsrpcBinding(deniedMethod) };
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: ['ORDERS'] });
+
+      instrumented.ORDERS.myRpcMethod('first');
+      instrumented.EXTERNAL.myRpcMethod('first');
+
+      expect(allowedMethod).toHaveBeenCalledWith('first', {
+        __sentry_rpc_meta__: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+      expect(deniedMethod).toHaveBeenCalledWith('first');
     });
   });
 });

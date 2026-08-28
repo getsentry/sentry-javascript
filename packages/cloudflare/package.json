@@ -48,8 +48,9 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "11.0.0-alpha.1",
+    "@sentry/opentelemetry": "11.0.0-alpha.1",
     "@sentry/server-utils": "11.0.0-alpha.1",
     "magic-string": "~0.30.21"
   },
@@ -83,6 +84,7 @@
     "clean": "rimraf build coverage sentry-cloudflare-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/prod/*.js && es-check es2022 ./build/esm/prod/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

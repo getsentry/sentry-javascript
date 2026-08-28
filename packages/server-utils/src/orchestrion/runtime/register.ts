@@ -49,7 +49,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
   setDiagnosticsHook(({ moduleName, error }): void => {
     if (error) {
-      debug.warn(`[orchestrion] failed to inject diagnostics-channel into ${moduleName}:`, error);
+      debug.warn(`[instrumentation] failed to inject diagnostics-channel into ${moduleName}:`, error);
     } else {
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];

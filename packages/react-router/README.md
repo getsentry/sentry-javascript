@@ -155,7 +155,7 @@ Update your vite.config.ts file to include the `sentryReactRouter` plugin and al
 
 ```ts
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter } from '@sentry/react-router';
+import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 const sentryConfig = {
@@ -177,7 +177,7 @@ Next, in your `react-router.config.ts` file, include the `sentryOnBuildEnd` hook
 
 ```ts
 import type { Config } from '@react-router/dev/config';
-import { sentryOnBuildEnd } from '@sentry/react-router';
+import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 
 export default {
   ssr: true,

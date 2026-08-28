@@ -1,4 +1,5 @@
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
@@ -6,23 +7,25 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
+import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import { getMiddlewareName } from './serverBuild';
 import { markInstrumentationApiUsed } from './serverGlobals';
@@ -58,7 +61,7 @@ export function createSentryServerInstrumentation(
   DEBUG_BUILD && debug.log('React Router server instrumentation created.');
 
   return {
-    handler(handler: InstrumentableRequestHandler) {
+    handler(handler) {
       // Mark the instrumentation API active only when React Router actually invokes this
       markInstrumentationApiUsed();
       handler.instrument({
@@ -67,12 +70,20 @@ export function createSentryServerInstrumentation(
           const activeSpan = getActiveSpan();
           const existingRootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
+          const client = getClient();
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL
+          // path. `updateRootSpanWithRoute` renames the span once React Router matches a route.
+          const unparameterizedName =
+            client && hasSpanStreamingEnabled(client)
+              ? info.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+              : `${info.request.method} ${pathname}`;
+
           if (existingRootSpan) {
-            updateSpanName(existingRootSpan, `${info.request.method} ${pathname}`);
+            updateSpanName(existingRootSpan, unparameterizedName);
             existingRootSpan.setAttributes({
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [URL_FULL]: filterCollectedUrl(info.request.url),
               [URL_PATH]: pathname,
             });
@@ -82,7 +93,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: pathname,
                 });
               }
@@ -92,12 +103,12 @@ export function createSentryServerInstrumentation(
           } else {
             await startSpan(
               {
-                name: `${info.request.method} ${pathname}`,
+                name: unparameterizedName,
                 forceTransaction: true,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_PATH]: pathname,
                   [URL_FULL]: filterCollectedUrl(info.request.url),
@@ -109,7 +120,7 @@ export function createSentryServerInstrumentation(
                   if (result.status === 'error' && result.error instanceof Error) {
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                     captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                      'http.method': info.request.method,
+                      [HTTP_REQUEST_METHOD]: info.request.method,
                       [URL_FULL]: pathname,
                     });
                   }
@@ -123,7 +134,7 @@ export function createSentryServerInstrumentation(
       });
     },
 
-    route(route: InstrumentableRoute) {
+    route(route) {
       // Also mark active here, in case route registration runs (mirrors the handler callback above).
       markInstrumentationApiUsed();
       const routeId = route.id;
@@ -139,7 +150,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -149,7 +160,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.loader', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
@@ -167,7 +178,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -177,7 +188,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.action', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
@@ -211,7 +222,7 @@ export function createSentryServerInstrumentation(
             {
               name: `middleware ${middlewareName || routeId}`,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+                [SENTRY_OP]: MIDDLEWARE,
                 [CODE_FUNCTION_NAME]: 'middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
@@ -225,7 +236,7 @@ export function createSentryServerInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
-                  'http.method': info.request.method,
+                  [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_FULL]: urlPath,
                 });
               }
@@ -238,7 +249,7 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -273,10 +284,17 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
   const routeName = hasPattern ? normalizeRoutePath(pattern) || urlPath : urlPath;
 
   const transactionName = `${method} ${routeName}`;
-  updateSpanName(rootSpan, transactionName);
+
+  const client = getClient();
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+  const isUnparameterizedStreamedSpan = !hasPattern && !!client && hasSpanStreamingEnabled(client);
+  updateSpanName(
+    rootSpan,
+    isUnparameterizedStreamedSpan ? method.toUpperCase() || HTTP_SPAN_NAME_FALLBACK : transactionName,
+  );
   rootSpan.setAttributes({
     [HTTP_ROUTE]: routeName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: hasPattern ? 'route' : 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: hasPattern ? 'route' : 'url',
   });
 
   // Also update the scope's transaction name so errors captured during this request

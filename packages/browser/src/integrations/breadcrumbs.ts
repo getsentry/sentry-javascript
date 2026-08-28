@@ -7,10 +7,7 @@ import type {
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataConsole,
-  HandlerDataDom,
   HandlerDataFetch,
-  HandlerDataHistory,
-  HandlerDataXhr,
   IntegrationFn,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
@@ -23,18 +20,18 @@ import {
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
-  getComponentName,
   getEventDescription,
   parseUrl,
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry/browser-utils';
+import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr, XhrHint } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
+  getComponentName,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';

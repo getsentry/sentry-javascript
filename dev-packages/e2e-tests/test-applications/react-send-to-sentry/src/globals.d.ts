@@ -1,5 +1,11 @@
+interface RecordedEvent {
+  eventId: string;
+  traceId: string;
+  op?: string;
+}
+
 interface Window {
-  recordedTransactions?: string[];
-  capturedExceptionId?: string;
+  recordedTransactions?: RecordedEvent[];
+  capturedException?: RecordedEvent;
   sentryReplayId?: string;
 }

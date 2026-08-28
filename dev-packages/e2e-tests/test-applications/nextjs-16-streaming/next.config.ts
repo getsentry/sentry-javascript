@@ -1,4 +1,4 @@
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 import type { NextConfig } from 'next';
 
 // Simulate Vercel environment for cron monitoring tests
@@ -9,10 +9,10 @@ const nextConfig: NextConfig = {};
 export default withSentryConfig(nextConfig, {
   silent: true,
   applicationKey: 'nextjs-16-streaming-e2e',
+  reactComponentAnnotation: {
+    enabled: true,
+  },
   _experimental: {
     vercelCronsMonitoring: true,
-    turbopackReactComponentAnnotation: {
-      enabled: true,
-    },
   },
 });

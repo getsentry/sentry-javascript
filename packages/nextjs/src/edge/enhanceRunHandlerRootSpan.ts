@@ -1,5 +1,5 @@
-import { HTTP_METHOD, HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_METHOD, HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
+
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { ATTR_NEXT_PAGES_API_ROUTE_TYPE } from '../common/span-attributes-with-logic-attached';
 
@@ -33,7 +33,7 @@ export function enhanceRunHandlerRootSpan(span: MutableRootSpan): void {
   }
 
   span.setOp('http.server');
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+  attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
 
   const path = spanName.replace(ATTR_NEXT_PAGES_API_ROUTE_TYPE, '').trim();
   // eslint-disable-next-line typescript/no-deprecated

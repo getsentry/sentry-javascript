@@ -15,10 +15,10 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     ;
     //# sourceMappingURL=basic.js.map",
       "basic.js.map": "{"version":3,"file":"basic.js","mappings":";;;AAAA;AACA","sources":["webpack://webpack5-integration-tests/./src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"names":[],"sourceRoot":""}",
-      "sentry-cli-mock.json": "["releases","new","CURRENT_SHA"],
-    ["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
-    ["releases","finalize","CURRENT_SHA"],
-    ["sourcemaps","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path","--ignore","node_modules","--no-rewrite"],
+      "sentry-cli-mock.json": "["release","create","CURRENT_SHA","--project","fake-project"],
+    ["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","finalize","CURRENT_SHA"],
+    ["sourcemap","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path"],
     ",
     }
   `);

@@ -17,7 +17,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.request.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.otel.node_fetch',
+        'sentry.origin': 'auto.http.node_fetch',
       }),
       description: 'GET https://github.com/',
     }),
@@ -26,7 +26,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.client',
       }),

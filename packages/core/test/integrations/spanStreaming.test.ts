@@ -133,4 +133,23 @@ describe('spanStreamingIntegration (core)', () => {
 
     expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
   });
+
+  it('flushes a single trace when the flushTraceSpans hook is emitted', () => {
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
+      tracesSampleRate: 1,
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    client.emit('flushTraceSpans', 'trace-1');
+
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledTimes(1);
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith('trace-1');
+    expect(mockSpanBufferInstance.drain).not.toHaveBeenCalled();
+  });
 });

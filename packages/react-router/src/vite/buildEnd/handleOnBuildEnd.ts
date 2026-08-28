@@ -1,11 +1,19 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
-import SentryCli from '@sentry/cli';
+import { createSentrySDK } from 'sentry';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
+type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
+
+/**
+ * The CLI accepts `headers` since 0.44.0, but its bundled type declarations do not list the
+ * option yet.
+ * TODO: Drop once `SentryOptions` in the `sentry` package declares `headers`: https://github.com/getsentry/cli/pull/1500
+ */
+type SentryOptionsWithHeaders = SentryOptions & { headers?: Record<string, string> };
 
 function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
   if (!viteConfig || typeof viteConfig !== 'object' || !('sentryConfig' in viteConfig)) {
@@ -17,15 +25,6 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
 }
 
 /**
- * This hook is the only place that injects debug IDs and uploads source maps for React
- * Router, so `disable` has to be honoured wherever the user set it. Reading it from the
- * top-level config only would silently ignore `unstable_sentryVitePluginOptions`.
- */
-function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): boolean | 'disable-upload' | undefined {
-  return sentryConfig.sourcemaps?.disable ?? sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps?.disable;
-}
-
-/**
  * A build end hook that handles Sentry release creation and source map uploads.
  * It creates a new Sentry release if configured, uploads source maps to Sentry,
  * and optionally deletes the source map files after upload.
@@ -33,48 +32,42 @@ function resolveSourceMapsDisable(sentryConfig: SentryReactRouterBuildOptions): 
 export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
   const sentryConfig = getSentryConfig(viteConfig);
 
-  const unstableSentryVitePluginOptions = sentryConfig.unstable_sentryVitePluginOptions;
-
   const {
     authToken,
+    headers,
     org,
     project,
     release,
+    sentryUrl,
     sourcemaps = { disable: false },
     debug = false,
   }: Omit<SentryReactRouterBuildOptions, 'sourcemaps'> &
     // Pick 'sourcemaps' from Vite plugin options as the types allow more (e.g. Promise values for `deleteFilesAfterUpload`)
     Pick<SentryVitePluginOptions, 'sourcemaps'> = {
-    ...unstableSentryVitePluginOptions,
     ...sentryConfig,
     sourcemaps: {
-      ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
-      disable: resolveSourceMapsDisable(sentryConfig),
+      disable: sentryConfig.sourcemaps?.disable,
     },
     release: {
-      ...unstableSentryVitePluginOptions?.release,
       ...sentryConfig.release,
     },
-    project: unstableSentryVitePluginOptions?.project
-      ? Array.isArray(unstableSentryVitePluginOptions?.project)
-        ? unstableSentryVitePluginOptions?.project[0]
-        : unstableSentryVitePluginOptions?.project
-      : sentryConfig.project,
   };
 
-  const cliInstance = new SentryCli(null, {
-    authToken,
+  const sentryOptions: SentryOptionsWithHeaders = {
+    token: authToken,
     org,
-    ...sentryConfig.unstable_sentryVitePluginOptions,
-    // same handling as in bundler plugins: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/05084f214c763a05137d863ff5a05ef38254f68d/packages/bundler-plugin-core/src/build-plugin-manager.ts#L102-L103
-    project: Array.isArray(project) ? project[0] : project,
-  });
+    url: sentryUrl,
+    project,
+    headers,
+  };
+
+  const sentry = createSentrySDK(sentryOptions);
 
   // check if release should be created
   if (release?.name) {
     try {
-      await cliInstance.releases.new(release.name);
+      await sentry.release.create({ orgVersion: release.name });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);
@@ -89,10 +82,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
     // inject debugIds
     try {
-      await cliInstance.execute(
-        ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
-        debug ? 'rejectOnError' : false,
-      );
+      await sentry.sourcemap.inject({ directory: reactRouterConfig.buildDirectory });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
@@ -101,13 +91,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     if (!uploadDisabled) {
       // upload sourcemaps
       try {
-        await cliInstance.releases.uploadSourceMaps(release?.name || 'undefined', {
-          include: [
-            {
-              paths: [reactRouterConfig.buildDirectory],
-            },
-          ],
-          live: 'rejectOnError',
+        await sentry.sourcemap.upload({
+          directory: reactRouterConfig.buildDirectory,
+          release: release?.name || 'undefined',
         });
       } catch (error) {
         // eslint-disable-next-line no-console

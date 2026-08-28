@@ -148,7 +148,7 @@ export interface HttpInstrumentationOptions {
    * (`sentry-trace`, `baggage`, `traceparent`) into outgoing requests.
    * @default false
    */
-  propagateTrace?: boolean;
+  tracePropagation?: boolean;
 
   /**
    * Skip span / breadcrumb creation for requests to matching URLs.
@@ -223,7 +223,7 @@ export interface HttpInstrumentationOptions {
   sessions?: boolean;
 
   /**
-   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   * Number of milliseconds until sessions tracked with `sessions` will be flushed as a session aggregate.
    *
    * Defaults to `60000` (60s).
    */

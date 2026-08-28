@@ -27,33 +27,24 @@
  * limitations under the License.
  */
 
+// This whole module backs the deprecated Express exports (superseded by `expressIntegration()`), so it
+// references its own deprecated types/functions throughout.
+/* oxlint-disable typescript/no-deprecated */
+
 import { debug } from '../../utils/debug-logger';
-import { captureException } from '../../exports';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   ExpressApplication,
-  ExpressErrorMiddleware,
-  ExpressHandlerOptions,
   ExpressIntegrationOptions,
   ExpressLayer,
-  ExpressMiddleware,
   ExpressModuleExport,
-  ExpressRequest,
-  ExpressResponse,
   ExpressRouter,
   ExpressRouterv4,
   ExpressRouterv5,
-  MiddlewareError,
 } from './types';
-import {
-  defaultShouldHandleError,
-  getLayerPath,
-  isExpressWithoutRouterPrototype,
-  isExpressWithRouterPrototype,
-} from './utils';
+import { getLayerPath, isExpressWithoutRouterPrototype, isExpressWithRouterPrototype } from './utils';
 import { wrapMethod } from '../../utils/object';
 import { patchLayer } from './patch-layer';
-import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 import { getDefaultExport } from '../../utils/get-default-export';
 
 /**
@@ -67,6 +58,9 @@ import { getDefaultExport } from '../../utils/get-default-export';
  *
  * Sentry.patchExpressModule(express, () => ({}));
  * ```
+ *
+ * @deprecated Express is now instrumented automatically via `expressIntegration()`. This export is
+ * no longer used and will be removed in the next major version.
  */
 export function patchExpressModule(
   moduleExports: ExpressModuleExport,
@@ -158,71 +152,5 @@ export function patchExpressModule(
   return express;
 }
 
-/**
- * An Express-compatible error handler, used by setupExpressErrorHandler
- */
-export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
-  return function sentryErrorMiddleware(
-    error: MiddlewareError,
-    request: ExpressRequest,
-    res: ExpressResponse,
-    next: (error: MiddlewareError) => void,
-  ): void {
-    // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
-    setSDKProcessingMetadata(request);
-    const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-
-    if (shouldHandleError(error)) {
-      const eventId = captureException(error, {
-        mechanism: { type: 'auto.middleware.express', handled: false },
-      });
-      (res as { sentry?: string }).sentry = eventId;
-    }
-
-    next(error);
-  };
-}
-
-/**
- * Add an Express error handler to capture errors to Sentry.
- *
- * The error handler must be before any other middleware and after all controllers.
- *
- * @param app The Express instances
- * @param options {ExpressHandlerOptions} Configuration options for the handler
- *
- * @example
- * ```javascript
- * import * as Sentry from 'sentry/deno'; // or any other @sentry/<platform>
- * import * as express from 'express';
- *
- * Sentry.instrumentExpress(express);
- *
- * const app = express();
- *
- * // Add your routes, etc.
- *
- * // Add this after all routes,
- * // but before any and other error-handling middlewares are defined
- * Sentry.setupExpressErrorHandler(app);
- *
- * app.listen(3000);
- * ```
- */
-export function setupExpressErrorHandler(
-  app: {
-    //oxlint-disable-next-line no-explicit-any
-    use: (middleware: any) => unknown;
-  },
-  options?: ExpressHandlerOptions,
-): void {
-  app.use(expressRequestHandler());
-  app.use(expressErrorHandler(options));
-}
-
-function expressRequestHandler(): ExpressMiddleware {
-  return function sentryRequestMiddleware(request: ExpressRequest, _res: ExpressResponse, next: () => void): void {
-    setSDKProcessingMetadata(request);
-    next();
-  };
-}
+// The deprecated `expressErrorHandler` / `setupExpressErrorHandler` now live in `@sentry/server-utils`
+// (alongside the channel-based `expressIntegration()`), so they are not defined here anymore.

@@ -1,35 +1,35 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
+// oxlint-disable-next-line typescript/no-deprecated
+export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-utils';
 export {
   amqplibIntegration,
-  anthropicIntegration as anthropicAIIntegration,
+  anthropicAIIntegration,
   dataloaderIntegration,
   expressIntegration,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
-  graphqlDiagnosticsIntegration as graphqlIntegration,
+  graphqlIntegration,
   hapiIntegration,
-  kafkajsIntegration as kafkaIntegration,
+  kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
-  mongodbIntegration as mongoIntegration,
+  mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
-  openaiIntegration as openAIIntegration,
+  openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  redisIntegration,
   tediousIntegration,
-  vercelAiIntegration as vercelAIIntegration,
-} from '@sentry/server-utils/orchestrion';
-export { redisIntegration } from './integrations/tracing/redis';
+  vercelAIIntegration,
+} from '@sentry/server-utils';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -41,8 +41,13 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
+  setupFastifyErrorHandler,
 } from '@sentry/server-utils';
+// oxlint-disable-next-line typescript/no-deprecated
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
+// oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
 export {
   launchDarklyIntegration,
@@ -97,7 +102,6 @@ export {
   setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   Scope,
@@ -202,12 +206,14 @@ export { pinoIntegration } from './integrations/pino';
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { createSentryWinstonTransport } from './integrations/winston';
+export { workerThreadsIntegration } from './integrations/workerThreads';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
+export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

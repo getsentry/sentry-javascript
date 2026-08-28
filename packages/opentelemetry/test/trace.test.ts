@@ -1,9 +1,10 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -12,12 +13,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { isSpan } from './helpers/isSpan';
@@ -211,7 +213,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           });
         },
       );
@@ -221,14 +223,14 @@ describe('trace', () => {
           name: 'outer',
           op: 'my-op',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
           },
         },
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
@@ -257,7 +259,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
             [SENTRY_KIND]: 'client',
@@ -458,7 +460,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -482,7 +484,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -608,14 +610,14 @@ describe('trace', () => {
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       });
 
       const span2 = startInactiveSpan({
         name: 'outer',
         op: 'my-op',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         },
       });
@@ -623,7 +625,7 @@ describe('trace', () => {
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
       });
@@ -648,7 +650,7 @@ describe('trace', () => {
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
         test1: 'test 1',
         test2: 2,
         [SENTRY_KIND]: 'client',
@@ -786,7 +788,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -810,7 +812,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -884,7 +886,7 @@ describe('trace', () => {
       });
     });
 
-    it('includes the scope at the time the span was started when finished', async () => {
+    it('includes the scope the span was started on when finished', async () => {
       const beforeSendTransaction = vi.fn(event => event);
 
       const client = getClient()!;
@@ -899,8 +901,8 @@ describe('trace', () => {
       withScope(scope => {
         scope.setTag('scope', 1);
         span = startInactiveSpan({ name: 'my-span' });
-        // Set after the span was started: the span captures a snapshot of the scope at start time,
-        // so this later mutation is intentionally not reflected on the transaction.
+        // The span captures the scope it was started on, so later mutations of that scope
+        // are reflected on the transaction.
         scope.setTag('scope_after_span', 2);
       });
 
@@ -913,9 +915,9 @@ describe('trace', () => {
 
       expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
       const transactionEvent = beforeSendTransaction.mock.calls[0]![0];
-      // Only the scope state at span-start is captured: `outer` and `scope: 1`, but not
-      // `scope_after_span` (set later) or `scope: 2` (a different scope active at `end()`).
-      expect(transactionEvent.tags).toEqual({ outer: 'foo', scope: 1 });
+      // The span-start scope is captured: `outer`, `scope: 1`, and `scope_after_span` (set on the
+      // same scope after span start), but not `scope: 2` (a different scope active at `end()`).
+      expect(transactionEvent.tags).toEqual({ outer: 'foo', scope: 1, scope_after_span: 2 });
     });
   });
 
@@ -981,7 +983,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',
             test2: 2,
             [SENTRY_KIND]: 'client',
@@ -1171,7 +1173,7 @@ describe('trace', () => {
         data: {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1195,7 +1197,7 @@ describe('trace', () => {
       expect(innerTransaction?.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
+          'sentry.segment.name.source': 'custom',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1604,6 +1606,31 @@ describe('trace (sampling)', () => {
     });
   });
 
+  it('keeps the remote parent propagation on the scope captured by the span', () => {
+    mockSdkInit({ tracesSampleRate: 1 });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: true,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ name: 'outer' }, outerSpan => {
+        const capturedScope = getCapturedScopesOnSpan(outerSpan).scope;
+        const propagationContext = capturedScope?.getPropagationContext();
+        expect(propagationContext?.traceId).toBe(traceId);
+        expect(propagationContext?.parentSpanId).toBe(parentSpanId);
+        expect(propagationContext?.sampled).toBe(true);
+      });
+    });
+  });
+
   it('negative remote parent sampling takes precedence over tracesSampleRate', () => {
     vi.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
@@ -1708,6 +1735,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      parentSampleRate: undefined,
+      normalizedRequest: undefined,
       name: 'outer',
       attributes: {
         attr1: 'yes',

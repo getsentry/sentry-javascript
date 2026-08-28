@@ -9,6 +9,8 @@ import type { Span } from '../../types/span';
 export type MethodConfig = {
   targetField: string;
   targetAttribute: string;
+  /** Whether the target is drawn from a bounded set, and so may appear in a span name. */
+  targetIsLowCardinality?: boolean;
   captureArguments?: boolean;
   argumentsField?: string;
   captureUri?: boolean;

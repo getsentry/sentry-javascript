@@ -5,11 +5,11 @@ import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import type { Scope } from '../scope';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
@@ -17,6 +17,7 @@ import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '..
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types/context';
 import type { SpanLink, SpanLinkJSON } from '../types/link';
+import type { TransactionSource } from '../types/transaction';
 import type {
   SerializedStreamedSpan,
   Span,
@@ -229,7 +230,7 @@ export function spanToJSON(span: Span): StreamedSpanJSON {
       start_timestamp: spanTimeInputToSeconds(startTime),
       // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
       end_timestamp: spanTimeInputToSeconds(endTime) || undefined,
-      is_segment: span === INTERNAL_getSegmentSpan(span),
+      is_segment: spanIsSegment(span),
       status: getSimpleStatus(status),
       attributes: addStatusMessageAttribute(attributes, status),
       links: getStreamedSpanLinks(links),
@@ -244,7 +245,7 @@ export function spanToJSON(span: Span): StreamedSpanJSON {
     start_timestamp: 0,
     name: '',
     status: 'ok',
-    is_segment: span === INTERNAL_getSegmentSpan(span),
+    is_segment: spanIsSegment(span),
     attributes: {},
   };
 }
@@ -378,6 +379,27 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   const rootSpan = span[ROOT_SPAN_FIELD] || span;
   addNonEnumerableProperty(childSpan, ROOT_SPAN_FIELD, rootSpan);
 
+  // Name source is exclusive to segment spans. Constructor-time attribute bags can leak it onto
+  // children before this link exists, so drop it once the span is known not to be the segment.
+  childSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, undefined);
+
+  // `_sentryChildSpans` exists only so `getSpanDescendants()` can walk the tree when the segment span
+  // is sent, and that walk stops at an unsampled span without ever visiting its children. So a child
+  // tracked here would be held for the parent's lifetime and never read.
+  if (!spanIsSampled(span)) {
+    return;
+  }
+
+  // Once the segment span stopped recording, the tree has been read for the last time, and a child
+  // starting now belongs to whatever segment comes next: it is re-emitted on its own instead. Tracking
+  // it here would pin it for as long as the parent lives, which for a span left active in an async
+  // context (e.g. a framework boot span captured by a queue consumer) is the rest of the process. Only
+  // a parent that is itself still recording keeps tracking, so a late child that outlives its segment
+  // still collects the subtree it is re-emitted with.
+  if (!span.isRecording() && !rootSpan.isRecording()) {
+    return;
+  }
+
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work
   if (span[CHILD_SPANS_FIELD]) {
@@ -432,6 +454,13 @@ export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
 }
 
 /**
+ * Whether the given span is the segment span, i.e. it has no parent within its trace.
+ */
+export function spanIsSegment(span: SpanWithPotentialChildren): boolean {
+  return span === INTERNAL_getSegmentSpan(span);
+}
+
+/**
  * Returns the currently active span.
  */
 export function getActiveSpan(scope?: Scope): Span | undefined {
@@ -463,7 +492,17 @@ export function getActiveSpan(scope?: Scope): Span | undefined {
 export function updateSpanName(span: Span, name: string): void {
   span.updateName(name);
   span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
   });
+  INTERNAL_setSegmentNameSourceIfSegment(span, 'custom');
+}
+
+/**
+ * Sets `sentry.segment.name.source` only when `span` is the segment span.
+ * No-op for child spans — the attribute must exclusively live on the segment.
+ */
+export function INTERNAL_setSegmentNameSourceIfSegment(span: Span, source: TransactionSource): void {
+  if (spanIsSegment(span)) {
+    span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
+  }
 }

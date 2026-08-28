@@ -28,7 +28,7 @@ test.describe('server - instrumentation API lazy loading', () => {
           data: {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.react_router.instrumentation_api',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
           op: 'http.server',
           origin: 'auto.http.react_router.instrumentation_api',

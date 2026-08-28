@@ -25,8 +25,8 @@ import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so it is statically detectable by turbopack
-export { pinoIntegration } from '@sentry/node';
+// Explicitly re-export so these are statically detectable by turbopack
+export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
@@ -201,7 +201,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanStart', span => handleOnSpanStart(span, client));
 
   // Normalize name/op/source/status on the request root span at span end, before it is serialized into
   // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles

@@ -455,6 +455,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
    * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   * Matching is case-insensitive, so `'myApi.com'` and `/^myApi\.com/` both match a request to `https://myapi.com`.
    *
    * Examples:
    * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
@@ -510,13 +511,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   orgId?: `${number}` | number;
 
   /**
-   * If logs support should be enabled.
-   *
-   * @default true
-   */
-  enableLogs?: boolean;
-
-  /**
    * An event-processing callback for logs, guaranteed to be invoked after all other log
    * processors. This allows a log to be modified or dropped before it's sent.
    *
@@ -529,13 +523,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @returns A new log that will be sent | null.
    */
   beforeSendLog?: (log: Log) => Log | null;
-
-  /**
-   * If metrics support should be enabled.
-   *
-   * @default true
-   */
-  enableMetrics?: boolean;
 
   /**
    * Interval in ms for the idle flush timer used by logs and metrics.

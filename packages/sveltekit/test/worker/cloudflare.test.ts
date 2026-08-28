@@ -1,23 +1,22 @@
 import * as SentryCloudflare from '@sentry/cloudflare';
-import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import type * as SentryCloudflareRequest from '@sentry/cloudflare/request';
+import { _INTERNAL_wrapRequestHandler as wrapRequestHandler } from '@sentry/cloudflare';
 import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCloudflareSentryHandle } from '../../src/worker';
 
-vi.mock('@sentry/cloudflare/request', async importOriginal => {
-  const actual = await importOriginal<typeof SentryCloudflareRequest>();
-  return { ...actual, wrapRequestHandler: vi.fn(actual.wrapRequestHandler) };
+vi.mock('@sentry/cloudflare', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCloudflare>();
+  return { ...actual, _INTERNAL_wrapRequestHandler: vi.fn(actual._INTERNAL_wrapRequestHandler) };
 });
 
 const globalWithSentry = globalThis as typeof GLOBAL_OBJ & Carrier;
 
-function getHandlerInput() {
+function getHandlerInput(platformKey: 'context' | 'ctx' = 'context') {
   const options = { dsn: 'https://public@dsn.ingest.sentry.io/1337' };
   const request = { foo: 'bar' };
   const context = { bar: 'baz' };
 
-  const event = { request, platform: { context } };
+  const event = { request, platform: { [platformKey]: context } };
   const resolve = vi.fn(() => Promise.resolve({}));
   return { options, event, resolve, request, context };
 }
@@ -39,8 +38,12 @@ describe('initCloudflareSentryHandle', () => {
     ).toBeDefined();
   });
 
-  it('calls wrapRequestHandler with the correct arguments', async () => {
-    const { options, event, resolve, request, context } = getHandlerInput();
+  // `@sveltejs/adapter-cloudflare` 8 renamed `platform.context` to `platform.ctx`
+  it.each([
+    ['context' as const, 'adapter-cloudflare <= 7'],
+    ['ctx' as const, 'adapter-cloudflare 8'],
+  ])('calls wrapRequestHandler with the correct arguments, reading platform.%s (%s)', async (platformKey, _adapter) => {
+    const { options, event, resolve, request, context } = getHandlerInput(platformKey);
 
     // @ts-expect-error - resolving an empty object is enough for this test
     vi.mocked(wrapRequestHandler).mockImplementationOnce((_, cb) => cb());

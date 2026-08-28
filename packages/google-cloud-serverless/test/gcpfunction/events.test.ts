@@ -1,7 +1,7 @@
-import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
-import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
+import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { Event } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
@@ -72,9 +72,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -95,9 +95,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -123,9 +123,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -150,9 +150,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -175,9 +175,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -198,9 +198,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
@@ -222,9 +222,9 @@ describe('wrapEventFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         attributes: {
-          [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+          [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };

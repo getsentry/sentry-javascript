@@ -1,6 +1,6 @@
 import type { D1Database, D1DatabaseSession, D1PreparedStatement } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentD1 } from '../../../src/instrumentations/worker/instrumentD1';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };
@@ -78,6 +78,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'first',
             'db.query.text': 'SELECT * FROM users',
+            'db.query.summary': 'SELECT users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
@@ -108,6 +109,57 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
     });
+
+    describe('with span streaming enabled', () => {
+      let getClientSpy: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+          getOptions: () => ({ traceLifecycle: 'stream' }),
+        } as unknown as ReturnType<typeof SentryCore.getClient>);
+      });
+
+      afterEach(() => {
+        getClientSpy.mockRestore();
+      });
+
+      test('names the span after the query summary', async () => {
+        const instrumentedDb = instrumentD1(createMockD1Database());
+        await instrumentedDb.prepare('SELECT * FROM users').first();
+
+        expect(startSpanSpy).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            name: 'SELECT users',
+            // the statement is still reported, just not as the name
+            attributes: expect.objectContaining({ 'db.query.text': 'SELECT * FROM users' }),
+          }),
+          expect.any(Function),
+        );
+      });
+
+      test('sanitizes the statement before summarizing it, so literals cannot leak into the name', async () => {
+        const instrumentedDb = instrumentD1(createMockD1Database());
+        // The `from ` inside the string literal would otherwise be read as a table reference.
+        await instrumentedDb.prepare("SELECT * FROM items WHERE note LIKE '%shipped from warehouse7%'").first();
+
+        expect(startSpanSpy).toHaveBeenLastCalledWith(
+          expect.objectContaining({ name: 'SELECT items' }),
+          expect.any(Function),
+        );
+      });
+
+      test('falls back to the db system name when no summary can be derived', async () => {
+        const instrumentedDb = instrumentD1(createMockD1Database());
+        await instrumentedDb.prepare('').first();
+
+        // D1 exposes no collection, namespace or server, so `{db.system.name}` is the last template
+        // that can be filled before the static fallback.
+        expect(startSpanSpy).toHaveBeenLastCalledWith(
+          expect.objectContaining({ name: 'cloudflare-d1' }),
+          expect.any(Function),
+        );
+      });
+    });
   });
 
   describe('statement.run()', () => {
@@ -128,6 +180,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'run',
             'db.query.text': 'INSERT INTO users (name) VALUES (?)',
+            'db.query.summary': 'INSERT users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
@@ -181,6 +234,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'all',
             'db.query.text': 'INSERT INTO users (name) VALUES (?)',
+            'db.query.summary': 'INSERT users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
@@ -234,6 +288,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'raw',
             'db.query.text': 'SELECT * FROM users',
+            'db.query.summary': 'SELECT users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
@@ -352,6 +407,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'exec',
             'db.query.text': 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
+            'db.query.summary': 'CREATE TABLE users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
@@ -389,6 +445,7 @@ describe('instrumentD1', () => {
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'first',
             'db.query.text': 'SELECT * FROM users',
+            'db.query.summary': 'SELECT users',
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',

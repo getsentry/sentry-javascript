@@ -50,22 +50,20 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     super(clientOptions);
 
-    if (this.getOptions().enableLogs) {
-      this._logOnExitFlushListener = () => {
-        _INTERNAL_flushLogsBuffer(this);
-      };
+    this._logOnExitFlushListener = () => {
+      _INTERNAL_flushLogsBuffer(this);
+    };
 
-      if (serverName) {
-        this.on('beforeCaptureLog', log => {
-          log.attributes = {
-            ...log.attributes,
-            'server.address': serverName,
-          };
-        });
-      }
-
-      globalThis.addEventListener('unload', this._logOnExitFlushListener);
+    if (serverName) {
+      this.on('beforeCaptureLog', log => {
+        log.attributes = {
+          ...log.attributes,
+          'server.address': serverName,
+        };
+      });
     }
+
+    globalThis.addEventListener('unload', this._logOnExitFlushListener);
   }
 
   /** @inheritDoc */

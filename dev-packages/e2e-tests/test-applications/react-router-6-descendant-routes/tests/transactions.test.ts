@@ -17,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/views/:viewId/:detailId',
           'url.path': '/projects/123/views/234/567',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/234\/567$/),
@@ -47,7 +47,7 @@ test('sends a pageload transaction with a parameterized URL - alternative route'
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
           'url.path': '/projects/234/old-views/234/567',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/234\/old-views\/234\/567$/),
@@ -79,7 +79,7 @@ test('keeps the parent path prefix for a descendant route with non-wildcard nest
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/child/:id',
           'url.path': '/child/abc123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/child\/abc123$/),
@@ -111,7 +111,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -135,7 +135,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/views/:viewId/:detailId',
           'url.path': '/projects/123/views/456/789',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/views\/456\/789$/),
@@ -167,7 +167,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -191,7 +191,7 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/projects/:projectId/old-views/:viewId/:detailId',
           'url.path': '/projects/123/old-views/345/654',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/projects\/123\/old-views\/345\/654$/),
@@ -225,7 +225,7 @@ test('keeps the parent path prefix for a descendant route with non-wildcard nest
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -249,7 +249,7 @@ test('keeps the parent path prefix for a descendant route with non-wildcard nest
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/child/:id',
           'url.path': '/child/abc123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/child\/abc123$/),
@@ -279,7 +279,7 @@ test('resolves deep wildcard chain with three levels of nesting - pageload', asy
         op: 'pageload',
         origin: 'auto.pageload.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/workspace/:teamId/:memberId',
           'url.path': '/workspace/team/u123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),
@@ -340,7 +340,7 @@ test('does not mix param names across independent descendant routers', async ({ 
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/bar/:barId',
           'url.path': '/bar/456',
         },
@@ -376,7 +376,7 @@ test('resolves deep wildcard chain with three levels of nesting - navigation', a
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouter_v6',
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/workspace/:teamId/:memberId',
           'url.path': '/workspace/team/u123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/workspace\/team\/u123$/),

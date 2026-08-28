@@ -4,13 +4,13 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigating, page } from '$app/stores';
 import { browserTracingIntegration } from '../../src/client';
-import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
 // `navigating` store for each test.
@@ -116,7 +116,7 @@ describe('browserTracingIntegration', () => {
       op: 'pageload',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
 
@@ -130,7 +130,7 @@ describe('browserTracingIntegration', () => {
     expect(createdRootSpan?.updateName).toHaveBeenCalledTimes(1);
     expect(createdRootSpan?.updateName).toHaveBeenCalledWith('testRoute');
     expect(createdRootSpan?.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [URL_TEMPLATE]: 'testRoute',
     });
   });
@@ -220,7 +220,7 @@ describe('browserTracingIntegration', () => {
         op: 'navigation',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/users/[id]',
           'sentry.sveltekit.navigation.from': '/users',
           'sentry.sveltekit.navigation.to': '/users/[id]',
@@ -249,6 +249,71 @@ describe('browserTracingIntegration', () => {
     navigating.set(null);
 
     expect(routingSpanEndSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the routing span with the low cardinality fallback when span streaming is enabled', async () => {
+    const streamingClient = {
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+      on: () => {},
+      addEventProcessor: () => {},
+      addIntegration: () => {},
+    };
+    const integration = browserTracingIntegration({
+      instrumentPageLoad: false,
+    });
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(streamingClient);
+    await vi.dynamicImportSettled();
+
+    // TODO(v11): switch to `navigating` from `$app/state`
+    // @ts-expect-error - navigating is a writable but the types say it's just readable
+    // eslint-disable-next-line typescript/no-deprecated
+    navigating.set({
+      from: { route: { id: '/users' }, url: { pathname: '/users' } },
+      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762', href: 'https://sentry-test.io/users/7762' } },
+      type: 'link',
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Router',
+        attributes: expect.objectContaining({ [SENTRY_OP]: 'router' }),
+      }),
+    );
+  });
+
+  it('falls back to a low cardinality navigation span name when span streaming is enabled', async () => {
+    const streamingClient = {
+      ...fakeClient,
+      addIntegration: () => {},
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    };
+
+    const integration = browserTracingIntegration({
+      instrumentPageLoad: false,
+    });
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(streamingClient);
+    await vi.dynamicImportSettled();
+
+    // TODO(v11): switch to `navigating` from `$app/state`
+    // @ts-expect-error - navigating is a writable but the types say it's just readable
+    // eslint-disable-next-line typescript/no-deprecated
+    navigating.set({
+      from: { route: {}, url: { pathname: '/users' } },
+      to: { route: {}, url: { pathname: '/users/7762', href: 'https://sentry-test.io/users/7762' } },
+      type: 'link',
+    });
+
+    // The destination URL stays on the span options, only the name is low cardinality.
+    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(
+      streamingClient,
+      expect.objectContaining({
+        name: 'Navigation',
+        attributes: expect.objectContaining({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
+      }),
+      { url: 'https://sentry-test.io/users/7762' },
+    );
   });
 
   describe('handling same origin and destination navigations', () => {
@@ -298,7 +363,7 @@ describe('browserTracingIntegration', () => {
           name: '/users/[id]',
           op: 'navigation',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [URL_TEMPLATE]: '/users/[id]',
             'sentry.sveltekit.navigation.from': '/users/[id]',

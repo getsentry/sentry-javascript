@@ -14,13 +14,12 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
       'sentry.origin': 'auto.pageload.remix',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
       'url.path': '/',
+      'url.template': '/',
     }),
   );
-  // no url.template because the route isn't parameterized (sentry.source: 'url')
-  expect(transactionEvent.contexts?.trace?.data).not.toHaveProperty('url.template');
 });
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
@@ -38,7 +37,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
       'url.path': '/user/5',
       'url.template': '/user/:id',
@@ -62,7 +61,7 @@ test('Sends a navigation transaction with parameterized route to Sentry', async 
   expect(transactionEvent.transaction).toBe('/user/:id');
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
       'url.path': '/user/5',
       'url.template': '/user/:id',

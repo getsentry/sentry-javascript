@@ -6,6 +6,7 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   PARAMS_KEY_BASE,
   URL_FULL,
   URL_PATH,
@@ -14,9 +15,11 @@ import {
 } from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import {
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   filterCollectedUrl,
 } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/solid-router';
@@ -69,7 +72,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         fallbackName: string,
       ): void => {
         span.updateName(match ? match.routeId : fallbackName);
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, match ? 'route' : 'url');
         span.setAttributes({
           [URL_TEMPLATE]: match?.routeId,
           ...locationToSpanUrlAttributes(router, toLocation),
@@ -85,11 +88,16 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         );
 
         const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-          name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          name: routeMatch
+            ? routeMatch.routeId
+            : hasSpanStreamingEnabled(client)
+              ? PAGELOAD_SPAN_NAME_FALLBACK
+              : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
@@ -105,7 +113,12 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           const { toLocation } = onResolvedArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
           if (resolvedMatch) {
-            applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
+            applyRouteMatch(
+              pageloadSpan,
+              resolvedMatch,
+              toLocation,
+              hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : toLocation.pathname,
+            );
           }
         });
       }
@@ -125,7 +138,10 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           }
 
           const routeMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          const fallbackName = WINDOW.location?.pathname || toLocation.pathname;
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          const fallbackName = hasSpanStreamingEnabled(client)
+            ? NAVIGATION_SPAN_NAME_FALLBACK
+            : WINDOW.location?.pathname || toLocation.pathname;
 
           if (inFlightNavigationSpan) {
             // Redirect continuation within the same navigation: keep the span, update the target.
@@ -140,7 +156,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.tanstack_router',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },
@@ -158,7 +174,14 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           const { toLocation } = onResolvedArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
           if (resolvedMatch) {
-            applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
+            applyRouteMatch(
+              span,
+              resolvedMatch,
+              toLocation,
+              hasSpanStreamingEnabled(client)
+                ? NAVIGATION_SPAN_NAME_FALLBACK
+                : WINDOW.location?.pathname || toLocation.pathname,
+            );
           }
         });
       }

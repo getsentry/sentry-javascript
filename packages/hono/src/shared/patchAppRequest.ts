@@ -1,5 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { WEB_SERVER_HTTP_SERVER_SPAN_OP } from '@sentry/conventions/op';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import {
   debug,
   getActiveSpan,
@@ -11,7 +11,7 @@ import {
 import type { Env, Hono } from 'hono';
 import { DEBUG_BUILD } from '../debug-build';
 
-const INTERNAL_REQUEST_OP = WEB_SERVER_HTTP_SERVER_SPAN_OP;
+const INTERNAL_REQUEST_OP = HTTP_SERVER;
 const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 
 function extractPathname(input: string | Request | URL): string {

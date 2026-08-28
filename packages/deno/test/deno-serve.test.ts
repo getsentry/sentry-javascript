@@ -54,6 +54,48 @@ Deno.test('Deno.serve should create http.server spans', async () => {
   assertEquals(transaction?.request?.url?.includes('/test'), true);
 });
 
+Deno.test('Deno.serve should instrument QUERY requests with bodies', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const requestBody = JSON.stringify({ query: '{ viewer { id } }' });
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, async request => {
+    assertEquals(await request.text(), requestBody);
+    return new Response('OK');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/graphql`, {
+    method: 'QUERY',
+    headers: { 'content-type': 'application/json' },
+    body: requestBody,
+  });
+  assertEquals(await response.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+  assertEquals(transaction?.transaction, 'QUERY /graphql');
+  assertEquals(transaction?.request?.method, 'QUERY');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.method'], 'QUERY');
+  assertEquals(transaction?.request?.data, requestBody);
+});
+
 Deno.test('Deno.serve should capture incoming request bodies by default', async () => {
   resetGlobals();
   const transactionEvents: TransactionEvent[] = [];

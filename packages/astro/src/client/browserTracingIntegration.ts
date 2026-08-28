@@ -3,15 +3,15 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Integration, TransactionSource } from '@sentry/core';
+import type { Client, Integration, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 /**
  * Returns the value of a meta-tag
@@ -38,16 +38,12 @@ export function browserTracingIntegration(
 
       if (WINDOW.location) {
         if (options.instrumentPageLoad != false) {
-          const origin = browserPerformanceTimeOrigin();
-
-          const { name, source } = getPageloadSpanName();
+          const { name, source } = getPageloadSpanName(client);
 
           startBrowserTracingPageLoadSpan(client, {
             name,
-            // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: origin ? origin / 1000 : undefined,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+              [SENTRY_SEGMENT_NAME_SOURCE]: source,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',
               ...(source === 'route' && { [URL_TEMPLATE]: name }),
             },
@@ -58,7 +54,7 @@ export function browserTracingIntegration(
   };
 }
 
-function getPageloadSpanName(): { name: string; source: TransactionSource } {
+function getPageloadSpanName(client: Client): { name: string; source: TransactionSource } {
   try {
     const routeNameFromMetaTags = getMetaContent('sentry-route-name');
     if (routeNameFromMetaTags) {
@@ -75,7 +71,8 @@ function getPageloadSpanName(): { name: string; source: TransactionSource } {
     // fail silently if decoding or reading the meta tag fails
   }
   return {
-    name: WINDOW.location.pathname,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
     source: 'url',
   };
 }

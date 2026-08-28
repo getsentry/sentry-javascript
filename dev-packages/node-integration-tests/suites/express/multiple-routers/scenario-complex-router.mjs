@@ -19,6 +19,4 @@ const router = express.Router();
 app.use('/api', router);
 app.use('/api/api/v1', APIv1.use('/sub-router', APIv1));
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);
