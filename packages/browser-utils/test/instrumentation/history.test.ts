@@ -1,7 +1,7 @@
 import * as instrumentHandlersModule from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../src/types';
-import { instrumentHistory } from './../../src/instrumentation/history';
+import { instrumentHistory, supportsHistory } from './../../src/instrumentation/history';
 
 describe('instrumentHistory', () => {
   const originalHistory = WINDOW.history;
@@ -114,5 +114,35 @@ describe('instrumentHistory', () => {
       from: 'https://example.com/page1',
       to: 'https://example.com/page2',
     });
+  });
+});
+
+describe('supportsHistory', () => {
+  const originalHistory = WINDOW.history;
+
+  afterEach(() => {
+    // @ts-expect-error - this is fine for testing
+    WINDOW.history = originalHistory;
+  });
+
+  it('returns true if history is available', () => {
+    // @ts-expect-error - not setting all history properties
+    WINDOW.history = {
+      pushState: () => {},
+      replaceState: () => {},
+    };
+    expect(supportsHistory()).toBe(true);
+  });
+
+  it('returns false if history is not available', () => {
+    // @ts-expect-error - deletion is okay in this case
+    delete WINDOW.history;
+    expect(supportsHistory()).toBe(false);
+  });
+
+  it('returns false if history is undefined', () => {
+    // @ts-expect-error - undefined is okay in this case
+    WINDOW.history = undefined;
+    expect(supportsHistory()).toBe(false);
   });
 });

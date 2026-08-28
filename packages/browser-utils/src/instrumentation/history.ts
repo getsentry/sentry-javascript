@@ -1,8 +1,18 @@
-import { addHandler, fill, maybeInstrument, supportsHistory, triggerHandlers } from '@sentry/core';
+import { addHandler, fill, maybeInstrument, triggerHandlers } from '@sentry/core';
 import type { HandlerDataHistory } from '../types';
 import { WINDOW } from '../types';
 
 let lastHref: string | undefined;
+
+/**
+ * Tells whether current environment supports History API
+ * {@link supportsHistory}.
+ *
+ * @returns Answer to the given question.
+ */
+export function supportsHistory(): boolean {
+  return 'history' in WINDOW && !!WINDOW.history;
+}
 
 /**
  * Add an instrumentation handler for when a fetch request happens.
