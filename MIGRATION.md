@@ -1322,7 +1322,7 @@ Sentry.httpIntegration({
   );
 ```
 
-- The `enableRpcTracePropagation` option was removed. Trace context is no longer appended to every RPC call on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings match a binding name exactly, regular expressions match by pattern. The option covers RPC method calls only, because they carry the trace context as a trailing argument that a non-Sentry receiver would see as a real argument. `stub.fetch()` and service binding `fetch()` carry it in HTTP headers, so they propagate regardless of this option. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
+- The `enableRpcTracePropagation` option was removed. Trace context is no longer appended to every RPC call on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings match a binding name exactly, regular expressions match by pattern, and both match case-insensitively. The option covers RPC method calls only, because they carry the trace context as a trailing argument that a non-Sentry receiver would see as a real argument. `stub.fetch()` and service binding `fetch()` carry it in HTTP headers, so they propagate regardless of this option. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
 
 ```diff
   export default Sentry.withSentry(
@@ -1334,6 +1334,8 @@ Sentry.httpIntegration({
     handler,
   );
 ```
+
+`rpcTracePropagationBindings` follows the matching rules `tracePropagationTargets` has in v11: casing does not matter on either side, and the `g` and `y` flags are ignored on regular expressions, because they made matching stateful via `lastIndex`. The one difference is that a string target has to equal the whole binding name, so `'DB'` does not cover a binding named `MY_DB`.
 
 - The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object's prototype methods are now wrapped unconditionally, so every RPC method is instrumented and there is no longer an option to turn this on. Delete the option from your config.
 

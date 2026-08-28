@@ -336,6 +336,9 @@ interface BaseCloudflareOptions {
    * Propagation over `stub.fetch()` and service binding `fetch()` uses HTTP headers and is not
    * affected by this option.
    *
+   * Strings match a binding name exactly, regular expressions match by pattern. Both match
+   * case-insensitively.
+   *
    * When you build with the Sentry Cloudflare Vite plugin, bindings that resolve to *this* worker
    * (its own Durable Objects, its self service bindings) are added for you, because the plugin
    * instruments those receivers itself. Whatever you list here is added on top of them.
