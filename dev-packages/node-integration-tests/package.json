@@ -59,7 +59,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
-    "ai": "^4.3.16",
+    "ai": "^7.0.79",
     "amqplib": "^0.10.9",
     "body-parser": "^2.3.0",
     "consola": "^3.2.3",

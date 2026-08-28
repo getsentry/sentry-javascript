@@ -14,7 +14,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "ai": "^6.0.0",
+    "ai": "^7.0.79",
     "@anthropic-ai/sdk": "0.63.0",
     "@google/genai": "^1.20.0",
     "@langchain/core": "^0.3.80",
