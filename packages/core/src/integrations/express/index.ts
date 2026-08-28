@@ -209,6 +209,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
   ): void {
     // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
     setSDKProcessingMetadata(request);
+    // oxlint-disable-next-line typescript/no-deprecated
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
@@ -228,7 +229,8 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
  * The error handler must be before any other middleware and after all controllers.
  *
  * @param app The Express instances
- * @param options {ExpressHandlerOptions} Configuration options for the handler
+ * @param options {ExpressHandlerOptions} Configuration options for the handler. Deprecated: the
+ * `shouldHandleError` option will be removed in v11, where `expressIntegration()` accepts it instead.
  *
  * @example
  * ```javascript
