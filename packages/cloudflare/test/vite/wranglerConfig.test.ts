@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { unstable_readConfig } from 'wrangler';
-import { resolveWranglerConfig } from '../../src/vite/wranglerConfig';
+import { DEFAULT_EXPORT, resolveWranglerConfig } from '../../src/vite/wranglerConfig';
 
 const tempDirs: string[] = [];
 
@@ -542,7 +542,7 @@ describe('sameWorkerBindings', () => {
       }),
     ).toEqual([
       { bindingName: 'SELF', className: 'AdminEntry' },
-      { bindingName: 'DEFAULT_SELF', className: undefined },
+      { bindingName: 'DEFAULT_SELF', className: DEFAULT_EXPORT },
     ]);
   });
 

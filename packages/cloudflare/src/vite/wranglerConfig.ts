@@ -19,16 +19,21 @@ export interface WranglerConfig {
    */
   workerEntrypoints: string[];
   /**
-   * Bindings whose RPC receiver lives in this worker, so this build instruments it. An `undefined`
-   * `className` means the default export. Not deduped by class, two bindings may point at the same
-   * class and both names have to be listed.
+   * Bindings whose RPC receiver lives in this worker, so this build instruments it. Not deduped by
+   * class, two bindings may point at the same class and both names have to be listed.
    */
   sameWorkerBindings: SameWorkerBinding[];
 }
 
+/** Stands in for a class name where a binding targets the module's default export. */
+export const DEFAULT_EXPORT = Symbol('defaultExport');
+
+/** The name a binding or an export is known by, either an exported class name or the default export. */
+export type ExportName = string | typeof DEFAULT_EXPORT;
+
 export interface SameWorkerBinding {
   bindingName: string;
-  className?: string;
+  className: ExportName;
 }
 
 /**
@@ -116,7 +121,7 @@ function collectSameWorkerBindings(raw: Unstable_Config): SameWorkerBinding[] {
     if (raw.name && binding?.service === raw.name && typeof binding.binding === 'string') {
       bindings.push({
         bindingName: binding.binding,
-        className: typeof binding.entrypoint === 'string' ? binding.entrypoint : undefined,
+        className: typeof binding.entrypoint === 'string' ? binding.entrypoint : DEFAULT_EXPORT,
       });
     }
   }

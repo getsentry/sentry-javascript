@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import type { SameWorkerBinding } from './wranglerConfig';
+import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './wranglerConfig';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
 
 const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';
@@ -161,7 +161,7 @@ export function applyAutoInstrumentTransforms(
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
     // The identifier must be chosen before wrapping, which bindings survive is only known after.
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
-    autoWrapped: new Set<string | undefined>(),
+    autoWrapped: new Set<ExportName>(),
   };
   const { wrappedClasses } = state;
 
@@ -227,11 +227,11 @@ interface TransformState {
   workerEntrypointClasses: Set<string>;
   optionsFn: string;
   /**
-   * Exported names this transform wrapped itself, unlike `wrappedClasses` which also counts
-   * hand-wrapped classes. `undefined` marks the default export, mirroring
-   * {@link SameWorkerBinding.className}.
+   * Export names wrapped by this transform, so their options can be extended with
+   * `rpcTracePropagationBindings`. Hand-wrapped exports stay out, they keep the options they were
+   * wrapped with. `wrappedClasses` counts both.
    */
-  autoWrapped: Set<string | undefined>;
+  autoWrapped: Set<ExportName>;
 }
 
 /**
@@ -306,7 +306,7 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
   // Wrapping again would produce `withSentry(withSentry(...))`. The binding still
   // points at the wrapped class, so the default export counts as auto-wrapped.
   if (decl.type === 'Identifier' && state.renamedLocals.has((decl as IdentifierNode).name)) {
-    state.autoWrapped.add(undefined);
+    state.autoWrapped.add(DEFAULT_EXPORT);
     return;
   }
 
@@ -315,7 +315,7 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
   state.ms.overwrite(node.start, decl.start, 'const __SENTRY_DEFAULT_EXPORT__ = ');
   state.ms.append(`\nexport default __SENTRY__.withSentry(${state.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
   state.needsImport = true;
-  state.autoWrapped.add(undefined);
+  state.autoWrapped.add(DEFAULT_EXPORT);
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {

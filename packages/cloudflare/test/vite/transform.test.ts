@@ -1,6 +1,7 @@
 import { parse } from 'acorn';
 import { describe, expect, it } from 'vitest';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type TransformContext } from '../../src/vite/transform';
+import { DEFAULT_EXPORT } from '../../src/vite/wranglerConfig';
 
 function parseJS(code: string) {
   return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
@@ -720,7 +721,7 @@ describe('same-worker RPC binding floor', () => {
     const result = transform(code, {
       classWrappers: doWrappers(),
       optionsFn: '() => undefined',
-      sameWorkerBindings: [{ bindingName: 'SELF' }],
+      sameWorkerBindings: [{ bindingName: 'SELF', className: DEFAULT_EXPORT }],
     })!;
 
     expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
@@ -737,7 +738,7 @@ describe('same-worker RPC binding floor', () => {
     const result = transform(code, {
       classWrappers: new Map(),
       optionsFn: '() => undefined',
-      sameWorkerBindings: [{ bindingName: 'SELF' }],
+      sameWorkerBindings: [{ bindingName: 'SELF', className: DEFAULT_EXPORT }],
     })!;
 
     expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
