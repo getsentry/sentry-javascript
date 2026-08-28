@@ -2,7 +2,6 @@
 import {
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpanManual,
@@ -16,7 +15,9 @@ import {
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
@@ -113,11 +114,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
               ? `${operationName} ${modelName}`
               : operationName,
-          op: 'gen_ai.chat',
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: GEN_AI_CHAT,
           },
         },
         span => {
@@ -164,11 +164,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
               ? `${operationName} ${modelName}`
               : operationName,
-          op: 'gen_ai.chat',
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: GEN_AI_CHAT,
           },
         },
         span => {
@@ -247,10 +246,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             : chainName === 'unknown_chain'
               ? 'invoke_agent'
               : `invoke_agent ${chainName}`,
-          op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+            [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
           },
         },
         span => {
@@ -317,10 +315,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       startSpanManual(
         {
           name: `execute_tool ${toolName}`,
-          op: 'gen_ai.execute_tool',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+            [SENTRY_OP]: GEN_AI_EXECUTE_TOOL,
           },
         },
         span => {

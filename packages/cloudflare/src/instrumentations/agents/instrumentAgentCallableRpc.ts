@@ -1,4 +1,6 @@
-import { debug, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { RPC } from '@sentry/conventions/op';
+import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { AGENT_SPAN_ORIGIN, type AgentInternals, getAgentAttributes, setAgentConversationId } from './types';
 
@@ -32,7 +34,7 @@ export function instrumentAgentCallableRpc(obj: AgentInternals): void {
         {
           name: method,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
+            [SENTRY_OP]: RPC,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AGENT_SPAN_ORIGIN,
             ...getAgentAttributes(thisArg),
           },

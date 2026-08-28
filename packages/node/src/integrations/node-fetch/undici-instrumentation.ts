@@ -56,6 +56,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   NodeFetchOptions,
@@ -216,7 +217,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
     [SENTRY_KIND]: 'client',
-    [SENTRY_OP]: 'http.client',
+    [SENTRY_OP]: HTTP_CLIENT,
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
     [URL_FULL]: filterCollectedUrl(requestUrl.toString()),

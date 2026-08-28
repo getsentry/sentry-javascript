@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { WEBSOCKET } from '@sentry/conventions/op';
+import { FUNCTION, RPC, WEBSOCKET } from '@sentry/conventions/op';
 import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -186,7 +186,7 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
         options,
         context,
         spanName: 'alarm',
-        spanOp: 'function',
+        spanOp: FUNCTION,
         startNewTrace: true,
         origin: 'auto.faas.cloudflare.durable_object',
       },
@@ -385,7 +385,7 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
           options: state.options,
           context: state.context,
           spanName: methodName,
-          spanOp: 'rpc',
+          spanOp: RPC,
           origin: 'auto.faas.cloudflare.durable_object',
         },
         originalMethod,

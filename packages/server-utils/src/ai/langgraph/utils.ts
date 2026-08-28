@@ -1,10 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -20,8 +15,10 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
@@ -79,7 +76,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
       apply(target, thisArg, args: unknown[]): unknown {
         const spanAttributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+          [SENTRY_OP]: GEN_AI_EXECUTE_TOOL,
           [GEN_AI_OPERATION_NAME]: 'execute_tool',
           [GEN_AI_TOOL_NAME]: toolName,
         };
@@ -115,7 +112,6 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
 
         return startSpan(
           {
-            op: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
             name: `execute_tool ${toolName}`,
             attributes: spanAttributes,
           },

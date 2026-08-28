@@ -17,7 +17,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
@@ -50,6 +49,7 @@ import {
   transactionNameHasWildcard,
 } from './utils';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -732,7 +732,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initPathName,
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+            [SENTRY_OP]: PAGELOAD,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
@@ -1041,7 +1041,7 @@ export function handleNavigation(opts: {
             : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: NAVIGATION,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },

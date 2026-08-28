@@ -7,7 +7,7 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
   flushIfServerless,
@@ -17,7 +17,6 @@ import {
   getRootSpan,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -81,7 +80,7 @@ export function createSentryServerInstrumentation(
           if (existingRootSpan) {
             updateSpanName(existingRootSpan, unparameterizedName);
             existingRootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SENTRY_OP]: HTTP_SERVER,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [URL_FULL]: filterCollectedUrl(info.request.url),
@@ -106,7 +105,7 @@ export function createSentryServerInstrumentation(
                 name: unparameterizedName,
                 forceTransaction: true,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_OP]: HTTP_SERVER,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,

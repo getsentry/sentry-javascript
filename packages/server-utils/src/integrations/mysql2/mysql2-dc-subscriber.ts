@@ -5,15 +5,16 @@ import {
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -116,7 +117,7 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
         name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText,
           [DB_QUERY_SUMMARY]: querySummary,
@@ -139,7 +140,7 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
         name: spanName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_NAMESPACE]: data.database || undefined,
           [SERVER_ADDRESS]: data.serverAddress,

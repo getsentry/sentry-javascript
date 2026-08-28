@@ -28,7 +28,7 @@ import {
   URL_PATH,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
@@ -151,8 +151,7 @@ export class TraceService implements OnDestroy {
               // known at `ResolveEnd`, well after this span starts, so there is nothing but the fallback.
               name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `${navigationEvent.url}`,
               attributes: {
-                // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-                [SENTRY_OP]: 'router',
+                [SENTRY_OP]: ROUTER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
