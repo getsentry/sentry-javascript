@@ -109,8 +109,7 @@ describe('Prisma ORM v7 Tests', () => {
                   // statement by a different integration, so they are filtered out here.
                   const querySpans = container.items.filter(
                     item =>
-                      item.attributes['sentry.origin']?.value === 'auto.db.otel.prisma' &&
-                      item.attributes['db.query.text'],
+                      item.attributes['sentry.origin']?.value === 'auto.db.prisma' && item.attributes['db.query.text'],
                   );
 
                   // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
