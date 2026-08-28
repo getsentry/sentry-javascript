@@ -50,6 +50,11 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -104,6 +109,13 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
+              '[{"type":"text","content":"You are a friendly robot who likes to be funny."}]',
+            );
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -275,6 +287,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-streaming-id');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-1.5-pro');
 
@@ -342,6 +358,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["STOP"]');
 
             const blockedSpan = container.items.find(span => span.name === 'generate_content blocked-model');

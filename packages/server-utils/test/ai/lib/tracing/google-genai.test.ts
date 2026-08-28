@@ -129,14 +129,15 @@ const MOCK_RESPONSE = {
 
 /**
  * Minimal stand-in for a `@google/genai` client. `chats.create()` returns a chat object that keeps
- * the model (as the real SDK does) and exposes the two message-sending methods. The config passed to
- * `create()` is stored on the SDK internally and is not repeated on each `sendMessage()` call.
+ * the model and the config on the instance, as the real `Chat` does, and exposes the two
+ * message-sending methods. Neither is repeated in the arguments of a `sendMessage()` call.
  */
 function createFakeChatClient(): { chats: { create: (params: Record<string, unknown>) => unknown } } {
   return {
     chats: {
       create: (params: Record<string, unknown>) => ({
         model: params.model,
+        config: params.config,
         sendMessage: async (_params: Record<string, unknown>) => MOCK_RESPONSE,
         sendMessageStream: async (_params: Record<string, unknown>) =>
           (async function* () {
@@ -162,7 +163,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     getMainCarrier().__SENTRY__ = undefined;
   });
 
-  it('welds chats.create() config onto chat.sendMessage() spans', async () => {
+  it('reports the chat config on chat.sendMessage() spans', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
@@ -189,7 +190,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","content":"Tell me a joke"}]');
   });
 
-  it('welds chats.create() config onto chat.sendMessageStream() spans', async () => {
+  it('reports the chat config on chat.sendMessageStream() spans', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
@@ -213,7 +214,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
   });
 
-  it('replaces the chats.create() config when a message provides its own', async () => {
+  it('replaces the chat config when a message provides its own', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
@@ -224,7 +225,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
 
     const data = spanToStaticSpanJSON(endedSpans[0]!).data;
     // @google/genai resolves the request config as `params.config ?? chat.config`, so the
-    // per-message config is sent on its own. The create-time fields it omits are not part of the
+    // per-message config is sent on its own. The chat config fields it omits are not part of the
     // request, so they must not appear on the span.
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.1);
     expect(data[GEN_AI_REQUEST_TOP_P]).toBeUndefined();
@@ -252,5 +253,64 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_REQUEST_MODEL]).toBe('gemini-1.5-flash');
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBeUndefined();
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+  });
+
+  it('falls back to the chat config when a message passes `config: null`', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
+
+    const chat = instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG }) as {
+      sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
+    };
+    // `@google/genai` resolves `params.config ?? chat.config`, so an explicit null still inherits.
+    await chat.sendMessage({ message: 'Tell me a joke', config: null });
+
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
+  });
+
+  it('records no config when the chat was created without one', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
+
+    const chat = instrumented.chats.create({ model: CHAT_MODEL }) as {
+      sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
+    };
+    await chat.sendMessage({ message: 'Tell me a joke' });
+
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe(CHAT_MODEL);
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBeUndefined();
+    expect(data[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
+  });
+
+  it('keeps each chat on its own config', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
+
+    type FakeChat = { sendMessage: (params: Record<string, unknown>) => Promise<unknown> };
+    const hot = instrumented.chats.create({ model: CHAT_MODEL, config: { temperature: 0.9 } }) as FakeChat;
+    const cold = instrumented.chats.create({ model: CHAT_MODEL, config: { temperature: 0.1 } }) as FakeChat;
+
+    await hot.sendMessage({ message: 'Tell me a joke' });
+    await cold.sendMessage({ message: 'Tell me a joke' });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.9);
+    expect(spanToStaticSpanJSON(endedSpans[1]!).data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.1);
+  });
+
+  it('reports the chat config with the static trace lifecycle', async () => {
+    const endedSpans = setupClient('static');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
+
+    const chat = instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG }) as {
+      sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
+    };
+    await chat.sendMessage({ message: 'Tell me a joke' });
+
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
+    expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
+    expect(data[GEN_AI_REQUEST_MAX_TOKENS]).toBe(150);
   });
 });

@@ -251,44 +251,35 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   }
 }
 
-function asConfigObject(config: unknown): Record<string, unknown> | undefined {
-  return config && typeof config === 'object' ? (config as Record<string, unknown>) : undefined;
-}
-
 /**
- * Merge the parameters captured at `chats.create()` time onto a `chat.sendMessage()` /
- * `chat.sendMessageStream()` call, so the config that is defined once on the chat lands on every
- * message span. The SDK resolves the request config as `params.config ?? chat.config`, so a
- * per-message config replaces the create-time config wholesale and the create-time config only
- * applies when the message omits one. Only `model` and `config` are inherited; the create `history`
- * is intentionally left off the message spans. See issue #20086.
+ * Recover the config a chat message sends but does not carry in its own arguments.
+ *
+ * `chats.create()` takes a config that `@google/genai` reuses for every message, resolving each
+ * request as `params.config ?? chat.config`. A per-message config therefore replaces the chat
+ * config rather than merging into it, and the chat config applies only when the message omits one.
+ * That config lives on the chat instance, which both instrumentation paths already hold: the client
+ * proxy passes it as the method's `context`, the diagnostics-channel path as `data.self`.
+ *
+ * The chat `history` stays off the message spans. The SDK does send it, folded into `contents`, and
+ * the instance carries the whole transcript, but repeating every past turn on every message span
+ * duplicates what earlier spans already reported and grows without bound.
  */
-function mergeChatCreateParams(
-  chatCreateParams: Record<string, unknown> | undefined,
-  callParams: Record<string, unknown> | undefined,
+export function resolveChatParams(
+  operationName: string,
+  params: Record<string, unknown> | undefined,
+  context: unknown,
 ): Record<string, unknown> | undefined {
-  if (!chatCreateParams) {
-    return callParams;
+  // `!= null` mirrors the SDK's `??`: an explicit `null` config falls back to the chat's.
+  if (operationName !== 'chat' || params?.config != null || !context || typeof context !== 'object') {
+    return params;
   }
 
-  const merged: Record<string, unknown> = { ...callParams };
-
-  if (!('model' in merged) && 'model' in chatCreateParams) {
-    merged.model = chatCreateParams.model;
+  const chatConfig = (context as Record<string, unknown>).config;
+  if (!chatConfig || typeof chatConfig !== 'object') {
+    return params;
   }
 
-  // @google/genai sends `params.config ?? chat.config`, so a per-message config replaces the
-  // create-time config wholesale rather than merging into it. Fall back to the create-time config
-  // only when the message did not carry one, otherwise the span reports fields that were not sent.
-  const callConfig = asConfigObject(callParams?.config);
-  if (!callConfig) {
-    const createConfig = asConfigObject(chatCreateParams.config);
-    if (createConfig) {
-      merged.config = createConfig;
-    }
-  }
-
-  return merged;
+  return { ...params, config: chatConfig };
 }
 
 /**
@@ -302,7 +293,6 @@ function instrumentMethod<T extends unknown[], R>(
   instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: GoogleGenAIOptions,
-  chatCreateParams?: Record<string, unknown>,
 ): (...args: T) => R | Promise<R> {
   const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
@@ -310,8 +300,7 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      // The chat config is set once on chats.create() and reused for every message, so weld it on.
-      const attributeParams = mergeChatCreateParams(chatCreateParams, params);
+      const attributeParams = resolveChatParams(operationName, params, context);
       const requestAttributes = extractRequestAttributes(operationName, attributeParams, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
@@ -380,12 +369,7 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for Google GenAI client instrumentation
  * Recursively instruments methods and handles special cases like chats.create
  */
-function createDeepProxy<T extends object>(
-  target: T,
-  currentPath = '',
-  options: GoogleGenAIOptions,
-  chatCreateParams?: Record<string, unknown>,
-): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
   return new Proxy(target, {
     get: (t, prop, receiver) => {
       const value = Reflect.get(t, prop, receiver);
@@ -396,14 +380,7 @@ function createDeepProxy<T extends object>(
       if (typeof value === 'function' && instrumentedMethod) {
         // If an operation is specified, we need to instrument the method itself
         const wrappedMethod = instrumentedMethod.operation
-          ? instrumentMethod(
-              value as (...args: unknown[]) => unknown,
-              methodPath,
-              instrumentedMethod,
-              t,
-              options,
-              chatCreateParams,
-            )
+          ? instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, instrumentedMethod, t, options)
           : value.bind(t);
 
         if (!instrumentedMethod.proxyResultPath) {
@@ -417,14 +394,7 @@ function createDeepProxy<T extends object>(
         return function (...args: unknown[]): unknown {
           const result = wrappedMethod(...args);
           if (result && typeof result === 'object') {
-            // The result (e.g. a chat object from chats.create()) carries the config passed here, so
-            // hand those params down to instrument its message methods with them (issue #20086).
-            return createDeepProxy(
-              result as object,
-              instrumentedMethod.proxyResultPath,
-              options,
-              args[0] as Record<string, unknown> | undefined,
-            );
+            return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
           }
           return result;
         };
@@ -436,7 +406,7 @@ function createDeepProxy<T extends object>(
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value, methodPath, options, chatCreateParams);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;
