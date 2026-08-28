@@ -113,6 +113,7 @@ describe('sentryOnBuildEnd', () => {
       org: 'my-org',
       project: 'my-project',
       url: undefined,
+      headers: undefined,
     });
     expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: '1.2.3' });
     expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledWith({
@@ -309,9 +310,7 @@ describe('sentryOnBuildEnd', () => {
     consoleSpy.mockRestore();
   });
 
-  // Self-hosted setups need the buildEnd upload pointed at their instance, so `sentryUrl`
-  // has to reach the CLI SDK from the top-level config. `headers` has no SDK equivalent.
-  it('should pass top-level sentryUrl to createSentrySDK', async () => {
+  it('should pass top-level sentryUrl and headers to createSentrySDK', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
@@ -332,8 +331,8 @@ describe('sentryOnBuildEnd', () => {
     expect(createSentrySDK).toHaveBeenCalledWith(
       expect.objectContaining({
         url: 'https://custom-instance.ejemplo.es',
+        headers: { 'X-Custom-Header': 'test-value' },
       }),
     );
-    expect(createSentrySDK).not.toHaveBeenCalledWith(expect.objectContaining({ headers: expect.anything() }));
   });
 });

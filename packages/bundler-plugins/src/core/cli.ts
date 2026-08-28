@@ -4,6 +4,14 @@ import type { SetCommitsOptions } from './types';
 import { arrayify, getProjects } from './utils';
 
 type SentrySDK = ReturnType<typeof createSentrySDK>;
+type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
+
+/**
+ * The CLI accepts `headers` since 0.44.0, but its bundled type declarations do not list the
+ * option yet.
+ * TODO: Drop once `SentryOptions` in the `sentry` package declares `headers`: https://github.com/getsentry/cli/pull/1500
+ */
+type SentryOptionsWithHeaders = SentryOptions & { headers?: Record<string, string> };
 
 /** Comma-joined list of ignore globs, or `undefined` when nothing should be ignored. */
 function serializeIgnore(ignore: string | string[] | undefined): string | undefined {
@@ -12,23 +20,6 @@ function serializeIgnore(ignore: string | string[] | undefined): string | undefi
   }
   const patterns = arrayify(ignore);
   return patterns.length > 0 ? patterns.join(',') : undefined;
-}
-
-/**
- * The CLI's `SENTRY_CUSTOM_HEADERS` format: semicolon-separated `Name: Value` pairs. A value
- * that contains the separator would be split into a bogus second header, so it is rejected.
- */
-export function serializeCustomHeaders(headers: Record<string, string>): string | undefined {
-  const entries = Object.entries(headers);
-  if (entries.length === 0) {
-    return undefined;
-  }
-  for (const [name, value] of entries) {
-    if (/[;\r\n]/.test(value)) {
-      throw new Error(`Invalid value for header "${name}": it must not contain ";" or line breaks.`);
-    }
-  }
-  return entries.map(([name, value]) => `${name}: ${value}`).join('; ');
 }
 
 /** A single sourcemap directory to upload plus the flags that apply to it. */
@@ -74,21 +65,15 @@ export class SentryCliAdapter {
       process.env['SENTRY_FORCE_ENV_TOKEN'] = '1';
     }
 
-    // `createSentrySDK` has no `headers` option yet, but the CLI reads `SENTRY_CUSTOM_HEADERS`
-    // from `process.env` on every request. The CLI only applies them to self-hosted URLs.
-    // TODO: Remove once https://github.com/getsentry/cli/pull/1465 is in the minimum CLI version and pass
-    // `headers` to `createSentrySDK` instead.
-    const customHeaders = this.#options.headers && serializeCustomHeaders(this.#options.headers);
-    if (customHeaders) {
-      process.env['SENTRY_CUSTOM_HEADERS'] = customHeaders;
-    }
-
-    return createSentrySDK({
+    const options: SentryOptionsWithHeaders = {
       token: this.#options.authToken,
       org: this.#options.org,
       project,
       url: this.#options.url,
-    });
+      headers: this.#options.headers,
+    };
+
+    return createSentrySDK(options);
   }
 
   /** Create a release and associate it with the configured project(s). */

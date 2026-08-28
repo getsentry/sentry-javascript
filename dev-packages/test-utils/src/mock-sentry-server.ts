@@ -239,6 +239,9 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
         url: req.url || '',
         contentType,
         authorization,
+        requestHeaders: Object.fromEntries(
+          Object.entries(req.headers).map(([name, value]) => [name, Array.isArray(value) ? value.join(', ') : value]),
+        ) as Record<string, string>,
         bodySize: body.length,
         timestamp: new Date().toISOString(),
       };

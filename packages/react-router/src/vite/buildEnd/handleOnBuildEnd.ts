@@ -6,6 +6,14 @@ import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
 type BuildEndHook = NonNullable<Config['buildEnd']>;
+type SentryOptions = NonNullable<Parameters<typeof createSentrySDK>[0]>;
+
+/**
+ * The CLI accepts `headers` since 0.44.0, but its bundled type declarations do not list the
+ * option yet.
+ * TODO: Drop once `SentryOptions` in the `sentry` package declares `headers`: https://github.com/getsentry/cli/pull/1500
+ */
+type SentryOptionsWithHeaders = SentryOptions & { headers?: Record<string, string> };
 
 function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
   if (!viteConfig || typeof viteConfig !== 'object' || !('sentryConfig' in viteConfig)) {
@@ -26,6 +34,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   const {
     authToken,
+    headers,
     org,
     project,
     release,
@@ -45,12 +54,15 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     },
   };
 
-  const sentry = createSentrySDK({
+  const sentryOptions: SentryOptionsWithHeaders = {
     token: authToken,
     org,
     url: sentryUrl,
     project,
-  });
+    headers,
+  };
+
+  const sentry = createSentrySDK(sentryOptions);
 
   // check if release should be created
   if (release?.name) {

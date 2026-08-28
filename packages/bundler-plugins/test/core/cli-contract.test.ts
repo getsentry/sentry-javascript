@@ -128,16 +128,16 @@ describe('SentryCliAdapter against the real CLI', () => {
     expect(process.env['SENTRY_FORCE_ENV_TOKEN']).toBe('1');
   });
 
-  it('exposes configured headers to the CLI through SENTRY_CUSTOM_HEADERS', () => {
-    delete process.env['SENTRY_CUSTOM_HEADERS'];
+  it('sends the configured headers with every request', async () => {
+    const before = recordedRequestRecords();
 
-    createAdapter({ headers: undefined });
-    expect(process.env['SENTRY_CUSTOM_HEADERS']).toBeUndefined();
+    await createAdapter({ headers: { 'X-IAP-Token': 'abc' } }).createRelease('1.0.0');
 
-    createAdapter({ headers: { 'X-IAP-Token': 'abc', 'X-Forwarded-For': '10.0.0.1' } });
-    expect(process.env['SENTRY_CUSTOM_HEADERS']).toBe('X-IAP-Token: abc; X-Forwarded-For: 10.0.0.1');
-
-    delete process.env['SENTRY_CUSTOM_HEADERS'];
+    const requests = recordedRequestRecords().slice(before.length);
+    expect(requests.length).toBeGreaterThan(0);
+    for (const request of requests) {
+      expect(request.requestHeaders['x-iap-token']).toBe('abc');
+    }
   });
 
   it('finalizes a release', async () => {

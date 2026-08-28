@@ -690,10 +690,9 @@ describe('createSentryBuildPluginManager', () => {
       const clientOptionsCalls = mockSdkConstructor.mock.calls;
       expect(clientOptionsCalls.length).toBeGreaterThan(0);
 
-      // The new CLI injects trace headers itself; the plugin must never forward them explicitly.
       for (const call of clientOptionsCalls) {
         const options = call[0] as { headers?: Record<string, string> };
-        expect(options).not.toHaveProperty('headers');
+        expect(options.headers).toBeUndefined();
       }
     });
   });

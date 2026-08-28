@@ -28,6 +28,7 @@ export interface RequestRecord {
   url: string;
   contentType: string;
   authorization: string;
+  requestHeaders: Record<string, string>;
   bodySize: number;
   timestamp: string;
   hasBody?: boolean;

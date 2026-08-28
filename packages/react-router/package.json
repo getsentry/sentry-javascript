@@ -59,7 +59,7 @@
     "@sentry/server-utils": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
     "glob": "^13.0.6",
-    "sentry": "^0.43.0"
+    "sentry": "^0.44.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.17.0",
