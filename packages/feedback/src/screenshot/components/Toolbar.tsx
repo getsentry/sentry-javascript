@@ -15,7 +15,7 @@ export default function ToolbarFactory({
     options,
   }: {
     action: 'highlight' | 'hide' | '';
-    setAction: Hooks.StateUpdater<'highlight' | 'hide' | ''>;
+    setAction: Hooks.Dispatch<Hooks.StateUpdater<'highlight' | 'hide' | ''>>;
     options: FeedbackInternalOptions;
   }): VNode {
     return (
