@@ -52,4 +52,13 @@ export { isElement } from './is';
 
 export { getAbsoluteUrl } from './instrumentation/location';
 
-export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';
+export type {
+  FetchHint,
+  HandlerDataDom,
+  HandlerDataHistory,
+  HandlerDataXhr,
+  NetworkMetaWarning,
+  SentryWrappedXMLHttpRequest,
+  SentryXhrData,
+  XhrHint,
+} from './types';

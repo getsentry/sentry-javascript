@@ -17,11 +17,4 @@ export { spanStreamingIntegration } from './integrations/browserSpanStreaming';
 
 export { supportsDOMError, supportsHistory, supportsNativeFetch, supportsReportingObserver } from './utils/supports';
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
-export type {
-  HandlerDataXhr,
-  HandlerDataDom,
-  HandlerDataHistory,
-  SentryXhrData,
-  SentryWrappedXMLHttpRequest,
-} from './types/instrument';
-export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './types/browseroptions';
+export type { BrowserClientReplayOptions } from './types/browseroptions';

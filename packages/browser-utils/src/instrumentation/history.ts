@@ -1,5 +1,5 @@
-import type { HandlerDataHistory } from '@sentry/core';
 import { addHandler, fill, maybeInstrument, supportsHistory, triggerHandlers } from '@sentry/core';
+import type { HandlerDataHistory } from '../types';
 import { WINDOW } from '../types';
 
 let lastHref: string | undefined;
