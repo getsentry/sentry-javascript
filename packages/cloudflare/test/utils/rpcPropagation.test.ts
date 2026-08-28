@@ -47,6 +47,17 @@ describe('createRpcPropagationResolver', () => {
     expect(shouldPropagate('MY_DO')).toBe(false);
   });
 
+  it('propagates to nothing for an empty target list next to enableRpcTracePropagation', () => {
+    const shouldPropagate = createRpcPropagationResolver({
+      // eslint-disable-next-line typescript/no-deprecated
+      enableRpcTracePropagation: true,
+      rpcTracePropagationBindings: [],
+    });
+
+    expect(shouldPropagate('MY_DO')).toBe(false);
+    expect(shouldPropagate('EXTERNAL')).toBe(false);
+  });
+
   it('propagates only to the targeted binding names', () => {
     const shouldPropagate = createRpcPropagationResolver({ rpcTracePropagationBindings: ['MY_DO', 'EXTERNAL'] });
 

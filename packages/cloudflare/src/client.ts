@@ -206,7 +206,9 @@ interface BaseCloudflareOptions {
    * instruments those receivers itself. Whatever you list here is added on top of them.
    *
    * Setting this takes precedence over `enableRpcTracePropagation`: an allow list is the more
-   * precise statement, so a worker that sets both propagates only to the listed bindings.
+   * precise statement, so a worker that sets both propagates only to the listed bindings. An empty
+   * array propagates to nothing, which is how a receiver keeps `enableRpcTracePropagation: true`
+   * without propagating to anything itself.
    *
    * The receiver still needs `enableRpcTracePropagation: true` to continue the trace it is sent.
    *
