@@ -11,11 +11,11 @@ export default makeNPMConfigVariants(
         // to bundle everything into one file.
         preserveModules: false,
       },
-    },
-    esbuild: {
-      // The feedback widget uses preact, so override esbuild's React defaults.
-      jsxFactory: 'h',
-      jsxFragment: 'Fragment',
+      // The widget's `.tsx` files import `h`/`Fragment` from preact directly and rely on the
+      // classic transform, the way the rollup build's esbuild `jsxFactory` override did. Rolldown
+      // would otherwise read `jsx: "react-jsx"` from tsconfig, pull in `preact/jsx-runtime` and
+      // leave those imports dead.
+      transform: { jsx: { runtime: 'classic', pragma: 'h', pragmaFrag: 'Fragment' } },
     },
   }),
 );

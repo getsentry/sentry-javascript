@@ -1,27 +1,24 @@
 // @ts-check
 
 /**
- * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
+ * Rolldown config docs: https://rolldown.rs/reference/config-options
  */
 
 import * as fs from 'fs';
-import { builtinModules } from 'module';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import deepMerge from 'deepmerge';
 
-import { defineConfig } from 'rollup';
+import { defineConfig } from 'rolldown';
 import {
   makeDebugBuildStatementReplacePlugin,
-  makeEsbuildPlugin,
   makeEsmCjsReplacePlugin,
-  makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
-import { mergeExternals, mergePlugins } from './utils.mjs';
+import { getNodeBuiltIns, mergeExternals, mergePlugins } from './utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,12 +31,9 @@ export function makeBaseNPMConfig(options = {}) {
     entrypoints = ['src/index.ts'],
     hasBundles = false,
     packageSpecificConfig = {},
-    esbuild = {},
     bundledBuiltins = [],
   } = options;
 
-  const nodeResolvePlugin = makeNodeResolvePlugin();
-  const transpilePlugin = makeEsbuildPlugin(esbuild);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
@@ -47,7 +41,7 @@ export function makeBaseNPMConfig(options = {}) {
   });
 
   const deps = [
-    ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
+    ...getNodeBuiltIns(bundledBuiltins),
     ...Object.keys(packageDotJSON.dependencies || {}),
     ...Object.keys(packageDotJSON.peerDependencies || {}),
     ...Object.keys(packageDotJSON.optionalDependencies || {}),
@@ -55,6 +49,31 @@ export function makeBaseNPMConfig(options = {}) {
 
   const defaultBaseConfig = {
     input: entrypoints,
+
+    // Point at the package's tsconfig so rolldown picks up its TypeScript & JSX settings.
+    tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
+
+    // NOTE: we deliberately leave `platform` unset so rolldown infers it from the output format
+    // ('node' for cjs, 'browser' for everything else). Every explicit value breaks something:
+    // 'node' injects `import "node:module"` into each runtime chunk, which webpack rejects for
+    // browser targets; 'neutral' rewrites `import.meta` to `{}`, so `createRequire(import.meta.url)`
+    // gets `undefined`. Node-only packages that need the node platform for both halves set it
+    // themselves (see server-utils and bundler-plugins).
+
+    // ES2020 is our floor: keeps `?.`/`??` native and downlevels everything newer. Packages that
+    // need more (e.g. top-level await) raise it through `packageSpecificConfig`.
+    transform: {
+      target: 'es2020',
+
+      // The inferred 'browser' platform defines `process.env.NODE_ENV`, which folds every
+      // `process.env.NODE_ENV !== 'development'` guard to a constant and lets DCE delete the
+      // branch behind it. That silently dropped the orchestrion and source-map plugins from the
+      // vite integrations' ESM output while the CJS half kept them. Mapping it to itself keeps
+      // the runtime lookup, so the guard is evaluated by the consumer as it always was.
+      define: {
+        'process.env.NODE_ENV': 'process.env.NODE_ENV',
+      },
+    },
 
     output: {
       // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
@@ -67,6 +86,7 @@ export function makeBaseNPMConfig(options = {}) {
 
       // output individual files rather than one big bundle
       preserveModules: true,
+      preserveModulesRoot: 'src',
 
       // Don't hoist imports into entrypoints
       // should be ignored when `preserveModules` is used,
@@ -89,18 +109,16 @@ export function makeBaseNPMConfig(options = {}) {
       //       get: () => are.great,
       //     });
       externalLiveBindings: false,
-
-      // Don't call `Object.freeze` on the results of `import * as someModule from '...'`
-      // (We don't need it, so why waste the bytes?)
-      freeze: false,
-
-      // Assume externals are ESM-shaped (`__esModule` + `.default`), which our own `@sentry/*`
-      // packages satisfy via `esModule: 'if-default-prop'`. This keeps `import * as x` a live
-      // reference to the real module rather than an `_interopNamespace` copy — instrumentation code
-      // relies on that to monkey-patch modules like `fs` in place. Packages that pull in bare-CJS
-      // third-party deps (no `.default`) override this per-module (see server-utils).
-      interop: 'esModule',
     },
+
+    // NOTE: rolldown has no equivalent of rollup's `output.interop`. In the CJS build it wraps
+    // namespace imports of externals as `x = __toESM(require('x'))`, and `__toESM` returns a copy
+    // whose properties are getter-only forwarders. Reads pass through to the real module but writes
+    // do not, so code that monkey-patches a module in place has to default-import it (`import x
+    // from 'x'`, whose `.default` is the live `require()` result) rather than namespace-import it.
+    // Rolldown errors on a statically visible `ns.foo = ...` (ASSIGN_TO_IMPORT), but it cannot see a
+    // write made through a helper, and that one fails silently. See
+    // `packages/node/src/integrations/fs/vendored/instrumentation.ts`.
 
     treeshake: {
       moduleSideEffects: (id, external) => {
@@ -119,7 +137,7 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [nodeResolvePlugin, transpilePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin],
+    plugins: [debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
     // also treat subpath exports (e.g. `@sentry/core/browser`) as external
@@ -181,8 +199,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
   }
 
   return variantSpecificConfigs.map(variant =>
-    // Plugin arrays must be merged in the right order or the build silently misbehaves
-    // (e.g. esbuild strips dev-mode marker comments before the replace plugin can act).
+    // Plugin arrays must be merged in the right order or the build silently misbehaves.
     deepMerge(baseConfig, variant, {
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     }),
