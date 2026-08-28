@@ -11,6 +11,7 @@ import {
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
@@ -225,12 +226,15 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         return;
       }
 
-      const chainName = runName || chain.name || 'unknown_chain';
+      const chainName = runName || chain.name;
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
         [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-        'langchain.chain.name': chainName,
       };
+
+      if (chainName) {
+        attributes[GEN_AI_PIPELINE_NAME] = chainName;
+      }
 
       if (recordInputs) {
         attributes['langchain.chain.inputs'] = JSON.stringify(inputs);
@@ -243,10 +247,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           // With span streaming, the name leads with the operation per the agent templates. The
           // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
           name: !(client && hasSpanStreamingEnabled(client))
-            ? `chain ${chainName}`
-            : chainName === 'unknown_chain'
-              ? 'invoke_agent'
-              : `invoke_agent ${chainName}`,
+            ? `chain ${chainName || 'unknown_chain'}`
+            : chainName
+              ? `invoke_agent ${chainName}`
+              : 'invoke_agent',
           op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,

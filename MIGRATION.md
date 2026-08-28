@@ -721,6 +721,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The Vercel AI token attributes `gen_ai.usage.input_tokens.cached`, `gen_ai.usage.input_tokens.cache_write`, and `gen_ai.usage.output_tokens.reasoning` were renamed to `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, and `gen_ai.usage.reasoning.output_tokens`.
 - The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - The `ai.pipeline.name` and `ai.streaming` span attributes on Vercel AI spans were renamed to `gen_ai.pipeline.name` and `gen_ai.response.streaming`.
+- The `langchain.chain.name` span attribute on LangChain chain spans was renamed to `gen_ai.pipeline.name`. The attribute is omitted when the chain is unnamed, rather than writing `unknown_chain`.
 - The `gen_ai.prompt` span attribute is no longer set by the Anthropic integration. The legacy Completions API's `prompt` is now reported as a user message on `gen_ai.input.messages`, like every other request shape.
 
 #### Other attributes
@@ -856,7 +857,7 @@ The following span names were adjusted:
 
 Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
 
-LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
 
