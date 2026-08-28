@@ -118,16 +118,6 @@ describe('SentryCliAdapter against the real CLI', () => {
     );
   });
 
-  it('prefers the configured auth token over a stored CLI login', () => {
-    delete process.env['SENTRY_FORCE_ENV_TOKEN'];
-
-    createAdapter({ authToken: undefined });
-    expect(process.env['SENTRY_FORCE_ENV_TOKEN']).toBeUndefined();
-
-    createAdapter();
-    expect(process.env['SENTRY_FORCE_ENV_TOKEN']).toBe('1');
-  });
-
   it('sends the configured headers with every request', async () => {
     const before = recordedRequestRecords();
 

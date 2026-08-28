@@ -56,15 +56,6 @@ export class SentryCliAdapter {
    * options. Everything happens when a command is actually invoked.
    */
   #createClient(project?: string): SentrySDK {
-    // The SDK forwards `token` as `SENTRY_AUTH_TOKEN`, but its auth precedence is: this flag, then a
-    // stored `sentry auth login`, then the env token. Without the flag, a developer's personal login
-    // silently replaces the configured token. The SDK only consults `process.env` when a command
-    // runs, so setting it here is enough; with no configured token nothing changes.
-    // TODO: Remove once https://github.com/getsentry/cli/issues/1463 is fixed in the minimum CLI version.
-    if (this.#options.authToken) {
-      process.env['SENTRY_FORCE_ENV_TOKEN'] = '1';
-    }
-
     const options: SentryOptionsWithHeaders = {
       token: this.#options.authToken,
       org: this.#options.org,
