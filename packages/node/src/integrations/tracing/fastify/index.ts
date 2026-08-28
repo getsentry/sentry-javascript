@@ -78,7 +78,7 @@ interface FastifyHandlerOptions {
    * @param reply Fastify reply (or any object containing at least statusCode)
    *
    * @deprecated Set `shouldHandleError` on `fastifyIntegration()` instead. It applies to every supported
-   * Fastify version. This option will be removed in v11, together with `setupFastifyErrorHandler`.
+   * Fastify version. This option will be removed in v11.
    *
    * ```javascript
    * Sentry.init({

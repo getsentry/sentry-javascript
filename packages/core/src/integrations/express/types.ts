@@ -27,6 +27,7 @@
  * limitations under the License.
  */
 
+import type { Integration } from '../../types/integration';
 import type { RequestEventData } from '../../types/request';
 import type { SpanAttributes } from '../../types/span';
 
@@ -152,6 +153,33 @@ export type ExpressIntegrationOptions = {
    * resolved route to the underlying transport layer (e.g. OTel RPCMetadata).
    */
   onRouteResolved?: (route: string | undefined) => void;
+
+  /**
+   * Callback deciding whether an error passed to `next(error)` should be captured
+   * and sent to Sentry.
+   *
+   * By default, 5xx errors (and errors without a resolvable status) are sent, while
+   * 3xx and 4xx errors are not. Set to `false` to capture no errors at all.
+   *
+   * Capturing Express errors still requires `setupExpressErrorHandler(app)`. Passing
+   * `shouldHandleError` to that call instead is deprecated: it takes precedence over
+   * this option, but will be removed in v11.
+   *
+   * @example
+   *
+   * ```javascript
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.expressIntegration({
+   *       shouldHandleError(error) {
+   *         return (error.statusCode ?? 500) >= 500;
+   *       },
+   *     }),
+   *   ],
+   * });
+   * ```
+   */
+  shouldHandleError?: ExpressShouldHandleError;
 };
 
 export type LayerMetadata = {
@@ -182,13 +210,25 @@ export type ExpressErrorMiddleware = (
   next: (error: MiddlewareError) => void,
 ) => void;
 
+/** Callback deciding whether an error should be captured; `false` disables capture entirely. */
+export type ExpressShouldHandleError = ((error: MiddlewareError) => boolean) | false;
+
+/**
+ * The Express integration is defined per platform (e.g. `expressIntegration()` in `@sentry/node`), so
+ * `expressErrorHandler` reads its `shouldHandleError` back off the registered instance by name.
+ * `getShouldHandleError` is optional because not every platform's Express integration implements it.
+ */
+export interface ExpressIntegration extends Integration {
+  getShouldHandleError?: () => ExpressShouldHandleError | undefined;
+}
+
 export interface ExpressHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
    *
    * @param error Captured middleware error
    *
-   * @deprecated This option will be removed in v11. In v11, `expressIntegration()` captures Express errors on its own and accepts `shouldHandleError` instead.
+   * @deprecated Set `shouldHandleError` on `expressIntegration()` instead. This option will be removed in v11.
    */
   shouldHandleError?(this: void, error: MiddlewareError): boolean;
 }

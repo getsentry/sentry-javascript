@@ -34,9 +34,17 @@ const isolationScope = {
   },
 };
 
+let integrationShouldHandleError: ExpressIntegrationOptions['shouldHandleError'];
 vi.mock('../../../../src/currentScopes', () => ({
   getIsolationScope() {
     return isolationScope;
+  },
+  getClient() {
+    return {
+      getIntegrationByName(name: string) {
+        return name === 'Express' ? { name, getShouldHandleError: () => integrationShouldHandleError } : undefined;
+      },
+    };
   },
 }));
 
@@ -332,6 +340,66 @@ describe('expressErrorHandler', () => {
     sdkProcessingMetadata.length = 0;
     expect(next).toHaveBeenCalledExactlyOnceWith(err);
     next.mockReset();
+  });
+
+  it('falls back to `shouldHandleError` from the Express integration', () => {
+    integrationShouldHandleError = () => false;
+    const errorMiddleware = expressErrorHandler();
+    const res = { status: 500 } as unknown as ExpressResponse;
+    const req = { headers: {} } as unknown as ExpressRequest;
+    const next = vi.fn();
+    const err = new Error('err');
+    errorMiddleware(err, req, res, next);
+    expect(capturedExceptions).toStrictEqual([]);
+    sdkProcessingMetadata.length = 0;
+    expect(next).toHaveBeenCalledExactlyOnceWith(err);
+  });
+
+  it('prefers the deprecated per-call option over the integration option', () => {
+    integrationShouldHandleError = () => false;
+    // oxlint-disable-next-line typescript/no-deprecated
+    const errorMiddleware = expressErrorHandler({ shouldHandleError: () => true });
+    const res = { status: 500 } as unknown as ExpressResponse;
+    const req = { headers: {} } as unknown as ExpressRequest;
+    const next = vi.fn();
+    const err = new Error('err');
+    errorMiddleware(err, req, res, next);
+    expect(capturedExceptions).toHaveLength(1);
+    capturedExceptions.length = 0;
+    sdkProcessingMetadata.length = 0;
+    expect(next).toHaveBeenCalledExactlyOnceWith(err);
+  });
+
+  it('captures nothing when the integration option is `false`', () => {
+    integrationShouldHandleError = false;
+    const errorMiddleware = expressErrorHandler();
+    const res = { status: 500 } as unknown as ExpressResponse;
+    const req = { headers: {} } as unknown as ExpressRequest;
+    const next = vi.fn();
+    const err = new Error('err');
+    errorMiddleware(err, req, res, next);
+    expect((res as unknown as { sentry?: string }).sentry).toBe(undefined);
+    expect(capturedExceptions).toStrictEqual([]);
+    sdkProcessingMetadata.length = 0;
+    expect(next).toHaveBeenCalledExactlyOnceWith(err);
+  });
+
+  it('uses the default gate when neither option is set', () => {
+    integrationShouldHandleError = undefined;
+    const errorMiddleware = expressErrorHandler();
+    const res = {} as unknown as ExpressResponse;
+    const req = { headers: {} } as unknown as ExpressRequest;
+    const next = vi.fn();
+
+    // A 4xx error is skipped by `defaultShouldHandleError`, a 5xx one is captured.
+    errorMiddleware(Object.assign(new Error('client'), { status: 404 }), req, res, next);
+    expect(capturedExceptions).toStrictEqual([]);
+
+    errorMiddleware(Object.assign(new Error('server'), { status: 503 }), req, res, next);
+    expect(capturedExceptions).toHaveLength(1);
+
+    capturedExceptions.length = 0;
+    sdkProcessingMetadata.length = 0;
   });
 });
 

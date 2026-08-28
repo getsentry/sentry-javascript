@@ -29,11 +29,13 @@
 
 import { debug } from '../../utils/debug-logger';
 import { captureException } from '../../exports';
+import { getClient } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   ExpressApplication,
   ExpressErrorMiddleware,
   ExpressHandlerOptions,
+  ExpressIntegration,
   ExpressIntegrationOptions,
   ExpressLayer,
   ExpressMiddleware,
@@ -43,6 +45,7 @@ import type {
   ExpressRouter,
   ExpressRouterv4,
   ExpressRouterv5,
+  ExpressShouldHandleError,
   MiddlewareError,
 } from './types';
 import {
@@ -198,6 +201,17 @@ export function patchExpressModule(
 }
 
 /**
+ * The `shouldHandleError` configured on the registered Express integration, if any.
+ *
+ * The integration is defined per platform (e.g. `expressIntegration()` in `@sentry/node`), so it is
+ * looked up by name here — the same way `getIntegrationByName` is used for `VercelAI` and
+ * `ProfilingIntegration`.
+ */
+function getIntegrationShouldHandleError(): ExpressShouldHandleError | undefined {
+  return getClient()?.getIntegrationByName<ExpressIntegration>('Express')?.getShouldHandleError?.();
+}
+
+/**
  * An Express-compatible error handler, used by setupExpressErrorHandler
  */
 export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
@@ -210,7 +224,13 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
     // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
     setSDKProcessingMetadata(request);
     // oxlint-disable-next-line typescript/no-deprecated
-    const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
+    const shouldHandleError =
+      options?.shouldHandleError ?? getIntegrationShouldHandleError() ?? defaultShouldHandleError;
+
+    if (shouldHandleError === false) {
+      next(error);
+      return;
+    }
 
     if (shouldHandleError(error)) {
       const eventId = captureException(error, {
@@ -229,8 +249,8 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
  * The error handler must be before any other middleware and after all controllers.
  *
  * @param app The Express instances
- * @param options {ExpressHandlerOptions} Configuration options for the handler. Deprecated: the
- * `shouldHandleError` option will be removed in v11, where `expressIntegration()` accepts it instead.
+ * @param options {ExpressHandlerOptions} Configuration options for the handler. Deprecated: set
+ * `shouldHandleError` on `expressIntegration()` instead. This parameter will be removed in v11.
  *
  * @example
  * ```javascript

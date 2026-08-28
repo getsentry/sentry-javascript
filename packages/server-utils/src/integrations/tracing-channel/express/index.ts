@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn } from '@sentry/core';
+import type { ExpressIntegration, IntegrationFn } from '@sentry/core';
 import { defineIntegration, waitForTracingChannelBinding } from '@sentry/core';
 import type { ExpressIntegrationOptions } from './types';
 import { instrumentExpress } from './instrumentation';
@@ -21,7 +21,11 @@ const _expressChannelIntegration = ((options: ExpressIntegrationOptions = {}) =>
         instrumentExpress(options, diagnosticsChannel.tracingChannel);
       });
     },
-  };
+    // Read back by `expressErrorHandler` in `@sentry/core`, which is what captures Express errors.
+    getShouldHandleError() {
+      return options.shouldHandleError;
+    },
+  } satisfies ExpressIntegration;
 }) satisfies IntegrationFn;
 
 /**
