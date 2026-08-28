@@ -22,6 +22,7 @@ import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+import { createDebugIdStampingHook } from './debug-id-stamping';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -318,29 +319,20 @@ export function _rollupPluginInternal(
   }
 
   const name = `sentry-${buildTool}-plugin`;
-
-  if (shouldTransform) {
-    const transformHook =
-      buildTool === 'vite'
-        ? {
-            filter: { id: JS_MODULE_ID_FILTER },
-            handler: transform,
-          }
-        : transform;
-
-    return {
-      name,
-      buildStart,
-      transform: transformHook,
-      renderChunk,
-      writeBundle,
-    };
-  }
+  const transformHook =
+    buildTool === 'vite'
+      ? {
+          filter: { id: JS_MODULE_ID_FILTER },
+          handler: transform,
+        }
+      : transform;
 
   return {
     name,
     buildStart,
+    ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
+    ...(options.sourcemaps?.disable === 'disable-upload' ? { generateBundle: createDebugIdStampingHook(logger) } : {}),
     writeBundle,
   };
 }

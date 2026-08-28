@@ -1,4 +1,4 @@
-import type { Options } from '../core/index';
+import type { Logger, Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -8,6 +8,9 @@ import {
   CodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
+  isJsFile,
+  stampDebugId,
+  warnAboutInlineSourceMaps,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,31 +58,20 @@ type UnsafeDefinePlugin = {
   new (options: any): unknown;
 };
 
-type WebpackModule = {
-  resource?: string;
+type WebpackSource = {
+  source: () => string | Buffer;
 };
 
-type WebpackLoaderCallback = (err: Error | null, content?: string, sourceMap?: unknown) => void;
-
-type WebpackLoaderContext = {
-  callback: WebpackLoaderCallback;
+type WebpackRawSource = {
+  new (source: string): WebpackSource;
 };
 
-type WebpackCompilationContext = {
-  compiler: {
-    webpack?: {
-      NormalModule?: {
-        getCompilationHooks: (compilation: WebpackCompilationContext) => {
-          loader: {
-            tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
-          };
-        };
-      };
-    };
-  };
-  hooks: {
-    normalModuleLoader?: {
-      tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
+type WebpackAsset = {
+  name: string;
+  source: WebpackSource;
+  info: {
+    related?: {
+      sourceMap?: string | string[];
     };
   };
 };
@@ -94,7 +86,7 @@ type WebpackCompiler = {
   };
   hooks: {
     thisCompilation: {
-      tap: (name: string, callback: (compilation: WebpackCompilationContext) => void) => void;
+      tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
     };
     afterEmit: {
       tapAsync: (name: string, callback: (compilation: WebpackCompilation, cb: () => void) => void) => void;
@@ -106,6 +98,12 @@ type WebpackCompiler = {
   webpack?: {
     BannerPlugin?: UnsafeBannerPlugin;
     DefinePlugin?: UnsafeDefinePlugin;
+    Compilation?: {
+      PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
+    };
+    sources?: {
+      RawSource?: WebpackRawSource;
+    };
   };
 };
 
@@ -114,6 +112,9 @@ type WebpackCompilation = {
     path?: string;
   };
   assets: Record<string, unknown>;
+  getAssets: () => WebpackAsset[];
+  getAsset: (name: string) => WebpackAsset | undefined;
+  updateAsset: (name: string, source: WebpackSource) => void;
   hooks: {
     processAssets: {
       tap: (options: { name: string; stage: number }, callback: () => void) => void;
@@ -134,6 +135,41 @@ function getWebpackMajorVersion(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Stamps each JS asset's debug ID into the asset itself and its source map asset.
+ *
+ * Runs after source maps have been generated, so the JS asset no longer needs to carry
+ * source map information and can be replaced with a plain `RawSource`.
+ */
+function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: WebpackRawSource, logger: Logger): void {
+  const inlineSourceMapBundles: string[] = [];
+
+  for (const asset of compilation.getAssets()) {
+    if (!isJsFile(asset.name)) {
+      continue;
+    }
+
+    const bundleSource = asset.source.source().toString();
+    const relatedSourceMap = asset.info.related?.sourceMap;
+    const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
+    const sourceMapAsset = compilation.getAsset(sourceMapName);
+
+    const result = stampDebugId(bundleSource, sourceMapAsset?.source.source().toString());
+    if (result.kind === 'skipped') {
+      continue;
+    }
+
+    compilation.updateAsset(asset.name, new RawSource(result.bundleSource));
+    if (result.kind === 'inline-source-map') {
+      inlineSourceMapBundles.push(asset.name);
+    } else {
+      compilation.updateAsset(sourceMapName, new RawSource(result.sourceMapSource));
+    }
+  }
+
+  warnAboutInlineSourceMaps(inlineSourceMapBundles, logger);
 }
 
 /**
@@ -242,6 +278,27 @@ export function sentryWebpackPluginFactory({
                 },
               }),
             );
+          }
+        }
+
+        // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
+        // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.
+        if (sourcemapsEnabled && options.sourcemaps?.disable === 'disable-upload') {
+          const RawSource = compiler.webpack?.sources?.RawSource;
+          // Right after source map generation (and thus after minification, which would strip the comment),
+          // so later stages (real content hashing, subresource integrity) see the final assets.
+          const stage = (compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_DEV_TOOLING ?? 500) + 1;
+
+          if (!RawSource) {
+            logger.warn(
+              'Webpack sources are not available. Skipping debug ID injection into emitted source maps. This usually means webpack is not properly configured.',
+            );
+          } else {
+            compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
+              compilation.hooks.processAssets.tap({ name: 'sentry-webpack-plugin', stage }, () => {
+                addDebugIdsToAssets(compilation, RawSource, logger);
+              });
+            });
           }
         }
 

@@ -119,6 +119,140 @@ function addDebugIdToBundleSource(bundleSource: string, debugId: string): string
   }
 }
 
+function setDebugIdOnSourceMap(map: Record<string, unknown>, debugId: string): void {
+  // For now we write both fields until we know what will become the standard - if ever.
+  map['debug_id'] = debugId;
+  map['debugId'] = debugId;
+}
+
+export type DebugIdStampResult =
+  | { kind: 'stamped'; bundleSource: string; sourceMapSource: string }
+  | { kind: 'inline-source-map'; bundleSource: string }
+  | { kind: 'skipped' };
+
+function parseSourceMap(sourceMapSource: string): Record<string, unknown> | undefined {
+  let map: unknown;
+  try {
+    map = JSON.parse(sourceMapSource);
+  } catch {
+    return undefined;
+  }
+
+  return map && typeof map === 'object' ? (map as Record<string, unknown>) : undefined;
+}
+
+/**
+ * Stamps the debug ID injected into `bundleSource` into the bundle (as `//# debugId=` comment) and its
+ * source map (as `debug_id`/`debugId` fields).
+ *
+ * This exists for `sourcemaps.disable: "disable-upload"`: the regular upload path only stamps
+ * temporary copies of the artifacts (see `prepareBundleForDebugIdUpload`), so without this the
+ * emitted artifacts would carry no debug ID and a later manual upload could not match them.
+ * Callers must apply the result inside the bundler's asset pipeline (or, for bundlers without one,
+ * before the build resolves) so that integrity hashes computed by later build steps include it.
+ *
+ * Pass `sourceMapSource: undefined` when the bundle has no separate source map. An inlined map can't
+ * carry a `debug_id` field, but the bundle still gets the comment (`kind: 'inline-source-map'`).
+ * Bundles without a debug ID, without any source map, or with an unparseable map are skipped.
+ */
+export function stampDebugId(bundleSource: string, sourceMapSource: string | undefined): DebugIdStampResult {
+  const debugId = determineDebugIdFromBundleSource(bundleSource);
+  if (debugId === undefined) {
+    return { kind: 'skipped' };
+  }
+
+  if (sourceMapSource === undefined) {
+    if (!bundleHasInlineSourceMap(bundleSource)) {
+      return { kind: 'skipped' };
+    }
+
+    return { kind: 'inline-source-map', bundleSource: addDebugIdToBundleSource(bundleSource, debugId) };
+  }
+
+  const map = parseSourceMap(sourceMapSource);
+  if (!map) {
+    return { kind: 'skipped' };
+  }
+
+  setDebugIdOnSourceMap(map, debugId);
+
+  return {
+    kind: 'stamped',
+    bundleSource: addDebugIdToBundleSource(bundleSource, debugId),
+    sourceMapSource: JSON.stringify(map),
+  };
+}
+
+/**
+ * Warns about bundles whose source map is inlined into the bundle. The bundle itself still gets a
+ * `//# debugId=` comment, but the inlined map can't carry a matching `debug_id` field.
+ */
+export function warnAboutInlineSourceMaps(bundleFileNames: string[], logger: Logger): void {
+  if (bundleFileNames.length === 0) {
+    return;
+  }
+
+  logger.warn(
+    `${bundleFileNames.length} bundle(s) inline their source map, so the map itself can't carry a debug ID. Emit source maps as separate files to make sure a later manual upload can be matched: ${bundleFileNames.join(', ')}`,
+  );
+}
+
+/**
+ * Stamps the debug ID of an emitted bundle into the bundle and its source map on disk.
+ *
+ * Used by bundlers that offer no hook to modify assets before they are written (esbuild).
+ */
+export async function addDebugIdToEmittedArtifacts(
+  bundleFilePath: string,
+  logger: Logger,
+  resolveSourceMapHook: ResolveSourceMapHook | undefined,
+): Promise<DebugIdStampResult['kind']> {
+  let bundleSource: string;
+  try {
+    bundleSource = await fs.promises.readFile(bundleFilePath, 'utf8');
+  } catch (e) {
+    logger.error(`Could not read bundle to stamp debug ID: ${bundleFilePath}`, e);
+    return 'skipped';
+  }
+
+  const sourceMapPath = await determineSourceMapPathFromBundle(
+    bundleFilePath,
+    bundleSource,
+    logger,
+    resolveSourceMapHook,
+  );
+
+  let sourceMapSource: string | undefined;
+  if (sourceMapPath) {
+    try {
+      sourceMapSource = await fs.promises.readFile(sourceMapPath, 'utf8');
+    } catch (e) {
+      logger.error(`Could not read source map to stamp debug ID: ${sourceMapPath}`, e);
+      return 'skipped';
+    }
+  }
+
+  const result = stampDebugId(bundleSource, sourceMapSource);
+  if (result.kind === 'skipped') {
+    logger.debug(`Could not stamp debug ID (no debug ID in bundle, no source map, or invalid source map): ${bundleFilePath}`);
+    return 'skipped';
+  }
+
+  const writes = [fs.promises.writeFile(bundleFilePath, result.bundleSource, 'utf8')];
+  if (result.kind === 'stamped' && sourceMapPath) {
+    writes.push(fs.promises.writeFile(sourceMapPath, result.sourceMapSource, 'utf8'));
+  }
+
+  try {
+    await Promise.all(writes);
+  } catch (e) {
+    logger.error(`Could not write debug ID into build artifacts: ${bundleFilePath}`, e);
+    return 'skipped';
+  }
+
+  return result.kind;
+}
+
 /**
  * Whether the bundle carries its source map inlined as `sourceMappingURL=data:`
  * URI, rather than referencing a separate `.map` file. Such bundles must still
@@ -223,9 +357,7 @@ async function prepareSourceMapForDebugIdUpload(
   let map: Record<string, unknown>;
   try {
     map = JSON.parse(sourceMapFileContent) as { sources: unknown; [key: string]: unknown };
-    // For now we write both fields until we know what will become the standard - if ever.
-    map['debug_id'] = debugId;
-    map['debugId'] = debugId;
+    setDebugIdOnSourceMap(map, debugId);
   } catch {
     logger.error(`Failed to parse source map for debug ID upload: ${sourceMapPath}`);
     return;
