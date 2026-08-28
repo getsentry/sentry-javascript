@@ -15,8 +15,6 @@ interface SpanStreamingOptions {
    * When enabled, a trace is flushed shortly after its segment span ends, rather than relying solely
    * on the buffer's timeout/size thresholds or an explicit `flushTraceSpans` emission.
    *
-   * This is used in the browser, where we never know when the page is closed or navigated away from,
-   * so spans must be sent timely.
    *
    * @default true
    */
@@ -38,9 +36,6 @@ export const spanStreamingIntegration = defineIntegration((options: SpanStreamin
       const buffer = new SpanBuffer(client);
 
       client.on('afterSpanEnd', span => {
-        // Negatively sampled spans must not be captured.
-        // This happens because OTel and we create non-recording spans for negatively sampled spans
-        // that go through the same life cycle as recording spans.
         if (!spanIsSampled(span)) {
           return;
         }
