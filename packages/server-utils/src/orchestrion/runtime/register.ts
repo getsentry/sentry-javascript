@@ -64,8 +64,8 @@ function isTransformerTreeShaken(): boolean {
 /**
  * Emit a single, always-on warning that runtime channel injection is disabled, with the actionable
  * fix. Unlike `debug.warn` (gated behind `debug: true`), this reaches every user — otherwise the
- * SDK silently records no channel-based spans. Deduped via a global marker so repeat calls (e.g.
- * `init()` plus `--import`) warn at most once.
+ * SDK silently records no channel-based spans. Deduped via a a global marker (carrier.runtimeAvailable)
+ * so repeat calls (e.g. `init()` plus `--import`) warn at most once.
  */
 function warnRuntimeUnavailable(message: string): void {
   consoleSandbox(() => {
