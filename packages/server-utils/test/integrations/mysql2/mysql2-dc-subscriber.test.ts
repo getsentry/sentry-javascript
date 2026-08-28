@@ -225,6 +225,39 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       expect(json.name).toBe('SELECT * FROM users WHERE email = ? AND age = ?');
     });
 
+    it('sanitizes backslash-escaped values, which is how mysql2 inlines them', async () => {
+      initTestClient('stream');
+
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_QUERY,
+        // `sqlstring` escapes `'` as `\'`, so this is what the channel publishes for
+        // `WHERE name = ?` with the value `O'Brien from ACME`
+        { query: String.raw`SELECT * FROM users WHERE name = 'O\'Brien from ACME'` },
+        { result: [] },
+      );
+
+      const json = spanToJSON(span!);
+      expect(json.attributes['db.query.text']).toBe('SELECT * FROM users WHERE name = ?');
+      expect(json.attributes['db.query.summary']).toBe('SELECT users');
+      // `from ACME'` would otherwise read as a second table and land in the name
+      expect(json.name).toBe('SELECT users');
+    });
+
+    it('sanitizes double-quoted values, which MySQL reads as string literals', async () => {
+      initTestClient('stream');
+
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_QUERY,
+        { query: 'SELECT * FROM users WHERE bio = "i come from Berlin and join clubs"' },
+        { result: [] },
+      );
+
+      const json = spanToJSON(span!);
+      expect(json.attributes['db.query.text']).toBe('SELECT * FROM users WHERE bio = ?');
+      expect(json.attributes['db.query.summary']).toBe('SELECT users');
+      expect(json.name).toBe('SELECT users');
+    });
+
     it('names the span after the query summary with span streaming enabled', async () => {
       initTestClient('stream');
 

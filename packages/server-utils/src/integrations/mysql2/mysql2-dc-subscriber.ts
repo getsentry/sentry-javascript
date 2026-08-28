@@ -102,7 +102,7 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       // mysql2 does not sanitize its channel payload, so the statement may carry
       // raw user values (on the `query` channel they are inlined). Strip every
       // literal before it leaves the process; `values` is never attached.
-      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
+      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query, 'mysql') : undefined;
       const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
       const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
 
