@@ -102,17 +102,17 @@ function _trackFcp(): () => void {
 /**
  * Starts tracking First Paint on the current page.
  *
- * web-vitals has no `onFP`, so this stays on the raw paint observer. It mirrors what `onFCP` does
- * for its own entry: skip the vital if the page was hidden before it, and rebase against
- * `activationStart` so prerendered pages report time-to-paint from activation rather than from the
- * (much earlier) prerender navigation start.
+ * web-vitals has no `onFP`, so this stays on the raw paint observer, and mirrors the one thing
+ * `onFCP` does inline: skip the vital if the page was hidden before it. The raw `startTime` is
+ * stored as-is; rebasing it against `activationStart` happens in `_rebaseFpAgainstActivationStart`
+ * when the span ends, because this observer can run before the page is activated.
  */
 function _trackFp(): () => void {
   return addPerformanceInstrumentationHandler('paint', ({ entries }) => {
     const firstHidden = getVisibilityWatcher();
     for (const entry of entries) {
       if (entry.name === 'first-paint' && entry.startTime < firstHidden.firstHiddenTime) {
-        _measurements['fp'] = { value: Math.max(entry.startTime - getActivationStart(), 0), unit: 'millisecond' };
+        _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
       }
     }
   });
@@ -165,6 +165,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
   // Measurements are only available for pageload transactions
   if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
+    _rebaseFpAgainstActivationStart(_measurements);
 
     if (spanStreamingEnabled) {
       const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
@@ -263,6 +264,24 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
+  }
+}
+
+/**
+ * Rebases First Paint against `activationStart`, so a prerendered page reports time-to-paint from
+ * the moment the user activated it rather than from the (much earlier) prerender navigation start.
+ *
+ * The vitals that come from web-vitals do this themselves, when they compute their value: they only
+ * start observing once the page is activated, so `activationStart` is known by then. FP has no
+ * web-vitals equivalent and is read off a `buffered` paint observer registered at SDK init, which
+ * on a prerendered page runs while `document.prerendering` is still true and `activationStart` is
+ * still 0. Correcting there would be a no-op, so it happens here, at span end, by which point the
+ * activation time is known.
+ */
+function _rebaseFpAgainstActivationStart(measurements: Measurements): void {
+  const fp = measurements['fp'];
+  if (fp) {
+    fp.value = Math.max(fp.value - getActivationStart(), 0);
   }
 }
 
