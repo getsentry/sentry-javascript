@@ -451,7 +451,8 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
-        const name = client && hasSpanStreamingEnabled(client) ? `${operation} ${table}` : description;
+        const name =
+          client && hasSpanStreamingEnabled(client) ? `${operation}${table ? ` ${table}` : ''}` : description;
 
         const attributes: Record<string, any> = {
           'db.table': table,
