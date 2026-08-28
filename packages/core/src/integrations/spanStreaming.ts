@@ -6,6 +6,7 @@ import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnable
 import { SpanBuffer } from '../tracing/spans/spanBuffer';
 import { debug } from '../utils/debug-logger';
 import { spanIsSampled } from '../utils/spanUtils';
+import { safeUnref } from '../utils/timer';
 
 export const INTEGRATION_NAME = 'SpanStreaming' as const;
 
@@ -56,9 +57,13 @@ export const spanStreamingIntegration = defineIntegration((options: SpanStreamin
         // is closed, users navigate away, etc.
         client.on('afterSegmentSpanEnd', segmentSpan => {
           const traceId = segmentSpan.spanContext().traceId;
-          setTimeout(() => {
-            buffer.flush(traceId);
-          }, 500);
+          // `safeUnref` so an enabled `flushOnSegmentEnd` on a server runtime can't keep the
+          // process alive until the timer fires (no-op in the browser, where it's the default path).
+          safeUnref(
+            setTimeout(() => {
+              buffer.flush(traceId);
+            }, 500),
+          );
         });
       }
     },
