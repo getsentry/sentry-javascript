@@ -1,7 +1,7 @@
 import { parse } from 'acorn';
 import { describe, expect, it } from 'vitest';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type TransformContext } from '../../src/vite/transform';
-import { DEFAULT_EXPORT } from '../../src/vite/wranglerConfig';
+import { DEFAULT_EXPORT } from '../../src/vite/bindings';
 
 function parseJS(code: string) {
   return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };

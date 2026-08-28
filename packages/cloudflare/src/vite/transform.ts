@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './wranglerConfig';
+import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './bindings';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
 
 const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';

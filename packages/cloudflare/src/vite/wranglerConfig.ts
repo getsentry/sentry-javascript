@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { type Unstable_Config, unstable_readConfig } from 'wrangler';
+import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './bindings';
+
+export { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding };
 
 /**
  * The slice of the wrangler configuration the auto-instrument plugin cares
@@ -23,17 +26,6 @@ export interface WranglerConfig {
    * class, two bindings may point at the same class and both names have to be listed.
    */
   sameWorkerBindings: SameWorkerBinding[];
-}
-
-/** Stands in for a class name where a binding targets the module's default export. */
-export const DEFAULT_EXPORT = Symbol('defaultExport');
-
-/** The name a binding or an export is known by, either an exported class name or the default export. */
-export type ExportName = string | typeof DEFAULT_EXPORT;
-
-export interface SameWorkerBinding {
-  bindingName: string;
-  className: ExportName;
 }
 
 /**
