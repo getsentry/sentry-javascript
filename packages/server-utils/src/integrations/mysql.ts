@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -10,10 +11,14 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   isObjectLike,
   bindScopeToEmitter,
   defineIntegration,
+  getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -29,6 +34,8 @@ const INTEGRATION_NAME = 'Mysql' as const;
 // `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined. Matches
 // `@opentelemetry/instrumentation-mysql`'s default shape.
 const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
+
+const DB_SYSTEM_NAME_VALUE_MYSQL = 'mysql' as const;
 
 /**
  * The shape orchestrion's transform attaches to the tracing-channel `context` object. Documented here
@@ -80,17 +87,26 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
+      const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL
+          : (sql ?? 'mysql.query');
+
       return startInactiveSpan({
-        name: sql ?? 'mysql.query',
+        name,
         op: 'db',
         attributes: {
           [SENTRY_KIND]: 'client',
-          [DB_SYSTEM_NAME]: 'mysql',
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
           ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
+          [DB_QUERY_SUMMARY]: querySummary,
           [SERVER_ADDRESS]: host,
           [SERVER_PORT]: portIsNumber ? portNumber : undefined,
         },
