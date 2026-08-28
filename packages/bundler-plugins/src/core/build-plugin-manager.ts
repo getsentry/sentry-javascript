@@ -90,10 +90,6 @@ export type SentryBuildPluginManager = {
   createDependencyOnBuildArtifacts: () => () => void;
 };
 
-function createCliInstance(options: NormalizedOptions): SentryCliAdapter {
-  return new SentryCliAdapter(options);
-}
-
 /**
  * Creates a build plugin manager that exposes primitives for everything that a Sentry JavaScript SDK or build tooling may do during a build.
  *
@@ -447,7 +443,7 @@ export function createSentryBuildPluginManager(
       const releaseName = options.release.name;
 
       try {
-        const cliInstance = createCliInstance(options);
+        const cliInstance = new SentryCliAdapter(options);
 
         if (options.release.create) {
           const releaseOutput = await cliInstance.createRelease(releaseName);
@@ -530,7 +526,7 @@ export function createSentryBuildPluginManager(
     async injectDebugIds(buildArtifactPaths: string[]) {
       await startSpan({ name: 'inject-debug-ids', scope: sentryScope, forceTransaction: true }, async () => {
         try {
-          const cliInstance = createCliInstance(options);
+          const cliInstance = new SentryCliAdapter(options);
           await cliInstance.injectDebugIds(buildArtifactPaths, options.sourcemaps?.ignore);
         } catch (e) {
           sentryScope.captureException('Error in "debugIdInjectionPlugin" writeBundle hook');
@@ -592,7 +588,7 @@ export function createSentryBuildPluginManager(
               }
 
               await startSpan({ name: 'upload', scope: sentryScope }, async () => {
-                const cliInstance = createCliInstance(options);
+                const cliInstance = new SentryCliAdapter(options);
                 await cliInstance.uploadSourcemaps(
                   options.release.name ?? 'undefined',
                   pathsToUpload.map(directory => ({
@@ -694,7 +690,7 @@ export function createSentryBuildPluginManager(
                   }
 
                   await startSpan({ name: 'upload', scope: sentryScope }, async () => {
-                    const cliInstance = createCliInstance(options);
+                    const cliInstance = new SentryCliAdapter(options);
                     await cliInstance.uploadSourcemaps(options.release.name ?? 'undefined', [
                       {
                         directory: tmpUploadFolder,
