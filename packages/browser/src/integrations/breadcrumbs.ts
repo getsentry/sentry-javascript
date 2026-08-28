@@ -23,7 +23,6 @@ import {
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
-  getComponentName,
   getEventDescription,
   parseUrl,
   safeJoin,
@@ -35,6 +34,7 @@ import {
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
+  getComponentName,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';

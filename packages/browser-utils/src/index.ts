@@ -44,6 +44,8 @@ export { resourceTimingToSpanAttributes } from './performance/resourceTiming';
 
 export { htmlTreeAsString } from './htmlTreeAsString';
 
+export { getComponentName } from './component-name';
+
 export { isElement } from './is';
 
 export { getAbsoluteUrl } from './instrumentation/location';
