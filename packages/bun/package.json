@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "10.71.0",
+  "version": "10.72.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -50,10 +50,10 @@
   },
   "dependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.3",
-    "@sentry/core": "10.71.0",
+    "@sentry/core": "10.72.0",
     "@sentry/conventions": "^0.16.0",
-    "@sentry/node": "10.71.0",
-    "@sentry/server-utils": "10.71.0"
+    "@sentry/node": "10.72.0",
+    "@sentry/server-utils": "10.72.0"
   },
   "devDependencies": {
     "bun-types": "^1.2.9"
