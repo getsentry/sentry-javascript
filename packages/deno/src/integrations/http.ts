@@ -102,9 +102,12 @@ export interface DenoHttpIntegrationOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
+   * Do not send transaction events for incoming HTTP requests with the given status codes.
+   * By default, some 3xx and 4xx status codes are dropped (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * Filtering runs in `processEvent` on the finished transaction, not when the span is created,
+   * so it also applies to `Deno.serve` transactions. Pass `[]` to keep everything.
    *
    * @default `[[401, 404], [301, 303], [305, 399]]`
    */

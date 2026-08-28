@@ -44,7 +44,6 @@ export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations
 export {
   DEFAULT_IGNORE_STATUS_CODES,
   processHttpServerTransactionEvent,
-  shouldFilterStatusCode,
 } from './integrations/http/server-transaction-event';
 export { recordRequestSession } from './integrations/http/record-request-session';
 export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
