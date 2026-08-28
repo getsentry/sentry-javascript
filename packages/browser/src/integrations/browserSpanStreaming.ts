@@ -13,7 +13,7 @@ interface SpanStreamingOptions {
   flushOnSegmentEnd?: boolean;
 }
 
-export const spanStreamingIntegration = (options: SpanStreamingOptions) => {
+export const spanStreamingIntegration = (options?: SpanStreamingOptions) => {
   return spanStreamingIntegrationCore({
     flushOnSegmentEnd: true,
     ...options,
