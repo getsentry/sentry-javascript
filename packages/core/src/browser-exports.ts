@@ -15,12 +15,7 @@ export { startIdleSpan } from './tracing/idleSpan';
 
 export { spanStreamingIntegration } from './integrations/browserSpanStreaming';
 
-export {
-  getComponentName,
-  getLocationHref,
-  // eslint-disable-next-line typescript/no-deprecated
-  htmlTreeAsString,
-} from './utils/browser';
+export { getComponentName, getLocationHref } from './utils/browser';
 export { supportsDOMError, supportsHistory, supportsNativeFetch, supportsReportingObserver } from './utils/supports';
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
 export type {
