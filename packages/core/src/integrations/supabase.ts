@@ -3,13 +3,16 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { startSpan } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
@@ -206,7 +209,8 @@ export function getHeader(headers: PostgRESTHeaders | undefined, name: string): 
  */
 export function extractOperation(method: string, headers: PostgRESTHeaders = {}): string {
   switch (method) {
-    case 'GET': {
+    case 'GET':
+    case 'QUERY': {
       return 'select';
     }
     case 'POST': {
@@ -269,14 +273,31 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
+      const operationName = `auth${isAdmin ? '.admin' : ''}.${operation.name}`;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? // Usually, the operation name alone is not a valid span name according to conventions.
+            // However, for this span, we neither have a table, nor a namespace, since this is a Supabase-SDK
+            // operation that internally makes the respective request to the database.
+            // So I think we can interpret this as a "db.query.summary"-esque span name.
+            // Either way, it's definitely low-cardinality.
+            // see: https://getsentry.github.io/sentry-conventions/names/#db-queries
+            operationName
+          : // This name makes little sense semantically but preserving it for now to
+            // avoid a breaking change in the transaction path. Will be removed once we remove
+            // transactions.
+            `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`;
+
       return startSpan(
         {
-          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
+          name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-            'db.system': 'postgresql',
-            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_SYSTEM_NAME]: 'postgresql',
+            [DB_OPERATION_NAME]: operationName,
           },
         },
         span => {
@@ -430,13 +451,16 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
+        const name =
+          client && hasSpanStreamingEnabled(client) ? `${operation}${table ? ` ${table}` : ''}` : description;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
           'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
-          'db.system': 'postgresql',
-          'db.operation': operation,
+          [DB_SYSTEM_NAME]: 'postgresql',
+          [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
@@ -451,7 +475,7 @@ function instrumentPostgRESTFilterBuilder(
 
         return startSpan(
           {
-            name: description,
+            name,
             attributes,
           },
           span => {

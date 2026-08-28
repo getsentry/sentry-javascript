@@ -4,16 +4,18 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -60,8 +62,8 @@ function getInitPathName(): string | undefined {
 /**
  * Determines the transaction name and source for a route.
  * Handles three cases:
- * 1. Dynamic routes with manifest (Vite apps): Use parameterized path with source 'route'
- * 2. Static routes with manifest (Vite apps): Use pathname with source 'url'
+ * 1. Routes resolved from the manifest (Vite apps): Use the route template with source 'route'
+ * 2. Routes the manifest doesn't know, e.g. 404s (Vite apps): Use pathname with source 'url'
  * 3. Legacy apps without manifest: Use route ID with source 'route'
  */
 function getTransactionNameAndSource(
@@ -71,13 +73,11 @@ function getTransactionNameAndSource(
   const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
 
   if (parameterizedRoute) {
-    // We have a parameterized route from the manifest (dynamic route)
     return { name: parameterizedRoute, source: 'route' };
   }
 
   if (hasManifest()) {
-    // We have a manifest but no parameterization (static route)
-    // Use the pathname with source 'url'
+    // The manifest doesn't know this route, so the pathname may well be high cardinality.
     return { name: pathname || routeId, source: 'url' };
   }
 
@@ -99,11 +99,12 @@ export function startPageloadSpan(client: Client): void {
   const source = parameterizedRoute ? 'route' : 'url';
 
   const spanContext: StartSpanOptions = {
-    name: spanName,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? spanName : PAGELOAD_SPAN_NAME_FALLBACK,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: spanName }),
     },
   };
@@ -123,11 +124,12 @@ function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType
   const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
 
   const spanContext: StartSpanOptions = {
-    name,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: name }),
     },
   };
@@ -183,8 +185,12 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           const transaction = getRootSpan(activeRootSpan);
 
           if (transaction) {
-            transaction.updateName(name);
-            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+            // This runs on mount, so the root span is the pageload span. With span streaming, its
+            // name has to be low cardinality, so we can't fall back to the URL.
+            const client = getClient();
+            const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+            transaction.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
+            transaction.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
             if (source === 'route') {
               transaction.setAttribute(URL_TEMPLATE, name);
             }

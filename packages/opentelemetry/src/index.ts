@@ -6,3 +6,4 @@ export { SentryTracerProvider } from './tracerProvider';
 export { type AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
+export { registerPrepareSpanScope } from './prepareSpanScope';

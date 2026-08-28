@@ -215,7 +215,7 @@ Deno.test('preserves existing log attributes when adding server.address', () => 
   assertEquals(log.attributes?.['server.address'], 'test-server');
 });
 
-Deno.test('close() removes unload listener when enableLogs is true', async () => {
+Deno.test('close() removes unload listener', async () => {
   const removeEventListenerCalls: Array<string> = [];
   const originalRemoveEventListener = globalThis.removeEventListener;
   globalThis.removeEventListener = ((event: string, ...args: unknown[]) => {
@@ -227,7 +227,6 @@ Deno.test('close() removes unload listener when enableLogs is true', async () =>
   try {
     const client = new DenoClient({
       dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-      enableLogs: true,
       integrations: getDefaultIntegrations({}),
       stackParser: createStackParser(nodeStackLineParser()),
       transport: makeTestTransport(() => {}),

@@ -1,44 +1,77 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+type StreamedSpan = Awaited<ReturnType<typeof waitForStreamedSpan>>;
 
 // This test should be run in serial mode to ensure that the test user is created before the other tests
 test.describe.configure({ mode: 'serial' });
 
+const DB_ATTRIBUTES = {
+  'db.system.name': { value: 'postgresql', type: 'string' },
+  'sentry.op': { value: 'db', type: 'string' },
+  'sentry.origin': { value: 'auto.db.supabase', type: 'string' },
+};
+
+function collectSpansUntilSegment(segmentName: string): Promise<StreamedSpan[]> {
+  return collectStreamedSpans('supabase-nextjs', spans =>
+    spans.some(span => span.name === segmentName && span.is_segment),
+  );
+}
+
+function expectDbSpan(
+  span: StreamedSpan | undefined,
+  name: string,
+  attributes: Record<string, unknown>,
+): asserts span is StreamedSpan {
+  expect(span).toEqual(
+    expect.objectContaining({
+      name,
+      status: 'ok',
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      end_timestamp: expect.any(Number),
+    }),
+  );
+  expect(getSpanOp(span!)).toBe('db');
+  expect(span!.attributes).toMatchObject({ ...DB_ATTRIBUTES, ...attributes });
+}
+
 // This should be the first test as it will be needed for the other tests
-test('Sends server-side Supabase auth admin `createUser` span', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
+test('Sends server-side Supabase auth admin `createUser` span', async ({ baseURL }) => {
+  const spansPromise = collectSpansUntilSegment('GET /api/create-test-user');
+
+  await fetch(`${baseURL}/api/create-test-user`);
+  const spans = await spansPromise;
+
+  const rootSpan = spans.find(span => span.name === 'GET /api/create-test-user' && span.is_segment)!;
+  const createUserSpan = spans.find(span => span.name === 'auth.admin.createUser');
+
+  expectDbSpan(createUserSpan, 'auth.admin.createUser', {
+    'db.operation.name': { value: 'auth.admin.createUser', type: 'string' },
+  });
+  expect(createUserSpan.is_segment).toBe(false);
+  expect(createUserSpan.trace_id).toBe(rootSpan.trace_id);
+  expect(createUserSpan.parent_span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+});
+
+test('Sends client-side Supabase db-operation spans to Sentry', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('supabase-nextjs', span => {
+    return span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+
+  // The `order` filter only exists on the client-side select, which keeps it distinguishable from the
+  // server-side selects now that the span name no longer carries the filters.
+  const selectSpanPromise = waitForStreamedSpan('supabase-nextjs', span => {
+    const query = span.attributes['db.query'];
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/create-test-user'
+      span.name === 'select todos' &&
+      query?.type === 'array' &&
+      (query.value as unknown[]).includes('filter(order, asc)')
     );
   });
 
-  await fetch(`${baseURL}/api/create-test-user`);
-  const transactionEvent = await httpTransactionPromise;
-
-  expect(transactionEvent.spans).toContainEqual({
-    data: expect.objectContaining({
-      'db.operation': 'auth.admin.createUser',
-      'db.system': 'postgresql',
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-    }),
-    description: 'auth (admin) createUser',
-    op: 'db',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.db.supabase',
-  });
-});
-
-test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', async ({ page, baseURL }) => {
-  const pageloadTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
-  });
+  const insertSpanPromise = waitForStreamedSpan('supabase-nextjs', span => span.name === 'insert todos');
 
   await page.goto('/');
 
@@ -55,149 +88,64 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
   await page.locator('input[id=new-task-text]').fill('test');
   await page.locator('button[id=add-task]').click();
 
-  const transactionEvent = await pageloadTransactionPromise;
+  const [pageloadSpan, selectSpan, insertSpan] = await Promise.all([
+    pageloadSpanPromise,
+    selectSpanPromise,
+    insertSpanPromise,
+  ]);
 
   // Client-side database query data is collected by default.
-  const selectSpanExpectation = expect.objectContaining({
-    description: 'select(*) filter(order, asc) from(todos)',
-    op: 'db',
-    data: expect.objectContaining({
-      'db.operation': 'select',
-      'db.system': 'postgresql',
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-    }),
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.db.supabase',
+  expectDbSpan(selectSpan, 'select todos', {
+    'db.operation.name': { value: 'select', type: 'string' },
+    'db.query': { value: ['select(*)', 'filter(order, asc)'], type: 'array' },
   });
+  expect(selectSpan.trace_id).toBe(pageloadSpan.trace_id);
 
-  expect(transactionEvent.spans).toContainEqual(selectSpanExpectation);
-
-  const selectSpan = transactionEvent.spans?.find(
-    (s: { description?: string }) => s.description === 'select(*) filter(order, asc) from(todos)',
-  );
-  expect(selectSpan).toBeDefined();
-  expect(selectSpan!.data?.['db.query']).toEqual(['select(*)', 'filter(order, asc)']);
-
-  expect(transactionEvent.breadcrumbs).toContainEqual({
-    timestamp: expect.any(Number),
-    type: 'supabase',
-    category: 'db.select',
-    message: 'select(*) filter(order, asc) from(todos)',
-    data: expect.objectContaining({
-      query: ['select(*)', 'filter(order, asc)'],
-    }),
-  });
-
-  expect(transactionEvent.breadcrumbs).toContainEqual({
-    timestamp: expect.any(Number),
-    type: 'supabase',
-    category: 'db.insert',
-    message: 'insert(...) select(*) from(todos)',
-    data: expect.objectContaining({
-      query: ['select(*)'],
-    }),
+  // The insert is triggered long after the pageload span has ended, so it is streamed on its own
+  // rather than as a child of the pageload span.
+  expectDbSpan(insertSpan, 'insert todos', {
+    'db.operation.name': { value: 'insert', type: 'string' },
+    'db.query': { value: ['select(*)'], type: 'array' },
   });
 });
 
-test('Sends server-side Supabase db-operation spans and breadcrumbs to Sentry', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/add-todo-entry'
-    );
-  });
+test('Sends server-side Supabase db-operation spans to Sentry', async ({ baseURL }) => {
+  const spansPromise = collectSpansUntilSegment('GET /api/add-todo-entry');
 
   await fetch(`${baseURL}/api/add-todo-entry`);
-  const transactionEvent = await httpTransactionPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toContainEqual(
-    expect.objectContaining({
-      data: expect.objectContaining({
-        'db.operation': 'insert',
-        'db.query': ['select(*)'],
-        'db.system': 'postgresql',
-        'sentry.op': 'db',
-        'sentry.origin': 'auto.db.supabase',
-      }),
-      description: 'insert(...) select(*) from(todos)',
-      op: 'db',
-      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      status: 'ok',
-      timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      origin: 'auto.db.supabase',
-    }),
-  );
+  const rootSpan = spans.find(span => span.name === 'GET /api/add-todo-entry' && span.is_segment)!;
+  const insertSpan = spans.find(span => span.name === 'insert todos');
+  const selectSpan = spans.find(span => span.name === 'select todos');
 
-  expect(transactionEvent.spans).toContainEqual({
-    data: expect.objectContaining({
-      'db.operation': 'select',
-      'db.query': ['select(*)'],
-      'db.system': 'postgresql',
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-    }),
-    description: 'select(*) from(todos)',
-    op: 'db',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.db.supabase',
+  expectDbSpan(insertSpan, 'insert todos', {
+    'db.operation.name': { value: 'insert', type: 'string' },
+    'db.query': { value: ['select(*)'], type: 'array' },
   });
+  expect(insertSpan.is_segment).toBe(false);
+  expect(insertSpan.trace_id).toBe(rootSpan.trace_id);
 
-  expect(transactionEvent.breadcrumbs).toContainEqual({
-    timestamp: expect.any(Number),
-    type: 'supabase',
-    category: 'db.select',
-    message: 'select(*) from(todos)',
-    data: expect.any(Object),
+  expectDbSpan(selectSpan, 'select todos', {
+    'db.operation.name': { value: 'select', type: 'string' },
+    'db.query': { value: ['select(*)'], type: 'array' },
   });
-
-  expect(transactionEvent.breadcrumbs).toContainEqual({
-    timestamp: expect.any(Number),
-    type: 'supabase',
-    category: 'db.insert',
-    message: 'insert(...) select(*) from(todos)',
-    data: expect.any(Object),
-  });
+  expect(selectSpan.is_segment).toBe(false);
+  expect(selectSpan.trace_id).toBe(rootSpan.trace_id);
 });
 
-test('Sends server-side Supabase auth admin `listUsers` span', async ({ page, baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /api/list-users'
-    );
-  });
+test('Sends server-side Supabase auth admin `listUsers` span', async ({ baseURL }) => {
+  const spansPromise = collectSpansUntilSegment('GET /api/list-users');
 
   await fetch(`${baseURL}/api/list-users`);
-  const transactionEvent = await httpTransactionPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toContainEqual({
-    data: expect.objectContaining({
-      'db.operation': 'auth.admin.listUsers',
-      'db.system': 'postgresql',
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-    }),
-    description: 'auth (admin) listUsers',
-    op: 'db',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.db.supabase',
+  const rootSpan = spans.find(span => span.name === 'GET /api/list-users' && span.is_segment)!;
+  const listUsersSpan = spans.find(span => span.name === 'auth.admin.listUsers');
+
+  expectDbSpan(listUsersSpan, 'auth.admin.listUsers', {
+    'db.operation.name': { value: 'auth.admin.listUsers', type: 'string' },
   });
+  expect(listUsersSpan.is_segment).toBe(false);
+  expect(listUsersSpan.trace_id).toBe(rootSpan.trace_id);
 });

@@ -11,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
   spanIsSampled,
   spanToJSON,
@@ -33,7 +32,7 @@ import {
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
 const oldTextEncoder = global.window.TextEncoder;
 const oldTextDecoder = global.window.TextDecoder;
@@ -171,21 +170,23 @@ describe('browserTracingIntegration', () => {
     expect(span).toBeDefined();
     expect(spanIsSampled(span!)).toBe(true);
     expect(spanToJSON(span!)).toEqual({
-      description: '/',
-      op: 'pageload',
-      origin: 'auto.pageload.browser',
+      name: 'Pageload',
       status: 'ok',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      end_timestamp: undefined,
+      is_segment: true,
+      parent_span_id: undefined,
+      links: undefined,
     });
   });
 
@@ -258,21 +259,23 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span)).toBe(true);
     expect(span.isRecording()).toBe(true);
     expect(spanToJSON(span)).toEqual({
-      description: '/',
-      op: 'pageload',
-      origin: 'auto.pageload.browser',
+      name: 'Pageload',
       status: 'ok',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      end_timestamp: undefined,
+      is_segment: true,
+      parent_span_id: undefined,
+      links: undefined,
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -289,15 +292,15 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span2)).toBe(true);
     expect(span2.isRecording()).toBe(true);
     expect(spanToJSON(span2)).toEqual({
-      description: '/test',
-      op: 'navigation',
-      origin: 'auto.navigation.browser',
+      // The raw URL stays in `url.path`/`url.full`: with span streaming, a navigation span name is
+      // low cardinality and falls back to 'Navigation' when there is no parameterized route.
+      name: 'Navigation',
       status: 'ok',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/test',
         [URL_PATH]: '/test',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span?.spanContext().traceId}-${span?.spanContext().spanId}-1`,
@@ -315,6 +318,9 @@ describe('browserTracingIntegration', () => {
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      end_timestamp: undefined,
+      is_segment: true,
+      parent_span_id: undefined,
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -331,15 +337,13 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span3)).toBe(true);
     expect(span3.isRecording()).toBe(true);
     expect(spanToJSON(span3)).toEqual({
-      description: '/test2',
-      op: 'navigation',
-      origin: 'auto.navigation.browser',
+      name: 'Navigation',
       status: 'ok',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/test2',
         [URL_PATH]: '/test2',
         [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: `${span2?.spanContext().traceId}-${span2?.spanContext().spanId}-1`,
@@ -357,6 +361,9 @@ describe('browserTracingIntegration', () => {
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      end_timestamp: undefined,
+      is_segment: true,
+      parent_span_id: undefined,
     });
   });
 
@@ -375,21 +382,23 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span)).toBe(true);
     expect(span.isRecording()).toBe(true);
     expect(spanToJSON(span)).toEqual({
-      description: '/',
-      op: 'pageload',
-      origin: 'auto.pageload.browser',
+      name: 'Pageload',
       status: 'ok',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [URL_FULL]: 'https://example.com/',
         [URL_PATH]: '/',
       },
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      end_timestamp: undefined,
+      is_segment: true,
+      parent_span_id: undefined,
+      links: undefined,
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -410,16 +419,15 @@ describe('browserTracingIntegration', () => {
     // span has connected redirect span
     expect(getSpanDescendants(span).map(span => spanToJSON(span))).toContainEqual(
       expect.objectContaining({
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.redirect',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [URL_FULL]: 'https://example.com/test',
           [URL_PATH]: '/test',
         },
-        description: '/test',
-        op: 'navigation.redirect',
-        origin: 'auto.navigation.browser',
+        // Redirect spans are started through the same path as navigation spans, so they get the
+        // low-cardinality fallback name too.
+        name: 'Navigation',
         parent_span_id: span.spanContext().spanId,
       }),
     );
@@ -470,23 +478,60 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanToJSON(span!)).toEqual({
-        description: 'test span',
-        op: 'pageload',
-        origin: 'manual',
+        name: 'test span',
         status: 'ok',
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        end_timestamp: undefined,
+        is_segment: true,
+        parent_span_id: undefined,
+        links: undefined,
       });
       expect(spanIsSampled(span!)).toBe(true);
+    });
+
+    it('starts the span at the time origin if no start time is provided', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // Simulate the SDK (and therefore the routing instrumentation) only starting up 5s into the page load
+      vi.setSystemTime(browserPerformanceTimeOrigin()! + 5_000);
+
+      const span = startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+
+      expect(spanToJSON(span!).start_timestamp).toBe(browserPerformanceTimeOrigin()! / 1000);
+    });
+
+    it('respects an explicitly passed start time', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const startTime = browserPerformanceTimeOrigin()! / 1000 + 12;
+
+      const span = startBrowserTracingPageLoadSpan(client, { name: 'test span', startTime });
+
+      expect(spanToJSON(span!).start_timestamp).toBe(startTime);
     });
 
     it('allows to overwrite properties', () => {
@@ -509,15 +554,13 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanToJSON(span!)).toEqual({
-        description: 'test span',
-        op: 'pageload',
-        origin: 'auto.test',
+        name: 'test span',
         status: 'ok',
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
           testy: 'yes',
@@ -525,6 +568,10 @@ describe('browserTracingIntegration', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        end_timestamp: undefined,
+        is_segment: true,
+        parent_span_id: undefined,
+        links: undefined,
       });
     });
 
@@ -577,7 +624,7 @@ describe('browserTracingIntegration', () => {
 
       const pageloadSpan = getActiveSpan();
 
-      expect(spanToJSON(pageloadSpan!).op).toBe('test op');
+      expect(spanToJSON(pageloadSpan!).attributes['sentry.op']).toBe('test op');
     });
 
     it('sets the pageload span name on `scope.transactionName`', () => {
@@ -592,6 +639,22 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingPageLoadSpan(client, { name: 'test pageload span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test pageload span');
+    });
+
+    it("never sets the low-cardinality 'Pageload' span name on `scope.transactionName`", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      // The pageload span the integration starts is named 'Pageload' with span streaming enabled,
+      // but errors have to stay grouped by the actual page.
+      expect(spanToJSON(getActiveSpan()!).name).toBe('Pageload');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/');
     });
 
     it('removes the readystatechange listener once the auto-finish signal is emitted', () => {
@@ -665,14 +728,14 @@ describe('browserTracingIntegration', () => {
     startBrowserTracingPageLoadSpan(client, {
       name: 'test span',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
 
     const pageloadSpan = getActiveSpan();
 
-    expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).name).toBe('changed');
+    expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
   it('sets source to "custom" if name is changed in-place in beforeStartSpan', () => {
@@ -697,14 +760,14 @@ describe('browserTracingIntegration', () => {
     startBrowserTracingPageLoadSpan(client, {
       name: 'test span',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     });
 
     const pageloadSpan = getActiveSpan();
 
-    expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    expect(spanToJSON(pageloadSpan!).name).toBe('changed');
+    expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
   describe('startBrowserTracingNavigationSpan', () => {
@@ -752,15 +815,13 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanToJSON(span!)).toEqual({
-        description: 'test span',
-        op: 'navigation',
-        origin: 'manual',
+        name: 'test span',
         status: 'ok',
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
@@ -778,6 +839,9 @@ describe('browserTracingIntegration', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        end_timestamp: undefined,
+        is_segment: true,
+        parent_span_id: undefined,
       });
       expect(spanIsSampled(span!)).toBe(true);
     });
@@ -808,15 +872,13 @@ describe('browserTracingIntegration', () => {
 
       expect(span).toBeDefined();
       expect(spanToJSON(span!)).toEqual({
-        description: 'test span',
-        op: 'navigation',
-        origin: 'auto.test',
+        name: 'test span',
         status: 'ok',
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           [URL_FULL]: 'https://example.com/',
           [URL_PATH]: '/',
           testy: 'yes',
@@ -824,6 +886,10 @@ describe('browserTracingIntegration', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        end_timestamp: undefined,
+        is_segment: true,
+        parent_span_id: undefined,
+        links: undefined,
       });
     });
 
@@ -880,7 +946,7 @@ describe('browserTracingIntegration', () => {
 
       const navigationSpan = getActiveSpan();
 
-      expect(spanToJSON(navigationSpan!).op).toBe('test op');
+      expect(spanToJSON(navigationSpan!).attributes['sentry.op']).toBe('test op');
     });
 
     it('sets source to "custom" if name is changed in beforeStartSpan', () => {
@@ -908,8 +974,8 @@ describe('browserTracingIntegration', () => {
 
       const pageloadSpan = getActiveSpan();
 
-      expect(spanToJSON(pageloadSpan!).description).toBe('changed');
-      expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+      expect(spanToJSON(pageloadSpan!).name).toBe('changed');
+      expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
     });
 
     it('sets the navigation span name on `scope.transactionName`', () => {
@@ -924,6 +990,24 @@ describe('browserTracingIntegration', () => {
       startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test navigation span');
+    });
+
+    it("never sets the low-cardinality 'Navigation' span name on `scope.transactionName`", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingNavigationSpan(client, { name: 'Navigation' }, { url: 'https://example.com/users/123?q=1' });
+
+      // The span name is low cardinality with span streaming enabled, but errors have to stay
+      // grouped by the actual page, so the scope keeps the destination path.
+      expect(spanToJSON(getActiveSpan()!).name).toBe('Navigation');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/users/123');
     });
 
     it("updates the scopes' propagationContexts on a navigation", () => {
@@ -967,7 +1051,7 @@ describe('browserTracingIntegration', () => {
 
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name: 'mySpan',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' },
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
@@ -1009,7 +1093,7 @@ describe('browserTracingIntegration', () => {
 
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name: 'mySpan',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' },
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
@@ -1086,7 +1170,7 @@ describe('browserTracingIntegration', () => {
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).attributes['sentry.op']).toBe('pageload');
       expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
       expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
       expect(spanIsSampled(idleSpan)).toBe(false);
@@ -1124,7 +1208,7 @@ describe('browserTracingIntegration', () => {
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).attributes['sentry.op']).toBe('pageload');
       expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
       expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
       expect(spanIsSampled(idleSpan)).toBe(false);
@@ -1168,7 +1252,7 @@ describe('browserTracingIntegration', () => {
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('navigation');
+      expect(spanToJSON(idleSpan).attributes['sentry.op']).toBe('navigation');
       expect(spanToJSON(idleSpan).trace_id).not.toEqual('12312012123120121231201212312012');
       expect(spanToJSON(idleSpan).parent_span_id).not.toEqual('1121201211212012');
       expect(spanIsSampled(idleSpan)).toBe(true);
@@ -1225,7 +1309,7 @@ describe('browserTracingIntegration', () => {
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).attributes['sentry.op']).toBe('pageload');
       expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312011');
       expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212011');
       expect(spanIsSampled(idleSpan)).toBe(true);
@@ -1334,7 +1418,7 @@ describe('browserTracingIntegration', () => {
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
-      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).attributes['sentry.op']).toBe('pageload');
       expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
       expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
       expect(spanIsSampled(idleSpan)).toBe(false);

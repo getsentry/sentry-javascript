@@ -29,7 +29,7 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
 vi.spyOn(console, 'log').mockImplementation(() => {
   /* noop */
 });
-vi.spyOn(console, 'warn').mockImplementation(() => {
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
   /* noop */
 });
 
@@ -40,6 +40,26 @@ function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[
 }
 
 describe('sentrySvelteKit()', () => {
+  it('warns when the removed `unstable_sentryVitePluginOptions` is still set', async () => {
+    consoleWarnSpy.mockClear();
+
+    await getSentrySvelteKitPlugins({
+      // @ts-expect-error - removed in v11, but JS configs get no type checking
+      unstable_sentryVitePluginOptions: { org: 'other-org' },
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('unstable_sentryVitePluginOptions'));
+  });
+
+  // Asserts on the message rather than the call count: SvelteKit emits unrelated build warnings.
+  it('does not warn for a config without removed options', async () => {
+    consoleWarnSpy.mockClear();
+
+    await getSentrySvelteKitPlugins({ org: 'my-org' });
+
+    expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('unstable_'));
+  });
+
   it('returns an array of Vite plugins', async () => {
     const plugins = await getSentrySvelteKitPlugins();
 
@@ -159,22 +179,12 @@ describe('sentrySvelteKit()', () => {
       release: {
         inject: false,
         name: '2.0.0',
+        setCommits: {
+          auto: true,
+        },
       },
-      unstable_sentryVitePluginOptions: {
-        org: 'other-org',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
-        },
-        release: {
-          name: '3.0.0',
-          setCommits: {
-            auto: true,
-          },
-        },
-        headers: {
-          'X-My-Header': 'foo',
-        },
+      headers: {
+        'X-My-Header': 'foo',
       },
       autoInstrument: false,
       adapter: 'vercel',
@@ -183,15 +193,14 @@ describe('sentrySvelteKit()', () => {
     expect(makePluginSpy).toHaveBeenCalledWith(
       {
         debug: true,
-        org: 'other-org',
+        org: 'my-org',
         sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
+          assets: ['nope/*.js'],
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
         release: {
           inject: false,
-          name: '3.0.0',
+          name: '2.0.0',
           setCommits: {
             auto: true,
           },
@@ -290,54 +299,16 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it('overrides options with unstable_sentryVitePluginOptions', () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
-
-    const options: SentrySvelteKitPluginOptions = {
-      autoUploadSourceMaps: true,
-      authToken: 'token',
-      org: 'org',
-      project: 'project',
-      sourcemaps: {
-        assets: ['foo/*.js'],
-      },
-      unstable_sentryVitePluginOptions: {
-        org: 'unstable-org',
-        sourcemaps: {
-          assets: ['unstable/*.js'],
-        },
-      },
-    };
-    const expected: CustomSentryVitePluginOptions = {
-      authToken: 'token',
-      org: 'unstable-org',
-      project: 'project',
-      sourcemaps: {
-        assets: ['unstable/*.js'],
-      },
-    };
-    const result = generateVitePluginOptions(options);
-    expect(result).toEqual(expected);
-
-    process.env.NODE_ENV = originalEnv;
-  });
-
-  it('merges release options correctly', () => {
+  it('passes release options through', () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
 
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       release: {
-        name: '1.0.0',
-      },
-      unstable_sentryVitePluginOptions: {
-        release: {
-          name: '2.0.0',
-          setCommits: {
-            auto: true,
-          },
+        name: '2.0.0',
+        setCommits: {
+          auto: true,
         },
       },
     };
@@ -417,86 +388,16 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it.each([
-    {
-      testName: 'org setting precedence',
-      options: {
-        autoUploadSourceMaps: true,
-        org: 'root-org',
-        unstable_sentryVitePluginOptions: {
-          org: 'new-unstable-org',
-        },
-      },
-      expectedOrg: 'new-unstable-org',
-    },
-    {
-      testName: 'project setting precedence',
-      options: {
-        autoUploadSourceMaps: true,
-        project: 'root-project',
-        unstable_sentryVitePluginOptions: {
-          project: 'new-unstable-project',
-        },
-      },
-      expectedProject: 'new-unstable-project',
-    },
-    {
-      testName: 'authToken setting precedence',
-      options: {
-        autoUploadSourceMaps: true,
-        authToken: 'root-token',
-        unstable_sentryVitePluginOptions: {
-          authToken: 'new-unstable-token',
-        },
-      },
-      expectedAuthToken: 'new-unstable-token',
-    },
-    {
-      testName: 'telemetry setting precedence',
-      options: {
-        autoUploadSourceMaps: true,
-        telemetry: true,
-        unstable_sentryVitePluginOptions: {
-          telemetry: false,
-        },
-      },
-      expectedTelemetry: false,
-    },
-    {
-      testName: 'url setting precedence',
-      options: {
-        autoUploadSourceMaps: true,
-        sentryUrl: 'https://root.sentry.io',
-        unstable_sentryVitePluginOptions: {
-          url: 'https://new-unstable.sentry.io',
-        },
-      },
-      expectedUrl: 'https://new-unstable.sentry.io',
-    },
-  ])(
-    'should use correct $testName',
-    ({ options, expectedOrg, expectedProject, expectedAuthToken, expectedTelemetry, expectedUrl }) => {
-      const result = generateVitePluginOptions(options as SentrySvelteKitPluginOptions);
+  it('maps `sentryUrl` to the plugin`s `url` option', () => {
+    const result = generateVitePluginOptions({
+      autoUploadSourceMaps: true,
+      sentryUrl: 'https://my.sentry.io',
+    });
 
-      if (expectedOrg !== undefined) {
-        expect(result?.org).toBe(expectedOrg);
-      }
-      if (expectedProject !== undefined) {
-        expect(result?.project).toBe(expectedProject);
-      }
-      if (expectedAuthToken !== undefined) {
-        expect(result?.authToken).toBe(expectedAuthToken);
-      }
-      if (expectedTelemetry !== undefined) {
-        expect(result?.telemetry).toBe(expectedTelemetry);
-      }
-      if (expectedUrl !== undefined) {
-        expect(result?.url).toBe(expectedUrl);
-      }
-    },
-  );
+    expect(result?.url).toBe('https://my.sentry.io');
+  });
 
-  it('should handle sourcemap settings with correct order of overrides', () => {
+  it('passes sourcemap settings through untouched', () => {
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       sourcemaps: {
@@ -504,53 +405,18 @@ describe('generateVitePluginOptions', () => {
         ignore: ['root/ignore/*.js'],
         filesToDeleteAfterUpload: ['root/delete/*.js'],
       },
-      unstable_sentryVitePluginOptions: {
-        sourcemaps: {
-          assets: ['new-unstable/*.js'],
-          filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
-        },
-      },
     };
 
     const result = generateVitePluginOptions(options);
 
     expect(result?.sourcemaps).toEqual({
-      assets: ['new-unstable/*.js'], // unstable takes precedence
-      ignore: ['root/ignore/*.js'], // from root (not overridden by unstable)
-      filesToDeleteAfterUpload: ['new-unstable/delete/*.js'], // unstable takes precedence
+      assets: ['root/*.js'],
+      ignore: ['root/ignore/*.js'],
+      filesToDeleteAfterUpload: ['root/delete/*.js'],
     });
   });
 
-  it('should handle release settings with correct order of overrides', () => {
-    const newReleaseOptions = {
-      name: 'root-release',
-      inject: true,
-    };
-    const newUnstableReleaseOptions = {
-      name: 'new-unstable-release',
-      deploy: {
-        env: 'production',
-      },
-    };
-
-    const options: SentrySvelteKitPluginOptions = {
-      autoUploadSourceMaps: true,
-      release: newReleaseOptions,
-      unstable_sentryVitePluginOptions: { release: newUnstableReleaseOptions },
-    };
-
-    const result = generateVitePluginOptions(options);
-
-    expect(result?.release).toEqual({
-      name: newUnstableReleaseOptions.name, // from unstable
-      inject: newReleaseOptions.inject, // from root (not overridden by unstable)
-      deploy: {
-        env: 'production', // from unstable
-      },
-    });
-  });
-
-  it('should handle complex override scenario with all settings', () => {
+  it('passes all top-level settings through to the plugin options', () => {
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       org: 'root-org',
@@ -567,34 +433,22 @@ describe('generateVitePluginOptions', () => {
         name: 'root-1.0.0',
         inject: false,
       },
-      unstable_sentryVitePluginOptions: {
-        org: 'new-unstable-org',
-        authToken: 'new-unstable-token',
-        sourcemaps: {
-          assets: ['new-unstable/*.js'],
-          filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
-        },
-        release: {
-          name: 'new-unstable-1.0.0',
-        },
-      },
     };
 
     const result = generateVitePluginOptions(options);
 
     expect(result).toEqual({
-      org: 'new-unstable-org',
+      org: 'root-org',
       project: 'root-project',
-      authToken: 'new-unstable-token',
+      authToken: 'root-token',
       telemetry: true,
       url: 'https://root.sentry.io',
       sourcemaps: {
-        assets: ['new-unstable/*.js'],
+        assets: ['root/*.js'],
         ignore: ['root/ignore/*.js'],
-        filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
       },
       release: {
-        name: 'new-unstable-1.0.0',
+        name: 'root-1.0.0',
         inject: false,
       },
       adapter: undefined,

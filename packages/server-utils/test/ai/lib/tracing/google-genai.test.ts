@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -12,13 +13,102 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getMainCarrier, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { instrumentGoogleGenAIClient } from '../../../../src/ai/google-genai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
-const MODEL = 'gemini-1.5-pro';
+function setupClient(traceLifecycle: 'static' | 'stream'): Span[] {
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      tracesSampleRate: 1,
+      traceLifecycle,
+    }),
+  );
+  setCurrentClient(client);
+  client.init();
+
+  const endedSpans: Span[] = [];
+  client.on('spanEnd', span => endedSpans.push(span));
+  return endedSpans;
+}
+
+describe('instrumentGoogleGenAIClient span names', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  function fakeClient(): {
+    models: { generateContent: ReturnType<typeof vi.fn> };
+    chats: { create: ReturnType<typeof vi.fn> };
+  } {
+    return {
+      models: {
+        generateContent: vi.fn().mockResolvedValue({ candidates: [] }),
+      },
+      chats: {
+        create: vi.fn().mockReturnValue({ sendMessage: vi.fn() }),
+      },
+    };
+  }
+
+  it('names the span `{operation} {model}` when a model is present', async () => {
+    const endedSpans = setupClient('stream');
+    const client = fakeClient();
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    await instrumented.models.generateContent({ model: 'gemini-1.5-pro', contents: 'Hello' });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('generate_content gemini-1.5-pro');
+  });
+
+  it('keeps `generate_content unknown` when the model is missing in static mode', async () => {
+    const endedSpans = setupClient('static');
+    const client = fakeClient();
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    await instrumented.models.generateContent({ contents: 'Hello' });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('generate_content unknown');
+  });
+
+  it('uses the operation name when the model is missing and span streaming is enabled', async () => {
+    const endedSpans = setupClient('stream');
+    const client = fakeClient();
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    await instrumented.models.generateContent({ contents: 'Hello' });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('generate_content');
+  });
+
+  it('treats an empty-string model as missing', async () => {
+    const endedSpans = setupClient('stream');
+    const client = fakeClient();
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    await instrumented.models.generateContent({ model: '', contents: 'Hello' });
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('generate_content');
+  });
+
+  it('does not start a span for chats.create', () => {
+    const endedSpans = setupClient('stream');
+    const client = fakeClient();
+    const instrumented = instrumentGoogleGenAIClient(client);
+
+    instrumented.chats.create({ model: 'gemini-1.5-pro' });
+
+    expect(endedSpans).toHaveLength(0);
+  });
+});
+
+const CHAT_MODEL = 'gemini-1.5-pro';
 
 const CHAT_CONFIG = {
   temperature: 0.8,
@@ -32,7 +122,7 @@ const CHAT_CONFIG = {
 };
 
 const MOCK_RESPONSE = {
-  modelVersion: MODEL,
+  modelVersion: CHAT_MODEL,
   candidates: [{ content: { parts: [{ text: 'Hi there!' }], role: 'model' } }],
   usageMetadata: { promptTokenCount: 8, candidatesTokenCount: 12, totalTokenCount: 20 },
 };
@@ -42,7 +132,7 @@ const MOCK_RESPONSE = {
  * the model (as the real SDK does) and exposes the two message-sending methods. The config passed to
  * `create()` is stored on the SDK internally and is not repeated on each `sendMessage()` call.
  */
-function createFakeClient(): { chats: { create: (params: Record<string, unknown>) => unknown } } {
+function createFakeChatClient(): { chats: { create: (params: Record<string, unknown>) => unknown } } {
   return {
     chats: {
       create: (params: Record<string, unknown>) => ({
@@ -57,29 +147,13 @@ function createFakeClient(): { chats: { create: (params: Record<string, unknown>
   };
 }
 
-function setupClient(): Span[] {
-  const client = new TestClient(
-    getDefaultTestClientOptions({
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      tracesSampleRate: 1,
-    }),
-  );
-  setCurrentClient(client);
-  client.init();
-
-  const endedSpans: Span[] = [];
-  client.on('spanEnd', span => endedSpans.push(span));
-  return endedSpans;
-}
-
 async function drain(stream: AsyncIterable<unknown>): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for await (const _ of stream) {
     // consume so the streaming span is ended
   }
 }
 
-describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
+describe('instrumentGoogleGenAIClient chat config propagation', () => {
   beforeEach(() => {
     getMainCarrier().__SENTRY__ = undefined;
   });
@@ -89,20 +163,20 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
   });
 
   it('welds chats.create() config onto chat.sendMessage() spans', async () => {
-    const endedSpans = setupClient();
-    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
-    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+    const chat = instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG }) as {
       sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
     };
     await chat.sendMessage({ message: 'Tell me a joke' });
 
     expect(endedSpans).toHaveLength(1);
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
 
     expect(data[GEN_AI_OPERATION_NAME]).toBe('chat');
     expect(data[GEN_AI_PROVIDER_NAME]).toBe('google_genai');
-    expect(data[GEN_AI_REQUEST_MODEL]).toBe(MODEL);
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe(CHAT_MODEL);
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
     expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
     expect(data[GEN_AI_REQUEST_TOP_K]).toBe(40);
@@ -116,19 +190,19 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
   });
 
   it('welds chats.create() config onto chat.sendMessageStream() spans', async () => {
-    const endedSpans = setupClient();
-    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
-    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+    const chat = instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG }) as {
       sendMessageStream: (params: Record<string, unknown>) => Promise<AsyncIterable<unknown>>;
     };
     await drain(await chat.sendMessageStream({ message: 'Tell me a joke' }));
 
     expect(endedSpans).toHaveLength(1);
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
 
     expect(data[GEN_AI_OPERATION_NAME]).toBe('chat');
-    expect(data[GEN_AI_REQUEST_MODEL]).toBe(MODEL);
+    expect(data[GEN_AI_REQUEST_MODEL]).toBe(CHAT_MODEL);
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBe(0.8);
     expect(data[GEN_AI_REQUEST_TOP_P]).toBe(0.9);
     expect(data[GEN_AI_REQUEST_TOP_K]).toBe(40);
@@ -140,15 +214,15 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
   });
 
   it('replaces the chats.create() config when a message provides its own', async () => {
-    const endedSpans = setupClient();
-    const instrumented = instrumentGoogleGenAIClient(createFakeClient());
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentGoogleGenAIClient(createFakeChatClient());
 
-    const chat = instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG }) as {
+    const chat = instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG }) as {
       sendMessage: (params: Record<string, unknown>) => Promise<unknown>;
     };
     await chat.sendMessage({ message: 'Tell me a joke', config: { temperature: 0.1 } });
 
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToStaticSpanJSON(endedSpans[0]!).data;
     // @google/genai resolves the request config as `params.config ?? chat.config`, so the
     // per-message config is sent on its own. The create-time fields it omits are not part of the
     // request, so they must not appear on the span.
@@ -160,19 +234,21 @@ describe('instrumentGoogleGenAIClient chat config propagation (#20086)', () => {
   });
 
   it('does not leak chat config onto models.generateContent spans', async () => {
-    const endedSpans = setupClient();
+    const endedSpans = setupClient('stream');
     const client = {
-      chats: { create: createFakeClient().chats.create },
+      chats: { create: createFakeChatClient().chats.create },
       models: { generateContent: async (_params: Record<string, unknown>) => MOCK_RESPONSE },
     };
     const instrumented = instrumentGoogleGenAIClient(client);
 
     // Create a chat (with config) first, then make an unrelated generateContent call.
-    instrumented.chats.create({ model: MODEL, config: CHAT_CONFIG });
+    instrumented.chats.create({ model: CHAT_MODEL, config: CHAT_CONFIG });
     await instrumented.models.generateContent({ model: 'gemini-1.5-flash' });
 
-    const genContentSpan = endedSpans.find(span => spanToJSON(span).data[GEN_AI_OPERATION_NAME] === 'generate_content');
-    const data = spanToJSON(genContentSpan!).data;
+    const genContentSpan = endedSpans.find(
+      span => spanToStaticSpanJSON(span).data[GEN_AI_OPERATION_NAME] === 'generate_content',
+    );
+    const data = spanToStaticSpanJSON(genContentSpan!).data;
     expect(data[GEN_AI_REQUEST_MODEL]).toBe('gemini-1.5-flash');
     expect(data[GEN_AI_REQUEST_TEMPERATURE]).toBeUndefined();
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();

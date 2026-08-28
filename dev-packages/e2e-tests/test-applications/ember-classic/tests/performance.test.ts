@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
@@ -17,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         origin: 'auto.pageload.ember',
         data: {
           'sentry.origin': 'auto.pageload.ember',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -33,11 +33,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -52,7 +52,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         origin: 'auto.navigation.ember',
         data: {
           'sentry.origin': 'auto.navigation.ember',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/tracing',
           'url.path': '/tracing',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/),
@@ -68,11 +68,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -91,7 +91,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.pageload.ember',
         data: {
           'sentry.origin': 'auto.pageload.ember',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/',
           'url.path': '/',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
@@ -111,7 +111,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.navigation.ember',
         data: {
           'sentry.origin': 'auto.navigation.ember',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/tracing',
           'url.path': '/tracing',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/),
@@ -127,11 +127,11 @@ test('sends a navigation transaction even if the pageload span is still active',
 
 test('captures correct spans for navigation', async ({ page }) => {
   const pageloadTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   const navigationTxnPromise = waitForTransaction('ember-classic', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/tracing`);
@@ -154,7 +154,7 @@ test('captures correct spans for navigation', async ({ page }) => {
         origin: 'auto.navigation.ember',
         data: {
           'sentry.origin': 'auto.navigation.ember',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/slow-loading-route',
           'url.path': '/slow-loading-route',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/slow-loading-route$/),
@@ -209,7 +209,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -226,7 +225,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',
@@ -246,7 +244,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -263,7 +260,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',
@@ -283,7 +279,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -300,7 +295,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',

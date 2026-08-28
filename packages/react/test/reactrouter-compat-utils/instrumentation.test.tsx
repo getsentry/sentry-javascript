@@ -22,7 +22,10 @@ import type { Location, RouteObject } from '../../src/types';
 const mockUpdateName = vi.fn();
 const mockSetAttribute = vi.fn();
 const mockSpan = { updateName: mockUpdateName, setAttribute: mockSetAttribute } as unknown as Span;
-const mockClient = { addIntegration: vi.fn() } as unknown as Client;
+const mockClient = {
+  addIntegration: vi.fn(),
+  getOptions: () => ({ traceLifecycle: 'stream' }),
+} as unknown as Client;
 
 vi.mock('@sentry/core', async requireActual => {
   const actual = await requireActual();
@@ -32,7 +35,7 @@ vi.mock('@sentry/core', async requireActual => {
     getActiveSpan: vi.fn(() => mockSpan),
     getClient: vi.fn(() => mockClient),
     getRootSpan: vi.fn(() => mockSpan),
-    spanToJSON: vi.fn(() => ({ op: 'navigation' })),
+    spanToJSON: vi.fn(() => ({ attributes: { 'sentry.op': 'navigation' } })),
   };
 });
 
@@ -91,7 +94,7 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       updateNavigationSpan(mockSpan, sampleLocation, sampleRoutes, false, mockMatchRoutes);
 
       expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
-      expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+      expect(mockSetAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
       expect(addNonEnumerableProperty).toHaveBeenCalledWith(mockSpan, '__sentry_navigation_name_set__', true);
     });
 
@@ -178,7 +181,7 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       (testSpan as any).end = function patchedEndFn(...args: any[]) {
         // This simulates what happens in the actual implementation
         updateNameMock('Updated Route');
-        setAttributeMock('sentry.source', 'route');
+        setAttributeMock('sentry.segment.name.source', 'route');
         return originalEnd(...args);
       };
 
@@ -186,7 +189,7 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       testSpan.end(12345);
 
       expect(updateNameMock).toHaveBeenCalledWith('Updated Route');
-      expect(setAttributeMock).toHaveBeenCalledWith('sentry.source', 'route');
+      expect(setAttributeMock).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
       expect(mockEnd).toHaveBeenCalledWith(12345);
     });
   });
@@ -407,7 +410,7 @@ describe('updateNavigationSpan with wildcard detection', () => {
     updateNavigationSpan(testSpan, sampleLocation, sampleRoutes, false, mockMatchRoutes);
 
     expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
-    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
   });
 
   it('should handle forced updates', () => {
@@ -427,9 +430,8 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
   it('should upgrade from URL source to route source (regression fix)', async () => {
     // Setup: Current span has URL source and non-parameterized name
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: '/users/123',
-      data: { 'sentry.source': 'url' },
+      name: '/users/123',
+      attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'url' },
     } as any);
 
     // Target: Resolves to route source with parameterized name
@@ -455,15 +457,14 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
 
     // Should upgrade from URL to route source
     expect(mockUpdateName).toHaveBeenCalledWith('/users/:id');
-    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
   });
 
   it('should not downgrade from route source to URL source', async () => {
     // Setup: Current span has route source with parameterized name (no wildcard)
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: '/users/:id',
-      data: { 'sentry.source': 'route' },
+      name: '/users/:id',
+      attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'route' },
     } as any);
 
     // Target: Would resolve to URL source (downgrade attempt)
@@ -496,9 +497,8 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
   it('should upgrade wildcard names to specific routes', async () => {
     // Setup: Current span has route source with wildcard
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: '/users/*',
-      data: { 'sentry.source': 'route' },
+      name: '/users/*',
+      attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'route' },
     } as any);
 
     // Mock wildcard detection: current name has wildcard, new name doesn't
@@ -527,15 +527,14 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
 
     // Should upgrade from wildcard to specific
     expect(mockUpdateName).toHaveBeenCalledWith('/users/:id');
-    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
   });
 
   it('should not downgrade from wildcard route to URL', async () => {
     // Setup: Current span has route source with wildcard
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: '/users/*',
-      data: { 'sentry.source': 'route' },
+      name: '/users/*',
+      attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'route' },
     } as any);
 
     // Mock wildcard detection: current name has wildcard, new name doesn't
@@ -572,8 +571,8 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
   it('should set name when no current name exists', async () => {
     // Setup: Current span has no name (undefined)
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: undefined,
+      name: undefined,
+      attributes: { 'sentry.op': 'navigation' },
     } as any);
 
     // Target: Resolves to route
@@ -597,15 +596,14 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
 
     // Should set initial name
     expect(mockUpdateName).toHaveBeenCalledWith('/users/:id');
-    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.segment.name.source', 'route');
   });
 
   it('should not update when same source and no improvement', async () => {
     // Setup: Current span has URL source
     vi.mocked(spanToJSON).mockReturnValue({
-      op: 'navigation',
-      description: '/users/123',
-      data: { 'sentry.source': 'url' },
+      name: '/users/123',
+      attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'url' },
     } as any);
 
     // Target: Resolves to same URL source (no improvement)
@@ -900,7 +898,9 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       vi.mocked(browserModule.startBrowserTracingNavigationSpan).mockReturnValue(mockNavigationSpan);
 
       // Mock spanToJSON to return different values for different calls
-      vi.mocked(coreModule.spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+      vi.mocked(coreModule.spanToJSON).mockReturnValue({
+        attributes: { 'sentry.op': 'navigation' },
+      } as any);
 
       // Mock getActiveRootSpan to return undefined (no pageload span)
       vi.mocked(coreModule.getActiveSpan).mockReturnValue(undefined);
@@ -947,7 +947,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
           name: '/search',
           attributes: expect.objectContaining({
             'sentry.op': 'navigation',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
       );
@@ -985,7 +985,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
-      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+      vi.mocked(spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } } as any);
 
       // Second navigation - exact same location, should be blocked
       handleNavigation({
@@ -1032,7 +1032,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
-      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+      vi.mocked(spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } } as any);
 
       // Second navigation - same pathname, different query
       const location2: Location = {
@@ -1087,7 +1087,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
-      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+      vi.mocked(spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } } as any);
 
       // Second navigation - same pathname, different hash
       const location2: Location = {
@@ -1154,9 +1154,8 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
 
       // Mock spanToJSON to indicate span hasn't ended yet and has wildcard name
       vi.mocked(spanToJSON).mockReturnValue({
-        op: 'navigation',
-        description: '/users/*',
-        data: { 'sentry.source': 'route' },
+        name: '/users/*',
+        attributes: { 'sentry.op': 'navigation', 'sentry.segment.name.source': 'route' },
       } as any);
 
       // Second navigation - same location but better parameterized name available
@@ -1219,7 +1218,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
 
       // Mock spanToJSON to indicate span hasn't ended yet
-      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+      vi.mocked(spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } } as any);
 
       // Second call: Full location (from router.state)
       // React Router provides location with empty string search and hash
@@ -1399,12 +1398,10 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
 
   describe('wrapPatchRoutesOnNavigation race condition fix', () => {
     it('should use captured span instead of current active span in args.patch callback', () => {
-      const endedSpanJson = {
-        op: 'navigation',
-        timestamp: 1234567890, // Span has ended
-      };
-
-      vi.mocked(spanToJSON).mockReturnValue(endedSpanJson as any);
+      vi.mocked(spanToJSON).mockReturnValue({
+        attributes: { 'sentry.op': 'navigation' },
+        end_timestamp: 1234567890, // Span has ended
+      } as any);
 
       const endedSpan = {
         updateName: vi.fn(),
@@ -1424,12 +1421,10 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     });
 
     it('should not fall back to WINDOW.location.pathname after async operations', () => {
-      const validSpanJson = {
-        op: 'navigation',
-        timestamp: undefined, // Span hasn't ended
-      };
-
-      vi.mocked(spanToJSON).mockReturnValue(validSpanJson as any);
+      vi.mocked(spanToJSON).mockReturnValue({
+        attributes: { 'sentry.op': 'navigation' },
+        end_timestamp: undefined, // Span hasn't ended
+      } as any);
 
       const validSpan = {
         updateName: vi.fn(),

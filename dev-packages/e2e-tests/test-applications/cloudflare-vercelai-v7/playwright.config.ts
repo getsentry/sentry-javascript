@@ -9,7 +9,7 @@ const APP_PORT = 38787;
 
 const config = getPlaywrightConfig(
   {
-    startCommand: `pnpm dev --port ${APP_PORT}`,
+    startCommand: `pnpm preview`,
     port: APP_PORT,
   },
   {

@@ -135,6 +135,10 @@ export type ExpressRouter = {
 
 export type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
 
+/**
+ * @deprecated The core Express integration is superseded by `expressIntegration()`. This type is
+ * deprecated and will be removed in the next major version.
+ */
 export type ExpressIntegrationOptions = {
   /** Ignore specific based on their name */
   ignoreLayers?: IgnoreMatcher[];
@@ -167,8 +171,16 @@ export interface MiddlewareError extends Error {
   };
 }
 
+/**
+ * @deprecated `expressIntegration()` captures errors automatically. This type is deprecated and will
+ * be removed in the next major version.
+ */
 export type ExpressMiddleware = (req: ExpressRequest, res: ExpressResponse, next: () => void) => void;
 
+/**
+ * @deprecated `expressIntegration()` captures errors automatically. This type is deprecated and will
+ * be removed in the next major version.
+ */
 export type ExpressErrorMiddleware = (
   error: MiddlewareError,
   req: ExpressRequest,
@@ -176,6 +188,10 @@ export type ExpressErrorMiddleware = (
   next: (error: MiddlewareError) => void,
 ) => void;
 
+/**
+ * @deprecated `expressIntegration()` captures errors automatically; pass `shouldHandleError` to it to
+ * customize capture. This type is deprecated and will be removed in the next major version.
+ */
 export interface ExpressHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry

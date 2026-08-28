@@ -1,5 +1,6 @@
 import {
-  captureException,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -75,13 +76,18 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+  const client = getClient();
 
   if (recordInputs && input != null) {
     attributes[GEN_AI_EMBEDDINGS_INPUT] = stringify(input, String);
   }
 
   return {
-    name: `embeddings ${modelName}`,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name:
+      (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+        ? `embeddings ${modelName}`
+        : 'embeddings',
     op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
     attributes: attributes as Record<string, SpanAttributeValue>,
   };
@@ -99,12 +105,9 @@ export function instrumentEmbeddingMethod(
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       return startSpan(_INTERNAL_getLangChainEmbeddingsSpanOptions(thisArg, args[0], options), () => {
-        return Reflect.apply(target, thisArg, args).then(undefined, error => {
-          captureException(error, {
-            mechanism: { handled: false, type: 'auto.ai.langchain' },
-          });
-          throw error;
-        });
+        // On rejection `startSpan` marks the span failed and rethrows to the caller, so we don't
+        // record the error ourselves.
+        return Reflect.apply(target, thisArg, args);
       });
     },
   });

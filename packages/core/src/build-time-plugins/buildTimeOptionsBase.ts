@@ -1,24 +1,19 @@
 /**
  * Sentry-internal base interface for build-time options used in Sentry's meta-framework SDKs (e.g., Next.js, Nuxt, SvelteKit).
  *
- * SDKs should extend this interface to add framework-specific configurations. To include bundler-specific
- * options, combine this type with one of the `Unstable[Bundler]PluginOptions` types, such as
- * `UnstableVitePluginOptions` or `UnstableWebpackPluginOptions`.
+ * SDKs should extend this interface to add framework-specific configurations.
  *
  * If an option from this base interface doesn't apply to an SDK, use the `Omit` utility type to exclude it.
  *
  * @example
  * ```typescript
- * import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
- * import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+ * import type { BuildTimeOptionsBase } from '@sentry/core';
  *
  * // Example of how a framework SDK would define its build-time options
- * type MyFrameworkBuildOptions =
- *   BuildTimeOptionsBase &
- *   UnstableVitePluginOptions<SentryVitePluginOptions> & {
- *     // Framework-specific options can be added here
- *     myFrameworkSpecificOption?: boolean;
- *   };
+ * type MyFrameworkBuildOptions = BuildTimeOptionsBase & {
+ *   // Framework-specific options can be added here
+ *   myFrameworkSpecificOption?: boolean;
+ * };
  * ```
  *
  * @internal Only meant for Sentry-internal SDK usage.
@@ -143,79 +138,72 @@ export interface BuildTimeOptionsBase {
    * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
    */
   applicationKey?: string;
+
+  /**
+   * Metadata that should be associated with the built application.
+   *
+   * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
+   * `beforeSend`, event processors, or the transport), allowing for custom event filtering logic or
+   * routing of events. Read it at runtime via `moduleMetadataIntegration`.
+   *
+   * Metadata can either be passed directly, or as a callback that receives the organization slug,
+   * the project slug (the first one, when multiple projects are configured), all project slugs, and
+   * the release name.
+   */
+  moduleMetadata?: ModuleMetadata | ModuleMetadataCallback;
 }
 
 /**
- * Utility type for adding Vite plugin options to build-time configuration.
- * Use this type to extend your build-time options with Vite-specific plugin configurations.
- *
- * @template PluginOptionsType - The type of Vite plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableVitePluginOptions<SentryVitePluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
+ * Arbitrary metadata associated with a built application.
  */
-export type UnstableVitePluginOptions<PluginOptionsType> = {
-  /**
-   * Options to be passed directly to the Sentry Vite Plugin (`@sentry/bundler-plugins/vite`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Vite plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryVitePluginOptions?: PluginOptionsType;
-};
+export interface ModuleMetadata {
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's ModuleMetadata type
+  [key: string]: any;
+}
 
 /**
- * Utility type for adding Webpack plugin options to build-time configuration.
- * Use this type to extend your build-time options with Webpack-specific plugin configurations.
- *
- * @template PluginOptionsType - The type of Webpack plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableWebpackPluginOptions<SentryWebpackPluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
+ * Arguments passed to a {@link ModuleMetadataCallback}.
  */
-export type UnstableWebpackPluginOptions<PluginOptionsType> = {
-  /**
-   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/bundler-plugins/webpack`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Webpack plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
-   */
-  unstable_sentryWebpackPluginOptions?: PluginOptionsType;
-};
+export interface ModuleMetadataCallbackArgs {
+  org?: string;
+  project?: string;
+  projects?: string[];
+  release?: string;
+}
+
+export type ModuleMetadataCallback = (args: ModuleMetadataCallbackArgs) => ModuleMetadata;
 
 /**
- * Utility type for adding Rollup plugin options to build-time configuration.
- * Use this type to extend your build-time options with Rollup-specific plugin configurations.
+ * Hook to customize source map file resolution.
  *
- * @template PluginOptionsType - The type of Rollup plugin options to include
- *
- * @example
- * ```typescript
- * type SomeSDKsBuildOptions = BuildTimeOptionsBase & UnstableRollupPluginOptions<SentryRollupPluginOptions>;
- * ```
- *
- * @internal Only meant for Sentry-internal SDK usage.
- * @hidden
+ * The hook is called with the absolute path of the build artifact and the value of its
+ * `//# sourceMappingURL=` comment, if present. It should return an absolute path (or a promise
+ * resolving to one) indicating where to find the artifact's corresponding source map file. If no
+ * path is returned, or the returned path doesn't exist, the standard resolution process is used.
  */
-export type UnstableRollupPluginOptions<PluginOptionsType> = {
+export type ResolveSourceMapHook = (
+  artifactPath: string,
+  sourceMappingUrl: string | undefined,
+) => string | undefined | Promise<string | undefined>;
+
+/**
+ * Options related to React component name annotations.
+ *
+ * Only applicable to React-based SDKs, which is why this is deliberately not part of
+ * {@link BuildTimeOptionsBase}.
+ */
+export interface ReactComponentAnnotationOptions {
   /**
-   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/bundler-plugins/rollup`) that ships with the Sentry SDK.
-   * You can use this option to override any options the SDK passes to the Rollup plugin.
-   *
-   * Please note that this option is unstable and may change in a breaking way in any release.
+   * Whether the component name annotate plugin should be enabled or not.
    */
-  unstable_sentryRollupPluginOptions?: PluginOptionsType;
-};
+  enabled?: boolean;
+
+  /**
+   * A list of strings representing the names of components to ignore. The plugin will not apply
+   * `data-sentry` annotations on the DOM element for these components.
+   */
+  ignoredComponents?: string[];
+}
 
 interface SourceMapsOptions {
   /**
@@ -272,6 +260,18 @@ interface SourceMapsOptions {
    */
   // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
   rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
+
+  /**
+   * Hook to customize source map file resolution.
+   *
+   * Mostly helpful for complex builds with custom source map generation. For example, if source maps
+   * are written to a separate directory and the `//# sourceMappingURL=` comment is rewritten to
+   * something other than a relative path, Sentry is unable to locate the source map for a given
+   * build artifact. This hook lets you implement the resolution process yourself.
+   *
+   * Use the `debug` option to print information about source map resolution.
+   */
+  resolveSourceMap?: ResolveSourceMapHook;
 }
 
 type AutoSetCommitsOptions = {
@@ -496,4 +496,19 @@ interface BundleSizeOptimizationsOptions {
    * @default false
    */
   excludeReplayWorker?: boolean;
+
+  /**
+   * Exclude the Node SDK's runtime diagnostics-channel injection from the bundle.
+   *
+   * If set to `true`, the plugin will attempt to tree-shake (remove) code that installs the Node SDK's
+   * runtime module hooks (e.g. for Express instrumentation) at load time. Note that the success of this
+   * depends on tree-shaking being enabled in your build tooling.
+   *
+   * Only enable this when the diagnostics channels are injected at build time (via the bundler plugin) or
+   * when you otherwise do not rely on the runtime channel injection. This is equivalent to setting
+   * `enableRuntimeChannelInjection: false` in the SDK's `init` options.
+   *
+   * @default false
+   */
+  excludeChannelInjection?: boolean;
 }

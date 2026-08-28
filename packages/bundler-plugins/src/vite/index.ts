@@ -31,4 +31,3 @@ export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVit
 };
 
 export type { Options as SentryVitePluginOptions } from '../core';
-export { sentryCliBinaryExists } from '../core';

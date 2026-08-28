@@ -1,14 +1,30 @@
 // Portable instrumentation for https://github.com/porsager/postgres
 // This can be used in any environment (Node.js, Cloudflare Workers, etc.)
 // without depending on OpenTelemetry module hooking.
+/* eslint-disable max-lines */
 
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { SPAN_STATUS_ERROR, startSpanManual } from '../tracing';
-import type { Span } from '../types/span';
+import { SPAN_STATUS_ERROR } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { startSpanManual } from '../tracing/trace';
+import type { Span, SpanAttributes } from '../types/span';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 
 const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
@@ -226,29 +242,34 @@ function _wrapSingleQueryHandle(
     }
 
     const fullQuery = _reconstructQuery(query.strings);
-    const sanitizedSqlQuery = _sanitizeSqlQuery(fullQuery);
+    const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
+
+    const client = getClient();
+    const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
+
+    const connectionContext = sqlInstance
+      ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as PostgresConnectionContext | undefined)
+      : undefined;
+
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? querySummary || connectionContext?.ATTR_DB_NAMESPACE || 'postgres'
+        : sanitizedSqlQuery || 'postgresjs.query';
 
     return startSpanManual(
       {
-        name: sanitizedSqlQuery || 'postgresjs.query',
-        op: 'db',
+        name,
+        attributes: {
+          [SENTRY_OP]: DB,
+          [SENTRY_ORIGIN]: 'auto.db.postgresjs',
+          [DB_SYSTEM_NAME]: 'postgres',
+          [DB_QUERY_TEXT]: sanitizedSqlQuery,
+          [DB_QUERY_SUMMARY]: querySummary,
+          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
+          ...(connectionContext && _getConnectionAttributes(connectionContext)),
+        },
       },
       (span: Span) => {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.postgresjs');
-
-        span.setAttributes({
-          'db.system.name': 'postgres',
-          'db.query.text': sanitizedSqlQuery,
-        });
-
-        const connectionContext = sqlInstance
-          ? ((sqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as
-              | PostgresConnectionContext
-              | undefined)
-          : undefined;
-
-        _setConnectionAttributes(span, connectionContext);
-
         if (options.requestHook) {
           try {
             options.requestHook(span, sanitizedSqlQuery, connectionContext);
@@ -266,7 +287,8 @@ function _wrapSingleQueryHandle(
         queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
           apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
             try {
-              _setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
+              // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+              span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, resolveArgs?.[0]?.command));
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
@@ -287,7 +309,6 @@ function _wrapSingleQueryHandle(
               span.setAttribute('db.response.status_code', rejectArgs?.[0]?.code || 'unknown');
               span.setAttribute('error.type', rejectArgs?.[0]?.name || 'unknown');
 
-              _setOperationName(span, sanitizedSqlQuery);
               span.end();
             } catch (e) {
               DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
@@ -345,105 +366,50 @@ export function _reconstructQuery(strings: string[] | undefined): string | undef
   return strings.reduce((acc, str, i) => (i === 0 ? str : `${acc}$${i}${str}`), '');
 }
 
-let integerLiteralRE: RegExp | undefined;
-
 /**
- * Sanitize SQL query as per the OTEL semantic conventions
- * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
+ * Returns connection context attributes.
  *
- * PostgreSQL $n placeholders are preserved per OTEL spec - they're parameterized queries,
- * not sensitive literals. Only actual values (strings, numbers, booleans) are sanitized.
- *
- * @internal Exported for testing only
+ * @internal Exported for the diagnostics-channel integration.
  */
-export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
-  if (!sqlQuery) {
-    return 'Unknown SQL Query';
+export function _getConnectionAttributes(connectionContext: PostgresConnectionContext): SpanAttributes {
+  const attributes: SpanAttributes = {};
+
+  const portNumber = connectionContext.ATTR_SERVER_PORT ? parseInt(connectionContext.ATTR_SERVER_PORT, 10) : undefined;
+  const dbNamespace = connectionContext.ATTR_DB_NAMESPACE;
+  const serverAddress = connectionContext.ATTR_SERVER_ADDRESS;
+
+  if (dbNamespace) {
+    attributes[DB_NAMESPACE] = dbNamespace;
+  }
+  if (serverAddress) {
+    attributes[SERVER_ADDRESS] = serverAddress;
+  }
+  if (portNumber !== undefined && !isNaN(portNumber)) {
+    attributes[SERVER_PORT] = portNumber;
   }
 
-  // Lazy init: constructing this at module scope would evaluate the lookbehind
-  // on import and crash Safari <16.4 browser bundles that reach this file via
-  // the core barrel. Building it on first call keeps the cost off the import path.
-  if (!integerLiteralRE) {
-    integerLiteralRE = new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
-  }
-
-  return (
-    sqlQuery
-      // Remove comments first (they may contain newlines and extra spaces)
-      .replace(/--.*$/gm, '') // Single line comments (multiline mode)
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Multi-line comments
-      .replace(/;\s*$/, '') // Remove trailing semicolons
-      // Collapse whitespace to a single space (after removing comments)
-      .replace(/\s+/g, ' ')
-      .trim() // Remove extra spaces and trim
-      // Sanitize hex/binary literals before string literals
-      .replace(/\bX'[0-9A-Fa-f]*'/gi, '?') // Hex string literals
-      .replace(/\bB'[01]*'/gi, '?') // Binary string literals
-      // Sanitize string literals (handles escaped quotes)
-      .replace(/'(?:[^']|'')*'/g, '?')
-      // Sanitize hex numbers
-      .replace(/\b0x[0-9A-Fa-f]+/gi, '?')
-      // Sanitize boolean literals
-      .replace(/\b(?:TRUE|FALSE)\b/gi, '?')
-      // Sanitize numeric literals (preserve $n placeholders via negative lookbehind)
-      .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
-      .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
-      .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      .replace(integerLiteralRE, '?') // Integers (NOT $n placeholders)
-      // Collapse IN clauses for cardinality (both ? and $n variants)
-      .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
-      .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
-  );
+  return attributes;
 }
 
 /**
- * Sets connection context attributes on a span.
+ * Extracts the DB operation name from a SQL query, preferring the server-reported `command`.
  *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ * @internal Exported for the diagnostics-channel integration.
  */
-export function _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
-  if (!connectionContext) {
-    return;
-  }
-  if (connectionContext.ATTR_DB_NAMESPACE) {
-    span.setAttribute('db.namespace', connectionContext.ATTR_DB_NAMESPACE);
-  }
-  if (connectionContext.ATTR_SERVER_ADDRESS) {
-    span.setAttribute('server.address', connectionContext.ATTR_SERVER_ADDRESS);
-  }
-  if (connectionContext.ATTR_SERVER_PORT !== undefined) {
-    // Port is stored as string in PostgresConnectionContext for requestHook backwards compatibility,
-    // but semantic conventions expect port as a number for span attributes
-    const portNumber = parseInt(connectionContext.ATTR_SERVER_PORT, 10);
-    if (!isNaN(portNumber)) {
-      span.setAttribute('server.port', portNumber);
-    }
-  }
-}
-
-/**
- * Extracts DB operation name from SQL query and sets it on the span.
- *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
- */
-export function _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
+export function _getOperationName(sanitizedQuery: string | undefined, command?: string): string | undefined {
   if (command) {
-    span.setAttribute('db.operation.name', command);
-    return;
+    return command;
   }
   // Fallback: extract operation from the SQL query
   const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
-  if (operationMatch?.[1]) {
-    span.setAttribute('db.operation.name', operationMatch[1].toUpperCase());
-  }
+  return operationMatch?.[1]?.toUpperCase();
 }
 
 /**
  * Builds a {@link PostgresConnectionContext} from postgres.js' parsed options
  * (which store `host`/`port` as arrays). Defaults to 'localhost'/5432.
  *
- * @internal Exported for the orchestrion (diagnostics-channel) integration.
+ * @internal Exported for the diagnostics-channel integration.
  */
 export function _buildConnectionContext(options: {
   host?: string[];

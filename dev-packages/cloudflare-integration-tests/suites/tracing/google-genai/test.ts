@@ -49,6 +49,10 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_PROVIDER_NAME]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-pro', type: 'string' },
+          // Set once on `chats.create()` and reused for every message the chat sends.
+          [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.8, type: 'double' },
+          [GEN_AI_REQUEST_TOP_P]: { value: 0.9, type: 'double' },
+          [GEN_AI_REQUEST_MAX_TOKENS]: { value: 150, type: 'integer' },
           // collect LLM input and outputs (default true)
           [GEN_AI_INPUT_MESSAGES]: { value: '[{"role":"user","content":"Tell me a joke"}]', type: 'string' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },

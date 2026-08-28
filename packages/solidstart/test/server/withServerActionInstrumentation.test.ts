@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import {
@@ -5,7 +6,6 @@ import {
   NodeClient,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/node';
@@ -98,11 +98,10 @@ describe('withServerActionInstrumentation', () => {
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function',
-        description: 'getPrefecture',
-        data: expect.objectContaining({
+        name: 'getPrefecture',
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),
       }),
@@ -143,7 +142,7 @@ describe('withServerActionInstrumentation', () => {
 
     expect(mockGetActiveSpan).to.toHaveBeenCalledTimes(2);
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
-    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   });
 
   // `@sentry/node`'s HTTP spans only carry `url.path`, so gating on `http.target` alone silently
@@ -167,7 +166,7 @@ describe('withServerActionInstrumentation', () => {
     await getPrefecture();
 
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
-    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   });
 
   it('does not set a server action name if the active span had a non `/_server` `url.path`', async () => {

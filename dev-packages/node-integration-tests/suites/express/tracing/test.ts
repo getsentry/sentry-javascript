@@ -1,7 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import { assertSentryTransaction } from '../../../utils/assertions';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../utils';
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -98,15 +97,9 @@ describe('express tracing', () => {
             // The handler delays its response by ~100ms (see scenario).
             const routerDurationMs = ((routerSpan?.timestamp ?? 0) - (routerSpan?.start_timestamp ?? 0)) * 1000;
 
-            if (isOrchestrionEnabled()) {
-              // The orchestrion router span stays open until the response finishes, so
-              // it spans the whole sub-stack it dispatched (~the 100ms handler delay).
-              expect(routerDurationMs).toBeGreaterThan(50);
-            } else {
-              // The OTel integration ends router spans immediately, so the router span
-              // is a ~0ms marker regardless of how long its sub-stack runs.
-              expect(routerDurationMs).toBeLessThan(50);
-            }
+            // The router span stays open until the response finishes, so it spans the
+            // whole sub-stack it dispatched (~the 100ms handler delay).
+            expect(routerDurationMs).toBeGreaterThan(50);
           },
         })
         .start();
@@ -142,10 +135,10 @@ describe('express tracing', () => {
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   'http.response.status_code': 200,
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   'url.full': expect.stringMatching(/\/$/),
                   'http.route': '/',
-                  'http.target': '/',
+                  'url.path': '/',
                 },
                 op: 'http.server',
                 status: 'ok',
@@ -402,9 +395,9 @@ describe('express tracing', () => {
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': status_code,
-                        'http.method': 'GET',
+                        'http.request.method': 'GET',
                         'url.full': expect.stringMatching(url),
-                        'http.target': url,
+                        'url.path': url,
                       },
                       op: 'http.server',
                       status,

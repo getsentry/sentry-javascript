@@ -68,7 +68,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
   // The init bundle script is served from the test origin: its description is origin-relative,
   // but `url.full` retains the full absolute URL (needed for span description inference).
   const sameOriginScriptSpan = scriptSpans?.find(({ description }) => description === '/init.bundle.js');
-  expect(sameOriginScriptSpan?.data?.['url.same_origin']).toBe(true);
+  expect(sameOriginScriptSpan?.data?.['http.request.same_origin']).toBe(true);
   expect(sameOriginScriptSpan?.data?.['url.full']).toMatch(/^https?:\/\/.+\/init\.bundle\.js$/);
 
   const customScriptSpan = scriptSpans?.find(
@@ -77,9 +77,9 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   expect(imgSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -98,7 +98,8 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/image.svg',
       ...(!isWebkitRun && {
@@ -126,9 +127,9 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   expect(linkSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -147,7 +148,8 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/style.css',
       ...(!isWebkitRun && {
@@ -169,9 +171,9 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   expect(customScriptSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -190,7 +192,8 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'sentry.op': 'resource.script',
       'sentry.origin': 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/script.js',
       ...(!isWebkitRun && {

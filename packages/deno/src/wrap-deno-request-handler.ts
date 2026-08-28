@@ -1,3 +1,9 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PROTOCOL_NAME,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
 import type { Integration, MaxRequestBodySize } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
@@ -5,7 +11,9 @@ import {
   continueTrace,
   getClient,
   getHttpSpanDetailsFromUrlObject,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
@@ -59,7 +67,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
       urlObject,
       'server',
       'auto.http.deno',
@@ -67,6 +75,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       undefined,
       client,
     );
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
+    const name =
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !hasSpanStreamingEnabled(client)
+        ? rawName
+        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
     const contentLength = request.headers.get('content-length');
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
@@ -74,13 +88,17 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
 
     const dataCollection = client.getDataCollectionOptions();
     if (dataCollection.userInfo) {
-      assignIfSet(
-        attributes,
-        'client.address',
-        (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path,
-      );
-      assignIfSet(attributes, 'client.port', (info?.remoteAddr as Deno.NetAddr)?.port);
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address.
+      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+      const socketAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
+      const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
+      assignIfSet(attributes, CLIENT_ADDRESS, forwardedFor || socketAddress);
+      assignIfSet(attributes, CLIENT_PORT, clientPort);
     }
+
+    // describes the OSI application-layer protocol (http), not the scheme (might be https)
+    attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';

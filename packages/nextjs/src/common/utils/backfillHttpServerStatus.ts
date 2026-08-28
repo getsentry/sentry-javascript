@@ -1,6 +1,6 @@
 import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_OK, spanToJSON } from '@sentry/core';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_OK, spanToStaticSpanJSON } from '@sentry/core';
 
 /**
  * Derive the span status of a Next.js `http.server` root span from its HTTP response status code.
@@ -13,7 +13,7 @@ import { getSpanStatusFromHttpCode, SPAN_STATUS_OK, spanToJSON } from '@sentry/c
  * never overridden. No-ops when there is no numeric response code or the code maps to `ok`.
  */
 export function backfillHttpServerStatus(span: Span): void {
-  const spanJSON = spanToJSON(span);
+  const spanJSON = spanToStaticSpanJSON(span);
 
   if (spanJSON.status !== 'ok') {
     return;

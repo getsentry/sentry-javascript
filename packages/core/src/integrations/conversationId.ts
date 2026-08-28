@@ -4,7 +4,7 @@ import { defineIntegration } from '../integration';
 import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../semanticAttributes';
 import type { IntegrationFn } from '../types/integration';
 import type { Span } from '../types/span';
-import { spanToJSON } from '../utils/spanUtils';
+import { spanToStaticSpanJSON } from '../utils/spanUtils';
 
 const INTEGRATION_NAME = 'ConversationId' as const;
 
@@ -19,7 +19,7 @@ const _conversationIdIntegration = (() => {
         const conversationId = scopeData.conversationId || isolationScopeData.conversationId;
 
         if (conversationId) {
-          const { op, data: attributes, description: name } = spanToJSON(span);
+          const { op, data: attributes, description: name } = spanToStaticSpanJSON(span);
 
           // Only apply conversation ID to gen_ai spans.
           // We also check for Vercel AI spans (ai.operationId attribute or ai.* span name)

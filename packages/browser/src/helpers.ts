@@ -4,12 +4,12 @@ import {
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
-  getLocationHref,
   getOriginalFunction,
   GLOBAL_OBJ,
   markFunctionWrapped,
   withScope,
 } from '@sentry/core/browser';
+import { getLocationHref } from '@sentry/browser-utils';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { uniq } from '@sentry/core';
 
 import { awsSdkConfig } from './aws-sdk';
@@ -121,3 +122,8 @@ export function withoutInstrumentedExternals(
   }
   return external.filter(entry => !moduleNames.some(name => entry === name || entry.startsWith(`${name}/`)));
 }
+
+// This is exported so that the nestjs package can use it to subscribe to the channels.
+export { nestjsChannels } from './nestjs';
+// This is exported so that the remix package can use it to subscribe to the channels.
+export { remixChannels } from './remix';

@@ -1,4 +1,5 @@
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -9,22 +10,16 @@ import {
 } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  _INTERNAL_clearAiProviderSkips,
   getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
-  spanToJSON,
-  startSpan,
+  spanToStaticSpanJSON,
 } from '@sentry/core';
 import type { DataCollection, Span } from '@sentry/core';
-import { addVercelAiProcessors } from '../../../../src/ai/vercel-ai';
 import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
-
-const AI_OPERATION_ID_ATTRIBUTE = 'ai.operationId';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
@@ -73,7 +68,7 @@ describe('instrumentWorkersAiClient', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
       [GEN_AI_OPERATION_NAME]: 'chat',
       [GEN_AI_REQUEST_MODEL]: MODEL,
@@ -161,86 +156,65 @@ describe('instrumentWorkersAiClient', () => {
       });
 
       expect(endedSpans).toHaveLength(1);
-      expect(spanToJSON(endedSpans[0]!).data).toEqual(expected);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
     });
   });
 
-  describe('when the Vercel AI SDK drives the binding', () => {
-    let spans: string[];
-
-    /** Set up a client with the Vercel AI processors registered, recording every ended span. */
-    function setupVercelAiClient(): void {
-      getMainCarrier().__SENTRY__ = undefined;
-
-      spans = [];
-      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-      client.on('spanEnd', span => {
-        spans.push(spanToJSON(span).description ?? '');
-      });
-      setCurrentClient(client);
-      addVercelAiProcessors(client);
-    }
-
-    beforeEach(() => {
-      _INTERNAL_clearAiProviderSkips();
-      setupVercelAiClient();
-    });
-
-    afterEach(() => {
-      _INTERNAL_clearAiProviderSkips();
-    });
-
-    /**
-     * Emit the span the `ai` SDK creates for a model call. Its `spanStart` handler is what marks
-     * Workers AI as skipped, exactly as it would at runtime.
-     */
-    async function withVercelAiModelCall(callback: () => Promise<unknown>): Promise<void> {
-      await startSpan(
-        { name: 'ai.streamText.doStream', attributes: { [AI_OPERATION_ID_ATTRIBUTE]: 'ai.streamText.doStream' } },
-        async () => {
-          await callback();
-        },
+  describe('span names', () => {
+    function setupClient(traceLifecycle: 'static' | 'stream'): Span[] {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          tracesSampleRate: 1,
+          traceLifecycle,
+        }),
       );
+      setCurrentClient(client);
+      client.init();
+
+      const endedSpans: Span[] = [];
+      client.on('spanEnd', span => endedSpans.push(span));
+      return endedSpans;
     }
 
-    it('does not create a duplicate span for the nested `run` call', async () => {
-      const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+    it('names the span `{operation} {model}` when a model is present', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
       const instrumented = instrumentWorkersAiClient(client);
 
-      await withVercelAiModelCall(() => instrumented.run(MODEL, { prompt: 'Hello' }));
+      await instrumented.run(MODEL, { prompt: 'Hello' });
 
-      // The call is forwarded, but no duplicate `gen_ai.chat` span is emitted — only the
-      // Vercel AI model-call span remains.
-      expect(client.run).toHaveBeenCalledWith(MODEL, { prompt: 'Hello' });
-      expect(spans).not.toContain('chat @cf/meta/llama-3.1-8b-instruct');
-      expect(spans).toEqual(['streamText.doStream']);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe(`chat ${MODEL}`);
     });
 
-    it('still creates a span for a direct `run` call made before any Vercel AI call', async () => {
-      const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+    it('keeps `chat unknown` when the model is missing in static mode', async () => {
+      const endedSpans = setupClient('static');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
       const instrumented = instrumentWorkersAiClient(client);
 
-      await startSpan({ name: 'root' }, () => instrumented.run(MODEL, { prompt: 'Hello' }));
+      await instrumented.run({ not: 'a-string' }, { prompt: 'Hello' });
 
-      expect(spans).toEqual([`chat ${MODEL}`, 'root']);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat unknown');
     });
 
-    it('clears the skip between clients so a later isolate reuse is unaffected', async () => {
-      const client = { run: vi.fn().mockResolvedValue({ response: 'Paris' }) };
+    it('treats an empty-string model as missing', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
       const instrumented = instrumentWorkersAiClient(client);
 
-      // First request: the `ai` SDK runs and marks Workers AI as skipped.
-      await withVercelAiModelCall(() => instrumented.run(MODEL, { prompt: 'Hello' }));
-      expect(spans).toEqual(['streamText.doStream']);
+      await instrumented.run('', { prompt: 'Hello' });
 
-      // Second request on the same isolate: `_setupIntegrations` resets the registry, so a direct
-      // `env.AI.run` call must get its span back. Without the reset this would stay suppressed.
-      _INTERNAL_clearAiProviderSkips();
-      setupVercelAiClient();
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
+    });
 
-      await startSpan({ name: 'root' }, () => instrumented.run(MODEL, { prompt: 'Hello' }));
+    it('falls back to the operation name when the model is missing and span streaming is enabled', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
+      const instrumented = instrumentWorkersAiClient(client);
 
-      expect(spans).toEqual([`chat ${MODEL}`, 'root']);
+      await instrumented.run({ not: 'a-string' }, { prompt: 'Hello' });
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
     });
   });
 });

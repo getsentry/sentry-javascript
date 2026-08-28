@@ -6,12 +6,7 @@ export {
   addInpInstrumentationHandler,
 } from './instrumentation/performanceObserver';
 
-export {
-  addPerformanceEntries,
-  startTrackingInteractions,
-  startTrackingLongTasks,
-  startTrackingLongAnimationFrames,
-} from './performance/entries';
+export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 
 export {
   addWebVitalsToSpan,
@@ -22,6 +17,12 @@ export {
 
 // eslint-disable-next-line typescript/no-deprecated
 export { elementTimingIntegration, startTrackingElementTiming } from './performance/elementTiming';
+
+export { interactionsIntegration } from './performance/interactions';
+
+export { isBotUserAgent } from './isBotUserAgent';
+
+export { getLocationHref } from './getLocationHref';
 
 export { userTimingIntegration } from './performance/userTiming';
 
@@ -45,8 +46,19 @@ export { resourceTimingToSpanAttributes } from './performance/resourceTiming';
 
 export { htmlTreeAsString } from './htmlTreeAsString';
 
+export { getComponentName } from './component-name';
+
 export { isElement } from './is';
 
 export { getAbsoluteUrl } from './instrumentation/location';
 
-export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';
+export type {
+  FetchHint,
+  HandlerDataDom,
+  HandlerDataHistory,
+  HandlerDataXhr,
+  NetworkMetaWarning,
+  SentryWrappedXMLHttpRequest,
+  SentryXhrData,
+  XhrHint,
+} from './types';

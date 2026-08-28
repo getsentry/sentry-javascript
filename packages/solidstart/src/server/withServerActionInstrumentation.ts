@@ -4,10 +4,16 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
 } from '@sentry/core';
-import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
+import { captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
-import { HTTP_ROUTE, HTTP_TARGET, SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_ROUTE,
+  HTTP_TARGET,
+  SENTRY_OP,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 
 /**
@@ -21,7 +27,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
   const activeSpan = getActiveSpan();
 
   if (activeSpan) {
-    const spanData = spanToJSON(activeSpan).data;
+    const spanData = spanToJSON(activeSpan).attributes;
 
     // In solid start, server function calls are made to `/_server` which doesn't tell us
     // a lot. We rewrite the span's route to be that of the sever action name but only
@@ -43,9 +49,9 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
       {
         name: serverActionName,
         attributes: {
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
         },
       },
       async span => {

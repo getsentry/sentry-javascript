@@ -86,7 +86,7 @@ test('ISR route should be identified correctly in the route manifest', async ({ 
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       },
     },

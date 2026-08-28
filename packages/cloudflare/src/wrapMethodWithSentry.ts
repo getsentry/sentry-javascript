@@ -16,6 +16,7 @@ import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
+import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 import { extractRpcMeta } from './utils/rpcMeta';
 import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
@@ -49,7 +50,11 @@ function resolveOriginalStorage(
 }
 
 type MethodWrapperOptions = {
-  spanName?: string;
+  /**
+   * The span name, or a resolver called with the RPC metadata of the current call.
+   * Returning `undefined` skips the span and only captures errors.
+   */
+  spanName?: string | ((rpcMeta: SerializedTraceData | undefined) => string | undefined);
   spanOp?: string;
   options: CloudflareOptions;
   context: ExecutionContext | InstrumentedDurableObjectState;
@@ -110,6 +115,9 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             rpcMeta = extracted.rpcMeta;
           }
 
+          const spanName =
+            typeof wrapperOptions.spanName === 'function' ? wrapperOptions.spanName(rpcMeta) : wrapperOptions.spanName;
+
           const wrappedFunction = (scope: Scope): unknown | Promise<unknown> => {
             // In certain situations, the passed context can become undefined.
             // For example, for Astro while prerendering pages at build time.
@@ -117,16 +125,22 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const context: typeof wrapperOptions.context | undefined = wrapperOptions.context;
 
             // see: https://github.com/getsentry/sentry-javascript/issues/22328
-            const waitUntil = context
-              ? getOriginalWaitUntil(context as ExecutionContextCompat)?.bind(context)
-              : undefined;
+            // Resolved once per invocation and cached on its state: reading `ctx.waitUntil`
+            // on a native context is a runtime getter call.
+            const invocationState = getInvocationState();
+            const waitUntil = invocationState
+              ? getInvocationWaitUntil(invocationState)
+              : context
+                ? getOriginalWaitUntil(context as ExecutionContextCompat)?.bind(context)
+                : undefined;
             const storage = resolveOriginalStorage(context, thisArg);
 
             let scopeClient = scope.getClient();
-            // Check if client exists AND is still usable (transport not disposed)
-            // This handles the case where a previous handler disposed the client
-            // but the scope still holds a reference to it (e.g., alarm handlers in Durable Objects)
-            // For startNewTrace, always create a fresh client
+            // Re-init when the scope has no usable client (a previous handler disposed it, e.g.
+            // DO alarm handlers) or for `startNewTrace`, so the client points at this
+            // invocation's context. With `cacheClient: true` `init()` returns the isolate's
+            // cached client and only creates (and caches) a fresh one when nothing is cached yet;
+            // `cacheClient: false` creates one per invocation.
             if (startNewTrace || !scopeClient?.getTransport()) {
               const client = init({
                 ...wrapperOptions.options,
@@ -137,7 +151,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             }
 
             const clientToDispose = scopeClient;
-            const methodName = wrapperOptions.spanName || 'unknown';
+            const methodName = spanName || 'unknown';
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
@@ -151,18 +165,25 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               return res;
             };
 
-            const onRejected = (e: unknown) => {
+            const captureAndRethrow = (e: unknown): never => {
               captureException(e, {
                 mechanism: {
                   type: origin,
                   handled: false,
                 },
               });
-              waitUntil?.(teardown());
               throw e;
             };
 
-            if (!wrapperOptions.spanName) {
+            const onRejected = (e: unknown) => {
+              try {
+                return captureAndRethrow(e);
+              } finally {
+                waitUntil?.(teardown());
+              }
+            };
+
+            if (!spanName) {
               try {
                 if (callback) {
                   callback(...args);
@@ -210,31 +231,64 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                   const result = Reflect.apply(target, thisArg, args);
 
                   if (isThenable(result)) {
-                    return result.then(onFulfilled, onRejected);
-                  } else {
-                    return onFulfilled(result);
+                    return result.then(undefined, captureAndRethrow);
                   }
+                  return result;
                 } catch (e) {
-                  return onRejected(e);
+                  return captureAndRethrow(e);
                 }
               });
             };
 
+            // The boundary flush (teardown) must run after the method span has ended, so the
+            // span is in the buffer when that flush drains it. Running it inside the span
+            // callback (before `startSpan` ends the span) would leave the span for the eager
+            // path and cost a second flush per invocation.
+            const runWithTeardown = (run: () => unknown): unknown => {
+              let out: unknown;
+              try {
+                out = run();
+              } catch (e) {
+                // Synchronous throw: `startSpan` already ended the span and rethrew.
+                waitUntil?.(teardown());
+                throw e;
+              }
+              if (isThenable(out)) {
+                return out.then(
+                  res => {
+                    waitUntil?.(teardown());
+                    return res;
+                  },
+                  e => {
+                    waitUntil?.(teardown());
+                    throw e;
+                  },
+                );
+              }
+              waitUntil?.(teardown());
+              return out;
+            };
+
             if (rpcMeta) {
-              return continueTrace(
-                { sentryTrace: rpcMeta['sentry-trace'] || '', baggage: rpcMeta.baggage || '' },
-                executeSpan,
+              return runWithTeardown(() =>
+                continueTrace(
+                  { sentryTrace: rpcMeta['sentry-trace'] || '', baggage: rpcMeta.baggage || '' },
+                  executeSpan,
+                ),
               );
             }
 
             if (startNewTrace) {
-              return startNewTraceCore(() => executeSpan());
+              return runWithTeardown(() => startNewTraceCore(() => executeSpan()));
             }
 
-            return executeSpan();
+            return runWithTeardown(executeSpan);
           };
 
-          return withInvocationIsolationScope(wrappedFunction);
+          return withInvocationIsolationScope(
+            wrappedFunction,
+            wrapperOptions.context as ExecutionContextCompat | undefined,
+          );
         },
       }),
     noMark,

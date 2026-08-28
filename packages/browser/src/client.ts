@@ -1,5 +1,4 @@
 import type {
-  BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
   ClientOptions,
   Event,
@@ -18,6 +17,29 @@ import type { BrowserTransportOptions } from './transports/types';
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
  */
 declare const __SENTRY_RELEASE__: string | undefined;
+
+export type BrowserClientProfilingOptions = {
+  /**
+   * Sets profiling session sample rate for the entire profiling session.
+   *
+   * A profiling session corresponds to a user session, meaning it is set once at integration initialization and
+   * persisted until the next page reload. This rate determines what percentage of user sessions will have profiling enabled.
+   * @default 0
+   */
+  profileSessionSampleRate?: number;
+
+  /**
+   * Set the lifecycle mode of the profiler.
+   * - **manual**: The profiler will be manually started and stopped via `startProfiler`/`stopProfiler`.
+   *    If a session is sampled, is dependent on the `profileSessionSampleRate`.
+   * - **trace**: The profiler will be automatically started when a root span exists and stopped when there are no
+   *    more sampled root spans. Whether a session is sampled, is dependent on the `profileSessionSampleRate` and the
+   *    existing sampling configuration for tracing (`tracesSampleRate`/`tracesSampler`).
+   *
+   * @default 'manual'
+   */
+  profileLifecycle?: 'manual' | 'trace';
+};
 
 type BrowserSpecificOptions = BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {

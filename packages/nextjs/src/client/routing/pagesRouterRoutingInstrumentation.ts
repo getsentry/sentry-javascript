@@ -1,11 +1,12 @@
 import type { Client, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import {
@@ -18,7 +19,7 @@ import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 // next/router v10 is CJS
 //
@@ -111,7 +112,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
 export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const parsedBaggage = parseBaggageHeader(baggage);
-  let name = route || globalObject.location.pathname;
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+  let name = route || (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : globalObject.location.pathname);
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
   if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
@@ -120,17 +122,14 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
-  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: origin ? origin / 1000 : undefined,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
         ...(route && { [URL_TEMPLATE]: route }),
         ...(params && { ...params }),
       },
@@ -166,11 +165,12 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
     startBrowserTracingNavigationSpan(
       client,
       {
-        name: newLocation,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name: spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+          [SENTRY_SEGMENT_NAME_SOURCE]: spanSource,
           ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
         },
       },

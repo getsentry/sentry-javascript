@@ -89,9 +89,10 @@ export {
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -115,12 +116,11 @@ export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
   otlpIntegration,
   getOtlpTracesEndpoint,
@@ -133,6 +133,7 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentCreateReactAgent,
+  vercelAIIntegration,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

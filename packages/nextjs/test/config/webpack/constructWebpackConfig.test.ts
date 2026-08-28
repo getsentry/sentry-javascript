@@ -93,6 +93,27 @@ describe('constructWebpackConfigFunction()', () => {
     getBuildPluginOptionsSpy.mockRestore();
   });
 
+  it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+    const finalNextConfig = materializeFinalNextConfig(
+      {
+        ...exportedNextConfig,
+        webpack: () => ({ ...clientWebpackConfig }) as any,
+      },
+      undefined,
+      {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      },
+    );
+
+    const finalWebpackConfig = finalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    // The SDK must not generate source maps it will neither upload nor delete - they would be served
+    // publicly from `.next/static`. Generating them is the user's call via `devtool`.
+    expect(finalWebpackConfig?.devtool).toBeUndefined();
+  });
+
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({
@@ -727,7 +748,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   describe('orchestrion runtime externals', () => {
-    it('prepends an externals handler that resolves runtime packages to absolute paths', async () => {
+    it('prepends an externals handler that forwards runtime packages through @sentry/nextjs', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -738,8 +759,8 @@ describe('constructWebpackConfigFunction()', () => {
       const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
 
       expect(Array.isArray(externals)).toBe(true);
-      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toMatch(
-        /^commonjs ([/\\]|[A-Za-z]:).*register\.js$/,
+      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toBe(
+        'commonjs @sentry/nextjs/orchestrion-runtime/orchestrion/register',
       );
       await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
     });

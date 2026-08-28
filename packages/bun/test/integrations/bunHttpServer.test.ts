@@ -1,5 +1,6 @@
 import http from 'node:http';
-import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
+import { getActiveSpan, getCurrentScope, getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
@@ -50,9 +51,41 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.op).toBe('http.server');
-    expect(span?.description).toBe('GET /users');
-    expect(span?.data['sentry.origin']).toBe('auto.http.server');
+    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    // No router resolves a route here, so with span streaming the name is the request method.
+    expect(span?.name).toBe('GET');
+    expect(span?.attributes['url.path']).toBe('/users');
+    expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
+  });
+
+  test('creates an http.server span for incoming QUERY requests', async () => {
+    let span: ReturnType<typeof spanToJSON> | undefined;
+
+    const { port, close } = await startServer((req, res) => {
+      // Read the span synchronously: once a request body is streamed, the 'data'/'end' events fire
+      // outside the handler's async context, so `getActiveSpan()` is empty there. This is how Node
+      // behaves too; Bun < 1.4 was more lenient, which is why reading it in 'end' used to work.
+      const activeSpan = getActiveSpan();
+      span = activeSpan ? spanToJSON(activeSpan) : undefined;
+
+      const chunks: Buffer[] = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => res.end(Buffer.concat(chunks)));
+    });
+
+    const response = await fetch(`http://localhost:${port}/search`, {
+      method: 'QUERY',
+      body: JSON.stringify({ query: 'bun' }),
+    });
+    expect(await response.json()).toEqual({ query: 'bun' });
+
+    await close();
+
+    expect(span).toBeDefined();
+    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(span?.name).toBe('QUERY');
+    expect(span?.attributes['url.path']).toBe('/search');
+    expect(span?.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
   test('isolates each incoming request with a distinct trace id', async () => {

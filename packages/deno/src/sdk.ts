@@ -11,38 +11,13 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  amqplibIntegration,
-  anthropicIntegration,
-  awsIntegration,
-  expressIntegration,
-  firebaseIntegration,
-  genericPoolIntegration,
-  googleGenAIIntegration,
-  graphqlDiagnosticsIntegration,
-  hapiIntegration,
-  kafkajsIntegration,
-  koaIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  lruMemoizerIntegration,
-  mongodbIntegration,
-  mongooseIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  openaiIntegration,
-  postgresIntegration,
-  postgresJsIntegration,
-  tediousIntegration,
-  vercelAiIntegration,
-} from '@sentry/server-utils/orchestrion';
+import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { denoServeIntegration } from './integrations/deno-serve';
 import { denoHttpIntegration } from './integrations/http';
-import { denoRedisIntegration } from './integrations/redis';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -64,39 +39,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoContextIntegration(),
     denoServeIntegration(),
     denoHttpIntegration(),
-    denoRedisIntegration(),
-    graphqlDiagnosticsIntegration(),
-    vercelAiIntegration(),
-    // orchestrion-based instrumentations. We add a deliberate list here rather
-    // than every channel integration: each one needs a Deno test proving it
-    // records spans.
-    //
-    // The orchestrion channels may be injected after (or while) the SDK loads.
-    // If they never load, these are no-ops.
-    amqplibIntegration(),
-    anthropicIntegration(),
-    awsIntegration(),
-    expressIntegration(),
-    firebaseIntegration(),
-    genericPoolIntegration(),
-    googleGenAIIntegration(),
-    hapiIntegration(),
-    kafkajsIntegration(),
-    koaIntegration(),
-    langChainIntegration(),
-    langGraphIntegration(),
-    lruMemoizerIntegration(),
-    mongodbIntegration(),
-    mongooseIntegration(),
-    mysqlIntegration(),
-    mysql2Integration(),
-    openaiIntegration(),
-    postgresIntegration(),
-    postgresJsIntegration(),
-    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
+    // server-utils integrations
+    ...getErrorIntegrations(),
+    ...getTracingIntegrations(),
   ];
 }
 

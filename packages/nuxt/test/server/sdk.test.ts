@@ -41,14 +41,14 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    it('uses default integrations when not provided in options', () => {
+    it('delegates default integrations to initNode when not provided in options', () => {
+      // Resolving them here would pin the selection to the raw options, before `initNode`
+      // resolves `SENTRY_TRACES_SAMPLE_RATE`, and would drop the performance integrations
+      // for anyone enabling tracing purely through the environment.
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(nodeInit).toHaveBeenCalledTimes(1);
-      const callArgs = nodeInit.mock.calls[0]?.[0];
-      expect(callArgs).toBeDefined();
-      expect(callArgs?.defaultIntegrations).toBeDefined();
-      expect(Array.isArray(callArgs?.defaultIntegrations)).toBe(true);
+      expect(nodeInit).toHaveBeenCalledWith(expect.not.objectContaining({ defaultIntegrations: expect.anything() }));
     });
 
     it('allows options.defaultIntegrations to override default integrations', () => {

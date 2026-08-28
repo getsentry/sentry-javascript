@@ -70,11 +70,12 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
     expect.arrayContaining([
       {
         data: {
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'http.response.status_code': 200,
           type: 'fetch',
           'url.full': 'http://localhost:3030/',
-          'server.address': 'localhost:3030',
+          'server.address': 'localhost',
+          'server.port': 3030,
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.wintercg_fetch',
         },

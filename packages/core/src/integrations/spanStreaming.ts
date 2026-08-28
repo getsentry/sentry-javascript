@@ -27,6 +27,12 @@ export const spanStreamingIntegration = defineIntegration(() => {
         }
         buffer.add(captureSpan(span, client));
       });
+
+      // Lets runtimes flush a single trace eagerly (e.g. the Cloudflare SDK draining
+      // a trace the moment its segment ends), without exposing the buffer itself.
+      client.on('flushTraceSpans', traceId => {
+        buffer.flush(traceId);
+      });
     },
   };
 }) satisfies IntegrationFn;

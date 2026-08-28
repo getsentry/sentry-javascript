@@ -6,9 +6,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SDK_NAME,
@@ -159,13 +159,9 @@ sentryTest(
         },
         [SENTRY_SEGMENT_NAME]: {
           type: 'string',
-          value: '/index.html',
+          value: 'Pageload',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-          type: 'string',
-          value: 'url',
-        },
-        'sentry.segment.name.source': {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           type: 'string',
           value: 'url',
         },
@@ -180,7 +176,9 @@ sentryTest(
       },
       end_timestamp: expect.any(Number),
       is_segment: true,
-      name: '/index.html',
+      // The raw URL stays in `url.path`/`url.full`: with span streaming, a pageload span name is
+      // low cardinality and falls back to 'Pageload' when there is no parameterized route.
+      name: 'Pageload',
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
       start_timestamp: expect.any(Number),
       status: 'ok',

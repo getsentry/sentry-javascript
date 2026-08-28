@@ -1,10 +1,13 @@
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { isAbsolute } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   externalizeOrchestrionRuntimePackages,
   filterInstrumentedExternals,
+  getOrchestrionForwarderSpecifier,
 } from '../../src/config/diagnosticsChannelInjection';
 import type { BundlerInfo } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
 import {
@@ -56,17 +59,18 @@ describe('getServerExternalPackagesPatch (build-time instrumentation)', () => {
 });
 
 describe('externalizeOrchestrionRuntimePackages', () => {
-  it.each(['@sentry/server-utils', '@sentry/server-utils/orchestrion', '@sentry/server-utils/orchestrion/register'])(
-    'externalizes %s as an absolute-path commonjs require',
-    async request => {
-      const external = await externalizeOrchestrionRuntimePackages({ request });
+  // An absolute path here breaks every deploy that relocates the output, so it has to stay bare.
+  it.each([
+    ['@sentry/server-utils', '@sentry/nextjs/orchestrion-runtime/index'],
+    ['@sentry/server-utils/orchestrion/config', '@sentry/nextjs/orchestrion-runtime/orchestrion/config'],
+    ['@sentry/server-utils/orchestrion/register', '@sentry/nextjs/orchestrion-runtime/orchestrion/register'],
+    ['@sentry/server-utils/orchestrion/webpack', '@sentry/nextjs/orchestrion-runtime/orchestrion/webpack'],
+  ])('externalizes %s as the relocatable bare specifier %s', async (request, expected) => {
+    const external = await externalizeOrchestrionRuntimePackages({ request });
 
-      expect(external).toMatch(/^commonjs /);
-      const resolvedPath = external!.slice('commonjs '.length);
-      expect(isAbsolute(resolvedPath)).toBe(true);
-      expect(existsSync(resolvedPath)).toBe(true);
-    },
-  );
+    expect(external).toBe(`commonjs ${expected}`);
+    expect(isAbsolute(expected)).toBe(false);
+  });
 
   it('ignores the bundled @apm-js-collab packages — no import of them exists in the dist anymore', async () => {
     await expect(
@@ -74,12 +78,14 @@ describe('externalizeOrchestrionRuntimePackages', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('resolves @sentry/server-utils subpaths to the CJS build, since the emitted external is a require()', async () => {
-    const external = await externalizeOrchestrionRuntimePackages({
-      request: '@sentry/server-utils/orchestrion/register',
-    });
-
-    expect(external).toMatch(/[/\\]cjs[/\\]/);
+  // A `commonjs` external could never load these, so webpack gets to report them instead.
+  it('ignores subpaths @sentry/server-utils does not expose to require()', async () => {
+    await expect(
+      externalizeOrchestrionRuntimePackages({ request: '@sentry/server-utils/orchestrion/hook' }),
+    ).resolves.toBeUndefined();
+    await expect(
+      externalizeOrchestrionRuntimePackages({ request: '@sentry/server-utils/does-not-exist' }),
+    ).resolves.toBeUndefined();
   });
 
   it('ignores unrelated requests so later externals handlers still run', async () => {
@@ -89,6 +95,38 @@ describe('externalizeOrchestrionRuntimePackages', () => {
       externalizeOrchestrionRuntimePackages({ request: '@sentry/server-utils-extras' }),
     ).resolves.toBeUndefined();
     await expect(externalizeOrchestrionRuntimePackages({})).resolves.toBeUndefined();
+  });
+});
+
+// Exercises the generated artifacts, so it needs the package built — as does this file's import of
+// `@sentry/server-utils`.
+describe('orchestrion runtime forwarders (generated)', () => {
+  const nodeRequire = createRequire(import.meta.url);
+  const forwarderDir = fileURLToPath(new URL('../../build/orchestrion-runtime/', import.meta.url));
+
+  /** Every `@sentry/server-utils` entrypoint that a `commonjs` external could load. */
+  const requireableSubpaths = Object.entries(
+    (nodeRequire('@sentry/server-utils/package.json') as { exports: Record<string, { require?: string }> }).exports,
+  )
+    .filter(([key, conditions]) => key !== './package.json' && conditions.require)
+    .map(([key]) => key);
+
+  it.each(requireableSubpaths)('generates a forwarder for %s that re-exports it unchanged', subpath => {
+    const request = `@sentry/server-utils${subpath.slice(1)}`;
+    const forwarderFile = `${forwarderDir}${subpath === '.' ? 'index' : subpath.slice(2)}.js`;
+
+    expect(existsSync(forwarderFile)).toBe(true);
+    expect(nodeRequire(forwarderFile)).toBe(nodeRequire(request));
+  });
+
+  // The emitted specifier must resolve the way it will from a chunk: through the package exports.
+  it.each(requireableSubpaths)('exposes the forwarder for %s through the package exports', subpath => {
+    const specifier = getOrchestrionForwarderSpecifier(
+      `@sentry/server-utils${subpath.slice(1)}`,
+      '@sentry/server-utils',
+    );
+
+    expect(nodeRequire.resolve(specifier)).toBe(`${forwarderDir}${subpath === '.' ? 'index' : subpath.slice(2)}.js`);
   });
 });
 

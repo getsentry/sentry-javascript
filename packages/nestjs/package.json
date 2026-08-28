@@ -44,7 +44,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.19.0",
+    "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/server-utils": "10.67.0"
@@ -56,8 +56,8 @@
     "rxjs": "^7.8.2"
   },
   "peerDependencies": {
-    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
-    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0"
+    "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0",
+    "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -74,6 +74,7 @@
     "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

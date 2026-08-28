@@ -5,7 +5,7 @@
 import {
   init,
   getClient,
-  spanToJSON,
+  spanToStaticSpanJSON,
   getActiveSpan,
   browserTracingIntegration,
   browserProfilingIntegration,
@@ -50,7 +50,7 @@ describe('BrowserProfilingIntegration', () => {
 
     const pageloadSpan = getActiveSpan();
     expect(pageloadSpan).toBeDefined();
-    expect(spanToJSON(pageloadSpan!).op).toBe('pageload');
+    expect(spanToStaticSpanJSON(pageloadSpan!).op).toBe('pageload');
     expect(mockProfiler).toHaveBeenCalledTimes(1);
 
     // Ending the only active root span closes the trace-lifecycle profile.

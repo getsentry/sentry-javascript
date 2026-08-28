@@ -1,23 +1,17 @@
 /* oxlint-disable max-lines */
-import SentryCli from '@sentry/cli';
-import { closeSession, DEFAULT_ENVIRONMENT, getTraceData, makeSession, setMeasurement, startSpan } from '@sentry/core';
+import { closeSession, DEFAULT_ENVIRONMENT, makeSession, setMeasurement, startSpan } from '@sentry/core';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { SentryCliAdapter } from './cli';
 import type { NormalizedOptions } from './options-mapping';
 import { normalizeUserOptions, validateOptions } from './options-mapping';
 import type { Logger } from './logger';
 import { createLogger } from './logger';
 import { allowedToSendTelemetry, createSentryInstance, safeFlushTelemetry } from './sentry/telemetry';
 import type { Options, SentrySDKBuildFlags } from './types';
-import {
-  arrayify,
-  getProjects,
-  getTurborepoEnvPassthroughWarning,
-  serializeIgnoreOptions,
-  stripQueryAndHashFromPath,
-} from './utils';
+import { arrayify, getProjects, getTurborepoEnvPassthroughWarning, stripQueryAndHashFromPath } from './utils';
 import { defaultRewriteSourcesHook, prepareBundleForDebugIdUpload } from './debug-id-upload';
 import { globFiles } from './glob';
 import { LIB_VERSION } from './version';
@@ -95,22 +89,6 @@ export type SentryBuildPluginManager = {
 
   createDependencyOnBuildArtifacts: () => () => void;
 };
-
-function createCliInstance(options: NormalizedOptions): SentryCli {
-  return new SentryCli(null, {
-    authToken: options.authToken,
-    org: options.org,
-    // Default to the first project if multiple projects are specified
-    project: getProjects(options.project)?.[0],
-    silent: options.silent,
-    url: options.url,
-    vcsRemote: options.release.vcsRemote,
-    headers: {
-      ...(options.telemetry ? getTraceData() : {}),
-      ...options.headers,
-    },
-  });
-}
 
 /**
  * Creates a build plugin manager that exposes primitives for everything that a Sentry JavaScript SDK or build tooling may do during a build.
@@ -335,6 +313,9 @@ export function createSentryBuildPluginManager(
     if (bundleSizeOptimizations.excludeTracing) {
       bundleSizeOptimizationReplacementValues['__SENTRY_TRACING__'] = false;
     }
+    if (bundleSizeOptimizations.excludeChannelInjection) {
+      bundleSizeOptimizationReplacementValues['__SENTRY_CHANNEL_INJECTION__'] = false;
+    }
     if (bundleSizeOptimizations.excludeReplayCanvas) {
       bundleSizeOptimizationReplacementValues['__RRWEB_EXCLUDE_CANVAS__'] = true;
     }
@@ -458,40 +439,45 @@ export function createSentryBuildPluginManager(
       // Therefore we need to actually register the execution of this hook as dependency on the sourcemap files.
       const freeWriteBundleInvocationDependencyOnSourcemapFiles = createDependencyOnBuildArtifacts();
 
+      // Guaranteed to be set by the guard clause above.
+      const releaseName = options.release.name;
+
       try {
-        const cliInstance = createCliInstance(options);
+        const cliInstance = new SentryCliAdapter(options);
 
         if (options.release.create) {
-          const releaseOutput = await cliInstance.releases.new(options.release.name);
+          const releaseOutput = await cliInstance.createRelease(releaseName);
           logger.debug('Release created:', releaseOutput);
         }
 
         if (options.release.uploadLegacySourcemaps) {
-          const normalizedInclude = arrayify(options.release.uploadLegacySourcemaps)
+          const uploadTargets = arrayify(options.release.uploadLegacySourcemaps)
             .map(includeItem => (typeof includeItem === 'string' ? { paths: [includeItem] } : includeItem))
-            .map(includeEntry => ({
-              ...includeEntry,
-              validate: includeEntry.validate ?? false,
-              ext: includeEntry.ext
-                ? includeEntry.ext.map(extension => `.${extension.replace(/^\./, '')}`)
-                : ['.js', '.map', '.jsbundle', '.bundle'],
-              ignore: includeEntry.ignore ? arrayify(includeEntry.ignore) : undefined,
-            }));
+            .flatMap(includeEntry =>
+              includeEntry.paths.map(directory => ({
+                directory,
+                dist: options.release.dist,
+                ext: includeEntry.ext
+                  ? includeEntry.ext.map(extension => `.${extension.replace(/^\./, '')}`)
+                  : ['.js', '.map', '.jsbundle', '.bundle'],
+                // The old CLI only skipped `node_modules` when neither ignore source was configured.
+                ignore: includeEntry.ignore
+                  ? arrayify(includeEntry.ignore)
+                  : includeEntry.ignoreFile
+                    ? undefined
+                    : ['node_modules'],
+                ignoreFile: includeEntry.ignoreFile,
+                urlPrefix: includeEntry.urlPrefix,
+              })),
+            );
 
-          await cliInstance.releases.uploadSourceMaps(options.release.name, {
-            include: normalizedInclude,
-            dist: options.release.dist,
-            projects: getProjects(options.project),
-            // We want this promise to throw if the sourcemaps fail to upload so that we know about it.
-            // see: https://github.com/getsentry/sentry-cli/pull/2605
-            live: 'rejectOnError',
-          });
+          await cliInstance.uploadSourcemaps(releaseName, uploadTargets);
         }
 
         if (options.release.setCommits !== false) {
           try {
-            await cliInstance.releases.setCommits(
-              options.release.name,
+            await cliInstance.setCommits(
+              releaseName,
               // set commits always exists due to the normalize function
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               options.release.setCommits!,
@@ -514,12 +500,12 @@ export function createSentryBuildPluginManager(
         }
 
         if (options.release.finalize) {
-          await cliInstance.releases.finalize(options.release.name);
+          await cliInstance.finalizeRelease(releaseName);
         }
 
-        if (options.release.deploy && !_deployedReleases.has(options.release.name)) {
-          await cliInstance.releases.newDeploy(options.release.name, options.release.deploy);
-          _deployedReleases.add(options.release.name);
+        if (options.release.deploy && !_deployedReleases.has(releaseName)) {
+          await cliInstance.newDeploy(releaseName, options.release.deploy);
+          _deployedReleases.add(releaseName);
         }
       } catch (e) {
         sentryScope.captureException('Error in "releaseManagementPlugin" writeBundle hook');
@@ -540,11 +526,8 @@ export function createSentryBuildPluginManager(
     async injectDebugIds(buildArtifactPaths: string[]) {
       await startSpan({ name: 'inject-debug-ids', scope: sentryScope, forceTransaction: true }, async () => {
         try {
-          const cliInstance = createCliInstance(options);
-          await cliInstance.execute(
-            ['sourcemaps', 'inject', ...serializeIgnoreOptions(options.sourcemaps?.ignore), ...buildArtifactPaths],
-            options.debug ? 'rejectOnError' : false,
-          );
+          const cliInstance = new SentryCliAdapter(options);
+          await cliInstance.injectDebugIds(buildArtifactPaths, options.sourcemaps?.ignore);
         } catch (e) {
           sentryScope.captureException('Error in "debugIdInjectionPlugin" writeBundle hook');
           handleRecoverableError(e, false);
@@ -604,25 +587,16 @@ export function createSentryBuildPluginManager(
                 pathsToUpload = buildArtifactPaths;
               }
 
-              const ignorePaths = options.sourcemaps?.ignore
-                ? Array.isArray(options.sourcemaps?.ignore)
-                  ? options.sourcemaps?.ignore
-                  : [options.sourcemaps?.ignore]
-                : [];
               await startSpan({ name: 'upload', scope: sentryScope }, async () => {
-                const cliInstance = createCliInstance(options);
-                await cliInstance.releases.uploadSourceMaps(options.release.name ?? 'undefined', {
-                  include: [
-                    {
-                      paths: pathsToUpload,
-                      rewrite: true,
-                      dist: options.release.dist,
-                    },
-                  ],
-                  ignore: ignorePaths,
-                  projects: getProjects(options.project),
-                  live: 'rejectOnError',
-                });
+                const cliInstance = new SentryCliAdapter(options);
+                await cliInstance.uploadSourcemaps(
+                  options.release.name ?? 'undefined',
+                  pathsToUpload.map(directory => ({
+                    directory,
+                    dist: options.release.dist,
+                    ignore: options.sourcemaps?.ignore,
+                  })),
+                );
               });
 
               logger.info('Successfully uploaded source maps to Sentry');
@@ -716,18 +690,13 @@ export function createSentryBuildPluginManager(
                   }
 
                   await startSpan({ name: 'upload', scope: sentryScope }, async () => {
-                    const cliInstance = createCliInstance(options);
-                    await cliInstance.releases.uploadSourceMaps(options.release.name ?? 'undefined', {
-                      include: [
-                        {
-                          paths: [tmpUploadFolder],
-                          rewrite: false,
-                          dist: options.release.dist,
-                        },
-                      ],
-                      projects: getProjects(options.project),
-                      live: 'rejectOnError',
-                    });
+                    const cliInstance = new SentryCliAdapter(options);
+                    await cliInstance.uploadSourcemaps(options.release.name ?? 'undefined', [
+                      {
+                        directory: tmpUploadFolder,
+                        dist: options.release.dist,
+                      },
+                    ]);
                   });
 
                   // this must be in the method so that the "no sourcemaps"

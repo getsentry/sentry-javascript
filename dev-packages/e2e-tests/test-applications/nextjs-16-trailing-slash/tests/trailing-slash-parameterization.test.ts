@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // These tests verify that pageload transactions are correctly named when
-// trailingSlash: true is enabled in next.config.ts, even when a catch-all
+// trailingSlash: true is enabled in next.config.mjs, even when a catch-all
 // route exists. See: https://github.com/getsentry/sentry-javascript/issues/19241
 
 test('should create a correctly named pageload transaction for a static route', async ({ page }) => {
@@ -20,14 +20,15 @@ test('should create a correctly named pageload transaction for a static route', 
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'route',
+          'url.template': '/static-page',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/static-page',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
@@ -49,7 +50,7 @@ test('should create a correctly named pageload transaction for a parameterized r
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -80,14 +81,15 @@ test('should create a correctly named pageload transaction for a static nested r
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'route',
+          'url.template': '/parameterized/static',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/parameterized/static',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
@@ -107,7 +109,7 @@ test('should create a correctly named pageload transaction for the catch-all rou
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -134,14 +136,15 @@ test('should create a correctly named pageload transaction for the home page', a
         data: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'route',
+          'url.template': '/',
         },
         op: 'pageload',
         origin: 'auto.pageload.nextjs.app_router_instrumentation',
       },
     },
     transaction: '/',
-    transaction_info: { source: 'url' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });

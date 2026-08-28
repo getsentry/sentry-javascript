@@ -173,13 +173,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { enableMetrics, beforeSendMetric } = client.getOptions();
-  const metricsEnabled = enableMetrics ?? true;
-
-  if (!metricsEnabled) {
-    DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
-    return;
-  }
+  const { beforeSendMetric } = client.getOptions();
 
   // Enrich metric with contextual attributes
   const { user, attributes: scopeAttributes } = getCombinedScopeData(getIsolationScope(), currentScope);

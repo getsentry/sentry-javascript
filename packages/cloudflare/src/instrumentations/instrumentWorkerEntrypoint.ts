@@ -2,9 +2,8 @@ import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
-import type { DefaultEnv, ResolveEnv } from '../types';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
-import { extractRpcMeta } from '../utils/rpcMeta';
 import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
 import { instrumentEnv } from './worker/instrumentEnv';
 import { instrumentWorkerEntrypointFetch } from './worker/instrumentFetch';
@@ -87,28 +86,18 @@ function instrumentMethod(
     return boundMethod;
   }
 
-  const captureMethod = wrapMethodWithSentry(
-    { options, context, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
+  return wrapMethodWithSentry(
+    {
+      options,
+      context,
+      spanName: rpcMeta => (rpcMeta ? prop : undefined),
+      spanOp: 'rpc',
+      origin: WORKER_ENTRYPOINT_ORIGIN,
+    },
     boundMethod,
     undefined,
     true,
   );
-
-  if (options.enableRpcTracePropagation === false) {
-    return captureMethod;
-  }
-
-  const tracedMethod = wrapMethodWithSentry(
-    { options, context, spanName: prop, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
-    boundMethod,
-    undefined,
-    true,
-  );
-
-  return (...args: unknown[]) => {
-    const { rpcMeta } = extractRpcMeta(args);
-    return rpcMeta ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
-  };
 }
 
 /**
@@ -155,7 +144,8 @@ export function instrumentWorkerEntrypoint<
   T extends WorkerEntrypoint<any, any> = WorkerEntrypoint<Env, Props>,
   // oxlint-disable-next-line typescript/no-explicit-any
   C extends new (ctx: ExecutionContext, env: any) => T = new (ctx: ExecutionContext, env: any) => T,
->(optionsCallback: (env: ResolveEnv<C, Env>) => CloudflareOptions | undefined, WorkerEntrypointClass: C): C {
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O> | undefined, WorkerEntrypointClass: C): C {
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request
   // This is critical - calling this per-request would create a new AsyncLocalStorage
   // each time, breaking scope isolation for concurrent requests

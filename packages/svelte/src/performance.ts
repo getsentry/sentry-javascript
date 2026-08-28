@@ -1,7 +1,9 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, startInactiveSpan } from '@sentry/core';
+import { debug } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_UPDATE } from '@sentry/conventions/op';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { DEBUG_BUILD } from './debug_build';
 import type { TrackComponentOptions } from './types';
@@ -52,8 +54,7 @@ function recordInitSpan(componentName: string): void {
     onlyIfParent: true,
     name: componentName,
     attributes: {
-      // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
-      [SENTRY_OP]: 'ui.mount',
+      [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',
     },
   });
@@ -70,8 +71,7 @@ function recordUpdateSpans(componentName: string): void {
       onlyIfParent: true,
       name: componentName,
       attributes: {
-        // TODO(conventions): Replace `'ui.update'` with the `ui.update` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'ui.update',
+        [SENTRY_OP]: UI_UPDATE,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',
       },
     });

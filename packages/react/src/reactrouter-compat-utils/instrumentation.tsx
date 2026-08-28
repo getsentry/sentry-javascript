@@ -14,9 +14,11 @@ import {
   debug,
   getClient,
   getCurrentScope,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
@@ -47,7 +49,7 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -320,15 +322,15 @@ export function processResolvedRoutes(
   // Use captured span if provided, otherwise fall back to current active span
   const targetSpan = capturedSpan ?? getActiveRootSpan();
   if (targetSpan) {
-    const spanJson = spanToJSON(targetSpan);
+    const { end_timestamp, attributes } = spanToJSON(targetSpan);
 
-    // Skip update if span has already ended (timestamp is set when span.end() is called)
-    if (spanJson.timestamp) {
+    // Skip update if span has already ended (end_timestamp is set when span.end() is called)
+    if (end_timestamp) {
       DEBUG_BUILD && debug.warn('[React Router] Lazy handler resolved after span ended - skipping update');
       return;
     }
 
-    const spanOp = spanJson.op;
+    const spanOp = attributes[SENTRY_OP];
 
     // Use captured location for route matching (ensures we match against the correct route)
     // Fall back to window.location only if no captured location and no captured span
@@ -370,14 +372,13 @@ export function updateNavigationSpan(
   forceUpdate = false,
   matchRoutes: MatchRoutes,
 ): void {
-  const spanJson = spanToJSON(activeRootSpan);
-  const currentName = spanJson.description;
+  const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
 
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
-  if (shouldUpdate && !spanJson.timestamp) {
+  if (shouldUpdate && !end_timestamp) {
     const currentBranches = matchRoutes(allRoutes, location);
     const [name, source] = resolveRouteNameAndSource(
       location,
@@ -389,7 +390,7 @@ export function updateNavigationSpan(
       _enableAsyncRouteHandlers,
     );
 
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentSource = attributes[SENTRY_SEGMENT_NAME_SOURCE];
     const isImprovement =
       name &&
       (!currentName || // No current name - always set
@@ -397,8 +398,11 @@ export function updateNavigationSpan(
         (currentSource !== 'route' && source === 'route') || // URL → route upgrade
         (currentSource === 'route' && source === 'route' && currentNameHasWildcard)); // Route → better route (only if current has wildcard)
     if (isImprovement) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      activeRootSpan.updateName(isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : name);
+      activeRootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         activeRootSpan.setAttribute(URL_TEMPLATE, name);
       }
@@ -419,7 +423,7 @@ function setupRouterSubscription(
   activeRootSpan: Span | undefined,
 ): void {
   let isInitialPageloadComplete = false;
-  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
+  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
   let hasSeenPopAfterPageload = false;
   let scheduledNavigationHandler: number | null = null;
   let lastHandledPathname: string | null = null;
@@ -427,7 +431,7 @@ function setupRouterSubscription(
   router.subscribe((state: RouterState) => {
     if (!isInitialPageloadComplete) {
       const currentRootSpan = getActiveRootSpan();
-      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).attributes[SENTRY_OP] === 'pageload';
 
       if (isCurrentlyInPageload) {
         hasSeenPageloadSpan = true;
@@ -723,9 +727,11 @@ export function createReactRouterV6CompatibleTracingIntegration(
       const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
-          name: initPathName,
+          // With span streaming, span names have to be low cardinality. The route is only resolved
+          // once the router renders, which updates the span name then.
+          name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initPathName,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
@@ -872,8 +878,8 @@ function wrapPatchRoutesOnNavigation(
               targetPath &&
               activeRootSpan &&
               spanJson &&
-              !spanJson.timestamp && // Span hasn't ended yet
-              spanJson.op === 'navigation'
+              !spanJson.end_timestamp && // Span hasn't ended yet
+              spanJson.attributes[SENTRY_OP] === 'navigation'
             ) {
               updateNavigationSpan(
                 activeRootSpan,
@@ -909,8 +915,8 @@ function wrapPatchRoutesOnNavigation(
         if (
           activeRootSpan &&
           spanJson &&
-          !spanJson.timestamp && // Span hasn't ended yet
-          spanJson.op === 'navigation'
+          !spanJson.end_timestamp && // Span hasn't ended yet
+          spanJson.attributes[SENTRY_OP] === 'navigation'
         ) {
           // Use targetPath consistently - don't fall back to WINDOW.location which may have changed
           // if the user navigated away during async loading
@@ -958,7 +964,7 @@ export function handleNavigation(opts: {
   }
 
   const activeRootSpan = getActiveRootSpan();
-  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
+  if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload' && navigationType === 'POP') {
     return;
   }
 
@@ -978,7 +984,7 @@ export function handleNavigation(opts: {
 
     // Determine if this navigation should be skipped as a duplicate
     const trackedSpanHasEnded =
-      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).timestamp : false;
+      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).end_timestamp : false;
     const { skip, shouldUpdate } = shouldSkipNavigation(trackedNav, locationKey, name, trackedSpanHasEnded);
 
     if (skip) {
@@ -993,9 +999,11 @@ export function handleNavigation(opts: {
               `[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`,
             );
         } else {
-          // Update existing real span from wildcard to parameterized route name
-          trackedNav.span.updateName(name);
-          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+          // Update existing real span from wildcard to parameterized route name.
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          const isUnparameterizedStreamedNavigation = source !== 'route' && hasSpanStreamingEnabled(client);
+          trackedNav.span.updateName(isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : name);
+          trackedNav.span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
           if (source === 'route') {
             trackedNav.span.setAttribute(URL_TEMPLATE, name);
           }
@@ -1025,9 +1033,14 @@ export function handleNavigation(opts: {
     let navigationSpan: Span | undefined;
     try {
       navigationSpan = startBrowserTracingNavigationSpan(client, {
-        name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
+        // Use placeholder's routeName in case it was updated. With span streaming, span names have to
+        // be low cardinality, so we can't fall back to the URL.
+        name:
+          source === 'route' || !hasSpanStreamingEnabled(client)
+            ? placeholderEntry.routeName
+            : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
@@ -1132,8 +1145,11 @@ function updatePageloadTransaction({
     getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      activeRootSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
+      activeRootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         activeRootSpan.setAttribute(URL_TEMPLATE, name);
       }
@@ -1203,7 +1219,7 @@ function tryUpdateSpanNameBeforeEnd(
   allRoutes: Set<RouteObject>,
 ): void {
   try {
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE] as string | undefined;
 
     if (currentSource === 'route' && currentName && !transactionNameHasWildcard(currentName)) {
       return;
@@ -1228,11 +1244,15 @@ function tryUpdateSpanNameBeforeEnd(
     );
 
     const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
-    const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
+    const spanNotEnded = spanType === 'pageload' || !spanJson.end_timestamp;
 
     if (isImprovement && spanNotEnded) {
-      span.updateName(name);
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedSpan = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      const fallbackName = spanType === 'pageload' ? PAGELOAD_SPAN_NAME_FALLBACK : NAVIGATION_SPAN_NAME_FALLBACK;
+      span.updateName(isUnparameterizedStreamedSpan ? fallbackName : name);
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         span.setAttribute(URL_TEMPLATE, name);
       }
@@ -1276,8 +1296,8 @@ function patchSpanEnd(
     const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
 
     const spanJson = spanToJSON(span);
-    const currentName = spanJson.description;
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentName = spanJson.name;
+    const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE];
 
     // Helper to clean up activeNavigationSpans after span ends
     const cleanupNavigationSpan = (): void => {
@@ -1332,7 +1352,7 @@ function patchSpanEnd(
           tryUpdateSpanNameBeforeEnd(
             span,
             updatedSpanJson,
-            updatedSpanJson.description,
+            updatedSpanJson.name,
             location,
             routes,
             basename,

@@ -4,11 +4,11 @@ import {
   getCurrentScope,
   getIsolationScope,
   setTag,
+  startSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
-import { startSpan } from '../../src/trace';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
@@ -108,7 +108,7 @@ describe('Integration | Scope', () => {
                 data: {
                   'sentry.origin': 'manual',
                   'sentry.sample_rate': 1,
-                  'sentry.source': 'custom',
+                  'sentry.segment.name.source': 'custom',
                 },
                 span_id: spanId,
                 status: 'ok',

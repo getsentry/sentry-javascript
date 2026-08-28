@@ -2,13 +2,15 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getSpanStatusFromHttpCode,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -16,18 +18,18 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
-  HTTP_METHOD,
   HTTP_ROUTE,
-  HTTP_STATUS_CODE,
   URL_FULL,
   URL_PATH,
   SENTRY_KIND,
   SENTRY_OP,
+  HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { WEB_SERVER_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
-import { remixChannels } from '@sentry/server-utils/orchestrion';
+import { FUNCTION } from '@sentry/conventions/op';
+import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
 
@@ -74,8 +76,7 @@ function getRequestAttributes(request: unknown): SpanAttributes {
   const { method, url } = request as Partial<Request>;
   const attributes: SpanAttributes = {};
   if (typeof method === 'string') {
-    // oxlint-disable-next-line typescript/no-deprecated
-    attributes[HTTP_METHOD] = method;
+    attributes[HTTP_REQUEST_METHOD] = method;
   }
   if (typeof url === 'string') {
     const urlObject = parseStringToURLObject(url);
@@ -105,8 +106,6 @@ function setResponseStatus(span: Span, result: unknown): void {
   }
   const status = (result as { status?: unknown }).status;
   if (typeof status === 'number') {
-    // oxlint-disable-next-line typescript/no-deprecated
-    span.setAttribute(HTTP_STATUS_CODE, status);
     span.setAttribute(HTTP_RESPONSE_STATUS_CODE, status);
 
     const spanStatus = getSpanStatusFromHttpCode(status);
@@ -128,12 +127,10 @@ function enrichActiveSpanWithRoute(result: unknown): void {
   const route = matches[matches.length - 1]?.route;
 
   if (route?.path) {
-    // oxlint-disable-next-line typescript/no-deprecated
     span.setAttribute(HTTP_ROUTE, route.path);
-    // oxlint-disable-next-line typescript/no-deprecated
-    const method = spanToJSON(span).data[HTTP_METHOD];
+    const method = spanToJSON(span).attributes[HTTP_REQUEST_METHOD];
     span.updateName(typeof method === 'string' ? `${method} ${route.path}` : route.path);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   }
   if (route?.id) {
     span.setAttribute(MATCH_ROUTE_ID, route.id);
@@ -145,17 +142,26 @@ function subscribeRequestHandler(): void {
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_REQUEST_HANDLER),
     data => {
       const requestAttributes = getRequestAttributes(data.arguments[0]);
-      // oxlint-disable-next-line typescript/no-deprecated
-      const method = requestAttributes[HTTP_METHOD];
+      const method = requestAttributes[HTTP_REQUEST_METHOD];
       const path = requestAttributes[URL_PATH];
       const hasUrlName = typeof method === 'string' && typeof path === 'string';
+      const client = getClient();
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // The route is applied later, once Remix has matched it.
+      const isStreamed = !!client && hasSpanStreamingEnabled(client);
       return startInactiveSpan({
-        name: hasUrlName ? `${method} ${path}` : 'remix.request',
+        name: isStreamed
+          ? typeof method === 'string'
+            ? method
+            : HTTP_SPAN_NAME_FALLBACK
+          : hasUrlName
+            ? `${method} ${path}`
+            : 'remix.request',
         attributes: {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          ...(hasUrlName && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' }),
+          ...(hasUrlName && { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
           [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,
         },
@@ -190,7 +196,7 @@ function subscribeCallRouteLoader(): void {
         name: `LOADER ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
@@ -224,7 +230,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         name: `ACTION ${params.routeId}`,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: WEB_SERVER_FUNCTION_SPAN_OP,
+          [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),

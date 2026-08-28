@@ -1,5 +1,5 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
@@ -18,4 +18,4 @@ Sentry.addEventProcessor(event => {
   return event;
 });
 
-Sentry.getActiveSpan().setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+Sentry.getActiveSpan().setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'custom');

@@ -1,4 +1,5 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, SentrySpan, spanToJSON } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SentrySpan, spanToStaticSpanJSON } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { createLiveRootSpanAdapter } from '../../src/common/utils/liveRootSpanAdapter';
 
@@ -11,22 +12,22 @@ describe('createLiveRootSpanAdapter', () => {
     expect(adapter.attributes.foo).toBe('bar');
 
     adapter.setOp('http.server');
-    expect(spanToJSON(span).data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(spanToStaticSpanJSON(span).data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
   });
 
   it('renames the span without stamping source=custom (preserves an existing source)', () => {
     const span = new SentrySpan({
       name: 'original',
-      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+      attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' },
     });
     const adapter = createLiveRootSpanAdapter(span);
 
     adapter.setName('GET /users/[id]');
 
-    const json = spanToJSON(span);
+    const json = spanToStaticSpanJSON(span);
     expect(json.description).toBe('GET /users/[id]');
     // `span.updateName` would normally set source to `custom`; the adapter must keep `route`.
-    expect(json.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(json.data[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
 
   it('does not introduce a source when the span has none', () => {
@@ -35,8 +36,8 @@ describe('createLiveRootSpanAdapter', () => {
 
     adapter.setName('GET /users');
 
-    const json = spanToJSON(span);
+    const json = spanToStaticSpanJSON(span);
     expect(json.description).toBe('GET /users');
-    expect(json.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
+    expect(json.data[SENTRY_SEGMENT_NAME_SOURCE]).toBeUndefined();
   });
 });

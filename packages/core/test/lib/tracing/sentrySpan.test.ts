@@ -4,46 +4,50 @@ import { setCurrentClient } from '../../../src/sdk';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import { startInactiveSpan, startSpan } from '../../../src/tracing/trace';
+import { startInactiveSpan, startSpan, withActiveSpan } from '../../../src/tracing/trace';
 import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
-import type { SpanJSON } from '../../../src/types/span';
-import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import type { Span, SpanJSON } from '../../../src/types/span';
+import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+
+function childSpansOf(span: Span): Set<Span> {
+  return (span as unknown as { _sentryChildSpans?: Set<Span> })._sentryChildSpans ?? new Set();
+}
 
 describe('SentrySpan', () => {
   describe('name', () => {
     it('works with name', () => {
       const span = new SentrySpan({ name: 'span name' });
-      expect(spanToJSON(span).description).toEqual('span name');
+      expect(spanToStaticSpanJSON(span).description).toEqual('span name');
     });
 
     it('allows to update the name via updateName', () => {
       const span = new SentrySpan({ name: 'span name' });
-      expect(spanToJSON(span).description).toEqual('span name');
+      expect(spanToStaticSpanJSON(span).description).toEqual('span name');
 
       span.updateName('new name');
 
-      expect(spanToJSON(span).description).toEqual('new name');
+      expect(spanToStaticSpanJSON(span).description).toEqual('new name');
     });
 
     it('sets the source to custom when calling updateName', () => {
       const span = new SentrySpan({
         name: 'original name',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
       });
 
       span.updateName('new name');
 
-      const spanJson = spanToJSON(span);
+      const spanJson = spanToStaticSpanJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+      expect(spanJson.data[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('custom');
     });
 
     it('sets the source to custom when calling updateName on a span without a source', () => {
@@ -51,7 +55,7 @@ describe('SentrySpan', () => {
 
       span.updateName('new name');
 
-      const spanJson = spanToJSON(span);
+      const spanJson = spanToStaticSpanJSON(span);
       expect(spanJson.description).toEqual('new name');
     });
   });
@@ -59,9 +63,9 @@ describe('SentrySpan', () => {
   describe('setters', () => {
     test('setName', () => {
       const span = new SentrySpan({});
-      expect(spanToJSON(span).description).toBeUndefined();
+      expect(spanToStaticSpanJSON(span).description).toBeUndefined();
       span.updateName('foo');
-      expect(spanToJSON(span).description).toBe('foo');
+      expect(spanToStaticSpanJSON(span).description).toBe('foo');
     });
   });
 
@@ -69,13 +73,13 @@ describe('SentrySpan', () => {
     test('setStatus', () => {
       const span = new SentrySpan({});
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'permission_denied' });
-      expect(spanToJSON(span).status).toBe('permission_denied');
+      expect(spanToStaticSpanJSON(span).status).toBe('permission_denied');
     });
   });
 
   describe('toJSON', () => {
     test('simple', () => {
-      const span = spanToJSON(
+      const span = spanToStaticSpanJSON(
         new SentrySpan({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' }),
       );
       expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
@@ -90,7 +94,7 @@ describe('SentrySpan', () => {
         sampled: false,
         parentSpanId: spanA.spanContext().spanId,
       });
-      const serialized = spanToJSON(spanB);
+      const serialized = spanToStaticSpanJSON(spanB);
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
@@ -123,7 +127,7 @@ describe('SentrySpan', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
       });
 
-      const json = spanToJSON(span);
+      const json = spanToStaticSpanJSON(span);
       expect(json.data?.['key']).toBe('before');
       expect(json.data?.['key2']).toBeUndefined();
       expect(json.status).toBe('permission_denied');
@@ -144,53 +148,97 @@ describe('SentrySpan', () => {
       span.updateStartTime(999);
       span.addLink({ context: linked.spanContext() });
 
-      const json = spanToJSON(span);
+      const json = spanToStaticSpanJSON(span);
       expect(json.data?.['key']).toBe('after');
       expect(json.description).toBe('after');
       expect(json.start_timestamp).toBe(999);
       expect(json.links).toHaveLength(1);
     });
 
-    it('seals a tracer-provider span that ended via the constructor endTimestamp', () => {
-      // `_endTime` is set in the constructor, so `end()` early-returns before reaching the seal at the
-      // bottom of its body. The span must still be sealed once `end()` is invoked.
+    it('keeps a tracer-provider span sealed across repeated `end()` calls', () => {
       const span = new SentrySpan({
         name: 'original',
         startTimestamp: 1,
-        endTimestamp: 2,
         attributes: { key: 'before' },
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end();
+      span.end(2);
+      span.end(3);
 
       span.setAttribute('key', 'after');
-      expect(spanToJSON(span).data?.['key']).toBe('before');
+      expect(spanToStaticSpanJSON(span).data?.['key']).toBe('before');
+      expect(spanToStaticSpanJSON(span).timestamp).toBe(2);
+    });
+  });
+
+  describe('child span retention', () => {
+    it('stops tracking children on a segment span once it has been captured', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const captureEvent = vi.spyOn(client, 'captureEvent');
+
+      let rootSpan: Span | undefined;
+      startSpan({ name: 'root' }, span => {
+        rootSpan = span;
+        startSpan({ name: 'child' }, () => {});
+      });
+
+      expect(captureEvent).toHaveBeenCalledTimes(1);
+      expect(captureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: [expect.objectContaining({ description: 'child' })] }),
+        expect.any(Object),
+        expect.any(Object),
+      );
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+
+      // A child that starts after the tree was read is not tracked, but can still find its root span,
+      // which is all that re-emitting it as its own transaction needs.
+      const lateChild = withActiveSpan(rootSpan!, () => startInactiveSpan({ name: 'late child' }));
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+      expect(getRootSpan(lateChild)).toBe(rootSpan);
+    });
+
+    it('stops tracking children on a segment span that has streamed', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' }));
+      setCurrentClient(client);
+
+      let rootSpan: Span | undefined;
+      startSpan({ name: 'root' }, span => {
+        rootSpan = span;
+        startSpan({ name: 'child' }, () => {});
+      });
+
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+
+      const lateChild = withActiveSpan(rootSpan!, () => startInactiveSpan({ name: 'late child' }));
+      expect(childSpansOf(rootSpan!).size).toBe(1);
+      expect(getRootSpan(lateChild)).toBe(rootSpan);
     });
   });
 
   describe('end', () => {
     test('simple', () => {
       const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToStaticSpanJSON(span).timestamp).toBeUndefined();
       span.end();
-      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
+      expect(spanToStaticSpanJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     test('with endTime in seconds', () => {
       const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToStaticSpanJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now() / 1000;
       span.end(endTime);
-      expect(spanToJSON(span).timestamp).toBe(endTime);
+      expect(spanToStaticSpanJSON(span).timestamp).toBe(endTime);
     });
 
     test('with endTime in milliseconds', () => {
       const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
+      expect(spanToStaticSpanJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now();
       span.end(endTime);
-      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
+      expect(spanToStaticSpanJSON(span).timestamp).toBe(endTime / 1000);
     });
 
     test('uses sampled config for standalone span', () => {
@@ -209,20 +257,18 @@ describe('SentrySpan', () => {
         name: 'not-sampled',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: false,
       });
-      notSampledSpan.end();
+      notSampledSpan.end(2);
       expect(mockSend).not.toHaveBeenCalled();
 
       const sampledSpan = new SentrySpan({
         name: 'is-sampled',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      sampledSpan.end();
+      sampledSpan.end(2);
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
 
@@ -243,10 +289,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
       expect(mockSend).toHaveBeenCalled();
     });
 
@@ -275,10 +320,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
 
       expect(beforeSendSpan).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalled();
@@ -313,10 +357,9 @@ describe('SentrySpan', () => {
         name: 'test',
         isStandalone: true,
         startTimestamp: 1,
-        endTimestamp: 2,
         sampled: true,
       });
-      span.end();
+      span.end(2);
 
       expect(seen[0]!['my.scope.attr']).toBeUndefined();
     });
@@ -545,7 +588,7 @@ describe('SentrySpan', () => {
       const now = timestampInSeconds();
       span.end();
 
-      expect(spanToJSON(span).timestamp).toBeGreaterThanOrEqual(now);
+      expect(spanToStaticSpanJSON(span).timestamp).toBeGreaterThanOrEqual(now);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -553,7 +596,7 @@ describe('SentrySpan', () => {
       const timestamp = timestampInSeconds() - 1;
       span.end(timestamp);
 
-      expect(spanToJSON(span).timestamp).toEqual(timestamp);
+      expect(spanToStaticSpanJSON(span).timestamp).toEqual(timestamp);
     });
 
     it('works with endTimestamp in milliseconds', () => {
@@ -561,7 +604,7 @@ describe('SentrySpan', () => {
       const timestamp = Date.now() - 1000;
       span.end(timestamp);
 
-      expect(spanToJSON(span).timestamp).toEqual(timestamp / 1000);
+      expect(spanToStaticSpanJSON(span).timestamp).toEqual(timestamp / 1000);
     });
 
     it('works with endTimestamp in array form', () => {
@@ -569,17 +612,18 @@ describe('SentrySpan', () => {
       const seconds = Math.floor(timestampInSeconds() - 1);
       span.end([seconds, 0]);
 
-      expect(spanToJSON(span).timestamp).toEqual(seconds);
+      expect(spanToStaticSpanJSON(span).timestamp).toEqual(seconds);
     });
 
     it('skips if span is already ended', () => {
       const startTimestamp = timestampInSeconds() - 5;
       const endTimestamp = timestampInSeconds() - 1;
-      const span = new SentrySpan({ startTimestamp, endTimestamp });
+      const span = new SentrySpan({ startTimestamp });
 
+      span.end(endTimestamp);
       span.end();
 
-      expect(spanToJSON(span).timestamp).toBe(endTimestamp);
+      expect(spanToStaticSpanJSON(span).timestamp).toBe(endTimestamp);
     });
   });
 
@@ -590,7 +634,8 @@ describe('SentrySpan', () => {
     });
 
     it('returns false for sampled, finished span', () => {
-      const span = new SentrySpan({ sampled: true, endTimestamp: Date.now() });
+      const span = new SentrySpan({ sampled: true });
+      span.end();
       expect(span.isRecording()).toEqual(false);
     });
 

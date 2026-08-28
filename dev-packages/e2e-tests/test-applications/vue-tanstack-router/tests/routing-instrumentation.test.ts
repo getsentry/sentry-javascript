@@ -17,7 +17,7 @@ test('sends pageload transaction with web vitals measurements', async ({ page })
         origin: 'auto.pageload.vue.tanstack_router',
         data: {
           'sentry.origin': 'auto.pageload.vue.tanstack_router',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.op': 'pageload',
           'url.template': '/',
           'url.path': '/',
@@ -63,7 +63,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue.tanstack_router',
           'sentry.op': 'pageload',
           'url.path.parameter.postId': '456',
@@ -108,7 +108,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.navigation.vue.tanstack_router',
           'sentry.op': 'navigation',
           'url.path.parameter.postId': '2',
@@ -142,7 +142,7 @@ test('sends a pageload transaction named after the resolved route when a redirec
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue.tanstack_router',
           'sentry.op': 'pageload',
           'url.path.parameter.postId': '1',
@@ -185,7 +185,7 @@ test('sends a navigation transaction when a redirect is thrown in beforeLoad', a
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.navigation.vue.tanstack_router',
           'sentry.op': 'navigation',
           'url.path.parameter.postId': '1',
@@ -233,7 +233,7 @@ test('sends a navigation transaction for a normal navigation that happens after 
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.navigation.vue.tanstack_router',
           'sentry.op': 'navigation',
           'url.path.parameter.postId': '2',

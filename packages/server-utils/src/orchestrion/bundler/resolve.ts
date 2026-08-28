@@ -1,5 +1,18 @@
 import { createRequire } from 'node:module';
 
+/**
+ * The specifier the module-injected snippet imports from — the
+ * `orchestrionModuleInjected` helper and the module's channel-subscriber factory
+ * both live on the main `@sentry/server-utils` entry. It is emitted INSIDE
+ * transformed `node_modules` files, where a bare specifier can't resolve from
+ * the importing package's location under isolated installs (pnpm), so every
+ * bundler plugin gives it build-time resolution help.
+ */
+export const SNIPPET_IMPORT_SPECIFIER = '@sentry/server-utils';
+
+/** esbuild `onResolve` filter matching the snippet import specifier exactly. */
+export const SNIPPET_IMPORT_SPECIFIER_FILTER = /^@sentry\/server-utils$/;
+
 // Both branches use `createRequire` (never alias the CJS `require`) so bundlers consuming this
 // module don't emit a "Critical dependency" warning.
 function getOrchestrionRequire(): ReturnType<typeof createRequire> {
@@ -28,13 +41,15 @@ export function getOrchestrionLoaderPath(): string {
  * own on-disk location — where the whole dependency graph always resolves, regardless of the
  * consuming app's install layout. Returns `undefined` when the request can't be resolved.
  *
- * Bundler configs use this in two ways:
- * - to emit absolute-path `commonjs` externals: a bare-specifier external emitted into a bundled
- *   chunk resolves from the chunk's output location at runtime, which fails under isolated
- *   installs (pnpm) where these packages are transitive dependencies;
- * - as a build-time resolution fallback for the `@sentry/server-utils/orchestrion` import the
- *   module-injected snippet places INSIDE transformed `node_modules` files, which a bundler
- *   resolving from the importing file's location can't find under isolated installs either.
+ * BUILD-TIME resolver only: the path is handed back to the bundler to load and bundle, never
+ * emitted into the output. An absolute path in emitted output doesn't survive the build directory
+ * being relocated (Vercel, Docker, `output: 'standalone'`), so a consumer that needs one of these
+ * packages to stay EXTERNAL must emit a bare specifier instead — see `@sentry/nextjs`'s
+ * `externalizeOrchestrionRuntimePackages`.
+ *
+ * The specific case it covers: the `@sentry/server-utils/orchestrion` import the module-injected
+ * snippet places INSIDE transformed `node_modules` files, which a bundler resolving from the
+ * importing file's location can't find under isolated installs.
  */
 export function resolveOrchestrionRuntimeRequest(request: string): string | undefined {
   try {

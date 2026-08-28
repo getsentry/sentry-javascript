@@ -1,7 +1,7 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
 import type { RequestOptions } from 'node:http';
-import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse, Integration, IntegrationFn, Span } from '@sentry/core';
 import {
   defineIntegration,
   getHttpClientSubscriptions,
@@ -26,6 +26,21 @@ export interface DenoHttpIntegrationOptions {
    * Defaults to the client's tracing configuration (`hasSpansEnabled`).
    */
   spans?: boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
 
   /**
    * Whether to inject trace propagation headers (sentry-trace, baggage) into outgoing HTTP requests.
@@ -77,14 +92,15 @@ export interface DenoHttpIntegrationOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Hook invoked after the server span is created but before the request is handled.
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
    */
-  onIncomingSpanCreated?: (span: Span, request: unknown, response: unknown) => void;
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 
   /**
-   * Hook invoked when the server span ends, before it is recorded.
+   * A hook that can be used to mutate the span one last time when the response is finished.
    */
-  onIncomingSpanEnd?: (span: Span, request: unknown, response: unknown) => void;
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
@@ -95,23 +111,15 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
     name: INTEGRATION_NAME,
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
-        // `spans` falls through to the client's tracing config when unset.
-        spans: options.spans,
-        ignoreStaticAssets: options.ignoreStaticAssets,
-        ignoreIncomingRequests: options.ignoreIncomingRequests,
-        maxRequestBodySize: options.maxRequestBodySize,
-        ignoreRequestBody: options.ignoreRequestBody,
-        onSpanCreated: options.onIncomingSpanCreated,
-        onSpanEnd: options.onIncomingSpanEnd,
+        ...options,
         errorMonitor,
-        sessions: false,
       });
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
       const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-        spans: options.spans,
+        ...options,
         breadcrumbs,
-        propagateTrace: tracePropagation,
+        tracePropagation,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests
           ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
           : undefined,

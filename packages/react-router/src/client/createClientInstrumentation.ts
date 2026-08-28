@@ -7,17 +7,18 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   SPAN_STATUS_ERROR,
-  startSpan,
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
+import type { ClientInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 import {
   resolveNavigateAbsoluteUrl,
@@ -25,8 +26,14 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP, WEB_SERVER_MIDDLEWARE_SPAN_OP } from '@sentry/conventions/op';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  URL_FULL,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -72,7 +79,7 @@ export function createSentryClientInstrumentation(
   DEBUG_BUILD && debug.log('React Router client instrumentation API created.');
 
   return {
-    router(router: InstrumentableRouter) {
+    router(router) {
       // Set the flag when React Router actually invokes our instrumentation.
       // This ensures the flag is only set in Library Mode (where hooks run),
       // not in Framework Mode (where hooks are never called).
@@ -106,9 +113,11 @@ export function createSentryClientInstrumentation(
           startBrowserTracingNavigationSpan(
             client,
             {
-              name: pathname,
+              // With span streaming, span names have to be low cardinality, so we can't fall back to
+              // the URL. The route hooks parameterize the span once they resolve.
+              name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                 'navigation.type': 'browser.popstate',
@@ -149,9 +158,11 @@ export function createSentryClientInstrumentation(
               navigationSpan = startBrowserTracingNavigationSpan(
                 client,
                 {
-                  name: currentPathname,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back
+                  // to the URL. The route is resolved once the navigation settles.
+                  name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : currentPathname,
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                     'navigation.type': navigationType,
@@ -194,9 +205,11 @@ export function createSentryClientInstrumentation(
             navigationSpan = startBrowserTracingNavigationSpan(
               client,
               {
-                name: toPath,
+                // With span streaming, span names have to be low cardinality, so we can't fall back to
+                // the URL. The route hooks parameterize the span once they resolve.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : toPath,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                   'navigation.type': 'router.navigate',
@@ -223,7 +236,7 @@ export function createSentryClientInstrumentation(
             {
               name: `Fetcher ${info.fetcherKey}`,
               attributes: {
-                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'fetcher',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -242,7 +255,7 @@ export function createSentryClientInstrumentation(
       });
     },
 
-    route(route: InstrumentableRoute) {
+    route(route) {
       const routeId = route.id;
 
       route.instrument({
@@ -258,7 +271,7 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'clientLoader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -285,7 +298,7 @@ export function createSentryClientInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'clientAction',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -319,7 +332,7 @@ export function createSentryClientInstrumentation(
             {
               name: `middleware ${routeId}`,
               attributes: {
-                [SENTRY_OP]: WEB_SERVER_MIDDLEWARE_SPAN_OP,
+                [SENTRY_OP]: MIDDLEWARE,
                 [CODE_FUNCTION_NAME]: 'clientMiddleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
@@ -344,7 +357,7 @@ export function createSentryClientInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+                [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
@@ -378,13 +391,14 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
     return;
   }
 
-  const { op } = spanToJSON(rootSpan);
+  const { attributes } = spanToJSON(rootSpan);
+  const op = attributes[SENTRY_OP];
   if (op !== 'navigation' && op !== 'pageload') {
     return;
   }
 
   updateSpanName(rootSpan, routeName);
-  rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
+  rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
 }
 
 /**

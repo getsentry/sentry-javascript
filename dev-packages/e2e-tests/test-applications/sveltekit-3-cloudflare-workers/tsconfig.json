@@ -1,0 +1,16 @@
+{
+  // Kit 3 generates the parent config at `node_modules/$app/tsconfig`
+  // and never writes `.svelte-kit/tsconfig.json`.
+  "extends": "$app/tsconfig",
+  "include": ["src"],
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "allowImportingTsExtensions": true
+  }
+}

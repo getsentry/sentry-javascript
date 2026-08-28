@@ -3,10 +3,7 @@ import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
   isTracingSuppressed,
-  startInactiveSpan,
   startNewTrace,
-  startSpan,
-  startSpanManual,
   suppressTracing,
   withActiveSpan,
 } from './../tracing/trace';
@@ -62,15 +59,6 @@ export interface AsyncContextStrategy {
 
   // OPTIONAL: Custom tracing methods
   // These are used so that we can provide OTEL-based implementations
-
-  /** Start an active span. */
-  startSpan?: typeof startSpan;
-
-  /** Start an inactive span. */
-  startInactiveSpan?: typeof startInactiveSpan;
-
-  /** Start an active manual span. */
-  startSpanManual?: typeof startSpanManual;
 
   /** Get the currently active span. */
   getActiveSpan?: typeof getActiveSpan;

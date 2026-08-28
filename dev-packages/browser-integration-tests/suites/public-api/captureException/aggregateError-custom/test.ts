@@ -39,7 +39,6 @@ sentryTest('captures custom AggregateErrors', async ({ getLocalTestUrl, page }) 
   ]);
 });
 
-// fixme: the mechanism should be on the error
 sentryTest(
   'keeps a custom capture mechanism on the captured error instead of its causes',
   async ({ getLocalTestUrl, page }) => {
@@ -53,10 +52,10 @@ sentryTest(
         value: 'Failure 1',
         mechanism: {
           exception_id: 2,
-          handled: false, // true,
+          handled: true,
           parent_id: 1,
           source: 'cause',
-          type: 'auto.http.example', // 'chained',
+          type: 'chained',
         },
       }),
       expect.objectContaining({
@@ -73,8 +72,8 @@ sentryTest(
         value: 'Failure 3',
         mechanism: {
           exception_id: 0,
-          handled: true, // false,
-          type: 'generic', // 'auto.http.example',
+          handled: false,
+          type: 'auto.http.example',
         },
       }),
     ]);

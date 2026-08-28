@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 /**
  * Wrap an instrumentation that targets nodes via a raw esquery selector
@@ -30,12 +30,12 @@ function astQueryInstrumentation(config: {
 export const nestjsConfig = [
   {
     channelName: 'nestFactoryCreate',
-    module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'nest-factory.js' },
+    module: { name: '@nestjs/core', versionRange: '>=8.0.0 <13', filePath: 'nest-factory.js' },
     functionQuery: { className: 'NestFactoryStatic', methodName: 'create', kind: 'Async' },
   },
   {
     channelName: 'routerExecutionContextCreate',
-    module: { name: '@nestjs/core', versionRange: '>=8.0.0 <12', filePath: 'router/router-execution-context.js' },
+    module: { name: '@nestjs/core', versionRange: '>=8.0.0 <13', filePath: 'router/router-execution-context.js' },
     functionQuery: { className: 'RouterExecutionContext', methodName: 'create', kind: 'Sync' },
   },
   astQueryInstrumentation({
@@ -50,7 +50,7 @@ export const nestjsConfig = [
     channelName: 'injectableDecorator',
     module: {
       name: '@nestjs/common',
-      versionRange: '>=8.0.0 <12',
+      versionRange: '>=8.0.0 <13',
       filePath: 'decorators/core/injectable.decorator.js',
     },
     astQuery: 'FunctionDeclaration[id.name="Injectable"] ReturnStatement > ArrowFunctionExpression',
@@ -65,7 +65,7 @@ export const nestjsConfig = [
     //
     // Mirrors the vendored `SentryNestInstrumentation` `@Catch` wrap.
     channelName: 'catchDecorator',
-    module: { name: '@nestjs/common', versionRange: '>=8.0.0 <12', filePath: 'decorators/core/catch.decorator.js' },
+    module: { name: '@nestjs/common', versionRange: '>=8.0.0 <13', filePath: 'decorators/core/catch.decorator.js' },
     astQuery: 'FunctionDeclaration[id.name="Catch"] ReturnStatement > ArrowFunctionExpression',
     functionQuery: { kind: 'Sync' },
   }),

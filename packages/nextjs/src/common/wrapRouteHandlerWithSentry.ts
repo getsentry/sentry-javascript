@@ -9,7 +9,6 @@ import {
   propagationContextFromHeaders,
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
   SPAN_STATUS_ERROR,
@@ -21,7 +20,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavi
 import type { RouteHandlerContext } from './types';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
@@ -50,7 +49,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
         rootSpan.updateName(`${method} ${parameterizedRoute}`);
         rootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           [HTTP_ROUTE]: parameterizedRoute,
         });

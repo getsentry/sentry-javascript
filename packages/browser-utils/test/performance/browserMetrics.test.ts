@@ -132,8 +132,8 @@ describe('addWebVitalsToSpan', () => {
       spanStreamingEnabled: true,
     });
 
-    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fp.value']).toBeUndefined();
-    expect(spanToJSON(nextPageloadSpan).data['browser.web_vital.fcp.value']).toBeUndefined();
+    expect(spanToJSON(nextPageloadSpan).attributes['browser.web_vital.fp.value']).toBeUndefined();
+    expect(spanToJSON(nextPageloadSpan).attributes['browser.web_vital.fcp.value']).toBeUndefined();
   });
 });
 
@@ -237,21 +237,20 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        description: '/assets/to/css',
+        name: '/assets/to/css',
         start_timestamp: timeOrigin + startTime,
-        timestamp: timeOrigin + startTime + duration,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
-        data: {
+        end_timestamp: timeOrigin + startTime + duration,
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-          ['http.decoded_response_content_length']: entry.decodedBodySize,
-          ['http.response_content_length']: entry.encodedBodySize,
-          ['http.response_transfer_size']: entry.transferSize,
+          ['http.response.body.decoded_size']: entry.decodedBodySize,
+          ['http.response.body.size']: entry.encodedBodySize,
+          ['http.response.size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
-          ['url.same_origin']: true,
+          ['url.domain']: 'example.com',
+          ['http.request.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '1.1',
@@ -289,8 +288,8 @@ describe('_addResourceSpans', () => {
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
-    expect(json.description).toBe('/assets/app.js?v=42#main');
-    expect(json.data['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
+    expect(json.name).toBe('/assets/app.js?v=42#main');
+    expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
   });
 
   it('sets url.full to the full cross-origin URL', () => {
@@ -309,9 +308,9 @@ describe('_addResourceSpans', () => {
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
-    expect(json.description).toBe('https://cdn.example.org/static/logo.png');
-    expect(json.data['url.full']).toBe('https://cdn.example.org/static/logo.png');
-    expect(json.data['url.same_origin']).toBe(false);
+    expect(json.name).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.attributes['url.full']).toBe('https://cdn.example.org/static/logo.png');
+    expect(json.attributes['http.request.same_origin']).toBe(false);
   });
 
   it('creates a variety of resource spans', () => {
@@ -352,7 +351,7 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
-      expect(spanToJSON(spans[i]!)).toEqual(expect.objectContaining({ op }));
+      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }));
     }
   });
 
@@ -397,7 +396,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
     const spanOps = new Set(
       spans.map(s => {
-        return spanToJSON(s).op;
+        return spanToJSON(s).attributes['sentry.op'];
       }),
     );
     expect(spanOps).toEqual(new Set(['resource.css', 'resource.image']));
@@ -424,16 +423,17 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: expect.objectContaining({
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-          ['http.decoded_response_content_length']: entry.decodedBodySize,
-          ['http.response_content_length']: entry.encodedBodySize,
-          ['http.response_transfer_size']: entry.transferSize,
+          ['http.response.body.decoded_size']: entry.decodedBodySize,
+          ['http.response.body.size']: entry.encodedBodySize,
+          ['http.response.size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
           ['url.scheme']: 'https',
           ['server.address']: 'example.com',
-          ['url.same_origin']: true,
+          ['url.domain']: 'example.com',
+          ['http.request.same_origin']: true,
           ['url.full']: resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '2',
@@ -462,20 +462,19 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: expect.objectContaining({
+        attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
-          'url.same_origin': true,
+          'url.domain': 'example.com',
+          'http.request.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
         }),
-        description: '/assets/to/css',
-        timestamp: 468,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
+        name: '/assets/to/css',
+        end_timestamp: 468,
         start_timestamp: 445,
       }),
     );
@@ -515,11 +514,12 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
-          'url.same_origin': true,
+          'url.domain': 'example.com',
+          'http.request.same_origin': true,
           'url.scheme': 'https',
           'url.full': resourceEntryName,
           ['network.protocol.name']: 'http',
@@ -538,10 +538,8 @@ describe('_addResourceSpans', () => {
           'http.request.time_to_first_byte': 1.008,
           'http.request.worker_start': expect.any(Number),
         },
-        description: '/assets/to/css',
-        timestamp: 468,
-        op: 'resource.css',
-        origin: 'auto.resource.browser.metrics',
+        name: '/assets/to/css',
+        end_timestamp: 468,
         start_timestamp: 445,
       }),
     );
@@ -570,9 +568,57 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
       expect(spans).toHaveLength(1);
-      expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+        'http.response_delivery_type': deliveryType,
+      });
     },
   );
+
+  describe('with span streaming enabled', () => {
+    it.each([
+      ['https://example.com/assets/to/css', 'example.com', 'example.com'],
+      ['https://cdn.example.org:8443/static/logo.png', 'cdn.example.org', 'cdn.example.org:8443'],
+      ['https://user:pass@example.com:8443/static/logo.png', 'example.com', 'example.com:8443'],
+    ])('names the span after the resource domain (%s)', (url, expectedName, expectedAddress) => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry = mockPerformanceResourceTiming({ initiatorType: 'css', nextHopProtocol: 'h2' });
+
+      _addResourceSpans(span, entry, url, 100, 23, 345, undefined, true);
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!)).toEqual(
+        expect.objectContaining({
+          name: expectedName,
+          attributes: expect.objectContaining({
+            'url.domain': expectedName,
+            'server.address': expectedAddress,
+          }),
+        }),
+      );
+    });
+
+    it('falls back to a static name when the resource URL has no domain', () => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry = mockPerformanceResourceTiming({ initiatorType: 'script', nextHopProtocol: 'h2' });
+
+      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, 345, undefined, true);
+
+      expect(spans).toHaveLength(1);
+      const spanJson = spanToJSON(spans[0]!);
+      expect(spanJson.name).toBe('Resource');
+      expect(spanJson.attributes['url.domain']).toBeUndefined();
+    });
+  });
 });
 
 describe('_addNavigationSpans', () => {
@@ -652,102 +698,84 @@ describe('_addNavigationSpans', () => {
     expect(spans.map(spanToJSON)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.dom_content_loaded_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.dom_content_loaded_event',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.load_event',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.load_event',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.connect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.connect',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.tls_ssl',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.tls_ssl',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.cache',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.cache',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.dns',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.dns',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.request',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.request',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'sentry.op': 'browser.response',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.response',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
         expect.objectContaining({
-          data: {
+          attributes: {
             'http.redirect_count': 2,
             'sentry.op': 'browser.redirect',
             'sentry.origin': 'auto.ui.browser.metrics',
           },
-          description: 'https://santry.com/test',
-          op: 'browser.redirect',
-          origin: 'auto.ui.browser.metrics',
+          name: 'https://santry.com/test',
           parent_span_id,
           trace_id,
         }),
@@ -770,7 +798,7 @@ describe('_setResourceRequestAttributes', () => {
     });
 
     _setResourceRequestAttributes(entry, attributes, [
-      ['transferSize', 'http.response_transfer_size'],
+      ['transferSize', 'http.response.size'],
       ['deliveryType', 'http.response_delivery_type'],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
       ['responseStatus', 'http.response.status_code'],
@@ -779,7 +807,7 @@ describe('_setResourceRequestAttributes', () => {
     ]);
 
     expect(attributes).toEqual({
-      'http.response_transfer_size': 0,
+      'http.response.size': 0,
       'http.request.redirect_start': 100,
       'http.response.start': 200,
       'http.response.status_code': 200,
@@ -797,10 +825,10 @@ describe('_setResourceRequestAttributes', () => {
       renderBlockingStatus: 'non-blocking',
     });
 
-    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response_transfer_size']]);
+    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response.size']]);
 
     expect(attributes).toEqual({
-      'http.response_transfer_size': 0,
+      'http.response.size': 0,
     });
   });
 
@@ -816,7 +844,7 @@ describe('_setResourceRequestAttributes', () => {
     });
 
     _setResourceRequestAttributes(entry, attributes, [
-      ['transferSize', 'http.response_transfer_size'],
+      ['transferSize', 'http.response.size'],
       ['deliveryType', 'http.response_delivery_type'],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
     ]);
