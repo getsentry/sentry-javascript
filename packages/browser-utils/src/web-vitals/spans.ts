@@ -46,12 +46,12 @@ type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>
 type InpMetric = Parameters<InstrumentationHandlerCallback>[0]['metric'];
 
 /**
- * Reports a web vital once per navigation, for browsers reporting soft navigations.
+ * Reports a web vital once per navigation, rather than once per page load.
  *
- * With `reportSoftNavs`, web-vitals restarts the metric on every soft navigation and force-reports
- * the previous one just before it does (and again on pagehide). Since we also drop
- * `reportAllChanges` in this mode, every value we're handed is already the final one for its
- * navigation, so there is nothing to accumulate: each report is a span.
+ * web-vitals restarts the metric on every soft navigation and force-reports the previous one just
+ * before it does (and again on pagehide), and re-reports every metric after a bfcache restore.
+ * Since `reportAllChanges` is off in this mode, every value we're handed is already the final one
+ * for its navigation, so there is nothing to accumulate: each report is a span.
  */
 function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   client: Client,
@@ -77,6 +77,15 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
       return;
     }
 
+    if (metric.navigationType === 'back-forward-cache') {
+      // A restore reuses the frozen document, so the pageload span above belongs to the page view
+      // from before the freeze. The active root span is the navigation span started for the
+      // restore, which is the page view these values were actually measured on.
+      const activeSpan = getActiveSpan();
+      send(metric, activeSpan ? getRootSpan(activeSpan) : undefined, undefined);
+      return;
+    }
+
     send(metric, pageloadSpan, undefined);
   });
 }
@@ -84,12 +93,12 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
 /**
  * Tracks LCP as a streamed span.
  */
-export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
+export function trackLcpAsSpan(client: Client, perNavigation = false): void {
   if (!supportsWebVital('largest-contentful-paint')) {
     return;
   }
 
-  if (reportSoftNavs) {
+  if (perNavigation) {
     trackWebVitalPerNavigation(client, addLcpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
       const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
       _sendLcpSpan(metric.value, entry, parentSpan, undefined, softNavigationId, metric.navigationType);
@@ -170,12 +179,12 @@ export function _sendLcpSpan(
 /**
  * Tracks CLS as a streamed span.
  */
-export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
+export function trackClsAsSpan(client: Client, perNavigation = false): void {
   if (!supportsWebVital('layout-shift')) {
     return;
   }
 
-  if (reportSoftNavs) {
+  if (perNavigation) {
     trackWebVitalPerNavigation(client, addClsInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
       const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
       _sendClsSpan(metric.value, entry, parentSpan, undefined, softNavigationId, metric.navigationType);
@@ -250,7 +259,7 @@ export function _sendClsSpan(
  * Requires `registerInpInteractionListener()` to be called separately for cached element names and
  * root spans per interaction.
  */
-export function trackInpAsSpan(client: Client, reportSoftNavs = false): void {
+export function trackInpAsSpan(client: Client, perNavigation = false): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !browserPerformanceTimeOrigin()) {
     return;
@@ -263,7 +272,7 @@ export function trackInpAsSpan(client: Client, reportSoftNavs = false): void {
   // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
   const standalone = !hasSpanStreamingEnabled(client);
 
-  if (reportSoftNavs) {
+  if (perNavigation) {
     // INP restarts per navigation and reports once that navigation is over, by which point the
     // navigation span has ended and the interaction cache no longer knows about it. The metric
     // says which navigation it belongs to, so INP is attributed exactly like LCP and CLS.

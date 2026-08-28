@@ -164,6 +164,7 @@ let _previousInp: Metric | undefined;
 let _previousFcp: Metric | undefined;
 
 let _reportSoftNavs = false;
+let _reportBfcache = false;
 
 /**
  * Opt the CLS, LCP and INP observers into reporting metrics for soft navigations.
@@ -184,6 +185,21 @@ let _reportSoftNavs = false;
  */
 export function enableSoftNavigationReporting(): void {
   _reportSoftNavs = true;
+}
+
+/**
+ * Opt the CLS, LCP and INP observers into reporting metrics for back/forward-cache restores.
+ *
+ * web-vitals re-reports each metric after a restore, tagged with a `back-forward-cache` navigation
+ * type. A restore is a new page view measured against a document that was never reloaded, so the
+ * values only mean anything if there is a fresh root span for them to belong to. Without one they
+ * would attach to the span the page had before it was frozen, which is why this is off by default.
+ *
+ * Like `enableSoftNavigationReporting`, this only affects observers instrumented after it is
+ * called.
+ */
+export function enableBfcacheReporting(): void {
+  _reportBfcache = true;
 }
 
 /**
@@ -292,16 +308,12 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
 }
 
 /**
- * Wraps a metric callback so that metrics reported after a back/forward-cache restore are ignored.
- *
- * web-vitals re-reports each metric after a bfcache restore (tagged with a `back-forward-cache`
- * navigation type). We intentionally drop those for now: our reporting assumes one set of vitals
- * per page load, so surfacing bfcache re-reports would skew the data until we're ready to model
- * and communicate them.
+ * Wraps a metric callback so that metrics reported after a back/forward-cache restore are dropped
+ * unless `enableBfcacheReporting` was called. See there for why they are off by default.
  */
-function withoutBfcache(callback: (metric: Metric) => void): (metric: Metric) => void {
+function unlessBfcacheDisabled(callback: (metric: Metric) => void): (metric: Metric) => void {
   return metric => {
-    if (metric.navigationType === 'back-forward-cache') {
+    if (!_reportBfcache && metric.navigationType === 'back-forward-cache') {
       return;
     }
     callback(metric);
@@ -310,7 +322,7 @@ function withoutBfcache(callback: (metric: Metric) => void): (metric: Metric) =>
 
 function instrumentCls(): StopListening {
   return onCLS(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('cls', {
         metric,
       });
@@ -318,13 +330,13 @@ function instrumentCls(): StopListening {
     }),
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: !_reportSoftNavs, reportSoftNavs: _reportSoftNavs },
+    { reportAllChanges: !_reportSoftNavs && !_reportBfcache, reportSoftNavs: _reportSoftNavs },
   );
 }
 
 function instrumentLcp(): StopListening {
   return onLCP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('lcp', {
         metric,
       });
@@ -332,13 +344,13 @@ function instrumentLcp(): StopListening {
     }),
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: !_reportSoftNavs, reportSoftNavs: _reportSoftNavs },
+    { reportAllChanges: !_reportSoftNavs && !_reportBfcache, reportSoftNavs: _reportSoftNavs },
   );
 }
 
 function instrumentTtfb(): StopListening {
   return onTTFB(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('ttfb', {
         metric,
       });
@@ -349,7 +361,7 @@ function instrumentTtfb(): StopListening {
 
 function instrumentFcp(): StopListening {
   return onFCP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('fcp', {
         metric,
       });
@@ -360,7 +372,7 @@ function instrumentFcp(): StopListening {
 
 function instrumentInp(): StopListening {
   return onINP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('inp', {
         metric,
       });

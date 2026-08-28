@@ -2,6 +2,7 @@ import type { IntegrationFn, Span } from '@sentry/core/browser';
 import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
 import {
   addWebVitalsToSpan,
+  enableBfcacheReporting,
   enableSoftNavigationReporting,
   registerInpInteractionListener,
   startSoftNavigationCorrelation,
@@ -42,6 +43,22 @@ export interface WebVitalsOptions {
    * Default: `true`
    */
   softNavigations?: boolean;
+
+  /**
+   * Report a fresh set of LCP, CLS and INP after the page is restored from the back/forward cache.
+   *
+   * A restore is a new page view measured against a document that was never reloaded, so its vitals
+   * are reported against the navigation span `browserTracingIntegration` starts for the restore,
+   * and tagged `browser.navigation.type: bfcache`. They measure a near-instant restore rather than
+   * a document load, so they are a distinct population from page load vitals and are off by
+   * default.
+   *
+   * Requires span streaming (`traceLifecycle: 'stream'`, the default) and
+   * `browserTracingIntegration`, which supplies the navigation span these attach to.
+   *
+   * Default: `false`
+   */
+  bfcache?: boolean;
 }
 
 /**
@@ -52,7 +69,7 @@ export interface WebVitalsOptions {
  * needed to customize options or to use it without `browserTracingIntegration`.
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
-  const { ignore = [], softNavigations = true } = options;
+  const { ignore = [], softNavigations = true, bfcache = false } = options;
   const ignored = new Set(ignore);
 
   return {
@@ -63,12 +80,21 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       // Soft navigation vitals are finalized at the next soft navigation or on pagehide, long after
       // the navigation span they belong to has ended. Only span streaming can still send them.
       const reportSoftNavs = softNavigations && spanStreamingEnabled && supportsSoftNavigations();
+      const reportBfcache = bfcache && spanStreamingEnabled;
 
+      // Both attribute a vital to the page view it was measured on rather than to the page load, so
+      // either one puts the trackers on the per-navigation path.
+      const perNavigation = reportSoftNavs || reportBfcache;
+
+      // These have to run before any web vital observer is instrumented, since web-vitals only
+      // reads its options when the observer is set up.
       if (reportSoftNavs) {
-        // Has to run before any web vital observer is instrumented, since web-vitals only reads its
-        // options when the observer is set up.
         enableSoftNavigationReporting();
         startSoftNavigationCorrelation(client);
+      }
+
+      if (reportBfcache) {
+        enableBfcacheReporting();
       }
 
       // With span streaming enabled, CLS and LCP are tracked as standalone v2 spans (like INP).
@@ -103,17 +129,17 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
 
       if (spanStreamingEnabled) {
         if (!ignored.has('lcp')) {
-          trackLcpAsSpan(client, reportSoftNavs);
+          trackLcpAsSpan(client, perNavigation);
         }
         if (!ignored.has('cls')) {
-          trackClsAsSpan(client, reportSoftNavs);
+          trackClsAsSpan(client, perNavigation);
         }
       }
 
       // INP is always sent as a streamed web vital span. When span streaming is disabled, INP still
       // streams (it overrides the static trace lifecycle for INP only), see `trackInpAsSpan`.
       if (!ignored.has('inp')) {
-        trackInpAsSpan(client, reportSoftNavs);
+        trackInpAsSpan(client, perNavigation);
       }
     },
     afterAllSetup() {
