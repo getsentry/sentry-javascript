@@ -50,6 +50,7 @@ describe('webVitalsIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStartTrackingWebVitals.mockReturnValue(vi.fn());
+    mockSupportsSoftNavigations.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -105,10 +106,10 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
   });
 
-  it('reports soft navigation web vitals when enabled and supported', () => {
+  it('reports soft navigation web vitals by default when supported', () => {
     mockSupportsSoftNavigations.mockReturnValue(true);
     const client = getMockClient({ traceLifecycle: 'stream' });
-    const integration = webVitalsIntegration({ reportSoftNavs: true });
+    const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
 
@@ -119,10 +120,24 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
   });
 
+  it('does not report soft navigation web vitals when opted out', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ softNavigations: false });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
   it('does not report soft navigation web vitals without span streaming', () => {
     mockSupportsSoftNavigations.mockReturnValue(true);
     const client = getMockClient();
-    const integration = webVitalsIntegration({ reportSoftNavs: true });
+    const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
 
@@ -132,9 +147,8 @@ describe('webVitalsIntegration', () => {
   });
 
   it('does not report soft navigation web vitals in unsupporting browsers', () => {
-    mockSupportsSoftNavigations.mockReturnValue(false);
     const client = getMockClient({ traceLifecycle: 'stream' });
-    const integration = webVitalsIntegration({ reportSoftNavs: true });
+    const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
 
