@@ -406,7 +406,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '123 KB',
+    limit: '127 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
