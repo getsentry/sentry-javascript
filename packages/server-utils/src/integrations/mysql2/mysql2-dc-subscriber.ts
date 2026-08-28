@@ -107,13 +107,13 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
 
       const client = getClient();
-      const streamedName =
+      const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
           : queryText || 'mysql2.query';
 
       return startInactiveSpan({
-        name: streamedName,
+        name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
