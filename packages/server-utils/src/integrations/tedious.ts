@@ -221,7 +221,7 @@ function getSecondarySpanName(
   if (operation === 'execBulkLoad' && bulkLoadTable && db) {
     return `${operation} ${bulkLoadTable} ${db}`;
   }
-  if (operation === 'callProcedure') {
+  if (operation === 'callProcedure' && sql) {
     // `sql` refers to the procedure name for `callProcedure`.
     return db ? `${operation} ${sql} ${db}` : `${operation} ${sql}`;
   }
