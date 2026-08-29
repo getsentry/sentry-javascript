@@ -6,9 +6,23 @@ import {
   SEMANTIC_ATTRIBUTE_SESSION_ID,
   startSession,
 } from '@sentry/core/browser';
-import { addHistoryInstrumentationHandler, whenIdleOrHidden } from '@sentry/browser-utils';
+import {
+  addClickKeypressInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  whenIdleOrHidden,
+} from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
+import { setSessionRotator } from '../session/lifecycle';
+import type { PersistedSession, SessionExpiryOptions } from '../session/persistence';
+import { getPersistedSession, isSessionExpired, persistSession } from '../session/persistence';
+
+const DEFAULT_IDLE_TIMEOUT = 30 * 60_000;
+const DEFAULT_MAX_DURATION = 8 * 60 * 60_000;
+
+// Writing to sessionStorage on every interaction is wasteful, and a few seconds of
+// staleness is immaterial against timeouts measured in minutes.
+const PERSIST_THROTTLE = 5_000;
 
 interface BrowserSessionOptions {
   /**
@@ -17,10 +31,59 @@ interface BrowserSessionOptions {
    * - `'page'`: A session is created once when the page is loaded. Session is not
    *   updated on navigation. This is the default behavior.
    * - `'route'`: A session is created on page load and on every navigation.
+   * - `'session'`: One session spans the user's whole visit to the site. It is persisted in
+   *   `sessionStorage` and resumed across reloads and navigations until it expires
+   *   (see `idleTimeout` and `maxDuration`).
    *
    * @default 'page'
    */
-  lifecycle?: 'route' | 'page';
+  lifecycle?: 'route' | 'page' | 'session';
+
+  /**
+   * How long the user can be inactive, in milliseconds, before the next interaction starts
+   * a new session. Only applies to the `'session'` lifecycle.
+   *
+   * Activity means the user did something (a click, a key press, a scroll, a navigation).
+   * Telemetry the app emits on its own does not keep a session alive, otherwise a tab left
+   * open in the background would hold one open indefinitely.
+   *
+   * @default 1_800_000 (30 minutes)
+   */
+  idleTimeout?: number;
+
+  /**
+   * The maximum lifetime of a session in milliseconds, regardless of activity. Only applies
+   * to the `'session'` lifecycle.
+   *
+   * @default 28_800_000 (8 hours)
+   */
+  maxDuration?: number;
+}
+
+/**
+ * Starts a session, resuming @param resume if one was handed over from a previous page load,
+ * and writes it back to `sessionStorage`.
+ */
+function startAndPersistSession(resume?: PersistedSession): PersistedSession {
+  const now = Date.now();
+
+  // `ignoreDuration` stays on: a session now has a meaningful duration, but reporting it would
+  // change what release health's session duration distribution measures, which is out of scope here.
+  const session = startSession(
+    resume
+      ? // `init: false` marks this as an update to an already-counted session rather than a new
+        // one, so resuming across a page load does not inflate release health session counts.
+        { sid: resume.sid, started: resume.started / 1000, init: false, ignoreDuration: true }
+      : { ignoreDuration: true },
+  );
+
+  // The persisted record is kept on the `Date` clock throughout. Session timestamps come from
+  // `performance.timeOrigin`, which is reset for every document, so they are not comparable
+  // across the page loads this record has to survive.
+  const persisted = { sid: session.sid, started: resume ? resume.started : now, lastActivity: now };
+  persistSession(persisted);
+
+  return persisted;
 }
 
 /**
@@ -31,6 +94,10 @@ interface BrowserSessionOptions {
  */
 export const browserSessionIntegration = defineIntegration((options: BrowserSessionOptions = {}) => {
   const lifecycle = options.lifecycle ?? 'page';
+  const expiry: SessionExpiryOptions = {
+    idleTimeout: options.idleTimeout ?? DEFAULT_IDLE_TIMEOUT,
+    maxDuration: options.maxDuration ?? DEFAULT_MAX_DURATION,
+  };
 
   return {
     name: 'BrowserSession' as const,
@@ -41,18 +108,71 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         return;
       }
 
-      // The session duration for browser sessions does not track a meaningful
-      // concept that can be used as a metric.
-      // Automatically captured sessions are akin to page views, and thus we
-      // discard their duration.
-      startSession({ ignoreDuration: true });
-
       // Sending the session envelope synchronously in `init()` runs the full send
       // pipeline during page load, competing with critical resources for the network and
       // adding overhead that measurably hurts LCP. We defer the initial send until the
       // browser is idle; `whenIdleOrHidden` flushes it on page-hide so we don't lose short
       // (page-view-like) sessions.
       let initialSessionSent = false;
+
+      // Ends the current session and starts a new one in its place, sending it right away. Expiry,
+      // navigation (in the `'route'` lifecycle) and the public `endSession()` all funnel through here.
+      let rotate: () => void;
+
+      if (lifecycle === 'session') {
+        const persisted = getPersistedSession();
+        const now = Date.now();
+        let current = startAndPersistSession(
+          persisted && !isSessionExpired(persisted, expiry, now) ? persisted : undefined,
+        );
+        let lastPersistedAt = current.lastActivity;
+
+        rotate = () => {
+          current = startAndPersistSession();
+          lastPersistedAt = current.lastActivity;
+          captureSession();
+          // A session has now been sent, so the deferred initial capture (if still pending)
+          // must not re-send this session.
+          initialSessionSent = true;
+        };
+
+        const onActivity = (): void => {
+          const activityAt = Date.now();
+
+          if (isSessionExpired(current, expiry, activityAt)) {
+            rotate();
+            return;
+          }
+
+          current.lastActivity = activityAt;
+          if (activityAt - lastPersistedAt > PERSIST_THROTTLE) {
+            persistSession(current);
+            lastPersistedAt = activityAt;
+          }
+        };
+
+        // Clicks and key presses are already instrumented for breadcrumbs, so subscribing here
+        // adds no additional listeners in the common case.
+        addClickKeypressInstrumentationHandler(onActivity);
+        addHistoryInstrumentationHandler(onActivity);
+        // Scroll does not bubble, so it has to be caught on the way down.
+        WINDOW.document.addEventListener('scroll', onActivity, { capture: true, passive: true });
+      } else {
+        // The session duration for browser sessions does not track a meaningful
+        // concept that can be used as a metric.
+        // Automatically captured sessions are akin to page views, and thus we
+        // discard their duration.
+        startSession({ ignoreDuration: true });
+
+        rotate = () => {
+          startSession({ ignoreDuration: true });
+          captureSession();
+          initialSessionSent = true;
+        };
+      }
+
+      setSessionRotator(rotate);
+
       whenIdleOrHidden(() => {
         // A navigation (in `'route'` lifecycle) may start and send a new session before this
         // deferred callback fires. In that case the current session was already sent, so
@@ -95,11 +215,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         addHistoryInstrumentationHandler(({ from, to }) => {
           // Don't create an additional session for the initial route or if the location did not change
           if (from !== to) {
-            startSession({ ignoreDuration: true });
-            captureSession();
-            // A session has now been sent, so the deferred initial capture (if still pending)
-            // must not re-send this navigation session.
-            initialSessionSent = true;
+            rotate();
           }
         });
       }
