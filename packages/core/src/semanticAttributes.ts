@@ -79,6 +79,9 @@ export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
 /** The user username */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
+/** The id of the session (release health) the telemetry item was produced in */
+export const SEMANTIC_ATTRIBUTE_SESSION_ID = 'session.id';
+
 /**
  * A custom span name set by users guaranteed to be taken over any automatically
  * inferred name. This attribute is removed before the span is sent.
