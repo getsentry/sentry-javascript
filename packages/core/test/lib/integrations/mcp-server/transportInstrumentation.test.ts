@@ -117,7 +117,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call get-weather',
-          forceTransaction: true,
         }),
       );
     });
@@ -137,7 +136,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'notifications/initialized',
-          forceTransaction: true,
         }),
         expect.any(Function),
       );
@@ -158,7 +156,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'notifications/tools/list_changed',
-          forceTransaction: true,
         }),
         expect.any(Function),
       );
@@ -270,7 +267,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call process-file',
-        forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'process-file',
@@ -419,7 +415,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
-        forceTransaction: true,
         attributes: expect.objectContaining({
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'test-tool',
@@ -871,7 +866,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'notifications/tools/list_changed',
-          forceTransaction: true,
           attributes: {
             'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',

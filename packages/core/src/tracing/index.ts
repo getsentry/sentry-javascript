@@ -19,6 +19,7 @@ export {
 } from './spanstatus';
 export {
   continueTrace,
+  withSegment,
   withActiveSpan,
   suppressTracing,
   isTracingSuppressed,

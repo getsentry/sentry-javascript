@@ -15,7 +15,7 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { startSpan } from '../../tracing/trace';
+import { startSpan, withSegment } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
   MCP_FUNCTION_ORIGIN_VALUE,
@@ -112,13 +112,14 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   const userInfo = Boolean(client?.getDataCollectionOptions().userInfo);
   const attributes = filterMcpPiiFromSpanData(rawAttributes, userInfo) as Record<string, string | number>;
 
-  return startSpan(
-    {
-      name: spanName,
-      forceTransaction: true,
-      attributes,
-    },
-    callback,
+  return withSegment(() =>
+    startSpan(
+      {
+        name: spanName,
+        attributes,
+      },
+      callback,
+    ),
   );
 }
 
@@ -186,7 +187,6 @@ export function buildMcpServerSpanConfig(
   options?: ResolvedMcpOptions,
 ): {
   name: string;
-  forceTransaction: boolean;
   attributes: Record<string, string | number>;
 } {
   const { method } = jsonRpcMessage;
@@ -211,7 +211,6 @@ export function buildMcpServerSpanConfig(
 
   return {
     name: spanName,
-    forceTransaction: true,
     attributes,
   };
 }

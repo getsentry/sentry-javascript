@@ -109,7 +109,6 @@ export function getMiddlewareSpanOptions(
 export function getEventSpanOptions(event: string): {
   name: string;
   attributes: Record<string, string>;
-  forceTransaction: boolean;
 } {
   return {
     name: `event ${event}`,
@@ -117,7 +116,6 @@ export function getEventSpanOptions(event: string): {
       [SENTRY_OP]: FUNCTION,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
     },
-    forceTransaction: true,
   };
 }
 

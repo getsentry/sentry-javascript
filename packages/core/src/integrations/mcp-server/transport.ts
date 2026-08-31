@@ -7,7 +7,7 @@
 
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
-import { startInactiveSpan } from '../../tracing/trace';
+import { startInactiveSpan, withSegment } from '../../tracing/trace';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
@@ -58,7 +58,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
 
           return withIsolationScope(isolationScope, () => {
             const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, options);
-            const span = startInactiveSpan(spanConfig);
+            const span = withSegment(() => startInactiveSpan(spanConfig));
 
             if (request.method === 'initialize' && messageSessionData) {
               span.setAttributes({

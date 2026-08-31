@@ -1,4 +1,4 @@
-import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope, withSegment } from '@sentry/core';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
 import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
 
@@ -99,14 +99,16 @@ export function wrapEventHandler(handler: AnyFn, fallbackEvent: unknown): AnyFn 
   const wrapped = async function (this: unknown, ...args: unknown[]): Promise<unknown> {
     const eventName = deriveEventName(wrapped, fallbackEvent);
     return withIsolationScope(() =>
-      startSpan(getEventSpanOptions(eventName), async () => {
-        try {
-          return await handler.apply(this, args);
-        } catch (error) {
-          captureHandlerError(error, MECHANISM_EVENT);
-          throw error;
-        }
-      }),
+      withSegment(() =>
+        startSpan(getEventSpanOptions(eventName), async () => {
+          try {
+            return await handler.apply(this, args);
+          } catch (error) {
+            captureHandlerError(error, MECHANISM_EVENT);
+            throw error;
+          }
+        }),
+      ),
     );
   };
   return wrapped;

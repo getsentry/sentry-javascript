@@ -29,6 +29,7 @@ import {
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
 } from '../utils/spanUtils';
+import { getTraceData } from '../utils/traceData';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -215,6 +216,31 @@ export const continueTrace = <V>(
     return withActiveSpan(null, callback);
   });
 };
+
+/**
+ * Runs the callback in a scope that continues the current trace but carries no parent span, so a
+ * span started inside becomes the segment (root span) of that trace instead of a child span.
+ *
+ * This is the composable equivalent of the `forceTransaction` start-span option: the trace data of
+ * the active span is read back in through `continueTrace`, which is also how an incoming request
+ * starts its own segment on a trace that is already in flight.
+ */
+export function withSegment<T>(callback: () => T): T {
+  // Without an active span the callback already starts a root span.
+  if (!getActiveSpan()) {
+    return callback();
+  }
+
+  const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+
+  // There is nothing to continue from, so `continueTrace` would start a fresh trace and detach the
+  // segment from the trace it belongs to. Staying a child span is the lesser evil.
+  if (!sentryTrace) {
+    return callback();
+  }
+
+  return continueTrace({ sentryTrace, baggage }, callback);
+}
 
 /**
  * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be

@@ -12,6 +12,7 @@ import {
   SPAN_STATUS_OK,
   startSpan,
   withIsolationScope,
+  withSegment,
 } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
@@ -111,55 +112,56 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       },
       async () => {
         try {
-          return await startSpan(
-            {
-              name: `serverAction/${serverActionName}`,
-              forceTransaction: true,
-              attributes: {
-                [SENTRY_KIND]: 'server',
-                [SENTRY_OP]: FUNCTION,
-                [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
+          return await withSegment(() =>
+            startSpan(
+              {
+                name: `serverAction/${serverActionName}`,
+                attributes: {
+                  [SENTRY_KIND]: 'server',
+                  [SENTRY_OP]: FUNCTION,
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
+                },
               },
-            },
-            async span => {
-              // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
-              const result = await handleCallbackErrors(callback, error => {
-                if (isNotFoundNavigationError(error)) {
-                  // We don't want to report "not-found"s
-                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                } else if (isRedirectNavigationError(error)) {
-                  // Redirects are normal Next.js control flow, not errors. Mark the span as OK and end it
-                  // early so the surrounding `startSpan` error handler doesn't override the status to
-                  // `internal_error`
-                  span.setStatus({ code: SPAN_STATUS_OK });
-                  span.end();
-                } else {
-                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  captureException(error, {
-                    mechanism: {
-                      handled: false,
-                      type: 'auto.function.nextjs.server_action',
-                    },
+              async span => {
+                // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
+                const result = await handleCallbackErrors(callback, error => {
+                  if (isNotFoundNavigationError(error)) {
+                    // We don't want to report "not-found"s
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                  } else if (isRedirectNavigationError(error)) {
+                    // Redirects are normal Next.js control flow, not errors. Mark the span as OK and end it
+                    // early so the surrounding `startSpan` error handler doesn't override the status to
+                    // `internal_error`
+                    span.setStatus({ code: SPAN_STATUS_OK });
+                    span.end();
+                  } else {
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    captureException(error, {
+                      mechanism: {
+                        handled: false,
+                        type: 'auto.function.nextjs.server_action',
+                      },
+                    });
+                  }
+                });
+
+                if (options.recordResponse !== undefined ? options.recordResponse : shouldRecordResponse) {
+                  getIsolationScope().setExtra('server_action_result', result);
+                }
+
+                if (options.formData) {
+                  options.formData.forEach((value, key) => {
+                    getIsolationScope().setExtra(
+                      `server_action_form_data.${key}`,
+                      typeof value === 'string' ? value : '[non-string value]',
+                    );
                   });
                 }
-              });
 
-              if (options.recordResponse !== undefined ? options.recordResponse : shouldRecordResponse) {
-                getIsolationScope().setExtra('server_action_result', result);
-              }
-
-              if (options.formData) {
-                options.formData.forEach((value, key) => {
-                  getIsolationScope().setExtra(
-                    `server_action_form_data.${key}`,
-                    typeof value === 'string' ? value : '[non-string value]',
-                  );
-                });
-              }
-
-              return result;
-            },
+                return result;
+              },
+            ),
           );
         } finally {
           waitUntil(flushSafelyWithTimeout());
