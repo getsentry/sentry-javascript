@@ -28,6 +28,16 @@ export function toResolvablePath(source: string): { path: string; wasFileUrl: bo
   }
 }
 
+const CONFIG_EXTENSIONS = ['.ts', '.js', '.mjs', '.cjs', '.mts', '.cts'];
+
+function isServerConfigFile(sourcePath: string, resolvedPath: string, configFileName: string): boolean {
+  if (sourcePath === resolvedPath) {
+    return true;
+  }
+  const name = basename(sourcePath);
+  return name === configFileName || CONFIG_EXTENSIONS.some(ext => name === `${configFileName}${ext}`);
+}
+
 export type WrapServerEntryPluginOptions = {
   serverEntrypointFileName: string;
   serverConfigFileName: string;
@@ -74,7 +84,7 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
       }
       const { path: normalizedSource, wasFileUrl } = resolvable;
 
-      if (basename(normalizedSource).startsWith(serverConfigFileName)) {
+      if (isServerConfigFile(normalizedSource, resolvedServerConfigPath, serverConfigFileName)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 

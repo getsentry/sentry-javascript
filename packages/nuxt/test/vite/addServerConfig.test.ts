@@ -66,6 +66,13 @@ describe('wrapEntryWithDynamicImport', () => {
     expect(result).toEqual({ id: configPath, moduleSideEffects: true });
   });
 
+  it('does not mark backup or test config files as the Sentry server config', async () => {
+    const backupPath = '/project/sentry.server.config.backup.ts';
+    const result = await resolveId.call({ resolve: vi.fn(), load: vi.fn() }, backupPath, undefined, { isEntry: false });
+
+    expect(result).toBeNull();
+  });
+
   it('resolves file:// entry specifiers without re-entering the entry branch', async () => {
     const source = pathToFileURL(entryPath).href;
     const fakeResolve = vi.fn(async () => ({ id: 'resolved-id', external: false }));

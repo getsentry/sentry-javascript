@@ -20,6 +20,15 @@ import {
 } from './utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
+const CONFIG_EXTENSIONS = ['.ts', '.js', '.mjs', '.cjs', '.mts', '.cts'];
+
+function isServerConfigFile(sourcePath: string, resolvedPath: string): boolean {
+  if (sourcePath === resolvedPath) {
+    return true;
+  }
+  const name = basename(sourcePath);
+  return name === SERVER_CONFIG_FILENAME || CONFIG_EXTENSIONS.some(ext => name === `${SERVER_CONFIG_FILENAME}${ext}`);
+}
 
 /**
  *  Adds the `sentry.server.config.ts` file as `sentry.server.config.mjs` to the `.output` directory to be able to reference this file in the node --import option.
@@ -196,7 +205,7 @@ export function wrapEntryWithDynamicImport({
       }
       const { path: normalizedSource, wasFileUrl } = resolvable;
 
-      if (basename(normalizedSource).startsWith(SERVER_CONFIG_FILENAME)) {
+      if (isServerConfigFile(normalizedSource, resolvedSentryConfigPath)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
