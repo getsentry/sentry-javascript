@@ -1,4 +1,8 @@
+import { getWasmSourceUrl, patchWasmResponseBodyReaders } from './patchWasmResponse';
+
 export type RegisterModuleCallback = (module: WebAssembly.Module, url: string) => void;
+
+let nonStreamingPatched = false;
 
 /**
  * Patches the WebAssembly streaming APIs so that every compiled module gets
@@ -7,7 +11,7 @@ export type RegisterModuleCallback = (module: WebAssembly.Module, url: string) =
  *
  * @param registerModule callback invoked for every successfully compiled module
  */
-export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
+export function patchStreamingWebAssembly(registerModule: RegisterModuleCallback): void {
   if ('instantiateStreaming' in WebAssembly) {
     const origInstantiateStreaming = WebAssembly.instantiateStreaming as (
       response: unknown,
@@ -55,4 +59,73 @@ function registerSafely(registerModule: RegisterModuleCallback, module: WebAssem
   } catch {
     // a registration failure must never break the user's WebAssembly call
   }
+}
+
+function registerFromBufferSource(
+  registerModule: RegisterModuleCallback,
+  module: WebAssembly.Module,
+  source: BufferSource,
+): void {
+  const url = getWasmSourceUrl(source);
+  if (url) {
+    registerModule(module, url);
+  }
+}
+
+/**
+ * Patches the non-streaming web assembly runtime.
+ */
+function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): void {
+  if (nonStreamingPatched) {
+    return;
+  }
+
+  nonStreamingPatched = true;
+
+  const origInstantiate = WebAssembly.instantiate;
+  WebAssembly.instantiate = function instantiate(
+    source: BufferSource | WebAssembly.Module,
+    importObject?: WebAssembly.Imports,
+  ) {
+    if (source instanceof WebAssembly.Module) {
+      return (
+        origInstantiate as (
+          moduleObject: WebAssembly.Module,
+          importObject?: WebAssembly.Imports,
+        ) => Promise<WebAssembly.Instance>
+      )(source, importObject);
+    }
+
+    return (
+      origInstantiate as (
+        bytes: BufferSource,
+        importObject?: WebAssembly.Imports,
+      ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>
+    )(source, importObject).then(result => {
+      registerFromBufferSource(registerModule, result.module, source);
+      return result;
+    });
+  } as typeof WebAssembly.instantiate;
+
+  const origCompile = WebAssembly.compile;
+  WebAssembly.compile = function compile(source: BufferSource): Promise<WebAssembly.Module> {
+    return origCompile(source).then(module => {
+      registerFromBufferSource(registerModule, module, source);
+      return module;
+    });
+  };
+}
+
+/**
+ * Patches the web assembly runtime.
+ */
+export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
+  patchWasmResponseBodyReaders();
+  patchNonStreamingWebAssembly(registerModule);
+  patchStreamingWebAssembly(registerModule);
+}
+
+/** @internal */
+export function _resetNonStreamingPatchForTests(): void {
+  nonStreamingPatched = false;
 }
