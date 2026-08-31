@@ -141,9 +141,17 @@ describe('isNativeServerTracingEnabled', () => {
 
 describe('resolution through a real Vite config resolution', () => {
   // The unit tests above invoke the hooks by hand, so they'd still pass if the ordering invariant
-  // broke (resolver no longer first / no longer `enforce: 'pre'`). This lets Vite drive the hooks
-  // instead: if a consumer ever awaits the resolver from a hook that runs before it settles, this
-  // hangs instead of passing.
+  // broke. This lets Vite drive the hooks instead.
+  //
+  // `sveltekit()` is an async factory in both SvelteKit majors, so the plugins array Vite hands to
+  // `config` hooks holds an unresolved promise where the SvelteKit plugin will be - the config is
+  // only findable in `configResolved`. Awaiting it from a `config` hook therefore hangs the build,
+  // so this mirrors the real shape: an async factory, with source map upload enabled so the
+  // plugins that consume the config are actually registered.
+  function sveltekitLike(options: unknown): Promise<Plugin[]> {
+    return Promise.resolve([{ name: 'vite-plugin-sveltekit-setup', api: { options } } as Plugin]);
+  }
+
   it('resolves the SvelteKit config when Vite runs the plugins', async () => {
     const { resolveConfig } = await import('vite');
 
@@ -153,13 +161,7 @@ describe('resolution through a real Vite config resolution', () => {
       {
         configFile: false,
         logLevel: 'error',
-        plugins: [
-          sentryPlugins,
-          {
-            name: 'vite-plugin-sveltekit-setup',
-            api: { options: { outDir: 'resolved-through-vite' } },
-          },
-        ],
+        plugins: [sentryPlugins, sveltekitLike({ outDir: 'resolved-through-vite' })],
       },
       'build',
     );

@@ -48,8 +48,12 @@ type KitPluginApi = {
 
 export type KitConfigResolver = {
   /**
-   * Add this to the Vite plugins **before** any plugin that calls {@link KitConfigResolver.get},
-   * so that its `config` hook runs first. Otherwise `get()` never resolves.
+   * Add this to the Vite plugins before the plugins that call {@link KitConfigResolver.get}.
+   *
+   * Never `await` {@link KitConfigResolver.get} from a `config` hook: `sveltekit()` is an async
+   * factory in both SvelteKit majors, so the plugins array Vite passes to `config` still holds an
+   * unresolved promise in its place and the SvelteKit config can only be found in `configResolved`.
+   * Awaiting it earlier blocks the `config` phase that would resolve it, and the build hangs.
    */
   plugin: Plugin;
   get: () => Promise<ResolvedKitConfig>;

@@ -125,17 +125,26 @@ export async function makeCustomSentryVitePlugins(
     },
   };
 
+  // Whether the user set `build.sourcemap` themselves. Has to be read in `config`, before our own
+  // source map settings plugin sets it - but note that nothing here may *await* the SvelteKit
+  // config from a `config` hook, see the note in `kitConfig.ts`.
+  let userSpecifiedSourcemapSetting = false;
+
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: async (config: UserConfig) => {
-      // Kick this off here (not in `closeBundle`) so the adapter is invoked before the build
-      // writes its output - see the note on the adapter output dir in `sentrySvelteKit()`.
+    config: (config: UserConfig) => {
+      userSpecifiedSourcemapSetting = typeof config.build?.sourcemap !== 'undefined';
+      return config;
+    },
+    configResolved: async () => {
+      // Resolved here (not in `closeBundle`) so the adapter is invoked before the build writes its
+      // output - see the note on the adapter output dir in `sentrySvelteKit()`.
       const adapterOutputDir = await getAdapterOutputDir();
 
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
-      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && !userSpecifiedSourcemapSetting) {
         // Including all hidden (`.*`) directories by default so that folders like .vercel,
         // .netlify, etc are also cleaned up. Additionally, we include the adapter output
         // dir which could be a non-hidden directory, like `build` for the Node adapter.
@@ -153,8 +162,6 @@ export async function makeCustomSentryVitePlugins(
       } else {
         _resolveFilesToDeleteAfterUpload?.(originalFilesToDeleteAfterUpload);
       }
-
-      return config;
     },
   };
 

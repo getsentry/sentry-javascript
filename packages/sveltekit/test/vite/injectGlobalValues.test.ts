@@ -94,7 +94,7 @@ describe('adapter output dir resolution', () => {
   // `@sveltejs/adapter-node` v6 wipes the output directory when it runs. So it has to happen
   // once, at config time - if it were deferred to e.g. the source maps plugin's `closeBundle`,
   // it would delete the app SvelteKit just built.
-  it('resolves once, at config time, even when `filesToDeleteAfterUpload` is user-specified', async () => {
+  it('resolves once, before the build, even when `filesToDeleteAfterUpload` is user-specified', async () => {
     const adapt = vi.fn((builder: { writeClient: (dest: string) => void }) => {
       builder.writeClient('custom-build/client');
     });
@@ -122,9 +122,11 @@ describe('adapter output dir resolution', () => {
     const globalValuesPlugin = getGlobalValuesPlugin(plugins);
 
     // This takes the branch that leaves `filesToDeleteAfterUpload` untouched - the adapter still
-    // has to be resolved here, not later in `closeBundle`
+    // has to be resolved by `configResolved`, not later in `closeBundle`
     // @ts-expect-error these hooks exist and are callable
-    await filesToDeletePlugin.config({ build: { sourcemap: true } });
+    filesToDeletePlugin.config({ build: { sourcemap: true } });
+    // @ts-expect-error these hooks exist and are callable
+    await filesToDeletePlugin.configResolved();
 
     expect(adapt).toHaveBeenCalledTimes(1);
 

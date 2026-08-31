@@ -348,9 +348,12 @@ describe('deleteFilesAfterUpload', () => {
       plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     )!;
 
-    // call this to ensure the filesToDeleteAfterUpload setting is resolved
-    // @ts-expect-error this function exists!
-    await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+    // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
+    // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
+    // @ts-expect-error these functions exist!
+    filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+    // @ts-expect-error these functions exist!
+    await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
     await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
       './.*/**/*.map',
@@ -427,9 +430,12 @@ describe('deleteFilesAfterUpload', () => {
         plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       )!;
 
-      // call this to ensure the filesToDeleteAfterUpload setting is resolved
-      // @ts-expect-error this function exists!
-      await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+      // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
+      // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
+      // @ts-expect-error these functions exist!
+      filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+      // @ts-expect-error these functions exist!
+      await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
       await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
         filesToDeleteAfterUploadExpected,
