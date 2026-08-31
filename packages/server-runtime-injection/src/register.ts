@@ -45,7 +45,7 @@ let warnedTransformerUnavailable = false;
  * Warn that the vendored code transformer could not run, so `moduleName` loaded uninstrumented.
  *
  * This package ships the transformer (meriyah/astring/source-map) inline and is meant to run from
- * `node_modules`. A bundler that inlines and tree-shakes `@sentry/server-utils` strips it, so every
+ * `node_modules`. A bundler that inlines and tree-shakes `@sentry/server-runtime-injection` strips it, so every
  * transform throws `TypeError: parse is not a function` — swallowed inside the loader, once per
  * module, visible only with `debug: true`.
  *
@@ -62,8 +62,8 @@ function warnTransformerUnavailable(moduleName: string): void {
   warnedTransformerUnavailable = true;
 
   warnRuntimeUnavailable(
-    `\`@sentry/server-utils\` was bundled into your application, so ${moduleName} and any other ` +
-      'instrumented dependency load uninstrumented. Keep `@sentry/server-utils` external in your ' +
+    `\`@sentry/server-runtime-injection\` was bundled into your application, so ${moduleName} and any other ` +
+      'instrumented dependency load uninstrumented. Keep `@sentry/server-runtime-injection` external in your ' +
       'server bundle, or use the Sentry bundler plugin for build-time instrumentation.',
   );
 }
