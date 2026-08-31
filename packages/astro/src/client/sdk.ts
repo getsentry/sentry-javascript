@@ -1,8 +1,9 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowserSdk } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, setRouteProvider } from '@sentry/core';
 import { browserTracingIntegration } from './browserTracingIntegration';
+import { createAstroRouteProvider } from './routeProvider';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -20,7 +21,14 @@ export function init(options: BrowserOptions): Client | undefined {
 
   applySdkMetadata(opts, 'astro', ['astro', 'browser']);
 
-  return initBrowserSdk(opts);
+  const client = initBrowserSdk(opts);
+
+  // Registered here rather than from the tracing integration so route parameterization does not
+  // depend on tracing: the middleware injects the route into the document, so anything that needs a
+  // route name (bfcache metrics, web vitals) can resolve one even with tracing disabled.
+  setRouteProvider(createAstroRouteProvider(), client);
+
+  return client;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
