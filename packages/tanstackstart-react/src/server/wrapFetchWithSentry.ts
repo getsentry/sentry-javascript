@@ -196,11 +196,7 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
       return originalResponse;
     }
 
-    // Type case necessary b/c the body's ReadableStream type doesn't include
-    // the async iterator that is actually available in Node
-    // We later on use the async iterator to read the body chunks
-    // see https://github.com/microsoft/TypeScript/issues/39051
-    const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+    const originalBody = originalResponse.body;
     if (!originalBody) {
       return originalResponse;
     }
@@ -209,49 +205,48 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
     const injector = createHeadMetaTagInjector(metaTagsStr);
+    const reader = originalBody.getReader();
 
+    // Reading in `pull` rather than `start` keeps the response demand-driven: a chunk is
+    // taken from the body only once the consumer asks for one. A transform upstream of us
+    // that pauses while our `desiredSize` is at or below zero, as TanStack's router stream
+    // does, can then actually pause instead of being drained as fast as it can produce.
     const newResponseStream = new ReadableStream({
-      start: async controller => {
-        // Assign to a new variable to avoid TS losing the narrower type checked above.
-        const body = originalBody;
-
-        async function* bodyReporter(): AsyncGenerator<string | Buffer> {
-          try {
-            for await (const chunk of body) {
-              yield chunk;
-            }
-          } catch (e) {
-            captureException(e, {
-              mechanism: { type: 'auto.http.tanstackstart', handled: false },
-            });
-            throw e;
-          }
-        }
-
-        let errored = false;
+      async pull(controller) {
         try {
-          for await (const chunk of bodyReporter()) {
-            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+          // A `pull` that enqueues nothing is not called again, and the injector emits
+          // nothing while it holds the head back, so keep reading until there is either
+          // something to emit or nothing left to read.
+          for (;;) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              // Flush whatever the decoder is still holding back, so that a body ending on
+              // an incomplete byte sequence does not lose its tail.
+              const trailingHtml = injector.transformChunk(decoder.decode()) + injector.flush();
+              if (trailingHtml) {
+                controller.enqueue(encoder.encode(trailingHtml));
+              }
+              controller.close();
+              return;
+            }
+
+            const html = typeof value === 'string' ? value : decoder.decode(value, { stream: true });
             const modifiedHtml = injector.transformChunk(html);
             if (modifiedHtml) {
               controller.enqueue(encoder.encode(modifiedHtml));
+              return;
             }
           }
-
-          // Flush whatever the decoder is still holding back, so that a body ending on an
-          // incomplete byte sequence does not lose its tail.
-          const trailingHtml = injector.transformChunk(decoder.decode()) + injector.flush();
-          if (trailingHtml) {
-            controller.enqueue(encoder.encode(trailingHtml));
-          }
         } catch (e) {
-          errored = true;
+          captureException(e, {
+            mechanism: { type: 'auto.http.tanstackstart', handled: false },
+          });
           controller.error(e);
-        } finally {
-          if (!errored) {
-            controller.close();
-          }
         }
+      },
+      cancel(reason) {
+        return reader.cancel(reason);
       },
     });
 

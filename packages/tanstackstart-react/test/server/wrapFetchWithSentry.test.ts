@@ -293,6 +293,41 @@ describe('wrapFetchWithSentry meta tag injection across stream chunks', () => {
     expect(html).not.toContain('abc123-def456-1');
   });
 
+  // TanStack's router stream pauses reading React while its own `desiredSize` is at or
+  // below zero. Draining it regardless lets everything React emits after `</body>` pile up
+  // in its bounded tail buffer. See https://github.com/getsentry/sentry-javascript/issues/23468.
+  it('does not read the body until the response is consumed', async () => {
+    const encoder = new TextEncoder();
+    let pulled = 0;
+
+    const body = new ReadableStream({
+      pull(controller) {
+        pulled++;
+        controller.enqueue(encoder.encode(pulled === 1 ? '<html><head></head><body>' : `<p>${pulled}</p>`));
+      },
+    });
+
+    const fetchFn = vi.fn().mockResolvedValue(
+      new Response(body, {
+        headers: new Headers({ 'content-type': 'text/html' }),
+      }),
+    );
+
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+    const response = await serverEntry.fetch(new Request('http://localhost:3000/'));
+
+    // Give an eager implementation every chance to run away with the body.
+    for (let i = 0; i < 50; i++) {
+      await Promise.resolve();
+    }
+
+    expect(pulled).toBeLessThan(10);
+
+    const consumed = pulled;
+    await response.body!.getReader().read();
+    expect(pulled).toBeGreaterThanOrEqual(consumed);
+  });
+
   it('keeps multi-byte characters intact when they straddle a chunk boundary', async () => {
     const document = '<html><head><title>Grüße 😀</title></head><body>日本語</body></html>';
     const bytes = new TextEncoder().encode(document);
