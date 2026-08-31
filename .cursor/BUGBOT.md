@@ -17,7 +17,6 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - Unsafe use of `eval()`, `Function()`, or `innerHTML`
 - Unsafe regular expressions that could cause ReDoS attacks
 - Sensitive data collection must go through the SDK's `dataCollection` options (and helpers like `filterCollectedUrl` / `filterCollectedUrlQuery`) where applicable. Flag new instrumentation that attaches request/response bodies, cookies, headers, URL query params, user info, DB query data, GraphQL variables, GenAI I/O, or similar without honoring the relevant `dataCollection.*` knobs — or that hard-codes collection on when those options would disable or filter it. Prefer linking reviewers to the existing URL-attribute filtering rules below rather than inventing parallel guidance.
-- Large or sensitive attachments enabled by default, or attachments lacking size limits / backoff
 - Diagnostics, sampling overrides, verbose logging, or feature flags accidentally enabled in production defaults
 
 ### Breaking Changes
@@ -105,6 +104,5 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 
 - Pure style or formatting that linters/formatters already own (Oxlint, Oxfmt, etc.)
 - Speculative refactors or "improvements" with no clear user benefit or linked motivation
-- Idiomatic monkeypatching / low-level hooks solely because they are brittle — only flag when unsafe, non-idempotent, or harmful to the host app
 - Test-only issues unless covered by `Testing Conventions`
 - Conventional commit / PR title format when CI already validates it
