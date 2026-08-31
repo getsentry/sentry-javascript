@@ -52,14 +52,14 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@sentry/browser": "10.67.0",
-    "@sentry/cli": "^2.58.6",
     "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
-    "glob": "^13.0.6"
+    "glob": "^13.0.6",
+    "sentry": "^0.44.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.17.0",

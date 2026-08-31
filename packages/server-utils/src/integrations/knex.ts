@@ -22,9 +22,11 @@ import {
   DB_USER,
   NETWORK_TRANSPORT,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -168,6 +170,7 @@ function subscribeQuery(): void {
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       const attributes: SpanAttributes = {
+        [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
@@ -184,7 +187,6 @@ function subscribeQuery(): void {
 
       return startInactiveSpan({
         name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
-        op: 'db',
         parentSpan,
         attributes,
       });

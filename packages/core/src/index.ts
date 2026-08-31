@@ -11,4 +11,3 @@ export * from './browser-exports';
 // We need to re-export them here to disambiguate the exports for anyone importing
 // from `@sentry/core`. Server exports win over browser exports.
 export { startSpan, startInactiveSpan, startSpanManual } from './server-exports';
-export { spanStreamingIntegration } from './server-exports';

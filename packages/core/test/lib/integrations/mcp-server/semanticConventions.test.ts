@@ -47,7 +47,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call get-weather',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
@@ -81,7 +80,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'resources/read file:///docs/api.md',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'resources/read',
@@ -113,7 +111,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'prompts/get analyze-code',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'prompts/get',
@@ -419,12 +416,12 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call weather-lookup',
-          op: 'mcp.server',
           forceTransaction: true,
           attributes: expect.objectContaining({
             'mcp.method.name': 'tools/call',
             'mcp.tool.name': 'weather-lookup',
             'mcp.request.id': 'req-tool-result',
+            'sentry.op': 'mcp.server',
           }),
         }),
       );
@@ -492,12 +489,12 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'prompts/get code-review',
-          op: 'mcp.server',
           forceTransaction: true,
           attributes: expect.objectContaining({
             'mcp.method.name': 'prompts/get',
             'mcp.prompt.name': 'code-review',
             'mcp.request.id': 'req-prompt-result',
+            'sentry.op': 'mcp.server',
           }),
         }),
       );

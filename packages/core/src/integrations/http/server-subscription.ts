@@ -39,7 +39,7 @@ import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
@@ -56,9 +56,10 @@ import {
   NETWORK_TRANSPORT,
   SENTRY_HTTP_PREFETCH,
   SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
@@ -66,6 +67,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
@@ -321,7 +323,7 @@ function buildServerSpanWrap(
           name,
           attributes: {
             // Sentry-specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',

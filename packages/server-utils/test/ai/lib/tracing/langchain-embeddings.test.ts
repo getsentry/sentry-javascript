@@ -7,8 +7,8 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {
-  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
 } from '../../../../src/ai/core/gen-ai-attributes';
@@ -25,14 +25,14 @@ vi.mock('../../../../src/ai/core/utils', async importOriginal => {
   };
 });
 
-let capturedSpanConfig: { name: string; op: string; attributes: Record<string, unknown> } | undefined;
+let capturedSpanConfig: { name: string; attributes: Record<string, unknown> } | undefined;
 
 vi.mock('@sentry/core', async importOriginal => {
   const actual = (await importOriginal()) as typeof SentryCore;
   return {
     ...actual,
     startSpan: (
-      config: { name: string; op: string; attributes: Record<string, unknown> },
+      config: { name: string; attributes: Record<string, unknown> },
       callback: (span: unknown) => unknown,
     ) => {
       capturedSpanConfig = config;
@@ -81,7 +81,7 @@ describe('instrumentEmbeddingMethod', () => {
 
     expect(capturedSpanConfig).toBeDefined();
     expect(capturedSpanConfig!.name).toBe('embeddings text-embedding-3-small');
-    expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+    expect(capturedSpanConfig!.attributes['sentry.op']).toBe(GEN_AI_EMBEDDINGS);
     expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME]).toBe('embeddings');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL]).toBe('text-embedding-3-small');
     expect(capturedSpanConfig!.attributes[GEN_AI_PROVIDER_NAME]).toBe('openai');

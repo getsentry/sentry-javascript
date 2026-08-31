@@ -1,13 +1,5 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  HandlerDataXhr,
-  RequestHookInfo,
-  ResponseHookInfo,
-  SentryWrappedXMLHttpRequest,
-  Span,
-  SpanTimeInput,
-} from '@sentry/core/browser';
+import type { Client, RequestHookInfo, ResponseHookInfo, Span, SpanTimeInput } from '@sentry/core/browser';
 import {
   addFetchInstrumentationHandler,
   getActiveSpan,
@@ -20,7 +12,6 @@ import {
   instrumentFetchRequest,
   matchesTracePropagationTargets,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
@@ -31,7 +22,7 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
 } from '@sentry/core/browser';
-import type { XhrHint } from '@sentry/browser-utils';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
@@ -43,7 +34,15 @@ import {
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -380,7 +379,7 @@ function xhrCallback(
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             [SERVER_ADDRESS]: parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            [SENTRY_OP]: HTTP_CLIENT,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
           },

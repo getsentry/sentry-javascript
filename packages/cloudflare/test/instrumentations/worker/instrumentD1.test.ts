@@ -75,6 +75,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'first',
             'db.query.text': 'SELECT * FROM users',
@@ -82,7 +83,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -177,6 +177,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'run',
             'db.query.text': 'INSERT INTO users (name) VALUES (?)',
@@ -184,7 +185,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -231,6 +231,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'all',
             'db.query.text': 'INSERT INTO users (name) VALUES (?)',
@@ -238,7 +239,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -285,6 +285,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'raw',
             'db.query.text': 'SELECT * FROM users',
@@ -292,7 +293,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -336,6 +336,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'batch',
             'db.query.text': 'SELECT 1\nSELECT 2',
@@ -343,7 +344,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -375,6 +375,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'batch',
             'db.query.text': undefined,
@@ -382,7 +383,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -404,6 +404,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'exec',
             'db.query.text': 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
@@ -411,7 +412,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -442,6 +442,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'first',
             'db.query.text': 'SELECT * FROM users',
@@ -449,7 +450,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
-          op: 'db.query',
         },
         expect.any(Function),
       );
@@ -479,6 +479,7 @@ describe('instrumentD1', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         {
           attributes: {
+            'sentry.op': 'db.query',
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'batch',
             'db.query.text': 'SELECT 1\nSELECT 2',
@@ -486,7 +487,6 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
-          op: 'db.query',
         },
         expect.any(Function),
       );

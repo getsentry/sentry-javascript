@@ -4,7 +4,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -15,7 +14,14 @@ import {
   getAbsoluteUrl,
 } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 /**
  * Strips trailing slash from a pathname, unless it's the root path.
@@ -65,7 +71,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
     name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SENTRY_OP]: PAGELOAD,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -140,7 +146,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
         {
           name: spanName,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SENTRY_OP]: NAVIGATION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': `router.${navigationType}`,
@@ -248,7 +254,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
 
           let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
           const transactionAttributes: Record<string, string> = {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SENTRY_OP]: NAVIGATION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           };

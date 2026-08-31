@@ -22,7 +22,7 @@ import {
   SENTRY_OP,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
@@ -38,9 +38,6 @@ import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRo
 import { handleFastifyError } from './errors';
 
 const ORIGIN = 'auto.http.fastify';
-const HOOK_OP = MIDDLEWARE;
-// TODO(conventions): Replace with the `handler` span op constant once it is released in `@sentry/conventions`.
-const REQUEST_HANDLER_OP = 'handler';
 
 const FASTIFY_HOOKS = [
   'onRequest',
@@ -169,7 +166,7 @@ function onRequest(this: any, request: any, _reply: any, hookDone: () => void): 
 
   const attributes: Record<string, string> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    [SENTRY_OP]: REQUEST_HANDLER_OP,
+    [SENTRY_OP]: HANDLER,
     [HTTP_REQUEST_METHOD]: request.method,
     [URL_PATH]: request.url,
   };
@@ -329,8 +326,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     const handlerName = handler.name?.length > 0 ? handler.name : (this.pluginName ?? ANONYMOUS_FUNCTION_NAME);
 
     const hookType = spanAttributes[ATTRIBUTE_FASTIFY_TYPE];
-    const op =
-      hookType === HOOK_TYPE_INSTANCE ? HOOK_OP : hookType === HOOK_TYPE_HANDLER ? REQUEST_HANDLER_OP : undefined;
+    const op = hookType === HOOK_TYPE_INSTANCE ? MIDDLEWARE : hookType === HOOK_TYPE_HANDLER ? HANDLER : undefined;
 
     const attributeHookName = spanAttributes[ATTRIBUTE_HOOK_NAME];
 

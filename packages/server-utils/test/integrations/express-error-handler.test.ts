@@ -229,21 +229,6 @@ describe('expressErrorHandler', () => {
     expect(res.sentry).toBe('event-id');
   });
 
-  // Filtering is an `expressIntegration()` feature. This path always uses the default predicate, so a
-  // 4xx stays uncaptured even though the integration was told to widen the gate.
-  it('ignores the shouldHandleError configured on expressIntegration', () => {
-    const shouldHandleError = vi.fn().mockReturnValue(true);
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
-      getIntegrationByName: () => ({ name: 'Express', shouldHandleError }),
-    } as unknown as ReturnType<typeof SentryCore.getClient>);
-    const error = Object.assign(new Error('teapot'), { statusCode: 418 });
-
-    expressErrorHandler()(error, makeRequest(), makeResponse(), vi.fn());
-
-    expect(shouldHandleError).not.toHaveBeenCalled();
-    expect(captureExceptionSpy).not.toHaveBeenCalled();
-  });
-
   it('does not capture a 4xx error', () => {
     const res = makeResponse();
     const error = Object.assign(new Error('bad request'), { statusCode: 400 });

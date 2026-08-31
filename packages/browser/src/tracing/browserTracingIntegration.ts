@@ -53,6 +53,7 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -484,7 +485,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           _createRouteSpan(
             client,
             {
-              op: 'navigation.redirect',
+              op: NAVIGATION_REDIRECT,
               ...startSpanOptions,
             },
             false,
@@ -516,11 +517,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         _createRouteSpan(
           client,
           {
-            op: 'navigation',
+            op: NAVIGATION,
             ...startSpanOptions,
             // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
             parentSpan: null,
-            forceTransaction: true,
           },
           true,
           navigationOptions?.url,
@@ -555,7 +555,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         });
 
         _createRouteSpan(client, {
-          op: 'pageload',
+          op: PAGELOAD,
           ...startSpanOptions,
         });
       });

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { D1Database, D1DatabaseSession, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { DB_QUERY } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import {
   _INTERNAL_getSqlQuerySummary,
@@ -136,9 +138,9 @@ function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOpti
   const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : query;
 
   return {
-    op: 'db.query',
     name,
     attributes: {
+      [SENTRY_OP]: DB_QUERY,
       'db.system.name': 'cloudflare-d1',
       'db.operation.name': type,
       'db.query.text': query,
@@ -174,9 +176,9 @@ function instrumentBatch(
 
       return startSpan(
         {
-          op: 'db.query',
           name: 'D1 batch',
           attributes: {
+            [SENTRY_OP]: DB_QUERY,
             'db.system.name': 'cloudflare-d1',
             'db.operation.name': 'batch',
             'db.query.text': queryText || undefined,

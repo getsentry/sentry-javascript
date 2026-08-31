@@ -2,8 +2,10 @@ import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
   NETWORK_PROTOCOL_NAME,
+  SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Integration, MaxRequestBodySize } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
@@ -15,7 +17,6 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -101,7 +102,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    attributes[SENTRY_OP] = HTTP_SERVER;
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
     });

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { WEBSOCKET } from '@sentry/conventions/op';
+import { FUNCTION, RPC, WEBSOCKET } from '@sentry/conventions/op';
 import { captureException, isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -186,7 +186,7 @@ function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
         options,
         context,
         spanName: 'alarm',
-        spanOp: 'function',
+        spanOp: FUNCTION,
         startNewTrace: true,
         origin: 'auto.faas.cloudflare.durable_object',
       },
@@ -277,8 +277,7 @@ const rpcInstanceStates = new WeakMap<object, RpcInstanceState>();
  * visible to Cloudflare's RPC dispatcher. Built-in handlers, Agent handlers, and methods managed by
  * another framework are left untouched.
  *
- * Call this after all per-instance instrumentation has been applied. If RPC trace propagation is
- * disabled, the object is returned unchanged.
+ * Call this after all per-instance instrumentation has been applied.
  *
  * @param obj The constructed Durable Object instance.
  * @param options The resolved SDK options for this instance.
@@ -293,11 +292,6 @@ export function finalizeWithRpcInstrumentation<T extends object>(
   context: InstrumentedDurableObjectContext,
   excludedMethods?: ReadonlySet<string>,
 ): T {
-  // Skip RPC instrumentation if not enabled
-  if (!options.enableRpcTracePropagation) {
-    return obj;
-  }
-
   rpcInstanceStates.set(obj, { options, context });
 
   instrumentPrototypeRpcMethods(obj, excludedMethods);
@@ -391,7 +385,7 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
           options: state.options,
           context: state.context,
           spanName: methodName,
-          spanOp: 'rpc',
+          spanOp: RPC,
           origin: 'auto.faas.cloudflare.durable_object',
         },
         originalMethod,
@@ -422,7 +416,7 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
  * - webSocketClose
  * - webSocketError
  *
- * To instrument RPC methods (prototype methods), enable the `enableRpcTracePropagation` option.
+ * RPC methods (prototype methods) are instrumented too, so an incoming trace continues into them.
  *
  * @param optionsCallback Function that returns the options for the SDK initialization.
  * @param DurableObjectClass The Durable Object class to instrument.
@@ -502,7 +496,6 @@ export function instrumentDurableObjectWithSentry<
  *   env => ({
  *     dsn: env.SENTRY_DSN,
  *     tracesSampleRate: 1.0,
- *     enableRpcTracePropagation: true,
  *   }),
  *   MyAgentBase,
  * );

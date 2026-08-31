@@ -27,7 +27,6 @@ import {
   httpHeadersToSpanAttributes,
   isNodeEnv,
   loadModule,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
@@ -50,7 +49,7 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -409,7 +408,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SENTRY_SEGMENT_NAME_SOURCE]: source,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_OP]: HTTP_SERVER,
                   [URL_FULL]: filterCollectedUrl(url.href),
                   [URL_PATH]: url.pathname,
                   method: request.method,

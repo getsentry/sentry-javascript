@@ -4,6 +4,7 @@ export {
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
+  addFcpInstrumentationHandler,
 } from './instrumentation/performanceObserver';
 
 export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
@@ -52,4 +53,13 @@ export { isElement } from './is';
 
 export { getAbsoluteUrl } from './instrumentation/location';
 
-export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';
+export type {
+  FetchHint,
+  HandlerDataDom,
+  HandlerDataHistory,
+  HandlerDataXhr,
+  NetworkMetaWarning,
+  SentryWrappedXMLHttpRequest,
+  SentryXhrData,
+  XhrHint,
+} from './types';

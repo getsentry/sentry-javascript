@@ -5,7 +5,6 @@
  */
 
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
-export { spanStreamingIntegration } from './integrations/spanStreaming';
 
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
@@ -28,18 +27,25 @@ export type {
 /* oxlint-enable typescript/no-deprecated */
 export {
   instrumentPostgresJsSql,
-  _sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
   _reconstructQuery as _INTERNAL_reconstructPostgresQuery,
   _buildConnectionContext as _INTERNAL_buildPostgresConnectionContext,
   _getConnectionAttributes as _INTERNAL_getConnectionAttributes,
   _getOperationName as _INTERNAL_getPostgresOperationName,
 } from './integrations/postgresjs';
 export type { PostgresConnectionContext } from './integrations/postgresjs';
-export { getSqlQuerySummary as _INTERNAL_getSqlQuerySummary } from './utils/sql';
+export {
+  getSqlQuerySummary as _INTERNAL_getSqlQuerySummary,
+  sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
+} from './utils/sql';
+export type { SqlDialect } from './utils/sql';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations/http/server-subscription';
+export {
+  DEFAULT_IGNORE_STATUS_CODES,
+  processHttpServerTransactionEvent,
+} from './integrations/http/server-transaction-event';
 export { recordRequestSession } from './integrations/http/record-request-session';
 export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
 export {

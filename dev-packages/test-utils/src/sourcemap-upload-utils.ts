@@ -28,14 +28,18 @@ export interface RequestRecord {
   url: string;
   contentType: string;
   authorization: string;
+  requestHeaders: Record<string, string>;
   bodySize: number;
   timestamp: string;
   hasBody?: boolean;
+  /** Parsed body of `application/json` requests. */
+  jsonBody?: unknown;
   chunkFiles?: ChunkFileRecord[];
   assembleBody?: {
     checksum: string;
     chunks: string[];
     projects: string[];
+    version?: string;
   };
 }
 
@@ -58,6 +62,7 @@ export interface ParsedSourcemap {
   /** Absent when the generator drops all sources (Rollup's `sourcemapExcludeSources`), null per dropped entry. */
   sourcesContent?: (string | null)[];
   mappings?: string;
+  sections?: { map?: ParsedSourcemap }[];
 }
 
 export interface SourcemapEntry {
@@ -95,6 +100,41 @@ export function getArtifactBundles(requests: RequestRecord[]): ArtifactBundleDat
 }
 
 /**
+ * Every source path a sourcemap refers to, including those inside an indexed map's sections.
+ *
+ * Bundlers that emit indexed source maps (Turbopack, for one) leave the top-level `sources` empty
+ * and put the real paths in `sections[].map.sources`, so reading `sources` alone reports that a
+ * map covers nothing. Nothing flattens these before upload: the bundler plugin rewrites only the
+ * top-level `sources` and uploads with `rewrite: false`, so the sections reach Sentry intact.
+ */
+export function getSourcemapSources(sourcemap: ParsedSourcemap): string[] {
+  const sources = [...(sourcemap.sources ?? [])];
+
+  for (const section of sourcemap.sections ?? []) {
+    if (section.map) {
+      sources.push(...getSourcemapSources(section.map));
+    }
+  }
+
+  return sources;
+}
+
+/**
+ * Read a manifest header by name, ignoring case.
+ *
+ * These are HTTP header names, so their casing is not contractual: `@sentry/cli` wrote
+ * `sourcemap`, the CLI SDK writes `Sourcemap`. Matching one spelling exactly silently drops
+ * every pair when the other CLI produced the bundle.
+ */
+function getManifestHeader(headers: Record<string, string> | undefined, name: string): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+  const match = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
+  return match?.[1];
+}
+
+/**
  * Extract debug ID pairs (JS file + sourcemap with matching debug-id) from artifact bundles.
  */
 export function getDebugIdPairs(bundles: ArtifactBundleData[]): DebugIdPair[] {
@@ -106,11 +146,13 @@ export function getDebugIdPairs(bundles: ArtifactBundleData[]): DebugIdPair[] {
     for (const [, entry] of fileEntries) {
       if (entry.type !== 'minified_source') continue;
 
-      const debugId = entry.headers?.['debug-id'];
-      const sourcemapRef = entry.headers?.['sourcemap'];
+      const debugId = getManifestHeader(entry.headers, 'debug-id');
+      const sourcemapRef = getManifestHeader(entry.headers, 'sourcemap');
       if (!debugId || !sourcemapRef) continue;
 
-      const mapEntry = fileEntries.find(([, e]) => e.type === 'source_map' && e.headers?.['debug-id'] === debugId);
+      const mapEntry = fileEntries.find(
+        ([, e]) => e.type === 'source_map' && getManifestHeader(e.headers, 'debug-id') === debugId,
+      );
 
       if (mapEntry) {
         pairs.push({

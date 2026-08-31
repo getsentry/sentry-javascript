@@ -26,7 +26,6 @@ describe('httpClientIntegration', () => {
     const client = new BrowserClient(getDefaultBrowserClientOptions(options));
 
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(client);
-    vi.spyOn(SentryCore, 'supportsNativeFetch').mockReturnValue(true);
     const addFetchSpy = vi
       .spyOn(SentryCore, 'addFetchInstrumentationHandler')
       .mockImplementation(() => () => undefined);

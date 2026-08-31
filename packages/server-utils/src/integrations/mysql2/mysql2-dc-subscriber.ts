@@ -2,14 +2,19 @@ import type { TracingChannel } from 'node:diagnostics_channel';
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import {
+  _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -98,16 +103,24 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       // mysql2 does not sanitize its channel payload, so the statement may carry
       // raw user values (on the `query` channel they are inlined). Strip every
       // literal before it leaves the process; `values` is never attached.
-      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query) : undefined;
+      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query, 'mysql') : undefined;
       const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
+      const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || data.database || DB_SYSTEM_NAME_VALUE_MYSQL
+          : queryText || 'mysql2.query';
 
       return startInactiveSpan({
-        name: queryText || 'mysql2.query',
+        name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText,
+          [DB_QUERY_SUMMARY]: querySummary,
           [DB_OPERATION_NAME]: operation,
           [DB_NAMESPACE]: data.database || undefined,
           [SERVER_ADDRESS]: data.serverAddress,
@@ -127,7 +140,7 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
         name: spanName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_NAMESPACE]: data.database || undefined,
           [SERVER_ADDRESS]: data.serverAddress,

@@ -10,6 +10,9 @@ describe('negative sampling (streaming)', () => {
     test('records sample_rate outcome for segment and child spans of negatively sampled segment', async () => {
       const runner = createRunner()
         .unignore('client_report')
+        // The negatively-sampled `/health` client report and the positively-sampled `/ok` span
+        // envelope flush on independent timers, so they can arrive in either order.
+        .unordered()
         .expect({
           client_report: {
             discarded_events: [
