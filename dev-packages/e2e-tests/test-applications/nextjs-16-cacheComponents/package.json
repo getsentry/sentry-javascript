@@ -46,6 +46,12 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "//": "TODO: Add variants for webpack once supported"
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16-cacheComponents (webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      }
+    ]
   }
 }
