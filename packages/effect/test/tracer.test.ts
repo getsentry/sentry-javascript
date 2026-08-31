@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import * as sentryCoreBrowser from '@sentry/core/browser';
+import * as sentryBrowser from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
@@ -8,10 +8,10 @@ import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
 import { SentryEffectTracer as serverTracer } from '../src/server/tracer';
 
 // The two variants differ only in which module they start spans through, so spying on `spanApi` also
-// asserts that wiring: the client tracer must go through `@sentry/core/browser` (which installs
+// asserts that wiring: the client tracer must go through `@sentry/browser` (which installs
 // `spanStreamingIntegration`) and the server tracer through the plain `@sentry/core`.
 const VARIANTS = [
-  { variant: 'client', tracer: clientTracer, spanApi: sentryCoreBrowser as SpanApi },
+  { variant: 'client', tracer: clientTracer, spanApi: sentryBrowser as SpanApi },
   { variant: 'server', tracer: serverTracer, spanApi: sentryCore as SpanApi },
 ];
 

@@ -9,6 +9,8 @@ export {
 
 export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 
+export { startSpan, startInactiveSpan, startSpanManual } from './spanApi';
+
 export {
   addWebVitalsToSpan,
   // eslint-disable-next-line typescript/no-deprecated

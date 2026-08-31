@@ -13,7 +13,7 @@ import {
   spanToJSON,
   timestampInSeconds,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+import { startInactiveSpan } from '../spanApi';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import * as sentryCoreBrowser from '@sentry/core/browser';
+import * as sentryBrowser from '@sentry/browser';
 import { getClient, getMainCarrier, SDK_VERSION } from '@sentry/core';
 import { Effect, Layer, Logger } from 'effect';
 import * as References from 'effect/References';
@@ -25,7 +25,7 @@ describe.each([
       SentryEffectTracer: sentryClient.SentryEffectTracer,
       SentryEffectLogger: sentryClient.SentryEffectLogger,
       SentryEffectMetricsLayer: sentryClient.SentryEffectMetricsLayer,
-      startInactiveSpan: sentryCoreBrowser as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
+      startInactiveSpan: sentryBrowser as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
     },
   ],
   [
