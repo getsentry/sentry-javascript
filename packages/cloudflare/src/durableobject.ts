@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { captureException, isObjectLike } from '@sentry/core';
+import { isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
+import { getInstrumented, markAsInstrumented } from './instrument';
+import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
-import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
 import { hasRpcMeta } from './utils/rpcMeta';
 import { getEffectiveRpcPropagation } from './utils/rpcOptions';
@@ -137,84 +137,6 @@ function resolveFrameworkManagedMethods(
   frameworkManagedMethodsCache.set(prototype, managed);
 
   return managed;
-}
-
-/**
- * Instruments the built-in Durable Object handler methods on a constructed instance.
- *
- * These are the methods that are available on a Durable Object
- * ref: https://developers.cloudflare.com/durable-objects/api/base/
- * - obj.alarm
- * - obj.fetch
- * - obj.webSocketError
- * - obj.webSocketClose
- * - obj.webSocketMessage
- *
- * Any other public methods on the Durable Object instance are RPC calls.
- */
-function instrumentDurableObjectHandlers<E, T extends DurableObject<E>>(
-  obj: T,
-  options: CloudflareOptions,
-  context: InstrumentedDurableObjectContext,
-): void {
-  // Bind each built-in handler to this instance before wrapping.
-  // See https://github.com/getsentry/sentry-javascript/issues/22328
-  if (obj.fetch && typeof obj.fetch === 'function') {
-    obj.fetch = ensureInstrumented(
-      obj.fetch.bind(obj),
-      original =>
-        new Proxy(original, {
-          apply(target, thisArg, args) {
-            return wrapRequestHandler({ options, request: args[0], context }, () => {
-              return Reflect.apply(target, thisArg, args);
-            });
-          },
-        }),
-    );
-  }
-
-  if (obj.alarm && typeof obj.alarm === 'function') {
-    // Alarms are independent invocations, so we start a new trace and link to the previous alarm
-    obj.alarm = wrapMethodWithSentry(
-      {
-        options,
-        context,
-        spanName: 'alarm',
-        spanOp: 'function',
-        startNewTrace: true,
-        origin: 'auto.faas.cloudflare.durable_object',
-      },
-      obj.alarm.bind(obj),
-    );
-  }
-
-  if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {
-    obj.webSocketMessage = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketMessage', origin: 'auto.faas.cloudflare.durable_object' },
-      obj.webSocketMessage.bind(obj),
-    );
-  }
-
-  if (obj.webSocketClose && typeof obj.webSocketClose === 'function') {
-    obj.webSocketClose = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketClose', origin: 'auto.faas.cloudflare.durable_object' },
-      obj.webSocketClose.bind(obj),
-    );
-  }
-
-  if (obj.webSocketError && typeof obj.webSocketError === 'function') {
-    obj.webSocketError = wrapMethodWithSentry(
-      { options, context, spanName: 'webSocketError', origin: 'auto.faas.cloudflare.durable_object' },
-      obj.webSocketError.bind(obj),
-      (_, error) =>
-        captureException(error, {
-          mechanism: {
-            type: 'auto.faas.cloudflare.durable_object_websocket',
-            handled: false,
-          },
-        }),
-    );
-  }
 }
 
 type RpcInstanceState = {

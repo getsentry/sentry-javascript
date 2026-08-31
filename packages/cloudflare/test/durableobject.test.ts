@@ -408,6 +408,57 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('rpc-result');
   });
 
+  it('instruments built-in handlers installed as read-only own properties', () => {
+    // Shape installed by `agents` >= 0.22: `defineProperty` without `writable`, so the handlers
+    // are read-only and a plain assignment would throw in strict mode.
+    const testClass = class {
+      constructor() {
+        for (const name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
+          Object.defineProperty(this, name, {
+            value: () => name,
+            configurable: true,
+          });
+        }
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+
+    let obj: any;
+    expect(() => {
+      obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+    }).not.toThrow();
+
+    for (const name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
+      expect(getInstrumented(obj[name]), `Handler ${name} is instrumented`).toBeTruthy();
+    }
+
+    expect(obj.webSocketMessage()).toBe('webSocketMessage');
+  });
+
+  it('leaves sealed own-property handlers untouched instead of failing construction', () => {
+    const originalHandler = (): string => 'sealed-result';
+    const testClass = class {
+      constructor() {
+        Object.defineProperty(this, 'webSocketMessage', {
+          value: originalHandler,
+          writable: false,
+          configurable: false,
+        });
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+
+    let obj: any;
+    expect(() => {
+      obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+    }).not.toThrow();
+
+    expect(obj.webSocketMessage).toBe(originalHandler);
+    expect(obj.webSocketMessage()).toBe('sealed-result');
+  });
+
   it('does not wrap Object.prototype methods as RPC methods', () => {
     const testClass = class {
       rpcMethod() {
