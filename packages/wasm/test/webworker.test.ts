@@ -2,10 +2,14 @@ import type { DebugImage, StackFrame } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { patchFrames, registerWebWorkerWasm } from '../src/index';
+import { missingBuildIdWorkerMessage } from '../src/devWarnings';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryWasmImages?: Array<DebugImage>;
 };
+
+/** Minimal valid wasm module with no custom sections. */
+const MINIMAL_WASM = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
 describe('registerWebWorkerWasm()', () => {
   afterEach(() => {
@@ -37,6 +41,19 @@ describe('registerWebWorkerWasm()', () => {
     expect(WebAssembly.compileStreaming).not.toBe(originalCompileStreaming);
 
     WebAssembly.compileStreaming = originalCompileStreaming;
+  });
+
+  it('forwards missing build_id dev warning to the parent thread', async () => {
+    const mockPostMessage = vi.fn();
+    registerWebWorkerWasm({ self: { postMessage: mockPostMessage } });
+
+    const url = 'http://localhost/worker.wasm';
+    const response = new Response(MINIMAL_WASM, { headers: { 'Content-Type': 'application/wasm' } });
+    Object.defineProperty(response, 'url', { value: url });
+
+    await WebAssembly.instantiateStreaming(Promise.resolve(response), {});
+
+    expect(mockPostMessage).toHaveBeenCalledWith(missingBuildIdWorkerMessage(url));
   });
 });
 

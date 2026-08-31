@@ -7,12 +7,18 @@ import { _eventFromRejectionWithPrimitive, _getUnhandledRejectionError } from '.
 
 export const INTEGRATION_NAME = 'WebWorker' as const;
 
+interface WasmDevWarning {
+  id: string;
+  message: string;
+}
+
 interface WebWorkerMessage {
   _sentryMessage: boolean;
   _sentryDebugIds?: Record<string, string>;
   _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
   _sentryWasmImages?: Array<DebugImage>;
+  _sentryWasmDevWarning?: WasmDevWarning;
 }
 
 interface SerializedWorkerError {
@@ -134,6 +140,19 @@ function listenForSentryMessages(worker: Worker): void {
           // Module metadata of the main thread have precedence over the worker's in case of a collision.
           ...WINDOW._sentryModuleMetadata,
         };
+      }
+
+      // Handle WASM dev warnings from worker (e.g. missing build_id)
+      if (event.data._sentryWasmDevWarning) {
+        DEBUG_BUILD && debug.log('Sentry WASM dev warning web worker message received', event.data);
+        const { id, message } = event.data._sentryWasmDevWarning;
+        const applyWarning = (WINDOW as typeof WINDOW & { __SENTRY_APPLY_WASM_DEV_WARNING__?: (id: string, message: string) => void })
+          .__SENTRY_APPLY_WASM_DEV_WARNING__;
+        if (typeof applyWarning === 'function') {
+          applyWarning(id, message);
+        } else {
+          DEBUG_BUILD && debug.warn(`[@sentry/wasm] ${message}`);
+        }
       }
 
       // Handle WASM images from worker
@@ -293,8 +312,9 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
   const hasModuleMetadata = '_sentryModuleMetadata' in eventData;
   const hasWorkerError = '_sentryWorkerError' in eventData;
   const hasWasmImages = '_sentryWasmImages' in eventData;
+  const hasWasmDevWarning = '_sentryWasmDevWarning' in eventData;
 
-  if (!hasDebugIds && !hasModuleMetadata && !hasWorkerError && !hasWasmImages) {
+  if (!hasDebugIds && !hasModuleMetadata && !hasWorkerError && !hasWasmImages && !hasWasmDevWarning) {
     return false;
   }
 
@@ -323,6 +343,16 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
       !eventData._sentryWasmImages.every(
         (img: unknown) => isPlainObject(img) && typeof (img as { code_file?: unknown }).code_file === 'string',
       ))
+  ) {
+    return false;
+  }
+
+  // Validate WASM dev warning if present
+  if (
+    hasWasmDevWarning &&
+    (!isPlainObject(eventData._sentryWasmDevWarning) ||
+      typeof eventData._sentryWasmDevWarning.id !== 'string' ||
+      typeof eventData._sentryWasmDevWarning.message !== 'string')
   ) {
     return false;
   }

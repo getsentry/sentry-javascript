@@ -375,6 +375,40 @@ describe('webWorkerIntegration', () => {
         expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
       });
 
+      it('forwards WASM dev warning to __SENTRY_APPLY_WASM_DEV_WARNING__ when set', () => {
+        const applyWarning = vi.fn();
+        (helpers.WINDOW as any).__SENTRY_APPLY_WASM_DEV_WARNING__ = applyWarning;
+
+        const devWarning = {
+          id: 'missing-build-id:http://localhost/worker.wasm',
+          message: 'WebAssembly module "http://localhost/worker.wasm" has no build_id section...',
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmDevWarning: devWarning,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockDebugLog).toHaveBeenCalledWith('Sentry WASM dev warning web worker message received', mockEvent.data);
+        expect(applyWarning).toHaveBeenCalledWith(devWarning.id, devWarning.message);
+
+        delete (helpers.WINDOW as any).__SENTRY_APPLY_WASM_DEV_WARNING__;
+      });
+
+      it('ignores invalid WASM dev warning payloads', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmDevWarning: { id: 123, message: 'bad' },
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
       it('gives main thread precedence over worker for conflicting module metadata', () => {
         (helpers.WINDOW as any)._sentryModuleMetadata = {
           'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true, source: 'main' },

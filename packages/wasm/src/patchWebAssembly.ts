@@ -1,3 +1,4 @@
+import { warnMissingBuildId } from './devWarnings';
 import { registerModule } from './registry';
 
 /**
@@ -12,8 +13,8 @@ export function patchWebAssembly(): void {
     ): Promise<WebAssembly.Module> {
       return Promise.resolve(response).then(response => {
         return origInstantiateStreaming(response, importObject).then(rv => {
-          if (response.url) {
-            registerModule(rv.module, response.url);
+          if (response.url && !registerModule(rv.module, response.url)) {
+            warnMissingBuildId(response.url);
           }
           return rv;
         });
@@ -28,8 +29,8 @@ export function patchWebAssembly(): void {
     ): Promise<WebAssembly.Module> {
       return Promise.resolve(source).then(response => {
         return origCompileStreaming(response).then(module => {
-          if (response.url) {
-            registerModule(module, response.url);
+          if (response.url && !registerModule(module, response.url)) {
+            warnMissingBuildId(response.url);
           }
           return module;
         });

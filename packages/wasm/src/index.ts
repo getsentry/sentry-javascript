@@ -1,5 +1,6 @@
 import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { devWarnOnce, missingBuildIdWorkerMessage } from './devWarnings';
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages, registerModule } from './registry';
 
@@ -33,6 +34,7 @@ interface WasmIntegrationOptions {
 // Access WINDOW with proper typing for _sentryWasmImages
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryWasmImages?: Array<DebugImage>;
+  __SENTRY_APPLY_WASM_DEV_WARNING__?: (id: string, message: string) => void;
 };
 
 const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
@@ -40,6 +42,7 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
     name: INTEGRATION_NAME,
     setupOnce() {
       patchWebAssembly();
+      WINDOW.__SENTRY_APPLY_WASM_DEV_WARNING__ = devWarnOnce;
     },
     processEvent(event: Event): Event {
       let hasAtLeastOneWasmFrameWithImage = false;
@@ -209,11 +212,7 @@ function registerModuleAndForward(
   workerSelf: MinimalDedicatedWorkerGlobalScope,
 ): void {
   const image = registerModule(module, url);
-
-  if (image) {
-    workerSelf.postMessage({
-      _sentryMessage: true,
-      _sentryWasmImages: [image],
-    });
-  }
+  workerSelf.postMessage(
+    image ? { _sentryMessage: true, _sentryWasmImages: [image] } : missingBuildIdWorkerMessage(url),
+  );
 }
