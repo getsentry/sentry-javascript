@@ -44,11 +44,24 @@ describe('SqsServiceExtension span naming', () => {
       expect(spanAttributes?.['messaging.destination.name']).toBeUndefined();
     });
 
-    // The aws-sdk house style (`SQS.DeleteMessage`) still names these.
-    it('leaves a command with no messaging operation unnamed', () => {
+    // The aws-sdk house style (`SQS.DeleteMessage`) still names these, and they are not queue spans.
+    it('leaves a command with no messaging operation unnamed and on the default op', () => {
       setUpClient('stream');
 
-      expect(preSpanHook('DeleteMessage', { QueueUrl: QUEUE_URL }).spanName).toBeUndefined();
+      const { spanName, spanOp } = preSpanHook('DeleteMessage', { QueueUrl: QUEUE_URL });
+
+      expect(spanName).toBeUndefined();
+      expect(spanOp).toBeUndefined();
+    });
+
+    it.each([
+      ['ReceiveMessage', 'queue.receive'],
+      ['SendMessage', 'queue.publish'],
+      ['SendMessageBatch', 'queue.publish'],
+    ])('gives a %s span the %s op', (commandName, expected) => {
+      setUpClient('stream');
+
+      expect(preSpanHook(commandName, { QueueUrl: QUEUE_URL }).spanOp).toBe(expected);
     });
 
     it.each([

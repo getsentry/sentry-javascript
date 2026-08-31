@@ -57,6 +57,21 @@ describe('SnsServiceExtension span naming', () => {
     });
   });
 
+  it.each([
+    ['Publish', 'queue.publish'],
+    ['CreateTopic', undefined],
+  ])('gives a %s span the %o op', (commandName, expected) => {
+    setUpClient('stream');
+
+    const metadata = new SnsServiceExtension().requestPreSpanHook({
+      serviceName: 'SNS',
+      commandName,
+      commandInput: { TopicArn: TOPIC_ARN },
+    });
+
+    expect(metadata.spanOp).toBe(expected);
+  });
+
   it('reports the operation type it names the span after', () => {
     setUpClient('stream');
 

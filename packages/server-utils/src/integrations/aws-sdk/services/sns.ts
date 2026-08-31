@@ -8,6 +8,7 @@ import {
   MESSAGING_SYSTEM,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
+import { QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { ATTR_MESSAGING_DESTINATION_KIND, MESSAGING_DESTINATION_KIND_VALUE_TOPIC } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import { injectPropagationContext } from './MessageAttributes';
@@ -31,12 +32,15 @@ function buildSpanName(operation: string, destination: string | undefined, isStr
 export class SnsServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     let spanName = `SNS ${request.commandName}`;
+    let spanOp: string | undefined;
+
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws.sns',
       [SENTRY_KIND]: 'client',
     };
 
     if (request.commandName === 'Publish') {
+      spanOp = QUEUE_PUBLISH;
       spanAttributes[SENTRY_KIND] = 'producer';
 
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
@@ -67,6 +71,7 @@ export class SnsServiceExtension implements ServiceExtension {
     return {
       spanAttributes,
       spanName,
+      spanOp,
     };
   }
 
