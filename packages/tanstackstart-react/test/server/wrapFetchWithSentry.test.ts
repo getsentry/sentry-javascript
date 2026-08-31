@@ -204,3 +204,102 @@ describe('wrapFetchWithSentry', () => {
     expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('wrapFetchWithSentry meta tag injection across stream chunks', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function streamHtml(chunks: (string | Uint8Array)[]): Promise<string> {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(typeof chunk === 'string' ? encoder.encode(chunk) : chunk);
+        }
+        controller.close();
+      },
+    });
+
+    const fetchFn = vi.fn().mockResolvedValue(
+      new Response(body, {
+        headers: new Headers({ 'content-type': 'text/html' }),
+      }),
+    );
+
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+    return serverEntry.fetch(new Request('http://localhost:3000/')).then(response => response.text());
+  }
+
+  function countTraceMetaTags(html: string): number {
+    return html.split('name="sentry-trace"').length - 1;
+  }
+
+  // React's Fizz writer flushes when its 2048 byte view fills and writes any longer string
+  // on its own, so a long attribute value puts a chunk boundary right after its opening
+  // quote. See https://github.com/getsentry/sentry-javascript/issues/23468.
+  it('injects the meta tags when a chunk boundary splits an attribute value before <head>', async () => {
+    const html = await streamHtml([
+      '<!DOCTYPE html><html lang="en" data-ssr-state="',
+      '{&quot;theme&quot;:&quot;dark&quot;}',
+      '"><head><meta charSet="utf-8"/></head><body>b</body></html>',
+    ]);
+
+    expect(countTraceMetaTags(html)).toBe(1);
+    expect(html).toContain('<head><meta name="sentry-trace" content="abc123-def456-1"/>');
+    expect(html).toContain('data-ssr-state="{&quot;theme&quot;:&quot;dark&quot;}"');
+  });
+
+  it('injects the meta tags when the <head> tag itself is split across chunks', async () => {
+    const html = await streamHtml(['<!DOCTYPE html><html><he', 'ad><title>t</title></head><body>b</body></html>']);
+
+    expect(countTraceMetaTags(html)).toBe(1);
+    expect(html).toContain('<head><meta name="sentry-trace" content="abc123-def456-1"/>');
+  });
+
+  it('produces the same output wherever the response is split', async () => {
+    const document =
+      '<!DOCTYPE html><html lang="en" data-x="a&quot;b"><head><meta charSet="utf-8"/><title>App</title></head><body><div id="root">hi</div></body></html>';
+
+    const unsplit = await streamHtml([document]);
+    expect(countTraceMetaTags(unsplit)).toBe(1);
+
+    for (let i = 1; i < document.length; i++) {
+      const split = await streamHtml([document.slice(0, i), document.slice(i)]);
+      expect(split).toBe(unsplit);
+    }
+
+    expect(await streamHtml([...document])).toBe(unsplit);
+  });
+
+  it('injects the meta tags only once when a later chunk also contains <head>', async () => {
+    const html = await streamHtml([
+      '<html><head><title>t</title></head><body>',
+      '<pre data-code="<head>">x</pre></body></html>',
+    ]);
+
+    expect(countTraceMetaTags(html)).toBe(1);
+    expect(html).toContain('data-code="<head>"');
+  });
+
+  it('does not inject when the existing sentry-trace meta tag is split across chunks', async () => {
+    const html = await streamHtml([
+      '<html><head><meta name="sentry-',
+      'trace" content="existing-trace"/></head><body>b</body></html>',
+    ]);
+
+    expect(countTraceMetaTags(html)).toBe(1);
+    expect(html).toContain('content="existing-trace"');
+    expect(html).not.toContain('abc123-def456-1');
+  });
+
+  it('keeps multi-byte characters intact when they straddle a chunk boundary', async () => {
+    const document = '<html><head><title>Grüße 😀</title></head><body>日本語</body></html>';
+    const bytes = new TextEncoder().encode(document);
+
+    for (let i = 1; i < bytes.length; i++) {
+      const html = await streamHtml([bytes.slice(0, i), bytes.slice(i)]);
+      expect(html.replace(/<meta name="(sentry-trace|baggage)"[^/]*\/>/g, '')).toBe(document);
+    }
+  });
+});

@@ -14,28 +14,177 @@ export type ServerEntry = {
   fetch: (request: Request, opts?: any) => Promise<Response> | Response;
 };
 
+const MAX_TAG_NAME_LENGTH = 16;
+
+// Upper bound on the head content held back while deciding whether the response already
+// carries trace meta tags. Reaching it means the document has no `</head>`, so we stop
+// waiting and emit what we have.
+const MAX_HEAD_BUFFER_LENGTH = 64 * 1024;
+
+function isHtmlWhitespace(char: string): boolean {
+  return char === ' ' || char === '\n' || char === '\t' || char === '\r' || char === '\f';
+}
+
+type HeadMetaTagInjector = {
+  /** Returns the chunk to emit in place of `htmlChunk`, which may be empty. */
+  transformChunk: (htmlChunk: string) => string;
+  /** Returns anything still held back once the body has ended. */
+  flush: () => string;
+};
+
 /**
- * This function optimistically assumes that the HTML coming in chunks will not be split
- * within the <head> tag. If this still happens, we simply won't replace anything.
+ * Creates an injector that takes the HTML chunks of a single response, in order, and
+ * injects `metaTagsStr` directly after the head tag.
+ *
+ * The scan carries its state from one chunk to the next, so a tag, an attribute value,
+ * a comment, or the head tag itself may be split across any number of chunks. The result
+ * depends only on the bytes of the response, never on where they happen to be split.
  */
-function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
-  if (typeof htmlChunk !== 'string' || !metaTagsStr) {
-    return htmlChunk;
+function createHeadMetaTagInjector(metaTagsStr: string): HeadMetaTagInjector {
+  if (!metaTagsStr) {
+    return { transformChunk: htmlChunk => htmlChunk, flush: () => '' };
   }
 
-  if (htmlChunk.includes('"sentry-trace"')) {
-    return htmlChunk;
-  }
+  // Set once the tags are injected, or once no head tag can follow any more.
+  let done = false;
+  // The head content read so far, held back while `decideOnBufferedHead` has not settled.
+  let headBuffer: string | undefined;
+  // Inside an HTML comment.
+  let inComment = false;
+  // Inside a tag, between `<` and the `>` that closes it.
+  let inTag = false;
+  // The quote character that opened the attribute value being read.
+  let quote: string | undefined;
+  // Reading the tag name that follows `<`.
+  let readingTagName = false;
+  // The lower-cased name of the tag being read, e.g. `head`, `/head`, `!doctype`.
+  let tagName = '';
+  // The number of dashes read directly before the current position, for spotting `-->`.
+  let commentDashes = 0;
 
-  // Skip quoted attribute values so we don't match <head> inside e.g. data-code="...<head>..."
-  let replaced = false;
-  return htmlChunk.replace(/"[^"]*"|'[^']*'|(<head>)/g, (match, headTag) => {
-    if (headTag && !replaced) {
-      replaced = true;
-      return `<head>${metaTagsStr}`;
+  /**
+   * Decides what to do with the head content read so far. Returns the text to emit, or an
+   * empty string while the decision still needs more of the head.
+   */
+  function decideOnBufferedHead(): string {
+    const buffered = headBuffer as string;
+
+    // The response already carries trace meta tags, e.g. rendered by the app itself.
+    if (buffered.includes('"sentry-trace"')) {
+      done = true;
+      headBuffer = undefined;
+      return buffered;
     }
-    return match;
-  });
+
+    if (buffered.includes('</head') || buffered.length >= MAX_HEAD_BUFFER_LENGTH) {
+      done = true;
+      headBuffer = undefined;
+      return `${metaTagsStr}${buffered}`;
+    }
+
+    return '';
+  }
+
+  function transformChunk(htmlChunk: string): string {
+    if (done || typeof htmlChunk !== 'string') {
+      return htmlChunk;
+    }
+
+    if (headBuffer !== undefined) {
+      headBuffer += htmlChunk;
+      return decideOnBufferedHead();
+    }
+
+    for (let i = 0; i < htmlChunk.length; i++) {
+      const char = htmlChunk.charAt(i);
+
+      if (inComment) {
+        if (char === '-') {
+          commentDashes++;
+        } else {
+          if (char === '>' && commentDashes >= 2) {
+            inComment = false;
+          }
+          commentDashes = 0;
+        }
+        continue;
+      }
+
+      if (quote) {
+        if (char === quote) {
+          quote = undefined;
+        }
+        continue;
+      }
+
+      if (!inTag) {
+        if (char === '<') {
+          inTag = true;
+          readingTagName = true;
+          tagName = '';
+        }
+        continue;
+      }
+
+      if (readingTagName) {
+        if (!isHtmlWhitespace(char) && char !== '>') {
+          if (tagName.length < MAX_TAG_NAME_LENGTH) {
+            tagName += char.toLowerCase();
+          }
+          if (tagName === '!--') {
+            inComment = true;
+            inTag = false;
+            readingTagName = false;
+            commentDashes = 0;
+          }
+          continue;
+        }
+        readingTagName = false;
+      }
+
+      if (char === '"' || char === "'") {
+        quote = char;
+        continue;
+      }
+
+      if (char !== '>') {
+        continue;
+      }
+
+      inTag = false;
+
+      if (tagName === 'head') {
+        // Hold the head content back until we know whether the app rendered its own trace
+        // meta tags. Deciding on the buffer rather than on the current chunk keeps the
+        // outcome the same however the response is split.
+        headBuffer = htmlChunk.slice(i + 1);
+        return `${htmlChunk.slice(0, i + 1)}${decideOnBufferedHead()}`;
+      }
+
+      // No head tag can open after these. Stop, so that a `<head>` appearing later in
+      // script or text content cannot be mistaken for one.
+      if (tagName === '/head' || tagName === 'body' || tagName === '/html') {
+        done = true;
+        return htmlChunk;
+      }
+    }
+
+    return htmlChunk;
+  }
+
+  return {
+    transformChunk,
+    flush() {
+      if (done || headBuffer === undefined) {
+        return '';
+      }
+      // The body ended inside the head, so the decision can wait no longer.
+      const buffered = headBuffer;
+      done = true;
+      headBuffer = undefined;
+      return buffered.includes('"sentry-trace"') ? buffered : `${metaTagsStr}${buffered}`;
+    },
+  };
 }
 
 function injectMetaTagsInResponse(originalResponse: Response): Response {
@@ -58,6 +207,8 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
 
     const metaTagsStr = getTraceMetaTags();
     const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    const injector = createHeadMetaTagInjector(metaTagsStr);
 
     const newResponseStream = new ReadableStream({
       start: async controller => {
@@ -81,8 +232,17 @@ function injectMetaTagsInResponse(originalResponse: Response): Response {
         try {
           for await (const chunk of bodyReporter()) {
             const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-            const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
-            controller.enqueue(new TextEncoder().encode(modifiedHtml));
+            const modifiedHtml = injector.transformChunk(html);
+            if (modifiedHtml) {
+              controller.enqueue(encoder.encode(modifiedHtml));
+            }
+          }
+
+          // Flush whatever the decoder is still holding back, so that a body ending on an
+          // incomplete byte sequence does not lose its tail.
+          const trailingHtml = injector.transformChunk(decoder.decode()) + injector.flush();
+          if (trailingHtml) {
+            controller.enqueue(encoder.encode(trailingHtml));
           }
         } catch (e) {
           errored = true;
