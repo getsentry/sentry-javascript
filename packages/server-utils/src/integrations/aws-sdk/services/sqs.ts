@@ -9,6 +9,7 @@ import {
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
+import { QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { SQS } from '../aws-sdk.types';
 import type { CommandInput, NormalizedRequest, NormalizedResponse } from '../types';
 import {
@@ -23,6 +24,7 @@ export class SqsServiceExtension implements ServiceExtension {
     const queueUrl = extractQueueUrl(request.commandInput);
     const queueName = extractQueueNameFromUrl(queueUrl);
     let operation: string | undefined;
+    let spanOp: string | undefined;
 
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
@@ -36,6 +38,7 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'ReceiveMessage':
         {
           operation = 'receive';
+          spanOp = QUEUE_RECEIVE;
           spanAttributes[SENTRY_KIND] = 'consumer';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
@@ -47,6 +50,7 @@ export class SqsServiceExtension implements ServiceExtension {
       case 'SendMessage':
       case 'SendMessageBatch':
         operation = 'send';
+        spanOp = QUEUE_PUBLISH;
         spanAttributes[SENTRY_KIND] = 'producer';
         break;
     }
@@ -61,6 +65,8 @@ export class SqsServiceExtension implements ServiceExtension {
     return {
       spanAttributes,
       spanName: buildSpanName(operation, queueName, isStreamed),
+      // Fallback to `rpc` if there's no messaging operation
+      spanOp,
     };
   }
 
