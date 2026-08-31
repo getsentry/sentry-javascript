@@ -1,3 +1,5 @@
+import type { ExpressShouldHandleError } from '@sentry/core';
+
 export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
 
 /**
@@ -60,4 +62,15 @@ export interface ExpressIntegrationOptions {
   ignoreLayers?: IgnoreMatcher[];
   /** Ignore specific layers based on their type */
   ignoreLayersType?: ExpressLayerType[];
+  /**
+   * Callback deciding whether an error passed to `next(error)` should be captured
+   * and sent to Sentry.
+   *
+   * By default, 5xx errors (and errors without a resolvable status) are sent, while
+   * 3xx and 4xx errors are not. Set to `false` to capture no errors at all.
+   *
+   * Capturing Express errors still requires `setupExpressErrorHandler(app)`, which
+   * reads this option back off the integration.
+   */
+  shouldHandleError?: ExpressShouldHandleError;
 }

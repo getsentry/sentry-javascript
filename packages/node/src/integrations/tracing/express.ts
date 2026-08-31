@@ -4,6 +4,7 @@ import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opent
 
 import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import {
+  type ExpressIntegration,
   type ExpressIntegrationOptions,
   type IntegrationFn,
   debug,
@@ -72,7 +73,11 @@ const _expressIntegration = ((options?: ExpressInstrumentationConfig) => {
     setupOnce() {
       instrumentExpress(options);
     },
-  };
+    // Read back by `expressErrorHandler` in `@sentry/core`, which is what captures Express errors.
+    getShouldHandleError() {
+      return options?.shouldHandleError;
+    },
+  } satisfies ExpressIntegration;
 }) satisfies IntegrationFn;
 
 export const expressIntegration = defineIntegration(_expressIntegration);

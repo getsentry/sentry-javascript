@@ -18,10 +18,12 @@ export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 // eslint-disable-next-line typescript/no-deprecated
 export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
 export type {
+  ExpressIntegration,
   ExpressIntegrationOptions,
   ExpressHandlerOptions,
   ExpressMiddleware,
   ExpressErrorMiddleware,
+  ExpressShouldHandleError,
 } from './integrations/express/types';
 export {
   instrumentPostgresJsSql,
