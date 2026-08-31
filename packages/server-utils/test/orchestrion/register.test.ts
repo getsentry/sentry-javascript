@@ -1,12 +1,22 @@
 import type * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Simulate the vendored code-transformer chain. A tree-shaken build (this package bundled into an
-// app and stripped) throws a `TypeError` from `create(...).getTransformer(...).transform(...)`; a
-// healthy build does not. See `isTransformerTreeShaken` in `runtime/register.ts`.
-const createMock = vi.fn();
-vi.mock('@apm-js-collab/code-transformer', () => ({
-  create: (...args: unknown[]) => createMock(...args),
+// The registration installs real Node module hooks, which we neither want nor need here. Stub the
+// tracing-hooks surface so the tests can drive the diagnostics callback directly.
+const setDiagnosticsHookMock = vi.fn<(cb: DiagnosticsCallback) => void>();
+vi.mock('@apm-js-collab/tracing-hooks/lib/diagnostics.js', () => ({
+  setDiagnosticsHook: (cb: DiagnosticsCallback) => setDiagnosticsHookMock(cb),
+}));
+vi.mock('@apm-js-collab/tracing-hooks', () => ({
+  default: class {
+    patch(): void {}
+  },
+}));
+vi.mock('@apm-js-collab/tracing-hooks/hook-sync.mjs', () => ({
+  initialize: vi.fn(),
+  load: vi.fn(),
+  resolve: vi.fn(),
+  createDiagnosticsPort: vi.fn(),
 }));
 
 // Neutralise `consoleSandbox` (it swaps in the pristine console during its callback, which would
@@ -19,13 +29,34 @@ vi.mock('@sentry/core', async importOriginal => {
 import { GLOBAL_OBJ } from '@sentry/core';
 import { registerDiagnosticsChannelInjection } from '../../src/orchestrion/runtime/register';
 
+type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
+
 describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(() => {
+  /**
+   * The bundling warnings only. Registration itself can warn for unrelated reasons in this
+   * environment (Node's module-hook APIs are not stubbed), which is not what these tests assert on.
+   */
+  function bundlingWarnings(): string[] {
+    return warnSpy.mock.calls.map(([message]) => String(message)).filter(m => m.includes('was bundled into'));
+  }
+
+  /** The callback the registration handed to tracing-hooks. */
+  function diagnosticsCallback(): DiagnosticsCallback {
+    const [callback] = setDiagnosticsHookMock.mock.lastCall ?? [];
+    if (!callback) {
+      throw new Error('registerDiagnosticsChannelInjection() did not install a diagnostics hook');
+    }
+    return callback;
+  }
+
+  beforeEach(async () => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
-    createMock.mockReset();
+    setDiagnosticsHookMock.mockClear();
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    // The one-warning-per-process flag is module state, so each test needs a fresh module.
+    vi.resetModules();
   });
 
   afterEach(() => {
@@ -33,48 +64,42 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     warnSpy.mockRestore();
   });
 
-  it('warns once and disables runtime injection when the transformer was tree-shaken', () => {
-    // A tree-shaken chain: `parse`/`generate` are `undefined`, so a transform throws a TypeError.
-    createMock.mockImplementation(() => {
-      throw new TypeError('parse is not a function');
-    });
-
+  it('warns once when a module fails to transform because the transformer was tree-shaken', () => {
     registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('was bundled into your application'));
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('docs.sentry.io'));
-    // Marked unavailable, and NOT marked as runtime-hooked (hooks were never installed).
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toBeUndefined();
+    // A tree-shaken chain: `parse`/`generate` are `undefined`, so the transform throws a TypeError.
+    onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse is not a function') });
+    onDiagnostics({ moduleName: 'pg', error: new TypeError('parse is not a function') });
+
+    expect(bundlingWarnings()).toHaveLength(1);
+    expect(bundlingWarnings()[0]).toContain('mysql2');
+    expect(bundlingWarnings()[0]).toContain('docs.sentry.io');
   });
 
-  it('does not warn when build-time instrumentation is active (bundler marker present)', () => {
-    createMock.mockImplementation(() => {
-      throw new TypeError('parse is not a function');
-    });
-    // A defined `bundler` Set signals the build-time plugin ran, so the runtime hook is redundant.
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set() };
-
+  it('stays quiet for transform failures that are not a stripped transformer', () => {
     registerDiagnosticsChannelInjection();
 
-    // No user-facing warning — this is an expected, supported setup.
-    expect(warnSpy).not.toHaveBeenCalled();
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toBeUndefined();
+    diagnosticsCallback()({ moduleName: 'mysql2', error: new Error('Failed to find injection points') });
+
+    expect(bundlingWarnings()).toEqual([]);
   });
 
-  it('does not warn again on subsequent calls (deduped)', () => {
-    createMock.mockImplementation(() => {
-      throw new TypeError('parse is not a function');
-    });
+  it('does not warn when modules transform successfully', () => {
+    registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
 
-    registerDiagnosticsChannelInjection();
+    onDiagnostics({ moduleName: 'mysql2' });
+
+    expect(bundlingWarnings()).toEqual([]);
+    // The module is recorded so channel integrations know to subscribe.
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime).toEqual(['mysql2']);
+  });
+
+  it('installs hooks only once', () => {
     registerDiagnosticsChannelInjection();
     registerDiagnosticsChannelInjection();
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    // The probe runs only on the first call; the marker short-circuits the rest.
-    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(setDiagnosticsHookMock).toHaveBeenCalledTimes(1);
   });
 });

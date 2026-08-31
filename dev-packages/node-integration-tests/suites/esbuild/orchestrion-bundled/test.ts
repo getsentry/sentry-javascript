@@ -109,7 +109,38 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
 
     expect(status).toBe(0);
     expect(stdout).toContain('DEP_LOADED');
-    // Nothing instrumented `dataloader`, so the user has to be told.
-    expect(sentryWarnings(stderr).join('\n')).toContain('@sentry/server-utils');
+    // The stripped transformer left `dataloader` uninstrumented — nothing recorded on `runtime`.
+    expect(stdout).toContain('runtime=[]');
+    // Nothing instrumented `dataloader`, so the user has to be told, and the warning names the
+    // module that was lost.
+    const warning = sentryWarnings(stderr).join('\n');
+    expect(warning).toContain('@sentry/server-utils');
+    expect(warning).toContain('dataloader');
+    // One broken transformer breaks every module, so the fix is stated exactly once.
+    expect(sentryWarnings(stderr)).toHaveLength(1);
+  });
+
+  // The counterpart to the warning: it tells the user to keep `@sentry/server-utils` external, so
+  // that remedy has to actually work. External, the package loads from `node_modules` with its
+  // vendored transformer intact, instruments the (also external) `dataloader`, and stays quiet.
+  test('instruments the dependency and stays quiet when `@sentry/server-utils` is kept external', async () => {
+    const outfile = join(OUT_DIR, 'external-server-utils', 'app.mjs');
+
+    await build({
+      entryPoints: [join(__dirname, 'app-external-dep.mjs')],
+      outfile,
+      platform: 'node',
+      format: 'esm',
+      bundle: true,
+      external: ['dataloader', '@sentry/server-utils'],
+      logLevel: 'silent',
+    });
+
+    const { stdout, stderr, status } = run(outfile);
+
+    expect(status).toBe(0);
+    // The runtime hook transformed `dataloader`, so it is recorded and there is nothing to warn about.
+    expect(stdout).toContain('runtime=["dataloader"]');
+    expect(sentryWarnings(stderr)).toEqual([]);
   });
 });

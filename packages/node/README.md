@@ -87,9 +87,9 @@ supported ways to keep auto-instrumentation working when you bundle your server:
    not needed.
 
 If you bundle `@sentry/server-utils` **and** don't use the build-time plugin, its internal code
-transformer is stripped and runtime auto-instrumentation is disabled — `@sentry/node` warns at
-startup when it detects this. (When the build-time plugin is used, there is no warning, since
-instrumentation is already in place.)
+transformer is stripped and runtime auto-instrumentation is disabled. `@sentry/node` warns the
+first time an instrumented dependency loads uninstrumented, so a build-time-instrumented app never
+sees the warning.
 
 ## Links
 

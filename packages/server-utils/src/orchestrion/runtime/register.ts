@@ -1,7 +1,6 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { create } from '@apm-js-collab/code-transformer';
 import { SENTRY_INSTRUMENTATIONS } from '../config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
@@ -28,50 +27,45 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
 }
 
 /**
- * Detect whether the vendored code-transformer chain (meriyah/astring/source-map, bundled into this
- * package) survived downstream bundling.
- *
- * This package ships the transformer inline and is meant to run from `node_modules` (external). When
- * an app bundler instead inlines `@sentry/server-utils` and tree-shakes it, those vendored deps are
- * stripped to empty objects, so `parse`/`generate` become `undefined` and the FIRST module the hook
- * tries to transform throws `TypeError: parse is not a function` — deep in the loader, once per
- * module, only visible with `debug: true`. Running one throwaway in-memory transform up front turns
- * that into a single, actionable, always-on warning (see `warnRuntimeUnavailable`). A healthy build
- * returns normally; a tree-shaken one throws a `TypeError`.
- */
-function isTransformerTreeShaken(): boolean {
-  try {
-    create(
-      [
-        {
-          channelName: 'probe',
-          module: { name: '@sentry/orchestrion-probe', versionRange: '*', filePath: 'probe.js' },
-          functionQuery: { className: 'C', methodName: 'm', kind: 'Async' },
-        },
-      ],
-      'node:diagnostics_channel',
-    )
-      .getTransformer('@sentry/orchestrion-probe', '0.0.0', 'probe.js')
-      ?.transform('class C { async m(x) { return x; } }', 'esm');
-    return false;
-  } catch (error) {
-    // Tree-shaken: `parse`/`generate`/`create` are `undefined` → TypeError. A healthy build either
-    // succeeds or throws a domain `Error` (e.g. "Failed to find injection points"), never a TypeError.
-    return error instanceof TypeError;
-  }
-}
-
-/**
  * Emit a single, always-on warning that runtime channel injection is disabled, with the actionable
  * fix. Unlike `debug.warn` (gated behind `debug: true`), this reaches every user — otherwise the
- * SDK silently records no channel-based spans. Deduped via a a global marker (carrier.runtimeAvailable)
- * so repeat calls (e.g. `init()` plus `--import`) warn at most once.
+ * SDK silently records no channel-based spans.
  */
 function warnRuntimeUnavailable(message: string): void {
   consoleSandbox(() => {
     // oxlint-disable-next-line no-console
     console.warn(`[Sentry] ${message} See ${BUNDLING_DOCS_URL}`);
   });
+}
+
+// One broken transformer breaks every module, so state the fix once.
+let warnedTransformerUnavailable = false;
+
+/**
+ * Warn that the vendored code transformer could not run, so `moduleName` loaded uninstrumented.
+ *
+ * This package ships the transformer (meriyah/astring/source-map) inline and is meant to run from
+ * `node_modules`. A bundler that inlines and tree-shakes `@sentry/server-utils` strips it, so every
+ * transform throws `TypeError: parse is not a function` — swallowed inside the loader, once per
+ * module, visible only with `debug: true`.
+ *
+ * Warning from here rather than probing the transformer at `init()` keeps the check honest. A
+ * module only reaches this callback by coming through Node's loader, which means the build-time
+ * bundler plugin did not cover it, which means the instrumentation really is lost. Probing at
+ * `init()` instead has to guess at that from a global the plugin's entry banner may not have
+ * written yet.
+ */
+function warnTransformerUnavailable(moduleName: string): void {
+  if (warnedTransformerUnavailable) {
+    return;
+  }
+  warnedTransformerUnavailable = true;
+
+  warnRuntimeUnavailable(
+    `\`@sentry/server-utils\` was bundled into your application, so ${moduleName} and any other ` +
+      'instrumented dependency load uninstrumented. Keep `@sentry/server-utils` external in your ' +
+      'server bundle, or use the Sentry bundler plugin for build-time instrumentation.',
+  );
 }
 
 /**
@@ -94,30 +88,6 @@ export function registerDiagnosticsChannelInjection(): void {
     return;
   }
 
-  // A downstream bundler that inlined + tree-shook this package strips the vendored transformer, so
-  // every runtime transform would throw a cryptic `TypeError` deep in the loader. Detect that once
-  // and don't install hooks that can't work.
-  if (isTransformerTreeShaken()) {
-    marker.runtimeUnavailable = true;
-    // If the build-time bundler plugin ran (a defined `bundler` marker Set, set by its entry banner),
-    // instrumentation was already injected at build time and the runtime hook is redundant — this is
-    // an expected, supported setup, so stay quiet (debug-only). Otherwise nothing is instrumented, so
-    // surface an always-on, actionable warning.
-    if (marker.bundler instanceof Set) {
-      debug.log(
-        'Runtime diagnostics-channel injection is disabled because `@sentry/server-utils` was bundled; ' +
-          'build-time instrumentation is active.',
-      );
-    } else {
-      warnRuntimeUnavailable(
-        '`@sentry/server-utils` was bundled into your application, so diagnostics-channel ' +
-          'auto-instrumentation is disabled. Keep `@sentry/server-utils` external in your server bundle, ' +
-          'or use the Sentry bundler plugin for build-time instrumentation.',
-      );
-    }
-    return;
-  }
-
   const globalAny = globalThis as { Bun?: unknown; Deno?: { version?: { deno?: string } } };
   const stableSyncHooks = hasStableSyncModuleHooks(Boolean(globalAny.Deno));
 
@@ -127,6 +97,12 @@ export function registerDiagnosticsChannelInjection(): void {
 
   setDiagnosticsHook(({ moduleName, error }): void => {
     if (error) {
+      // A stripped transformer surfaces as a `TypeError` (`parse`/`generate` are `undefined`) and
+      // costs the user this module's instrumentation, so it is worth an always-on warning. Every
+      // other transform failure stays debug-only.
+      if (error instanceof TypeError) {
+        warnTransformerUnavailable(moduleName);
+      }
       debug.warn(`[instrumentation] failed to inject diagnostics-channel into ${moduleName}:`, error);
     } else {
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
@@ -142,8 +118,7 @@ export function registerDiagnosticsChannelInjection(): void {
   // runs both at `--import` time and (synchronously) inside `Sentry.init()`,
   // so an unguarded throw would either abort startup or make `init()` throw.
   // On any failure (e.g. dep resolution, `require(esm)` / Node-compat
-  // incompatibility) we warn (DEBUG only) and continue without channel
-  // injection
+  // incompatibility) we warn and continue without channel injection.
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });

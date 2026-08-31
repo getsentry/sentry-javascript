@@ -22,7 +22,7 @@ declare module '@apm-js-collab/tracing-hooks/lib/diagnostics.js' {
 
 declare module '@apm-js-collab/tracing-hooks/hook-sync.mjs' {
   import type { MessagePort } from 'node:worker_threads';
-  import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+  import type { InstrumentationConfig } from '../apmTypes';
 
   type DiagnosticsEvent = { url: string; moduleName: string; error?: Error };
   type InitializeData = { instrumentations?: InstrumentationConfig[]; diagnosticsPort?: MessagePort };
