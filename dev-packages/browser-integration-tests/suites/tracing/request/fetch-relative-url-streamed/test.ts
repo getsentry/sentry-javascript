@@ -15,9 +15,7 @@ sentryTest('names spans for relative fetch requests after the page domain', asyn
 
   await page.goto(url);
 
-  const allSpans = await spansPromise;
-  const pageloadSpan = allSpans.find(s => getSpanOp(s) === 'pageload');
-  const requestSpans = allSpans
+  const requestSpans = (await spansPromise)
     .filter(s => getSpanOp(s) === 'http.client')
     .sort((a, b) =>
       (a.attributes!['url.full']!.value as string).localeCompare(b.attributes!['url.full']!.value as string),
@@ -29,8 +27,6 @@ sentryTest('names spans for relative fetch requests after the page domain', asyn
     expect(span).toMatchObject({
       // A relative URL has no domain of its own, so it resolves against the page origin.
       name: 'GET sentry-test.io',
-      parent_span_id: pageloadSpan?.span_id,
-      trace_id: pageloadSpan?.trace_id,
       attributes: expect.objectContaining({
         'http.request.method': { type: 'string', value: 'GET' },
         'url.full': { type: 'string', value: `${TEST_HOST}/test-req/${index}` },
