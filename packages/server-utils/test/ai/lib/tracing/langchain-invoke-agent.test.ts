@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GEN_AI_OPERATION_NAME } from '@sentry/conventions/attributes';
+import { GEN_AI_OPERATION_NAME, GEN_AI_PIPELINE_NAME } from '@sentry/conventions/attributes';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
@@ -49,15 +49,30 @@ describe('LangChain invoke_agent span names', () => {
     const endedSpans = setupClient('static');
     runChain('format_prompt');
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chain format_prompt');
-    expect(spanToStaticSpanJSON(endedSpans[0]!).data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
+    const span = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(span.description).toBe('chain format_prompt');
+    expect(span.data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
+    expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBe('format_prompt');
+    expect(span.data?.['langchain.chain.name']).toBeUndefined();
+  });
+
+  it('sets gen_ai.pipeline.name from chain.name when runName is missing', () => {
+    const endedSpans = setupClient('static');
+    runChain(undefined, { name: 'RunnableSequence' });
+
+    const span = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(span.description).toBe('chain RunnableSequence');
+    expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBe('RunnableSequence');
   });
 
   it('keeps `chain unknown_chain` when the chain name is missing in static mode', () => {
     const endedSpans = setupClient('static');
     runChain();
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chain unknown_chain');
+    const span = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(span.description).toBe('chain unknown_chain');
+    expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBeUndefined();
+    expect(span.data?.['langchain.chain.name']).toBeUndefined();
   });
 
   it('leads with the operation and keeps the chain name when span streaming is enabled', () => {
@@ -67,13 +82,17 @@ describe('LangChain invoke_agent span names', () => {
     const span = spanToStaticSpanJSON(endedSpans[0]!);
     expect(span.description).toBe('invoke_agent format_prompt');
     expect(span.data?.[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
-    expect(span.data?.['langchain.chain.name']).toBe('format_prompt');
+    expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBe('format_prompt');
+    expect(span.data?.['langchain.chain.name']).toBeUndefined();
   });
 
   it('drops the `unknown_chain` sentinel when span streaming is enabled', () => {
     const endedSpans = setupClient('stream');
     runChain();
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('invoke_agent');
+    const span = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(span.description).toBe('invoke_agent');
+    expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBeUndefined();
+    expect(span.data?.['langchain.chain.name']).toBeUndefined();
   });
 });
