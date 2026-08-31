@@ -4,6 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.73.0
+
+### Important Changes
+
+- **feat(v10/nextjs): Add `@sentry/nextjs/config` entry point ([#23766](https://github.com/getsentry/sentry-javascript/pull/23766))**
+
+  `withSentryConfig` is now available from `@sentry/nextjs/config`, the path it moves to in v11. Importing it from `@sentry/nextjs` still works on v10 but logs a warning once, so you can change your `next.config` file today and upgrade to v11 without touching it again.
+
+  ```js
+  // next.config.mjs
+  - import { withSentryConfig } from '@sentry/nextjs';
+  + import { withSentryConfig } from '@sentry/nextjs/config';
+  ```
+
+### Other Changes
+
+- feat(v10/node): Deprecate `shouldHandleError` on `setupExpressErrorHandler` and `setupFasitfyErrorHandler` ([#23734](https://github.com/getsentry/sentry-javascript/pull/23734))
+- fix(v10/cloudflare): Instrument Durable Object handlers installed as read-only properties ([#23769](https://github.com/getsentry/sentry-javascript/pull/23769))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/nextjs): Drop nextjs-16-cf-workers canary variant ([#23775](https://github.com/getsentry/sentry-javascript/pull/23775))
+
+</details>
+
 ## 10.72.0
 
 ### Important Changes
