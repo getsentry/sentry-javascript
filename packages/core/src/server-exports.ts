@@ -19,11 +19,7 @@ export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 /* oxlint-disable typescript/no-deprecated -- deprecated Express exports, kept until the next major */
 export { patchExpressModule } from './integrations/express/index';
-export type {
-  ExpressIntegrationOptions,
-  ExpressMiddleware,
-  ExpressErrorMiddleware,
-} from './integrations/express/types';
+export type { ExpressMiddleware, ExpressErrorMiddleware } from './integrations/express/types';
 /* oxlint-enable typescript/no-deprecated */
 export {
   instrumentPostgresJsSql,
