@@ -142,7 +142,10 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       // spaces to mirror the format the libraries themselves intend.
       const args = getCommandArgs(data);
       const statement = args.length ? `${data.command} ${args.join(' ')}` : data.command;
-      const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(data.command, args);
+      const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(data.command, args, {
+        host: data.serverAddress,
+        port: data.serverPort,
+      });
       return startInactiveSpan({
         name: streamedName || `redis-${data.command}`,
         attributes: {

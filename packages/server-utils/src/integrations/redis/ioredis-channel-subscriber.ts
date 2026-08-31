@@ -77,7 +77,10 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
   tracedCommands.add(command);
   const { host, port } = getConnectionOptions(data.self);
   const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
-  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(command.name, command.args ?? []);
+  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(command.name, command.args ?? [], {
+    host,
+    port,
+  });
 
   return startInactiveSpan({
     name: streamedName || statement,

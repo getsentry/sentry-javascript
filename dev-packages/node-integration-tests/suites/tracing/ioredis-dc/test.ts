@@ -107,8 +107,8 @@ describeWithDockerCompose(
     });
 
     // The same commands as above, asserted on the streamed span container. With span streaming the
-    // db spans are named after `db.operation.name` (the bare command) instead of `redis-{command}`.
-    // ioredis reports its commands lowercase, so the name follows suit.
+    // db spans are named `{db.operation.name} {server.address}:{server.port}` instead of
+    // `redis-{command}`. ioredis reports its commands lowercase, so the name follows suit.
     describe('streamed', () => {
       const ORIGIN = 'auto.db.redis.diagnostic_channel';
       const SEGMENT_NAME = 'Test Span IORedis 5.11 DC';
@@ -181,7 +181,7 @@ describeWithDockerCompose(
                   );
 
                   expect(spans).toEqual([
-                    streamedSpan('set', 'db.query', {
+                    streamedSpan(`set ${HOST}:${PORT}`, 'db.query', {
                       'db.operation.name': 'set',
                       'db.query.text': 'set dc-test-key ?',
                     }),
@@ -199,7 +199,7 @@ describeWithDockerCompose(
                       'cache.key': ['dc-cache:test-key-ex'],
                       'cache.item_size': 2,
                     }),
-                    streamedSpan('get', 'db.query', {
+                    streamedSpan(`get ${HOST}:${PORT}`, 'db.query', {
                       'db.operation.name': 'get',
                       'db.query.text': 'get dc-test-key',
                     }),
@@ -218,7 +218,7 @@ describeWithDockerCompose(
                       'cache.key': ['dc-cache:unavailable-data'],
                       'cache.hit': false,
                     }),
-                    streamedSpan('mget', 'db.query', {
+                    streamedSpan(`mget ${HOST}:${PORT}`, 'db.query', {
                       'db.operation.name': 'mget',
                       'db.query.text': 'mget ? ? ?',
                     }),

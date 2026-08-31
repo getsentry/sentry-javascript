@@ -102,7 +102,10 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
 
 function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
   const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
-  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(commandName, commandArgs);
+  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(commandName, commandArgs, {
+    host: attributes[SERVER_ADDRESS],
+    port: attributes[SERVER_PORT],
+  });
 
   return startInactiveSpan({
     name: streamedName || dbStatement || `redis-${commandName}`,

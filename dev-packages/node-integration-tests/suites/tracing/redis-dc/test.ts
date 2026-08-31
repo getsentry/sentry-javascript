@@ -115,7 +115,8 @@ describeWithDockerCompose(
     });
 
     // The same commands as above, asserted on the streamed span container. With span streaming the
-    // db spans are named after `db.operation.name` (the bare command) instead of `redis-{command}`.
+    // db spans are named `{db.operation.name} {server.address}:{server.port}` instead of
+    // `redis-{command}`.
     describe('streamed', () => {
       const ORIGIN = 'auto.db.redis.diagnostic_channel';
       const SEGMENT_NAME = 'Test Span Redis 5 DC';
@@ -182,7 +183,7 @@ describeWithDockerCompose(
                 );
 
                 expect(spans).toEqual([
-                  streamedSpan('SET', 'db.query', {
+                  streamedSpan(`SET ${HOST}:${PORT}`, 'db.query', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-test-key ?',
                   }),
@@ -202,7 +203,7 @@ describeWithDockerCompose(
                     'cache.key': ['dc-cache:test-key-ex'],
                     'cache.item_size': 2,
                   }),
-                  streamedSpan('GET', 'db.query', {
+                  streamedSpan(`GET ${HOST}:${PORT}`, 'db.query', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET dc-test-key',
                   }),
@@ -225,7 +226,7 @@ describeWithDockerCompose(
                   }),
                   // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
                   // so cache detection cannot match prefixes — remains a plain db.query span.
-                  streamedSpan('MGET', 'db.query', {
+                  streamedSpan(`MGET ${HOST}:${PORT}`, 'db.query', {
                     'db.operation.name': 'MGET',
                     'db.query.text': 'MGET ? ? ?',
                   }),

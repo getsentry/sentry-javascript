@@ -5,8 +5,11 @@ import { startIORedisCommandSpan } from '../../../src/integrations/redis/ioredis
 
 const CONNECTION = { host: 'localhost', port: 6379 };
 
-function ctx(command: unknown): { arguments: unknown[]; self: { options: typeof CONNECTION } } {
-  return { arguments: [command], self: { options: CONNECTION } };
+function ctx(
+  command: unknown,
+  connection: { host?: string; port?: number } = CONNECTION,
+): { arguments: unknown[]; self: { options: { host?: string; port?: number } } } {
+  return { arguments: [command], self: { options: connection } };
 }
 
 describe('startIORedisCommandSpan', () => {
@@ -48,8 +51,8 @@ describe('startIORedisCommandSpan', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        // `{db.operation.name}` — redis has nothing low cardinality to pair the operation with
-        name: 'set',
+        // `{db.operation.name} {server.address}:{server.port}` — redis has no collection or namespace
+        name: 'set localhost:6379',
         // the serialized statement, which carries the key, is still reported as an attribute
         attributes: expect.objectContaining({
           'db.query.text': 'set test-key [1 other arguments]',
@@ -67,8 +70,8 @@ describe('startIORedisCommandSpan', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        // `{db.operation.name} {db.stored_procedure.name}` — a redis function is named, so unlike
-        // an ordinary command it has a low cardinality second token to pair with
+        // `{db.operation.name} {db.stored_procedure.name}` — the conventions rank the stored
+        // procedure ahead of the connection, so it wins over `{server.address}:{server.port}`
         name: 'fcall my_func',
         attributes: expect.objectContaining({
           'db.stored_procedure.name': 'my_func',
@@ -86,10 +89,21 @@ describe('startIORedisCommandSpan', () => {
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'fcall',
+        name: 'fcall localhost:6379',
         attributes: expect.not.objectContaining({ 'db.stored_procedure.name': expect.anything() }),
       }),
     );
+  });
+
+  it('falls back to the db system name when the client has no host', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }, { port: 6379 }));
+
+    // `{db.system.name}` — the address/port template needs both halves
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'redis' }));
   });
 
   it('emits a single span when the same command is re-sent from the offline queue', () => {
