@@ -1,5 +1,6 @@
-import type { Client, HandlerDataFetch } from '@sentry/core/browser';
-import * as utils from '@sentry/core/browser';
+import type { Client, HandlerDataFetch } from '@sentry/core';
+import * as utils from '@sentry/core';
+import * as coreBrowser from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchStreamPerformanceIntegration } from '../../src/integrations/fetchStreamPerformance';
 
@@ -23,7 +24,7 @@ describe('fetchStreamPerformanceIntegration', () => {
     });
     vi.spyOn(utils, 'addFetchEndInstrumentationHandler').mockImplementation(() => () => {});
     const startInactiveSpanSpy = vi
-      .spyOn(utils, 'startInactiveSpan')
+      .spyOn(coreBrowser, 'startInactiveSpan')
       .mockReturnValue(new utils.SentryNonRecordingSpan());
 
     fetchStreamPerformanceIntegration().setup?.({
