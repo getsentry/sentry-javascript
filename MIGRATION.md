@@ -862,6 +862,14 @@ If you prefer to capture errors yourself, set `expressIntegration({ shouldHandle
 
 The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version. The export of `expressErrorHandler` and `setupExpressErrorHandler` is moved from `@sentry/core` to `@sentry/server-utils`.
 
+### `onUnhandledRejectionIntegration`: no warning before `Error` rejections in `strict` mode
+
+Affected SDKs: `@sentry/node` and all dependents.
+
+In `strict` mode, `onUnhandledRejectionIntegration` printed the warning `This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason:` in front of every unhandled rejection. It is now printed only when the rejection reason has no stack trace, which matches Node.js. A rejection with an `Error` reason prints the error alone.
+
+The process still exits with code `1` and the reason is still written to `stderr` in both cases. If you match on that warning text in log processing or in tests, update it.
+
 ### Span name changes
 
 Affected SDKs: All SDKs.
