@@ -5,8 +5,8 @@ import {
   addFetchInstrumentationHandler,
   defineIntegration,
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
   hasSpanStreamingEnabled,
-  isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -14,6 +14,7 @@ import {
   filterCollectedUrl,
   startInactiveSpan,
 } from '@sentry/core/browser';
+import { WINDOW } from '../helpers';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
 const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeout>>();
@@ -80,10 +81,8 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               ? getSanitizedUrlStringFromUrlObject(parsedUrl)
               : url;
 
-          // `http.client.stream` follows the same name rules as `http.client`: with span streaming the
-          // URL path is dropped and only the domain is kept. Relative URLs have no domain, and an
-          // outgoing request has no route to parameterize.
-          const domain = parsedUrl && !isURLObjectRelative(parsedUrl) ? parsedUrl.hostname : undefined;
+          // `http.client.stream` follows the same name rules as `http.client`.
+          const domain = getUrlDomain(url, WINDOW.location?.origin);
           const streamedName = domain ? `${method} ${domain}` : method;
           const streamSpan = startInactiveSpan({
             name: hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,

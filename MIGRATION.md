@@ -861,7 +861,7 @@ For the same reason, `useOperationNameForRootSpan` no longer renames the enclosi
 
 Resource URIs are unbounded, so they are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
 
-Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). The operation stays on the request breadcrumb's `graphql.operation` data.
+Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). Outgoing GraphQL request spans now carry the operation on the `graphql.operation.name` and `graphql.operation.type` attributes instead, and it also stays on the request breadcrumb's `graphql.operation` data.
 
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
 

@@ -49,7 +49,7 @@ sentryTest(
         status: 'ok',
       });
 
-      // `http.client.stream` follows the same name rules as `http.client`, so the path is dropped here too.
+      // `http.client.stream` follows the same name rules as `http.client`.
       expect(streamSpan).toMatchObject({
         name: 'GET sentry-test-site.example',
         attributes: expect.objectContaining({

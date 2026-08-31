@@ -511,6 +511,7 @@ describe('instrumentFetchRequest', () => {
     function startFetchSpan(
       traceLifecycle: 'static' | 'stream',
       url = 'https://api.example.com/users/42?include=profile',
+      urlBase?: string,
     ): ReturnType<typeof vi.spyOn> {
       hasSpansEnabled.mockReturnValue(true);
       vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(new SentryNonRecordingSpan());
@@ -526,18 +527,46 @@ describe('instrumentFetchRequest', () => {
         () => true,
         () => false,
         {},
-        { spanOrigin: 'auto.http.fetch' },
+        { spanOrigin: 'auto.http.fetch', urlBase },
       );
 
       return startInactiveSpanSpy;
     }
 
     it('drops the URL path but keeps the domain with span streaming enabled', () => {
-      expect(startFetchSpan('stream')).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET api.example.com' }));
+      expect(startFetchSpan('stream')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET api.example.com',
+          attributes: expect.objectContaining({ 'url.domain': 'api.example.com' }),
+        }),
+      );
     });
 
-    it('falls back to the request method for a relative URL, which has no domain', () => {
-      expect(startFetchSpan('stream', '/users/42')).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET' }));
+    it('falls back to the request method for a relative URL when there is no base to resolve it against', () => {
+      expect(startFetchSpan('stream', '/users/42')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET',
+          attributes: expect.objectContaining({ 'url.domain': undefined }),
+        }),
+      );
+    });
+
+    it('resolves a relative URL against `urlBase`', () => {
+      expect(startFetchSpan('stream', '/users/42', 'https://app.example.com')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET app.example.com',
+          attributes: expect.objectContaining({ 'url.domain': 'app.example.com' }),
+        }),
+      );
+    });
+
+    it('falls back to the request method for a data URL, which has no domain', () => {
+      expect(startFetchSpan('stream', 'data:text/plain,hello', 'https://app.example.com')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET',
+          attributes: expect.objectContaining({ 'url.domain': undefined }),
+        }),
+      );
     });
 
     it('keeps the sanitized URL with `traceLifecycle: "static"`', () => {

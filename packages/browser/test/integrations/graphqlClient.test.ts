@@ -372,6 +372,8 @@ describe('GraphqlClient', () => {
       const json = spanToJSON(span);
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
+      expect(json.attributes['graphql.operation.name']).toBe('GetHello');
+      expect(json.attributes['graphql.operation.type']).toBe('query');
     });
 
     test('keeps the low-cardinality span name with span streaming enabled', () => {
@@ -390,6 +392,33 @@ describe('GraphqlClient', () => {
       const json = spanToJSON(span);
       expect(json.name).toBe('POST localhost:4000');
       expect(json.attributes['graphql.document']).toBe(requestBody.query);
+      expect(json.attributes['graphql.operation.name']).toBe('GetHello');
+      expect(json.attributes['graphql.operation.type']).toBe('query');
+    });
+
+    test('records the operation on a persisted request, which has no query document', () => {
+      const handler = setupHandler([/\/graphql$/], true, 'stream');
+      const span = new SentrySpan({
+        name: 'POST localhost:4000',
+        op: 'http.client',
+        attributes: {
+          'http.method': 'POST',
+          [URL_FULL]: 'http://localhost:4000/graphql',
+        },
+      });
+
+      handler(
+        span,
+        makeFetchHint('http://localhost:4000/graphql', {
+          operationName: 'GetUser',
+          variables: { id: '123' },
+          extensions: { persistedQuery: { version: 1, sha256Hash: 'abc123' } },
+        }),
+      );
+
+      const json = spanToJSON(span);
+      expect(json.attributes['graphql.operation.name']).toBe('GetUser');
+      expect(json.attributes['graphql.operation.type']).toBeUndefined();
     });
 
     test('enriches http.client span when only url.full is present', () => {

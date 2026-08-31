@@ -28,6 +28,7 @@ import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
 import {
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
   getUrlFragment,
   getUrlQuery,
   isURLObjectRelative,
@@ -49,6 +50,8 @@ interface InstrumentFetchRequestOptions {
   spanOrigin?: SpanOrigin;
   propagateTraceparent?: boolean;
   onRequestSpanEnd?: (span: Span, responseInformation: ResponseHookInfo) => void;
+  /** Base URL for relative request URLs. Browsers pass the page origin; server runtimes have none. */
+  urlBase?: string;
 }
 
 /**
@@ -91,7 +94,11 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } = instrumentFetchRequestOptions ?? {};
+  const {
+    spanOrigin = 'auto.http.browser',
+    propagateTraceparent = false,
+    urlBase,
+  } = instrumentFetchRequestOptions ?? {};
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
@@ -100,7 +107,7 @@ export function instrumentFetchRequest(
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
-      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client))
+      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client, urlBase))
       : new SentryNonRecordingSpan();
   const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
 
@@ -336,10 +343,12 @@ function getSpanStartOptions(
   method: string,
   spanOrigin: SpanOrigin,
   client: Client | undefined,
+  urlBase: string | undefined,
 ): Parameters<typeof startInactiveSpan>[0] {
-  // With span streaming, span names have to be low cardinality, so the URL path is dropped and only the
-  // domain is kept. Outgoing requests have no route to parameterize, and relative URLs have no domain.
+  // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
+  // requests have no route to fall back on, so one without a domain is named after the method alone.
   const isStreamed = !!client && hasSpanStreamingEnabled(client);
+  const domain = getUrlDomain(url, urlBase);
 
   // Data URLs need special handling because parseStringToURLObject treats them as "relative"
   // (no "://"), causing getSanitizedUrlStringFromUrlObject to return just the pathname
@@ -349,16 +358,15 @@ function getSpanStartOptions(
     const sanitizedUrl = stripDataUrlContent(url);
     return {
       name: isStreamed ? method : `${method} ${sanitizedUrl}`,
-      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin, client),
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin, client, domain),
     };
   }
 
   const parsedUrl = parseStringToURLObject(url);
   const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
-  const domain = parsedUrl && !isURLObjectRelative(parsedUrl) ? parsedUrl.hostname : undefined;
   return {
     name: isStreamed ? (domain ? `${method} ${domain}` : method) : `${method} ${sanitizedUrl}`,
-    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client),
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain),
   };
 }
 
@@ -368,6 +376,7 @@ function getFetchSpanAttributes(
   method: string,
   spanOrigin: SpanOrigin,
   client: Client | undefined,
+  domain: string | undefined,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url), client),
@@ -376,12 +385,12 @@ function getFetchSpanAttributes(
     [HTTP_REQUEST_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+    [URL_DOMAIN]: domain,
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
       attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href), client);
       attributes[SERVER_ADDRESS] = parsedUrl.hostname;
-      attributes[URL_DOMAIN] = parsedUrl.hostname;
       attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
     }
     attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);

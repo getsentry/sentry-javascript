@@ -226,6 +226,107 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpanJson.attributes['server.address']).toBe('example.com:8443');
   });
 
+  it('resolves a relative fetch URL against the page origin for the streamed span name', () => {
+    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'GET', url: '/rest/v1/users?select=id' },
+      args: ['/rest/v1/users?select=id'],
+      startTimestamp: Date.now(),
+    });
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET app.example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves a relative XHR URL against the page origin for the streamed span name', () => {
+    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+
+    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'GET',
+          url: '/rest/v1/users?select=id',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as utils.HandlerDataXhr);
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET app.example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('falls back to the request method for a data URL, which has no domain', () => {
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'GET', url: 'data:text/plain,hello' },
+      args: ['data:text/plain,hello'],
+      startTimestamp: Date.now(),
+    });
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET');
+    expect(requestSpanJson.attributes['url.domain']).toBeUndefined();
+  });
+
   describe('XHR trace header span', () => {
     afterEach(() => {
       vi.restoreAllMocks();
