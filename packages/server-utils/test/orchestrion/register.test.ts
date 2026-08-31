@@ -1,8 +1,17 @@
 import type * as SentryCore from '@sentry/core';
+import type * as NodeModule from 'node:module';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The registration installs real Node module hooks, which we neither want nor need here. Stub the
-// tracing-hooks surface so the tests can drive the diagnostics callback directly.
+// tracing-hooks surface so the tests can drive the diagnostics callback directly, and neuter
+// `node:module`'s hook installers: on Node 24.13+/26 the stable-sync-hooks path would otherwise call
+// the real `Module.registerHooks({ resolve, load })` with the mocked (undefined-returning) callbacks,
+// leaving a broken resolve hook installed process-wide that crashes vitest's next dynamic `import()`.
+vi.mock('node:module', async importOriginal => {
+  const actual = await importOriginal<typeof NodeModule>();
+  return { ...actual, registerHooks: vi.fn(), register: vi.fn() };
+});
+
 const setDiagnosticsHookMock = vi.fn<(cb: DiagnosticsCallback) => void>();
 vi.mock('@apm-js-collab/tracing-hooks/lib/diagnostics.js', () => ({
   setDiagnosticsHook: (cb: DiagnosticsCallback) => setDiagnosticsHookMock(cb),

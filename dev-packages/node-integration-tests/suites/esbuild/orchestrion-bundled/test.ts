@@ -91,7 +91,7 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
   // The positive control. Without it the two tests above would still pass on a build where the SDK
   // never warns at all, which is the regression they are meant to catch. `dataloader` is left
   // external so it loads through Node's loader, which is where a stripped transformer actually
-  // costs the user instrumentation.
+  // loses the user instrumentation.
   test('warns when an external instrumented dependency loads and no plugin ran', async () => {
     const outfile = join(OUT_DIR, 'no-plugin', 'app.mjs');
 
