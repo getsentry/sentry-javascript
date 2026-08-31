@@ -39,7 +39,7 @@ import type {
   MiddlewareError,
   RegistrationChannelContext,
 } from './types';
-import { shouldCaptureError } from './utils';
+import { defaultShouldHandleError } from './utils';
 import { isExpressErrorHandled, markExpressErrorHandled } from './error-handled';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
@@ -150,7 +150,11 @@ export function captureLayerError(
     markExpressErrorHandled(request);
   }
 
-  if (!shouldCaptureError(shouldHandleError, error as MiddlewareError)) {
+  if (shouldHandleError === false) {
+    return;
+  }
+
+  if (!(shouldHandleError ?? defaultShouldHandleError)(error as MiddlewareError)) {
     return;
   }
 

@@ -1,7 +1,7 @@
-import { captureException, getClient, getIsolationScope, httpRequestToRequestData } from '@sentry/core';
+import { captureException, getIsolationScope, httpRequestToRequestData } from '@sentry/core';
 import { isExpressErrorHandled } from './error-handled';
-import type { ExpressIntegration, ExpressRequest, ExpressResponse, MiddlewareError } from './types';
-import { INTEGRATION_NAME, shouldCaptureError } from './utils';
+import type { ExpressRequest, ExpressResponse, MiddlewareError } from './types';
+import { defaultShouldHandleError } from './utils';
 
 type ExpressErrorMiddleware = (
   error: MiddlewareError,
@@ -11,10 +11,6 @@ type ExpressErrorMiddleware = (
 ) => void;
 
 type ExpressMiddleware = (request: ExpressRequest, res: ExpressResponse, next: () => void) => void;
-
-function getExpressIntegration(): ExpressIntegration | undefined {
-  return getClient()?.getIntegrationByName<ExpressIntegration>(INTEGRATION_NAME);
-}
 
 /**
  * Set request data on the isolation scope so a captured error carries request context. Mirrors the
@@ -49,9 +45,9 @@ export function expressErrorHandler(): ExpressErrorMiddleware {
       return;
     }
 
-    // `shouldHandleError` is configured on `expressIntegration()` only. Without the integration
-    // registered, the default predicate applies.
-    if (shouldCaptureError(getExpressIntegration()?.getShouldHandleError(), error)) {
+    // `shouldHandleError` is an `expressIntegration()` feature and is deliberately not honoured here:
+    // this path exists to keep capturing errors, not to filter them. Migrate to the integration to filter.
+    if (defaultShouldHandleError(error)) {
       const eventId = captureException(error, {
         mechanism: { type: 'auto.middleware.express', handled: false },
       });
@@ -76,7 +72,7 @@ function expressRequestHandler(): ExpressMiddleware {
  *
  * @param app The Express instance
  *
- * @deprecated `expressIntegration()` now captures errors automatically, so calling this is no longer
+ * @deprecated `expressIntegration()` now captures errors automatically, so calling this error handler is no longer
  * necessary. To customize which errors are captured, pass `shouldHandleError` to `expressIntegration()`.
  * This export is deprecated and will be removed in the next major version.
  */

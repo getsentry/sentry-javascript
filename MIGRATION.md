@@ -850,6 +850,8 @@ The `setupExpressErrorHandler` and `expressErrorHandler` no longer accept a `sho
 -});
 ```
 
+`setupExpressErrorHandler(app)` keeps working for the time being. It captures 5xx errors and errors without a status, and cannot be filtered in the error handler.
+
 ### Span name changes
 
 Affected SDKs: All SDKs.

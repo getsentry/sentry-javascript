@@ -1,4 +1,4 @@
-import type { Integration, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 
 export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
 
@@ -106,8 +106,4 @@ export interface ExpressIntegrationOptions {
    * ```
    */
   shouldHandleError?: ExpressShouldHandleError;
-}
-
-export interface ExpressIntegration extends Integration {
-  getShouldHandleError: () => ExpressShouldHandleError | undefined;
 }
