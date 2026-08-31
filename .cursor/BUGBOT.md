@@ -13,10 +13,10 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 
 ### Security Vulnerabilities
 
-- Exposed secrets, API keys, tokens, DSNs, or credentials in code, comments, logs, configs, or examples
+- Exposed **real** secrets, API keys, tokens, or credentials in production code, comments, logs, or committed configs. Do **not** flag test fixtures, unit/integration/E2E helpers, or docs/examples that use obviously fake / placeholder DSNs and credentials (bogus DSNs in tests are expected).
 - Unsafe use of `eval()`, `Function()`, or `innerHTML`
 - Unsafe regular expressions that could cause ReDoS attacks
-- PII or sensitive data attached by auto-instrumentation without an explicit opt-in (`sendDefaultPii` or equivalent). Flag new default logging/sending of request/response bodies, full URLs with query secrets, file paths, or device identifiers.
+- Sensitive data collection must go through the SDK's `dataCollection` options (and helpers like `filterCollectedUrl` / `filterCollectedUrlQuery`) where applicable. Flag new instrumentation that attaches request/response bodies, cookies, headers, URL query params, user info, DB query data, GraphQL variables, GenAI I/O, or similar without honoring the relevant `dataCollection.*` knobs — or that hard-codes collection on when those options would disable or filter it. Prefer linking reviewers to the existing URL-attribute filtering rules below rather than inventing parallel guidance.
 - Large or sensitive attachments enabled by default, or attachments lacking size limits / backoff
 - Diagnostics, sampling overrides, verbose logging, or feature flags accidentally enabled in production defaults
 
