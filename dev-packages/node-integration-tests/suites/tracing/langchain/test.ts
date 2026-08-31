@@ -269,6 +269,7 @@ describe('LangChain integration', () => {
             expect(formatPromptSpan).toBeDefined();
             expect(formatPromptSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(formatPromptSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            expect(formatPromptSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
             expect(formatPromptSpan!.attributes['langchain.chain.name'].value).toBe('format_prompt');
 
             const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
@@ -403,6 +404,36 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('leads chain span names with the operation when span streaming is enabled', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            const chainSpans = container.items.filter(
+              span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+            );
+            // The `unknown_chain` sentinel is dropped, so that span falls back to the bare operation.
+            expect(chainSpans.map(span => span.name).sort()).toEqual([
+              'invoke_agent',
+              'invoke_agent format_prompt',
+              'invoke_agent parse_output',
+            ]);
+            for (const span of chainSpans) {
+              expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
+            }
+            expect(chainSpans.map(span => span.attributes['langchain.chain.name']?.value).sort()).toEqual([
+              'format_prompt',
+              'parse_output',
+              'unknown_chain',
+            ]);
           },
         })
         .start()

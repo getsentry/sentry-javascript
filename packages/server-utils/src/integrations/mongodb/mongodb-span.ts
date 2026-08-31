@@ -9,7 +9,13 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+} from '@sentry/core';
 
 // `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined to match
 // what `@opentelemetry/instrumentation-mongodb` emitted.
@@ -220,8 +226,19 @@ export function getV3SpanAttributes(
  * to support platforms that lack it (ie, Deno).
  */
 export function startMongoSpan(attributes: SpanAttributes): Span {
+  const operation = attributes[DB_OPERATION_NAME] as string | undefined;
+  const target = (attributes[DB_COLLECTION_NAME] || attributes[DB_NAMESPACE]) as string | undefined;
+
+  const client = getClient();
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? operation && target
+        ? `${operation} ${target}`
+        : target || DB_SYSTEM_VALUE_MONGODB
+      : (attributes[DB_QUERY_TEXT] as string) || `mongodb.${attributes[DB_OPERATION_NAME] || 'command'}`;
+
   return startInactiveSpan({
-    name: (attributes[DB_QUERY_TEXT] as string) || `mongodb.${attributes[DB_OPERATION_NAME] || 'command'}`,
+    name,
     op: 'db',
     attributes: {
       [SENTRY_KIND]: 'client',

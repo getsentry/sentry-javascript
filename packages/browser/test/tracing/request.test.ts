@@ -90,7 +90,7 @@ describe('instrumentOutgoingRequests', () => {
   });
 
   it('creates a QUERY XHR span with the QUERY method attribute', () => {
-    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let xhrHandler: ((data: browserUtils.HandlerDataXhr) => void) | undefined;
     let requestSpan: utils.Span | undefined;
 
     vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
@@ -117,7 +117,7 @@ describe('instrumentOutgoingRequests', () => {
         setRequestHeader: vi.fn(),
       },
       startTimestamp: Date.now(),
-    } as utils.HandlerDataXhr);
+    } as browserUtils.HandlerDataXhr);
 
     expect(xhrHandler).toBeDefined();
     expect(requestSpan).toBeDefined();
@@ -134,7 +134,7 @@ describe('instrumentOutgoingRequests', () => {
     it('uses the active propagation context for an ignored child span', () => {
       const activeSpan = new utils.SentryNonRecordingSpan();
       const ignoredSpan = new utils.SentryNonRecordingSpan({ dropReason: 'ignored' });
-      let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+      let xhrHandler: ((data: browserUtils.HandlerDataXhr) => void) | undefined;
 
       vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
         xhrHandler = handler;
@@ -163,7 +163,7 @@ describe('instrumentOutgoingRequests', () => {
           setRequestHeader: vi.fn(),
         },
         startTimestamp: Date.now(),
-      } as utils.HandlerDataXhr);
+      } as browserUtils.HandlerDataXhr);
 
       expect(xhrHandler).toBeDefined();
       expect(getTraceDataSpy).toHaveBeenCalledWith({
@@ -193,7 +193,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => 'https://my-origin.com');
     });
 
     afterEach(() => {
@@ -232,7 +232,7 @@ describe('shouldAttachHeaders', () => {
 
     beforeEach(() => {
       locationHrefSpy = vi
-        .spyOn(utils, 'getLocationHref')
+        .spyOn(browserUtils, 'getLocationHref')
         .mockImplementation(() => 'https://my-origin.com/api/my-route');
     });
 
@@ -364,7 +364,7 @@ describe('shouldAttachHeaders', () => {
     let locationHrefSpy: MockInstance;
 
     beforeEach(() => {
-      locationHrefSpy = vi.spyOn(utils, 'getLocationHref').mockImplementation(() => '');
+      locationHrefSpy = vi.spyOn(browserUtils, 'getLocationHref').mockImplementation(() => '');
     });
 
     afterEach(() => {

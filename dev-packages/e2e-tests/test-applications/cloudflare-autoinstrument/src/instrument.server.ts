@@ -7,7 +7,6 @@ export default (env: Env) => ({
   environment: 'qa',
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1.0,
-  enableRpcTracePropagation: true,
   transportOptions: {
     bufferSize: 1000,
   },

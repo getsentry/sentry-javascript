@@ -41,6 +41,23 @@ const SPECIFIER_PATTERNS = [
 ];
 
 /**
+ * Whether the emitted bundle still imports/requires `moduleName` as a bare specifier — i.e. the
+ * module was left external instead of inlined into the bundle. Matches ESM `from '<m>'`, dynamic
+ * `import('<m>')` and CJS `require('<m>')`, and compares the specifier exactly, so `graphql` never
+ * matches `graphql/execution`.
+ */
+export function bundleReferencesModule(bundleContents: string, moduleName: string): boolean {
+  for (const pattern of SPECIFIER_PATTERNS) {
+    for (const match of bundleContents.matchAll(pattern)) {
+      if (match[1] === moduleName) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Returns every absolute-path module specifier in the emitted output, as `<file> → <specifier>`.
  *
  * Such a specifier is baked in at build time, so it only resolves on the build machine: every

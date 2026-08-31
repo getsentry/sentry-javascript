@@ -21,7 +21,6 @@ export declare function effectLayer(
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
-export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 export declare const SentryEffectTracer: typeof clientSdk.SentryEffectTracer;
 export declare const startSpan: typeof clientSdk.startSpan;
 export declare const startSpanManual: typeof clientSdk.startSpanManual;

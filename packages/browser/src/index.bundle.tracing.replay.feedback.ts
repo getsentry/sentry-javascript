@@ -23,6 +23,7 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
+  spanStreamingIntegration,
 } from '@sentry/core/browser';
 
 export {
@@ -36,7 +37,6 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 
-export { spanStreamingIntegration } from '@sentry/core/browser';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

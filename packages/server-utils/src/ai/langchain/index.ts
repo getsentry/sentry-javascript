@@ -1,5 +1,7 @@
 /* eslint-disable max-lines */
 import {
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -99,12 +101,18 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         invocationParams,
         metadata,
       );
-      const modelName = attributes[GEN_AI_REQUEST_MODEL];
-      const operationName = attributes[GEN_AI_OPERATION_NAME];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const operationName =
+        typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
+      const client = getClient();
 
       startSpanManual(
         {
-          name: `${operationName} ${modelName}`,
+          // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+          name:
+            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+              ? `${operationName} ${modelName}`
+              : operationName,
           op: 'gen_ai.chat',
           attributes: {
             ...getAgentNameFromMetadata(metadata),
@@ -144,12 +152,18 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }
 
-      const modelName = attributes[GEN_AI_REQUEST_MODEL];
-      const operationName = attributes[GEN_AI_OPERATION_NAME];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const operationName =
+        typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
+      const client = getClient();
 
       startSpanManual(
         {
-          name: `${operationName} ${modelName}`,
+          // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+          name:
+            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+              ? `${operationName} ${modelName}`
+              : operationName,
           op: 'gen_ai.chat',
           attributes: {
             ...getAgentNameFromMetadata(metadata),
@@ -214,6 +228,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const chainName = runName || chain.name || 'unknown_chain';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+        [GEN_AI_OPERATION_NAME]: 'invoke_agent',
         'langchain.chain.name': chainName,
       };
 
@@ -221,9 +236,17 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes['langchain.chain.inputs'] = JSON.stringify(inputs);
       }
 
+      const client = getClient();
+
       startSpanManual(
         {
-          name: `chain ${chainName}`,
+          // With span streaming, the name leads with the operation per the agent templates. The
+          // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
+          name: !(client && hasSpanStreamingEnabled(client))
+            ? `chain ${chainName}`
+            : chainName === 'unknown_chain'
+              ? 'invoke_agent'
+              : `invoke_agent ${chainName}`,
           op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,

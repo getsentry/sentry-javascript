@@ -9,7 +9,7 @@ import { SPAN_STATUS_ERROR } from '../tracing';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpanManual } from '../tracing/trace';
 import type { Span, SpanAttributes } from '../types/span';
-import { getSqlQuerySummary } from '../utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike } from '../utils/is';
 import { getActiveSpan } from '../utils/spanUtils';
@@ -242,7 +242,7 @@ function _wrapSingleQueryHandle(
     }
 
     const fullQuery = _reconstructQuery(query.strings);
-    const sanitizedSqlQuery = _sanitizeSqlQuery(fullQuery);
+    const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
 
     const client = getClient();
     const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
@@ -364,58 +364,6 @@ export function _reconstructQuery(strings: string[] | undefined): string | undef
   }
   // Join template parts with PostgreSQL placeholders ($1, $2, etc.)
   return strings.reduce((acc, str, i) => (i === 0 ? str : `${acc}$${i}${str}`), '');
-}
-
-let integerLiteralRE: RegExp | undefined;
-
-/**
- * Sanitize SQL query as per the OTEL semantic conventions
- * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
- *
- * PostgreSQL $n placeholders are preserved per OTEL spec - they're parameterized queries,
- * not sensitive literals. Only actual values (strings, numbers, booleans) are sanitized.
- *
- * @internal Exported for testing only
- */
-export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
-  if (!sqlQuery) {
-    return 'Unknown SQL Query';
-  }
-
-  // Lazy init: constructing this at module scope would evaluate the lookbehind
-  // on import and crash Safari <16.4 browser bundles that reach this file via
-  // the core barrel. Building it on first call keeps the cost off the import path.
-  if (!integerLiteralRE) {
-    integerLiteralRE = new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
-  }
-
-  return (
-    sqlQuery
-      // Remove comments first (they may contain newlines and extra spaces)
-      .replace(/--.*$/gm, '') // Single line comments (multiline mode)
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Multi-line comments
-      .replace(/;\s*$/, '') // Remove trailing semicolons
-      // Collapse whitespace to a single space (after removing comments)
-      .replace(/\s+/g, ' ')
-      .trim() // Remove extra spaces and trim
-      // Sanitize hex/binary literals before string literals
-      .replace(/\bX'[0-9A-Fa-f]*'/gi, '?') // Hex string literals
-      .replace(/\bB'[01]*'/gi, '?') // Binary string literals
-      // Sanitize string literals (handles escaped quotes)
-      .replace(/'(?:[^']|'')*'/g, '?')
-      // Sanitize hex numbers
-      .replace(/\b0x[0-9A-Fa-f]+/gi, '?')
-      // Sanitize boolean literals
-      .replace(/\b(?:TRUE|FALSE)\b/gi, '?')
-      // Sanitize numeric literals (preserve $n placeholders via negative lookbehind)
-      .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
-      .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
-      .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      .replace(integerLiteralRE, '?') // Integers (NOT $n placeholders)
-      // Collapse IN clauses for cardinality (both ? and $n variants)
-      .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
-      .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
-  );
 }
 
 /**

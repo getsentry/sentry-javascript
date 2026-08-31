@@ -1,5 +1,5 @@
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import { addHandler, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/core';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '../types';
 import { WINDOW } from '../types';
 
 export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v3__';

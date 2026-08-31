@@ -13,7 +13,6 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
-  getComponentName,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
@@ -24,6 +23,7 @@ import { addPerformanceInstrumentationHandler } from '../instrumentation/perform
 import { isBotUserAgent } from '../isBotUserAgent';
 import { WINDOW } from '../types';
 import { msToSec, startAndEndSpan } from './utils';
+import { getComponentName } from '../component-name';
 
 const INTEGRATION_NAME = 'Interactions';
 
