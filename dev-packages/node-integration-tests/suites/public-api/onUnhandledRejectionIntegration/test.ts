@@ -59,6 +59,22 @@ test rejection`);
       });
     }));
 
+  test('should not show warning for error-type promise rejections in strict mode', () =>
+    new Promise<void>(done => {
+      expect.assertions(5);
+
+      const testScriptPath = path.resolve(__dirname, 'mode-strict-error.js');
+
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
+        expect(err).not.toBeNull();
+        expect(err?.code).toBe(1);
+        expect(stdout).not.toBe("I'm alive!");
+        expect(stderr).toContain('Error: test rejection');
+        expect(stderr).not.toContain('The promise rejected with the reason');
+        done();
+      });
+    }));
+
   test('should not close process or warn on unhandled rejection in none mode', () =>
     new Promise<void>(done => {
       expect.assertions(3);
