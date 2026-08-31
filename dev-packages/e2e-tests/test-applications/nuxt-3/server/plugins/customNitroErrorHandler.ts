@@ -1,4 +1,5 @@
-import { Context, flushIfServerless } from '@sentry/core';
+import { Context } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack';
