@@ -156,8 +156,8 @@ function subscribeQuery(channelName: string, operation: string): void {
     const span = startInactiveSpan({
       name:
         client && hasSpanStreamingEnabled(client)
-          ? (querySummary ?? getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table))
-          : sql || getSecondarySpanName(operation, databaseName, sql, request.table),
+          ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
+          : sql || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
     });
 
@@ -209,21 +209,11 @@ function extractSql(request: TediousRequest): string | undefined {
 }
 
 /**
- * The span name is a low-cardinality label for the operation; the SDK's db-span inference later renames
- * the span description off `db.query.text` when present. Mirrors the vendored OTel `getSpanName`.
+ * Get a secondary span name for static trace lifecycle (not strictly adhering to sentry-convention span names)
  */
-function getSecondarySpanName(
-  operation: string,
-  db: string | undefined,
-  sql: string | undefined,
-  bulkLoadTable: string | undefined,
-): string {
+function getSecondarySpanName(operation: string, db: string | undefined, bulkLoadTable: string | undefined): string {
   if (operation === 'execBulkLoad' && bulkLoadTable && db) {
     return `${operation} ${bulkLoadTable} ${db}`;
-  }
-  if (operation === 'callProcedure' && sql) {
-    // `sql` refers to the procedure name for `callProcedure`.
-    return db ? `${operation} ${sql} ${db}` : `${operation} ${sql}`;
   }
   // Avoid `sql` in the general case because of its high cardinality.
   return db ? `${operation} ${db}` : operation;

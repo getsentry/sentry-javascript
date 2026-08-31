@@ -153,6 +153,7 @@ function subscribeBuilder(channelName: string): void {
 function subscribeQuery(): void {
   bindTracingChannelToSpan<KnexQueryChannelContext>(
     diagnosticsChannel.tracingChannel<KnexQueryChannelContext>(CHANNELS.KNEX_QUERY),
+    // oxlint-disable-next-line complexity
     data => {
       const runner = data.self;
       const builder = runner?.builder;
@@ -175,10 +176,9 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
-      // The statement is sanitized before it is summarized, so that a string literal containing
-      // `from`/`join` can't leak a value into the summary.
+      const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
       const querySummary = dbStatement
-        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement))
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement, dialect))
         : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
