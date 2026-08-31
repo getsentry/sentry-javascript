@@ -52,6 +52,7 @@ import { SUPPRESS_TRACING_KEY } from './constants';
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // We still need to fork a potentially passed scope, as we set the active span on it
@@ -104,6 +105,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   const customForkedScope = customScope?.clone();
@@ -150,6 +152,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // If `options.scope` is defined, we use this as as a wrapper,
