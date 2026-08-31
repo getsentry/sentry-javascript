@@ -2,6 +2,7 @@ import { flushIfServerless, getTraceMetaTags } from '@sentry/core';
 import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
+import { injectHtmlIntoHead } from '@sentry/server-utils';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
@@ -14,98 +15,10 @@ export type ServerEntry = {
   fetch: (request: Request, opts?: any) => Promise<Response> | Response;
 };
 
-/**
- * This function optimistically assumes that the HTML coming in chunks will not be split
- * within the <head> tag. If this still happens, we simply won't replace anything.
- */
-function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
-  if (typeof htmlChunk !== 'string' || !metaTagsStr) {
-    return htmlChunk;
-  }
-
-  if (htmlChunk.includes('"sentry-trace"')) {
-    return htmlChunk;
-  }
-
-  // Skip quoted attribute values so we don't match <head> inside e.g. data-code="...<head>..."
-  let replaced = false;
-  return htmlChunk.replace(/"[^"]*"|'[^']*'|(<head>)/g, (match, headTag) => {
-    if (headTag && !replaced) {
-      replaced = true;
-      return `<head>${metaTagsStr}`;
-    }
-    return match;
+function reportStreamError(error: unknown): void {
+  captureException(error, {
+    mechanism: { type: 'auto.http.tanstackstart', handled: false },
   });
-}
-
-function injectMetaTagsInResponse(originalResponse: Response): Response {
-  try {
-    const contentType = originalResponse.headers.get('content-type');
-
-    const isPageloadRequest = contentType?.startsWith('text/html');
-    if (!isPageloadRequest) {
-      return originalResponse;
-    }
-
-    // Type case necessary b/c the body's ReadableStream type doesn't include
-    // the async iterator that is actually available in Node
-    // We later on use the async iterator to read the body chunks
-    // see https://github.com/microsoft/TypeScript/issues/39051
-    const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-    if (!originalBody) {
-      return originalResponse;
-    }
-
-    const metaTagsStr = getTraceMetaTags();
-    const decoder = new TextDecoder();
-
-    const newResponseStream = new ReadableStream({
-      start: async controller => {
-        // Assign to a new variable to avoid TS losing the narrower type checked above.
-        const body = originalBody;
-
-        async function* bodyReporter(): AsyncGenerator<string | Buffer> {
-          try {
-            for await (const chunk of body) {
-              yield chunk;
-            }
-          } catch (e) {
-            captureException(e, {
-              mechanism: { type: 'auto.http.tanstackstart', handled: false },
-            });
-            throw e;
-          }
-        }
-
-        let errored = false;
-        try {
-          for await (const chunk of bodyReporter()) {
-            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-            const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
-            controller.enqueue(new TextEncoder().encode(modifiedHtml));
-          }
-        } catch (e) {
-          errored = true;
-          controller.error(e);
-        } finally {
-          if (!errored) {
-            controller.close();
-          }
-        }
-      },
-    });
-
-    return new Response(newResponseStream, {
-      status: originalResponse.status,
-      statusText: originalResponse.statusText,
-      headers: new Headers(originalResponse.headers),
-    });
-  } catch (e) {
-    captureException(e, {
-      mechanism: { type: 'auto.http.tanstackstart', handled: false },
-    });
-    throw e;
-  }
 }
 
 /**
@@ -161,7 +74,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             updateSpanWithRouteParametrization(method, url.pathname, __SENTRY_ROUTE_PATTERNS__);
           }
 
-          return injectMetaTagsInResponse(await target.apply(thisArg, args));
+          return injectHtmlIntoHead(await target.apply(thisArg, args), getTraceMetaTags(), reportStreamError);
         } finally {
           await flushIfServerless();
         }

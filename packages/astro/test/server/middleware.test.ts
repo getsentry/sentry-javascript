@@ -389,9 +389,9 @@ describe('sentryMiddleware', () => {
     const html = await resultFromNext?.text();
 
     expect(html).toContain('<head>');
-    expect(html).toContain('<meta name="something" content=""/></head>');
-    // parametrized route is injected
-    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).toContain('<meta name="something" content=""/>');
+    // parametrized route is injected, directly before the closing head tag
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/></head>');
     // trace data is not injected
     expect(html).not.toContain('<meta name="sentry-trace" content="');
     expect(html).not.toContain('<meta name="baggage" content="');
@@ -449,7 +449,7 @@ describe('sentryMiddleware', () => {
     const html = await resultFromNext?.text();
 
     expect(html).toContain('<head>');
-    expect(html).toContain('<meta name="something" content=""/></head>');
+    expect(html).toContain('<meta name="something" content=""/>');
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');

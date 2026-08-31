@@ -87,10 +87,10 @@ describe('wrapFetchWithSentry', () => {
     expect(html).toContain('<meta name="baggage" content="sentry-trace_id=abc123"/>');
     expect(html).toContain('<meta charset="utf-8"/>');
 
-    // No whitespace text node may appear directly after `<head>` or between the injected tags —
+    // No whitespace text node may appear between the injected tags or before `</head>` —
     // React 19 whole-document hydration rejects unexpected text nodes in `<head>` (#21915).
     expect(html).toContain(
-      '<head><meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/>',
+      '<meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/></head>',
     );
   });
 
@@ -149,7 +149,7 @@ describe('wrapFetchWithSentry', () => {
     expect(response.headers.get('X-Custom-Header')).toBe('custom-value');
   });
 
-  it('does not inject meta tags into <head> inside quoted attribute values', async () => {
+  it('leaves head tags inside quoted attribute values alone', async () => {
     const mockResponse = new Response('<head></head><body><div data-content="<head>ignore"></div></body>', {
       headers: new Headers({ 'content-type': 'text/html' }),
     });
@@ -161,7 +161,7 @@ describe('wrapFetchWithSentry', () => {
     const response = await serverEntry.fetch(request);
     const html = await response.text();
 
-    expect(html).toContain('<head><meta name="sentry-trace"');
+    expect(html).toContain('<head><meta name="sentry-trace" content="abc123-def456-1"/>');
     expect(html).toContain('data-content="<head>ignore"');
   });
 
@@ -191,6 +191,33 @@ describe('wrapFetchWithSentry', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(streamError, {
       mechanism: { type: 'auto.http.tanstackstart', handled: false },
     });
+  });
+
+  // The chunk boundary handling itself is covered in @sentry/server-utils; this checks that a
+  // streamed response reaches it at all.
+  it('injects meta tags into an HTML response arriving in several chunks', async () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode('<!DOCTYPE html><html data-ssr-state="'));
+        controller.enqueue(encoder.encode('{&quot;theme&quot;:&quot;dark&quot;}'));
+        controller.enqueue(encoder.encode('"><head><title>t</title></head><body>b</body></html>'));
+        controller.close();
+      },
+    });
+    const fetchFn = vi.fn().mockResolvedValue(
+      new Response(body, {
+        headers: new Headers({ 'content-type': 'text/html' }),
+      }),
+    );
+
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+    const response = await serverEntry.fetch(new Request('http://localhost:3000/'));
+    const html = await response.text();
+
+    expect(html.split('name="sentry-trace"')).toHaveLength(2);
+    expect(html).toContain('<meta name="baggage" content="sentry-trace_id=abc123"/></head>');
+    expect(html).toContain('data-ssr-state="{&quot;theme&quot;:&quot;dark&quot;}"');
   });
 
   it('calls flushIfServerless even if the handler throws', async () => {

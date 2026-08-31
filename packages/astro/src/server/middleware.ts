@@ -39,7 +39,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
-import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
+import { injectHtmlIntoHead, setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
@@ -279,26 +279,6 @@ async function instrumentRequestStartHttpServerSpan(
   });
 }
 
-/**
- * This function optimistically assumes that the HTML coming in chunks will not be split
- * within the <head> tag. If this still happens, we simply won't replace anything.
- */
-function addMetaTagToHead(htmlChunk: string, metaTagsStr: string): string {
-  if (typeof htmlChunk !== 'string' || !metaTagsStr) {
-    return htmlChunk;
-  }
-
-  // Skip quoted attribute values so we don't match <head> inside e.g. data-code="...<head>..."
-  let replaced = false;
-  return htmlChunk.replace(/"[^"]*"|'[^']*'|(<head>)/g, (match, headTag) => {
-    if (headTag && !replaced) {
-      replaced = true;
-      return `<head>${metaTagsStr}`;
-    }
-    return match;
-  });
-}
-
 function getMetaTagsStr({
   injectTraceData,
   parametrizedRoute,
@@ -463,63 +443,5 @@ function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): stri
 }
 
 function injectMetaTagsInResponse(originalResponse: Response, metaTagsStr: string): Response {
-  try {
-    const contentType = originalResponse.headers.get('content-type');
-
-    const isPageloadRequest = contentType?.startsWith('text/html');
-    if (!isPageloadRequest) {
-      return originalResponse;
-    }
-
-    // Type case necessary b/c the body's ReadableStream type doesn't include
-    // the async iterator that is actually available in Node
-    // We later on use the async iterator to read the body chunks
-    // see https://github.com/microsoft/TypeScript/issues/39051
-    const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-    if (!originalBody) {
-      return originalResponse;
-    }
-
-    const decoder = new TextDecoder();
-
-    const newResponseStream = new ReadableStream({
-      start: async controller => {
-        // Assign to a new variable to avoid TS losing the narrower type checked above.
-        const body = originalBody;
-
-        async function* bodyReporter(): AsyncGenerator<string | Buffer> {
-          try {
-            for await (const chunk of body) {
-              yield chunk;
-            }
-          } catch (e) {
-            // Report stream errors coming from user code or Astro rendering.
-            sendErrorToSentry(e);
-            throw e;
-          }
-        }
-
-        try {
-          for await (const chunk of bodyReporter()) {
-            const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-            const modifiedHtml = addMetaTagToHead(html, metaTagsStr);
-            controller.enqueue(new TextEncoder().encode(modifiedHtml));
-          }
-        } catch (e) {
-          controller.error(e);
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(newResponseStream, {
-      status: originalResponse.status,
-      statusText: originalResponse.statusText,
-      headers: new Headers(originalResponse.headers),
-    });
-  } catch (e) {
-    sendErrorToSentry(e);
-    throw e;
-  }
+  return injectHtmlIntoHead(originalResponse, metaTagsStr, sendErrorToSentry);
 }

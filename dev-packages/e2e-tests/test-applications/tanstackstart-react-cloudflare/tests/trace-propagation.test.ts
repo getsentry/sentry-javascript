@@ -17,6 +17,19 @@ test.describe('Trace propagation', () => {
     expect(baggageContent).toContain('sentry-sampled=');
   });
 
+  test('should inject metatags when the SSR stream splits ahead of the head', async ({ page }) => {
+    await page.goto('/split-head-chunk');
+
+    const sentryTraceContent = await page.getAttribute('meta[name="sentry-trace"]', 'content');
+    expect(sentryTraceContent).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-[01]$/);
+
+    const baggageContent = await page.getAttribute('meta[name="baggage"]', 'content');
+    expect(baggageContent).toContain('sentry-trace_id=');
+
+    // The attribute that forces the chunk boundary must survive the rewrite intact.
+    expect(await page.getAttribute('html', 'data-long')).toHaveLength(3000);
+  });
+
   test('should have trace connection between server and client', async ({ page }) => {
     const serverTxPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
       return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
