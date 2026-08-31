@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForRequest } from '@sentry-internal/test-utils';
 
 test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ baseURL }) => {
+  const privateMessage = 'cloudflare-agent-private-capture-policy-message';
   const mcpToolWaiter = waitForRequest('cloudflare-mcp-agent', event => {
     const transaction = event.envelope[1][0][1];
     return (
@@ -66,16 +67,18 @@ test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ bas
       params: {
         name: 'my-tool',
         arguments: {
-          message: 'hello from MCPAgent test',
+          message: privateMessage,
         },
       },
     }),
   });
 
   expect(response.status).toBe(200);
+  await expect(response.text()).resolves.toContain(`Tool my-tool: ${privateMessage}`);
 
   const mcpData = await mcpToolWaiter;
   const mcpEvent = mcpData.envelope[1][0][1];
+  const traceData = mcpEvent.contexts?.trace?.data;
 
   expect(mcpEvent.contexts?.trace?.trace_id).toBe(mcpData.envelope[0].trace.trace_id);
   expect(mcpEvent.contexts?.trace).toEqual({
@@ -90,7 +93,12 @@ test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ bas
       'mcp.method.name': 'tools/call',
       'mcp.tool.name': 'my-tool',
       'mcp.tool.extra': 'from-mcpagent',
-      'mcp.tool.input': '{"message":"hello from MCPAgent test"}',
+      'mcp.tool.result.content_count': 1,
+      'mcp.tool.result.content_type': 'text',
     }),
   });
+  expect(traceData?.['mcp.request.argument.message']).toBeUndefined();
+  expect(traceData?.['mcp.tool.result.content']).toBeUndefined();
+  expect(traceData?.['mcp.tool.input']).toBeUndefined();
+  expect(JSON.stringify(traceData)).not.toContain(privateMessage);
 });

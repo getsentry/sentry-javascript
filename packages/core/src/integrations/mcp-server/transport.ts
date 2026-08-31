@@ -5,7 +5,7 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
-import { getIsolationScope, withIsolationScope } from '../../currentScopes';
+import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
@@ -19,17 +19,33 @@ import {
 } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
-import type { ExtraHandlerData, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
+import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
+
+function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions {
+  if (options.recordInputs !== undefined && options.recordOutputs !== undefined) {
+    return {
+      recordInputs: options.recordInputs,
+      recordOutputs: options.recordOutputs,
+    };
+  }
+
+  const genAI = getClient()?.getDataCollectionOptions().genAI;
+
+  return {
+    recordInputs: options.recordInputs ?? genAI?.inputs ?? false,
+    recordOutputs: options.recordOutputs ?? genAI?.outputs ?? false,
+  };
+}
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
  * Extracts and stores client info and protocol version from legacy initialize
  * requests and modern message envelopes.
  * @param transport - MCP transport instance to wrap
- * @param options - Resolved MCP options
+ * @param options - MCP capture overrides
  */
-export function wrapTransportOnMessage(transport: MCPTransport, options: ResolvedMcpOptions): void {
+export function wrapTransportOnMessage(transport: MCPTransport, options: McpServerWrapperOptions): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
@@ -53,10 +69,11 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
         }
 
         if (request) {
+          const resolvedOptions = resolveMcpOptions(options);
           const isolationScope = getIsolationScope().clone();
 
           return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, options);
+            const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, resolvedOptions);
             const span = startInactiveSpan(spanConfig);
 
             if (request.method === 'initialize' && messageSessionData) {
@@ -68,7 +85,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
               });
             }
 
-            storeSpanForRequest(transport, request.id, span, request.method);
+            storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
 
             return withActiveSpan(span, () => {
               return (originalOnMessage as (...args: unknown[]) => unknown).call(this, request, extra);
@@ -77,7 +94,8 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
         }
 
         if (notification) {
-          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, options, () => {
+          const resolvedOptions = resolveMcpOptions(options);
+          return createMcpNotificationSpan(notification, transport, extra as ExtraHandlerData, resolvedOptions, () => {
             return (originalOnMessage as (...args: unknown[]) => unknown).call(this, notification, extra);
           });
         }
@@ -93,16 +111,17 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
  * Extracts and stores protocol version and server info from legacy initialize
  * responses and modern result metadata.
  * @param transport - MCP transport instance to wrap
- * @param options - Resolved MCP options
+ * @param options - MCP capture overrides
  */
-export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpOptions): void {
+export function wrapTransportSend(transport: MCPTransport, options: McpServerWrapperOptions): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
         const [message] = args;
 
         if (isJsonRpcNotification(message)) {
-          return createMcpOutgoingNotificationSpan(message, transport, options, () => {
+          const resolvedOptions = resolveMcpOptions(options);
+          return createMcpOutgoingNotificationSpan(message, transport, resolvedOptions, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
         }
@@ -113,7 +132,7 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
               captureJsonRpcErrorResponse(message.error);
             }
 
-            completeSpanWithResults(transport, message.id, message.result, options, !!message.error);
+            completeSpanWithResults(transport, message.id, message.result, !!message.error);
           }
         }
 

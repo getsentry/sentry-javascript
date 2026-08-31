@@ -4,13 +4,15 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod';
 
 class MyMCPAgentBase extends McpAgent<Env, unknown, Record<string, unknown>> {
-  #mcpServer = new McpServer({
-    name: 'cloudflare-mcp-agent',
-    version: '1.0.0',
-  });
+  #mcpServer = Sentry.wrapMcpServerWithSentry(
+    new McpServer({
+      name: 'cloudflare-mcp-agent',
+      version: '1.0.0',
+    }),
+  );
 
   get server() {
-    return Sentry.wrapMcpServerWithSentry(this.#mcpServer);
+    return this.#mcpServer;
   }
 
   async init(): Promise<void> {
@@ -31,7 +33,6 @@ class MyMCPAgentBase extends McpAgent<Env, unknown, Record<string, unknown>> {
         if (span) {
           span.setAttribute('mcp.tool.name', 'my-tool');
           span.setAttribute('mcp.tool.extra', 'from-mcpagent');
-          span.setAttribute('mcp.tool.input', JSON.stringify({ message }));
         }
 
         return {
@@ -53,7 +54,13 @@ export const MyMCPAgent = Sentry.instrumentDurableObjectWithSentry(
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
+    dataCollection: {
+      userInfo: true,
+      genAI: {
+        inputs: false,
+        outputs: false,
+      },
+    },
     debug: true,
     transportOptions: {
       bufferSize: 1000,
@@ -68,7 +75,15 @@ export default Sentry.withSentry(
     environment: 'qa',
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
+    // The worker and the Durable Object share one cached client per isolate, so the entrypoint that
+    // initializes first decides the data collection settings for both.
+    dataCollection: {
+      userInfo: true,
+      genAI: {
+        inputs: false,
+        outputs: false,
+      },
+    },
     debug: true,
     transportOptions: {
       bufferSize: 1000,
