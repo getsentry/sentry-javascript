@@ -250,7 +250,6 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             : chainName
               ? `invoke_agent ${chainName}`
               : 'invoke_agent',
-          op: 'gen_ai.invoke_agent',
           attributes: {
             ...attributes,
             [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
