@@ -80,7 +80,6 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.get',
           name: 'r2_get',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'GetObject',
@@ -112,7 +111,6 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.head',
           name: 'r2_head',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'HeadObject',
@@ -142,7 +140,6 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.put',
           name: 'r2_put',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'PutObject',
@@ -170,7 +167,6 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.delete',
           name: 'r2_delete',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'DeleteObject',
@@ -206,7 +202,6 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.list',
           name: 'r2_list',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'ListObjects',
@@ -236,11 +231,11 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          op: 'object.multipart_upload.create',
           name: 'r2_createMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'CreateMultipartUpload',
             'cloudflare.r2.request.key': 'big-file.bin',
+            'sentry.op': 'object.multipart_upload.create',
           }),
         }),
         expect.any(Function),

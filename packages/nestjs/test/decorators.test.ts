@@ -37,7 +37,6 @@ describe('SentryTraced decorator', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'test-operation',
         name: 'testMethod',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
@@ -70,7 +69,6 @@ describe('SentryTraced decorator', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'function', // default value
         name: 'testDefaultOp',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
@@ -103,7 +101,6 @@ describe('SentryTraced decorator', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'sync-operation',
         name: 'syncMethod',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',

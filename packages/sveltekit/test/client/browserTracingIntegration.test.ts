@@ -114,7 +114,7 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
       attributes: {
-        'sentry.op': 'pageload',
+        [SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
@@ -218,7 +218,7 @@ describe('browserTracingIntegration', () => {
       {
         name: '/users/[id]',
         attributes: {
-          'sentry.op': 'navigation',
+          [SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/users/[id]',
@@ -362,7 +362,7 @@ describe('browserTracingIntegration', () => {
         {
           name: '/users/[id]',
           attributes: {
-            'sentry.op': 'navigation',
+            [SENTRY_OP]: 'navigation',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [URL_TEMPLATE]: '/users/[id]',

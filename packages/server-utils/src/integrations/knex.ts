@@ -188,7 +188,10 @@ function subscribeQuery(): void {
       return startInactiveSpan({
         name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
         parentSpan,
-        attributes,
+        attributes: {
+          [SENTRY_OP]: 'db',
+          ...attributes,
+        },
       });
     },
     {

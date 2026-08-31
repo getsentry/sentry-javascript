@@ -151,6 +151,7 @@ export function instrumentVueRouter(
         {
           name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
           attributes: {
+            [SENTRY_OP]: 'navigation',
             ...attributes,
             [SENTRY_OP]: NAVIGATION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',

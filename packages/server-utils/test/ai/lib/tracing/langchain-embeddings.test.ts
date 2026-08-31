@@ -6,6 +6,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {

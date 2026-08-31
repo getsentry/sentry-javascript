@@ -31,6 +31,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import { buildMethodPath, extractSystemInstructions, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
@@ -316,8 +317,10 @@ function instrumentMethod<T extends unknown[], R>(
         return startSpanManual(
           {
             name: spanName,
-            op: getGenAiSpanOp(operationName),
-            attributes: requestAttributes,
+            attributes: {
+              [SENTRY_OP]: getGenAiSpanOp(operationName),
+              ...requestAttributes,
+            },
           },
           async (span: Span) => {
             try {
@@ -338,8 +341,10 @@ function instrumentMethod<T extends unknown[], R>(
       return startSpan(
         {
           name: spanName,
-          op: getGenAiSpanOp(operationName),
-          attributes: requestAttributes,
+          attributes: {
+            [SENTRY_OP]: getGenAiSpanOp(operationName),
+            ...requestAttributes,
+          },
         },
         (span: Span) => {
           if (options.recordInputs && attributeParams) {

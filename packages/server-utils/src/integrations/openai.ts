@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -89,8 +90,10 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const span = startInactiveSpan({
     // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
     name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
-    op: getGenAiSpanOp(operation),
-    attributes: attributes as Record<string, SpanAttributeValue>,
+    attributes: {
+      [SENTRY_OP]: getGenAiSpanOp(operation),
+      ...(attributes as Record<string, SpanAttributeValue>),
+    },
   });
 
   if (recordInputs && params) {

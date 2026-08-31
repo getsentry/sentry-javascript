@@ -19,6 +19,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -153,8 +154,10 @@ function instrumentMethod<T extends unknown[], R>(
         model !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
           ? `${operationName} ${model}`
           : operationName,
-      op: getGenAiSpanOp(operationName),
-      attributes: requestAttributes as Record<string, SpanAttributeValue>,
+      attributes: {
+        [SENTRY_OP]: getGenAiSpanOp(operationName),
+        ...(requestAttributes as Record<string, SpanAttributeValue>),
+      },
     };
 
     if (isStreamRequested) {

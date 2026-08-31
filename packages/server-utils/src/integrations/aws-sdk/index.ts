@@ -2,11 +2,12 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import {
-  _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
-  SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
+  SENTRY_KIND,
+  SENTRY_OP,
+  _AWS_REQUEST_ID as AWS_REQUEST_ID,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -108,8 +109,8 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
         // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
         // service extensions override it where inference yields a different op (DynamoDB: `db`).
-        op: requestMetadata.spanOp || RPC,
         attributes: {
+          [SENTRY_OP]: requestMetadata.spanOp || RPC,
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
           ...extractAttributesFromNormalizedRequest(normalizedRequest),
