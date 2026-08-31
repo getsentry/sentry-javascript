@@ -76,6 +76,23 @@ describe('matchesTracePropagationTargets', () => {
     expect(matchesTracePropagationTargets('https://myapi.com/v1', [target])).toBe(true);
     expect(matchesTracePropagationTargets('https://myapi.com/v2', [target])).toBe(true);
   });
+
+  describe('with requireExactStringMatch', () => {
+    it.each([
+      ['MY_DO', ['MY_DO'], true],
+      ['MY_DO', ['my_do'], true],
+      ['my_do', ['MY_DO'], true],
+      ['MY_DB', ['DB'], false],
+      ['DB_REPLICA', ['DB'], false],
+    ])('for value %j and string targets %j returns %j', (value, targets, expected) => {
+      expect(matchesTracePropagationTargets(value, targets, true)).toBe(expected);
+    });
+
+    it('leaves regex targets matching by pattern', () => {
+      expect(matchesTracePropagationTargets('SVC_ORDERS', [/^svc_/], true)).toBe(true);
+      expect(matchesTracePropagationTargets('ORDERS', [/^SVC_/], true)).toBe(false);
+    });
+  });
 });
 
 describe('shouldPropagateTraceForUrl', () => {

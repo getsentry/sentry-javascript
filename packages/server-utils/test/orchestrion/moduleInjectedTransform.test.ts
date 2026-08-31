@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import * as barrel from '../../src/index';
+import { SENTRY_INSTRUMENTATIONS } from '../../src/orchestrion/config';
 import {
   CHANNEL_INTEGRATION_DEFINITIONS,
   subscriberExportForModule,
@@ -28,17 +30,15 @@ describe('channel integration definitions', () => {
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
 
-  it('references only real named exports of @sentry/server-utils', async () => {
+  it('references only real named exports of @sentry/server-utils', () => {
     // The injected snippet imports each factory from `@sentry/server-utils`
     // (the `DEFAULT_IMPORT_SPECIFIER`), so the export must exist on that entry.
-    const barrel = await import('../../src/index');
     for (const { exportName } of CHANNEL_INTEGRATION_DEFINITIONS) {
       expect(typeof (barrel as Record<string, unknown>)[exportName]).toBe('function');
     }
   });
 
-  it('covers every instrumented module that has a channel-subscriber integration', async () => {
-    const { SENTRY_INSTRUMENTATIONS } = await import('../../src/orchestrion/config');
+  it('covers every instrumented module that has a channel-subscriber integration', () => {
     const configured = new Set(SENTRY_INSTRUMENTATIONS.map(c => c.module.name));
     const defined = new Set(CHANNEL_INTEGRATION_DEFINITIONS.flatMap(d => d.modules as readonly string[]));
 

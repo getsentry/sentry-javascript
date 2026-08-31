@@ -6,8 +6,8 @@ import type {
   SendFeedbackParams,
   TransportMakeRequestResponse,
 } from '@sentry/core';
-import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
-import { FEEDBACK_API_SOURCE } from '../constants';
+import { captureFeedback, getClient, getCurrentScope } from '@sentry/core';
+import { FEEDBACK_API_SOURCE, WINDOW } from '../constants';
 import { createFeedbackError } from '../util/createFeedbackError';
 
 /**
@@ -36,7 +36,7 @@ export const sendFeedback: SendFeedback = (
   const eventId = captureFeedback(
     {
       source: FEEDBACK_API_SOURCE,
-      url: getLocationHref(),
+      url: _getLocationHref(),
       ...params,
     },
     hint,
@@ -113,3 +113,14 @@ export const sendFeedback: SendFeedback = (
  *     },
  *   }
  */
+
+/**
+ * A safe form of location.href.
+ */
+function _getLocationHref(): string {
+  try {
+    return WINDOW.document.location.href;
+  } catch {
+    return '';
+  }
+}

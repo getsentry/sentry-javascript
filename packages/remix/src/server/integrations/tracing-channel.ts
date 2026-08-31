@@ -9,7 +9,6 @@ import {
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
@@ -28,7 +27,7 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
@@ -160,7 +159,7 @@ function subscribeRequestHandler(): void {
         attributes: {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: HTTP_SERVER,
           ...(hasUrlName && { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
           [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,

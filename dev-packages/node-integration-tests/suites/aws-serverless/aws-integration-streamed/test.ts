@@ -120,8 +120,9 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SQS - SendMessage (producer)
   expectSpan('SQS SendMessage', {
-    name: 'my-queue send',
+    name: 'send my-queue',
     attributes: expect.objectContaining({
+      'sentry.op': { value: 'queue.publish', type: 'string' },
       'rpc.method': { value: 'SendMessage', type: 'string' },
       'rpc.service': { value: 'SQS', type: 'string' },
       'messaging.system': { value: 'aws_sqs', type: 'string' },
@@ -134,8 +135,9 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SQS - ReceiveMessage (consumer)
   expectSpan('SQS ReceiveMessage', {
-    name: 'my-queue receive',
+    name: 'receive my-queue',
     attributes: expect.objectContaining({
+      'sentry.op': { value: 'queue.receive', type: 'string' },
       'rpc.method': { value: 'ReceiveMessage', type: 'string' },
       'messaging.system': { value: 'aws_sqs', type: 'string' },
       'messaging.operation.type': { value: 'receive', type: 'string' },
@@ -146,14 +148,30 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
 
   // SNS - Publish (producer)
   expectSpan('SNS Publish', {
-    name: 'my-topic send',
+    name: 'send my-topic',
     attributes: expect.objectContaining({
       'rpc.method': { value: 'Publish', type: 'string' },
       'rpc.service': { value: 'SNS', type: 'string' },
       'messaging.system': { value: 'aws.sns', type: 'string' },
+      'sentry.op': { value: 'queue.publish', type: 'string' },
       'messaging.destination': { value: 'my-topic', type: 'string' },
       'aws.sns.topic.arn': { value: 'arn:aws:sns:us-east-1:123456789012:my-topic', type: 'string' },
       'sentry.kind': { value: 'producer', type: 'string' },
+    }),
+  });
+
+  // The ARN suffix is a per-device id, so the streamed name drops the destination.
+  expectSpan('SNS Publish (platform endpoint)', {
+    name: 'send',
+    attributes: expect.objectContaining({
+      'rpc.method': { value: 'Publish', type: 'string' },
+      'rpc.service': { value: 'SNS', type: 'string' },
+      'sentry.op': { value: 'queue.publish', type: 'string' },
+      'messaging.destination': { value: 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3', type: 'string' },
+      'messaging.destination.name': {
+        value: 'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
+        type: 'string',
+      },
     }),
   });
 

@@ -2,8 +2,10 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
+  SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import {
   captureException,
   continueTrace,
@@ -12,7 +14,6 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -114,7 +115,7 @@ export function wrapRequestHandlerWithInit(
       );
     }
 
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    attributes[SENTRY_OP] = HTTP_SERVER;
 
     addCloudResourceContext(isolationScope);
     addRequest(isolationScope, request);

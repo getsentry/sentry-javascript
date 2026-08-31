@@ -17,8 +17,8 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {
-  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -269,6 +269,7 @@ describe('LangChain integration', () => {
             expect(formatPromptSpan).toBeDefined();
             expect(formatPromptSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(formatPromptSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
+            expect(formatPromptSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
             expect(formatPromptSpan!.attributes['langchain.chain.name'].value).toBe('format_prompt');
 
             const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
@@ -314,7 +315,7 @@ describe('LangChain integration', () => {
             );
             expect(successfulSpans).toHaveLength(2);
             for (const span of successfulSpans) {
-              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
               expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
               expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
@@ -325,7 +326,7 @@ describe('LangChain integration', () => {
             const errorSpan = container.items.find(span => span.name === 'embeddings error-model');
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+            expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
             expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
           },
         })
@@ -341,7 +342,7 @@ describe('LangChain integration', () => {
             // The scenario makes 3 embedding calls (2 successful + 1 error).
             expect(container.items).toHaveLength(3);
             for (const span of container.items) {
-              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
             }
           },
         })
@@ -403,6 +404,36 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
+    test('leads chain span names with the operation when span streaming is enabled', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            const chainSpans = container.items.filter(
+              span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+            );
+            // The `unknown_chain` sentinel is dropped, so that span falls back to the bare operation.
+            expect(chainSpans.map(span => span.name).sort()).toEqual([
+              'invoke_agent',
+              'invoke_agent format_prompt',
+              'invoke_agent parse_output',
+            ]);
+            for (const span of chainSpans) {
+              expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
+            }
+            expect(chainSpans.map(span => span.attributes['langchain.chain.name']?.value).sort()).toEqual([
+              'format_prompt',
+              'parse_output',
+              'unknown_chain',
+            ]);
           },
         })
         .start()

@@ -1,10 +1,10 @@
 import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
+import { RPC } from '@sentry/conventions/op';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
-import { extractRpcMeta } from '../utils/rpcMeta';
 import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
 import { instrumentEnv } from './worker/instrumentEnv';
 import { instrumentWorkerEntrypointFetch } from './worker/instrumentFetch';
@@ -87,28 +87,18 @@ function instrumentMethod(
     return boundMethod;
   }
 
-  const captureMethod = wrapMethodWithSentry(
-    { options, context, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
+  return wrapMethodWithSentry(
+    {
+      options,
+      context,
+      spanName: rpcMeta => (rpcMeta ? prop : undefined),
+      spanOp: RPC,
+      origin: WORKER_ENTRYPOINT_ORIGIN,
+    },
     boundMethod,
     undefined,
     true,
   );
-
-  if (!options.enableRpcTracePropagation) {
-    return captureMethod;
-  }
-
-  const tracedMethod = wrapMethodWithSentry(
-    { options, context, spanName: prop, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
-    boundMethod,
-    undefined,
-    true,
-  );
-
-  return (...args: unknown[]) => {
-    const { rpcMeta } = extractRpcMeta(args);
-    return rpcMeta ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
-  };
 }
 
 /**

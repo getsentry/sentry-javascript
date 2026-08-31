@@ -161,6 +161,7 @@ export type { FeatureFlagsIntegration } from './integrations/featureFlags';
 export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
@@ -491,6 +492,7 @@ export type {
   InformationUnit,
   FractionUnit,
   MeasurementUnit,
+  MetricUnit,
   NoneUnit,
   Measurements,
 } from './types/measurement';

@@ -126,11 +126,11 @@ describe('instrumentVueRouter()', () => {
         {
           name: transactionName,
           attributes: {
+            'sentry.op': 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
             ...getAttributesForRoute(to, transactionSource === 'route' ? transactionName : undefined),
           },
-          op: 'navigation',
         },
         expect.any(String),
       );
@@ -206,11 +206,11 @@ describe('instrumentVueRouter()', () => {
       {
         name: '/login',
         attributes: {
+          'sentry.op': 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           ...getAttributesForRoute(to, '/login'),
         },
-        op: 'navigation',
       },
       expect.any(String),
     );
@@ -237,11 +237,11 @@ describe('instrumentVueRouter()', () => {
       {
         name: 'login-screen',
         attributes: {
+          'sentry.op': 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           ...getAttributesForRoute(to),
         },
-        op: 'navigation',
       },
       expect.any(String),
     );
@@ -470,11 +470,11 @@ describe('instrumentVueRouter()', () => {
         {
           name: 'Navigation',
           attributes: {
+            'sentry.op': 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             ...getAttributesForRoute(to),
           },
-          op: 'navigation',
         },
         expect.any(String),
       );

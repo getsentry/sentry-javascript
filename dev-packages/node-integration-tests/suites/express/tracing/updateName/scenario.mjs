@@ -33,6 +33,4 @@ app.get('/test/:id/updateSpanNameAndSource', (_req, res) => {
   res.send({ response: 'response 4' });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

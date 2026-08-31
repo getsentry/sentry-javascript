@@ -19,7 +19,7 @@ test('Sends correct error event', async ({ baseURL }) => {
   const exception = errorEvent.exception?.values?.[0];
   expect(exception?.value).toBe('This is an exception with id 123');
   expect(exception?.mechanism).toEqual({
-    type: 'auto.middleware.express',
+    type: 'auto.http.express',
     handled: false,
   });
 
@@ -35,6 +35,7 @@ test('Sends correct error event', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
   // The error is attached to the same trace as the request transaction, and to a

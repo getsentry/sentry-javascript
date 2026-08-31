@@ -51,6 +51,8 @@ type CreateMockSupabaseClientOptions = {
   headers?: PostgRESTHeaders;
   /** When set, configures the mocked Sentry client's `dataCollection.databaseQueryData`. Omit to leave `getClient` to the test file `beforeEach`. */
   dataCollectionDatabaseQueryData?: boolean;
+  /** Defaults to `'static'`, so span names keep the full description. */
+  traceLifecycle?: 'static' | 'stream';
 };
 
 const DEFAULT_MOCK_SUPABASE_REST_URL = 'https://example.supabase.co/rest/v1/todos';
@@ -66,6 +68,7 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
   if (options?.dataCollectionDatabaseQueryData !== undefined) {
     currentScopesMocks.getClient.mockReturnValue({
       getDataCollectionOptions: () => ({ databaseQueryData: options.dataCollectionDatabaseQueryData }),
+      getOptions: () => ({ traceLifecycle: options.traceLifecycle ?? 'static' }),
     } as any);
   }
 
@@ -371,6 +374,7 @@ describe('Supabase Integration', () => {
       const resolved = resolveDataCollectionOptions({});
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'static' }),
       } as any);
 
       const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
@@ -391,10 +395,36 @@ describe('Supabase Integration', () => {
       );
     });
 
+    it('names the span from the conventions instead of the description with span streaming enabled', async () => {
+      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: true } });
+      currentScopesMocks.getClient.mockReturnValue({
+        getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+      } as any);
+
+      const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      // `{db.operation.name} {db.collection.name}` — the description, which carries the filters, is
+      // not used as the name.
+      expect(spanOptions.name).toBe('update users');
+      // the filters are still reported, just not as the name
+      expect(spanOptions.attributes['db.query']).toEqual(
+        expect.arrayContaining([expect.stringContaining('secret@example.com')]),
+      );
+    });
+
     it('redacts data when dataCollection.databaseQueryData is false', async () => {
       const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: false } });
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'static' }),
       } as any);
 
       const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });

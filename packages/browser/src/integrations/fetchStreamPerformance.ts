@@ -1,4 +1,5 @@
-import { HTTP_REQUEST_METHOD, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT_STREAM } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -8,7 +9,6 @@ import {
   getUrlDomain,
   hasSpanStreamingEnabled,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   stripDataUrlContent,
   filterCollectedUrl,
@@ -92,7 +92,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               [URL_DOMAIN]: domain,
               [HTTP_REQUEST_METHOD]: method,
               type: 'fetch',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
+              [SENTRY_OP]: HTTP_CLIENT_STREAM,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.stream',
             },
           });

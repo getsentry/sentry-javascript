@@ -9,6 +9,7 @@ import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sent
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
@@ -237,6 +238,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
         if (isPostponeError) {
           // Postpone errors are used for partial-pre-rendering (PPR)
+          return null;
+        }
+
+        if (isPrerenderControlFlowError(originalException)) {
+          // Next.js aborts prerenders by rejecting the promises it handed out (e.g. `fetch()` under Cache
+          // Components) and throws to bail out of static rendering. These never reach the user, so drop them
+          // here as well - the wrappers cannot cover every path they escape through.
           return null;
         }
 

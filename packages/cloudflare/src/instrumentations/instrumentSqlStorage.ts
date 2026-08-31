@@ -1,4 +1,6 @@
 import type { SqlStorage } from '@cloudflare/workers-types';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { DB_QUERY } from '@sentry/conventions/op';
 import {
   _INTERNAL_getSqlQuerySummary,
   _INTERNAL_sanitizeSqlQuery,
@@ -40,9 +42,9 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
 
         return startSpan(
           {
-            op: 'db.query',
             name: querySummary || sanitizedQuery,
             attributes: {
+              [SENTRY_OP]: DB_QUERY,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
               'db.system.name': 'cloudflare-durable-object-sql',
               'db.operation.name': 'exec',

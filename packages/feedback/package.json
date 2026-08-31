@@ -36,7 +36,7 @@
     "@sentry/core": "10.67.0"
   },
   "devDependencies": {
-    "preact": "^10.19.4"
+    "preact": "^10.29.8"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",

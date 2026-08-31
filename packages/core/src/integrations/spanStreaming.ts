@@ -6,10 +6,24 @@ import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnable
 import { SpanBuffer } from '../tracing/spans/spanBuffer';
 import { debug } from '../utils/debug-logger';
 import { spanIsSampled } from '../utils/spanUtils';
+import { safeUnref } from '../utils/timer';
 
 export const INTEGRATION_NAME = 'SpanStreaming' as const;
 
-export const spanStreamingIntegration = defineIntegration(() => {
+interface SpanStreamingOptions {
+  /**
+   * When enabled, a trace is flushed shortly after its segment span ends, rather than relying solely
+   * on the buffer's timeout/size thresholds or an explicit `flushTraceSpans` emission.
+   *
+   *
+   * @default true
+   */
+  flushOnSegmentEnd?: boolean;
+}
+
+export const spanStreamingIntegration = defineIntegration((options: SpanStreamingOptions = {}) => {
+  const flushOnSegmentEnd = options.flushOnSegmentEnd ?? true;
+
   return {
     name: INTEGRATION_NAME,
 
@@ -33,6 +47,20 @@ export const spanStreamingIntegration = defineIntegration(() => {
       client.on('flushTraceSpans', traceId => {
         buffer.flush(traceId);
       });
+
+      if (flushOnSegmentEnd) {
+        // Also flush the trace when the segment span ends to ensure things are sent timely.
+        client.on('afterSegmentSpanEnd', segmentSpan => {
+          const traceId = segmentSpan.spanContext().traceId;
+          // `safeUnref` so an enabled `flushOnSegmentEnd` on a server runtime can't keep the
+          // process alive until the timer fires (no-op in the browser, where it's the default path).
+          safeUnref(
+            setTimeout(() => {
+              buffer.flush(traceId);
+            }, 500),
+          );
+        });
+      }
     },
   };
 }) satisfies IntegrationFn;

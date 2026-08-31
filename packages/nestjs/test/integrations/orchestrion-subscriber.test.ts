@@ -36,7 +36,7 @@ class TestClient extends Client<any> {
   }
 }
 
-function initTestClient(): void {
+function initTestClient(traceLifecycle?: 'stream' | 'static'): void {
   //@ts-expect-error - just a mock for the test, this is fine
   initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
@@ -44,6 +44,7 @@ function initTestClient(): void {
     sendClientReports: false,
     stackParser: () => [],
     tracesSampleRate: 1,
+    traceLifecycle,
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({})),
   });
 }
@@ -883,7 +884,7 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
 
     await new EmailProcessor().process({});
     const json = spanToJSON(spanInside!);
-    expect(json.name).toBe('emails process');
+    expect(json.name).toBe('process emails');
     expect(json.attributes['sentry.op']).toBe('queue.process');
     expect(json.attributes['sentry.origin']).toBe('auto.queue.nestjs.bullmq');
     expect(json.attributes).toMatchObject({
@@ -907,9 +908,54 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     }
     wrappedDecorator(ReportsProcessor);
     return new ReportsProcessor().process().then(() => {
-      expect(spanToJSON(spanInside!).name).toBe('reports process');
+      expect(spanToJSON(spanInside!).name).toBe('process reports');
     });
   });
+
+  it('bullmq @Processor: keeps the transaction-mode span name when span streaming is off', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient('static');
+    subscribeToNestChannels();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, ['emails'], () => undefined);
+
+    let spanInside: Span | undefined;
+    class EmailProcessor {
+      public async process(): Promise<void> {
+        spanInside = getActiveSpan();
+      }
+    }
+    wrappedDecorator(EmailProcessor);
+
+    await new EmailProcessor().process();
+    expect(spanToJSON(spanInside!).name).toBe('emails process');
+  });
+
+  it.each(['stream', 'static'] as const)(
+    'bullmq @Processor: names an unresolved queue `process` in %s mode',
+    async traceLifecycle => {
+      installTestAsyncContextStrategy();
+      initTestClient(traceLifecycle);
+      subscribeToNestChannels();
+
+      const wrappedDecorator = driveFactory(CHANNELS.NESTJS_PROCESSOR, [undefined], () => undefined);
+
+      let spanInside: Span | undefined;
+      class AnonymousProcessor {
+        public async process(): Promise<void> {
+          spanInside = getActiveSpan();
+        }
+      }
+      wrappedDecorator(AnonymousProcessor);
+
+      await new AnonymousProcessor().process();
+      const json = spanToJSON(spanInside!);
+      expect(json.name).toBe('process');
+      // An unresolved queue is an absent destination, so the attribute is omitted rather than sent as
+      // a placeholder.
+      expect(json.attributes['messaging.destination.name']).toBeUndefined();
+    },
+  );
 
   it('schedule @Timeout: captures sync errors with the timeout mechanism', () => {
     installTestAsyncContextStrategy();

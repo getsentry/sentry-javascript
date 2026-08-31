@@ -5,12 +5,19 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
-import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/google-genai';
+import {
+  addPrivateRequestAttributes,
+  addResponseAttributes,
+  extractRequestAttributes,
+  resolveChatParams,
+} from '../ai/google-genai';
 import { instrumentStream } from '../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -101,16 +108,20 @@ function createGenAiSpan(
   }
 
   const args = data.arguments ?? [];
-  const params = args[0] as Record<string, unknown> | undefined;
+  // `chat.sendMessage()` carries no config of its own unless the caller passes one, so recover the
+  // one `chats.create()` left on the chat instance that the transform stashed in `data.self`.
+  const params = resolveChatParams(operation, args[0] as Record<string, unknown> | undefined, data.self);
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(operation, params, data.self);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  const client = getClient();
 
   const span = startInactiveSpan({
-    name: `${operation} ${model}`,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
     op: getGenAiSpanOp(operation),
     attributes,
   });

@@ -66,7 +66,7 @@ function installTestAsyncContextStrategy(): void {
 // `getActiveSpan`. We spy both: `getActiveSpan` to satisfy the
 // requireParentSpan gate, and `startInactiveSpan` to capture the span
 // options the subscriber builds (name + raw attributes) and to track the
-// span's lifecycle. The final `op: 'db'` / SQL description come from the
+// span's lifecycle. The final `db` op / SQL description come from the
 // SDK's `inferDbSpanData` processor, which isn't wired up here. That's
 // covered by the integration test.
 function makeSpan(): Span {
@@ -120,8 +120,8 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'SELECT * FROM "User"',
-        op: 'db',
         attributes: expect.objectContaining({
+          'sentry.op': 'db',
           'db.system.name': 'postgresql',
           'db.namespace': 'tests',
           'db.user': 'tim',
@@ -148,8 +148,8 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'SELECT * FROM "User" WHERE "email" = $1',
-        op: 'db',
         attributes: expect.objectContaining({
+          'sentry.op': 'db',
           'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
           'db.postgresql.plan': 'select-user-by-email',
           'sentry.origin': 'auto.db.postgres',
@@ -179,8 +179,11 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg.connect',
-        op: 'db',
-        attributes: expect.objectContaining({ 'db.system.name': 'postgresql', 'db.namespace': 'tests' }),
+        attributes: expect.objectContaining({
+          'sentry.op': 'db',
+          'db.system.name': 'postgresql',
+          'db.namespace': 'tests',
+        }),
       }),
     );
     // Connect spans must NOT set an origin (so they default to 'manual').
@@ -207,8 +210,8 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg-pool.connect',
-        op: 'db',
         attributes: expect.objectContaining({
+          'sentry.op': 'db',
           'db.system.name': 'postgresql',
           'db.namespace': 'tests',
           'db.user': 'user',

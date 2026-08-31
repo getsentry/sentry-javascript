@@ -3,6 +3,8 @@ import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -82,9 +84,11 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const attributes = extractRequestAttributes(args, operation);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
   const model = (params?.model as string) || 'unknown';
+  const client = getClient();
 
   const span = startInactiveSpan({
-    name: `${operation} ${model}`,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
     op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });
