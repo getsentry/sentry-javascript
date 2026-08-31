@@ -39,7 +39,7 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 export { userTimingIntegration } from './integrations/usertiming';
-export { bfcacheIntegration } from './integrations/bfcache';
+export { bfcacheMetricsIntegration } from './integrations/bfcacheMetrics';
 export { interactionsIntegration } from './integrations/interactions';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
