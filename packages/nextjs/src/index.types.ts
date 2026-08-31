@@ -8,10 +8,11 @@
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';
+import type * as configSdk from './config';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
-export * from './config';
+export type { SentryBuildOptions } from './config';
 export * from './client';
 export * from './server';
 export * from './edge';
@@ -44,7 +45,11 @@ export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
-export { withSentryConfig } from './config';
+/**
+ * @deprecated Import `withSentryConfig` from `@sentry/nextjs/config` instead. The `@sentry/nextjs` export is removed
+ * in v11.
+ */
+export declare const withSentryConfig: typeof configSdk.withSentryConfig;
 
 /**
  * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.

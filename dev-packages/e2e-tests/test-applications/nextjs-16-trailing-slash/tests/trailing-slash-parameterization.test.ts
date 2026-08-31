@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // These tests verify that pageload transactions are correctly named when
-// trailingSlash: true is enabled in next.config.ts, even when a catch-all
+// trailingSlash: true is enabled in next.config.mjs, even when a catch-all
 // route exists. See: https://github.com/getsentry/sentry-javascript/issues/19241
 
 test('should create a correctly named pageload transaction for a static route', async ({ page }) => {
