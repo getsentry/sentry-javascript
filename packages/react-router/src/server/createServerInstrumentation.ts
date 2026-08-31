@@ -103,7 +103,6 @@ export function createSentryServerInstrumentation(
             await startSpan(
               {
                 name: unparameterizedName,
-                forceTransaction: true,
                 attributes: {
                   [SENTRY_OP]: HTTP_SERVER,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',

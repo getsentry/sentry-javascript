@@ -521,7 +521,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             ...startSpanOptions,
             // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
             parentSpan: null,
-            forceTransaction: true,
           },
           true,
           navigationOptions?.url,
