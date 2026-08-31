@@ -1,25 +1,18 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
 import type { RequestOptions } from 'node:http';
-import type {
-  Event,
-  HttpClientRequest,
-  HttpIncomingMessage,
-  HttpServerResponse,
-  Integration,
-  IntegrationFn,
-  Span,
-} from '@sentry/core';
+import type { Event, Integration, IntegrationFn, Span } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
 import {
   DEFAULT_IGNORE_STATUS_CODES,
-  defineIntegration,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
   getRequestOptions,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
   processHttpServerTransactionEvent,
-} from '@sentry/core';
+} from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
 

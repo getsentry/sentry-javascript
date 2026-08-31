@@ -1,14 +1,6 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  IntegrationFn,
-  RequestHookInfo,
-  ResponseHookInfo,
-  Span,
-  StartSpanOptions,
-} from '@sentry/core/browser';
+import type { Client, IntegrationFn, RequestHookInfo, ResponseHookInfo, Span, StartSpanOptions } from '@sentry/core';
 import {
-  _INTERNAL_ensureBrowserSpanStreaming,
   addNonEnumerableProperty,
   consoleSandbox,
   dateTimestampInSeconds,
@@ -31,12 +23,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanIsSampled,
   spanToJSON,
-  startIdleSpan,
-  startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
   browserPerformanceTimeOrigin,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,

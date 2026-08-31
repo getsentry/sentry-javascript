@@ -12,7 +12,6 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
   getUrlFragment,
@@ -26,6 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,

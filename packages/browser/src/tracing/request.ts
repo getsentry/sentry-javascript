@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Client, RequestHookInfo, ResponseHookInfo, Span, SpanTimeInput } from '@sentry/core/browser';
+import type { Client, RequestHookInfo, ResponseHookInfo, Span, SpanTimeInput } from '@sentry/core';
 import {
   addFetchInstrumentationHandler,
   getActiveSpan,
@@ -18,11 +18,11 @@ import {
   setHttpStatus,
   spanIsIgnored,
   spanToJSON,
-  startInactiveSpan,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {

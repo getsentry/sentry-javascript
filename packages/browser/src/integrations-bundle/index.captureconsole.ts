@@ -1,1 +1,1 @@
-export { captureConsoleIntegration } from '@sentry/core/browser';
+export { captureConsoleIntegration } from '@sentry/core';

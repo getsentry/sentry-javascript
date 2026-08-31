@@ -6,8 +6,8 @@ import {
   BROWSER_BFCACHE_REASON,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import type { IntegrationFn, SpanAttributes } from '@sentry/core/browser';
-import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core/browser';
+import type { IntegrationFn, SpanAttributes } from '@sentry/core';
+import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

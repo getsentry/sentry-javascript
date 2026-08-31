@@ -9,14 +9,9 @@ import {
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
+import type { PostgresConnectionContext } from '@sentry/core/server';
 import {
-  _INTERNAL_buildPostgresConnectionContext,
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_reconstructPostgresQuery,
-  _INTERNAL_sanitizeSqlQuery,
-  _INTERNAL_getConnectionAttributes,
-  _INTERNAL_getPostgresOperationName,
   debug,
   defineIntegration,
   getClient,
@@ -25,6 +20,14 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
+import {
+  _INTERNAL_buildPostgresConnectionContext,
+  _INTERNAL_getConnectionAttributes,
+  _INTERNAL_getPostgresOperationName,
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_reconstructPostgresQuery,
+  _INTERNAL_sanitizeSqlQuery,
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';

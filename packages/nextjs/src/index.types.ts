@@ -25,7 +25,7 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 // Node-only at runtime; the edge build exports an inert shim so named imports resolve in edge-compiled modules.
 export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
-// The client uses the `@sentry/core/browser` span-start APIs while server and edge use the Cache
+// The client uses the `@sentry/core` span-start APIs while server and edge use the Cache
 // Components-aware ones from `common/utils/nextSpan`. Same signatures, but the star exports above
 // are ambiguous without these.
 export declare const startSpan: typeof clientSdk.startSpan;

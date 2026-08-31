@@ -4,7 +4,7 @@ import { makeSentryTracer } from '../tracer';
 /**
  * Effect `Tracer` that records Effect spans as Sentry spans on the server.
  *
- * Deliberately the plain `@sentry/core` variant, not `@sentry/core/browser`: the browser one guards
+ * Deliberately the plain `@sentry/core` variant, not `@sentry/core`: the browser one guards
  * every span start with a `getClient()` lookup to lazily install `spanStreamingIntegration`, which on
  * the server is pure overhead — `ServerRuntimeClient` already installs it eagerly.
  *

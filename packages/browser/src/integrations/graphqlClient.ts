@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn } from '@sentry/core/browser';
+import type { Client, IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
   hasSpanStreamingEnabled,
@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   stringMatchesSomePattern,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import {
