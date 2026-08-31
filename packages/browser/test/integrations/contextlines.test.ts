@@ -1,4 +1,4 @@
-import type { StackFrame } from '@sentry/core/browser';
+import type { StackFrame } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { applySourceContextToFrame } from '../../src/integrations/contextlines';
 

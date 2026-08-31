@@ -1,6 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
 

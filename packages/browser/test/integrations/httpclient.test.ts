@@ -4,8 +4,8 @@
 
 import * as BrowserUtils from '@sentry/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
-import type { Event } from '@sentry/core/browser';
-import * as SentryCore from '@sentry/core/browser';
+import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';

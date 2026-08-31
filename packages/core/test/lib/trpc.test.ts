@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { type Client, setCurrentClient, type Span, trpcMiddleware } from '../../src';
+import { type Client, setCurrentClient, type Span } from '../../src';
+import { trpcMiddleware } from '../../src/server';
 import * as currentScopes from '../../src/currentScopes';
 import * as exports from '../../src/exports';
 import * as tracing from '../../src/tracing/trace';

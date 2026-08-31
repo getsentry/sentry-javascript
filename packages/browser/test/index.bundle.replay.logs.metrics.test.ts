@@ -1,4 +1,4 @@
-import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core/browser';
+import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core';
 import {
   browserTracingIntegrationShim,
   feedbackIntegrationShim,
