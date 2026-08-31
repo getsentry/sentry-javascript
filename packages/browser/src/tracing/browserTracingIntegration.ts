@@ -27,6 +27,8 @@ import {
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
+  resolveCurrentRoute,
+  resolveRoute,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanIsSampled,
@@ -52,7 +54,13 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
@@ -597,12 +605,14 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
+          const route = resolveCurrentRoute(client);
           startBrowserTracingPageLoadSpan(client, {
-            // With span streaming, span names have to be low cardinality, and there is no route
-            // information available here.
-            name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
+            // Without a route provider there is no route information here, and with span streaming
+            // span names have to be low cardinality, so the name falls back to a constant.
+            name: route ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname),
             attributes: {
-              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
+              ...(route && { [URL_TEMPLATE]: route }),
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
@@ -630,16 +640,24 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             const navigationIsRedirect =
               activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
 
+            // Resolved from the destination rather than the current location, which has not
+            // committed to `to` yet at this point.
+            const route = resolveRoute(to, client);
+
             startBrowserTracingNavigationSpan(
               client,
               {
-                // With span streaming, span names have to be low cardinality, and there is no route
-                // information available here.
-                name: hasSpanStreamingEnabled(client)
-                  ? NAVIGATION_SPAN_NAME_FALLBACK
-                  : parsed?.pathname || WINDOW.location.pathname,
+                // Without a route provider there is no route information here, and with span
+                // streaming span names have to be low cardinality, so the name falls back to a
+                // constant.
+                name:
+                  route ??
+                  (hasSpanStreamingEnabled(client)
+                    ? NAVIGATION_SPAN_NAME_FALLBACK
+                    : parsed?.pathname || WINDOW.location.pathname),
                 attributes: {
-                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
+                  ...(route && { [URL_TEMPLATE]: route }),
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },

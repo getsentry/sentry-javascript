@@ -12,6 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
+  setRouteProvider,
   spanIsSampled,
   spanToJSON,
   startInactiveSpan,
@@ -32,7 +33,7 @@ import {
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const oldTextEncoder = global.window.TextEncoder;
 const oldTextDecoder = global.window.TextDecoder;
@@ -1664,6 +1665,37 @@ describe('browserTracingIntegration', () => {
       const spanJson2 = spanToJSON(span2);
 
       expect(spanJson2.links).toBeUndefined();
+    });
+  });
+
+  describe('route provider naming', () => {
+    it('names the pageload span from a registered provider', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({ tracesSampleRate: 1, integrations: [browserTracingIntegration()] }),
+      );
+      setCurrentClient(client);
+      setRouteProvider({ resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' });
+      client.init();
+
+      const span = getActiveSpan();
+      expect(span).toBeDefined();
+      expect(spanToJSON(span!).name).toBe('/users/:id');
+      expect(spanToJSON(span!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
+      expect(spanToJSON(span!).attributes[URL_TEMPLATE]).toBe('/users/:id');
+    });
+
+    it('falls back to the raw pathname when no provider is registered', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({ tracesSampleRate: 1, integrations: [browserTracingIntegration()] }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan();
+      expect(span).toBeDefined();
+      expect(spanToJSON(span!).name).toBe('Pageload');
+      expect(spanToJSON(span!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('url');
+      expect(spanToJSON(span!).attributes[URL_TEMPLATE]).toBeUndefined();
     });
   });
 });
