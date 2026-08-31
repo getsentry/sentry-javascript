@@ -370,6 +370,35 @@ describe('_INTERNAL_captureLog', () => {
     );
   });
 
+  it('drops logs when beforeSendLog throws', () => {
+    const exception = new Error('beforeSendLog failed');
+    const beforeSendLog = vi.fn(() => {
+      throw exception;
+    });
+    const recordDroppedEventSpy = vi.spyOn(TestClient.prototype, 'recordDroppedEvent');
+    const debugErrorSpy = vi.spyOn(loggerModule.debug, 'error');
+
+    const options = getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      beforeSendLog,
+    });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    expect(() => _INTERNAL_captureLog({ level: 'info', message: 'test message' }, scope)).not.toThrow();
+
+    expect(beforeSendLog).toHaveBeenCalled();
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'log_item', 1);
+    expect(debugErrorSpy).toHaveBeenCalledWith(
+      'The `beforeSendLog` callback threw an error, dropping the log:',
+      exception,
+    );
+    expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
+
+    recordDroppedEventSpy.mockRestore();
+  });
+
   it('drops logs when beforeSendLog returns null', () => {
     const beforeSendLog = vi.fn().mockReturnValue(null);
     const recordDroppedEventSpy = vi.spyOn(TestClient.prototype, 'recordDroppedEvent');

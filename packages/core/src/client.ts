@@ -50,6 +50,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
+import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -1738,7 +1739,12 @@ function processBeforeSend(
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
-    return beforeSend(processedEvent, hint);
+    const errorEvent = processedEvent;
+    return safeCallback(
+      DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
+      () => beforeSend(errorEvent, hint),
+      () => null,
+    );
   }
 
   if (isTransactionEvent(processedEvent)) {
@@ -1809,7 +1815,11 @@ function processBeforeSend(
           spanCountBeforeProcessing: spanCountBefore,
         };
       }
-      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
+      return safeCallback(
+        DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
+        () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
+        () => null,
+      );
     }
   }
 
