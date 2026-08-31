@@ -77,6 +77,14 @@ export default Sentry.withSentry(
     tunnel: `http://localhost:3031/`,
     tracesSampleRate: 1.0,
     debug: true,
+    // The worker and the Durable Object share one cached client per isolate, so the entrypoint that
+    // initializes first decides the data collection settings for both.
+    dataCollection: {
+      genAI: {
+        inputs: false,
+        outputs: false,
+      },
+    },
     transportOptions: {
       bufferSize: 1000,
     },

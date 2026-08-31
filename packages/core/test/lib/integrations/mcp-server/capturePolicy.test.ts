@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope, withScope } from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { Scope } from '../../../../src/scope';
-import * as tracingModule from '../../../../src/tracing';
+import * as tracingModule from '../../../../src/tracing/trace';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP Server Capture Policy', () => {
@@ -97,7 +97,6 @@ describe('MCP Server Capture Policy', () => {
     const { id, sessionId, name = 'weather', location } = request;
     return {
       name: `tools/call ${name}`,
-      op: 'mcp.server',
       forceTransaction: true,
       attributes: {
         'mcp.method.name': 'tools/call',
@@ -110,7 +109,7 @@ describe('MCP Server Capture Policy', () => {
         ...(location !== undefined && { 'mcp.request.argument.location': JSON.stringify(location) }),
         'sentry.op': 'mcp.server',
         'sentry.origin': 'auto.function.mcp_server',
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
       },
     };
   }
@@ -144,7 +143,7 @@ describe('MCP Server Capture Policy', () => {
         'mcp.logging.data_type': 'string',
         'sentry.op': `mcp.notification.${options.direction}`,
         'sentry.origin': 'auto.mcp.notification',
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
       },
     };
   }
