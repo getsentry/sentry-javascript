@@ -13,8 +13,5 @@ export {
 
 export { startIdleSpan } from './tracing/idleSpan';
 
-export { spanStreamingIntegration } from './integrations/browserSpanStreaming';
-
-export { supportsNativeFetch } from './utils/supports';
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
 export type { BrowserClientReplayOptions } from './types/browseroptions';

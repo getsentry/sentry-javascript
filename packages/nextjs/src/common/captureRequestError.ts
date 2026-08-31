@@ -1,5 +1,6 @@
 import type { RequestEventData } from '@sentry/core';
 import { captureException, headersToDict, withScope } from '@sentry/core';
+import { isPrerenderControlFlowError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 
 type RequestInfo = {
@@ -18,6 +19,10 @@ type ErrorContext = {
  * Reports errors passed to the the Next.js `onRequestError` instrumentation hook.
  */
 export function captureRequestError(error: unknown, request: RequestInfo, errorContext: ErrorContext): void {
+  if (isPrerenderControlFlowError(error)) {
+    return;
+  }
+
   withScope(scope => {
     scope.setSDKProcessingMetadata({
       normalizedRequest: {

@@ -38,10 +38,11 @@ import { enhanceRunHandlerRootSpan } from './enhanceRunHandlerRootSpan';
 import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -174,14 +175,14 @@ export function init(options: VercelEdgeOptions = {}): void {
       spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Node.runHandler' &&
       String(spanAttributes?.[ATTR_NEXT_SPAN_NAME]).startsWith(ATTR_NEXT_PAGES_API_ROUTE_TYPE)
     ) {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+      span.setAttribute(SENTRY_OP, HTTP_SERVER);
       span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     }
 
     // The `BaseServer.handleRequest` span is the incoming request root span (e.g. for app-router server
     // components). Since we no longer infer the op from OTel semantic attributes, set it directly here.
     if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+      span.setAttribute(SENTRY_OP, HTTP_SERVER);
     }
 
     // We want to fork the isolation scope for incoming requests

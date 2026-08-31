@@ -6,9 +6,11 @@ import {
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope } from '@sentry/core';
 import {
   _INTERNAL_getSqlQuerySummary,
@@ -87,7 +89,7 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
+      const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql, 'mysql')) : undefined;
 
       const client = getClient();
       const name =
@@ -97,8 +99,8 @@ function instrumentMysql(): void {
 
       return startInactiveSpan({
         name,
-        op: 'db',
         attributes: {
+          [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',

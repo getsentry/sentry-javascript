@@ -18,8 +18,8 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {
-  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
 } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -320,7 +320,7 @@ describe('LangChain integration', () => {
             );
             expect(successfulSpans).toHaveLength(2);
             for (const span of successfulSpans) {
-              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
               expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
               expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
@@ -331,7 +331,7 @@ describe('LangChain integration', () => {
             const errorSpan = container.items.find(span => span.name === 'embeddings error-model');
             expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+            expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
             expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
           },
         })
@@ -347,7 +347,7 @@ describe('LangChain integration', () => {
             // The scenario makes 3 embedding calls (2 successful + 1 error).
             expect(container.items).toHaveLength(3);
             for (const span of container.items) {
-              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
+              expect(span.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
             }
           },
         })

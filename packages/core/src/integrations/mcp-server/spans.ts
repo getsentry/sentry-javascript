@@ -6,8 +6,13 @@
  */
 
 import { getClient } from '../../currentScopes';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import {
+  MCP_NOTIFICATION_CLIENT_TO_SERVER,
+  MCP_NOTIFICATION_SERVER_TO_CLIENT,
+  MCP_SERVER,
+} from '@sentry/conventions/op';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
@@ -15,11 +20,8 @@ import { buildTransportAttributes, buildTypeSpecificAttributes } from './attribu
 import {
   MCP_FUNCTION_ORIGIN_VALUE,
   MCP_METHOD_NAME_ATTRIBUTE,
-  MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE,
   MCP_NOTIFICATION_ORIGIN_VALUE,
-  MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE,
   MCP_ROUTE_SOURCE_VALUE,
-  MCP_SERVER_OP_VALUE,
 } from './attributes';
 import { extractTargetInfo } from './methodConfig';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
@@ -55,21 +57,21 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 
   switch (type) {
     case 'request':
-      op = MCP_SERVER_OP_VALUE;
+      op = MCP_SERVER;
       origin = MCP_FUNCTION_ORIGIN_VALUE;
       break;
     case 'notification-incoming':
-      op = MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE;
+      op = MCP_NOTIFICATION_CLIENT_TO_SERVER;
       origin = MCP_NOTIFICATION_ORIGIN_VALUE;
       break;
     case 'notification-outgoing':
-      op = MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE;
+      op = MCP_NOTIFICATION_SERVER_TO_CLIENT;
       origin = MCP_NOTIFICATION_ORIGIN_VALUE;
       break;
   }
 
   return {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     [SENTRY_SEGMENT_NAME_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
   };
@@ -184,7 +186,6 @@ export function buildMcpServerSpanConfig(
   options?: ResolvedMcpOptions,
 ): {
   name: string;
-  op: string;
   forceTransaction: boolean;
   attributes: Record<string, string | number>;
 } {
@@ -210,7 +211,6 @@ export function buildMcpServerSpanConfig(
 
   return {
     name: spanName,
-    op: MCP_SERVER_OP_VALUE,
     forceTransaction: true,
     attributes,
   };

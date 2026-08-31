@@ -11,7 +11,6 @@ import {
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
@@ -26,12 +25,14 @@ import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 export type SentryHandleOptions = {
   /**
@@ -190,7 +191,7 @@ async function instrumentHandle(
         }
 
         kitRootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: HTTP_SERVER,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
@@ -222,8 +223,8 @@ async function instrumentHandle(
       ? await resolveWithSentry()
       : await startSpan(
           {
-            op: 'http.server',
             attributes: {
+              [SENTRY_OP]: HTTP_SERVER,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
               [HTTP_REQUEST_METHOD]: event.request.method,

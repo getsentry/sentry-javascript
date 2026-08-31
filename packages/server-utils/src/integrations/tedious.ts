@@ -17,9 +17,11 @@ import {
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -128,6 +130,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     const sql = extractSql(request);
 
     const attributes: SpanAttributes = {
+      [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MSSQL,
@@ -142,7 +145,6 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const span = startInactiveSpan({
       name: sql || getSpanName(operation, databaseName, sql, request.table),
-      op: 'db',
       attributes,
     });
 

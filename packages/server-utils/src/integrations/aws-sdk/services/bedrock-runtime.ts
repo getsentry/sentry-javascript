@@ -12,6 +12,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -117,7 +118,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     return {
       spanName,
-      spanOp: 'gen_ai.chat',
+      spanOp: GEN_AI_CHAT,
       isStream,
       spanAttributes,
     };
@@ -243,7 +244,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     return {
       spanName,
-      spanOp: 'gen_ai.generate_content',
+      spanOp: GEN_AI_GENERATE_CONTENT,
       isStream,
       spanAttributes,
     };

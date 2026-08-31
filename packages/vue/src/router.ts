@@ -7,6 +7,7 @@ import {
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
@@ -149,9 +150,9 @@ export function instrumentVueRouter(
       startNavigationSpanFn(
         {
           name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
-          op: 'navigation',
           attributes: {
             ...attributes,
+            [SENTRY_OP]: NAVIGATION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
           },

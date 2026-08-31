@@ -12,16 +12,18 @@ import {
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
   PARAMS_KEY_BASE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 interface TanstackRouterLocation {
   pathname: string;
@@ -101,7 +103,7 @@ export function tanstackRouterBrowserTracingIntegration(
               ? PAGELOAD_SPAN_NAME_FALLBACK
               : initialWindowLocation.pathname,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+            [SENTRY_OP]: PAGELOAD,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
@@ -158,7 +160,7 @@ export function tanstackRouterBrowserTracingIntegration(
             {
               name: routeMatch ? routeMatch.routeId : fallbackName,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SENTRY_OP]: NAVIGATION,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
                 [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),

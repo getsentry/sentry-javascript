@@ -2,15 +2,17 @@
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_BODY_SIZE,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FRAGMENT,
   URL_FULL,
   URL_QUERY,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import type { Client } from './client';
 import { getClient } from './currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored } from './tracing';
 import { startInactiveSpan } from './tracing/trace';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
@@ -369,7 +371,7 @@ function getFetchSpanAttributes(
     // oxlint-disable-next-line typescript/no-deprecated
     [HTTP_REQUEST_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+    [SENTRY_OP]: HTTP_CLIENT,
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {

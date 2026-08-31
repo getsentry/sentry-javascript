@@ -19,8 +19,8 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
@@ -62,8 +62,8 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_put',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'put',
@@ -94,8 +94,8 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_delete',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'delete',
@@ -127,8 +127,8 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_list',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'list',

@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { getTraceData, propagationContextFromHeaders } from '@sentry/core';
+import { getClient, getTraceData, hasSpanStreamingEnabled, propagationContextFromHeaders } from '@sentry/core';
 import {
   MESSAGING_BATCH_MESSAGE_COUNT,
   MESSAGING_DESTINATION_NAME,
@@ -9,6 +9,7 @@ import {
   SENTRY_KIND,
   URL_FULL,
 } from '@sentry/conventions/attributes';
+import { QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { SQS } from '../aws-sdk.types';
 import type { CommandInput, NormalizedRequest, NormalizedResponse } from '../types';
 import {
@@ -22,7 +23,8 @@ export class SqsServiceExtension implements ServiceExtension {
   public requestPreSpanHook(request: NormalizedRequest): RequestMetadata {
     const queueUrl = extractQueueUrl(request.commandInput);
     const queueName = extractQueueNameFromUrl(queueUrl);
-    let spanName: string | undefined;
+    let operation: string | undefined;
+    let spanOp: string | undefined;
 
     const spanAttributes: Record<string, unknown> = {
       [MESSAGING_SYSTEM]: 'aws_sqs',
@@ -35,8 +37,8 @@ export class SqsServiceExtension implements ServiceExtension {
     switch (request.commandName) {
       case 'ReceiveMessage':
         {
-          spanName = `${queueName} receive`;
-          spanAttributes[MESSAGING_OPERATION_TYPE] = 'receive';
+          operation = 'receive';
+          spanOp = QUEUE_RECEIVE;
           spanAttributes[SENTRY_KIND] = 'consumer';
 
           request.commandInput.MessageAttributeNames = addPropagationFieldsToAttributeNames(
@@ -47,14 +49,24 @@ export class SqsServiceExtension implements ServiceExtension {
 
       case 'SendMessage':
       case 'SendMessageBatch':
+        operation = 'send';
+        spanOp = QUEUE_PUBLISH;
         spanAttributes[SENTRY_KIND] = 'producer';
-        spanName = `${queueName} send`;
         break;
     }
 
+    if (operation) {
+      spanAttributes[MESSAGING_OPERATION_TYPE] = operation;
+    }
+
+    const client = getClient();
+    const isStreamed = !!client && hasSpanStreamingEnabled(client);
+
     return {
       spanAttributes,
-      spanName,
+      spanName: buildSpanName(operation, queueName, isStreamed),
+      // Fallback to `rpc` if there's no messaging operation
+      spanOp,
     };
   }
 
@@ -136,6 +148,26 @@ function linkReceivedMessageToProducer(span: Span, message: SQS.Message): void {
   }
 }
 
+/**
+ * Streamed names follow the messaging conventions, `<operation type> <destination>`. Transaction-mode
+ * names keep the order they had. Either way a command with no `QueueUrl` drops to the operation alone,
+ * which wins over the aws-sdk house style (`SQS.ReceiveMessage`). That style still names the commands
+ * with no messaging operation, which is why this returns undefined for them.
+ */
+function buildSpanName(
+  operation: string | undefined,
+  queueName: string | undefined,
+  isStreamed: boolean,
+): string | undefined {
+  if (!operation) {
+    return undefined;
+  }
+  if (!queueName) {
+    return operation;
+  }
+  return isStreamed ? `${operation} ${queueName}` : `${queueName} ${operation}`;
+}
+
 function extractQueueUrl(commandInput: CommandInput): string {
   return commandInput?.QueueUrl;
 }
@@ -146,5 +178,6 @@ function extractQueueNameFromUrl(queueUrl: string): string | undefined {
   const segments = queueUrl.split('/');
   if (segments.length === 0) return undefined;
 
-  return segments[segments.length - 1];
+  // A trailing slash leaves an empty last segment, which is not a queue name
+  return segments[segments.length - 1] || undefined;
 }

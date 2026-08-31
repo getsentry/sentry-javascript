@@ -1,6 +1,6 @@
 import type * as diagnosticsChannel from 'node:diagnostics_channel';
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   captureException,
@@ -51,11 +51,10 @@ const ORIGIN = 'auto.http.express';
 const ATTR_EXPRESS_NAME = 'express.name';
 const ATTR_EXPRESS_TYPE = 'express.type';
 
-// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
   middleware: MIDDLEWARE,
-  request_handler: 'handler',
-  router: 'router',
+  request_handler: HANDLER,
+  router: ROUTER,
 };
 
 const NOOP = (): void => {};

@@ -1,4 +1,5 @@
 import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
+import { RPC } from '@sentry/conventions/op';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
@@ -91,7 +92,7 @@ function instrumentMethod(
       options,
       context,
       spanName: rpcMeta => (rpcMeta ? prop : undefined),
-      spanOp: 'rpc',
+      spanOp: RPC,
       origin: WORKER_ENTRYPOINT_ORIGIN,
     },
     boundMethod,

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as browserEntry from '../src/browser';
 import * as rootEntry from '../src/index';
-import { spanStreamingIntegration as browserSpanStreamingIntegration } from '../src/integrations/browserSpanStreaming';
-import { spanStreamingIntegration as plainSpanStreamingIntegration } from '../src/integrations/spanStreaming';
+import { spanStreamingIntegration } from '../src/integrations/spanStreaming';
 import * as serverEntry from '../src/server';
 import * as browserSpanApi from '../src/tracing/browserSpanApi';
 import {
@@ -20,7 +19,6 @@ describe('entry point resolution', () => {
     ['startSpan', plainStartSpan, browserSpanApi.startSpan],
     ['startInactiveSpan', plainStartInactiveSpan, browserSpanApi.startInactiveSpan],
     ['startSpanManual', plainStartSpanManual, browserSpanApi.startSpanManual],
-    ['spanStreamingIntegration', plainSpanStreamingIntegration, browserSpanStreamingIntegration],
   ] as const;
 
   it.each(cases)('`%s`: the root entry serves the plain variant', (name, plain) => {
@@ -34,5 +32,14 @@ describe('entry point resolution', () => {
   it.each(cases)('`%s`: the browser entry serves the browser variant', (name, plain, browser) => {
     expect(browserEntry[name]).toBe(browser);
     expect(browserEntry[name]).not.toBe(plain);
+  });
+
+  // `spanStreamingIntegration` is a single shared implementation, exported from both
+  // `browser-exports` and `server-exports`. Because both re-export the identical binding, it is not
+  // an ambiguous star export and needs no explicit disambiguation in `index.ts` — every entry
+  // resolves to the exact same function.
+  it.each(['index', 'server', 'browser'] as const)('`spanStreamingIntegration`: the %s entry serves it', entry => {
+    const entries = { index: rootEntry, server: serverEntry, browser: browserEntry };
+    expect(entries[entry].spanStreamingIntegration).toBe(spanStreamingIntegration);
   });
 });

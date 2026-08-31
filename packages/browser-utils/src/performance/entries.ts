@@ -26,7 +26,22 @@ import {
   URL_FULL,
   URL_SCHEME,
 } from '@sentry/conventions/attributes';
-import { BROWSER_PAINT, UI_LONG_ANIMATION_FRAME, UI_LONG_TASK } from '@sentry/conventions/op';
+import {
+  BROWSER_CACHE,
+  BROWSER_CONNECT,
+  BROWSER_DNS,
+  BROWSER_DOM_CONTENT_LOADED_EVENT,
+  BROWSER_LOAD_EVENT,
+  BROWSER_PAINT,
+  BROWSER_REDIRECT,
+  BROWSER_REQUEST,
+  BROWSER_RESPONSE,
+  BROWSER_TLS_SSL,
+  BROWSER_UNLOAD_EVENT,
+  RESOURCE_OTHER,
+  UI_LONG_ANIMATION_FRAME,
+  UI_LONG_TASK,
+} from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -278,14 +293,14 @@ function _addPaintSpan(
  * exported only for tests
  */
 export function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
-  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, 'unload_event');
-  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, 'redirect');
-  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, 'dom_content_loaded_event');
-  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, 'load_event');
-  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, 'connect');
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'tls_ssl');
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache');
-  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'dns');
+  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin);
+  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin);
 
   _addRequest(span, entry, timeOrigin);
 }
@@ -299,6 +314,17 @@ type StartEventName =
   | 'connect'
   | 'domContentLoadedEvent'
   | 'loadEvent';
+
+const NAVIGATION_TIMING_SPAN_OPS: Record<StartEventName, string> = {
+  secureConnection: BROWSER_TLS_SSL,
+  fetch: BROWSER_CACHE,
+  domainLookup: BROWSER_DNS,
+  unloadEvent: BROWSER_UNLOAD_EVENT,
+  redirect: BROWSER_REDIRECT,
+  connect: BROWSER_CONNECT,
+  domContentLoadedEvent: BROWSER_DOM_CONTENT_LOADED_EVENT,
+  loadEvent: BROWSER_LOAD_EVENT,
+};
 
 type EndEventName =
   | 'domainLookupStart'
@@ -315,7 +341,6 @@ function _addPerformanceNavigationTiming(
   entry: PerformanceNavigationTiming,
   event: StartEventName,
   timeOrigin: number,
-  name: string = event,
 ): void {
   const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
   const end = entry[eventEnd];
@@ -324,9 +349,9 @@ function _addPerformanceNavigationTiming(
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: `browser.${name}`,
     name: entry.name,
     attributes: {
+      [SENTRY_OP]: NAVIGATION_TIMING_SPAN_OPS[event],
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
@@ -354,17 +379,17 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      op: 'browser.request',
       name: entry.name,
       attributes: {
+        [SENTRY_OP]: BROWSER_REQUEST,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      op: 'browser.response',
       name: entry.name,
       attributes: {
+        [SENTRY_OP]: BROWSER_RESPONSE,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
     });
@@ -391,7 +416,7 @@ export function _addResourceSpans(
     return;
   }
 
-  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other';
+  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : RESOURCE_OTHER;
   if (ignoredResourceSpanOps?.includes(op)) {
     return;
   }
