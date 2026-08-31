@@ -1,5 +1,6 @@
 import type { Attachment, Event, EventHint, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core/browser';
-import { defineIntegration, getComponentName } from '@sentry/core/browser';
+import { defineIntegration } from '@sentry/core/browser';
+import { getComponentName } from '@sentry/browser-utils';
 import { WINDOW } from '../helpers';
 
 interface OnElementArgs {

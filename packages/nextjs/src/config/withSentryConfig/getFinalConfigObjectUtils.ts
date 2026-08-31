@@ -3,6 +3,7 @@ import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
+import { getBuildLogger } from '../buildLogger';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
@@ -41,8 +42,7 @@ export function maybeSetUpTunnelRouteRewriteRules(
   if (incomingUserNextConfigObject.output === 'export') {
     if (!showedExportModeTunnelWarning) {
       showedExportModeTunnelWarning = true;
-      // eslint-disable-next-line no-console
-      console.warn(
+      getBuildLogger(userSentryOptions.silent).warn(
         '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
       );
     }
@@ -61,15 +61,14 @@ export function maybeSetUpTunnelRouteRewriteRules(
  *
  * @returns `true` if Sentry config processing should be skipped for the current process invocation
  */
-export function shouldReturnEarlyInExperimentalBuildMode(): boolean {
+export function shouldReturnEarlyInExperimentalBuildMode(silent?: boolean): boolean {
   if (!process.argv.includes('--experimental-build-mode')) {
     return false;
   }
 
   if (!showedExperimentalBuildModeWarning) {
     showedExperimentalBuildModeWarning = true;
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(silent).warn(
       '[@sentry/nextjs] The Sentry Next.js SDK does not currently fully support next build --experimental-build-mode',
     );
   }
@@ -99,6 +98,7 @@ export function maybeCreateRouteManifest(
   const manifest = createRouteManifest({
     basePath: incomingUserNextConfigObject.basePath,
     localeParamNames: userSentryOptions.routeManifestInjection?.localeParamNames,
+    silent: userSentryOptions.silent,
   });
 
   // Apply route exclusion filter if configured
@@ -138,6 +138,7 @@ export function filterRouteManifest(manifest: RouteManifest, excludeFilter: Excl
 export function maybeSetClientTraceMetadataOption(
   incomingUserNextConfigObject: NextConfigObject,
   nextJsVersion: string | undefined,
+  silent?: boolean,
 ): void {
   // With Cache Components enabled, the page shell — and therefore the document's `sentry-trace`/
   // `baggage` meta tags — can be prerendered and rendered in an async context detached from the
@@ -162,8 +163,7 @@ export function maybeSetClientTraceMetadataOption(
       ];
     }
   } else {
-    // eslint-disable-next-line no-console
-    console.log(
+    getBuildLogger(silent).log(
       "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
     );
   }
@@ -175,13 +175,15 @@ export function maybeSetClientTraceMetadataOption(
 export function maybeSetInstrumentationHookOption(
   incomingUserNextConfigObject: NextConfigObject,
   nextJsVersion: string | undefined,
+  silent?: boolean,
 ): void {
+  const logger = getBuildLogger(silent);
+
   // From Next.js version (15.0.0-canary.124) onwards, Next.js does no longer require the `experimental.instrumentationHook` option and will
   // print a warning when it is set, so we need to conditionally provide it for lower versions.
   if (nextJsVersion && requiresInstrumentationHook(nextJsVersion)) {
     if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logger.warn(
         '[@sentry/nextjs] You turned off the `experimental.instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.(js|ts)`.',
       );
     }
@@ -199,14 +201,12 @@ export function maybeSetInstrumentationHookOption(
   // If we cannot detect a Next.js version for whatever reason, the sensible default is to set the `experimental.instrumentationHook`, even though it may create a warning.
   if (incomingUserNextConfigObject.experimental && 'instrumentationHook' in incomingUserNextConfigObject.experimental) {
     if (incomingUserNextConfigObject.experimental.instrumentationHook === false) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logger.warn(
         '[@sentry/nextjs] You set `experimental.instrumentationHook` to `false`. If you are using Next.js version 15 or greater, you can remove that option. If you are using Next.js version 14 or lower, you need to set `experimental.instrumentationHook` in your `next.config.(js|mjs)` to `true` for the SDK to be properly initialized in combination with `instrumentation.(js|ts)`.',
       );
     }
   } else {
-    // eslint-disable-next-line no-console
-    console.log(
+    logger.log(
       "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, Next.js will probably show you a warning about the `experimental.instrumentationHook` being set. To silence Next.js' warning, explicitly set the `experimental.instrumentationHook` option in your `next.config.(js|mjs|ts)` to `undefined`. If you are on Next.js version 14 or lower, you can silence this particular warning by explicitly setting the `experimental.instrumentationHook` option in your `next.config.(js|mjs)` to `true`.",
     );
     incomingUserNextConfigObject.experimental = {
@@ -227,8 +227,7 @@ export function warnIfMissingOnRouterTransitionStartHook(userSentryOptions: Sent
     !instrumentationClientFileContents.includes('onRouterTransitionStart') &&
     !userSentryOptions.suppressOnRouterTransitionStartWarning
   ) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(userSentryOptions.silent).warn(
       '[@sentry/nextjs] ACTION REQUIRED: To instrument navigations, the Sentry SDK requires you to export an `onRouterTransitionStart` hook from your `instrumentation-client.(js|ts)` file. You can do so by adding `export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to the file.',
     );
   }

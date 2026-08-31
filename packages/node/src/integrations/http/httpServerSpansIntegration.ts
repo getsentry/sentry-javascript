@@ -52,6 +52,8 @@ import {
   getUrlQuery,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -146,7 +148,8 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
-          const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
+          const requestMethod = normalizedRequest.method || request.method?.toUpperCase();
+          const method = requestMethod || 'GET';
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
@@ -154,13 +157,17 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const fragment = getUrlFragment(urlObj?.hash);
 
           const span = startInactiveSpan({
-            name: bestEffortTransactionName,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+            name: hasSpanStreamingEnabled(client)
+              ? requestMethod || HTTP_SPAN_NAME_FALLBACK
+              : bestEffortTransactionName,
             attributes: {
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,

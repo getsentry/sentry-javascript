@@ -15,12 +15,6 @@ export const PAGELOAD_SPAN_NAME_FALLBACK = 'Pageload';
 export const NAVIGATION_SPAN_NAME_FALLBACK = 'Navigation';
 
 /**
- * Fallback name for db spans when no better-suited span name is available.
- * @see https://getsentry.github.io/sentry-conventions/names/#db-queries
- */
-export const DB_SPAN_NAME_FALLBACK = 'Database operation';
-
-/**
  * Fallback name for gen_ai agent spans when no better-suited span name is available.
  * @see https://getsentry.github.io/sentry-conventions/names/#gen_ai-agent
  */

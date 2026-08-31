@@ -343,20 +343,30 @@ describe('orchestrionTransformOptions', () => {
       new Function('globalThis', banner as string)(global);
     }
 
-    it('marks the plugin as ran with an empty module list', () => {
+    it('marks the plugin as ran with an empty module set', () => {
       const global: Record<string, unknown> = {};
 
       runBanner(global);
 
-      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual([]);
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set());
     });
 
     it('never clobbers module names an injected snippet already recorded', () => {
-      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: ['mysql'] } };
+      const global: Record<string, unknown> = { __SENTRY_ORCHESTRION__: { bundler: new Set(['mysql']) } };
 
       runBanner(global);
 
-      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: string[] }).bundler).toEqual(['mysql']);
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set(['mysql']));
+    });
+
+    it('runs twice without resetting the recorded modules', () => {
+      const global: Record<string, unknown> = {};
+
+      runBanner(global);
+      (global.__SENTRY_ORCHESTRION__ as { bundler: Set<string> }).bundler.add('mysql');
+      runBanner(global);
+
+      expect((global.__SENTRY_ORCHESTRION__ as { bundler?: Set<string> }).bundler).toEqual(new Set(['mysql']));
     });
   });
 });

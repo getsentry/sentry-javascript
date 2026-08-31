@@ -302,6 +302,12 @@ Affected SDKs: `@sentry/node` and all dependents that re-export it (e.g. `@sentr
 
 The Koa error handler is now registered automatically when your app starts, so you no longer need to call `setupKoaErrorHandler`. The function is deprecated and will be removed in a future major version; you should no longer call it.
 
+### `setupHapiErrorHandler` is deprecated (Hapi errors are captured automatically)
+
+Affected SDKs: `@sentry/node` and all dependents that re-export it (e.g. `@sentry/aws-serverless`, `@sentry/google-cloud-serverless`, `@sentry/astro`, `@sentry/remix`, `@sentry/solidstart`, `@sentry/sveltekit`, `@sentry/bun`, `@sentry/elysia`).
+
+The Hapi error handler is now registered automatically when your server starts, so you no longer need to call `setupHapiErrorHandler` yourself. The function is deprecated and will be removed in a future major version; you should no longer call it.
+
 ### Initializing via `--require` is no longer supported
 
 Affected SDKs: `@sentry/node` and all dependents.
@@ -585,6 +591,29 @@ Sentry.init({
 
 `sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
 
+### `propagateTrace` renamed to `tracePropagation`
+
+Affected SDKs: `@sentry/core` and dependents.
+
+The low-level HTTP instrumentation helpers exported from `@sentry/core` (`getHttpClientSubscriptions` and
+`patchHttpModuleClient`) took a `propagateTrace` option, while the public `httpIntegration` and
+`nativeNodeFetchIntegration` options were already named `tracePropagation`. The option is now called
+`tracePropagation` at every layer, matching `tracePropagationTargets`:
+
+```js
+// before
+patchHttpModuleClient(http, { propagateTrace: true });
+
+// after
+patchHttpModuleClient(http, { tracePropagation: true });
+```
+
+If you only configure `httpIntegration`, `nativeNodeFetchIntegration`, or `denoHttpIntegration`, nothing changes — those
+options were already named `tracePropagation`.
+
+This is unrelated to `propagateTraceparent` (whether the W3C `traceparent` header is sent alongside `sentry-trace`) and
+`tracePropagationTargets` (which URLs receive trace headers). Both keep their names.
+
 ### `tracePropagationTargets` matching is now case-insensitive
 
 Affected SDKs: All SDKs.
@@ -606,6 +635,22 @@ on casing, or use `tracePropagationTargets` in combination with a more specific 
 
 As part of this, the `g` and `y` flags are ignored on `tracePropagationTargets` regular expressions. These flags made
 matching stateful via `lastIndex`, so a target like `/myApi\.com/g` previously matched only every other request.
+
+### `sendFeedback` rejects with an `Error`
+
+Affected SDKs: All SDKs running in the browser.
+
+`Sentry.sendFeedback()` now rejects with an `Error` in all cases. Previously it rejected with a plain string when the request timed out, was rejected with a 403, or otherwise failed to send, while the synchronous validation paths (empty message, no client configured) already threw an `Error`. The message text itself is unchanged, and is still customizable through the `errorMessages` hint, so read it off `error.message`:
+
+```js
+try {
+  await Sentry.sendFeedback({ message: 'Hello' });
+} catch (error) {
+  // v10: a string on send failures, an Error on validation failures
+  // v11: always an Error
+  console.log(error.message);
+}
+```
 
 ### Span attribute changes
 
@@ -774,28 +819,51 @@ Affected SDKs: All server-side SDKs.
 
 The LangGraph instrumentation no longer emits `gen_ai.create_agent` spans when a graph is compiled. `gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected. If you reference `create_agent` spans in dashboards or alerts, update them accordingly.
 
+### Express: errors are captured automatically
+
+Affected SDKs: All server-side SDKs that support Express.
+
+`expressIntegration()` now captures errors thrown from your route handlers automatically, so calling `setupExpressErrorHandler(app)` is no longer necessary — the call can be removed. It is deprecated and will be removed in the next major version. To customize which errors are captured, pass `shouldHandleError` to `expressIntegration()` (by default, 5xx errors and errors without a resolvable status are captured, while 3xx/4xx errors are not).
+
+If you prefer to capture errors yourself, set `expressIntegration({ shouldHandleError: false })` to opt out of automatic capture entirely, and call `Sentry.captureException` from your own error-handling middleware.
+
+The `expressErrorHandler` and `patchExpressModule` exports are deprecated for the same reason and will be removed in the next major version. The export of `expressErrorHandler` and `setupExpressErrorHandler` is moved from `@sentry/core` to `@sentry/server-utils`.
+
 ### Span name changes
 
 Affected SDKs: All SDKs.
 
-With [span streaming](#span-streaming-is-now-the-default) enabled(the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
+With [span streaming](#span-streaming-is-now-the-default) enabled (the default), span names are now **low cardinality**, following the [Sentry span name conventions](https://getsentry.github.io/sentry-conventions/names/).
 
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
 The following span names were adjusted:
 
-| Span op                                                                  | Before                                                                                                                      | After                                                                                                                                             |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                                                        |
-| `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                                          |
-| `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                              |
-| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                        |
-| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                                                   |
-| `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                               | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)       |
-| `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)             | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`) |
-| `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                | The messaging operation type and the destination (`receive my-topic`)                                                                             |
+| Span op                                                                  | Before                                                                                                                      | After                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                                      |
+| `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Navigation` if the SDK has none                                                                                                                                                    |
+| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                                               |
+| `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                                        |
+| `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                                            |
+| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                    | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                                        |
+| `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation (`chain format_prompt`)                           | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order (`invoke_agent format_prompt`), or `{operation}` if the span carries none |
+| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                                                                                      |
+| `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`)                                                                                        |
+| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                                                                                                                 |
+| `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                               | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)                                                                     |
+| `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)             | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`)                                                               |
+| `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                | The messaging operation type and the destination (`receive my-topic`)                                                                                                                                           |
+
+`navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
+
+Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
+
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
+
+`http.server` requests that resolve to a route are **unchanged** — those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
 
 Some consequences to be aware of:
 
@@ -804,6 +872,8 @@ The graphql operation name and the resolver field path are supplied by the clien
 Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart. The attribute is set in both trace lifecycles.
 
 For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
+
+Resource URIs are unbounded, so they are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
 
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
 
@@ -815,11 +885,12 @@ An amqplib span's destination is the exchange it uses, or the routing key when i
 
 Because a name built from an operation type has to be able to say which operation it means, the NestJS BullMQ, AWS SNS and AWS SQS `SendMessage` spans now carry the `messaging.operation.type` attribute they name themselves after. The other messaging integrations already set it. The attribute is set in both trace lifecycles.
 
-Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references.
+Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references. The same applies to `ui.action.click` spans, which are named after the current route.
 
-`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload span name is named `'Pageload'` and might receive its final, resolved route name later.
+`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload or navigation span is named `'Pageload'`/`'Navigation'` and might receive its final, resolved route name later.
 `ignoreSpans` filters matching a URL path no longer apply to them.
 Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
+Likewise, filters matching `chat unknown` no longer apply to a streamed chat span (`'chat'`).
 
 Match on attributes instead:
 
@@ -833,6 +904,29 @@ Sentry.init({
 });
 ```
 
+The same applies to `tracesSampler`, which also runs at span start. A web framework matches the route
+_after_ that point, so an `http.server` span is named `GET` when your rule is evaluated — never
+`GET /health`. Name-based rules stop matching **silently**: no error, no warning, just unexpected quota
+usage. No route attribute is set at that point either, so match on `url.path`:
+
+```js
+Sentry.init({
+  // Before
+  tracesSampler: ({ name, inheritOrSampleWith }) => inheritOrSampleWith(name === 'GET /health' ? 0 : 1),
+
+  // After
+  tracesSampler: ({ attributes, inheritOrSampleWith }) =>
+    inheritOrSampleWith(attributes?.['url.path'] === '/health' ? 0 : 1),
+});
+```
+
+On `@sentry/nextjs` the incoming-request span comes from Next.js' own OpenTelemetry instrumentation, so
+match on `url.full` or `http.target` if `url.path` is absent. `normalizedRequest.url` is also available on
+the sampling context.
+
+Error grouping is **not** affected by the `http.server` change: the scope's transaction name still holds
+the full `${method} ${path}`.
+
 ### AI integrations no longer trace non-inference operations
 
 Affected SDKs: All server-side SDKs.
@@ -843,6 +937,33 @@ AI integrations now only trace model invocations, tool calls, and agent invocati
 - LangGraph `gen_ai.create_agent` on graph compilation (`gen_ai.invoke_agent` and `gen_ai.execute_tool` spans are unaffected).
 
 If you reference these spans in dashboards or alerts, update them accordingly.
+
+### Fastify: `setupFastifyErrorHandler` is deprecated
+
+Affected SDKs: All server-side SDKs.
+
+`fastifyIntegration` is now a single, channel-based plugin that instruments Fastify v3.21 through v5, including error capture. Calling `setupFastifyErrorHandler(app)` is no longer required — errors are captured automatically once the integration is added. `setupFastifyErrorHandler` is therefore deprecated and will be removed in the next major.
+
+Because the integration owns error capture, `setupFastifyErrorHandler` no longer accepts a `shouldHandleError` option. Set it on `fastifyIntegration` instead — it applies to every supported Fastify version:
+
+```diff
+ Sentry.init({
+-  integrations: [Sentry.fastifyIntegration()],
++  integrations: [
++    Sentry.fastifyIntegration({
++      shouldHandleError(_error, _request, reply) {
++        return reply.statusCode >= 500;
++      },
++    }),
++  ],
+ });
+
+-Sentry.setupFastifyErrorHandler(app, {
+-  shouldHandleError(_error, _request, reply) {
+-    return reply.statusCode >= 500;
+-  },
+-});
+```
 
 ### `@sentry/nextjs`
 
@@ -1129,11 +1250,12 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Next.js) The `@sentry/nextjs/loader` entry point was removed. Use `node --import @sentry/nextjs/import` instead.
 - (Remix) The `@sentry/remix/loader` entry point was removed. Use `node --import @sentry/remix/import` instead.
 - (TanStack Start) The `@sentry/tanstackstart-react/loader` entry point was removed. Use `node --import @sentry/tanstackstart-react/import` instead.
-- (Fastify) The deprecated `setShouldHandleError` method was removed.
+- (Fastify) The deprecated `setShouldHandleError` method was removed, along with the `shouldHandleError` option on `setupFastifyErrorHandler`. Configure it on `fastifyIntegration` instead. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
 - (AWS Lambda) The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
 - (AWS Lambda) The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
 - (AWS Lambda) The deprecated `tryPatchHandler` function was removed. It was no longer used.
 - (Express) The deprecated `patchExpressModule(options)` signature was removed. Use `patchExpressModule(moduleExports, getOptions)` instead.
+- (Fastify) The deprecated `instrumentFastify` and `handleFastifyError` exports were removed. `fastifyIntegration` now instruments Fastify (v3.21–v5) and captures errors on its own, so neither export is needed. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
 - The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
 - The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 - The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.
@@ -1211,16 +1333,28 @@ Sentry.httpIntegration({
   );
 ```
 
-- The `enableRpcTracePropagation` option now defaults to `true`. Trace context is propagated across RPC calls (service bindings, Durable Objects, WorkerEntrypoints) unless you explicitly set `enableRpcTracePropagation: false`.
+- The `enableRpcTracePropagation` option was removed. Trace context is no longer appended to every RPC call on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings match a binding name exactly, regular expressions match by pattern, and both match case-insensitively. The option covers RPC method calls only, because they carry the trace context as a trailing argument that a non-Sentry receiver would see as a real argument. `stub.fetch()` and service binding `fetch()` carry it in HTTP headers, so they propagate regardless of this option. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
 
-- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. Use `enableRpcTracePropagation` instead, which was introduced as its replacement in v10.
+```diff
+  export default Sentry.withSentry(
+    (env) => ({
+      dsn: env.SENTRY_DSN,
+-     enableRpcTracePropagation: true,
++     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
+    }),
+    handler,
+  );
+```
+
+`rpcTracePropagationBindings` follows the matching rules `tracePropagationTargets` has in v11: casing does not matter on either side, and the `g` and `y` flags are ignored on regular expressions, because they made matching stateful via `lastIndex`. The one difference is that a string target has to equal the whole binding name, so `'DB'` does not cover a binding named `MY_DB`.
+
+- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object's prototype methods are now wrapped unconditionally, so every RPC method is instrumented and there is no longer an option to turn this on. Delete the option from your config.
 
 ```diff
   export const MyDO = Sentry.instrumentDurableObjectWithSentry(
     (env) => ({
       dsn: env.SENTRY_DSN,
 -     instrumentPrototypeMethods: true,
-+     enableRpcTracePropagation: true,
     }),
     MyDOBase,
   );
@@ -1281,6 +1415,21 @@ The legacy per-transaction profiling sampling options were removed. Configure se
 
 ### `@sentry/nextjs`
 
+`withSentryConfig` and the `SentryBuildOptions` type moved to the `@sentry/nextjs/config` entry point and are no
+longer exported from `@sentry/nextjs`:
+
+```js
+// next.config.mjs
+
+// before
+import { withSentryConfig } from '@sentry/nextjs';
+
+// after
+import { withSentryConfig } from '@sentry/nextjs/config';
+```
+
+The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed along with it.
+
 The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
 moved under the `webpack` option in v10; use the replacement listed below instead:
 
@@ -1302,7 +1451,7 @@ moved under the `webpack` option in v10; use the replacement listed below instea
 
 ### Meta-framework build options
 
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
 
 ### Removed `unstable_` bundler plugin options
 
@@ -1310,14 +1459,14 @@ The `unstable_sentry*PluginOptions` escape hatch was removed from every SDK. It 
 bundler plugins shipped on a separate release cadence from the SDK; they now live in the SDK monorepo and
 move in lockstep, so every supported plugin option is reachable as a first-class build option.
 
-| SDK                    | Removed option                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `@sentry/astro`        | `unstable_sentryVitePluginOptions` (top-level and inside `sourceMapsUploadOptions`) |
-| `@sentry/nextjs`       | `unstable_sentryWebpackPluginOptions` (top-level and inside `webpack`)              |
-| `@sentry/nuxt`         | `unstable_sentryBundlerPluginOptions`                                               |
-| `@sentry/react-router` | `unstable_sentryVitePluginOptions`                                                  |
-| `@sentry/solidstart`   | `unstable_sentryVitePluginOptions`                                                  |
-| `@sentry/sveltekit`    | `unstable_sentryVitePluginOptions`                                                  |
+| SDK                    | Removed option                                                         |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `@sentry/astro`        | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/nextjs`       | `unstable_sentryWebpackPluginOptions` (top-level and inside `webpack`) |
+| `@sentry/nuxt`         | `unstable_sentryBundlerPluginOptions`                                  |
+| `@sentry/react-router` | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/solidstart`   | `unstable_sentryVitePluginOptions`                                     |
+| `@sentry/sveltekit`    | `unstable_sentryVitePluginOptions`                                     |
 
 Set the option you need directly on the Sentry build options instead. Most real-world usage of this escape
 hatch was to set `applicationKey`, which has a top-level equivalent in every SDK:
@@ -1345,6 +1494,22 @@ The following bundler plugin options have no first-class equivalent and are no l
 `sourcemaps.disable` instead).
 
 ### `@sentry/nuxt`
+
+Removed support for the `public/instrument.server.[ext]` file. Move the file to the root of your project, next to `nuxt.config.ts`, and rename it to `sentry.server.config.[ext]`. Its contents do not change.
+
+```
+// before
+public/instrument.server.ts
+
+// after
+sentry.server.config.ts
+```
+
+After the rename, the SDK also emits `.output/server/sentry.server.config.mjs` for you to preload:
+
+```bash
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+```
 
 The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
 
@@ -1418,6 +1583,33 @@ export default defineConfig({
   - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
 
 ### `@sentry/astro`
+
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryAstro()`. Move its fields to the top level of the `sentryAstro()` options. Note that `assets` and `filesToDeleteAfterUpload` moved into `sourcemaps`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  integrations: [
+    sentry({
+      // before
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        assets: ['./dist/**/*'],
+      },
+
+      // after
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        assets: ['./dist/**/*'],
+      },
+    }),
+  ],
+});
+```
 
 Runtime SDK options (`dsn`, `environment`, `release` as a string, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate`, `replaysOnErrorSampleRate`) can no longer be passed to `sentryAstro()`. Configure them in `sentry.client.config.ts` / `sentry.server.config.ts` instead. `release` and `debug` on `sentryAstro()` are now build-time options (`release` for source map uploads, `debug` for build-time logging). If no config files exist, the generated default init snippets still pick them up (`release.name` as the runtime `release`, `debug` for SDK debug logging). The generated client snippet now always includes the `Replay` integration with default sample rates — to customize or remove it (previously done by setting both replay sample rates to `0`), create a `sentry.client.config.ts`.
 

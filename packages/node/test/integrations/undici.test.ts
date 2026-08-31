@@ -58,7 +58,7 @@ describe('instrumentUndici', () => {
         [URL_QUERY]: 'limit=10',
         [URL_FRAGMENT]: undefined,
         [URL_SCHEME]: 'https',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
         [SERVER_ADDRESS]: 'api.example.com',
         [SERVER_PORT]: 443,
       },

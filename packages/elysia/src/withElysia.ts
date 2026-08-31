@@ -5,6 +5,7 @@ import {
   captureException,
   continueTrace,
   getActiveSpan,
+  getClient,
   getIsolationScope,
   getRootSpan,
   getTraceData,
@@ -17,6 +18,8 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { AnyElysia, Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
 
@@ -200,10 +203,16 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
               baggage: request.headers.get('baggage'),
             },
             () => {
+              const client = getClient();
               return startSpanManual(
                 {
                   op: 'http.server',
-                  name: `${request.method} ${new URL(request.url).pathname}`,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back to the
+                  // URL path. `updateRouteTransactionName` renames the span once Elysia resolves the route.
+                  name:
+                    client && hasSpanStreamingEnabled(client)
+                      ? request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+                      : `${request.method} ${new URL(request.url).pathname}`,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
                     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',

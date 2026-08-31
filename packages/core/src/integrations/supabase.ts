@@ -11,6 +11,7 @@ import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpan } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
@@ -272,14 +273,31 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
+      const operationName = `auth${isAdmin ? '.admin' : ''}.${operation.name}`;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? // Usually, the operation name alone is not a valid span name according to conventions.
+            // However, for this span, we neither have a table, nor a namespace, since this is a Supabase-SDK
+            // operation that internally makes the respective request to the database.
+            // So I think we can interpret this as a "db.query.summary"-esque span name.
+            // Either way, it's definitely low-cardinality.
+            // see: https://getsentry.github.io/sentry-conventions/names/#db-queries
+            operationName
+          : // This name makes little sense semantically but preserving it for now to
+            // avoid a breaking change in the transaction path. Will be removed once we remove
+            // transactions.
+            `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`;
+
       return startSpan(
         {
-          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
+          name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
             [DB_SYSTEM_NAME]: 'postgresql',
-            [DB_OPERATION_NAME]: `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_OPERATION_NAME]: operationName,
           },
         },
         span => {
@@ -433,6 +451,9 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
+        const name =
+          client && hasSpanStreamingEnabled(client) ? `${operation}${table ? ` ${table}` : ''}` : description;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
@@ -454,7 +475,7 @@ function instrumentPostgRESTFilterBuilder(
 
         return startSpan(
           {
-            name: description,
+            name,
             attributes,
           },
           span => {

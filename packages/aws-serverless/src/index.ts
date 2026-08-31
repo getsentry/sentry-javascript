@@ -93,7 +93,9 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
@@ -123,6 +125,7 @@ export {
   workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,

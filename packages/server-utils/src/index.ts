@@ -4,6 +4,7 @@ export * from './exports';
 export { detectOrchestrionSetup } from './orchestrion/detect';
 // oxlint-disable-next-line typescript/no-deprecated -- re-exported so the deprecated `setupKoaErrorHandler` can delegate
 export { attachKoaErrorHandler } from './integrations/koa/koa-error-handler';
+import { attachHapiErrorHandler as _attachHapiErrorHandler } from './integrations/hapi/hapi-error-handler';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
@@ -15,10 +16,13 @@ export { orchestrionModuleInjected } from './utils/moduleInjected';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
-  handleFastifyError,
-  // oxlint-disable-next-line typescript/no-deprecated
-  instrumentFastify,
+  setupFastifyErrorHandler,
 } from './integrations/fastify';
+
+/**
+ * @deprecated This is a temporary export to avoid breaking changes. It will be removed in the next major version.
+ */
+export const attachHapiErrorHandler = _attachHapiErrorHandler;
 
 // Integrations
 export { prismaIntegration } from './integrations/prisma';
@@ -47,6 +51,10 @@ export { postgresJsIntegration } from './integrations/postgres-js';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
+/* oxlint-disable typescript/no-deprecated -- deprecated Express error-handler exports, kept until the next major */
+export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
+export type { ExpressHandlerOptions } from './integrations/express/types';
+/* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';

@@ -33,6 +33,7 @@ import type { Integration, Span } from '@sentry/core';
 import {
   debug,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   ROUTER_SPAN_NAME_FALLBACK,
   stripUrlQueryAndFragment,
@@ -123,7 +124,9 @@ export class TraceService implements OnDestroy {
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: strippedUrl,
+                // With span streaming, span names have to be low cardinality. The parameterized route
+                // is only known on `ResolveEnd`, which updates the span name then.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : strippedUrl,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',

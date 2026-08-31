@@ -32,7 +32,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -51,6 +50,11 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -86,7 +90,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -106,6 +109,13 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
+              '[{"type":"text","content":"You are a friendly robot who likes to be funny."}]',
+            );
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -137,7 +147,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -174,7 +183,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with tool calls', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -233,7 +241,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -265,6 +287,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-streaming-id');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-1.5-pro');
 
@@ -289,7 +315,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -318,6 +358,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["STOP"]');
 
             const blockedSpan = container.items.find(span => span.name === 'generate_content blocked-model');
@@ -348,7 +392,6 @@ describe('Google GenAI integration', () => {
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
@@ -372,7 +415,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -411,7 +453,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -458,7 +499,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           span: container => {
             const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');

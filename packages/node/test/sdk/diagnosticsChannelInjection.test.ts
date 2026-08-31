@@ -68,4 +68,18 @@ describe('diagnostics-channel injection', () => {
     expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
     expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
+
+  it('does not register the injection hooks but still runs detection when the `__SENTRY_CHANNEL_INJECTION__` build flag is false', () => {
+    // Simulates the bundler plugins' `bundleSizeOptimizations.excludeChannelInjection` text-replacing the flag.
+    vi.stubGlobal('__SENTRY_CHANNEL_INJECTION__', false);
+
+    try {
+      init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
+
+      expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+      expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

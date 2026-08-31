@@ -2,6 +2,7 @@ import type { createSentryBuildPluginManager as createSentryBuildPluginManagerTy
 import { loadModule } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBuildLogger } from './buildLogger';
 import { getBuildPluginOptions } from './getBuildPluginOptions';
 import type { SentryBuildOptions } from './types';
 
@@ -25,9 +26,10 @@ export async function handleRunAfterProductionCompile(
   },
   sentryBuildOptions: SentryBuildOptions,
 ): Promise<void> {
+  const logger = getBuildLogger(sentryBuildOptions.silent);
+
   if (sentryBuildOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.debug('[@sentry/nextjs] Running runAfterProductionCompile logic.');
+    logger.debug('[@sentry/nextjs] Running runAfterProductionCompile logic.');
   }
 
   const { createSentryBuildPluginManager } =
@@ -37,10 +39,7 @@ export async function handleRunAfterProductionCompile(
     ) ?? {};
 
   if (!createSentryBuildPluginManager) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] Could not load build manager package. Will not run runAfterProductionCompile logic.',
-    );
+    logger.warn('[@sentry/nextjs] Could not load build manager package. Will not run runAfterProductionCompile logic.');
     return;
   }
 
@@ -80,7 +79,11 @@ export async function handleRunAfterProductionCompile(
     !sentryBuildOptions.sourcemaps?.assets &&
     options.sourcemaps?.disable !== true
   ) {
-    await warnAboutUncoveredSourcemaps(path.join(distDir, 'static'), options.sourcemaps?.assets);
+    await warnAboutUncoveredSourcemaps(
+      path.join(distDir, 'static'),
+      options.sourcemaps?.assets,
+      sentryBuildOptions.silent,
+    );
   }
 
   await sentryBuildPluginManager.deleteArtifacts();
@@ -93,12 +96,11 @@ export async function handleRunAfterProductionCompile(
   // When SRI is enabled, we must skip this step because Next.js computes integrity
   // hashes during the build — modifying files afterward invalidates those hashes.
   if (deleteSourcemapsAfterUpload && buildTool === 'turbopack' && !sriEnabled) {
-    await stripSourceMappingURLComments(path.join(distDir, 'static'), sentryBuildOptions.debug);
+    await stripSourceMappingURLComments(path.join(distDir, 'static'), sentryBuildOptions);
   }
 
   if (deleteSourcemapsAfterUpload && buildTool === 'turbopack' && sriEnabled && sentryBuildOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    logger.debug(
       '[@sentry/nextjs] Skipping sourceMappingURL comment stripping because Subresource Integrity (SRI) is enabled.',
     );
   }
@@ -107,6 +109,7 @@ export async function handleRunAfterProductionCompile(
 async function warnAboutUncoveredSourcemaps(
   staticDir: string,
   uploadAssets: string | string[] | undefined,
+  silent: boolean | undefined,
 ): Promise<void> {
   let entries: string[];
   try {
@@ -126,8 +129,7 @@ async function warnAboutUncoveredSourcemaps(
     .filter(mapPath => !assetPaths.some(assetPath => mapPath === assetPath || mapPath.startsWith(`${assetPath}/`)));
 
   if (uncovered.length > 0) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(silent).warn(
       `[@sentry/nextjs] Found ${uncovered.length} source map file(s) under "${staticDir}" (e.g. "${
         uncovered[0]
       }") that are not covered by the source map upload patterns and will be deleted without having been uploaded to Sentry. Stack traces for the affected files will not be symbolicated. Set the \`sourcemaps.assets\` option in \`withSentryConfig\` to cover these files.`,
@@ -142,7 +144,10 @@ const CSS_SOURCEMAPPING_URL_COMMENT_REGEX = /\n?\/\*[#@] sourceMappingURL=[^\n]+
  * Strips sourceMappingURL comments from all JS/MJS/CJS/CSS files in the given directory.
  * This prevents browsers from requesting deleted .map files.
  */
-export async function stripSourceMappingURLComments(staticDir: string, debug?: boolean): Promise<void> {
+export async function stripSourceMappingURLComments(
+  staticDir: string,
+  { debug, silent }: Pick<SentryBuildOptions, 'debug' | 'silent'> = {},
+): Promise<void> {
   let entries: string[];
   try {
     entries = await fs.promises.readdir(staticDir, { recursive: true }).then(e => e.map(f => String(f)));
@@ -179,8 +184,7 @@ export async function stripSourceMappingURLComments(staticDir: string, debug?: b
   const strippedCount = results.filter(Boolean).length;
 
   if (debug && strippedCount > 0) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    getBuildLogger(silent).debug(
       `[@sentry/nextjs] Stripped sourceMappingURL comments from ${String(strippedCount)} file(s) to prevent requests for deleted source maps.`,
     );
   }

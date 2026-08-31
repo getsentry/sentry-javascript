@@ -11,7 +11,6 @@ import type { ServerComponentContext, VercelCronsConfig } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
-export * from './config';
 export * from './client';
 export * from './server';
 export * from './edge';
@@ -26,7 +25,6 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 // Node-only at runtime; the edge build exports an inert shim so named imports resolve in edge-compiled modules.
 export declare const pinoIntegration: typeof serverSdk.pinoIntegration;
-export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 // The client uses the `@sentry/core/browser` span-start APIs while server and edge use the Cache
 // Components-aware ones from `common/utils/nextSpan`. Same signatures, but the star exports above
 // are ambiguous without these.
@@ -51,8 +49,6 @@ export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
-
-export { withSentryConfig } from './config';
 
 /**
  * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.

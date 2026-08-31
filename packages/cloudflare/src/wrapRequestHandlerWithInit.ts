@@ -1,10 +1,16 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import {
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
 import {
   captureException,
   continueTrace,
   getHttpSpanDetailsFromUrlObject,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
@@ -76,7 +82,7 @@ export function wrapRequestHandlerWithInit(
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
       urlObject,
       'server',
       'auto.http.cloudflare',
@@ -84,6 +90,12 @@ export function wrapRequestHandlerWithInit(
       undefined,
       client,
     );
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
+    const name =
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
+        ? rawName
+        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {

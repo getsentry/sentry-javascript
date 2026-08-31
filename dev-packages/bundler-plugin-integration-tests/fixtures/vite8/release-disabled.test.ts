@@ -17,8 +17,8 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     console.log("hello world");
     //#endregion
     ",
-      "sentry-cli-mock.json": "["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
-    ["releases","finalize","CURRENT_SHA"],
+      "sentry-cli-mock.json": "["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","finalize","CURRENT_SHA"],
     ",
     }
   `);

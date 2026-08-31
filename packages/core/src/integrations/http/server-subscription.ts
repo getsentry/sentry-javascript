@@ -37,6 +37,8 @@ import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanStatus } from '../../types/spanStatus';
@@ -295,7 +297,11 @@ function buildServerSpanWrap(
       const urlObj = parseStringToURLObject(fullUrl);
       const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
       const method = (request.method || 'GET').toUpperCase();
-      const name = `${method} ${httpTargetWithoutQueryFragment}`;
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+      const name = hasSpanStreamingEnabled(client)
+        ? request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+        : `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
       const ips = headers['x-forwarded-for'];
