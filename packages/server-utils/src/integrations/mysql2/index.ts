@@ -7,7 +7,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -25,9 +24,11 @@ import {
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.mysql2';
@@ -99,7 +100,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
           [DB_QUERY_TEXT]: statement || undefined,
           [DB_QUERY_SUMMARY]: querySummary,

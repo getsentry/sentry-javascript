@@ -5,9 +5,11 @@ import {
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
@@ -222,7 +224,7 @@ export function getV3SpanAttributes(
 /**
  * Start a mongodb client span on the stable conventions.
  *
- * `op: 'db'` is set explicitly rather than relying on `inferDbSpanData`,
+ * The `db` op is set explicitly rather than relying on `inferDbSpanData`,
  * to support platforms that lack it (ie, Deno).
  */
 export function startMongoSpan(attributes: SpanAttributes): Span {
@@ -239,8 +241,8 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
 
   return startInactiveSpan({
     name,
-    op: 'db',
     attributes: {
+      [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',
       ...attributes,
     },

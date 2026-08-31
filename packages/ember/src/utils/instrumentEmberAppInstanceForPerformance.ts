@@ -13,6 +13,7 @@ import {
   URL_PATH,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { ROUTER } from '@sentry/conventions/op';
 import {
   filterCollectedUrl,
   getCurrentScope,
@@ -145,8 +146,7 @@ export function instrumentEmberAppInstanceForPerformance(
 
     transitionSpan = startInactiveSpan({
       attributes: {
-        // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'router',
+        [SENTRY_OP]: ROUTER,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
       },
       // With span streaming, span names have to be low cardinality, and Ember gives us no route

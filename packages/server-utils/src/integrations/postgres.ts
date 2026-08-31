@@ -6,9 +6,11 @@ import {
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_getSqlQuerySummary,
@@ -43,7 +45,7 @@ const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
 const DB_SYSTEM_POSTGRESQL = 'postgresql';
 
-// We set `op: 'db'` and the SQL description directly here (same as mysql
+// We set the `db` op and the SQL description directly here (same as mysql
 // orchestrion) rather than relying on the OTel pipeline's `inferDbSpanData`
 // processor, which only runs in the node SDK, so setting them here is what
 // makes the spans correct on the other runtimes
@@ -116,7 +118,7 @@ function instrumentPostgres(options: { ignoreConnectSpans?: boolean }): void {
  */
 function subscribeQueryLikeChannel(
   channelName: string,
-  getSpanOptions: (ctx: PgChannelContext) => { name: string; op: string; attributes: SpanAttributes },
+  getSpanOptions: (ctx: PgChannelContext) => { name: string; attributes: SpanAttributes },
   { deferStreamedResult = false }: { deferStreamedResult?: boolean } = {},
 ): void {
   bindTracingChannelToSpan(
@@ -175,7 +177,7 @@ function subscribeQueryLikeChannel(
   );
 }
 
-function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; attributes: SpanAttributes } {
+function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
@@ -192,8 +194,8 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; at
 
   return {
     name,
-    op: 'db',
     attributes: {
+      [SENTRY_OP]: DB,
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_QUERY_TEXT]: queryConfig?.text || undefined,
@@ -203,15 +205,15 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; op: string; at
   };
 }
 
-function connectSpanOptions(ctx: PgChannelContext): { name: string; op: string; attributes: SpanAttributes } {
+function connectSpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   // No origin set -> defaults to 'manual'
-  return { name: SPAN_CONNECT, op: 'db', attributes: getConnectionAttributes(params) };
+  return { name: SPAN_CONNECT, attributes: { [SENTRY_OP]: DB, ...getConnectionAttributes(params) } };
 }
 
-function poolConnectSpanOptions(ctx: PgChannelContext): { name: string; op: string; attributes: SpanAttributes } {
+function poolConnectSpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
   const opts = (ctx.self as { options?: PgPoolOptions } | undefined)?.options ?? {};
-  return { name: SPAN_POOL_CONNECT, op: 'db', attributes: getPoolConnectionAttributes(opts) };
+  return { name: SPAN_POOL_CONNECT, attributes: { [SENTRY_OP]: DB, ...getPoolConnectionAttributes(opts) } };
 }
 
 function hasOnMethod(obj: object): obj is { on: (event: string, listener: (arg?: unknown) => void) => unknown } {

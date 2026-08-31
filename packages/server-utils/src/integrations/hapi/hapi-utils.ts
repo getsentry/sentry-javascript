@@ -19,7 +19,7 @@ import {
   startSpan,
 } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
   LifecycleMethod,
@@ -164,10 +164,9 @@ export const getExtMetadata = (
   };
 };
 
-// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
-  [HapiLayerType.PLUGIN]: 'handler',
-  [HapiLayerType.ROUTER]: 'router',
+  [HapiLayerType.PLUGIN]: HANDLER,
+  [HapiLayerType.ROUTER]: ROUTER,
   [HapiLayerType.EXT]: MIDDLEWARE,
 };
 

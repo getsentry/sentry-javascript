@@ -40,7 +40,7 @@ describe('instrumentEnv', () => {
     await db.prepare('SELECT 1').first();
 
     expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ op: 'db.query', name: 'SELECT 1' }),
+      expect.objectContaining({ name: 'SELECT 1', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
       expect.any(Function),
     );
   });

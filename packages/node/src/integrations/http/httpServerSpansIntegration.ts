@@ -1,11 +1,10 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
-  HTTP_REQUEST_METHOD,
-  HTTP_RESPONSE_STATUS_CODE,
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -13,10 +12,12 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
-  SERVER_ADDRESS,
-  SERVER_PORT,
   SENTRY_HTTP_PREFETCH,
   SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
@@ -24,6 +25,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type {
   Event,
   HttpIncomingMessage,
@@ -40,7 +42,6 @@ import {
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
@@ -165,7 +166,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             attributes: {
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SENTRY_OP]: HTTP_SERVER,
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,

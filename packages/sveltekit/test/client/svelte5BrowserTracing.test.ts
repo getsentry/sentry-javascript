@@ -81,8 +81,8 @@ describe('svelte5 browser tracing', () => {
 
       expect(startPageLoadSpanSpy).toHaveBeenCalledWith(client, {
         name: '/',
-        op: 'pageload',
         attributes: {
+          'sentry.op': 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
@@ -122,8 +122,8 @@ describe('svelte5 browser tracing', () => {
         client,
         expect.objectContaining({
           name: '/users/[id]',
-          op: 'navigation',
           attributes: expect.objectContaining({
+            'sentry.op': 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: '/users/[id]',

@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
@@ -12,7 +13,13 @@ import { resolveAIRecordingOptions } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
-import { addRequestAttributes, addResponseAttributes, extractRequestAttributes, getOperationName } from './utils';
+import {
+  addRequestAttributes,
+  addResponseAttributes,
+  extractRequestAttributes,
+  getOperationName,
+  WORKERS_AI_OPERATION_SPAN_OPS,
+} from './utils';
 
 // Adapted from /server-utils/src/vercel-ai/util.ts
 // TODO(v11): Reuse this function once this gets moved to @sentry/server-utils
@@ -60,8 +67,10 @@ function instrumentRun(
         modelName !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
           ? `${operationName} ${modelName}`
           : operationName,
-      op: `gen_ai.${operationName}`,
-      attributes: requestAttributes,
+      attributes: {
+        [SENTRY_OP]: WORKERS_AI_OPERATION_SPAN_OPS[operationName],
+        ...requestAttributes,
+      },
     };
 
     if (isStreamRequested && !returnsRawResponse) {
