@@ -154,3 +154,51 @@ describe('patchWebAssembly() non-streaming registration', () => {
     expect(IMAGES).toHaveLength(0);
   });
 });
+
+describe('patchWebAssembly() non-streaming argument forwarding', () => {
+  const savedGlobals = saveWasmGlobals();
+
+  afterEach(() => {
+    restoreWasmGlobals(savedGlobals);
+  });
+
+  it('forwards every argument to instantiate', async () => {
+    const orig = vi.fn().mockResolvedValue({ module: MODULE, instance: {} });
+    WebAssembly.instantiate = orig as unknown as typeof WebAssembly.instantiate;
+
+    patchWebAssembly(registerModule);
+
+    const bytes = new Uint8Array(8);
+    const compileOptions = { builtins: ['js-string'] };
+    await (WebAssembly.instantiate as unknown as (...args: unknown[]) => Promise<unknown>)(
+      bytes,
+      WASM_IMPORTS,
+      compileOptions,
+    );
+
+    expect(orig).toHaveBeenCalledWith(bytes, WASM_IMPORTS, compileOptions);
+  });
+
+  it('forwards every argument to compile', async () => {
+    const orig = vi.fn().mockResolvedValue(MODULE);
+    WebAssembly.compile = orig as unknown as typeof WebAssembly.compile;
+
+    patchWebAssembly(registerModule);
+
+    const bytes = new Uint8Array(8);
+    const compileOptions = { builtins: ['js-string'] };
+    await (WebAssembly.compile as unknown as (...args: unknown[]) => Promise<unknown>)(bytes, compileOptions);
+
+    expect(orig).toHaveBeenCalledWith(bytes, compileOptions);
+  });
+
+  it('resolves the original result even if registration throws', async () => {
+    patchWebAssembly(() => {
+      throw new Error('registration failed');
+    });
+
+    const buffer = await fetchWasmBytes();
+
+    await expect(WebAssembly.compile(buffer)).resolves.toBeInstanceOf(WebAssembly.Module);
+  });
+});

@@ -68,7 +68,7 @@ function registerFromBufferSource(
 ): void {
   const url = getWasmSourceUrl(source);
   if (url) {
-    registerModule(module, url);
+    registerSafely(registerModule, module, url);
   }
 }
 
@@ -82,34 +82,26 @@ function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): v
 
   nonStreamingPatched = true;
 
-  const origInstantiate = WebAssembly.instantiate;
-  WebAssembly.instantiate = function instantiate(
-    source: BufferSource | WebAssembly.Module,
-    importObject?: WebAssembly.Imports,
-  ) {
+  // Double-cast, because the overloaded native signature (buffer vs. module
+  // first argument) cannot be widened to a pass-through shape in one step.
+  const origInstantiate = WebAssembly.instantiate as unknown as (
+    source: unknown,
+    ...rest: unknown[]
+  ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>;
+  WebAssembly.instantiate = function instantiate(source: BufferSource | WebAssembly.Module, ...rest: unknown[]) {
     if (source instanceof WebAssembly.Module) {
-      return (
-        origInstantiate as (
-          moduleObject: WebAssembly.Module,
-          importObject?: WebAssembly.Imports,
-        ) => Promise<WebAssembly.Instance>
-      )(source, importObject);
+      return origInstantiate(source, ...rest);
     }
 
-    return (
-      origInstantiate as (
-        bytes: BufferSource,
-        importObject?: WebAssembly.Imports,
-      ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>
-    )(source, importObject).then(result => {
+    return origInstantiate(source, ...rest).then(result => {
       registerFromBufferSource(registerModule, result.module, source);
       return result;
     });
   } as typeof WebAssembly.instantiate;
 
-  const origCompile = WebAssembly.compile;
-  WebAssembly.compile = function compile(source: BufferSource): Promise<WebAssembly.Module> {
-    return origCompile(source).then(module => {
+  const origCompile = WebAssembly.compile as (source: unknown, ...rest: unknown[]) => Promise<WebAssembly.Module>;
+  WebAssembly.compile = function compile(source: BufferSource, ...rest: unknown[]): Promise<WebAssembly.Module> {
+    return origCompile(source, ...rest).then(module => {
       registerFromBufferSource(registerModule, module, source);
       return module;
     });
