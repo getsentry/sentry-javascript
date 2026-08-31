@@ -1,3 +1,4 @@
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from '../../src/vite/injectGlobalValues';
@@ -29,6 +30,14 @@ describe('getGlobalValueInjectionCode', () => {
 
 function getGlobalValuesPlugin(plugins: Plugin[]): Plugin {
   return plugins.find(plugin => plugin.name === 'sentry-sveltekit-global-values-injection-plugin')!;
+}
+
+/**
+ * SvelteKit resolves the paths in its config against the cwd before exposing them on `api.options`,
+ * so the fixtures have to be absolute to match what the SDK actually gets handed.
+ */
+function fromCwd(...segments: string[]): string {
+  return path.join(process.cwd(), ...segments);
 }
 
 describe('global values injection plugin', () => {
@@ -66,17 +75,42 @@ describe('global values injection plugin', () => {
   it('injects into a custom server hooks file', async () => {
     const plugins = await getPluginsForKitConfig({
       adapter: nodeAdapterWithCustomOutDir,
-      files: { hooks: { server: 'src/my-hooks.server' } },
+      files: { hooks: { server: fromCwd('src/my-hooks.server') } },
     });
     const plugin = getGlobalValuesPlugin(plugins);
 
     // @ts-expect-error this hook exists and is callable
-    const customHooksResult = await plugin.transform('const a = 1;', '/project/src/my-hooks.server.ts');
+    const customHooksResult = await plugin.transform('const a = 1;', `${fromCwd('src/my-hooks.server')}.ts`);
     // @ts-expect-error this hook exists and is callable
-    const defaultHooksResult = await plugin.transform('const a = 1;', '/project/src/hooks.server.ts');
+    const defaultHooksResult = await plugin.transform('const a = 1;', `${fromCwd('src/hooks.server')}.ts`);
 
     expect(customHooksResult.code).toContain(VIRTUAL_GLOBAL_VALUES_FILE);
     expect(defaultHooksResult).toBeNull();
+  });
+
+  // SvelteKit always populates `files.hooks.server` in the config it exposes, and as an absolute
+  // path. Injecting the global values depends on that path still matching the Vite module id.
+  it('injects into the default server hooks file that SvelteKit resolves for us', async () => {
+    const plugins = await getPluginsForKitConfig({
+      adapter: nodeAdapterWithCustomOutDir,
+      files: { hooks: { client: fromCwd('src/hooks.client'), server: fromCwd('src/hooks.server') } },
+    });
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).transform('const a = 1;', `${fromCwd('src/hooks.server')}.ts`);
+
+    expect(result.code).toContain(VIRTUAL_GLOBAL_VALUES_FILE);
+  });
+
+  // The injected value is matched against stack frames at runtime, on a machine that generally
+  // isn't the machine that built the app - an absolute build-time path would never match.
+  it('injects a project-relative output directory', async () => {
+    const plugins = await getPluginsForKitConfig({ outDir: fromCwd('.svelte-kit') });
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).load(VIRTUAL_GLOBAL_VALUES_FILE);
+
+    expect(result.code).toContain('globalThis["__sentry_sveltekit_output_dir"] = ".svelte-kit/output";');
   });
 
   it('falls back to the default output directory if the config has no adapter', async () => {

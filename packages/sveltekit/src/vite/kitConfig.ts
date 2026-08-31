@@ -1,4 +1,5 @@
 import type { Adapter } from '@sveltejs/kit';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import { loadSvelteConfig } from './svelteConfig';
 
@@ -91,7 +92,8 @@ export function createKitConfigResolver(): KitConfigResolver {
 
   const plugin: Plugin = {
     name: 'sentry-sveltekit-kit-config-resolver',
-    // Run before our other plugins so that they can await `get()` from within their own hooks.
+    // Vite runs `configResolved` hooks concurrently, so the plugins below can await `get()` from
+    // theirs no matter how they're ordered. `pre` only buys us the `config` hook running first.
     enforce: 'pre',
 
     config: config => {
@@ -107,11 +109,16 @@ export function createKitConfigResolver(): KitConfigResolver {
         return;
       }
 
-      // Plugins added by a promise-returning factory aren't visible in the `config` hook yet,
-      // so we take a second look at the fully resolved plugin list.
-      const kitConfig = findKitConfigInPlugins(config.plugins);
+      try {
+        // Plugins added by a promise-returning factory aren't visible in the `config` hook yet,
+        // so we take a second look at the fully resolved plugin list.
+        const kitConfig = findKitConfigInPlugins(config.plugins);
 
-      settle(kitConfig ?? normalizeKitConfig(await loadSvelteConfig()));
+        settle(kitConfig ?? normalizeKitConfig(await loadSvelteConfig()));
+      } finally {
+        // Never leave `get()` pending: awaiting it would hang the build without surfacing a reason.
+        settle({});
+      }
     },
   };
 
@@ -143,11 +150,41 @@ export function findKitConfigInPlugins(plugins: unknown): ResolvedKitConfig | un
 }
 
 /**
- * Flattens a SvelteKit 2 config (`{ kit: { ... } }`) to the SvelteKit 3 shape (`{ ... }`).
+ * Flattens a SvelteKit 2 config (`{ kit: { ... } }`) to the SvelteKit 3 shape (`{ ... }`) and
+ * brings its paths into the shape the rest of the SDK expects.
+ *
+ * SvelteKit resolves `outDir` and `files.hooks.*` to absolute, platform-separated paths before it
+ * exposes them on `api.options`, whereas `svelte.config.js` holds whatever the user wrote (usually
+ * nothing, so we'd fall back to a cwd-relative default). Everything downstream needs that relative,
+ * `/`-separated form: the hooks file regexp is matched against Vite module ids, the injected output
+ * dir is matched against runtime stack frames on a machine that isn't the build machine, and the
+ * source map deletion globs are relative to the project root.
+ *
  * Exported only for testing.
  */
 export function normalizeKitConfig(config: ResolvedKitConfig & { kit?: ResolvedKitConfig }): ResolvedKitConfig {
-  return config?.kit ?? config ?? {};
+  const kitConfig: ResolvedKitConfig = config?.kit ?? config ?? {};
+  const hooks = kitConfig.files?.hooks;
+
+  return {
+    ...kitConfig,
+    ...(kitConfig.outDir !== undefined && { outDir: toRelativePosixPath(kitConfig.outDir) }),
+    ...(hooks && {
+      files: {
+        ...kitConfig.files,
+        hooks: {
+          ...hooks,
+          ...(hooks.client !== undefined && { client: toRelativePosixPath(hooks.client) }),
+          ...(hooks.server !== undefined && { server: toRelativePosixPath(hooks.server) }),
+        },
+      },
+    }),
+  };
+}
+
+function toRelativePosixPath(filePath: string): string {
+  const relativePath = path.isAbsolute(filePath) ? path.relative(process.cwd(), filePath) : filePath;
+  return relativePath.split(path.sep).join('/');
 }
 
 /**

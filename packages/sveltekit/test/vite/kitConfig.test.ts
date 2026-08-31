@@ -1,3 +1,4 @@
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VIRTUAL_GLOBAL_VALUES_FILE } from '../../src/vite/injectGlobalValues';
@@ -14,6 +15,14 @@ vi.mock('../../src/vite/svelteConfig', async () => {
 /** The SvelteKit Vite plugin exposes the resolved SvelteKit config on its plugin `api`. */
 function kitPlugin(options: unknown): Plugin {
   return { name: 'vite-plugin-sveltekit-setup', api: { options } } as Plugin;
+}
+
+/**
+ * SvelteKit resolves the paths in its config against the cwd before exposing them on `api.options`,
+ * so the fixtures have to be absolute to match what the SDK actually gets handed.
+ */
+function fromCwd(...segments: string[]): string {
+  return path.join(process.cwd(), ...segments);
 }
 
 function callConfigHook(resolver: ReturnType<typeof createKitConfigResolver>, plugins: unknown): void {
@@ -45,7 +54,7 @@ describe('createKitConfigResolver', () => {
 
       callConfigHook(resolver, [
         { name: 'some-other-plugin' },
-        kitPlugin({ outDir: 'custom-out', files: { hooks: { server: 'src/my-hooks.server' } } }),
+        kitPlugin({ outDir: fromCwd('custom-out'), files: { hooks: { server: fromCwd('src/my-hooks.server') } } }),
       ]);
 
       await expect(resolver.get()).resolves.toEqual({
@@ -57,9 +66,44 @@ describe('createKitConfigResolver', () => {
     it('flattens the `kit`-nested config of SvelteKit 2', async () => {
       const resolver = createKitConfigResolver();
 
-      callConfigHook(resolver, [kitPlugin({ preprocess: {}, kit: { outDir: 'custom-out' } })]);
+      callConfigHook(resolver, [kitPlugin({ preprocess: {}, kit: { outDir: fromCwd('custom-out') } })]);
 
       await expect(resolver.get()).resolves.toEqual({ outDir: 'custom-out' });
+    });
+
+    // SvelteKit hands us absolute, platform-separated paths; everything downstream (the hooks file
+    // regexp, the injected output dir, the source map globs) needs them relative to the project and
+    // `/`-separated, or it silently stops matching.
+    it('relativizes the absolute paths SvelteKit resolves', async () => {
+      const resolver = createKitConfigResolver();
+
+      callConfigHook(resolver, [
+        kitPlugin({
+          kit: {
+            outDir: fromCwd('.svelte-kit'),
+            files: {
+              routes: fromCwd('src/routes'),
+              hooks: { client: fromCwd('src/hooks.client'), server: fromCwd('src/hooks.server') },
+            },
+          },
+        }),
+      ]);
+
+      await expect(resolver.get()).resolves.toEqual({
+        outDir: '.svelte-kit',
+        files: {
+          routes: fromCwd('src/routes'),
+          hooks: { client: 'src/hooks.client', server: 'src/hooks.server' },
+        },
+      });
+    });
+
+    it('leaves already-relative paths alone', async () => {
+      const resolver = createKitConfigResolver();
+
+      callConfigHook(resolver, [kitPlugin({ kit: { outDir: '.svelte-kit', files: { hooks: {} } } })]);
+
+      await expect(resolver.get()).resolves.toEqual({ outDir: '.svelte-kit', files: { hooks: {} } });
     });
 
     it('finds the plugin in nested plugin arrays', async () => {
@@ -161,7 +205,7 @@ describe('resolution through a real Vite config resolution', () => {
       {
         configFile: false,
         logLevel: 'error',
-        plugins: [sentryPlugins, sveltekitLike({ outDir: 'resolved-through-vite' })],
+        plugins: [sentryPlugins, sveltekitLike({ kit: { outDir: fromCwd('resolved-through-vite') } })],
       },
       'build',
     );
