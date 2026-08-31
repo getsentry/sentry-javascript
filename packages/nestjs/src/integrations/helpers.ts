@@ -130,7 +130,6 @@ const PROCESS_OPERATION = 'process';
 export function getBullMQProcessSpanOptions(queueName: string | undefined): {
   name: string;
   attributes: Record<string, string | undefined>;
-  forceTransaction: boolean;
 } {
   const client = getClient();
   const isStreamed = !!client && hasSpanStreamingEnabled(client);
@@ -151,7 +150,6 @@ export function getBullMQProcessSpanOptions(queueName: string | undefined): {
       [MESSAGING_OPERATION_TYPE]: PROCESS_OPERATION,
       [MESSAGING_DESTINATION_NAME]: queueName,
     },
-    forceTransaction: true,
   };
 }
 
