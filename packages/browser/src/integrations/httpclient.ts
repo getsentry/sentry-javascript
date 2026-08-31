@@ -10,7 +10,6 @@ import {
   getClient,
   GLOBAL_OBJ,
   isSentryRequestUrl,
-  supportsNativeFetch,
 } from '@sentry/core/browser';
 import type { SentryWrappedXMLHttpRequest } from '@sentry/browser-utils';
 import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
@@ -282,10 +281,6 @@ function _isInGivenStatusRanges(
  * Wraps `fetch` function to capture request and response data
  */
 function _wrapFetch(client: Client, options: HttpClientOptions): void {
-  if (!supportsNativeFetch()) {
-    return;
-  }
-
   addFetchInstrumentationHandler(handlerData => {
     if (getClient() !== client) {
       return;
