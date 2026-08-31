@@ -74,18 +74,27 @@ describe('processHttpServerTransactionEvent', () => {
   });
 
   it('ignores events from a different span origin when spanOrigin is given', () => {
-    const event = { ...transaction(404), contexts: { trace: { origin: 'auto.http.deno', data: { 'http.response.status_code': 404 } } } } as Event;
+    const event = {
+      ...transaction(404),
+      contexts: { trace: { origin: 'auto.http.deno', data: { 'http.response.status_code': 404 } } },
+    } as Event;
     // Would be dropped without the gate; the origin does not match, so it passes through.
     expect(processHttpServerTransactionEvent(event, [404], 'auto.http.server')).toBe(event);
   });
 
   it('acts on events whose span origin matches', () => {
-    const event = { ...transaction(404), contexts: { trace: { origin: 'auto.http.server', data: { 'http.response.status_code': 404 } } } } as Event;
+    const event = {
+      ...transaction(404),
+      contexts: { trace: { origin: 'auto.http.server', data: { 'http.response.status_code': 404 } } },
+    } as Event;
     expect(processHttpServerTransactionEvent(event, [404], 'auto.http.server')).toBeNull();
   });
 
   it('acts on every origin when spanOrigin is omitted', () => {
-    const event = { ...transaction(404), contexts: { trace: { origin: 'auto.http.deno', data: { 'http.response.status_code': 404 } } } } as Event;
+    const event = {
+      ...transaction(404),
+      contexts: { trace: { origin: 'auto.http.deno', data: { 'http.response.status_code': 404 } } },
+    } as Event;
     expect(processHttpServerTransactionEvent(event, [404])).toBeNull();
   });
 

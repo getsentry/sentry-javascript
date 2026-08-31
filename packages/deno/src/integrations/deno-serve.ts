@@ -1,10 +1,5 @@
 import type { Event, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
-import {
-  debug,
-  DEFAULT_IGNORE_STATUS_CODES,
-  defineIntegration,
-  processHttpServerTransactionEvent,
-} from '@sentry/core';
+import { debug, DEFAULT_IGNORE_STATUS_CODES, defineIntegration, processHttpServerTransactionEvent } from '@sentry/core';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
