@@ -5,6 +5,7 @@ import type { NormalizedInputOptions, PluginContext } from 'rollup';
 import type { ResolvedConfig } from 'vite';
 import type { Compiler } from 'webpack';
 import { describe, expect, it, vi } from 'vitest';
+import { sentryOrchestrionPlugin as bunPlugin } from '../../src/orchestrion/bundler/bun';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
@@ -24,6 +25,9 @@ vi.mock('@apm-js-collab/code-transformer-bundler-plugins/vite', () => ({
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
   default: () => ({ apply: vi.fn() }),
+}));
+vi.mock('@apm-js-collab/code-transformer-bundler-plugins/bun', () => ({
+  default: () => ({ name: 'code-transformer', setup: vi.fn() }),
 }));
 
 describe('sentryOrchestrionPlugin (rollup)', () => {
@@ -292,6 +296,16 @@ describe('buildTimeInstrumentation: false', () => {
     expect(() => sentryOrchestrionWebpackPlugin(disabled).apply(compiler)).not.toThrow();
     expect(tap).not.toHaveBeenCalled();
   });
+
+  it('returns an inert bun plugin that neither banners nor force-bundles', () => {
+    const build = { config: { banner: '', external: ['*'] } };
+    const plugin = bunPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.setup(build)).toBeUndefined();
+    expect(build.config.banner).toBe('');
+    expect(build.config.external).toEqual(['*']);
+  });
 });
 
 describe('resolveOrchestrionRuntimeRequest', () => {
@@ -335,6 +349,18 @@ describe('orchestrionTransformOptions', () => {
 
     expect(opts.customTransforms?.myTransform).toBe(userTransform);
     expect(opts.customTransforms?.tracingChannelImport).not.toBe(clashing);
+  });
+
+  it('injects the marker banner by default', () => {
+    expect(orchestrionTransformOptions({}).injectDiagnostics).toBeTypeOf('function');
+  });
+
+  it('omits injectDiagnostics when opted out (Bun injects the banner natively instead)', () => {
+    const opts = orchestrionTransformOptions({}, { injectDiagnostics: false });
+
+    expect(opts.injectDiagnostics).toBeUndefined();
+    // The other options still come through the shared assembly point.
+    expect(typeof opts.customTransforms?.tracingChannelImport).toBe('function');
   });
 
   describe('marker banner', () => {

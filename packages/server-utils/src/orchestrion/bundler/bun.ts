@@ -1,6 +1,8 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
-import { INSTRUMENTED_MODULE_NAMES, SENTRY_INSTRUMENTATIONS, withoutInstrumentedExternals } from '../config';
-import { moduleInjectedTransforms, ORCHESTRION_BUNDLER_MARKER_BANNER } from './moduleInjectedTransform';
+import { INSTRUMENTED_MODULE_NAMES, withoutInstrumentedExternals } from '../config';
+import { ORCHESTRION_BUNDLER_MARKER_BANNER } from './moduleInjectedTransform';
+import type { PluginOptions } from './options';
+import { orchestrionTransformOptions } from './options';
 
 // oxlint-disable-next-line typescript/no-explicit-any
 type UnknownPlugin = any;
@@ -27,14 +29,22 @@ interface BunPluginBuilder {
  * so `bundler` is set (to an empty `Set`) from boot, which gates the SDK's channel-integration setup
  * at `init()`.
  */
-export function sentryOrchestrionPlugin(): UnknownPlugin {
+export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlugin {
+  if (options.buildTimeInstrumentation === false) {
+    // Inert plugin — no banner, no force-bundling, no code transform — so SDKs that
+    // unconditionally push it into their plugin array can still opt out.
+    return { name: 'sentry-orchestrion-disabled', setup: () => undefined };
+  }
+
+  // Route through the shared assembly point so any future option reaches Bun too, but opt out of
+  // the transformer's own `injectDiagnostics` — Bun injects the marker banner via its native
+  // `banner` config below (which, unlike the upstream path, needs no `outdir`).
   // Typed upstream as an esbuild `Plugin`, but Bun passes its own `PluginBuilder` (which has the
   // `onLoad` the transform uses) to `setup`. Cast to the Bun-compatible shape so we can forward
   // Bun's builder to its `setup`.
-  const transformer = codeTransformer({
-    instrumentations: SENTRY_INSTRUMENTATIONS,
-    customTransforms: moduleInjectedTransforms(),
-  }) as unknown as {
+  const transformer = codeTransformer(
+    orchestrionTransformOptions(options, { injectDiagnostics: false }),
+  ) as unknown as {
     setup: (build: BunPluginBuilder) => void;
   };
 

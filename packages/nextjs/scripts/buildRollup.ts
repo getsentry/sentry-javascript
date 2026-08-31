@@ -36,6 +36,10 @@ const runtimeInjectionExports = (
   }
 ).exports;
 
+// Clear stale forwarders first: without this, a subpath removed from the exports map would leave its
+// generated forwarder behind on an incremental build.
+fs.rmSync(orchestrionRuntimeBuildDir, { recursive: true, force: true });
+
 for (const [key, conditions] of Object.entries(runtimeInjectionExports)) {
   if (key === './package.json' || typeof conditions === 'string' || !conditions.require) {
     continue;
