@@ -29,7 +29,6 @@ import {
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
 } from '../utils/spanUtils';
-import { getTraceData } from '../utils/traceData';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
@@ -221,25 +220,35 @@ export const continueTrace = <V>(
  * Runs the callback in a scope that continues the current trace but carries no parent span, so a
  * span started inside becomes the segment (root span) of that trace instead of a child span.
  *
- * This is the composable equivalent of the `forceTransaction` start-span option: the trace data of
- * the active span is read back in through `continueTrace`, which is also how an incoming request
- * starts its own segment on a trace that is already in flight.
+ * This is the composable equivalent of the `forceTransaction` start-span option. The propagation
+ * context is written from the active span directly rather than through `continueTrace`, because
+ * `continueTrace` applies the trace continuation policy (`strictTraceContinuation`, org id
+ * matching) and would move the segment onto a new trace when a frozen DSC carries no org id.
+ *
+ * Mirrors what `registerPrepareSpanScope` in `@sentry/opentelemetry` does for a remote parent.
  */
 export function withSegment<T>(callback: () => T): T {
+  const parentSpan = getActiveSpan();
+
   // Without an active span the callback already starts a root span.
-  if (!getActiveSpan()) {
+  if (!parentSpan) {
     return callback();
   }
 
-  const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+  const { traceId, spanId } = parentSpan.spanContext();
+  const dsc = getDynamicSamplingContextFromSpan(parentSpan);
+  const sampleRand = Number(dsc.sample_rand);
 
-  // There is nothing to continue from, so `continueTrace` would start a fresh trace and detach the
-  // segment from the trace it belongs to. Staying a child span is the lesser evil.
-  if (!sentryTrace) {
-    return callback();
-  }
-
-  return continueTrace({ sentryTrace, baggage }, callback);
+  return withScope(scope => {
+    scope.setPropagationContext({
+      traceId,
+      parentSpanId: spanId,
+      sampled: spanIsSampled(parentSpan),
+      dsc,
+      sampleRand: Number.isNaN(sampleRand) ? safeMathRandom() : sampleRand,
+    });
+    return withActiveSpan(null, callback);
+  });
 }
 
 /**

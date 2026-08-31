@@ -22,6 +22,7 @@ import {
   SentrySpan,
   suppressTracing,
   withActiveSpan,
+  withSegment,
 } from '../../../src/tracing';
 import { startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing/trace';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
@@ -2602,6 +2603,76 @@ describe('startNewTrace', () => {
       expect(newIsolationScopeTraceId).toMatch(/^[a-f0-9]{32}$/);
       expect(newIsolationScopeTraceId).toEqual(oldIsolationScopeTraceId);
     });
+  });
+});
+
+describe('withSegment', () => {
+  beforeEach(() => {
+    resetGlobals();
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('starts a segment on the trace of the active span instead of a child span', () => {
+    startSpan({ name: 'outer' }, outer => {
+      const segment = withSegment(() => startInactiveSpan({ name: 'segment' }));
+
+      expect(getRootSpan(segment)).toBe(segment);
+      expect(spanToJSON(segment).trace_id).toBe(spanToJSON(outer).trace_id);
+      expect(spanToJSON(segment).parent_span_id).toBe(outer.spanContext().spanId);
+      expect(getSpanDescendants(outer).map(span => spanToJSON(span).name)).toEqual(['outer']);
+    });
+  });
+
+  it('matches what `forceTransaction: true` produces', () => {
+    startSpan({ name: 'outer' }, () => {
+      const viaHelper = withSegment(() => startInactiveSpan({ name: 'segment' }));
+      const viaOption = startInactiveSpan({ name: 'segment', forceTransaction: true });
+
+      const helperJson = spanToJSON(viaHelper);
+      const optionJson = spanToJSON(viaOption);
+
+      expect(helperJson.trace_id).toBe(optionJson.trace_id);
+      expect(helperJson.parent_span_id).toBe(optionJson.parent_span_id);
+      expect(spanIsSampled(viaHelper)).toBe(spanIsSampled(viaOption));
+      expect(getDynamicSamplingContextFromSpan(viaHelper)).toEqual(getDynamicSamplingContextFromSpan(viaOption));
+    });
+  });
+
+  it('stays on the same trace when `strictTraceContinuation` would reject the frozen DSC', () => {
+    const options = getDefaultTestClientOptions({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      strictTraceContinuation: true,
+      orgId: '00222111',
+    });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // A trace continued without incoming baggage freezes a DSC that carries no `org_id`.
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+      dsc: {},
+    });
+
+    startSpan({ name: 'outer' }, outer => {
+      const segment = withSegment(() => startInactiveSpan({ name: 'segment' }));
+
+      expect(spanToJSON(segment).trace_id).toBe(spanToJSON(outer).trace_id);
+    });
+  });
+
+  it('runs the callback unchanged when there is no active span', () => {
+    const segment = withSegment(() => startInactiveSpan({ name: 'segment' }));
+
+    expect(getRootSpan(segment)).toBe(segment);
+    expect(spanToJSON(segment).parent_span_id).toBeUndefined();
   });
 });
 
