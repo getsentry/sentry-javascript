@@ -73,12 +73,6 @@ export interface MiddlewareError extends Error {
 /** Callback deciding whether an error should be captured; `false` disables capture entirely. */
 export type ExpressShouldHandleError = ((error: MiddlewareError) => boolean) | false;
 
-/** Options for the deprecated `setupExpressErrorHandler` / `expressErrorHandler`. */
-export interface ExpressHandlerOptions {
-  /** Callback deciding whether an error should be captured and sent to Sentry. */
-  shouldHandleError?: (error: MiddlewareError) => boolean;
-}
-
 type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
 export interface ExpressIntegrationOptions {
   /** Ignore specific based on their name */

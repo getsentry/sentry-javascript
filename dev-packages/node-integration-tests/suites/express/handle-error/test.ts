@@ -336,14 +336,15 @@ describe('express error handling', () => {
       },
     );
 
-    // Fallback: with `expressIntegration` disabled, the deprecated middleware is the sole capturer and
-    // its own `shouldHandleError` applies (mechanism `auto.middleware.express`).
+    // Fallback: with `expressIntegration` disabled, the deprecated middleware is the sole capturer
+    // (mechanism `auto.middleware.express`). It applies the default predicate — `shouldHandleError`
+    // is configured on `expressIntegration` only.
     createCjsTests(
       __dirname,
       'scenario-setup-error-handler-fallback.mjs',
       'instrument-setup-error-handler.mjs',
       (createRunner, test) => {
-        test('deprecated handler captures with its own shouldHandleError when expressIntegration is disabled', async () => {
+        test('deprecated handler captures with the default predicate when expressIntegration is disabled', async () => {
           const runner = createRunner()
             .expect({
               event: {
@@ -362,9 +363,9 @@ describe('express error handling', () => {
             })
             .start();
 
-          // this error is filtered & ignored
+          // 4xx: skipped by the default predicate
           runner.makeRequest('get', '/test1', { expectError: true });
-          // this error is actually captured
+          // no status: treated as 5xx and captured
           runner.makeRequest('get', '/test2', { expectError: true });
 
           await runner.completed();

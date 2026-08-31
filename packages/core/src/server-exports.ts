@@ -21,7 +21,6 @@ export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
 export { patchExpressModule } from './integrations/express/index';
 export type {
   ExpressIntegrationOptions,
-  ExpressHandlerOptions,
   ExpressMiddleware,
   ExpressErrorMiddleware,
 } from './integrations/express/types';
