@@ -10,6 +10,24 @@ export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
 export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
 
+/**
+ * `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows
+ * paths (`ERR_UNSUPPORTED_ESM_URL_SCHEME`), but Rollup's resolver only understands
+ * filesystem paths. Returns `undefined` for a malformed `file://` URL.
+ *
+ * **Only exported for testing**
+ */
+export function toResolvablePath(source: string): { path: string; wasFileUrl: boolean } | undefined {
+  if (!source.startsWith('file://')) {
+    return { path: source, wasFileUrl: false };
+  }
+  try {
+    return { path: fileURLToPath(source), wasFileUrl: true };
+  } catch {
+    return undefined;
+  }
+}
+
 export type WrapServerEntryPluginOptions = {
   serverEntrypointFileName: string;
   serverConfigFileName: string;
@@ -48,15 +66,13 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
   return {
     name: 'sentry-wrap-server-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      // Rollup cannot load `file://` URLs directly; normalize to a filesystem path for resolution.
-      let normalizedSource = source;
-      if (source.startsWith('file://')) {
-        try {
-          normalizedSource = fileURLToPath(source);
-        } catch {
-          return null;
-        }
+      // `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows paths,
+      // but Rollup's resolver only understands filesystem paths.
+      const resolvable = toResolvablePath(source);
+      if (!resolvable) {
+        return null;
       }
+      const { path: normalizedSource, wasFileUrl } = resolvable;
 
       if (basename(normalizedSource).startsWith(serverConfigFileName)) {
         return { id: normalizedSource, moduleSideEffects: true };
@@ -89,9 +105,8 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
               .concat(QUERY_END_INDICATOR)}`;
       }
 
-      // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
       // Pass isEntry:false to avoid double-wrapping (normalizedSource lacks query suffix).
-      if (source.startsWith('file://')) {
+      if (wasFileUrl) {
         const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
         if (resolved) return resolved;
         return { id: normalizedSource };
@@ -105,6 +120,7 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         const entryIdUrl = pathToFileURL(entryId).href;
         const configUrl = pathToFileURL(resolvedServerConfigPath).href;
 
+        // Use entryIdUrl so Node's runtime ESM loader receives file:// on Windows; Rollup normalizes it in resolveId.
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
           id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)

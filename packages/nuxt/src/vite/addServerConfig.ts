@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { basename } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { createResolver } from '@nuxt/kit';
 import { debug } from '@sentry/core';
 import * as fs from 'fs';
@@ -16,6 +16,7 @@ import {
   SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
   SENTRY_WRAPPED_FUNCTIONS,
+  toResolvablePath,
 } from './utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
@@ -166,8 +167,10 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
  * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
+ *
+ * Only exported for testing.
  */
-function wrapEntryWithDynamicImport({
+export function wrapEntryWithDynamicImport({
   resolvedSentryConfigPath,
   experimental_entrypointWrappedFunctions,
   debug,
@@ -185,23 +188,23 @@ function wrapEntryWithDynamicImport({
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      // Rollup cannot load `file://` URLs directly; normalize to a filesystem path for resolution.
-      // The emitted import specifier stays as `file://` for Node's ESM loader (required on Windows),
-      // but Rollup needs a plain path to read the file during bundling.
-      let normalizedSource = source;
-      if (source.startsWith('file://')) {
-        try {
-          normalizedSource = fileURLToPath(source);
-        } catch {
-          return null;
-        }
+      // `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows paths,
+      // but Rollup's resolver only understands filesystem paths.
+      const resolvable = toResolvablePath(source);
+      if (!resolvable) {
+        return null;
       }
+      const { path: normalizedSource, wasFileUrl } = resolvable;
 
       if (basename(normalizedSource).startsWith(SERVER_CONFIG_FILENAME)) {
         return { id: normalizedSource, moduleSideEffects: true };
       }
 
-      if (options.isEntry && normalizedSource.includes('.mjs') && !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+      if (
+        options.isEntry &&
+        normalizedSource.includes('.mjs') &&
+        !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+      ) {
         const resolution = await this.resolve(normalizedSource, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
@@ -227,11 +230,9 @@ function wrapEntryWithDynamicImport({
               .concat(QUERY_END_INDICATOR)}`;
       }
 
-      // Handle file:// specifiers emitted by load() for the wrapped entry / re-exports.
-      // At runtime Node requires file:// on Windows, but Rollup needs a filesystem path.
       // Pass isEntry:false to avoid re-entering the isEntry branch and double-wrapping
       // (normalizedSource strips the SENTRY_WRAPPED_ENTRY query suffix).
-      if (source.startsWith('file://')) {
+      if (wasFileUrl) {
         const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
         if (resolved) return resolved;
         return { id: normalizedSource };
@@ -245,6 +246,7 @@ function wrapEntryWithDynamicImport({
         const entryIdUrl = pathToFileURL(entryId).href;
         const configUrl = pathToFileURL(resolvedSentryConfigPath).href;
 
+        // Use entryIdUrl so Node's runtime ESM loader receives file:// on Windows; Rollup normalizes it in resolveId.
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
           id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)

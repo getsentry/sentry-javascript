@@ -2,6 +2,7 @@ import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import { resolvePath } from '@nuxt/kit';
 
@@ -202,6 +203,24 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
         '',
       ),
     );
+}
+
+/**
+ * `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows
+ * paths (`ERR_UNSUPPORTED_ESM_URL_SCHEME`), but Rollup's resolver only understands
+ * filesystem paths. Returns `undefined` for a malformed `file://` URL.
+ *
+ * Only exported for testing.
+ */
+export function toResolvablePath(source: string): { path: string; wasFileUrl: boolean } | undefined {
+  if (!source.startsWith('file://')) {
+    return { path: source, wasFileUrl: false };
+  }
+  try {
+    return { path: fileURLToPath(source), wasFileUrl: true };
+  } catch {
+    return undefined;
+  }
 }
 
 /**
