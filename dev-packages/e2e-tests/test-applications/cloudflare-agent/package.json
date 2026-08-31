@@ -17,7 +17,7 @@
     "@cloudflare/ai-chat": "^0.10.0",
     "@sentry/cloudflare": "^10.68.0",
     "@sentry/core": "^10.68.0",
-    "agents": "^0.20.0",
+    "agents": "latest",
     "ai": "^6.0.235",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
