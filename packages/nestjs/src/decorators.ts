@@ -38,7 +38,6 @@ export function SentryTraced(op: string = 'function') {
     descriptor.value = function (...args: unknown[]) {
       return startSpan(
         {
-          op: op,
           name: propertyKey,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',

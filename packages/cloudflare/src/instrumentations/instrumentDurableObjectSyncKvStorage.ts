@@ -1,5 +1,5 @@
-import type { SyncKvStorage } from '@cloudflare/workers-types';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import type { SyncKvStorage } from '@cloudflare/workers-types';
 import { DB } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 

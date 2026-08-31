@@ -118,8 +118,8 @@ export function startTrackingLongTasks(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: UI_LONG_TASK,
         attributes: {
+          [SENTRY_OP]: UI_LONG_TASK,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
@@ -161,6 +161,7 @@ export function startTrackingLongAnimationFrames(): void {
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
+        [SENTRY_OP]: UI_LONG_ANIMATION_FRAME,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       };
 
@@ -180,7 +181,6 @@ export function startTrackingLongAnimationFrames(): void {
 
       startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
-        op: UI_LONG_ANIMATION_FRAME,
         attributes,
       });
     }
@@ -464,7 +464,11 @@ export function _addResourceSpans(
     ['deliveryType', 'http.response_delivery_type'],
   ]);
 
-  const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };
+  const attributesWithResourceTiming: SpanAttributes = {
+    [SENTRY_OP]: op,
+    ...attributes,
+    ...resourceTimingToSpanAttributes(entry),
+  };
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
@@ -474,7 +478,6 @@ export function _addResourceSpans(
     name: spanStreamingEnabled
       ? domain || RESOURCE_SPAN_NAME_FALLBACK
       : resourceUrl.replace(WINDOW.location.origin, ''),
-    op,
     attributes: attributesWithResourceTiming,
   });
 }

@@ -5,6 +5,7 @@ import type {
   RequestHookInfo,
   ResponseHookInfo,
   Span,
+  SpanAttributes,
   StartSpanOptions,
 } from '@sentry/core/browser';
 import {
@@ -330,23 +331,37 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   let _pageloadSpan: Span | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true, url?: string): void {
-    const isPageloadSpan = startSpanOptions.op === 'pageload';
+  function _createRouteSpan(
+    client: Client,
+    startSpanOptions: StartSpanOptions,
+    defaultOp: string,
+    makeActive = true,
+    url?: string,
+  ): void {
+    // `beforeStartSpan` is a public hook that receives - and may override - the deprecated `op` option,
+    // so it stays part of the options handed to it and is only folded into `sentry.op` afterwards.
+    // TODO(v12): Drop `op` once `StartSpanOptions.op` is removed.
+    // oxlint-disable-next-line typescript/no-deprecated
+    const optionsWithOp: StartSpanOptions = { op: defaultOp, ...startSpanOptions };
+    // oxlint-disable-next-line typescript/no-deprecated
+    const isPageloadSpan = optionsWithOp.op === 'pageload';
 
-    const initialSpanName = startSpanOptions.name;
-    const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
-      ? beforeStartSpan(startSpanOptions)
-      : startSpanOptions;
+    const initialSpanName = optionsWithOp.name;
+    const finalStartSpanOptions: StartSpanOptions = beforeStartSpan ? beforeStartSpan(optionsWithOp) : optionsWithOp;
 
     // For navigations, `url` is the destination URL, so we use it to reflect the post-navigation location.
     // For pageloads (and manual navigation spans without a URL) we fall back to the current location.
     const urlObject = parseStringToURLObject(url || getLocationHref());
 
-    const attributes = {
+    const attributes: SpanAttributes = {
       ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
       ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,
     };
+
+    // Mirrors the precedence `startSpan` applies: an explicit `sentry.op` attribute wins over `op`.
+    // oxlint-disable-next-line typescript/no-deprecated
+    attributes[SENTRY_OP] ??= finalStartSpanOptions.op;
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
@@ -522,6 +537,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
             parentSpan: null,
           },
+          'navigation',
           true,
           navigationOptions?.url,
         );

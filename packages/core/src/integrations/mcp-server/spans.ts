@@ -212,6 +212,7 @@ export function buildMcpServerSpanConfig(
 
   return {
     name: spanName,
+    // oxlint-disable-next-line typescript/no-deprecated
     forceTransaction: true,
     attributes,
   };

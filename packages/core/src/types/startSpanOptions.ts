@@ -25,7 +25,19 @@ export interface StartSpanOptions {
   /** If set to true, only start a span if a parent span exists. */
   onlyIfParent?: boolean;
 
-  /** An op for the span. This is a categorization for spans. */
+  /**
+   * An op for the span. This is a categorization for spans.
+   *
+   * @deprecated This option will be removed in a future version of the SDK. Set the `sentry.op` attribute instead.
+   * If both are set, the attribute takes precedence.
+   *
+   * @example
+   * ```js
+   * Sentry.startSpan({ name: 'my-span', attributes: { 'sentry.op': 'my.op' } }, () => {
+   *   // ...
+   * });
+   * ```
+   */
   op?: string;
 
   /**

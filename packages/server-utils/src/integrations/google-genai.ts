@@ -122,8 +122,10 @@ function createGenAiSpan(
   const span = startInactiveSpan({
     // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
     name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
-    op: getGenAiSpanOp(operation),
-    attributes,
+    attributes: {
+      [SENTRY_OP]: getGenAiSpanOp(operation),
+      ...attributes,
+    },
   });
 
   if (recordInputs && params) {

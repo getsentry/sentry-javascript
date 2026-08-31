@@ -1,5 +1,5 @@
-import type { SqlStorage } from '@cloudflare/workers-types';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
+import type { SqlStorage } from '@cloudflare/workers-types';
 import { DB_QUERY } from '@sentry/conventions/op';
 import {
   _INTERNAL_getSqlQuerySummary,

@@ -252,7 +252,10 @@ async function instrumentRequestStartHttpServerSpan(
 
           const res = await startSpan(
             {
-              attributes,
+              attributes: {
+                [SENTRY_OP]: 'http.server',
+                ...attributes,
+              },
               name,
             },
             async span => {

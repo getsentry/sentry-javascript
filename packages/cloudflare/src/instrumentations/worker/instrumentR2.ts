@@ -58,7 +58,6 @@ function createSpanOptions(bindingName: string, r2Op: R2OperationKey, key?: stri
   const requestKey = Array.isArray(key) ? key.join(', ') : typeof key === 'string' ? key : undefined;
 
   return {
-    op,
     name: spanName,
     attributes: {
       [CLOUDFLARE_R2_OPERATION]: operation,

@@ -445,8 +445,10 @@ function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArgument
 
   // Fold `op` into the attributes up front so samplers see `sentry.op`; the `SentrySpan`
   // constructor only adds it after the sampling decision. An explicit `sentry.op` attribute wins.
+  // oxlint-disable-next-line typescript/no-deprecated
   if (options.op) {
     initialCtx.attributes = {
+      // oxlint-disable-next-line typescript/no-deprecated
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: options.op,
       ...options.attributes,
     };

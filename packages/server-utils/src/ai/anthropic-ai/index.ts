@@ -22,6 +22,7 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
@@ -177,7 +178,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   target: (...args: T) => R | Promise<R>,
   invocationThis: unknown,
   args: T,
-  spanConfig: { name: string; op: string; attributes: Record<string, SpanAttributeValue> },
+  spanConfig: { name: string; attributes: Record<string, SpanAttributeValue> },
   params: Record<string, unknown> | undefined,
   options: AnthropicAiOptions,
   isStreamRequested: boolean,
@@ -268,8 +269,10 @@ function instrumentMethod<T extends unknown[], R>(
           (typeof model === 'string' && model !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
             ? `${operationName} ${model}`
             : operationName,
-        op: getGenAiSpanOp(operationName),
-        attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        attributes: {
+          [SENTRY_OP]: getGenAiSpanOp(operationName),
+          ...(requestAttributes as Record<string, SpanAttributeValue>),
+        },
       };
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
