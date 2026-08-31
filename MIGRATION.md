@@ -837,7 +837,7 @@ The `setupExpressErrorHandler` and `expressErrorHandler` no longer accept a `sho
 +  integrations: [
 +    Sentry.expressIntegration({
 +      shouldHandleError(error) {
-+        return (error.statusCode ?? 500) >= 400;
++        return Number(error.statusCode ?? 500) >= 400;
 +      },
 +    }),
 +  ],

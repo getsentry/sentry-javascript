@@ -28,7 +28,7 @@ function setSDKProcessingMetadata(request: ExpressRequest): void {
  * An Express-compatible error handler, used by {@link setupExpressErrorHandler}.
  *
  * @deprecated `expressIntegration()` now captures errors automatically. This export is deprecated and
- * will be removed in the next major version.
+ * will be removed in the next major version. Migrate to the `expressIntegration` to filter with `shouldHandleError`.
  */
 export function expressErrorHandler(): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(error, request, res, next): void {
@@ -46,7 +46,7 @@ export function expressErrorHandler(): ExpressErrorMiddleware {
     }
 
     // `shouldHandleError` is an `expressIntegration()` feature and is deliberately not honoured here:
-    // this path exists to keep capturing errors, not to filter them. Migrate to the integration to filter.
+    // this path exists to keep capturing errors, not to filter them.
     if (defaultShouldHandleError(error)) {
       const eventId = captureException(error, {
         mechanism: { type: 'auto.middleware.express', handled: false },
