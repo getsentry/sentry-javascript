@@ -40,6 +40,12 @@ import { vercelAiConfig } from './vercel-ai';
  * these are injected. The channel LISTENERS may live elsewhere (e.g. the NestJS
  * one lives in `@sentry/nestjs`), but the config that decides what gets
  * transformed is centralized here.
+ *
+ * This module MUST stay pure, stateless data. It is loaded in more than one realm
+ * at once — the build-time bundler plugin inlines it into the server chunk, while
+ * `@sentry/server-runtime-injection`'s external `register` loads its own copy from
+ * `node_modules` at runtime. Two identical, side-effect-free arrays are harmless;
+ * any module-level mutable state here would silently diverge between those copies.
  */
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,

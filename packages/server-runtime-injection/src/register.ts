@@ -1,7 +1,7 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
 import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
