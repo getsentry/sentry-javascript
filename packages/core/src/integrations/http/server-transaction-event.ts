@@ -40,13 +40,22 @@ export function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (
  * Drop transaction events whose HTTP status code matches `ignoreStatusCodes`, and surface the
  * status as the top-level `response` context on the ones that are kept.
  *
+ * Pass `spanOrigin` to only act on transactions produced by a specific instrumentation, so that
+ * an integration owning this option does not filter transactions created by a different one.
+ * When omitted, every transaction carrying an HTTP status code is considered.
+ *
  * Returns `null` when the event should be dropped, otherwise the (possibly updated) event.
  */
 export function processHttpServerTransactionEvent(
   event: Event,
   ignoreStatusCodes: (number | [number, number])[],
+  spanOrigin?: string,
 ): Event | null {
   if (event.type !== 'transaction') {
+    return event;
+  }
+
+  if (spanOrigin !== undefined && event.contexts?.trace?.origin !== spanOrigin) {
     return event;
   }
 

@@ -1,4 +1,4 @@
-// <reference lib="deno.ns" />
+/// <reference lib="deno.ns" />
 
 /**
  * Lives in its own file because `setupOnce` runs once per process

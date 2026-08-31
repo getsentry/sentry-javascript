@@ -1,4 +1,4 @@
-// <reference lib="deno.ns" />
+/// <reference lib="deno.ns" />
 
 import * as http from 'node:http';
 import type { Envelope, SessionAggregates, TransactionEvent } from '@sentry/core';
@@ -269,7 +269,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: 'denoHttpIntegration: status code filtering also covers Deno.serve transactions',
+  name: 'denoServeIntegration: drops Deno.serve transactions with a default-ignored status code',
   async fn() {
     resetGlobals();
     const sink = transactionSink();
@@ -280,8 +280,6 @@ Deno.test({
       traceLifecycle: 'static',
     });
 
-    // `denoHttpIntegration` is a default integration and filters on the event, not on
-    // which instrumentation produced it, so `Deno.serve` transactions are filtered too.
     const abortController = new AbortController();
     let onListen: ((_: unknown) => void) | undefined;
     const listening = new Promise(resolve => (onListen = resolve));
@@ -304,6 +302,8 @@ Deno.test({
     abortController.abort();
     await server.finished;
 
+    // `denoServeIntegration` owns this filtering via its own `ignoreStatusCodes`.
+    assertEquals(kept.contexts?.trace?.origin, 'auto.http.deno');
     assertEquals(kept.contexts?.response?.status_code, 200);
 
     const dropped = sink.transactions.filter(t => t.contexts?.trace?.data?.['http.response.status_code'] === 404);
@@ -311,12 +311,46 @@ Deno.test({
   },
 });
 
-/**
- * Unlike the outgoing request hooks, `ignoreStatusCodes` is read in `processEvent`
- * rather than `setupOnce`, so a re-configured integration takes effect on the new
- * client even though the process-wide `setupOnce` has already run. That's why this
- * can stay here instead of needing its own file.
- */
+Deno.test({
+  name: 'denoHttpIntegration: ignoreStatusCodes does not cross-talk with Deno.serve transactions',
+  async fn() {
+    resetGlobals();
+    const sink = transactionSink();
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: sink.beforeSendTransaction,
+      traceLifecycle: 'static',
+      // Ask DenoHttp to drop 200s. DenoServe keeps its own defaults, so `Deno.serve`
+      // 200s must survive -- the two integrations no longer share a filter.
+      integrations: [denoHttpIntegration({ ignoreStatusCodes: [200] })],
+    });
+
+    const abortController = new AbortController();
+    let onListen: ((_: unknown) => void) | undefined;
+    const listening = new Promise(resolve => (onListen = resolve));
+    const server = Deno.serve(
+      { port: 0, signal: abortController.signal, onListen, hostname: '127.0.0.1' },
+      () => new Response('ok'),
+    );
+    await listening;
+    const port = server.addr.port;
+
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/ok`)).text(), 'ok');
+
+    const kept = await withTimeout(
+      sink.waitFor(t => t.contexts?.trace?.origin === 'auto.http.deno'),
+      5000,
+      'Deno.serve transaction unaffected by DenoHttp ignoreStatusCodes',
+    );
+
+    abortController.abort();
+    await server.finished;
+
+    assertEquals(kept.contexts?.trace?.data?.['http.response.status_code'], 200);
+  },
+});
+
 Deno.test({
   name: 'denoHttpIntegration: ignoreStatusCodes overrides the default list',
   async fn() {

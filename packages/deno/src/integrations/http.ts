@@ -106,8 +106,8 @@ export interface DenoHttpIntegrationOptions {
    * By default, some 3xx and 4xx status codes are dropped (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * Filtering runs in `processEvent` on the finished transaction, not when the span is created,
-   * so it also applies to `Deno.serve` transactions. Pass `[]` to keep everything.
+   * Applies only to spans this integration creates (`node:http`). `Deno.serve` requests are
+   * covered by `denoServeIntegration`'s own option of the same name. Pass `[]` to keep everything.
    *
    * Only takes effect with `traceLifecycle: 'static'`. The default `'stream'` lifecycle does not
    * produce transaction events, so the filter does not run. Node's `httpIntegration` has the same
@@ -158,7 +158,9 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     processEvent(event: Event): Event | null {
-      return processHttpServerTransactionEvent(event, ignoreStatusCodes);
+      // Gated on this integration's own span origin so it does not filter `Deno.serve`
+      // transactions, which `denoServeIntegration` owns via its own `ignoreStatusCodes`.
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.server');
     },
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({

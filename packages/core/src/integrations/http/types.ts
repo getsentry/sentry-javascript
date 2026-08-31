@@ -266,20 +266,6 @@ export interface HttpInstrumentationOptions {
   ignoreStaticAssets?: boolean;
 
   /**
-   * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
-   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
-   *
-   * **Note**: this is not applied by `getHttpServerSubscriptions`. The status code is only known
-   * once the response has finished, by which point the span exists, so filtering happens when the
-   * finished transaction is processed instead. SDKs read this in their integration's `processEvent`
-   * via `processHttpServerTransactionEvent` — passing it to the subscriptions alone has no effect.
-   *
-   * @default `[[401, 404], [301, 303], [305, 399]]`
-   */
-  ignoreStatusCodes?: (number | [number, number])[];
-
-  /**
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */

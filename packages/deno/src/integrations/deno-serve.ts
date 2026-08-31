@@ -1,5 +1,10 @@
-import type { IntegrationFn, MaxRequestBodySize } from '@sentry/core';
-import { debug, defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
+import {
+  debug,
+  DEFAULT_IGNORE_STATUS_CODES,
+  defineIntegration,
+  processHttpServerTransactionEvent,
+} from '@sentry/core';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
@@ -15,6 +20,21 @@ export type DenoServeIntegrationOptions = {
    * @default 'medium'
    */
   maxRequestBodySize?: MaxRequestBodySize;
+
+  /**
+   * Do not capture spans for incoming `Deno.serve` requests with the given status codes.
+   * By default, some 3xx and 4xx status codes are dropped (see @default).
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * Applies only to spans this integration creates. `node:http` requests are covered by
+   * `denoHttpIntegration`'s own option of the same name. Pass `[]` to keep everything.
+   *
+   * Only takes effect with `traceLifecycle: 'static'`. The default `'stream'` lifecycle does not
+   * produce transaction events, so the filter does not run.
+   *
+   * @default `[[401, 404], [301, 303], [305, 399]]`
+   */
+  ignoreStatusCodes?: (number | [number, number])[];
 };
 
 export type ServeParams =
@@ -72,9 +92,16 @@ const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
   });
 
 const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
+
   return {
     name: INTEGRATION_NAME,
     maxRequestBodySize: options.maxRequestBodySize,
+    processEvent(event: Event): Event | null {
+      // Gated on this integration's own span origin so it does not filter `node:http`
+      // transactions, which `denoHttpIntegration` owns via its own `ignoreStatusCodes`.
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.deno');
+    },
     setupOnce() {
       const originalServe = Deno.serve;
       const wrappedServe = instrumentedDenoServe(originalServe);

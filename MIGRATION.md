@@ -618,24 +618,28 @@ This is unrelated to `propagateTraceparent` (whether the W3C `traceparent` heade
 
 Affected SDKs: `@sentry/deno`.
 
-`denoHttpIntegration` now honors `ignoreStatusCodes`, using the same default list as `httpIntegration` in the other
-server SDKs: incoming request transactions whose response status falls in `[[401, 404], [301, 303], [305, 399]]` are
-dropped. Previously the option was declared but never read, so these transactions were always kept. Pass your own list
-to change which codes are dropped, or an empty array to keep everything:
+`denoHttpIntegration` and `denoServeIntegration` now honor `ignoreStatusCodes`, using the same default list as
+`httpIntegration` in the other server SDKs: incoming request transactions whose response status falls in
+`[[401, 404], [301, 303], [305, 399]]` are dropped. Previously the option was declared but never read, so these
+transactions were always kept.
+
+Each integration owns the option for the requests it instruments — `denoHttpIntegration` for `node:http`,
+`denoServeIntegration` for `Deno.serve` — so setting it on one does not affect the other. Pass your own list to change
+which codes are dropped, or an empty array to keep everything:
 
 ```js
 Sentry.init({
   dsn: '__DSN__',
-  integrations: [Sentry.denoHttpIntegration({ ignoreStatusCodes: [] })],
+  integrations: [
+    Sentry.denoHttpIntegration({ ignoreStatusCodes: [] }),
+    Sentry.denoServeIntegration({ ignoreStatusCodes: [] }),
+  ],
 });
 ```
 
 This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
 The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
 `httpIntegration` has the same limitation.
-
-Because `denoHttpIntegration` is a default integration and filters on the finished transaction rather than on which
-instrumentation produced it, this applies to `Deno.serve` transactions as well, not just `node:http` ones.
 
 Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
 SDKs.
