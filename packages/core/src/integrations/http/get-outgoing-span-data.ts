@@ -38,8 +38,10 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
 
   const userAgent = request.getHeader('user-agent');
 
-  // With span streaming, span names have to be low cardinality, so the URL path is dropped and only the
-  // domain is kept. Outgoing requests have no route to parameterize.
+  // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
+  // requests have no route to fall back on, and a URL stays relative only when the request carried no
+  // host to build one from — server runtimes have no page origin to resolve that against, unlike
+  // browsers — so such a request is named after the method alone.
   const client = getClient();
   const method = request.method?.toUpperCase();
   const domain = urlObject && !isURLObjectRelative(urlObject) ? urlObject.hostname : undefined;

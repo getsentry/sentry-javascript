@@ -16,6 +16,7 @@ import {
   NETWORK_TRANSPORT,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_DOMAIN,
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
@@ -106,6 +107,15 @@ describe('getOutgoingRequestSpanData', () => {
       mockStreamingClient();
       const result = getOutgoingRequestSpanData(makeMockRequest());
       expect(result.attributes![URL_FULL]).toBe('http://example.com/api/test');
+    });
+
+    // A request with no host leaves the URL relative, and a server runtime has no page origin to
+    // resolve it against, so there is no domain to name the span after.
+    it('falls back to the method alone when the request has no host', () => {
+      mockStreamingClient();
+      const result = getOutgoingRequestSpanData(makeMockRequest({ host: undefined }));
+      expect(result.name).toBe('GET');
+      expect(result.attributes![URL_DOMAIN]).toBeUndefined();
     });
   });
 
