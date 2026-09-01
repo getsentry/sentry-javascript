@@ -12,12 +12,10 @@ export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
  * occurrences all share this shape and are discriminated by `event_type`.
  */
 export interface TraceItem {
+  /** On a span this is the span id. */
   event_id?: string;
-  /** On spans this is the event id of the transaction the span belongs to. */
-  transaction_id?: string;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string;
-  is_transaction?: boolean;
   children?: TraceItem[];
   errors?: TraceItem[];
   occurrences?: TraceItem[];
@@ -67,6 +65,10 @@ export async function findErrorInTrace(traceId: string, eventId: string): Promis
   return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'error' && item.event_id === eventId);
 }
 
-export async function findTransactionInTrace(traceId: string, eventId: string): Promise<TraceItem | undefined> {
-  return flattenTrace(await fetchTrace(traceId)).find(item => item.is_transaction && item.transaction_id === eventId);
+/**
+ * Streamed spans never become transaction events, so a segment span is looked up by its span id
+ * rather than by the event id of an enclosing transaction.
+ */
+export async function findSegmentSpanInTrace(traceId: string, spanId: string): Promise<TraceItem | undefined> {
+  return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'span' && item.event_id === spanId);
 }

@@ -16,7 +16,6 @@ import User from './pages/User';
 const replay = Sentry.replayIntegration();
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
@@ -37,6 +36,19 @@ Sentry.init({
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
+
+  // Streamed spans never become transaction events, so the pageload and navigation segments are
+  // recorded here instead of in the event processor below. They are looked up by span id.
+  beforeSendSpan(span) {
+    const op = span.attributes['sentry.op'];
+
+    if (span.is_segment && typeof op === 'string' && (op === 'pageload' || op === 'navigation')) {
+      window.recordedSegmentSpans = window.recordedSegmentSpans || [];
+      window.recordedSegmentSpans.push({ spanId: span.span_id, traceId: span.trace_id, op });
+    }
+
+    return span;
+  },
 });
 
 Object.defineProperty(window, 'sentryReplayId', {
@@ -50,16 +62,8 @@ Object.defineProperty(window, 'sentryReplayId', {
 Sentry.addEventProcessor(event => {
   const eventId = event.event_id;
   const traceId = event.contexts?.trace?.trace_id;
-  const op = event.contexts?.trace?.op;
 
-  if (!eventId || !traceId) {
-    return event;
-  }
-
-  if (event.type === 'transaction' && (op === 'pageload' || op === 'navigation')) {
-    window.recordedTransactions = window.recordedTransactions || [];
-    window.recordedTransactions.push({ eventId, traceId, op });
-  } else if (!event.type && event.exception) {
+  if (eventId && traceId && !event.type && event.exception) {
     window.capturedException = { eventId, traceId };
   }
 

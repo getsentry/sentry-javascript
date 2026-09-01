@@ -16,7 +16,6 @@ performance.mark('sentry-sdk-init-start', {
 
 if (import.meta.env.MODE === 'tracing-replay') {
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -28,7 +27,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
 } else if (import.meta.env.MODE === 'tracing') {
   // Tracing + errors, but no replay — isolates the replay integration's cost.
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -40,7 +38,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // (We don't recommend this setup anywhere and neither will it work well.
   // this is purely for testing if it changes anything about overhead.)
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -53,7 +50,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
 } else if (import.meta.env.MODE === 'errors-only') {
   // Default integrations only — errors are always captured, no tracing or replay.
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -61,7 +57,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
 } else if (import.meta.env.MODE === 'minimal-integrations') {
   // Minimal integratoins setup only (everything necessary to automatically get errors)
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -79,7 +74,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // DSN set but every integration disabled. Isolates the cost of the enabled
   // client itself from the default instrumentation that wraps DOM/timer/network APIs.
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -91,7 +85,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // removeEventListener on ~32 prototypes plus setTimeout/setInterval/rAF/XHR.
   // Isolates that global monkey-patching cost from the rest of the defaults.
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -102,7 +95,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // Default integrations minus Breadcrumbs, which adds a lot of monkey patching to
   // DOM and Network APIs as well as event targets and listeners
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -112,7 +104,6 @@ if (import.meta.env.MODE === 'tracing-replay') {
   // Default integrations minus Breadcrumbs, which adds a lot of monkey patching to
   // DOM and Network APIs as well as event targets and listeners
   Sentry.init({
-    traceLifecycle: 'static',
     dsn: import.meta.env.VITE_E2E_TEST_DSN as string | undefined,
     release: 'lighthouse-fixture',
     environment: 'qa',
@@ -122,7 +113,7 @@ if (import.meta.env.MODE === 'tracing-replay') {
 } else if (import.meta.env.MODE === 'init-only') {
   // enabled: false makes the SDK a guaranteed no-op (no transport allocation,
   // no DSN warning). We're measuring pure SDK-loading + tree-shaking cost.
-  Sentry.init({ traceLifecycle: 'static', enabled: false });
+  Sentry.init({ enabled: false });
 }
 
 performance.measure('sentry-sdk-init-duration', {
