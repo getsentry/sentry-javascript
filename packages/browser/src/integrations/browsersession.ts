@@ -1,4 +1,4 @@
-import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core/browser';
+import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core';
 import { addHistoryInstrumentationHandler, whenIdleOrHidden } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

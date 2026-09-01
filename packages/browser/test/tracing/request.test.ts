@@ -1,5 +1,6 @@
-import type { Client } from '@sentry/core/browser';
-import * as utils from '@sentry/core/browser';
+import type { Client } from '@sentry/core';
+import * as utils from '@sentry/core';
+import * as coreBrowser from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
 import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
@@ -344,7 +345,7 @@ describe('instrumentOutgoingRequests', () => {
       vi.spyOn(utils, 'getActiveSpan').mockReturnValue(activeSpan);
       vi.spyOn(utils, 'hasSpansEnabled').mockReturnValue(true);
       vi.spyOn(utils, 'hasSpanStreamingEnabled').mockReturnValue(true);
-      vi.spyOn(utils, 'startInactiveSpan').mockReturnValue(ignoredSpan);
+      vi.spyOn(coreBrowser, 'startInactiveSpan').mockReturnValue(ignoredSpan);
       const getTraceDataSpy = vi.spyOn(utils, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       });

@@ -4,7 +4,6 @@ import {
   isObjectLike,
   captureException,
   debug,
-  flushIfServerless,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -14,6 +13,7 @@ import {
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { Driver, Storage } from 'unstorage';
 
 /**

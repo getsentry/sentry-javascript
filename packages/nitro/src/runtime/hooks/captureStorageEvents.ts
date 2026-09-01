@@ -2,7 +2,6 @@ import * as dc from 'node:diagnostics_channel';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
-  flushIfServerless,
   GLOBAL_OBJ,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
@@ -10,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import type { TraceContext } from 'unstorage/tracing';
 

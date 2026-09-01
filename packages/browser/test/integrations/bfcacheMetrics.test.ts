@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { debug } from '@sentry/core/browser';
+import { debug } from '@sentry/core';
 import { _collectNotRestoredReasons, _resolveMaxReasons } from '../../src/integrations/bfcacheMetrics';
 
 describe('bfcacheMetricsIntegration', () => {

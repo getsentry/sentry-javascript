@@ -1,7 +1,8 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
+import { debug, escapeStringForRegex, parseSemver } from '@sentry/core';
+import { loadModule } from '@sentry/core/server';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';

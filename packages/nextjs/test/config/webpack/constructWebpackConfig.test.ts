@@ -1,6 +1,6 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
-import * as core from '@sentry/core';
+import * as coreServer from '@sentry/core/server';
 import { describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import {
@@ -24,7 +24,7 @@ vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -62,7 +62,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -116,7 +116,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -142,7 +142,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when disabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -168,7 +168,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('passes useRunAfterProductionCompileHook as undefined when not specified', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -230,7 +230,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('uses `hidden-source-map` as `devtool` value for client-side builds', async () => {
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -294,7 +294,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   describe('treeshaking flags', () => {
     it('does not add DefinePlugin when treeshake option is not set', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -322,7 +322,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('does not add DefinePlugin when treeshake option is empty object', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -354,7 +354,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_DEBUG__ flag when debugLogging is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -382,7 +382,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_TRACING__ flag when tracing is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -410,7 +410,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __RRWEB_EXCLUDE_IFRAME__ flag when excludeReplayIframe is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -439,7 +439,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __RRWEB_EXCLUDE_SHADOW_DOM__ flag when excludeReplayShadowDOM is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -468,7 +468,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_EXCLUDE_REPLAY_WORKER__ flag when excludeReplayCompressionWorker is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -498,7 +498,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds all flags when all treeshake options are enabled', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -544,7 +544,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('does not add flags when treeshake options are false', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -582,7 +582,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('works for client builds', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -617,7 +617,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('works for edge builds', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -653,7 +653,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('only adds flags for enabled options', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),

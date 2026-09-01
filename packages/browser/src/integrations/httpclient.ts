@@ -1,4 +1,4 @@
-import type { Client, Event as SentryEvent, IntegrationFn } from '@sentry/core/browser';
+import type { Client, Event as SentryEvent, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_filterCookies,
   _INTERNAL_filterKeyValueData,
@@ -10,7 +10,7 @@ import {
   getClient,
   GLOBAL_OBJ,
   isSentryRequestUrl,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { SentryWrappedXMLHttpRequest } from '@sentry/browser-utils';
 import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';

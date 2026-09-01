@@ -1,4 +1,4 @@
-import type { Client, Integration, Options } from '@sentry/core/browser';
+import type { Client, Integration, Options } from '@sentry/core';
 import {
   conversationIdIntegration,
   dedupeIntegration,
@@ -8,7 +8,7 @@ import {
   initAndBind,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';

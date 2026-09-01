@@ -4,8 +4,6 @@ import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
   addBreadcrumb,
   getClient,
   hasSpanStreamingEnabled,
@@ -13,6 +11,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API

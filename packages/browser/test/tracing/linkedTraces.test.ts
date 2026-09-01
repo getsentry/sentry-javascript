@@ -1,4 +1,4 @@
-import type { PropagationContext, Span } from '@sentry/core/browser';
+import type { PropagationContext, Span } from '@sentry/core';
 import {
   addChildSpanToSpan,
   debug,
@@ -6,7 +6,7 @@ import {
   SentrySpan,
   spanToJSON,
   timestampInSeconds,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
 import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';

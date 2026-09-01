@@ -4,11 +4,11 @@ import { URL_FULL } from '@sentry/conventions/attributes';
 import {
   defineIntegration,
   getClient,
-  getRequestUrlFromClientRequest,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   stripDataUrlContent,
 } from '@sentry/core';
+import { getRequestUrlFromClientRequest } from '@sentry/core/server';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';

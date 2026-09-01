@@ -12,8 +12,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   stripDataUrlContent,
   filterCollectedUrl,
-  startInactiveSpan,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import { WINDOW } from '../helpers';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
